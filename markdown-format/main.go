@@ -51,7 +51,7 @@ func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
 			w.Write([]byte("#"))
 		}
 		w.Write([]byte(" "))
-		
+
 		// Write heading content
 		return writeInlineContent(n, source, w, false)
 
@@ -83,11 +83,11 @@ func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
 			w.Write([]byte("\n"))
 		}
 		return nil
-	
+
 	case *ast.ListItem:
 		// This should be handled by the List case above, but just in case
 		return nil
-	
+
 	case *ast.TextBlock:
 		// TextBlock is used in lists, should be handled by writeListItemContent
 		// But if we encounter it directly, treat it like a paragraph
@@ -100,7 +100,7 @@ func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
 			w.Write(n.Language(source))
 		}
 		w.Write([]byte("\n"))
-		
+
 		lines := n.Lines()
 		for i := 0; i < lines.Len(); i++ {
 			line := lines.At(i)
@@ -128,7 +128,7 @@ func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
 				return err
 			}
 		}
-		
+
 		// Add > prefix to each line
 		lines := strings.Split(strings.TrimRight(buf.String(), "\n"), "\n")
 		for _, line := range lines {
@@ -157,7 +157,7 @@ func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
 // writeListItemContent writes the content of a list item with proper sentence splitting
 func writeListItemContent(item *ast.ListItem, source []byte, w io.Writer) error {
 	var buf bytes.Buffer
-	
+
 	// Collect all content from the list item
 	for child := item.FirstChild(); child != nil; child = child.NextSibling() {
 		switch child.(type) {
@@ -174,12 +174,12 @@ func writeListItemContent(item *ast.ListItem, source []byte, w io.Writer) error 
 			}
 		}
 	}
-	
+
 	text := strings.TrimSpace(buf.String())
-	
+
 	// Split into sentences
 	sentences := splitIntoSentences(text)
-	
+
 	for i, sentence := range sentences {
 		sentence = strings.TrimSpace(sentence)
 		if sentence != "" {
@@ -190,21 +190,21 @@ func writeListItemContent(item *ast.ListItem, source []byte, w io.Writer) error 
 			w.Write([]byte("\n"))
 		}
 	}
-	
+
 	return nil
 }
 
 // writeInlineContent writes inline content (text, emphasis, links, etc.)
 func writeInlineContent(node ast.Node, source []byte, w io.Writer, splitSentences bool) error {
 	var buf bytes.Buffer
-	
+
 	// Collect all inline content
 	if err := collectInlineText(node, source, &buf); err != nil {
 		return err
 	}
 
 	text := buf.String()
-	
+
 	if splitSentences {
 		// Split into sentences
 		sentences := splitIntoSentences(text)
@@ -296,10 +296,10 @@ func collectInlineText(node ast.Node, source []byte, buf *bytes.Buffer) error {
 func splitIntoSentences(text string) []string {
 	// Replace sentence boundaries with a special marker
 	text = sentenceBoundaryRegex.ReplaceAllString(text, "$1\n\n")
-	
+
 	// Split by the marker
 	parts := strings.Split(text, "\n\n")
-	
+
 	var sentences []string
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
@@ -307,7 +307,7 @@ func splitIntoSentences(text string) []string {
 			sentences = append(sentences, part)
 		}
 	}
-	
+
 	return sentences
 }
 

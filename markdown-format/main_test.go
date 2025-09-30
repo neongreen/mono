@@ -47,12 +47,12 @@ This is text.
 `,
 		},
 		{
-			name: "fenced code block",
-			input: "```go\nfunc main() {}\n```",
+			name:     "fenced code block",
+			input:    "```go\nfunc main() {}\n```",
 			expected: "```go\nfunc main() {}\n```\n\n",
 		},
 		{
-			name: "inline code",
+			name:  "inline code",
 			input: "This has `inline code` in it.",
 			expected: `This has ` + "`inline code`" + ` in it.
 `,
@@ -70,7 +70,7 @@ This is text.
 `,
 		},
 		{
-			name: "blockquote",
+			name:  "blockquote",
 			input: `> This is a quote.`,
 			expected: `> This is a quote.
 
@@ -94,7 +94,7 @@ This is text.
 			if err != nil {
 				t.Fatalf("formatMarkdown() error = %v", err)
 			}
-			
+
 			got := string(output)
 			if got != tt.expected {
 				t.Errorf("formatMarkdown() mismatch\nGot:\n%q\nExpected:\n%q", got, tt.expected)
