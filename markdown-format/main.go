@@ -67,12 +67,12 @@ func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
 		itemNum := n.Start
 		for child := n.FirstChild(); child != nil; child = child.NextSibling() {
 			if listItem, ok := child.(*ast.ListItem); ok {
-				// Write list marker
+				// Write list marker, preserving the original marker type
 				if n.IsOrdered() {
-					fmt.Fprintf(w, "%d. ", itemNum)
+					fmt.Fprintf(w, "%d%c ", itemNum, n.Marker)
 					itemNum++
 				} else {
-					w.Write([]byte("- "))
+					fmt.Fprintf(w, "%c ", n.Marker)
 				}
 
 				// Write list item content

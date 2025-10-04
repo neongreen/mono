@@ -13,6 +13,11 @@ A Go-based markdown formatter that reformats markdown files with one sentence pe
   - Blockquotes
   - Inline formatting (bold, italic, links, images, inline code)
   - Horizontal rules
+- **Preserves original formatting choices:**
+  - List markers (-, *, +)
+  - Ordered list delimiters (., ))
+  - Link and image titles
+  - Code fence languages
 
 ## Why one sentence per line?
 
@@ -87,6 +92,29 @@ This is a paragraph.
 It has multiple sentences.
 Let's format it!
 ```
+
+## Formatting Preservation
+
+### What is preserved
+
+markdown-format preserves most of your original markdown formatting:
+- ✅ List markers (-, *, +) - each marker type is preserved
+- ✅ Ordered list delimiters (., )) - both `1.` and `1)` styles are preserved
+- ✅ Link and image titles
+- ✅ Code fence languages
+- ✅ Inline formatting styles (bold, italic, code, links)
+- ✅ All markdown structure (headings, lists, blockquotes, code blocks, etc.)
+
+### What is normalized
+
+Some formatting details are normalized to canonical forms:
+- ⚠️ Thematic breaks (horizontal rules) are normalized to `---`
+- ⚠️ Setext-style headings are converted to ATX-style (`#` prefixes)
+- ⚠️ Emphasis markers may be normalized (both `*` and `_` work, but output may vary)
+
+This is due to the limitations of AST-based markdown parsers. No standard CommonMark parser provides truly lossless roundtrip because the CommonMark specification allows multiple valid syntaxes for the same output, and parsers normalize to canonical forms.
+
+**The primary goal** of this tool is to format with one sentence per line while preserving the most important formatting choices. The normalized items above are edge cases that don't affect the readability or structure of your documents.
 
 ## Integration with Formatting Tools
 
