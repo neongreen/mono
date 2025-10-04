@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+    <marker id="arrowhead-00acc1" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#00acc1" />
+    </marker>
+    <marker id="arrowhead-fb8c00" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#fb8c00" />
+    </marker>
+  </defs>
+  <rect width="800" height="600" fill="white"/>
+    <text x="246" y="69.66666666666667" font-size="32" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Simple Flowchart</text>
+    <rect x="300" y="98" width="200" height="80" fill="#e0f7fa" stroke="#00acc1" stroke-width="2" rx="8" />
+      <text x="330" y="143.5" font-size="18" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Start Process</text>
+    <rect x="300" y="198" width="200" height="80" fill="#fff3e0" stroke="#fb8c00" stroke-width="2" rx="8" />
+      <text x="335" y="243.5" font-size="18" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Process Data</text>
+    <rect x="300" y="298" width="200" height="80" fill="#f1f8e9" stroke="#7cb342" stroke-width="2" rx="8" />
+      <text x="341" y="343.5" font-size="18" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">End Process</text>
+  <line x1="400" y1="138" x2="400" y2="198" stroke="#00acc1" stroke-width="2" marker-end="url(#arrowhead-00acc1)" />
+  <line x1="400" y1="238" x2="400" y2="298" stroke="#fb8c00" stroke-width="2" marker-end="url(#arrowhead-fb8c00)" />
+</svg>
