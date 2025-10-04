@@ -166,18 +166,6 @@ The project uses [github.com/google/go-cmp](https://github.com/google/go-cmp) fo
 4. **Add edge cases** - Consider boundary conditions (e.g., double-digit list numbers)
 5. **Test real-world scenarios** - Include complex documents that combine multiple features
 
-## Backward Compatibility
-
-The existing inline tests in `main_test.go` are maintained for backward compatibility:
-- `TestFormatMarkdown` - Basic formatting tests
-- `TestSplitIntoSentences` - Sentence splitting logic
-- `TestNestedElements` - Nested structure handling
-- `TestLargeOrderedList` - List numbering
-- `TestComplexNestedStructures` - Complex document structures
-- `TestListMarkerPreservation` - Marker preservation logic
-
-These tests ensure that refactoring doesn't break existing functionality.
-
 ## Statistics
 
 - **26 file-based test cases** (52 files: input + output pairs)
