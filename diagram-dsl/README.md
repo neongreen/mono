@@ -237,6 +237,48 @@ async function renderToSVG(
 ): Promise<string>
 ```
 
+### renderToSVGWithLayout(element, options)
+
+Renders to SVG and returns computed layout data for testing.
+
+```typescript
+async function renderToSVGWithLayout(
+  element: ReactElement,
+  options?: RenderOptions
+): Promise<{
+  svg: string;
+  layout: LayoutNode;  // Computed layout tree with positions
+}>
+```
+
+### Layout Testing
+
+```typescript
+import { LayoutAssertions } from 'diagram-dsl';
+
+const { layout } = await renderToSVGWithLayout(<MyDiagram />);
+const assertions = new LayoutAssertions(layout);
+
+// Verify layout properties
+assertions.assertCentered('text', 'box');
+assertions.assertFitsInside('text', 'box', 20);
+assertions.assertGap('box1', 'box2', 10);
+assertions.assertNoOverlap('box1', 'box2');
+```
+
+Run tests: `npm test` - 14 tests total (7 SVG + 7 layout)
+
+## Text Measurement
+
+Uses the `canvas` package for accurate text measurement instead of estimates. This ensures text is properly sized and positioned within containers.
+
+```typescript
+import { measureText } from 'diagram-dsl';
+
+const metrics = measureText('Hello', 24, 'Arial', 'bold');
+// Returns: { width: 102, height: 17 }
+```
+
 ## Why Yoga?
 
 [Yoga](https://yogalayout.dev/) is Meta's cross-platform layout engine implementing CSS Flexbox. It's battle-tested, used by React Native, and provides predictable layouts without manual calculations.

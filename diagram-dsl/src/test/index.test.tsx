@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Stack, Text, Row, Column, Arrow, renderToSVG } from '../index';
+import { runLayoutTests } from './layout-tests';
 
 async function runTests() {
   console.log('Running diagram-dsl tests...\n');
@@ -162,14 +163,22 @@ async function runTests() {
 
   // Summary
   console.log(`\n${'='.repeat(50)}`);
-  console.log(`Tests passed: ${passed}`);
-  console.log(`Tests failed: ${failed}`);
+  console.log(`SVG rendering tests passed: ${passed}`);
+  console.log(`SVG rendering tests failed: ${failed}`);
   console.log(`Total: ${passed + failed}`);
   console.log('='.repeat(50));
 
-  if (failed > 0) {
+  return failed === 0;
+}
+
+async function runAllTests() {
+  const svgTestsPass = await runTests();
+  console.log('\n');
+  const layoutTestsPass = await runLayoutTests();
+  
+  if (!svgTestsPass || !layoutTestsPass) {
     process.exit(1);
   }
 }
 
-runTests();
+runAllTests();

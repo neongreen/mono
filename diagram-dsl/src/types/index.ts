@@ -53,6 +53,7 @@ export interface TextProps extends LayoutProps {
   color?: string;
   fontWeight?: 'normal' | 'bold';
   textAlign?: 'left' | 'center' | 'right';
+  id?: string;
 }
 
 export interface ArrowProps {

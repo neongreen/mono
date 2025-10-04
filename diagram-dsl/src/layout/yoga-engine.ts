@@ -1,4 +1,5 @@
 import { LayoutNode, LayoutProps, AlignmentProps, PositionProps } from '../types';
+import { measureText } from './text-measurement';
 
 let yogaInstance: any = null;
 
@@ -44,19 +45,25 @@ export class YogaLayoutEngine {
     if (props.width !== undefined && props.width !== 'auto') {
       yogaNode.setWidth(props.width);
     } else if (node.type === 'Text') {
-      // Estimate text width based on font size and character count
+      // Use accurate text measurement with canvas
       const text = props.children || '';
       const fontSize = props.fontSize || 16;
-      const estimatedWidth = text.length * fontSize * 0.6;
-      yogaNode.setWidth(estimatedWidth);
+      const fontFamily = props.fontFamily || 'Arial, sans-serif';
+      const fontWeight = props.fontWeight || 'normal';
+      const metrics = measureText(text, fontSize, fontFamily, fontWeight);
+      yogaNode.setWidth(metrics.width);
     }
     
     if (props.height !== undefined && props.height !== 'auto') {
       yogaNode.setHeight(props.height);
     } else if (node.type === 'Text') {
-      // Use font size as height
+      // Use accurate text measurement with canvas
+      const text = props.children || '';
       const fontSize = props.fontSize || 16;
-      yogaNode.setHeight(fontSize * 1.2);
+      const fontFamily = props.fontFamily || 'Arial, sans-serif';
+      const fontWeight = props.fontWeight || 'normal';
+      const metrics = measureText(text, fontSize, fontFamily, fontWeight);
+      yogaNode.setHeight(metrics.height);
     }
     if (props.minWidth !== undefined) {
       yogaNode.setMinWidth(props.minWidth);

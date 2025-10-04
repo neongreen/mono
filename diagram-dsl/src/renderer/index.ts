@@ -3,7 +3,17 @@ import { LayoutNode } from '../types';
 import { YogaLayoutEngine } from '../layout/yoga-engine';
 import { SVGRenderer, RenderOptions } from './svg-renderer';
 
+export interface RenderResult {
+  svg: string;
+  layout: LayoutNode;
+}
+
 export async function renderToSVG(element: ReactElement, options: RenderOptions = {}): Promise<string> {
+  const result = await renderToSVGWithLayout(element, options);
+  return result.svg;
+}
+
+export async function renderToSVGWithLayout(element: ReactElement, options: RenderOptions = {}): Promise<RenderResult> {
   // Convert React element tree to layout tree
   const layoutTree = elementToLayoutNode(element);
   
@@ -13,7 +23,12 @@ export async function renderToSVG(element: ReactElement, options: RenderOptions 
   
   // Render to SVG
   const svgRenderer = new SVGRenderer();
-  return svgRenderer.renderWithArrowMarkers(computedTree, options);
+  const svg = svgRenderer.renderWithArrowMarkers(computedTree, options);
+  
+  return {
+    svg,
+    layout: computedTree
+  };
 }
 
 function elementToLayoutNode(element: any): LayoutNode {

@@ -5,7 +5,12 @@ export { Column } from './components/Column';
 export { Text } from './components/Text';
 export { Arrow } from './components/Arrow';
 
-export { renderToSVG } from './renderer';
+export { renderToSVG, renderToSVGWithLayout } from './renderer';
+export type { RenderResult } from './renderer';
+
+export { LayoutAssertions } from './test/layout-assertions';
+export { measureText } from './layout/text-measurement';
+export type { TextMetrics } from './layout/text-measurement';
 
 export type {
   LayoutProps,
