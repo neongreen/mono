@@ -159,38 +159,61 @@ func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
 
 // writeListItemContent writes the content of a list item with proper sentence splitting
 func writeListItemContent(item *ast.ListItem, source []byte, w io.Writer) error {
-	var buf bytes.Buffer
+	var textBuf bytes.Buffer
+	var hasText bool
 
-	// Collect all content from the list item
+	// First pass: collect text content from paragraphs/text blocks
 	for child := item.FirstChild(); child != nil; child = child.NextSibling() {
 		switch child.(type) {
 		case *ast.Paragraph, *ast.TextBlock:
 			// For paragraphs and text blocks in list items, collect inline text
-			if err := collectInlineText(child, source, &buf); err != nil {
+			if err := collectInlineText(child, source, &textBuf); err != nil {
 				return err
 			}
-		default:
-			// For other types (nested lists, code blocks, etc.), format them separately
-			// This is simplified - in a full implementation we'd handle indentation
-			if err := walkAndFormat(child, source, &buf, 1); err != nil {
-				return err
+			hasText = true
+		}
+	}
+
+	// Split text into sentences and write them
+	if hasText {
+		text := strings.TrimSpace(textBuf.String())
+		sentences := splitIntoSentences(text)
+
+		for i, sentence := range sentences {
+			sentence = strings.TrimSpace(sentence)
+			if sentence != "" {
+				if i > 0 {
+					w.Write([]byte("  ")) // Indent continuation lines
+				}
+				w.Write([]byte(sentence))
+				w.Write([]byte("\n"))
 			}
 		}
 	}
 
-	text := strings.TrimSpace(buf.String())
-
-	// Split into sentences
-	sentences := splitIntoSentences(text)
-
-	for i, sentence := range sentences {
-		sentence = strings.TrimSpace(sentence)
-		if sentence != "" {
-			if i > 0 {
-				w.Write([]byte("  ")) // Indent continuation lines
+	// Second pass: handle nested structures (lists, code blocks, etc.)
+	for child := item.FirstChild(); child != nil; child = child.NextSibling() {
+		switch child.(type) {
+		case *ast.Paragraph, *ast.TextBlock:
+			// Already handled above
+			continue
+		default:
+			// For nested lists, code blocks, etc., format with indentation
+			var nestedBuf bytes.Buffer
+			if err := walkAndFormat(child, source, &nestedBuf, 1); err != nil {
+				return err
 			}
-			w.Write([]byte(sentence))
-			w.Write([]byte("\n"))
+			
+			// Add indentation to each line of nested content
+			nestedContent := nestedBuf.String()
+			if strings.TrimSpace(nestedContent) != "" {
+				lines := strings.Split(strings.TrimRight(nestedContent, "\n"), "\n")
+				for _, line := range lines {
+					w.Write([]byte("  ")) // Indent nested content
+					w.Write([]byte(line))
+					w.Write([]byte("\n"))
+				}
+			}
 		}
 	}
 
