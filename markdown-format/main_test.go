@@ -597,3 +597,89 @@ That's all!
 		})
 	}
 }
+
+func TestListMarkerPreservation(t *testing.T) {
+tests := []struct {
+name     string
+input    string
+expected string
+}{
+{
+name: "preserve dash marker",
+input: `- Item 1
+- Item 2`,
+expected: `- Item 1
+- Item 2
+`,
+},
+{
+name: "preserve asterisk marker",
+input: `* Item 1
+* Item 2`,
+expected: `* Item 1
+* Item 2
+`,
+},
+{
+name: "preserve plus marker",
+input: `+ Item 1
++ Item 2`,
+expected: `+ Item 1
++ Item 2
+`,
+},
+{
+name: "preserve ordered list with dot",
+input: `1. First
+2. Second`,
+expected: `1. First
+2. Second
+`,
+},
+{
+name: "preserve ordered list with paren",
+input: `1) First
+2) Second`,
+expected: `1) First
+2) Second
+`,
+},
+{
+name: "mixed markers create separate lists",
+input: `- Dash item
+
+* Asterisk item
+
++ Plus item`,
+expected: `- Dash item
+
+* Asterisk item
+
++ Plus item
+`,
+},
+{
+name: "list with multiple sentences preserves marker",
+input: `* First item with sentence. Another sentence here.
+* Second item`,
+expected: `* First item with sentence.
+  Another sentence here.
+* Second item
+`,
+},
+}
+
+for _, tt := range tests {
+t.Run(tt.name, func(t *testing.T) {
+output, err := formatMarkdown([]byte(tt.input))
+if err != nil {
+t.Fatalf("formatMarkdown() error = %v", err)
+}
+
+got := string(output)
+if got != tt.expected {
+t.Errorf("formatMarkdown() mismatch\nGot:\n%q\nExpected:\n%q", got, tt.expected)
+}
+})
+}
+}
