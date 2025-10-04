@@ -12,8 +12,7 @@ This makes git diffs easier to read.
 - Nested item two with more details
 - Third item with more text.
   And even more!
-- Items can use abbreviations, e.g.
-  this one.
+- Items can use abbreviations, e.g. this one.
   They should be handled correctly.
 
 ## Code Example

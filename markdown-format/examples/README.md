@@ -6,9 +6,8 @@ This directory contains example configurations and files for integrating markdow
 
 - `treefmt.toml` - Example configuration for treefmt
 - `dprint.json` - Example configuration for dprint
-- `sample-input.md` - Sample markdown file before formatting (includes nested lists and abbreviations)
+- `sample-input.md` - Sample markdown file before formatting
 - `sample-output.md` - Sample markdown file after formatting with markdown-format
-- `markdown-format-inplace.sh` - (Deprecated) Legacy wrapper script, no longer needed
 
 ## Testing the Integration
 

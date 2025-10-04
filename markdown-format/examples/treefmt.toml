@@ -2,11 +2,7 @@
 # Place this file in your project root as treefmt.toml
 
 [formatter.markdown-format]
-# Command to run (assumes markdown-format is in PATH)
 command = "markdown-format"
-# No options needed - formats in-place by default
 options = []
-# Format all markdown files
 includes = ["*.md"]
-# Optionally exclude certain files
 excludes = []
