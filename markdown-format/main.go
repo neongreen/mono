@@ -312,39 +312,79 @@ func splitIntoSentences(text string) []string {
 }
 
 func main() {
+	writeFlag := flag.Bool("w", false, "write result to source file instead of stdout")
 	flag.Parse()
 
 	args := flag.Args()
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: markdown-format <file>")
-		fmt.Fprintln(os.Stderr, "       or pipe input via stdin")
+		fmt.Fprintln(os.Stderr, "Usage: markdown-format [-w] <file> [<file> ...]")
+		fmt.Fprintln(os.Stderr, "       markdown-format -")
+		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(os.Stderr, "Options:")
+		fmt.Fprintln(os.Stderr, "  -w    write result to source file(s) instead of stdout")
 		os.Exit(1)
 	}
 
-	var input []byte
-	var err error
-
+	// Handle stdin
 	if args[0] == "-" {
-		// Read from stdin
-		input, err = io.ReadAll(os.Stdin)
+		if *writeFlag {
+			fmt.Fprintln(os.Stderr, "Error: -w flag cannot be used with stdin")
+			os.Exit(1)
+		}
+		if len(args) > 1 {
+			fmt.Fprintln(os.Stderr, "Error: cannot specify files when reading from stdin")
+			os.Exit(1)
+		}
+		input, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
 			os.Exit(1)
 		}
+		output, err := formatMarkdown(input)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error formatting markdown: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Print(string(output))
+		return
+	}
+
+	// Handle file(s)
+	if *writeFlag {
+		// Format multiple files in place
+		for _, filename := range args {
+			input, err := os.ReadFile(filename)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", filename, err)
+				os.Exit(1)
+			}
+			output, err := formatMarkdown(input)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error formatting %s: %v\n", filename, err)
+				os.Exit(1)
+			}
+			err = os.WriteFile(filename, output, 0644)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error writing file %s: %v\n", filename, err)
+				os.Exit(1)
+			}
+		}
 	} else {
-		// Read from file
-		input, err = os.ReadFile(args[0])
+		// Format single file to stdout
+		if len(args) > 1 {
+			fmt.Fprintln(os.Stderr, "Error: can only format one file to stdout (or use -w for multiple files)")
+			os.Exit(1)
+		}
+		input, err := os.ReadFile(args[0])
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 			os.Exit(1)
 		}
+		output, err := formatMarkdown(input)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error formatting markdown: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Print(string(output))
 	}
-
-	output, err := formatMarkdown(input)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error formatting markdown: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Print(string(output))
 }

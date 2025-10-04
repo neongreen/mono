@@ -23,22 +23,51 @@ Formatting markdown with one sentence per line makes it easier to:
 
 ## Installation
 
+### With Go
+
 ```bash
 go build
 ```
 
-## Usage
+### With mise
 
-Format a markdown file:
+Install using [mise](https://mise.jdx.dev/) with the Go backend:
 
 ```bash
-./markdown-format input.md > output.md
+mise use -g go:github.com/neongreen/mono/markdown-format@main
+```
+
+Or add to your `.mise.toml`:
+
+```toml
+[tools]
+"go:github.com/neongreen/mono/markdown-format" = "main"
+```
+
+## Usage
+
+Format a markdown file to stdout:
+
+```bash
+./markdown-format input.md
+```
+
+Format a file in place:
+
+```bash
+./markdown-format -w input.md
+```
+
+Format multiple files in place:
+
+```bash
+./markdown-format -w file1.md file2.md file3.md
 ```
 
 Read from stdin:
 
 ```bash
-cat input.md | ./markdown-format - > output.md
+cat input.md | ./markdown-format -
 ```
 
 ## Example
@@ -67,41 +96,16 @@ See the [examples/](examples/) directory for complete configuration files and sa
 
 [treefmt](https://github.com/numtide/treefmt) is a universal code formatter that runs multiple formatters with one command.
 
-To integrate markdown-format with treefmt, you'll need to create a wrapper script since markdown-format outputs to stdout rather than formatting files in place.
-
-1. Create a wrapper script (e.g., `markdown-format-inplace.sh`):
-
-```bash
-#!/bin/bash
-# Wrapper script to make markdown-format work in-place for treefmt
-
-MARKDOWN_FORMAT="./markdown-format/markdown-format"
-
-for file in "$@"; do
-    if [ -f "$file" ]; then
-        temp_file=$(mktemp)
-        "$MARKDOWN_FORMAT" "$file" > "$temp_file"
-        mv "$temp_file" "$file"
-    fi
-done
-```
-
-2. Make the wrapper script executable:
-
-```bash
-chmod +x markdown-format-inplace.sh
-```
-
-3. Add to your `treefmt.toml`:
+Add to your `treefmt.toml`:
 
 ```toml
 [formatter.markdown-format]
-command = "./markdown-format-inplace.sh"
-options = []
+command = "markdown-format"
+options = ["-w"]
 includes = ["*.md"]
 ```
 
-4. Run treefmt:
+Then run:
 
 ```bash
 treefmt

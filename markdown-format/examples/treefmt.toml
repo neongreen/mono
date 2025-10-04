@@ -2,10 +2,10 @@
 # Place this file in your project root as treefmt.toml
 
 [formatter.markdown-format]
-# Path to the wrapper script that formats files in-place
-command = "./markdown-format-inplace.sh"
-# No additional options needed
-options = []
+# Command to run (assumes markdown-format is in PATH)
+command = "markdown-format"
+# Use -w flag for in-place formatting
+options = ["-w"]
 # Format all markdown files
 includes = ["*.md"]
 # Optionally exclude certain files

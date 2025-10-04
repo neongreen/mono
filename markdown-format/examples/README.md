@@ -5,18 +5,18 @@ This directory contains example configurations and files for integrating markdow
 ## Files
 
 - `treefmt.toml` - Example configuration for treefmt
-- `markdown-format-inplace.sh` - Wrapper script for treefmt integration (makes markdown-format work in-place)
 - `dprint.json` - Example configuration for dprint
 - `sample-input.md` - Sample markdown file before formatting
 - `sample-output.md` - Sample markdown file after formatting with markdown-format
+- `markdown-format-inplace.sh` - (Deprecated) Legacy wrapper script, no longer needed with `-w` flag
 
 ## Testing the Integration
 
 ### With treefmt
 
 1. Install treefmt (https://github.com/numtide/treefmt)
-2. Copy `treefmt.toml` and `markdown-format-inplace.sh` to your project root
-3. Update the path in `markdown-format-inplace.sh` to point to your markdown-format binary
+2. Copy `treefmt.toml` to your project root
+3. Ensure `markdown-format` is in your PATH or update the `command` in `treefmt.toml`
 4. Run `treefmt` to format all markdown files
 
 ### With dprint
