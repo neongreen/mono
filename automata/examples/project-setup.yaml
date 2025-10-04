@@ -1,0 +1,72 @@
+# Project Setup
+# Bootstrap a specific development project with all dependencies
+
+version: 1
+
+resources:
+  # Ensure project directory exists and is a git repo
+  - type: git_repo
+    name: webapp-project
+    path: ~/projects/webapp
+    remote: https://github.com/company/webapp.git
+    branch: main
+  
+  # Install project dependencies
+  - type: package
+    name: node
+    provider: homebrew
+    
+  - type: package
+    name: postgresql@15
+    provider: homebrew
+    
+  - type: package
+    name: redis
+    provider: homebrew
+  
+  # Install Go tools
+  - type: package
+    name: golang.org/x/tools/gopls
+    provider: go
+    
+  - type: package
+    name: github.com/golangci/golangci-lint/cmd/golangci-lint
+    provider: go
+  
+  # Project-specific directories
+  - type: file
+    path: ~/projects/webapp/data
+    state: directory
+    
+  - type: file
+    path: ~/projects/webapp/logs
+    state: directory
+  
+  # Environment configuration
+  - type: file
+    path: ~/projects/webapp/.env
+    state: present
+    content: |
+      DATABASE_URL=postgresql://localhost:5432/webapp_dev
+      REDIS_URL=redis://localhost:6379
+      PORT=3000
+      NODE_ENV=development
+  
+  # Secrets needed for the project
+  - type: secret
+    name: STRIPE_API_KEY
+    store: file
+    path: ~/projects/webapp/.secrets/stripe
+    prompt: "Get your Stripe test API key"
+    url: https://dashboard.stripe.com/test/apikeys
+    
+  - type: secret
+    name: AWS_ACCESS_KEY_ID
+    store: env
+    prompt: "Get your AWS access key from IAM"
+    url: https://console.aws.amazon.com/iam/home#/security_credentials
+    
+  - type: secret
+    name: AWS_SECRET_ACCESS_KEY
+    store: env
+    prompt: "Get your AWS secret key from IAM (same page as access key)"

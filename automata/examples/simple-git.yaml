@@ -1,0 +1,20 @@
+# Simple Git Repository Setup
+# Minimal example showing git repository management
+
+version: 1
+
+resources:
+  # Ensure git is installed
+  # If Homebrew is not available, automata will offer to install it first
+  - type: package
+    name: git
+  
+  # Ensure a directory is a git repository
+  - type: git_repo
+    path: ~/projects/my-notes
+    
+  # Another repository with remote configured
+  - type: git_repo
+    path: ~/projects/blog
+    remote: https://github.com/user/blog.git
+    branch: main

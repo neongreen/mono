@@ -1,0 +1,80 @@
+# Personal Machine Setup
+# This configuration sets up a development machine with common tools and projects
+
+version: 1
+
+resources:
+  # Core development tools
+  - type: package
+    name: git
+    provider: homebrew
+    
+  - type: package
+    name: gh  # GitHub CLI
+    provider: homebrew
+    
+  - type: package
+    name: jq
+    provider: homebrew
+    
+  - type: package
+    name: ripgrep
+    provider: homebrew
+  
+  # Programming languages and tools
+  - type: package
+    name: go
+    provider: homebrew
+    version: ">=1.21"
+    
+  - type: package
+    name: node
+    provider: homebrew
+    
+  - type: package
+    name: python@3.11
+    provider: homebrew
+  
+  # Personal projects
+  - type: git_repo
+    name: dotfiles
+    path: ~/.dotfiles
+    remote: https://github.com/user/dotfiles.git
+    
+  - type: git_repo
+    name: notes
+    path: ~/Documents/notes
+    remote: https://github.com/user/notes.git
+  
+  # Development directories
+  - type: file
+    path: ~/projects
+    state: directory
+    
+  - type: file
+    path: ~/go/src
+    state: directory
+  
+  # API keys and secrets
+  - type: secret
+    name: GITHUB_TOKEN
+    store: env
+    prompt: "Create a Personal Access Token with repo and workflow scopes"
+    url: https://github.com/settings/tokens
+    
+  - type: secret
+    name: OPENAI_API_KEY
+    store: env
+    prompt: "Get your API key from OpenAI"
+    url: https://platform.openai.com/api-keys
+  
+  # Shell configuration
+  - type: file
+    path: ~/.zshrc
+    state: present
+    source: ~/.dotfiles/zshrc
+    
+  - type: file
+    path: ~/.gitconfig
+    state: present
+    source: ~/.dotfiles/gitconfig
