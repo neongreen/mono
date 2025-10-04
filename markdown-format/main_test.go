@@ -87,7 +87,7 @@ This is text.
 `,
 		},
 		{
-			name: "abbreviation in sentence",
+			name:  "abbreviation in sentence",
 			input: `Items can use abbreviations, e.g. this one. They should be handled correctly.`,
 			expected: `Items can use abbreviations, e.g. this one.
 They should be handled correctly.
@@ -185,7 +185,8 @@ func TestNestedElements(t *testing.T) {
 - Third item`,
 			expected: `- First item with text.
   Another sentence.
-- Second item with code:` + "```go\nfunc main() {}\n```\n" + `- Third item
+- Second item with code:
+  ` + "```go\n  func main() {}\n  ```\n" + `- Third item
 `,
 		},
 		{
@@ -195,9 +196,10 @@ func TestNestedElements(t *testing.T) {
   - Nested item two. With text.
 - Outer item two`,
 			expected: `- Outer item one.
-  With a sentence.- Nested item one
-- Nested item two.
-  With text.
+  With a sentence.
+  - Nested item one
+  - Nested item two.
+    With text.
 - Outer item two
 `,
 		},
@@ -240,7 +242,7 @@ func TestNestedElements(t *testing.T) {
 `,
 		},
 		{
-			name: "code block in blockquote",
+			name:  "code block in blockquote",
 			input: "> Here's code:\n>\n> ```python\n> def test():\n>     pass\n> ```",
 			expected: `> Here's code:
 > 
@@ -488,9 +490,10 @@ func TestComplexNestedStructures(t *testing.T) {
 2. Second ordered item. Another sentence!
 3. Third ordered item`,
 			expected: `1. First ordered item.
-  With text.- Nested unordered one
-- Nested unordered two.
-  More here.
+  With text.
+  - Nested unordered one
+  - Nested unordered two.
+    More here.
 2. Second ordered item.
   Another sentence!
 3. Third ordered item
@@ -552,9 +555,10 @@ Another sentence.
   Details here.
 - Point two.
   More details.
-  Even more!- Nested point.
-  With text.
-- Another nested point
+  Even more!
+  - Nested point.
+    With text.
+  - Another nested point
 - Point three
 
 ## Section 2
