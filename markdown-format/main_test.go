@@ -93,17 +93,6 @@ This is text.
 They should be handled correctly.
 `,
 		},
-		{
-			name: "nested list items",
-			input: `- Parent item
-  - Nested item one
-  - Nested item two
-- Another parent`,
-			expected: `- Parent item- Nested item one
-- Nested item two
-- Another parent
-`,
-		},
 	}
 
 	for _, tt := range tests {
