@@ -41,17 +41,3 @@ export function measureText(
     height: Math.ceil(height || fontSize * 1.2) // Fallback to fontSize * 1.2 if metrics not available
   };
 }
-
-/**
- * Estimates text dimensions without canvas (fallback method)
- * Less accurate but useful for comparison
- */
-export function estimateText(
-  text: string,
-  fontSize: number = 16
-): TextMetrics {
-  return {
-    width: text.length * fontSize * 0.6,
-    height: fontSize * 1.2
-  };
-}

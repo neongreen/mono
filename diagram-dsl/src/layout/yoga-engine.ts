@@ -42,28 +42,33 @@ export class YogaLayoutEngine {
     const props = node.props;
 
     // Set dimensions
-    if (props.width !== undefined && props.width !== 'auto') {
-      yogaNode.setWidth(props.width);
-    } else if (node.type === 'Text') {
-      // Use accurate text measurement with canvas
+    if (node.type === 'Text' && (props.width === undefined || props.width === 'auto' || props.height === undefined || props.height === 'auto')) {
+      // Measure text once for both width and height
       const text = props.children || '';
       const fontSize = props.fontSize || 16;
       const fontFamily = props.fontFamily || 'Arial, sans-serif';
       const fontWeight = props.fontWeight || 'normal';
       const metrics = measureText(text, fontSize, fontFamily, fontWeight);
-      yogaNode.setWidth(metrics.width);
-    }
-    
-    if (props.height !== undefined && props.height !== 'auto') {
-      yogaNode.setHeight(props.height);
-    } else if (node.type === 'Text') {
-      // Use accurate text measurement with canvas
-      const text = props.children || '';
-      const fontSize = props.fontSize || 16;
-      const fontFamily = props.fontFamily || 'Arial, sans-serif';
-      const fontWeight = props.fontWeight || 'normal';
-      const metrics = measureText(text, fontSize, fontFamily, fontWeight);
-      yogaNode.setHeight(metrics.height);
+      
+      if (props.width === undefined || props.width === 'auto') {
+        yogaNode.setWidth(metrics.width);
+      } else {
+        yogaNode.setWidth(props.width);
+      }
+      
+      if (props.height === undefined || props.height === 'auto') {
+        yogaNode.setHeight(metrics.height);
+      } else {
+        yogaNode.setHeight(props.height);
+      }
+    } else {
+      // Non-text nodes or text with explicit dimensions
+      if (props.width !== undefined && props.width !== 'auto') {
+        yogaNode.setWidth(props.width);
+      }
+      if (props.height !== undefined && props.height !== 'auto') {
+        yogaNode.setHeight(props.height);
+      }
     }
     if (props.minWidth !== undefined) {
       yogaNode.setMinWidth(props.minWidth);
