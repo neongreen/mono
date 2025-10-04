@@ -4,9 +4,7 @@ This document explains the testing infrastructure for the markdown-format projec
 
 ## Overview
 
-The project uses a dual testing approach:
-1. **Inline tests** - Traditional Go table-driven tests embedded in `main_test.go`
-2. **File-based tests** - Separate markdown files in the `testdata/` directory
+The project uses file-based testing with golden files in the `testdata/` directory. Each test case consists of an input markdown file and an expected output file, making tests easy to read, write, and review.
 
 ## File-Based Testing
 
