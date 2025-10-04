@@ -203,7 +203,7 @@ func writeListItemContent(item *ast.ListItem, source []byte, w io.Writer) error 
 			if err := walkAndFormat(child, source, &nestedBuf, 1); err != nil {
 				return err
 			}
-			
+
 			// Add indentation to each line of nested content
 			nestedContent := nestedBuf.String()
 			if strings.TrimSpace(nestedContent) != "" {
@@ -328,7 +328,7 @@ func splitIntoSentences(text string) []string {
 		replacements[placeholder] = abbr
 		protected = strings.ReplaceAll(protected, abbr, placeholder)
 	}
-	
+
 	// Replace sentence boundaries with a special marker
 	protected = sentenceBoundaryRegex.ReplaceAllString(protected, "$1\n\n$3")
 
@@ -355,7 +355,7 @@ func main() {
 	flag.Parse()
 
 	args := flag.Args()
-	
+
 	// If no arguments, read from stdin and write to stdout
 	if len(args) == 0 {
 		input, err := io.ReadAll(os.Stdin)
@@ -385,7 +385,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error formatting %s: %v\n", filename, err)
 			os.Exit(1)
 		}
-		
+
 		if *checkFlag {
 			// Check mode: compare without modifying
 			if !bytes.Equal(input, output) {
@@ -401,7 +401,7 @@ func main() {
 			}
 		}
 	}
-	
+
 	if hasErrors {
 		os.Exit(1)
 	}

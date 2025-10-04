@@ -87,7 +87,7 @@ This is text.
 `,
 		},
 		{
-			name: "abbreviation in sentence",
+			name:  "abbreviation in sentence",
 			input: `Items can use abbreviations, e.g. this one. They should be handled correctly.`,
 			expected: `Items can use abbreviations, e.g. this one.
 They should be handled correctly.
@@ -242,7 +242,7 @@ func TestNestedElements(t *testing.T) {
 `,
 		},
 		{
-			name: "code block in blockquote",
+			name:  "code block in blockquote",
 			input: "> Here's code:\n>\n> ```python\n> def test():\n>     pass\n> ```",
 			expected: `> Here's code:
 > 
