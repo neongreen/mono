@@ -1,0 +1,2 @@
+Items can use abbreviations, e.g. this one.
+They should be handled correctly.
