@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+  </defs>
+  <rect width="400" height="300" fill="white"/>
+  <rect x="0" y="0" width="300" height="200" fill="#f0f0f0" stroke="#333" stroke-width="2" rx="10" />
+    <text x="13" y="108" font-size="24" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Hello, diagram-dsl!</text>
+</svg>

@@ -8,6 +8,8 @@
     "build": "tsc",
     "dev": "tsx src/examples/basic.tsx",
     "dev:advanced": "tsx src/examples/advanced.tsx",
+    "dev:simple": "tsx src/examples/simple.tsx",
+    "examples": "npm run dev:simple && npm run dev && npm run dev:advanced",
     "test": "tsx src/test/index.test.tsx"
   },
   "keywords": [
