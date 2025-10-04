@@ -46,28 +46,28 @@ Or add to your `.mise.toml`:
 
 ## Usage
 
-Format a markdown file to stdout:
+Format files in place (default behavior):
 
 ```bash
-./markdown-format input.md
+./markdown-format file1.md file2.md file3.md
 ```
 
-Format a file in place:
+Check if files are formatted without modifying them:
 
 ```bash
-./markdown-format -w input.md
+./markdown-format --check file1.md file2.md
 ```
 
-Format multiple files in place:
+Format from stdin to stdout:
 
 ```bash
-./markdown-format -w file1.md file2.md file3.md
+cat input.md | ./markdown-format
 ```
 
-Read from stdin:
+Or:
 
 ```bash
-cat input.md | ./markdown-format -
+./markdown-format < input.md > output.md
 ```
 
 ## Example
@@ -101,7 +101,6 @@ Add to your `treefmt.toml`:
 ```toml
 [formatter.markdown-format]
 command = "markdown-format"
-options = ["-w"]
 includes = ["*.md"]
 ```
 
@@ -115,37 +114,31 @@ treefmt
 
 [dprint](https://dprint.dev/) is a pluggable and configurable code formatter.
 
-Since markdown-format uses a custom sentence-per-line format, you'll need to use dprint's process plugin or create a custom wrapper. Here's how to integrate using a process-based approach:
-
-1. Create a wrapper script that handles dprint's stdin/stdout protocol (e.g., `dprint-markdown-format.sh`):
+To integrate markdown-format with dprint, use the exec plugin. First, install the exec plugin if you haven't already:
 
 ```bash
-#!/bin/bash
-# Wrapper script for dprint integration
-
-# Read from stdin, format, and output to stdout
-/path/to/markdown-format -
+dprint config add exec
 ```
 
-2. Add to your `dprint.json`:
+Then add to your `dprint.json`:
 
 ```json
 {
-  "plugins": [
-    "https://plugins.dprint.dev/exec-0.5.0.json@checksum"
-  ],
   "exec": {
     "commands": [{
-      "command": "./dprint-markdown-format.sh",
+      "command": "markdown-format",
       "exts": ["md"]
     }]
-  }
+  },
+  "plugins": [
+    "https://plugins.dprint.dev/exec-0.5.0.json@<hash>"
+  ]
 }
 ```
 
-Note: The exact configuration may vary depending on your dprint version. Refer to the [dprint documentation](https://dprint.dev/plugins/) for the latest plugin configuration format.
+The exec plugin will handle passing files to markdown-format for in-place formatting.
 
-3. Run dprint:
+Run dprint:
 
 ```bash
 dprint fmt

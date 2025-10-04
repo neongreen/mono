@@ -6,9 +6,9 @@ This directory contains example configurations and files for integrating markdow
 
 - `treefmt.toml` - Example configuration for treefmt
 - `dprint.json` - Example configuration for dprint
-- `sample-input.md` - Sample markdown file before formatting
+- `sample-input.md` - Sample markdown file before formatting (includes nested lists and abbreviations)
 - `sample-output.md` - Sample markdown file after formatting with markdown-format
-- `markdown-format-inplace.sh` - (Deprecated) Legacy wrapper script, no longer needed with `-w` flag
+- `markdown-format-inplace.sh` - (Deprecated) Legacy wrapper script, no longer needed
 
 ## Testing the Integration
 
@@ -22,9 +22,10 @@ This directory contains example configurations and files for integrating markdow
 ### With dprint
 
 1. Install dprint (https://dprint.dev/)
-2. Copy `dprint.json` to your project root
-3. Update the command path to point to your markdown-format binary
-4. Run `dprint fmt` to format all markdown files
+2. Add the exec plugin: `dprint config add exec`
+3. Copy `dprint.json` to your project root (or merge the configuration)
+4. Ensure `markdown-format` is in your PATH or update the `command` in the exec configuration
+5. Run `dprint fmt` to format all markdown files
 
 ## Verifying the Integration
 

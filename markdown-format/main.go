@@ -312,29 +312,13 @@ func splitIntoSentences(text string) []string {
 }
 
 func main() {
-	writeFlag := flag.Bool("w", false, "write result to source file instead of stdout")
+	checkFlag := flag.Bool("check", false, "check if files are formatted without modifying them")
 	flag.Parse()
 
 	args := flag.Args()
+	
+	// If no arguments, read from stdin and write to stdout
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: markdown-format [-w] <file> [<file> ...]")
-		fmt.Fprintln(os.Stderr, "       markdown-format -")
-		fmt.Fprintln(os.Stderr, "")
-		fmt.Fprintln(os.Stderr, "Options:")
-		fmt.Fprintln(os.Stderr, "  -w    write result to source file(s) instead of stdout")
-		os.Exit(1)
-	}
-
-	// Handle stdin
-	if args[0] == "-" {
-		if *writeFlag {
-			fmt.Fprintln(os.Stderr, "Error: -w flag cannot be used with stdin")
-			os.Exit(1)
-		}
-		if len(args) > 1 {
-			fmt.Fprintln(os.Stderr, "Error: cannot specify files when reading from stdin")
-			os.Exit(1)
-		}
 		input, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
@@ -349,42 +333,37 @@ func main() {
 		return
 	}
 
-	// Handle file(s)
-	if *writeFlag {
-		// Format multiple files in place
-		for _, filename := range args {
-			input, err := os.ReadFile(filename)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", filename, err)
-				os.Exit(1)
+	// Handle file(s) - in-place by default
+	hasErrors := false
+	for _, filename := range args {
+		input, err := os.ReadFile(filename)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", filename, err)
+			os.Exit(1)
+		}
+		output, err := formatMarkdown(input)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error formatting %s: %v\n", filename, err)
+			os.Exit(1)
+		}
+		
+		if *checkFlag {
+			// Check mode: compare without modifying
+			if !bytes.Equal(input, output) {
+				fmt.Fprintf(os.Stderr, "%s: not formatted\n", filename)
+				hasErrors = true
 			}
-			output, err := formatMarkdown(input)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error formatting %s: %v\n", filename, err)
-				os.Exit(1)
-			}
+		} else {
+			// Default: write in-place
 			err = os.WriteFile(filename, output, 0644)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error writing file %s: %v\n", filename, err)
 				os.Exit(1)
 			}
 		}
-	} else {
-		// Format single file to stdout
-		if len(args) > 1 {
-			fmt.Fprintln(os.Stderr, "Error: can only format one file to stdout (or use -w for multiple files)")
-			os.Exit(1)
-		}
-		input, err := os.ReadFile(args[0])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
-			os.Exit(1)
-		}
-		output, err := formatMarkdown(input)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error formatting markdown: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Print(string(output))
+	}
+	
+	if hasErrors {
+		os.Exit(1)
 	}
 }

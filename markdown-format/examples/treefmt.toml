@@ -4,8 +4,8 @@
 [formatter.markdown-format]
 # Command to run (assumes markdown-format is in PATH)
 command = "markdown-format"
-# Use -w flag for in-place formatting
-options = ["-w"]
+# No options needed - formats in-place by default
+options = []
 # Format all markdown files
 includes = ["*.md"]
 # Optionally exclude certain files
