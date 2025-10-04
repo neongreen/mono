@@ -61,6 +61,8 @@ Let's format it!
 
 ## Integration with Formatting Tools
 
+See the [examples/](examples/) directory for complete configuration files and sample markdown files demonstrating the integrations.
+
 ### treefmt
 
 [treefmt](https://github.com/numtide/treefmt) is a universal code formatter that runs multiple formatters with one command.

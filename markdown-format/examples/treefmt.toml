@@ -1,0 +1,12 @@
+# Example treefmt configuration for markdown-format
+# Place this file in your project root as treefmt.toml
+
+[formatter.markdown-format]
+# Path to the wrapper script that formats files in-place
+command = "./markdown-format-inplace.sh"
+# No additional options needed
+options = []
+# Format all markdown files
+includes = ["*.md"]
+# Optionally exclude certain files
+excludes = []
