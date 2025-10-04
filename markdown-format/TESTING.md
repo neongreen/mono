@@ -168,8 +168,7 @@ The project uses [github.com/google/go-cmp](https://github.com/google/go-cmp) fo
 
 ## Statistics
 
-- **26 file-based test cases** (52 files: input + output pairs)
-- **73 total test assertions** (including inline tests)
+- **33 file-based test cases** (66 files: input + output pairs)
 - **100% pass rate** with race detection enabled
 - **Comprehensive coverage** of all markdown features
 

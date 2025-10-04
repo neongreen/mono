@@ -34,11 +34,12 @@ go test -v -run TestFormatMarkdownFromFiles/my-test
 - **Version control friendly**: Input and output files can be easily reviewed in pull requests
 - **Easy to add**: Just add two files, no code changes needed
 
-## Current Test Cases (26 total)
+## Current Test Cases (33 total)
 
 ### Basic Formatting
 - `simple-paragraph` - Basic paragraph with multiple sentences
 - `heading` - Heading formatting
+- `heading-followed-by-list` - Heading followed by list
 - `emphasis` - Bold and italic text
 - `link` - Link formatting
 - `inline-code` - Inline code formatting
@@ -50,6 +51,8 @@ go test -v -run TestFormatMarkdownFromFiles/my-test
 - `multiple-sentences-in-list-item` - List items with multiple sentences
 - `nested-unordered-lists` - Nested list structures
 - `ordered-list-with-more-than-10-items` - Testing double-digit list numbers
+- `ordered-list-starting-from-different-number` - Testing lists starting from non-1 numbers
+- `unordered-list-with-many-items` - Testing long unordered lists (15+ items)
 - `ordered-list-with-nested-unordered-list` - Mixed ordered and unordered lists
 - `list-with-code-block-inside` - Code blocks inside list items
 - `mixed-inline-elements-in-list` - Lists with bold, italic, code, and links
@@ -58,7 +61,10 @@ go test -v -run TestFormatMarkdownFromFiles/my-test
 - `preserve-dash-marker` - Preserving `-` list markers
 - `preserve-asterisk-marker` - Preserving `*` list markers
 - `preserve-plus-marker` - Preserving `+` list markers
+- `preserve-ordered-list-with-dot` - Preserving `.` in ordered lists
 - `preserve-ordered-list-with-paren` - Preserving `)` in ordered lists
+- `mixed-markers-create-separate-lists` - Different markers create separate lists
+- `list-with-multiple-sentences-preserves-marker` - Marker preservation with multiple sentences
 
 ### Blockquotes
 - `blockquote` - Basic blockquote formatting
@@ -73,3 +79,4 @@ go test -v -run TestFormatMarkdownFromFiles/my-test
 
 ### Complex Documents
 - `complex-document-structure` - Comprehensive test with various elements combined
+- `multiple-blocks-in-sequence` - Multiple different block types in sequence
