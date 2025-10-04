@@ -34,22 +34,42 @@ go test -v -run TestFormatMarkdownFromFiles/my-test
 - **Version control friendly**: Input and output files can be easily reviewed in pull requests
 - **Easy to add**: Just add two files, no code changes needed
 
-## Current Test Cases
+## Current Test Cases (26 total)
 
+### Basic Formatting
 - `simple-paragraph` - Basic paragraph with multiple sentences
 - `heading` - Heading formatting
-- `unordered-list` - Unordered list formatting
-- `ordered-list` - Ordered list formatting
-- `fenced-code-block` - Code blocks
-- `inline-code` - Inline code formatting
 - `emphasis` - Bold and italic text
 - `link` - Link formatting
-- `blockquote` - Blockquote formatting
+- `inline-code` - Inline code formatting
+- `fenced-code-block` - Code blocks
+
+### Lists
+- `unordered-list` - Unordered list formatting
+- `ordered-list` - Ordered list formatting
 - `multiple-sentences-in-list-item` - List items with multiple sentences
-- `abbreviation-in-sentence` - Handling of abbreviations (e.g., i.e., etc.)
-- `nested-blockquotes` - Nested blockquotes
 - `nested-unordered-lists` - Nested list structures
+- `ordered-list-with-more-than-10-items` - Testing double-digit list numbers
+- `ordered-list-with-nested-unordered-list` - Mixed ordered and unordered lists
+- `list-with-code-block-inside` - Code blocks inside list items
+- `mixed-inline-elements-in-list` - Lists with bold, italic, code, and links
+
+### List Marker Preservation
 - `preserve-dash-marker` - Preserving `-` list markers
 - `preserve-asterisk-marker` - Preserving `*` list markers
 - `preserve-plus-marker` - Preserving `+` list markers
-- `complex-document-structure` - Comprehensive test with various elements
+- `preserve-ordered-list-with-paren` - Preserving `)` in ordered lists
+
+### Blockquotes
+- `blockquote` - Basic blockquote formatting
+- `blockquote-with-multiple-paragraphs` - Multiple paragraphs in blockquotes
+- `nested-blockquotes` - Nested blockquotes
+- `deeply-nested-blockquotes` - Deeply nested (3+ levels) blockquotes
+- `list-inside-blockquote` - Lists inside blockquotes
+- `code-block-in-blockquote` - Code blocks inside blockquotes
+
+### Special Cases
+- `abbreviation-in-sentence` - Handling of abbreviations (e.g., i.e., etc.)
+
+### Complex Documents
+- `complex-document-structure` - Comprehensive test with various elements combined

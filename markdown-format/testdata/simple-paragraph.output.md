@@ -1,1 +1,2 @@
-This is wrong output.
+This is a sentence.
+This is another sentence.
