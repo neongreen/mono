@@ -1,0 +1,17 @@
+{
+  "$schema": "https://dprint.dev/schemas/v0.json",
+  "exec": {
+    "commands": [{
+      "command": "markdown-format",
+      "exts": ["md"]
+    }]
+  },
+  "plugins": [
+    "https://plugins.dprint.dev/exec-0.5.0.json@<hash>"
+  ],
+  "excludes": [
+    "**/*-lock.json",
+    "**/node_modules",
+    "**/.git"
+  ]
+}

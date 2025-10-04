@@ -14,8 +14,11 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-// sentenceBoundaryRegex matches sentence boundaries (. ! ?) followed by space or end of string
-var sentenceBoundaryRegex = regexp.MustCompile(`([.!?])(\s+)`)
+// Common abbreviations that should not be treated as sentence boundaries
+var commonAbbreviations = []string{"e.g.", "i.e.", "etc.", "vs.", "cf.", "ex.", "viz.", "approx.", "ca."}
+
+// sentenceBoundaryRegex matches sentence boundaries (. ! ?) followed by space and uppercase letter
+var sentenceBoundaryRegex = regexp.MustCompile(`([.!?])(\s+)([A-Z])`)
 
 // formatMarkdown formats markdown content with one sentence per line
 func formatMarkdown(input []byte) ([]byte, error) {
@@ -294,16 +297,29 @@ func collectInlineText(node ast.Node, source []byte, buf *bytes.Buffer) error {
 
 // splitIntoSentences splits text into sentences
 func splitIntoSentences(text string) []string {
+	// Protect common abbreviations by replacing them temporarily
+	protected := text
+	replacements := make(map[string]string)
+	for i, abbr := range commonAbbreviations {
+		placeholder := fmt.Sprintf("\x00ABBR%d\x00", i)
+		replacements[placeholder] = abbr
+		protected = strings.ReplaceAll(protected, abbr, placeholder)
+	}
+	
 	// Replace sentence boundaries with a special marker
-	text = sentenceBoundaryRegex.ReplaceAllString(text, "$1\n\n")
+	protected = sentenceBoundaryRegex.ReplaceAllString(protected, "$1\n\n$3")
 
 	// Split by the marker
-	parts := strings.Split(text, "\n\n")
+	parts := strings.Split(protected, "\n\n")
 
 	var sentences []string
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if part != "" {
+			// Restore abbreviations
+			for placeholder, abbr := range replacements {
+				part = strings.ReplaceAll(part, placeholder, abbr)
+			}
 			sentences = append(sentences, part)
 		}
 	}
@@ -312,39 +328,58 @@ func splitIntoSentences(text string) []string {
 }
 
 func main() {
+	checkFlag := flag.Bool("check", false, "check if files are formatted without modifying them")
 	flag.Parse()
 
 	args := flag.Args()
+	
+	// If no arguments, read from stdin and write to stdout
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Usage: markdown-format <file>")
-		fmt.Fprintln(os.Stderr, "       or pipe input via stdin")
-		os.Exit(1)
-	}
-
-	var input []byte
-	var err error
-
-	if args[0] == "-" {
-		// Read from stdin
-		input, err = io.ReadAll(os.Stdin)
+		input, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
 			os.Exit(1)
 		}
-	} else {
-		// Read from file
-		input, err = os.ReadFile(args[0])
+		output, err := formatMarkdown(input)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Error formatting markdown: %v\n", err)
 			os.Exit(1)
 		}
+		fmt.Print(string(output))
+		return
 	}
 
-	output, err := formatMarkdown(input)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error formatting markdown: %v\n", err)
+	// Handle file(s) - in-place by default
+	hasErrors := false
+	for _, filename := range args {
+		input, err := os.ReadFile(filename)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", filename, err)
+			os.Exit(1)
+		}
+		output, err := formatMarkdown(input)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error formatting %s: %v\n", filename, err)
+			os.Exit(1)
+		}
+		
+		if *checkFlag {
+			// Check mode: compare without modifying
+			if !bytes.Equal(input, output) {
+				fmt.Fprintf(os.Stderr, "%s: not formatted\n", filename)
+				hasErrors = true
+			}
+		} else {
+			// Default: write in-place
+			err = os.WriteFile(filename, output, 0644)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error writing file %s: %v\n", filename, err)
+				os.Exit(1)
+			}
+		}
+	}
+	
+	if hasErrors {
 		os.Exit(1)
 	}
-
-	fmt.Print(string(output))
 }

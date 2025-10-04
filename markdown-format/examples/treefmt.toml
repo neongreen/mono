@@ -1,0 +1,8 @@
+# Example treefmt configuration for markdown-format
+# Place this file in your project root as treefmt.toml
+
+[formatter.markdown-format]
+command = "markdown-format"
+options = []
+includes = ["*.md"]
+excludes = []

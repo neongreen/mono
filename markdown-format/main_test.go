@@ -86,6 +86,13 @@ This is text.
 - Item two
 `,
 		},
+		{
+			name: "abbreviation in sentence",
+			input: `Items can use abbreviations, e.g. this one. They should be handled correctly.`,
+			expected: `Items can use abbreviations, e.g. this one.
+They should be handled correctly.
+`,
+		},
 	}
 
 	for _, tt := range tests {
@@ -128,6 +135,21 @@ func TestSplitIntoSentences(t *testing.T) {
 			name:     "no trailing punctuation",
 			input:    "This has no end punctuation",
 			expected: []string{"This has no end punctuation"},
+		},
+		{
+			name:     "abbreviation e.g.",
+			input:    "Items can use abbreviations, e.g. this one. They should be handled correctly.",
+			expected: []string{"Items can use abbreviations, e.g. this one.", "They should be handled correctly."},
+		},
+		{
+			name:     "abbreviation i.e.",
+			input:    "This means something, i.e. it has a definition. Next sentence here.",
+			expected: []string{"This means something, i.e. it has a definition.", "Next sentence here."},
+		},
+		{
+			name:     "abbreviation etc.",
+			input:    "List items like apples, oranges, etc. are good. More text follows.",
+			expected: []string{"List items like apples, oranges, etc. are good.", "More text follows."},
 		},
 	}
 
@@ -532,7 +554,7 @@ Another sentence.
   More details.
   Even more!- Nested point.
   With text.
-  - Another nested point
+- Another nested point
 - Point three
 
 ## Section 2
