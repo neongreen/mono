@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700">
+  <defs>
+    <marker id="arrowhead-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrowhead-388e3c" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#388e3c" />
+    </marker>
+    <marker id="arrowhead-7b1fa2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#7b1fa2" />
+    </marker>
+  </defs>
+  <rect width="1000" height="700" fill="white"/>
+    <text x="461" y="73.5" font-size="36" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Multi-Tier Web Application Architecture</text>
+      <text x="40" y="141.66666666666666" font-size="20" font-family="Arial, sans-serif" fill="#1976d2" font-weight="bold" text-anchor="start">Client Tier</text>
+        <rect x="343" y="162" width="150" height="80" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <text x="372" y="200.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Web Browser</text>
+          <text x="382" y="214.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">HTML/CSS/JS</text>
+        <rect x="508" y="162" width="150" height="80" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <text x="541" y="200.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Mobile App</text>
+          <text x="547" y="214.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">iOS/Android</text>
+      <text x="40" y="300.6666666666667" font-size="20" font-family="Arial, sans-serif" fill="#388e3c" font-weight="bold" text-anchor="start">Application Tier</text>
+        <rect x="260" y="321" width="150" height="80" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+          <text x="289" y="359.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">API Gateway</text>
+          <text x="295" y="373.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">REST/GraphQL</text>
+        <rect x="425" y="321" width="150" height="80" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+          <text x="450" y="359.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Auth Service</text>
+          <text x="467" y="373.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">OAuth2/JWT</text>
+        <rect x="590" y="321" width="150" height="80" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+          <text x="606" y="359.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Business Logic</text>
+          <text x="639" y="373.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Services</text>
+      <text x="40" y="459.6666666666667" font-size="20" font-family="Arial, sans-serif" fill="#7b1fa2" font-weight="bold" text-anchor="start">Data Tier</text>
+        <rect x="260" y="480" width="150" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="301" y="518.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Database</text>
+          <text x="302" y="532.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">PostgreSQL</text>
+        <rect x="425" y="480" width="150" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="479" y="518.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Cache</text>
+          <text x="484" y="532.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Redis</text>
+        <rect x="590" y="480" width="150" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="615" y="518.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">File Storage</text>
+          <text x="622" y="532.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">S3/Azure Blob</text>
+  <line x1="418" y1="202" x2="369.70674023648303" y2="325.5405834692318" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <text x="393.8533701182415" y="258.7702917346159" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <line x1="583" y1="202" x2="398.1379694025163" y2="339.4108878817202" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <text x="490.56898470125816" y="265.7054439408601" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <line x1="335" y1="361" x2="425" y2="361" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
+  <line x1="335" y1="361" x2="590" y2="361" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
+  <line x1="665" y1="361" x2="402.56623061474477" y2="502.6375261935444" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+  <text x="533.7831153073723" y="426.81876309677216" font-size="12" fill="#7b1fa2" text-anchor="middle">SQL</text>
+  <line x1="665" y1="361" x2="554.0058418734689" y2="492.24427035836266" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+</svg>

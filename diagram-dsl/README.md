@@ -12,6 +12,15 @@ Most graphical diagram tools require manual positioning and constant tweaking. T
 - **SVG output** - No browser needed, pure SVG generation
 - **TypeScript first** - Full type safety and IntelliSense support
 
+## Features
+
+✨ **High-level DSL** - Describe diagrams using familiar React JSX syntax  
+🎨 **Flexible Layout** - Stack, Row, Column with gaps, padding, and alignment  
+⚡ **Yoga Layout Engine** - Battle-tested flexbox implementation from React Native  
+📦 **No Browser Required** - Pure SVG generation, no headless browser needed  
+🔒 **TypeScript First** - Full type safety and excellent IntelliSense support  
+🎯 **Simple & Powerful** - Easy for simple diagrams, powerful for complex ones
+
 ## Installation
 
 ```bash
@@ -191,15 +200,25 @@ All components support these layout properties:
 
 ## Examples
 
-Check the `examples/` directory for:
+Check the `examples/` directory for generated SVG files:
 - `basic-flowchart.svg` - Simple vertical flowchart
-- `architecture-diagram.svg` - Multi-layer architecture diagram
+- `architecture-diagram.svg` - Three-tier architecture
+- `multi-tier-architecture.svg` - Comprehensive multi-tier web application
+- `decision-flowchart.svg` - User authentication flow with conditional branches
 
-Run the examples:
+Run the basic examples:
 
 ```bash
 npm run dev
 ```
+
+Run the advanced examples:
+
+```bash
+npm run dev:advanced
+```
+
+See `src/examples/` for the source code of these examples.
 
 ## API
 
