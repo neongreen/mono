@@ -1,0 +1,52 @@
+# Multi-Tier Architecture
+# Equivalent to multi-tier-architecture.svg from diagram-dsl
+
+direction: down
+
+# Client Tier
+client: Client Tier {
+  web: Web Browser\nHTML/CSS/JS {
+    style.fill: "#e3f2fd"
+  }
+  
+  mobile: Mobile App\niOS/Android {
+    style.fill: "#e3f2fd"
+  }
+}
+
+# Application Tier
+app: Application Tier {
+  api: API Gateway\nREST/GraphQL {
+    style.fill: "#e8f5e9"
+  }
+  
+  auth: Auth Service\nOAuth2/JWT {
+    style.fill: "#e8f5e9"
+  }
+  
+  business: Business Logic\nServices {
+    style.fill: "#e8f5e9"
+  }
+}
+
+# Data Tier
+data: Data Tier {
+  db: Database\nPostgreSQL {
+    style.fill: "#f3e5f5"
+  }
+  
+  cache: Cache\nRedis {
+    style.fill: "#f3e5f5"
+  }
+  
+  storage: File Storage\nS3/Azure Blob {
+    style.fill: "#f3e5f5"
+  }
+}
+
+client.web -> app.api: HTTPS
+client.mobile -> app.api: HTTPS
+app.api -> app.auth
+app.api -> app.business
+app.business -> data.db: SQL
+app.business -> data.cache

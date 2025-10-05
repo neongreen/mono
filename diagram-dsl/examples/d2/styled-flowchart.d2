@@ -1,0 +1,22 @@
+# Styled Flowchart
+# Equivalent to styled-flowchart.svg from diagram-dsl
+
+direction: down
+
+start: Start Process\nInitialize system {
+  style.fill: "#1976d2"
+  style.font-color: white
+}
+
+process: Process Data\nTransform inputs {
+  style.fill: "#ffa726"
+  style.font-color: white
+}
+
+end: Complete\nReturn results {
+  style.fill: "#66bb6a"
+  style.font-color: white
+}
+
+start -> process
+process -> end

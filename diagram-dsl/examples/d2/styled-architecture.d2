@@ -1,0 +1,49 @@
+# Styled Architecture
+# Equivalent to styled-architecture.svg from diagram-dsl
+
+direction: down
+
+# Presentation Tier
+presentation: Presentation Tier {
+  web-app: Web Application\nReact + TypeScript {
+    style.fill: "#1976d2"
+    style.font-color: white
+  }
+  
+  mobile-app: Mobile App\nReact Native {
+    style.fill: "#1976d2"
+    style.font-color: white
+  }
+}
+
+# Business Logic Tier
+business: Business Logic Tier {
+  api-gateway: API Gateway\nREST + GraphQL {
+    style.fill: "#66bb6a"
+    style.font-color: white
+  }
+  
+  services: Microservices\nBusiness logic {
+    style.fill: "#66bb6a"
+    style.font-color: white
+  }
+}
+
+# Data Tier
+data: Data Tier {
+  database: Database\nPostgreSQL {
+    style.fill: "#757575"
+    style.font-color: white
+  }
+  
+  cache: Cache\nRedis {
+    style.fill: "#757575"
+    style.font-color: white
+  }
+}
+
+presentation.web-app -> business.api-gateway: HTTPS
+presentation.mobile-app -> business.api-gateway
+business.api-gateway -> business.services
+business.services -> data.database: SQL
+business.services -> data.cache

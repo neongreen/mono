@@ -1,0 +1,19 @@
+# Architecture Diagram
+# Equivalent to architecture-diagram.svg from diagram-dsl
+
+direction: down
+
+frontend: Frontend\nReact App {
+  style.fill: "#e3f2fd"
+}
+
+api: API Gateway\nREST API {
+  style.fill: "#fce4ec"
+}
+
+database: Database\nPostgreSQL {
+  style.fill: "#f3e5f5"
+}
+
+frontend -> api: HTTP
+api -> database: SQL

@@ -1,0 +1,37 @@
+# Decision Flowchart
+# Equivalent to decision-flowchart.svg from diagram-dsl
+
+direction: down
+
+start: Start: Login Request {
+  shape: oval
+  style.fill: "#fff3e0"
+}
+
+validate: Validate Credentials {
+  style.fill: "#e1f5fe"
+}
+
+valid: "Valid ✓\nGenerate Token" {
+  style.fill: "#e8f5e9"
+}
+
+invalid: "Invalid ✗\nShow Error" {
+  style.fill: "#ffebee"
+}
+
+success: Success: Logged In {
+  shape: oval
+  style.fill: "#c8e6c9"
+}
+
+retry: Retry Login {
+  shape: oval
+  style.fill: "#ffcdd2"
+}
+
+start -> validate
+validate -> valid: Yes
+validate -> invalid: No
+valid -> success
+invalid -> retry
