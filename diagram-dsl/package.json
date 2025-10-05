@@ -11,6 +11,8 @@
     "dev:simple": "tsx src/examples/simple.tsx",
     "dev:styled": "tsx src/examples/styled.tsx",
     "examples": "npm run dev:simple && npm run dev && npm run dev:advanced && npm run dev:styled",
+    "examples:d2": "./scripts/generate-d2-examples.sh",
+    "examples:all": "./scripts/generate-all-examples.sh",
     "test": "tsx src/test/index.test.tsx"
   },
   "keywords": [

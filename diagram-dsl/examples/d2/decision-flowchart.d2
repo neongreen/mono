@@ -1,0 +1,76 @@
+# Decision Flowchart
+# Equivalent to decision-flowchart.svg from diagram-dsl
+
+direction: down
+
+title: User Authentication Flow {
+  style.font-size: 32
+  style.bold: true
+}
+
+start: Start: Login Request {
+  shape: oval
+  style.fill: "#fff3e0"
+  style.stroke: "#f57c00"
+  style.stroke-width: 2
+}
+
+validate: Validate Credentials {
+  style.fill: "#e1f5fe"
+  style.stroke: "#0288d1"
+  style.stroke-width: 2
+  style.border-radius: 8
+}
+
+valid: "Valid ✓\nGenerate Token" {
+  style.fill: "#e8f5e9"
+  style.stroke: "#43a047"
+  style.stroke-width: 2
+  style.border-radius: 8
+}
+
+invalid: "Invalid ✗\nShow Error" {
+  style.fill: "#ffebee"
+  style.stroke: "#e53935"
+  style.stroke-width: 2
+  style.border-radius: 8
+}
+
+success: Success: Logged In {
+  shape: oval
+  style.fill: "#c8e6c9"
+  style.stroke: "#43a047"
+  style.stroke-width: 2
+}
+
+retry: Retry Login {
+  shape: oval
+  style.fill: "#ffcdd2"
+  style.stroke: "#e53935"
+  style.stroke-width: 2
+}
+
+start -> validate: {
+  style.stroke: "#0288d1"
+  style.stroke-width: 2
+}
+
+validate -> valid: Yes {
+  style.stroke: "#43a047"
+  style.stroke-width: 2
+}
+
+validate -> invalid: No {
+  style.stroke: "#e53935"
+  style.stroke-width: 2
+}
+
+valid -> success: {
+  style.stroke: "#43a047"
+  style.stroke-width: 2
+}
+
+invalid -> retry: {
+  style.stroke: "#e53935"
+  style.stroke-width: 2
+}

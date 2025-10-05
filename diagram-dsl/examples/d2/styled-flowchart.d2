@@ -1,0 +1,48 @@
+# Styled Flowchart
+# Equivalent to styled-flowchart.svg from diagram-dsl
+
+direction: down
+
+title: Modern Flowchart {
+  style.font-size: 36
+  style.bold: true
+}
+
+subtitle: Using semantic components for clean, professional styling {
+  style.font-size: 14
+  style.italic: true
+}
+
+start: Start Process\nInitialize system {
+  style.fill: "#1976d2"
+  style.stroke: "#1565c0"
+  style.stroke-width: 2
+  style.border-radius: 8
+  style.font-color: white
+}
+
+process: Process Data\nTransform inputs {
+  style.fill: "#ffa726"
+  style.stroke: "#f57c00"
+  style.stroke-width: 2
+  style.border-radius: 8
+  style.font-color: white
+}
+
+end: Complete\nReturn results {
+  style.fill: "#66bb6a"
+  style.stroke: "#388e3c"
+  style.stroke-width: 2
+  style.border-radius: 8
+  style.font-color: white
+}
+
+start -> process: {
+  style.stroke: "#1976d2"
+  style.stroke-width: 2
+}
+
+process -> end: {
+  style.stroke: "#388e3c"
+  style.stroke-width: 2
+}

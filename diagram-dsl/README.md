@@ -317,8 +317,14 @@ Check the `examples/` directory for generated SVG files:
 Run examples:
 
 ```bash
-# Generate all examples
+# Generate all examples (diagram-dsl only)
 npm run examples
+
+# Generate D2 comparison examples
+npm run examples:d2
+
+# Generate both diagram-dsl and D2 examples
+npm run examples:all
 
 # Or run specific example sets
 npm run dev:simple      # Simple box
@@ -328,6 +334,139 @@ npm run dev:styled      # NEW: Semantic components showcase
 ```
 
 See `src/examples/` for the source code of these examples and [STYLING_GUIDE.md](STYLING_GUIDE.md) for detailed styling documentation.
+
+## Comparison with D2
+
+For comparison purposes, equivalent diagrams are provided in D2 language (a modern diagram scripting language). You can compare the outputs to see the differences in rendering and layout approaches.
+
+### Simple Box
+
+**diagram-dsl** (TSX/JSX approach with precise layout control):
+```tsx
+<Box
+  width={300}
+  height={200}
+  backgroundColor="#f0f0f0"
+  borderColor="#333"
+  borderWidth={2}
+  borderRadius={10}
+  padding={20}
+>
+  <Text fontSize={24} fontWeight="bold">
+    Hello, diagram-dsl!
+  </Text>
+</Box>
+```
+
+<table>
+<tr>
+<td><b>diagram-dsl output</b></td>
+<td><b>D2 output</b></td>
+</tr>
+<tr>
+<td><img src="examples/simple-box.svg" width="400"></td>
+<td><img src="examples/d2-output/simple-box.svg" width="400"></td>
+</tr>
+</table>
+
+### Basic Flowchart
+
+A simple three-step vertical flowchart showing the basic flow of a process.
+
+<table>
+<tr>
+<td><b>diagram-dsl output</b></td>
+<td><b>D2 output</b></td>
+</tr>
+<tr>
+<td><img src="examples/basic-flowchart.svg" width="400"></td>
+<td><img src="examples/d2-output/basic-flowchart.svg" width="400"></td>
+</tr>
+</table>
+
+### Architecture Diagram
+
+A three-tier architecture showing Frontend → API → Database flow.
+
+<table>
+<tr>
+<td><b>diagram-dsl output</b></td>
+<td><b>D2 output</b></td>
+</tr>
+<tr>
+<td><img src="examples/architecture-diagram.svg" width="400"></td>
+<td><img src="examples/d2-output/architecture-diagram.svg" width="400"></td>
+</tr>
+</table>
+
+### Styled Flowchart
+
+Modern flowchart using semantic components with professional styling.
+
+<table>
+<tr>
+<td><b>diagram-dsl output</b></td>
+<td><b>D2 output</b></td>
+</tr>
+<tr>
+<td><img src="examples/styled-flowchart.svg" width="400"></td>
+<td><img src="examples/d2-output/styled-flowchart.svg" width="400"></td>
+</tr>
+</table>
+
+### Styled Architecture
+
+Three-tier architecture with semantic components showing Presentation → Business Logic → Data tiers.
+
+<table>
+<tr>
+<td><b>diagram-dsl output</b></td>
+<td><b>D2 output</b></td>
+</tr>
+<tr>
+<td><img src="examples/styled-architecture.svg" width="450"></td>
+<td><img src="examples/d2-output/styled-architecture.svg" width="450"></td>
+</tr>
+</table>
+
+### Multi-Tier Architecture
+
+Comprehensive multi-tier web application architecture with client, application, and data tiers.
+
+<table>
+<tr>
+<td><b>diagram-dsl output</b></td>
+<td><b>D2 output</b></td>
+</tr>
+<tr>
+<td><img src="examples/multi-tier-architecture.svg" width="500"></td>
+<td><img src="examples/d2-output/multi-tier-architecture.svg" width="500"></td>
+</tr>
+</table>
+
+### Decision Flowchart
+
+User authentication flow with conditional branches showing success and failure paths.
+
+<table>
+<tr>
+<td><b>diagram-dsl output</b></td>
+<td><b>D2 output</b></td>
+</tr>
+<tr>
+<td><img src="examples/decision-flowchart.svg" width="400"></td>
+<td><img src="examples/d2-output/decision-flowchart.svg" width="400"></td>
+</tr>
+</table>
+
+**Key differences:**
+- **diagram-dsl** uses React/JSX with explicit layout control (flexbox via Yoga)
+- **D2** uses a custom DSL with automatic layout (Dagre/ELK)
+- **diagram-dsl** gives precise control over positioning, spacing, and dimensions
+- **D2** is more concise but less predictable for complex layouts
+- Both produce high-quality SVG output suitable for documentation
+
+D2 files are available in `examples/d2/` directory.
 
 ## API
 

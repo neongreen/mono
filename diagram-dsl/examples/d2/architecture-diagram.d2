@@ -1,0 +1,40 @@
+# Architecture Diagram
+# Equivalent to architecture-diagram.svg from diagram-dsl
+
+direction: down
+
+title: Architecture Diagram {
+  style.font-size: 32
+  style.bold: true
+}
+
+frontend: Frontend\nReact App {
+  style.fill: "#e3f2fd"
+  style.stroke: "#1976d2"
+  style.stroke-width: 2
+  style.border-radius: 8
+}
+
+api: API Gateway\nREST API {
+  style.fill: "#fce4ec"
+  style.stroke: "#c2185b"
+  style.stroke-width: 2
+  style.border-radius: 8
+}
+
+database: Database\nPostgreSQL {
+  style.fill: "#f3e5f5"
+  style.stroke: "#7b1fa2"
+  style.stroke-width: 2
+  style.border-radius: 8
+}
+
+frontend -> api: HTTP {
+  style.stroke: "#1976d2"
+  style.stroke-width: 2
+}
+
+api -> database: SQL {
+  style.stroke: "#c2185b"
+  style.stroke-width: 2
+}
