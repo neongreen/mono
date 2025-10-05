@@ -103,8 +103,12 @@ want md https://news.ycombinator.com
 ```
 
 **How it works:**
-- `want json <command>` automatically installs `jc` if needed, then runs `jc <command>`
-- `want md <url>` tries to install `markitdown` via pip, or falls back to the `pure.md` web service
+- `want json <command>` automatically installs `jc` via mise if needed, then runs `jc <command>`
+- `want md <url>` uses the best available method to run `markitdown`:
+  - Prefers `uvx` (runs in isolated environment without installation)
+  - Falls back to `mise` for installation
+  - If neither available, suggests installing `uv`
+  - Final fallback to `pure.md` web service
 
 ### Commands not yet functional (❌ NOT IMPLEMENTED)
 

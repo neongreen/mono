@@ -227,53 +227,87 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 		fmt.Println("Repository: https://github.com/microsoft/markitdown")
 		fmt.Println()
 		
+		// Determine the best installation method
+		hasUvx := isToolAvailable("uvx")
+		hasMise := isMiseAvailable()
+		hasUv := isToolAvailable("uv")
+		
 		if dryRun {
 			fmt.Println("DRY RUN - Execution plan:")
 			fmt.Println()
-			if isToolAvailable("pip") || isToolAvailable("pip3") {
-				pipCmd := "pip3"
-				if !isToolAvailable("pip3") {
-					pipCmd = "pip"
-				}
-				fmt.Println("Step 1: Install markitdown")
-				fmt.Printf("  $ %s install markitdown\n", pipCmd)
+			if hasUvx {
+				fmt.Println("Step 1: Run markitdown via uvx")
+				fmt.Printf("  $ uvx markitdown %s\n", url)
+			} else if hasMise {
+				fmt.Println("Step 1: Install markitdown via mise")
+				fmt.Println("  $ mise use -g python:markitdown")
 				fmt.Println()
 				fmt.Println("Step 2: Convert URL to markdown")
 				fmt.Printf("  $ markitdown %s\n", url)
-				fmt.Println()
-				fmt.Println("  (If step 1 fails, fallback to pure.md)")
+			} else if hasUv {
+				fmt.Println("Step 1: Run markitdown via uvx")
+				fmt.Printf("  $ uvx markitdown %s\n", url)
 			} else {
-				fmt.Println("Step 1: Convert URL to markdown using pure.md")
-				fmt.Printf("  $ curl -s https://pure.md/%s\n", url)
+				fmt.Println("Step 1: Install uv (recommended)")
+				fmt.Println("  $ curl -LsSf https://astral.sh/uv/install.sh | sh")
+				fmt.Println()
+				fmt.Println("Step 2: Run markitdown via uvx")
+				fmt.Printf("  $ uvx markitdown %s\n", url)
+				fmt.Println()
+				fmt.Println("  (Or fallback to pure.md)")
 			}
 			return
 		}
 
-		// Try to install markitdown via pip if available
-		if isToolAvailable("pip") || isToolAvailable("pip3") {
-			fmt.Println("Installing markitdown via pip...")
-			
-			pipCmd := "pip3"
-			if !isToolAvailable("pip3") {
-				pipCmd = "pip"
-			}
-			
-			cmd := exec.Command(pipCmd, "install", "markitdown")
+		// Try to install/run markitdown using the best available method
+		if hasUvx {
+			// Use uvx to run markitdown directly (it will install if needed)
+			fmt.Println("Running markitdown via uvx...")
+			cmd := exec.Command("uvx", "markitdown", url)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			
 			if err := cmd.Run(); err != nil {
-				fmt.Println("\nWarning: markitdown installation failed")
+				fmt.Println("\nWarning: uvx markitdown failed")
 				fmt.Println("Falling back to pure.md service...")
 				usePureMd(url)
-				return
 			}
-			
+			return
+		} else if hasMise {
+			fmt.Println("Installing markitdown via mise...")
+			installToolViaMise("python:markitdown", false)
 			fmt.Println()
+			
 			hasMarkitdown = isToolAvailable("markitdown")
+		} else if hasUv {
+			// uv is available but uvx might not be in PATH yet
+			fmt.Println("Running markitdown via uv...")
+			cmd := exec.Command("uv", "tool", "run", "markitdown", url)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			
+			if err := cmd.Run(); err != nil {
+				fmt.Println("\nWarning: uv tool run markitdown failed")
+				fmt.Println("Falling back to pure.md service...")
+				usePureMd(url)
+			}
+			return
+		} else {
+			// No suitable tool available
+			fmt.Println("Error: Neither uvx nor mise is available for installing markitdown")
+			fmt.Println()
+			fmt.Println("Please install uv (recommended):")
+			fmt.Println("  curl -LsSf https://astral.sh/uv/install.sh | sh")
+			fmt.Println()
+			fmt.Println("Or install mise:")
+			fmt.Println("  https://mise.jdx.dev/getting-started.html")
+			fmt.Println()
+			fmt.Println("Falling back to pure.md service...")
+			usePureMd(url)
+			return
 		}
 		
-		// If still not available, use pure.md
+		// If still not available after mise installation, use pure.md
 		if !hasMarkitdown {
 			fmt.Println("markitdown not available, using pure.md service...")
 			usePureMd(url)
