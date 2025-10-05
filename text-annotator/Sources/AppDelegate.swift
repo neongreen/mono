@@ -6,20 +6,32 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem?
     var annotationWindow: AnnotationWindow?
     var hotKeyRef: EventHotKeyRef?
+    let settings = SettingsManager.shared.settings
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        // Set up status bar item
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "note.text", accessibilityDescription: "Text Annotator")
-            button.action = #selector(statusBarButtonClicked)
+        if settings.debugMode {
+            print("[Debug] Application launched with settings:")
+            print("[Debug] Config file: \(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".text-annotator/config.json").path)")
         }
         
-        // Register global hotkey (Cmd+Shift+A)
-        registerGlobalHotkey()
+        // Set up status bar item
+        if settings.showMenuBarIcon {
+            statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            if let button = statusItem?.button {
+                button.image = NSImage(systemSymbolName: settings.menuBarIconName, accessibilityDescription: "Text Annotator")
+                button.action = #selector(statusBarButtonClicked)
+            }
+        }
+        
+        // Register global hotkey
+        if settings.hotkeyEnabled {
+            registerGlobalHotkey()
+        }
         
         // Request accessibility permissions
-        requestAccessibilityPermissions()
+        if settings.requestAccessibilityOnLaunch {
+            requestAccessibilityPermissions()
+        }
     }
     
     @objc func statusBarButtonClicked() {
@@ -27,7 +39,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func requestAccessibilityPermissions() {
-        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true]
+        let promptValue = settings.showAccessibilityPrompt
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: promptValue]
         AXIsProcessTrustedWithOptions(options)
     }
     
@@ -50,10 +63,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return noErr
         }, 1, eventSpec, Unmanaged.passUnretained(self).toOpaque(), &eventHandler)
         
-        // Register Cmd+Shift+A
+        // Parse modifiers from settings
+        var modifiers: UInt32 = 0
+        for modifier in settings.hotkeyModifiers {
+            switch modifier.lowercased() {
+            case "command", "cmd":
+                modifiers |= UInt32(cmdKey)
+            case "shift":
+                modifiers |= UInt32(shiftKey)
+            case "option", "alt":
+                modifiers |= UInt32(optionKey)
+            case "control", "ctrl":
+                modifiers |= UInt32(controlKey)
+            default:
+                break
+            }
+        }
+        
+        // Register hotkey with custom key code and modifiers
         let status = RegisterEventHotKey(
-            UInt32(kVK_ANSI_A),
-            UInt32(cmdKey | shiftKey),
+            settings.hotkeyKeyCode,
+            modifiers,
             hotKeyID,
             GetApplicationEventTarget(),
             0,
@@ -62,6 +92,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         if status != noErr {
             print("Failed to register hotkey: \(status)")
+        } else if settings.debugMode {
+            print("[Debug] Hotkey registered: keyCode=\(settings.hotkeyKeyCode), modifiers=\(settings.hotkeyModifiers)")
         }
     }
     
@@ -69,8 +101,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Get selected text from system
         let selectedText = getSelectedText()
         
+        if settings.debugMode {
+            print("[Debug] Showing annotation window with text: \(selectedText.prefix(50))...")
+        }
+        
         // Create and show annotation window
-        annotationWindow = AnnotationWindow(selectedText: selectedText)
+        annotationWindow = AnnotationWindow(selectedText: selectedText, settings: settings)
         annotationWindow?.showWindow(nil)
         annotationWindow?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -79,7 +115,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func getSelectedText() -> String {
         // Save current clipboard
         let pasteboard = NSPasteboard.general
-        let oldContents = pasteboard.string(forType: .string)
+        let oldContents = settings.restoreClipboard ? pasteboard.string(forType: .string) : nil
         
         // Simulate Cmd+C to copy selected text
         let source = CGEventSource(stateID: .combinedSessionState)
@@ -93,14 +129,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         keyDownEvent?.post(tap: .cghidEventTap)
         keyUpEvent?.post(tap: .cghidEventTap)
         
-        // Wait a bit for clipboard to update
-        Thread.sleep(forTimeInterval: 0.1)
+        // Wait for clipboard to update (configurable delay)
+        Thread.sleep(forTimeInterval: settings.clipboardCaptureDelay)
         
         // Get the new clipboard contents
         let selectedText = pasteboard.string(forType: .string) ?? ""
         
-        // Restore old clipboard if it was different
-        if let oldContents = oldContents, oldContents != selectedText {
+        // Restore old clipboard if it was different and restore is enabled
+        if settings.restoreClipboard, let oldContents = oldContents, oldContents != selectedText {
             pasteboard.clearContents()
             pasteboard.setString(oldContents, forType: .string)
         }

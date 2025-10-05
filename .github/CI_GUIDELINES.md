@@ -108,6 +108,7 @@ jobs:
 |---------|----------|---------------|--------|
 | `dissect` | Go | `.github/workflows/dissect.yml` | ✅ Active |
 | `markdown-format` | Go | `.github/workflows/markdown-format.yml` | ✅ Active |
+| `text-annotator` | Swift | `.github/workflows/text-annotator.yml` | ✅ Active |
 | `diagram-dsl` | TypeScript | - | 🔜 Pending |
 | `want` | - | - | 🔜 Pending |
 

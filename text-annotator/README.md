@@ -6,11 +6,12 @@ A simple macOS utility that allows you to quickly annotate selected text from an
 
 ## Features
 
-- **Global Keyboard Shortcut**: Press `Cmd+Shift+A` to activate
+- **Global Keyboard Shortcut**: Press `Cmd+Shift+A` to activate (customizable)
 - **System-wide**: Works with any application
 - **Quick Annotation**: Add your notes to selected text
 - **Persistent Storage**: All annotations saved to `~/.text-annotations.json`
 - **Easy Save**: Press `Cmd+Enter` to save and close
+- **Highly Customizable**: Configure behavior, UI appearance, hotkeys, colors, and more via JSON config file
 
 ## How It Works
 
@@ -75,9 +76,22 @@ Annotations are stored in JSON format at `~/.text-annotations.json`:
 ]
 ```
 
+## Configuration
+
+The app is highly customizable via `~/.text-annotator/config.json`. On first run, default settings are created automatically.
+
+**Quick customization examples**:
+- Change hotkey: Edit `hotkeyKeyCode` and `hotkeyModifiers`
+- Adjust window size: Modify `windowWidth` and `windowHeight`
+- Customize colors: Set `backgroundColor`, `textColor`, etc.
+- Change storage location: Update `storageFilePath`
+
+See [CONFIGURATION.md](CONFIGURATION.md) for complete documentation of all settings.
+
 ## Usage Tips
 
 - The app runs in the menu bar (look for the note icon)
 - Click the menu bar icon to manually trigger annotation
 - Press `Escape` to cancel without saving
 - The window floats above other windows for easy access
+- Customize any aspect of behavior or appearance via config file
