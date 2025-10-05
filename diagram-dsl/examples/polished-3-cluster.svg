@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="227.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Cluster Component</text>
+    <text x="183.5" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Group related elements with visual boundaries</text>
+    <rect x="60" y="256" width="1040" height="104" fill="#fff8f0" stroke="#f57c00" stroke-width="2" rx="8" />
+      <rect x="60" y="256" width="1040" height="35" fill="#fff3e0" />
+        <text x="72" y="278.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#e65100" font-weight="bold" text-anchor="start">Infrastructure</text>
+            <rect x="84" y="315" width="52" height="21" fill="#ff9800" rx="4" />
+              <text x="96" y="329.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">AWS</text>
+            <rect x="160" y="315" width="91" height="21" fill="#0288d1" rx="4" />
+              <text x="172" y="329.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Kubernetes</text>
+            <rect x="275" y="315" width="80" height="21" fill="#2e7d32" rx="4" />
+              <text x="287" y="329.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Terraform</text>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="184.5" y="85.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Best Practices</text>
+    <rect x="60" y="149" width="900" height="162" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+      <text x="80" y="180.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Design Principles</text>
+        <text x="80" y="204.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Single Responsibility: Each service does one thing well,</text>
+        <text x="80" y="225.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• API First: Design APIs before implementation,</text>
+        <text x="80" y="246.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Loose Coupling: Services communicate through well-defined interfaces,</text>
+        <text x="80" y="267.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Fault Tolerance: Implement circuit breakers and retry logic,</text>
+        <text x="80" y="288.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Observability: Comprehensive logging, metrics, and tracing,</text>
+    <rect x="60" y="367" width="900" height="1" fill="#ddd" />
+    <rect x="60" y="424" width="900" height="160" fill="#ffebee" stroke="#c62828" stroke-width="2" rx="8" />
+      <text x="80" y="455.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#b71c1c" font-weight="bold" text-anchor="start">Security Checklist</text>
+        <text x="80" y="480.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Use HTTPS for all communications,</text>
+        <text x="80" y="500.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Implement authentication &amp; authorization,</text>
+        <text x="80" y="521.3333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Validate and sanitize all inputs,</text>
+        <text x="80" y="541.3333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Keep dependencies updated,</text>
+        <text x="80" y="561.8333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Use secrets management (Vault, AWS Secrets Manager),</text>
+</svg>

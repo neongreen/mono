@@ -32,14 +32,24 @@ export class YogaLayoutEngine {
   }
 
   private createYogaNode(node: LayoutNode): any {
-    // Arrow nodes don't participate in layout
-    if (node.type === 'Arrow') {
+    // Arrow and LoopIndicator nodes don't participate in layout
+    if (node.type === 'Arrow' || node.type === 'LoopIndicator') {
       return null;
     }
 
     const yogaNode = this.yoga.Node.create();
 
     const props = node.props;
+
+    // Set default dimensions for specialized components
+    const defaultDimensions: Record<string, { width?: number; height?: number }> = {
+      'StateNode': { width: 150, height: 60 },
+      'DecisionNode': { width: 120, height: 80 },
+      'ProcessNode': { width: 160, height: 60 },
+      'MemoryBlock': { width: 200, height: 100 },
+      'ContextWindow': { width: 400, height: 80 },
+      'TimelineEvent': { width: 80, height: 80 },
+    };
 
     // Set dimensions
     if (node.type === 'Text' && (props.width === undefined || props.width === 'auto' || props.height === undefined || props.height === 'auto')) {
@@ -62,12 +72,19 @@ export class YogaLayoutEngine {
         yogaNode.setHeight(props.height);
       }
     } else {
-      // Non-text nodes or text with explicit dimensions
+      // Apply default dimensions if not specified
+      const defaults = defaultDimensions[node.type];
+      
       if (props.width !== undefined && props.width !== 'auto') {
         yogaNode.setWidth(props.width);
+      } else if (defaults?.width) {
+        yogaNode.setWidth(defaults.width);
       }
+      
       if (props.height !== undefined && props.height !== 'auto') {
         yogaNode.setHeight(props.height);
+      } else if (defaults?.height) {
+        yogaNode.setHeight(defaults.height);
       }
     }
     if (props.minWidth !== undefined) {
@@ -150,6 +167,14 @@ export class YogaLayoutEngine {
         'space-evenly': this.yoga.JUSTIFY_SPACE_EVENLY,
       };
       yogaNode.setJustifyContent(justifyMap[props.justifyContent] || this.yoga.JUSTIFY_FLEX_START);
+    }
+
+    // Set flex properties (for flexible spacers and stretching)
+    if (props.flexGrow !== undefined) {
+      yogaNode.setFlexGrow(props.flexGrow);
+    }
+    if (props.flexShrink !== undefined) {
+      yogaNode.setFlexShrink(props.flexShrink);
     }
 
     // Set position

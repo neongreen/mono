@@ -124,11 +124,4 @@ diagram-dsl/
 └── README.md                    # Updated with comparison section
 ```
 
-## Future Enhancements
 
-Possible improvements:
-- Add more complex examples (e.g., sequence diagrams, entity-relationship diagrams)
-- Create automated visual regression testing
-- Add interactive comparison tool
-- Include performance benchmarks
-- Add more layout algorithm comparisons (force-directed, hierarchical, etc.)

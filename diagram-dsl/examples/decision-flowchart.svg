@@ -1,13 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="700" viewBox="0 0 800 700">
   <defs>
-    <marker id="arrowhead-0288d1" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+    <marker id="arrow-0288d1" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
       <polygon points="0 0, 10 3, 0 6" fill="#0288d1" />
     </marker>
-    <marker id="arrowhead-43a047" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+    <marker id="arrow-tail-0288d1" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#0288d1" />
+    </marker>
+    <marker id="arrow-43a047" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
       <polygon points="0 0, 10 3, 0 6" fill="#43a047" />
     </marker>
-    <marker id="arrowhead-e53935" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+    <marker id="arrow-tail-43a047" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#43a047" />
+    </marker>
+    <marker id="arrow-e53935" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
       <polygon points="0 0, 10 3, 0 6" fill="#e53935" />
+    </marker>
+    <marker id="arrow-tail-e53935" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#e53935" />
     </marker>
   </defs>
   <rect width="800" height="700" fill="white"/>
@@ -26,13 +35,13 @@
         <text x="214" y="453" font-size="15" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Success: Logged In</text>
       <rect x="430" y="413" width="180" height="70" fill="#ffcdd2" stroke="#e53935" stroke-width="2" rx="35" />
         <text x="482" y="453" font-size="15" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Retry Login</text>
-  <line x1="400" y1="163" x2="400" y2="193" stroke="#0288d1" stroke-width="2" marker-end="url(#arrowhead-0288d1)" />
-  <line x1="300" y1="233" x2="280" y2="303" stroke="#43a047" stroke-width="2" marker-end="url(#arrowhead-43a047)" />
+  <path d="M 400 163 L 400 193" stroke="#0288d1" stroke-width="2" fill="none" marker-end="url(#arrow-0288d1)" />
+  <path d="M 300 233 L 280 303" stroke="#43a047" stroke-width="2" fill="none" marker-end="url(#arrow-43a047)" />
   <rect x="275.2" y="258" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
   <text x="290" y="272" font-size="12" fill="#43a047" text-anchor="middle">Yes</text>
-  <line x1="500" y1="233" x2="520" y2="303" stroke="#e53935" stroke-width="2" marker-end="url(#arrowhead-e53935)" />
+  <path d="M 500 233 L 520 303" stroke="#e53935" stroke-width="2" fill="none" marker-end="url(#arrow-e53935)" />
   <rect x="498.8" y="258" width="22.4" height="20" fill="white" fill-opacity="0.85" rx="2" />
   <text x="510" y="272" font-size="12" fill="#e53935" text-anchor="middle">No</text>
-  <line x1="280" y1="383" x2="280" y2="413" stroke="#43a047" stroke-width="2" marker-end="url(#arrowhead-43a047)" />
-  <line x1="520" y1="383" x2="520" y2="413" stroke="#e53935" stroke-width="2" marker-end="url(#arrowhead-e53935)" />
+  <path d="M 280 383 L 280 413" stroke="#43a047" stroke-width="2" fill="none" marker-end="url(#arrow-43a047)" />
+  <path d="M 520 383 L 520 413" stroke="#e53935" stroke-width="2" fill="none" marker-end="url(#arrow-e53935)" />
 </svg>

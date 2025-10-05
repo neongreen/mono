@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="226.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Divider Component</text>
+    <text x="136.5" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Visual separators for content</text>
+    <rect x="60" y="190" width="900" height="73" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+      <text x="80" y="220.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Section 1</text>
+      <text x="80" y="242.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">First section content</text>
+    <rect x="60" y="311" width="900" height="1" fill="#ddd" />
+    <rect x="60" y="360" width="900" height="73" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+      <text x="80" y="390.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#6a1b9a" font-weight="bold" text-anchor="start">Section 2</text>
+      <text x="80" y="412.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Second section content</text>
+    <rect x="60" y="481" width="900" height="1" fill="transparent" stroke="#ddd" stroke-width="1" />
+    <rect x="60" y="530" width="900" height="73" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+      <text x="80" y="560.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="#e65100" font-weight="bold" text-anchor="start">Section 3</text>
+      <text x="80" y="582.3333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Third section content with dashed divider above</text>
+</svg>

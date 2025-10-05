@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <marker id="arrow-black" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="black" />
+    </marker>
+    <marker id="arrow-tail-black" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="black" />
+    </marker>
+    <marker id="arrow-ff9800" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#ff9800" />
+    </marker>
+    <marker id="arrow-tail-ff9800" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#ff9800" />
+    </marker>
+    <marker id="arrow-c62828" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#c62828" />
+    </marker>
+    <marker id="arrow-tail-c62828" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#c62828" />
+    </marker>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="260.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Enhanced Arrow Styles</text>
+    <text x="215" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Dashed, curved, and step arrows with different head types</text>
+      <text x="60" y="198.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">Solid Arrows</text>
+      <text x="60" y="271.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">Dashed Arrows</text>
+      <text x="60" y="346" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">Step Arrows</text>
+</svg>

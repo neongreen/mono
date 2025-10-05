@@ -192,13 +192,4 @@ Tests use the same public API as end users, ensuring the external interface work
 - No DOM rendering or browser APIs needed
 - Can be used in Node.js servers or build tools
 
-## Future Enhancements
 
-Potential improvements:
-- More shape types (circles, diamonds, parallelograms)
-- Curved arrows and multi-point paths
-- Text measurement for better auto-sizing
-- Export to other formats (PNG, PDF via additional libraries)
-- Animation support
-- Grid layout in addition to flexbox
-- Theme system for consistent styling

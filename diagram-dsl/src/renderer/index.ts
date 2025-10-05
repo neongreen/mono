@@ -66,8 +66,9 @@ function elementToLayoutNode(element: any): LayoutNode {
     ? { ...props }
     : { ...props, children: undefined };
 
-  // Process children (but not for Text or Arrow nodes)
-  if (props.children && type !== 'Text' && type !== 'Arrow') {
+  // Process children (but not for Text, Arrow, or specialized nodes that don't have children)
+  const noChildrenTypes = ['Text', 'Arrow', 'StateNode', 'DecisionNode', 'ProcessNode', 'MemoryBlock', 'ContextWindow', 'TimelineEvent', 'LoopIndicator'];
+  if (props.children && !noChildrenTypes.includes(type)) {
     const childrenArray = Array.isArray(props.children) 
       ? props.children 
       : [props.children];

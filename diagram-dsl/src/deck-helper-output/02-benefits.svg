@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="131.5" y="85.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Benefits</text>
+    <rect x="60" y="139" width="900" height="142" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+      <text x="80" y="170.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Key Advantages</text>
+        <text x="80" y="195.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Automatic slide numbering,</text>
+        <text x="80" y="216.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Consistent HTML viewer generation,</text>
+        <text x="80" y="238.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Easy slide skipping,</text>
+        <text x="80" y="259.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Less boilerplate code,</text>
+</svg>

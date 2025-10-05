@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Diagram DSL Examples</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: #f5f5f5; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        .container { max-width: 1800px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 30px; }
+        .diagram { 
+            margin: 30px 0; 
+            background: white; 
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .diagram h2 { 
+            margin-top: 0; 
+            color: #1976d2;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        .diagram img { 
+            max-width: 100%; 
+            display: block;
+            margin: 0 auto;
+        }
+        .description {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #1976d2;
+            border-radius: 4px;
+        }
+        .description ul { margin: 10px 0; }
+        .description li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Diagram DSL - Anthropic-Style Examples</h1>
+        <p class="subtitle">Professional AI system architecture diagrams created with diagram-dsl</p>
+
+        <div class="diagram">
+            <h2>🎯 Original Anthropic Diagram - "Prompt engineering vs. context engineering"</h2>
+            <div class="description">
+                <p><strong>This is the specific diagram from Anthropic's documentation:</strong></p>
+                <ul>
+                    <li>✅ Two-panel comparison layout</li>
+                    <li>✅ Nested boxes with dashed borders (context windows)</li>
+                    <li>✅ Multiple element types (speech bubbles, docs, tools, memory)</li>
+                    <li>✅ Neural network grid (3×3 colored circles)</li>
+                    <li>✅ Custom arrow routing with specific attachment points</li>
+                    <li>✅ Arrow with label ("Curation")</li>
+                    <li>✅ Y-shaped arrow fork (model → outputs)</li>
+                    <li>✅ Feedback loop (tool result → message history)</li>
+                    <li>✅ Arrow shortening (stops before reaching target)</li>
+                </ul>
+                <p><strong>New Arrow Features:</strong> <code>fromSide</code>, <code>toSide</code>, <code>fromOffset</code>, <code>toOffset</code>, <code>shortenEnd</code></p>
+                <p><em>See <code>examples/anthropic-original-replication.tsx</code> and <code>ARROW_ENHANCEMENTS.md</code></em></p>
+            </div>
+            <img src="anthropic-original-replication.svg" alt="Anthropic Original Diagram Replication" />
+        </div>
+
+        <div class="diagram">
+            <h2>1. Simple AI Conversation (Perfect Starting Point)</h2>
+            <div class="description">
+                <p><strong>Perfect template for your own diagrams:</strong></p>
+                <ul>
+                    <li>✅ Three-column layout (Input → Processing → Output)</li>
+                    <li>✅ Color-coded Cluster components for visual grouping</li>
+                    <li>✅ Professional Card components with clear hierarchy</li>
+                    <li>✅ Solid arrows for main flow, dashed for data access</li>
+                    <li>✅ Shared data layer at the bottom</li>
+                    <li>✅ Legend for arrow types</li>
+                </ul>
+                <p><em>Copy <code>examples/anthropic-simple.tsx</code> as a starting point!</em></p>
+            </div>
+            <img src="anthropic-simple.svg" alt="Simple Anthropic-style Diagram" />
+        </div>
+        
+        <div class="diagram">
+            <h2>2. Anthropic-Style AI System Architecture (Full-Featured)</h2>
+            <div class="description">
+                <p><strong>This diagram demonstrates:</strong></p>
+                <ul>
+                    <li>✅ Clear layer separation (User, Gateway, Processing, Data)</li>
+                    <li>✅ Professional card-based components with multiple text layers</li>
+                    <li>✅ Color-coded arrows showing data flow</li>
+                    <li>✅ Badges for metadata and status information</li>
+                    <li>✅ Clean typography hierarchy</li>
+                    <li>✅ Visual dividers between sections</li>
+                </ul>
+            </div>
+            <img src="anthropic-style-diagram.svg" alt="Anthropic-style AI System Diagram" />
+        </div>
+
+        <div class="diagram">
+            <h2>3. AI Agent Conversation Flow with Clusters</h2>
+            <div class="description">
+                <p><strong>Key improvements over the first version:</strong></p>
+                <ul>
+                    <li>✅ Cluster components for clear visual grouping</li>
+                    <li>✅ Three-column layout for logical flow separation</li>
+                    <li>✅ Color-coded clusters by function (Input, Processing, Response)</li>
+                    <li>✅ Separate data layer with shared storage components</li>
+                    <li>✅ Bidirectional arrows for data access patterns</li>
+                    <li>✅ Cleaner, more scannable layout</li>
+                </ul>
+                <p><em>This demonstrates how Cluster components make complex diagrams much easier to create!</em></p>
+            </div>
+            <img src="anthropic-improved.svg" alt="Improved Anthropic-style Diagram" />
+        </div>
+
+        <div class="diagram">
+            <h2>4. Complete Agent System with Context Management</h2>
+            <div class="description">
+                <p><strong>Features demonstrated:</strong></p>
+                <ul>
+                    <li>✅ Agent state machine (idle → processing → done)</li>
+                    <li>✅ Query processing with decision logic</li>
+                    <li>✅ 3-tier memory hierarchy (hot cache, vector DB, conversation history)</li>
+                    <li>✅ Context window token allocation</li>
+                    <li>✅ Complete data flow from user input to LLM output</li>
+                    <li>✅ Enhanced arrows (thick, dashed, curved, bidirectional)</li>
+                </ul>
+            </div>
+            <img src="showcase-complete-agent-system.svg" alt="Complete Agent System" />
+        </div>
+    </div>
+</body>
+</html>

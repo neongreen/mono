@@ -10,7 +10,7 @@ import { BoxProps } from '../types';
  */
 export interface CardProps extends Omit<BoxProps, 'backgroundColor' | 'borderColor' | 'borderWidth' | 'borderRadius' | 'padding'> {
   children?: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'default';
+  variant?: 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'danger' | 'error' | 'info' | 'default';
   padding?: number;
   borderRadius?: number;
 }
@@ -33,10 +33,13 @@ export const Card: React.FC<CardProps> = ({
         return { bg: theme.colors.primary.light, border: theme.colors.primary.dark };
       case 'secondary':
         return { bg: theme.colors.secondary.light, border: theme.colors.secondary.dark };
+      case 'accent':
+        return { bg: '#fff3e0', border: '#f57c00' };
       case 'success':
         return { bg: theme.colors.success.light, border: theme.colors.success.dark };
       case 'warning':
         return { bg: theme.colors.warning.light, border: theme.colors.warning.dark };
+      case 'danger':
       case 'error':
         return { bg: theme.colors.error.light, border: theme.colors.error.dark };
       case 'info':

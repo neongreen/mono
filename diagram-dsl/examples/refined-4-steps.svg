@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="214.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Steps Component</text>
+    <text x="173.5" y="134.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Process visualization with status indicators</text>
+          <rect x="60" y="207" width="32" height="32" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" rx="16" />
+            <text x="71" y="228.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="start">✓</text>
+          <text x="104" y="228.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1b5e20" font-weight="bold" text-anchor="start">Installation</text>
+        <text x="104" y="261" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Install diagram-dsl and dependencies</text>
+      <rect x="75" y="263" width="2" height="16" fill="#e0e0e0" />
+          <rect x="60" y="279" width="32" height="32" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" rx="16" />
+            <text x="71" y="300.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="start">✓</text>
+          <text x="104" y="299.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#1b5e20" font-weight="bold" text-anchor="start">Configuration</text>
+        <text x="104" y="333" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Set up your presentation structure</text>
+      <rect x="75" y="335" width="2" height="16" fill="#e0e0e0" />
+          <rect x="60" y="351" width="32" height="32" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="16" />
+            <text x="72" y="372.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#1976d2" font-weight="bold" text-anchor="start">3</text>
+          <text x="104" y="372.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Development</text>
+        <text x="104" y="405" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Create your slides using components</text>
+      <rect x="75" y="407" width="2" height="16" fill="#e0e0e0" />
+          <rect x="60" y="423" width="32" height="32" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="2" rx="16" />
+            <text x="72" y="444.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">4</text>
+          <text x="104" y="444.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#999" font-weight="bold" text-anchor="start">Generation</text>
+        <text x="104" y="477" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Generate SVG outputs</text>
+      <rect x="75" y="479" width="2" height="16" fill="#e0e0e0" />
+          <rect x="60" y="495" width="32" height="32" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="2" rx="16" />
+            <text x="72" y="516.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">5</text>
+          <text x="104" y="516.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="#999" font-weight="bold" text-anchor="start">Deployment</text>
+        <text x="104" y="549" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Deploy your presentation</text>
+</svg>
