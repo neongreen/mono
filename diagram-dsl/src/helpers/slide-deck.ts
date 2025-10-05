@@ -2,6 +2,7 @@ import React from 'react';
 import { renderToSVG } from '../renderer';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { PresentationTheme, getCurrentTheme } from '../presentation-theme';
 
 export interface SlideDefinition {
   name: string;
@@ -10,32 +11,32 @@ export interface SlideDefinition {
 }
 
 export interface SlideDeckOptions {
-  outputDir: string;
+  outputDir?: string; // Made optional - if not provided, just returns SVGs
   width?: number;
   height?: number;
   backgroundColor?: string;
   createHTML?: boolean;
   htmlTitle?: string;
+  theme?: PresentationTheme;
 }
 
 /**
  * Generate a complete slide deck from an array of slide definitions
+ * Returns array of SVG strings. If outputDir is provided, also writes files.
  */
 export async function generateSlideDeck(
   slides: SlideDefinition[],
-  options: SlideDeckOptions
-): Promise<void> {
+  options: SlideDeckOptions = {}
+): Promise<string[]> {
+  const theme = options.theme || getCurrentTheme();
   const {
     outputDir,
-    width = 1200,
-    height = 800,
-    backgroundColor = 'white',
+    width = theme.slideWidth,
+    height = theme.slideHeight,
+    backgroundColor = theme.background,
     createHTML = true,
     htmlTitle = 'Presentation'
   } = options;
-
-  // Create output directory
-  mkdirSync(outputDir, { recursive: true });
 
   // Filter out skipped slides
   const activeSlides = slides.filter(slide => !slide.skip);
@@ -43,6 +44,8 @@ export async function generateSlideDeck(
   console.log(`Generating ${activeSlides.length} slides...\n`);
 
   // Generate each slide
+  const svgs: string[] = [];
+  
   for (let i = 0; i < activeSlides.length; i++) {
     const slide = activeSlides[i];
     const svg = await renderToSVG(slide.component, {
@@ -51,22 +54,32 @@ export async function generateSlideDeck(
       backgroundColor,
     });
     
-    const filename = `${slide.name}.svg`;
-    writeFileSync(join(outputDir, filename), svg);
-    console.log(`✓ Generated ${filename} (${i + 1}/${activeSlides.length})`);
+    svgs.push(svg);
+    
+    if (outputDir) {
+      const filename = `${slide.name}.svg`;
+      writeFileSync(join(outputDir, filename), svg);
+      console.log(`✓ Generated ${filename} (${i + 1}/${activeSlides.length})`);
+    }
   }
 
-  // Generate HTML viewer if requested
-  if (createHTML) {
-    const htmlContent = createHTMLViewer(activeSlides, htmlTitle);
-    writeFileSync(join(outputDir, 'index.html'), htmlContent);
-    console.log('\n✓ Generated index.html viewer');
-  }
+  // Generate HTML viewer if requested and outputDir provided
+  if (outputDir) {
+    mkdirSync(outputDir, { recursive: true });
+    
+    if (createHTML) {
+      const htmlContent = createHTMLViewer(activeSlides, htmlTitle);
+      writeFileSync(join(outputDir, 'index.html'), htmlContent);
+      console.log('\n✓ Generated index.html viewer');
+    }
 
-  console.log(`\nPresentation complete! ${activeSlides.length} slides generated.`);
-  if (createHTML) {
-    console.log(`Open ${join(outputDir, 'index.html')} to view.`);
+    console.log(`\nPresentation complete! ${activeSlides.length} slides generated.`);
+    if (createHTML) {
+      console.log(`Open ${join(outputDir, 'index.html')} to view.`);
+    }
   }
+  
+  return svgs;
 }
 
 /**

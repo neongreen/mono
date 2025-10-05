@@ -68,6 +68,14 @@ export interface ArrowProps {
   tailType?: 'none' | 'arrow' | 'circle';
 }
 
+export interface ImageProps extends LayoutProps {
+  src: string;
+  alt?: string;
+  fit?: 'contain' | 'cover' | 'fill' | 'none';
+  borderRadius?: number;
+  opacity?: number;
+}
+
 export interface LayoutNode {
   type: string;
   props: any;

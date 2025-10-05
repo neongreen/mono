@@ -2,6 +2,7 @@ import { renderToSVG } from '../renderer';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import type { ReactElement } from 'react';
+import { PresentationTheme, getCurrentTheme } from '../presentation-theme';
 
 export interface PageSection {
   name: string;
@@ -10,33 +11,35 @@ export interface PageSection {
 }
 
 export interface ScrollingPageOptions {
-  outputDir: string;
+  outputDir?: string; // Made optional
   htmlTitle?: string;
   width?: number;
-  sectionGap?: number;
+  slideHeight?: number;
+  gap?: number; // Renamed from sectionGap for consistency
   backgroundColor?: string;
   createHTML?: boolean;
+  theme?: PresentationTheme;
 }
 
 /**
  * Generate a single scrolling page document from multiple sections
  * Perfect for technical documentation, long-form content, and reports
+ * Returns SVG string. If outputDir provided, also writes files.
  */
 export async function generateScrollingPage(
   sections: PageSection[],
-  options: ScrollingPageOptions
-): Promise<void> {
+  options: ScrollingPageOptions = {}
+): Promise<string> {
+  const theme = options.theme || getCurrentTheme();
   const {
     outputDir,
     htmlTitle = 'Technical Documentation',
-    width = 1200,
-    sectionGap = 40,
-    backgroundColor = 'white',
+    width = theme.slideWidth,
+    slideHeight = theme.slideHeight,
+    gap = 60,
+    backgroundColor = theme.background,
     createHTML = true
   } = options;
-
-  // Create output directory
-  mkdirSync(outputDir, { recursive: true });
 
   console.log(`\nGenerating scrolling page with ${sections.length} sections...\n`);
 
@@ -49,12 +52,12 @@ export async function generateScrollingPage(
     // Render the section
     const result = await renderToSVG(section.component, {
       width,
-      backgroundColor: section.backgroundColor || backgroundColor,
+      height: slideHeight,
+      backgroundColor: section.backgroundColor || 'none',
     });
     
-    // Extract height from SVG
-    const heightMatch = result.match(/height="(\d+)"/);
-    const height = heightMatch ? parseInt(heightMatch[1]) : 800;
+    // Use fixed slide height
+    const height = slideHeight;
     
     renderedSections.push({
       name: section.name,
@@ -65,27 +68,54 @@ export async function generateScrollingPage(
     console.log(`✓ Rendered section: ${section.name} (${i + 1}/${sections.length})`);
   }
 
-  // Save individual SVGs
-  renderedSections.forEach(({ name, svg }) => {
-    const filename = `section-${name}.svg`;
-    writeFileSync(join(outputDir, filename), svg);
-  });
-
-  if (createHTML) {
-    // Generate HTML with all sections
-    const html = generateScrollingHTML(renderedSections, {
-      title: htmlTitle,
-      width,
-      sectionGap
-    });
+  // Combine into one scrolling SVG
+  const totalHeight = renderedSections.reduce((sum, s) => sum + s.height + gap, 0) + gap;
+  
+  let combinedSVG = `<svg width="${width}" height="${totalHeight}" xmlns="http://www.w3.org/2000/svg">`;
+  combinedSVG += `<rect width="${width}" height="${totalHeight}" fill="${backgroundColor}"/>`;
+  
+  let currentY = gap;
+  for (const section of renderedSections) {
+    const contentMatch = section.svg.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+    const content = contentMatch ? contentMatch[1] : section.svg;
     
-    const htmlPath = join(outputDir, 'index.html');
-    writeFileSync(htmlPath, html);
-    console.log('\n✓ Generated index.html viewer');
+    combinedSVG += `<g transform="translate(0, ${currentY})">`;
+    combinedSVG += content;
+    combinedSVG += `</g>`;
+    
+    currentY += section.height + gap;
   }
+  
+  combinedSVG += `</svg>`;
 
-  console.log(`\nScrolling page complete! ${sections.length} sections generated.`);
-  console.log(`Open ${join(outputDir, 'index.html')} to view.\n`);
+  // Write files if outputDir provided
+  if (outputDir) {
+    mkdirSync(outputDir, { recursive: true });
+    
+    // Save individual SVGs
+    renderedSections.forEach(({ name, svg }) => {
+      const filename = `section-${name}.svg`;
+      writeFileSync(join(outputDir, filename), svg);
+    });
+
+    if (createHTML) {
+      // Generate HTML with all sections
+      const html = generateScrollingHTML(renderedSections, {
+        title: htmlTitle,
+        width,
+        sectionGap: gap
+      });
+      
+      const htmlPath = join(outputDir, 'index.html');
+      writeFileSync(htmlPath, html);
+      console.log('\n✓ Generated index.html viewer');
+    }
+
+    console.log(`\nScrolling page complete! ${sections.length} sections generated.`);
+    console.log(`Open ${join(outputDir, 'index.html')} to view.\n`);
+  }
+  
+  return combinedSVG;
 }
 
 function generateScrollingHTML(

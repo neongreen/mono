@@ -24,6 +24,7 @@ export { Spacer } from './components/Spacer';
 export { Grid } from './components/Grid';
 export { Callout } from './components/Callout';
 export { Steps } from './components/Steps';
+export { Image } from './components/Image';
 
 // Layout components
 export { TwoColumn } from './components/TwoColumn';
@@ -69,6 +70,12 @@ export {
   darkTheme,
   vibrantTheme,
   minimalTheme,
+  solarizedLightTheme,
+  solarizedDarkTheme,
+  nordTheme,
+  draculaTheme,
+  githubTheme,
+  highContrastTheme,
   setCurrentTheme,
   getCurrentTheme,
   createCustomTheme
@@ -83,6 +90,10 @@ export type { SlideDefinition, SlideDeckOptions } from './helpers/slide-deck';
 export { generateScrollingPage } from './helpers/scrolling-page';
 export type { PageSection, ScrollingPageOptions } from './helpers/scrolling-page';
 
+// Continuous page helper (pageless mode)
+export { generateContinuousPage, generateThemedContinuousPage } from './helpers/continuous-page';
+export type { ContentBlock, ContinuousPageOptions } from './helpers/continuous-page';
+
 export type {
   LayoutProps,
   AlignmentProps,
@@ -92,4 +103,5 @@ export type {
   TextProps,
   ArrowProps,
   LayoutNode,
+  ImageProps,
 } from './types';

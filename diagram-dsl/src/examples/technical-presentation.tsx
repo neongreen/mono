@@ -269,7 +269,7 @@ async function generate() {
     outputDir: './technical-scrolling',
     htmlTitle: 'Microservices Architecture - Documentation',
     width: 1200,
-    sectionGap: 60
+    gap: 60
   });
   
   console.log('\n=== Generation Complete! ===\n');

@@ -5,3 +5,4 @@ dist/
 examples/*.png
 examples/view.html
 lint-demo.html
+presentation-modes-output/
