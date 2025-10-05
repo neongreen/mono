@@ -13,6 +13,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 
 	main "dissect/cmd"
+	"dissect/pkg/externaltest"
 	"dissect/pkg/goutils"
 	"dissect/pkg/testutils"
 )
@@ -36,6 +37,16 @@ func init() {
 		installGoplsCmd := exec.Command("go", "install", "golang.org/x/tools/gopls@latest")
 		if installErr := installGoplsCmd.Run(); installErr != nil {
 			panic("Failed to install gopls: " + installErr.Error())
+		}
+	}
+
+	// Ensure goimports is installed (required by dissect)
+	checkGoimportsCmd := exec.Command("goimports", "-h")
+	if err := checkGoimportsCmd.Run(); err != nil {
+		// goimports not found, install it
+		installGoimportsCmd := exec.Command("go", "install", "golang.org/x/tools/cmd/goimports@latest")
+		if installErr := installGoimportsCmd.Run(); installErr != nil {
+			panic("Failed to install goimports: " + installErr.Error())
 		}
 	}
 }
@@ -221,103 +232,50 @@ func TestAllDissectIntegration(t *testing.T) {
 	}
 }
 
-// TestExternalProjectIntegration tests dissect on a real external Go project.
-// This test clones github.com/google/uuid at a specific commit, runs dissect on one of its files,
-// and verifies that the project still compiles and passes its test suite.
-func TestExternalProjectIntegration(t *testing.T) {
+// TestExternalProjects tests dissect on real external Go projects.
+// This test suite runs dissect on multiple predefined projects and validates correctness.
+func TestExternalProjects(t *testing.T) {
 	// Skip this test by default as it's optional and takes longer
 	if testing.Short() {
-		t.Skip("Skipping external project test in short mode")
+		t.Skip("Skipping external project tests in short mode")
 	}
 
-	// Clone the project to a temporary directory
-	tmpDir, err := os.MkdirTemp("", "dissect_external_uuid_")
-	if err != nil {
-		t.Fatalf("Failed to create temporary directory: %v", err)
+	// Get show diff flag from environment
+	showDiff := os.Getenv("DISSECT_SHOW_DIFF") == "1" || os.Getenv("DISSECT_SHOW_DIFF") == "true"
+
+	// Run test for each known project
+	for projectName := range externaltest.KnownProjects {
+		t.Run(projectName, func(t *testing.T) {
+			config, ok := externaltest.GetProject(projectName)
+			if !ok {
+				t.Fatalf("Project %s not found", projectName)
+			}
+
+			// Override ShowDiff if environment variable is set
+			if showDiff {
+				config.ShowDiff = true
+			}
+
+			// Inject ProcessFile dependency
+			config.ProcessFile = func(absPath string) (int, string, error) {
+				status, exclusionReason, err := main.ProcessFile(absPath)
+				return int(status), exclusionReason, err
+			}
+
+			result := externaltest.RunExternalProjectTest(t, config)
+			if result.Error != nil {
+				t.Fatalf("External project test failed for %s: %v", projectName, result.Error)
+			}
+
+			// Log summary
+			t.Logf("✓ %s: %d files before, %d files after, %d new files created",
+				projectName, result.FilesBefore, result.FilesAfter, len(result.FilesCreated))
+
+			if config.ShowDiff && result.Diff != "" {
+				t.Logf("Git diff for %s:\n%s", projectName, result.Diff)
+			}
+		})
 	}
-	slog.Debug("Temporary directory for external project", "dir", tmpDir)
-	// Don't clean up for debugging: defer os.RemoveAll(tmpDir)
-
-	// Clone the project at a specific commit
-	projectURL := "https://github.com/google/uuid.git"
-	projectCommit := "2d3c2a9cc518326daf99a383f07c4d3c44317e4d" // A recent stable commit
-	projectDir := filepath.Join(tmpDir, "uuid")
-
-	slog.Debug("Cloning external project", "url", projectURL, "commit", projectCommit)
-	cloneCmd := exec.Command("git", "clone", projectURL, projectDir)
-	cloneOutput, cloneErr := cloneCmd.CombinedOutput()
-	if cloneErr != nil {
-		t.Fatalf("Failed to clone project: %v\nOutput: %s", cloneErr, cloneOutput)
-	}
-
-	// Checkout the specific commit
-	checkoutCmd := exec.Command("git", "checkout", projectCommit)
-	checkoutCmd.Dir = projectDir
-	checkoutOutput, checkoutErr := checkoutCmd.CombinedOutput()
-	if checkoutErr != nil {
-		t.Fatalf("Failed to checkout commit: %v\nOutput: %s", checkoutErr, checkoutOutput)
-	}
-
-	// Verify the project builds before dissect
-	slog.Debug("Building project before dissect...")
-	buildBeforeCmd := exec.Command("go", "build", "./...")
-	buildBeforeCmd.Dir = projectDir
-	buildBeforeOutput, buildBeforeErr := buildBeforeCmd.CombinedOutput()
-	if buildBeforeErr != nil {
-		t.Fatalf("Project doesn't build before dissect: %v\nOutput: %s", buildBeforeErr, buildBeforeOutput)
-	}
-
-	// Verify tests pass before dissect
-	slog.Debug("Running tests before dissect...")
-	testBeforeCmd := exec.Command("go", "test", ".")
-	testBeforeCmd.Dir = projectDir
-	testBeforeOutput, testBeforeErr := testBeforeCmd.CombinedOutput()
-	if testBeforeErr != nil {
-		t.Fatalf("Tests don't pass before dissect: %v\nOutput: %s", testBeforeErr, testBeforeOutput)
-	}
-	slog.Debug("Tests passed before dissect", "output", string(testBeforeOutput))
-
-	// Run dissect on version4.go (it has 5 functions: New, NewString, NewRandom, NewRandomFromReader, newRandomFromPool)
-	targetFile := filepath.Join(projectDir, "version4.go")
-	slog.Debug("Running dissect on target file", "file", targetFile)
-	main.ProcessFile(targetFile)
-
-	// Verify the project still builds after dissect
-	slog.Debug("Building project after dissect...")
-	buildAfterCmd := exec.Command("go", "build", "./...")
-	buildAfterCmd.Dir = projectDir
-	buildAfterOutput, buildAfterErr := buildAfterCmd.CombinedOutput()
-	if buildAfterErr != nil {
-		t.Fatalf("Project doesn't build after dissect: %v\nOutput: %s", buildAfterErr, buildAfterOutput)
-	}
-
-	// Verify tests still pass after dissect
-	slog.Debug("Running tests after dissect...")
-	testAfterCmd := exec.Command("go", "test", ".")
-	testAfterCmd.Dir = projectDir
-	testAfterOutput, testAfterErr := testAfterCmd.CombinedOutput()
-	if testAfterErr != nil {
-		t.Fatalf("Tests don't pass after dissect: %v\nOutput: %s", testAfterErr, testAfterOutput)
-	}
-	slog.Debug("Tests passed after dissect", "output", string(testAfterOutput))
-
-	// Log the files created by dissect
-	slog.Debug("Listing files after dissect...")
-	walkErr := filepath.Walk(projectDir, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".go") {
-			relativePath, _ := filepath.Rel(projectDir, path)
-			slog.Debug("Go file after dissect", "path", relativePath)
-		}
-		return nil
-	})
-	if walkErr != nil {
-		slog.Error("Failed to walk project directory", "error", walkErr)
-	}
-
-	slog.Debug("External project test completed successfully")
 }
 
 func findRepoRoot(t *testing.T) string {
