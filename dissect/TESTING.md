@@ -183,15 +183,15 @@ Tests handling of Go modules with `/v2` or higher version suffixes.
 - Correct import path generation for versioned modules
 - Module path parsing with version suffixes
 
-## External Project Integration Test
+## External Project Integration Tests
 
-The `TestExternalProjectIntegration` test validates dissect on a real-world Go project.
+The `TestExternalProjects` suite validates dissect on real-world Go projects using a reusable testing framework.
 
 ### What It Tests
 
-This test:
-1. Clones [github.com/google/uuid](https://github.com/google/uuid) at a specific commit
-2. Runs dissect on one of its files (`version4.go`)
+This test suite:
+1. Clones external Go projects at specific commits
+2. Runs dissect on designated files
 3. Verifies the project still compiles with `go build`
 4. Verifies the project's test suite still passes with `go test`
 
@@ -203,47 +203,101 @@ This test ensures that:
 - All imports and dependencies are handled properly
 - The test suite continues to pass after refactoring
 
-### Project Selection Criteria
+### Current Test Projects
 
-The test uses `github.com/google/uuid` because it:
-- Is small and focused (single package)
-- Is popular and well-maintained
-- Has a comprehensive test suite
-- Has multiple functions suitable for extraction
-- Has no var/const declarations in the target file
+**google/uuid**
+- Small, focused single-package library
+- Target file: `version4.go` (5 functions extracted)
+- Full test suite passes after refactoring
 
-### Running the Test
+**segmentio/ksuid**
+- K-Sortable Unique Identifier library
+- Target file: `base62.go` (demonstrates handling of files with var/const)
+- Project compiles and tests pass
+
+### Running the Tests
 
 ```bash
-# Run the external project test
-go test ./cmd -v -run TestExternalProjectIntegration
+# Run all external project tests
+go test ./cmd -v -run TestExternalProjects
 
-# Skip external project test (use short mode)
+# Run a specific project test
+go test ./cmd -v -run TestExternalProjects/google
+
+# Skip external project tests (use short mode)
 go test ./cmd -v -short
+
+# Show git diff of changes made by dissect
+DISSECT_SHOW_DIFF=1 go test ./cmd -v -run TestExternalProjects
 ```
+
+### Adding New Projects
+
+Projects are defined in `pkg/externaltest/projects.go`:
+
+```go
+"project-name": {
+    Name:        "owner/repo",
+    URL:         "https://github.com/owner/repo.git",
+    Commit:      "commit-sha",
+    TargetFiles: []string{"file1.go", "file2.go"},
+    ShowDiff:    false,
+}
+```
+
+### Smoke Testing Tool
+
+For ad-hoc testing on any GitHub project, use the `smoke-test` tool:
+
+```bash
+# List available predefined projects
+go run ./cmd/smoke-test -list
+
+# Test a predefined project
+go run ./cmd/smoke-test -project google/uuid
+
+# Test a predefined project with diff
+go run ./cmd/smoke-test -project google/uuid -diff
+
+# Test a custom project
+go run ./cmd/smoke-test \
+  -url https://github.com/owner/repo.git \
+  -commit abc123 \
+  -files "file1.go,file2.go" \
+  -diff
+```
+
+The smoke-test tool:
+- Clones the project to a temporary directory
+- Runs dissect on specified files
+- Validates compilation and tests
+- Optionally shows git diff
+- Preserves the project directory for inspection
 
 ### Technical Details
 
-- **Commit**: Uses a pinned commit SHA for reproducibility
-- **Target file**: `version4.go` (contains 5 functions)
-- **gopls requirement**: Automatically installs gopls if not present
-- **Test duration**: ~17-20 seconds (includes git clone and test execution)
-- **Internet required**: Yes (to clone the repository)
+- **Framework**: Reusable `pkg/externaltest` package
+- **gopls requirement**: Automatically installs gopls and goimports if not present
+- **Test duration**: ~1-20 seconds per project (depends on size)
+- **Internet required**: Yes (to clone repositories)
+- **Preserved directories**: `/tmp/dissect_external_*` for debugging
 
 ### Debugging
 
-The test preserves the cloned repository in `/tmp/dissect_external_uuid_*` for inspection. To examine the refactored code:
+The tests preserve cloned repositories for inspection:
 
 ```bash
-# Find the test directory
-ls -td /tmp/dissect_external_uuid_* | head -1
+# Find test directories
+ls -td /tmp/dissect_external_* | head -5
 
-# List files after refactoring
-ls /tmp/dissect_external_uuid_*/uuid/*.go
+# Examine a specific test
+cd /tmp/dissect_external_google_uuid_*/uuid/
 
-# View the changes
-cd /tmp/dissect_external_uuid_*/uuid/
-git diff --no-index version4.go.orig version4.go  # if available
+# View git diff
+git diff
+
+# List new files created
+git ls-files --others --exclude-standard
 ```
 
 ## Test Execution Flow
