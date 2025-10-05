@@ -11,6 +11,13 @@ export { Title } from './components/Title';
 export { Subtitle } from './components/Subtitle';
 export { Label } from './components/Label';
 
+// Presentation components
+export { Slide } from './components/Slide';
+export { List } from './components/List';
+export { ProsCons } from './components/ProsCons';
+export { Section } from './components/Section';
+export { Highlight } from './components/Highlight';
+
 export { renderToSVG, renderToSVGWithLayout } from './renderer';
 export type { RenderResult } from './renderer';
 

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="326.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">New Presentation Components</text>
+    <text x="135.5" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Making slides easier to build</text>
+    <rect x="60" y="190" width="1000" height="159" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+      <text x="80" y="221.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">New Components</text>
+        <text x="80" y="245.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Slide - Consistent slide container,</text>
+        <text x="80" y="265.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• List - Bullet point lists,</text>
+        <text x="80" y="285.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ProsCons - Side-by-side pros and cons,</text>
+        <text x="80" y="306.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Section - Titled content sections,</text>
+        <text x="80" y="326.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Highlight - Emphasized content blocks,</text>
+</svg>
