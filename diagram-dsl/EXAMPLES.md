@@ -10,6 +10,81 @@ All examples are generated from JSX code and output as pure SVG. They can be:
 - Converted to PNG/PDF
 - Used in presentations
 
+## New: Semantic Components Examples
+
+The library now includes semantic components (Card, Title, Subtitle, Label) that provide professional styling with minimal code. These examples showcase how to create beautiful diagrams quickly.
+
+### 0a. Styled Flowchart (styled-flowchart.svg)
+
+A modern flowchart using semantic components with rich text.
+
+**Size:** ~2 KB  
+**Features:** Card components with variants, Title/Subtitle hierarchy, Label text, minimal code
+
+**Code:**
+```tsx
+<Stack gap={24} padding={40} alignItems="center">
+  <Title level={1}>Modern Flowchart</Title>
+  <Subtitle>Using semantic components for clean, professional styling</Subtitle>
+  
+  <Card id="start" variant="primary" width={200} height={80}>
+    <Stack gap={6} alignItems="center">
+      <Label bold>Start Process</Label>
+      <Subtitle>Initialize system</Subtitle>
+    </Stack>
+  </Card>
+
+  <Card id="process" variant="warning" width={200} height={80}>
+    <Stack gap={6} alignItems="center">
+      <Label bold>Process Data</Label>
+      <Subtitle>Transform inputs</Subtitle>
+    </Stack>
+  </Card>
+
+  <Card id="end" variant="success" width={200} height={80}>
+    <Stack gap={6} alignItems="center">
+      <Label bold>Complete</Label>
+      <Subtitle>Return results</Subtitle>
+    </Stack>
+  </Card>
+
+  <Arrow from="start" to="process" color="#1976d2" strokeWidth={2} />
+  <Arrow from="process" to="end" color="#388e3c" strokeWidth={2} />
+</Stack>
+```
+
+**Benefits over manual styling:**
+- No need to specify colors, fonts, border radius manually
+- Consistent professional look
+- Easy to understand semantic markup
+- Rich text (title + subtitle) in boxes
+
+### 0b. Styled Architecture (styled-architecture.svg)
+
+Three-tier architecture using semantic components.
+
+**Size:** ~3 KB  
+**Features:** Title hierarchy (3 levels), color-coded Card variants, semantic text components
+
+**Key improvements:**
+- `Title level={1}` for main heading
+- `Title level={3}` for section headings
+- `Card variant="primary|success|secondary"` for automatic color coding
+- `Label bold size="lg"` + `Subtitle` for rich text
+
+### 0c. Title Hierarchy (title-hierarchy.svg)
+
+Typography showcase demonstrating all text components.
+
+**Size:** ~1.5 KB  
+**Features:** Complete typography scale demonstration
+
+**Shows:**
+- Title levels 1-3 (36px, 24px, 20px)
+- Label sizes (sm, base, lg)
+- Subtitle sizes (sm, base)
+- Font weights and colors
+
 ## Examples
 
 ### 1. Simple Box (simple-box.svg)

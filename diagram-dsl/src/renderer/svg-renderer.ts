@@ -121,29 +121,75 @@ export class SVGRenderer {
         const color = node.props.color || 'black';
         const strokeWidth = node.props.strokeWidth || 2;
 
-        // Calculate arrow start and end points (center of boxes)
-        const x1 = fromPos.x + fromPos.width / 2;
-        const y1 = fromPos.y + fromPos.height / 2;
-        const x2 = toPos.x + toPos.width / 2;
-        const y2 = toPos.y + toPos.height / 2;
+        // Calculate centers of both boxes
+        const fromCenterX = fromPos.x + fromPos.width / 2;
+        const fromCenterY = fromPos.y + fromPos.height / 2;
+        const toCenterX = toPos.x + toPos.width / 2;
+        const toCenterY = toPos.y + toPos.height / 2;
 
-        // Calculate arrow direction
-        const angle = Math.atan2(y2 - y1, x2 - x1);
-        
-        // Adjust end point to be at the edge of the target box
-        const adjustedX2 = toPos.x + toPos.width / 2 - Math.cos(angle) * (toPos.width / 2);
-        const adjustedY2 = toPos.y + toPos.height / 2 - Math.sin(angle) * (toPos.height / 2);
+        // Calculate attachment points (centers of rectangle sides)
+        const fromAttachmentPoints = {
+          top: { x: fromCenterX, y: fromPos.y },
+          bottom: { x: fromCenterX, y: fromPos.y + fromPos.height },
+          left: { x: fromPos.x, y: fromCenterY },
+          right: { x: fromPos.x + fromPos.width, y: fromCenterY }
+        };
+
+        const toAttachmentPoints = {
+          top: { x: toCenterX, y: toPos.y },
+          bottom: { x: toCenterX, y: toPos.y + toPos.height },
+          left: { x: toPos.x, y: toCenterY },
+          right: { x: toPos.x + toPos.width, y: toCenterY }
+        };
+
+        // Find closest attachment points
+        let minDistance = Infinity;
+        let bestFrom = fromAttachmentPoints.bottom;
+        let bestTo = toAttachmentPoints.top;
+
+        for (const [fromSide, fromPoint] of Object.entries(fromAttachmentPoints)) {
+          for (const [toSide, toPoint] of Object.entries(toAttachmentPoints)) {
+            const distance = Math.sqrt(
+              Math.pow(toPoint.x - fromPoint.x, 2) + 
+              Math.pow(toPoint.y - fromPoint.y, 2)
+            );
+            if (distance < minDistance) {
+              minDistance = distance;
+              bestFrom = fromPoint;
+              bestTo = toPoint;
+            }
+          }
+        }
+
+        const x1 = bestFrom.x;
+        const y1 = bestFrom.y;
+        const x2 = bestTo.x;
+        const y2 = bestTo.y;
 
         // Draw line
-        svg += `\n${indent}<line x1="${x1}" y1="${y1}" x2="${adjustedX2}" y2="${adjustedY2}" `;
+        svg += `\n${indent}<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" `;
         svg += `stroke="${color}" stroke-width="${strokeWidth}" marker-end="url(#arrowhead-${color.replace('#', '')})" />`;
 
-        // Add label if present
+        // Add label if present with semi-transparent background
         if (node.props.label) {
-          const midX = (x1 + adjustedX2) / 2;
-          const midY = (y1 + adjustedY2) / 2;
-          svg += `\n${indent}<text x="${midX}" y="${midY - 5}" `;
-          svg += `font-size="12" fill="${color}" text-anchor="middle">${this.escapeXml(node.props.label)}</text>`;
+          const midX = (x1 + x2) / 2;
+          const midY = (y1 + y2) / 2;
+          
+          // Measure approximate text size for background
+          const labelText = this.escapeXml(node.props.label);
+          const fontSize = 12;
+          const textWidth = labelText.length * fontSize * 0.6; // Approximate width
+          const textHeight = fontSize;
+          const padding = 4;
+          
+          // Draw semi-transparent background rectangle
+          svg += `\n${indent}<rect x="${midX - textWidth / 2 - padding}" y="${midY - textHeight / 2 - padding}" `;
+          svg += `width="${textWidth + padding * 2}" height="${textHeight + padding * 2}" `;
+          svg += `fill="white" fill-opacity="0.85" rx="2" />`;
+          
+          // Draw label text
+          svg += `\n${indent}<text x="${midX}" y="${midY + fontSize / 3}" `;
+          svg += `font-size="${fontSize}" fill="${color}" text-anchor="middle">${labelText}</text>`;
         }
       }
     }

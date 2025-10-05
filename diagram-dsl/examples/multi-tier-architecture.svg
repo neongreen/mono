@@ -39,13 +39,16 @@
         <rect x="590" y="449" width="150" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
           <text x="625" y="489.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">File Storage</text>
           <text x="630" y="499.6666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">S3/Azure Blob</text>
-  <line x1="418" y1="185" x2="370.5830494239344" y2="303.78850048972913" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
-  <text x="394.2915247119672" y="239.39425024486457" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
-  <line x1="583" y1="185" x2="398.7150721579218" y2="317.89866427458077" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
-  <text x="490.8575360789609" y="246.44933213729038" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
-  <line x1="335" y1="339" x2="425" y2="339" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
-  <line x1="335" y1="339" x2="590" y2="339" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
-  <line x1="665" y1="339" x2="403.27748580969535" y2="472.4478822279526" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
-  <text x="534.1387429048477" y="400.7239411139763" font-size="12" fill="#7b1fa2" text-anchor="middle">SQL</text>
-  <line x1="665" y1="339" x2="555.4955055046958" y2="462.0930882401475" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+  <line x1="418" y1="225" x2="335" y2="299" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <rect x="354.5" y="252" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="376.5" y="266" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <line x1="508" y1="185" x2="410" y2="339" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <rect x="437" y="252" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="459" y="266" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <line x1="410" y1="339" x2="425" y2="339" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
+  <line x1="410" y1="339" x2="590" y2="339" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
+  <line x1="590" y1="339" x2="410" y2="489" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+  <rect x="485.2" y="404" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="500" y="418" font-size="12" fill="#7b1fa2" text-anchor="middle">SQL</text>
+  <line x1="665" y1="379" x2="575" y2="489" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
 </svg>
