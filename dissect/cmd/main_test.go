@@ -13,6 +13,7 @@ import (
 	"github.com/pelletier/go-toml/v2"
 
 	main "dissect/cmd"
+	"dissect/pkg/externaltest"
 	"dissect/pkg/goutils"
 	"dissect/pkg/testutils"
 )
@@ -21,6 +22,33 @@ import (
 func init() {
 	// Init logging
 	slog.SetDefault(slog.New(devslog.NewHandler(os.Stdout, &devslog.Options{HandlerOptions: &slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true}, NewLineAfterLog: true})))
+
+	// Add go/bin to PATH so gopls can be found
+	goBinPath := filepath.Join(os.Getenv("HOME"), "go", "bin")
+	currentPath := os.Getenv("PATH")
+	if !strings.Contains(currentPath, goBinPath) {
+		os.Setenv("PATH", goBinPath+":"+currentPath)
+	}
+
+	// Ensure gopls is installed (required by dissect)
+	checkGoplsCmd := exec.Command("gopls", "version")
+	if err := checkGoplsCmd.Run(); err != nil {
+		// gopls not found, install it
+		installGoplsCmd := exec.Command("go", "install", "golang.org/x/tools/gopls@latest")
+		if installErr := installGoplsCmd.Run(); installErr != nil {
+			panic("Failed to install gopls: " + installErr.Error())
+		}
+	}
+
+	// Ensure goimports is installed (required by dissect)
+	checkGoimportsCmd := exec.Command("goimports", "-h")
+	if err := checkGoimportsCmd.Run(); err != nil {
+		// goimports not found, install it
+		installGoimportsCmd := exec.Command("go", "install", "golang.org/x/tools/cmd/goimports@latest")
+		if installErr := installGoimportsCmd.Run(); installErr != nil {
+			panic("Failed to install goimports: " + installErr.Error())
+		}
+	}
 }
 
 // testFiles represents the structure of our TOML test files.
@@ -200,6 +228,52 @@ func TestAllDissectIntegration(t *testing.T) {
 		t.Run(fileName, func(t *testing.T) {
 			t.Parallel() // Run tests in parallel if possible
 			runDissectIntegrationTest(t, fileName)
+		})
+	}
+}
+
+// TestExternalProjects tests dissect on real external Go projects.
+// This test suite runs dissect on multiple predefined projects and validates correctness.
+func TestExternalProjects(t *testing.T) {
+	// Skip this test by default as it's optional and takes longer
+	if testing.Short() {
+		t.Skip("Skipping external project tests in short mode")
+	}
+
+	// Get show diff flag from environment
+	showDiff := os.Getenv("DISSECT_SHOW_DIFF") == "1" || os.Getenv("DISSECT_SHOW_DIFF") == "true"
+
+	// Run test for each known project
+	for projectName := range externaltest.KnownProjects {
+		t.Run(projectName, func(t *testing.T) {
+			config, ok := externaltest.GetProject(projectName)
+			if !ok {
+				t.Fatalf("Project %s not found", projectName)
+			}
+
+			// Override ShowDiff if environment variable is set
+			if showDiff {
+				config.ShowDiff = true
+			}
+
+			// Inject ProcessFile dependency
+			config.ProcessFile = func(absPath string) (int, string, error) {
+				status, exclusionReason, err := main.ProcessFile(absPath)
+				return int(status), exclusionReason, err
+			}
+
+			result := externaltest.RunExternalProjectTest(t, config)
+			if result.Error != nil {
+				t.Fatalf("External project test failed for %s: %v", projectName, result.Error)
+			}
+
+			// Log summary
+			t.Logf("✓ %s: %d files before, %d files after, %d new files created",
+				projectName, result.FilesBefore, result.FilesAfter, len(result.FilesCreated))
+
+			if config.ShowDiff && result.Diff != "" {
+				t.Logf("Git diff for %s:\n%s", projectName, result.Diff)
+			}
 		})
 	}
 }
