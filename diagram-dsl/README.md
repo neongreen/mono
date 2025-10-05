@@ -16,6 +16,8 @@ Most graphical diagram tools require manual positioning and constant tweaking. T
 
 ✨ **High-level DSL** - Describe diagrams using familiar React JSX syntax  
 🎨 **Flexible Layout** - Stack, Row, Column with gaps, padding, and alignment  
+🎭 **Semantic Components** - Card, Title, Subtitle, Label with professional styling  
+🌈 **Theme System** - Built-in color palette, typography scale, and spacing  
 ⚡ **Yoga Layout Engine** - Battle-tested flexbox implementation from React Native  
 📦 **No Browser Required** - Pure SVG generation, no headless browser needed  
 🔒 **TypeScript First** - Full type safety and excellent IntelliSense support  
@@ -84,9 +86,107 @@ async function generate() {
 generate();
 ```
 
+## Quick Start with Semantic Components
+
+For even cleaner diagrams with professional styling:
+
+```tsx
+import React from 'react';
+import { Stack, Card, Title, Subtitle, Label, Arrow, renderToSVG } from 'diagram-dsl';
+import { writeFileSync } from 'fs';
+
+const MyDiagram = () => (
+  <Stack gap={24} padding={40} alignItems="center">
+    <Title level={1}>My Flowchart</Title>
+    <Subtitle>Clean and professional</Subtitle>
+    
+    <Card id="step1" variant="primary" width={200} height={80}>
+      <Stack gap={6} alignItems="center">
+        <Label bold>First Step</Label>
+        <Subtitle>Initialize</Subtitle>
+      </Stack>
+    </Card>
+
+    <Card id="step2" variant="success" width={200} height={80}>
+      <Stack gap={6} alignItems="center">
+        <Label bold>Second Step</Label>
+        <Subtitle>Process</Subtitle>
+      </Stack>
+    </Card>
+
+    <Arrow from="step1" to="step2" color="#1976d2" strokeWidth={2} />
+  </Stack>
+);
+
+async function generate() {
+  const svg = await renderToSVG(<MyDiagram />, { 
+    width: 800, 
+    height: 600,
+    backgroundColor: 'white'
+  });
+  writeFileSync('diagram.svg', svg);
+}
+
+generate();
+```
+
+**Benefits of semantic components:**
+- 🎯 Less code - no need to specify colors, fonts, sizes manually
+- 🎨 Consistent styling - uses a professional theme system
+- 📝 Rich text - easily combine titles, labels, and subtitles
+- 🔄 Easy updates - change `variant` to update colors
+
+See [STYLING_GUIDE.md](STYLING_GUIDE.md) for complete documentation.
+
 ## Components
 
-### Box
+### Semantic Components (Recommended)
+
+#### Card
+
+A styled box with professional defaults and color variants.
+
+```tsx
+<Card variant="primary" width={200} height={100}>
+  <Label>Content</Label>
+</Card>
+```
+
+**Variants:** `primary`, `secondary`, `success`, `warning`, `error`, `info`, `default`
+
+#### Title
+
+Large, bold text for diagram titles and section headings.
+
+```tsx
+<Title level={1}>Main Title</Title>      {/* 36px */}
+<Title level={2}>Section Title</Title>  {/* 24px */}
+<Title level={3}>Subsection</Title>     {/* 20px */}
+```
+
+#### Subtitle
+
+Smaller, gray text for secondary information.
+
+```tsx
+<Subtitle>Supporting text</Subtitle>           {/* 12px */}
+<Subtitle size="base">Larger subtitle</Subtitle> {/* 14px */}
+```
+
+#### Label
+
+Regular text with flexible sizing.
+
+```tsx
+<Label>Normal text</Label>         {/* 14px */}
+<Label size="sm">Small text</Label>  {/* 12px */}
+<Label size="lg">Large text</Label>  {/* 16px */}
+<Label bold>Bold text</Label>
+```
+
+### Low-Level Components
+
+#### Box
 
 The basic building block. Can contain other components and has full layout control.
 
@@ -201,24 +301,33 @@ All components support these layout properties:
 ## Examples
 
 Check the `examples/` directory for generated SVG files:
+
+**Semantic Components (New!):**
+- `styled-flowchart.svg` - Flowchart using Card, Title, Label, Subtitle
+- `styled-architecture.svg` - Three-tier architecture with semantic components
+- `title-hierarchy.svg` - Typography showcase
+
+**Low-Level Components:**
+- `simple-box.svg` - Basic box with text
 - `basic-flowchart.svg` - Simple vertical flowchart
 - `architecture-diagram.svg` - Three-tier architecture
 - `multi-tier-architecture.svg` - Comprehensive multi-tier web application
 - `decision-flowchart.svg` - User authentication flow with conditional branches
 
-Run the basic examples:
+Run examples:
 
 ```bash
-npm run dev
+# Generate all examples
+npm run examples
+
+# Or run specific example sets
+npm run dev:simple      # Simple box
+npm run dev             # Basic flowchart and architecture
+npm run dev:advanced    # Multi-tier and decision flowchart
+npm run dev:styled      # NEW: Semantic components showcase
 ```
 
-Run the advanced examples:
-
-```bash
-npm run dev:advanced
-```
-
-See `src/examples/` for the source code of these examples.
+See `src/examples/` for the source code of these examples and [STYLING_GUIDE.md](STYLING_GUIDE.md) for detailed styling documentation.
 
 ## API
 
