@@ -141,6 +141,26 @@ func init() {
 func main() {
 	initLogging()
 
+	// For backward compatibility: if the first argument is not a known subcommand,
+	// prepend 'split' to the arguments
+	args := os.Args[1:]
+	if len(args) > 0 {
+		knownCommands := map[string]bool{
+			"split":      true,
+			"move":       true,
+			"help":       true,
+			"completion": true,
+			"--help":     true,
+			"-h":         true,
+		}
+		
+		if !knownCommands[args[0]] && !strings.HasPrefix(args[0], "-") {
+			// Prepend 'split' to args for backward compatibility
+			newArgs := append([]string{"split"}, args...)
+			rootCmd.SetArgs(newArgs)
+		}
+	}
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

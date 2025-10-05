@@ -46,25 +46,56 @@ Or add to your `.mise.toml`:
 
 ## Usage
 
-### Basic Usage
+`dissect` has two main commands:
+
+1. **split** - Automatically extracts all functions from files
+2. **move** - Selectively moves specific functions to a target file
+
+### Split Command
+
+The `split` command automatically extracts each function from a file into its own separate file.
 
 Extract functions from a single file:
 
 ```bash
-dissect path/to/file.go
+dissect split path/to/file.go
 ```
 
 Extract functions from multiple files:
 
 ```bash
-dissect file1.go file2.go file3.go
+dissect split file1.go file2.go file3.go
 ```
 
 Extract functions from all Go files in a directory:
 
 ```bash
-dissect path/to/directory
+dissect split path/to/directory
 ```
+
+### Move Command
+
+The `move` command allows you to selectively move specific functions to a target file.
+
+Move a single function to a new file:
+
+```bash
+dissect move source.go:FunctionName target.go
+```
+
+Move multiple functions using comma-separated list:
+
+```bash
+dissect move source.go:Foo,Bar,Baz target.go
+```
+
+Move functions from different files to the same target:
+
+```bash
+dissect move file1.go:Foo file2.go:Bar target.go
+```
+
+The target file will be created if it doesn't exist, or functions will be appended if it does exist.
 
 ### What Gets Extracted
 
