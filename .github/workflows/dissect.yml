@@ -4,9 +4,11 @@ on:
   push:
     paths:
       - 'dissect/**'
+      - '.github/workflows/dissect.yml'
   pull_request:
     paths:
       - 'dissect/**'
+      - '.github/workflows/dissect.yml'
 
 jobs:
   test:
