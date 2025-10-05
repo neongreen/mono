@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="#ffffff"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="600" y="242" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Key Takeaways</text>
+      <rect x="150" y="319" width="900" height="73" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <rect x="222" y="335" width="40" height="41" fill="#1976d2" rx="4" />
+            <text x="238" y="360.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">1</text>
+            <text x="386" y="351.1666666666667" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Agent State Machines</text>
+            <text x="282" y="373.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Agents cycle through well-defined states. Understanding these transitions helps optimize context retrieval timing.</text>
+      <rect x="150" y="417" width="900" height="73" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <rect x="204" y="433" width="40" height="41" fill="#7b1fa2" rx="4" />
+            <text x="220" y="458.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">2</text>
+            <text x="375" y="449.1666666666667" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Data Flow Optimization</text>
+            <text x="264" y="471.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">The RAG pipeline has clear bottlenecks. LLM calls dominate latency, but smart caching can reduce retrieval overhead.</text>
+      <rect x="150" y="515" width="900" height="73" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+          <rect x="229" y="531" width="40" height="41" fill="#f57c00" rx="4" />
+            <text x="245" y="556.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">3</text>
+            <text x="376.5" y="547.1666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Memory Hierarchy</text>
+            <text x="289" y="569.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Multi-tier caching dramatically improves performance. Design your system with hot/warm/cold storage in mind.</text>
+</svg>

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <marker id="arrow-d08770" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#d08770" />
+    </marker>
+    <marker id="arrow-tail-d08770" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#d08770" />
+    </marker>
+  </defs>
+  <rect width="1200" height="800" fill="#ffffff"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="217.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Memory Hierarchy</text>
+    <text x="180" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Multi-tier storage for efficient context retrieval</text>
+      <rect x="425" y="210" width="350" height="120" fill="#bf616a20" stroke="#757575" stroke-width="2" rx="6" />
+      <text x="600" y="230" font-size="14" text-anchor="middle" font-weight="bold">Hot Cache (RAM)</text>
+      <rect x="435" y="245" width="330" height="20" fill="#e0e0e0" stroke="#bdbdbd" stroke-width="1" rx="4" />
+      <rect x="435" y="245" width="313.5" height="20" fill="#f44336" rx="4" />
+      <text x="600" y="280" font-size="12" text-anchor="middle" fill="#616161">950 / 1,000 entries (95.0%)</text>
+      <rect x="425" y="360" width="350" height="120" fill="#ebcb8b20" stroke="#757575" stroke-width="2" rx="6" />
+      <text x="600" y="380" font-size="14" text-anchor="middle" font-weight="bold">Warm Cache (SSD)</text>
+      <rect x="435" y="395" width="330" height="20" fill="#e0e0e0" stroke="#bdbdbd" stroke-width="1" rx="4" />
+      <rect x="435" y="395" width="247.5" height="20" fill="#ff9800" rx="4" />
+      <text x="600" y="430" font-size="12" text-anchor="middle" fill="#616161">7,500 / 10,000 entries (75.0%)</text>
+      <rect x="425" y="510" width="350" height="120" fill="#a3be8c20" stroke="#757575" stroke-width="2" rx="6" />
+      <text x="600" y="530" font-size="14" text-anchor="middle" font-weight="bold">Cold Storage (Disk)</text>
+      <rect x="435" y="545" width="330" height="20" fill="#e0e0e0" stroke="#bdbdbd" stroke-width="1" rx="4" />
+      <rect x="435" y="545" width="280.5" height="20" fill="#ff9800" rx="4" />
+      <text x="600" y="580" font-size="12" text-anchor="middle" fill="#616161">850,000 / 1,000,000 entries (85.0%)</text>
+    <rect x="60" y="702" width="900" height="116" fill="#e3f2fd" stroke="#90caf9" stroke-width="1" rx="6" />
+      <text x="171.5" y="737.1666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">💡 Caching Strategy</text>
+      <text x="76" y="763.8333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Hot cache: Frequently accessed context (sub-millisecond access)</text>
+      <text x="76" y="781.8333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Warm cache: Recently used context (5-10ms access)</text>
+      <text x="76" y="799.8333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Cold storage: Full vector database (20-50ms access)</text>
+  <path d="M 600 330 L 600 360" stroke="#d08770" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-d08770)" />
+  <rect x="581.6" y="335" width="36.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="600" y="349" font-size="12" fill="#d08770" text-anchor="middle">miss</text>
+  <path d="M 600 480 L 600 510" stroke="#d08770" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-d08770)" />
+  <rect x="581.6" y="485" width="36.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="600" y="499" font-size="12" fill="#d08770" text-anchor="middle">miss</text>
+</svg>
