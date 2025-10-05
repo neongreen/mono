@@ -10,8 +10,8 @@ import { join } from 'path';
 
 // Example 1: Simple flowchart using styled components
 const StyledFlowchart = () => (
-  <Stack gap={32} padding={40} alignItems="center">
-    <Stack gap={8} alignItems="center">
+  <Stack gap={40} padding={40} alignItems="center">
+    <Stack gap={16} alignItems="center">
       <Title level={1}>Modern Flowchart</Title>
       <Subtitle>Using semantic components for clean, professional styling</Subtitle>
     </Stack>
@@ -75,7 +75,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={8} alignItems="center">
+          <Stack gap={10} alignItems="center">
             <Label bold size="lg">Web Application</Label>
             <Subtitle>React + TypeScript</Subtitle>
           </Stack>
@@ -86,7 +86,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={8} alignItems="center">
+          <Stack gap={10} alignItems="center">
             <Label bold size="lg">Mobile App</Label>
             <Subtitle>React Native</Subtitle>
           </Stack>
@@ -104,7 +104,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={8} alignItems="center">
+          <Stack gap={10} alignItems="center">
             <Label bold size="lg">API Gateway</Label>
             <Subtitle>REST + GraphQL</Subtitle>
           </Stack>
@@ -115,7 +115,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={8} alignItems="center">
+          <Stack gap={10} alignItems="center">
             <Label bold size="lg">Microservices</Label>
             <Subtitle>Business logic</Subtitle>
           </Stack>
@@ -133,7 +133,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={8} alignItems="center">
+          <Stack gap={10} alignItems="center">
             <Label bold size="lg">Database</Label>
             <Subtitle>PostgreSQL</Subtitle>
           </Stack>
@@ -144,7 +144,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={8} alignItems="center">
+          <Stack gap={10} alignItems="center">
             <Label bold size="lg">Cache</Label>
             <Subtitle>Redis</Subtitle>
           </Stack>
