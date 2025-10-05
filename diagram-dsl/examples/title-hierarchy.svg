@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+  </defs>
+  <rect width="800" height="600" fill="white"/>
+    <text x="400" y="65.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Title Level 1</text>
+    <text x="400.5" y="101" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Main diagram title - 36px, bold, centered</text>
+    <text x="400.5" y="144" font-size="24" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Title Level 2</text>
+    <text x="400" y="179" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Section heading - 24px, bold, centered</text>
+    <text x="400.5" y="219.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Title Level 3</text>
+    <text x="400.5" y="254" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Subsection heading - 20px, bold, centered</text>
+    <text x="400.5" y="292.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Large Label (Bold)</text>
+    <text x="400.5" y="329" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">For prominent information - 16px</text>
+    <text x="400" y="366.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Regular Label</text>
+    <text x="400.5" y="403" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Standard text - 14px</text>
+    <text x="400.5" y="437.5" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Small Label</text>
+    <text x="400" y="472" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Compact information - 12px</text>
+</svg>
