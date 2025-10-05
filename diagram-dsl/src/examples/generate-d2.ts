@@ -12,7 +12,7 @@ import * as https from 'https';
 
 const D2_VERSION = 'v0.6.7';
 const D2_DIR = join(__dirname, '../../examples/d2');
-const D2_OUTPUT_DIR = join(__dirname, '../../examples/d2-output');
+const D2_OUTPUT_DIR = join(__dirname, '../../examples');
 
 /**
  * Downloads D2 from GitHub releases if not already installed
@@ -107,7 +107,7 @@ async function ensureD2Installed(): Promise<string> {
 async function generateD2Examples(d2Command: string): Promise<void> {
   console.log('\nGenerating D2 SVG examples...\n');
 
-  // Create output directory if it doesn't exist
+  // Ensure the shared examples directory exists
   if (!existsSync(D2_OUTPUT_DIR)) {
     mkdirSync(D2_OUTPUT_DIR, { recursive: true });
   }
@@ -123,7 +123,7 @@ async function generateD2Examples(d2Command: string): Promise<void> {
   for (const d2File of d2Files) {
     const inputPath = join(D2_DIR, d2File);
     const filename = d2File.replace('.d2', '');
-    const outputPath = join(D2_OUTPUT_DIR, `${filename}.svg`);
+    const outputPath = join(D2_OUTPUT_DIR, `${filename}-d2.svg`);
 
     try {
       console.log(`  Generating ${filename}.svg from D2...`);
@@ -134,14 +134,14 @@ async function generateD2Examples(d2Command: string): Promise<void> {
       });
 
       if (existsSync(outputPath)) {
-        console.log(`  ✓ Generated ${filename}.svg`);
+      console.log(`  ✓ Generated ${filename}-d2.svg`);
         successCount++;
       } else {
-        console.log(`  ✗ Failed to generate ${filename}.svg`);
+      console.log(`  ✗ Failed to generate ${filename}-d2.svg`);
         failCount++;
       }
     } catch (error) {
-      console.error(`  ✗ Error generating ${filename}.svg:`, error);
+      console.error(`  ✗ Error generating ${filename}-d2.svg:`, error);
       failCount++;
     }
   }

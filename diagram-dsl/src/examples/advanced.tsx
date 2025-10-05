@@ -213,8 +213,10 @@ const DecisionFlowchart = () => (
         justifyContent="center"
         alignItems="center"
       >
-        <Text fontSize={14}>Valid ✓</Text>
-        <Text fontSize={12}>Generate Token</Text>
+        <Stack gap={6} alignItems="center">
+          <Text fontSize={14}>Valid ✓</Text>
+          <Text fontSize={12}>Generate Token</Text>
+        </Stack>
       </Box>
 
       <Box
@@ -229,8 +231,10 @@ const DecisionFlowchart = () => (
         justifyContent="center"
         alignItems="center"
       >
-        <Text fontSize={14}>Invalid ✗</Text>
-        <Text fontSize={12}>Show Error</Text>
+        <Stack gap={6} alignItems="center">
+          <Text fontSize={14}>Invalid ✗</Text>
+          <Text fontSize={12}>Show Error</Text>
+        </Stack>
       </Box>
     </Row>
 

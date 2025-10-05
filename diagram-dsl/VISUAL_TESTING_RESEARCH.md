@@ -228,7 +228,7 @@ assertGap(layout, 'box1', 'box2', 20);
 Replace estimation with real text measurement:
 
 ```bash
-npm install canvas
+pnpm add canvas
 ```
 
 ```typescript
@@ -253,7 +253,7 @@ Update `yoga-engine.ts` to use actual measurements instead of estimates.
 Once layouts are correct, add snapshot testing:
 
 ```bash
-npm install --save-dev jest-image-snapshot pixelmatch
+pnpm add -D jest-image-snapshot pixelmatch
 ```
 
 ```typescript
@@ -273,7 +273,7 @@ test('simple-box renders correctly', async () => {
 Add randomized testing for edge cases:
 
 ```bash
-npm install --save-dev fast-check
+pnpm add -D fast-check
 ```
 
 ```typescript

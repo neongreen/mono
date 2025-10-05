@@ -6,12 +6,12 @@ This directory contains example diagrams demonstrating the capabilities of the d
 
 Generate all basic examples:
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Generate advanced examples:
 ```bash
-npm run dev:advanced
+pnpm dev:advanced
 ```
 
 ## Example Files

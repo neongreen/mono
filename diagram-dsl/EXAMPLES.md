@@ -274,14 +274,14 @@ Logged In]  Login]
 
 Generate all examples at once:
 ```bash
-npm run examples
+pnpm run examples
 ```
 
 Or generate individually:
 ```bash
-npm run dev:simple    # Simple box
-npm run dev           # Basic examples
-npm run dev:advanced  # Advanced examples
+pnpm dev:simple    # Simple box
+pnpm dev           # Basic examples
+pnpm dev:advanced  # Advanced examples
 ```
 
 ## Viewing Examples

@@ -25,20 +25,20 @@ Located in `src/examples/`:
 
 1. **`generate-d2.ts`** - Generates SVG files from D2 source files
    - Input: `examples/d2/*.d2`
-   - Output: `examples/d2-output/*.svg`
+   - Output: `examples/*-d2.svg`
    - Automatically downloads D2 from GitHub releases if not installed
    - Uses D2 CLI tool with default theme
 
 2. **`generate-all.ts`** - Master script that generates both versions
-   - Runs `npm run examples` (diagram-dsl examples)
+   - Runs `pnpm run examples` (diagram-dsl examples)
    - Runs `generate-d2.ts` (D2 examples)
    - Provides unified output
 
-### NPM Scripts
+### PNPM Scripts
 
 Added to `package.json`:
-- `npm run examples:d2` - Generate D2 examples only
-- `npm run examples:all` - Generate both diagram-dsl and D2 examples
+- `pnpm run examples:d2` - Generate D2 examples only
+- `pnpm run examples:all` - Generate both diagram-dsl and D2 examples
 
 ### Documentation
 
@@ -56,7 +56,7 @@ Added to `package.json`:
 
 ### Generated Files
 
-- D2 output files in `examples/d2-output/*.svg` are now committed to the repository
+- D2 output files in `examples/*-d2.svg` are now committed to the repository
 - This allows users to see the comparison without needing to install D2
 
 ## Usage
@@ -65,10 +65,10 @@ Added to `package.json`:
 
 ```bash
 # Generate only D2 examples
-npm run examples:d2
+pnpm run examples:d2
 
 # Generate all examples (both diagram-dsl and D2)
-npm run examples:all
+pnpm run examples:all
 ```
 
 ### Viewing Comparisons
@@ -77,7 +77,7 @@ The README.md now includes inline comparison tables showing both outputs. Open t
 
 Alternatively, SVG files can be viewed directly:
 - diagram-dsl outputs: `examples/*.svg`
-- D2 outputs: `examples/d2-output/*.svg`
+- D2 outputs: `examples/*-d2.svg`
 
 ## Requirements
 
@@ -115,8 +115,7 @@ diagram-dsl/
 │   ├── d2/
 │   │   ├── README.md            # D2 documentation
 │   │   └── *.d2                 # D2 source files (committed)
-│   └── d2-output/
-│       └── *.svg                # D2 generated SVGs (committed)
+│   └── *-d2.svg                 # D2 generated SVGs (committed)
 ├── src/
 │   └── examples/
 │       ├── generate-d2.ts       # D2 generation script

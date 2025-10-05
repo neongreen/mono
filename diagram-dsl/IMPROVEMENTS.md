@@ -177,10 +177,10 @@ These improvements lay the groundwork for:
 No migration needed - all changes are backward compatible.
 
 To use new features:
-1. `npm install` to get canvas package
+1. `pnpm install` to get canvas package
 2. Use `renderToSVGWithLayout()` for testing
 3. Import `LayoutAssertions` for layout tests
-4. Run `npm test` to see new tests in action
+4. Run `pnpm test` to see new tests in action
 
 ## Verification
 
@@ -188,13 +188,13 @@ Run the following to verify improvements:
 
 ```bash
 # Build with canvas support
-npm run build
+pnpm build
 
 # Run all tests (14 total: 7 SVG + 7 layout)
-npm test
+pnpm test
 
 # Regenerate examples with improved text measurement
-npm run examples
+pnpm run examples
 ```
 
 All tests should pass and examples should be generated with more accurate text positioning.

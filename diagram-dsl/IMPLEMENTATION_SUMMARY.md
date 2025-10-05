@@ -197,22 +197,22 @@ Tests:           1 file (~170 lines)
 ### Install Dependencies
 ```bash
 cd diagram-dsl
-npm install
+pnpm install
 ```
 
 ### Build
 ```bash
-npm run build
+pnpm build
 ```
 
 ### Run Tests
 ```bash
-npm test
+pnpm test
 ```
 
 ### Generate Examples
 ```bash
-npm run examples
+pnpm run examples
 ```
 
 ## Example Code

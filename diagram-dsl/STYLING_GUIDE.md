@@ -403,5 +403,5 @@ See these generated examples:
 
 Run the examples:
 ```bash
-npm run dev:styled
+pnpm dev:styled
 ```

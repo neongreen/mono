@@ -68,7 +68,7 @@ const StyledArchitecture = () => (
     {/* Presentation Tier */}
     <Stack gap={12}>
       <Title level={3}>Presentation Tier</Title>
-      <Row gap={16} justifyContent="center">
+      <Row gap={32} justifyContent="center">
         <Card
           id="web-app"
           variant="primary"
@@ -97,7 +97,7 @@ const StyledArchitecture = () => (
     {/* Business Logic Tier */}
     <Stack gap={12}>
       <Title level={3}>Business Logic Tier</Title>
-      <Stack gap={16} alignItems="center">
+      <Stack gap={24} alignItems="center">
         <Card
           id="api-gateway"
           variant="success"
@@ -126,7 +126,7 @@ const StyledArchitecture = () => (
     {/* Data Tier */}
     <Stack gap={12}>
       <Title level={3}>Data Tier</Title>
-      <Row gap={16} justifyContent="center">
+      <Row gap={32} justifyContent="center">
         <Card
           id="database"
           variant="secondary"
@@ -143,6 +143,7 @@ const StyledArchitecture = () => (
           variant="secondary"
           width={180}
           height={90}
+          marginLeft={32}
         >
           <Stack gap={10} alignItems="center">
             <Label bold size="lg">Cache</Label>

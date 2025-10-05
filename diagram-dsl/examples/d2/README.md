@@ -22,20 +22,20 @@ To generate SVG files from these D2 diagrams:
 
 ```bash
 # From the diagram-dsl root directory
-npm run examples:d2
+pnpm run examples:d2
 
 # Or generate both at once
-npm run examples:all
+pnpm run examples:all
 
 # Or generate both diagram-dsl and D2 examples
-npm run examples:all
+pnpm run examples:all
 ```
 
-The generated SVG files will be placed in `examples/d2-output/`.
+The generated SVG files will be placed alongside the DSL outputs in `examples/*-d2.svg`.
 
 ## D2 Installation
 
-The generation script (`npm run examples:d2`) automatically downloads D2 from GitHub releases if it's not already installed. No manual installation is required!
+The generation script (`pnpm run examples:d2`) automatically downloads D2 from GitHub releases if it's not already installed. No manual installation is required!
 
 ## Comparison Notes
 

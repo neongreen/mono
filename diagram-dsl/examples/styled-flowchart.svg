@@ -11,14 +11,14 @@
       <text x="400.5" y="65.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Modern Flowchart</text>
       <text x="400.5" y="93" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Using semantic components for clean, professional styling</text>
     <rect x="300" y="135" width="200" height="80" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
-        <text x="400.5" y="169.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Start Process</text>
-        <text x="400.5" y="188" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Initialize system</text>
+        <text x="400.5" y="170.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Start Process</text>
+        <text x="400.5" y="189" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Initialize system</text>
     <rect x="300" y="255" width="200" height="80" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
-        <text x="400.5" y="289.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Process Data</text>
-        <text x="400" y="308" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Transform inputs</text>
+        <text x="400.5" y="290.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Process Data</text>
+        <text x="400" y="309" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Transform inputs</text>
     <rect x="300" y="375" width="200" height="80" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
-        <text x="401" y="411.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Complete</text>
-        <text x="400.5" y="430.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Return results</text>
+        <text x="401" y="411.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Complete</text>
+        <text x="400.5" y="429.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Return results</text>
   <line x1="400" y1="215" x2="400" y2="255" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
   <line x1="400" y1="335" x2="400" y2="375" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
 </svg>

@@ -17,7 +17,7 @@ console.log();
 console.log('Step 1: Generating diagram-dsl examples...');
 console.log('-'.repeat(50));
 try {
-  execSync('npm run examples', { 
+  execSync('pnpm run examples', { 
     cwd: rootDir, 
     stdio: 'inherit' 
   });
@@ -45,5 +45,5 @@ console.log('All examples generated successfully!');
 console.log('='.repeat(50));
 console.log();
 console.log('diagram-dsl outputs: examples/*.svg');
-console.log('D2 outputs:          examples/d2-output/*.svg');
+console.log('D2 outputs:          examples/*-d2.svg');
 console.log();

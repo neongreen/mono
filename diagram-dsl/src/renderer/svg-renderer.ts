@@ -1,4 +1,5 @@
 import { LayoutNode } from '../types';
+import { measureText } from '../layout/text-measurement';
 
 export interface RenderOptions {
   width?: number;
@@ -174,14 +175,18 @@ export class SVGRenderer {
         if (node.props.label) {
           const midX = (x1 + x2) / 2;
           const midY = (y1 + y2) / 2;
-          
-          // Measure approximate text size for background
-          const labelText = this.escapeXml(node.props.label);
+
           const fontSize = 12;
-          const textWidth = labelText.length * fontSize * 0.6; // Approximate width
-          const textHeight = fontSize;
+          const fontFamily = 'Arial, sans-serif';
+          const fontWeight = 'normal';
+          const rawLabel = String(node.props.label);
+          const metrics = measureText(rawLabel, fontSize, fontFamily, fontWeight);
+          const textWidth = metrics.width;
+          const textHeight = metrics.height;
           const padding = 4;
-          
+
+          const labelText = this.escapeXml(rawLabel);
+
           // Draw semi-transparent background rectangle
           svg += `\n${indent}<rect x="${midX - textWidth / 2 - padding}" y="${midY - textHeight / 2 - padding}" `;
           svg += `width="${textWidth + padding * 2}" height="${textHeight + padding * 2}" `;

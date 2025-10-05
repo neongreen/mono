@@ -98,6 +98,91 @@ This means:
 </Stack>
 ```
 
+### 3. Arrowhead Crowding
+
+**What it checks:** Detects when two arrowheads land too close together (closer than ~16px)
+
+**Why it matters:** Crowded arrowheads are hard to parse visually and can look like a single arrow. Spacing them out improves clarity and makes directionality obvious.
+
+**Example warning:**
+```
+⚠ Arrowheads for "source-a" → "target" and "source-b" → "target" are very close (8.0px).
+  Increase spacing or adjust positioning so arrowheads have at least 16px separation.
+```
+
+**How to fix:**
+- Increase spacing between the target and source elements so attachment points land farther apart
+- Slightly offset the target node so arrows connect to different sides
+- Consider routing one arrow through an intermediate connector
+
+### 4. Arrow Crossings
+
+**What it checks:** Detects when two straight connectors intersect each other.
+
+**Why it matters:** Crossing arrows create visual ambiguity about which node connects to which. Clean diagrams avoid intersecting lines or use explicit junction markers.
+
+**Example warning:**
+```
+⚠ Arrows "top-left" → "bottom-right" and "top-right" → "bottom-left" cross each other. Adjust layout or reroute arrows to avoid intersecting connectors.
+```
+
+**How to fix:**
+- Increase spacing between rows/columns so arrows can connect without crossing
+- Route one arrow to a different side of the target node
+- Introduce intermediate connector nodes to fan out connections cleanly
+
+
+### 5. Arrow Label Overlap
+
+**What it checks:** Warns when an arrow label overlaps a node it does not belong to (or another connector), making the diagram difficult to read.
+
+**Why it matters:** Labels should enhance clarity, not obscure other content. Overlapping labels often signal that nodes are packed too tightly or need rerouting.
+
+**Example warning:**
+```
+⚠ Arrow label for "left-node" → "right-node" overlaps node "blocker". Nudge layout or reroute the arrow so labels remain readable.
+```
+
+**How to fix:**
+- Increase spacing between source/target and surrounding nodes
+- Route the arrow so the label lands in white space (different side or connector path)
+- Introduce intermediary nodes/connectors to reposition the label safely
+
+
+### 6. Text Overflow
+
+**What it checks:** Detects when measured text width exceeds the usable width inside its container (accounting for padding).
+
+**Why it matters:** Overflowing copy either gets clipped or forces awkward scaling when exported to other formats. Keeping text within bounds preserves legibility.
+
+**Example warning:**
+```
+⚠ Text "narrow-label" exceeds available width inside "narrow-card". Reduce copy length, adjust padding, or widen the container.
+```
+
+**How to fix:**
+- Shorten or rephrase the copy so it fits comfortably
+- Increase the container width or padding as appropriate
+- Reduce font size (as a last resort) to avoid overflow
+
+
+### 7. Tight Text Stack Spacing
+
+**What it checks:** Spots vertically adjacent text nodes (labels, subtitles, etc.) that render with less than ~6px separation.
+
+**Why it matters:** When successive text lines are packed too tightly they blur together, especially once exported to slides or PDFs. Setting an explicit gap keeps typographic rhythm consistent.
+
+**Example warning:**
+```
+⚠ Text nodes "tight-heading" and "tight-subtitle" inside "tight-card" are only 2.0px apart. Use a Stack with gap or adjust layout so they have at least 6px separation.
+```
+
+**How to fix:**
+- Wrap the text nodes in a `<Stack gap={6}>` (or similar) so Yoga enforces consistent spacing
+- Increase padding or container height to create breathing room
+- Consider combining the copy into a single text block if it belongs together
+
+
 ## Using the Linter
 
 ### In Your Code
@@ -131,13 +216,13 @@ if (lints.length > 0) {
 Lint your examples with:
 
 ```bash
-npm run lint
+pnpm lint
 ```
 
 Test the linting system:
 
 ```bash
-npm run test:lint
+pnpm test:lint
 ```
 
 ## Lint Object Structure

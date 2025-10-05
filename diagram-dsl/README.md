@@ -26,6 +26,8 @@ Most graphical diagram tools require manual positioning and constant tweaking. T
 ## Installation
 
 ```bash
+pnpm add diagram-dsl
+# or
 npm install diagram-dsl
 ```
 
@@ -318,22 +320,24 @@ Run examples:
 
 ```bash
 # Generate all examples (diagram-dsl only)
-npm run examples
+pnpm run examples
 
 # Generate D2 comparison examples
-npm run examples:d2
+pnpm run examples:d2
 
 # Generate both diagram-dsl and D2 examples
-npm run examples:all
+pnpm run examples:all
 
 # Or run specific example sets
-npm run dev:simple      # Simple box
-npm run dev             # Basic flowchart and architecture
-npm run dev:advanced    # Multi-tier and decision flowchart
-npm run dev:styled      # NEW: Semantic components showcase
+pnpm dev:simple      # Simple box
+pnpm dev             # Basic flowchart and architecture
+pnpm dev:advanced    # Multi-tier and decision flowchart
+pnpm dev:styled      # NEW: Semantic components showcase
 ```
 
 See `src/examples/` for the source code of these examples and [STYLING_GUIDE.md](STYLING_GUIDE.md) for detailed styling documentation.
+
+Maintainers: follow the checklist in [MAINTENANCE_RULES.md](MAINTENANCE_RULES.md) to keep rendered assets up to date when making rendering changes.
 
 ## Comparison with D2
 
@@ -365,7 +369,7 @@ For comparison purposes, equivalent diagrams are provided in D2 language (a mode
 </tr>
 <tr>
 <td><img src="examples/simple-box.svg" width="400"></td>
-<td><img src="examples/d2-output/simple-box.svg" width="400"></td>
+<td><img src="examples/simple-box-d2.svg" width="400"></td>
 </tr>
 </table>
 
@@ -380,7 +384,7 @@ A simple three-step vertical flowchart showing the basic flow of a process.
 </tr>
 <tr>
 <td><img src="examples/basic-flowchart.svg" width="400"></td>
-<td><img src="examples/d2-output/basic-flowchart.svg" width="400"></td>
+<td><img src="examples/basic-flowchart-d2.svg" width="400"></td>
 </tr>
 </table>
 
@@ -395,7 +399,7 @@ A three-tier architecture showing Frontend → API → Database flow.
 </tr>
 <tr>
 <td><img src="examples/architecture-diagram.svg" width="400"></td>
-<td><img src="examples/d2-output/architecture-diagram.svg" width="400"></td>
+<td><img src="examples/architecture-diagram-d2.svg" width="400"></td>
 </tr>
 </table>
 
@@ -410,7 +414,7 @@ Modern flowchart using semantic components with professional styling.
 </tr>
 <tr>
 <td><img src="examples/styled-flowchart.svg" width="400"></td>
-<td><img src="examples/d2-output/styled-flowchart.svg" width="400"></td>
+<td><img src="examples/styled-flowchart-d2.svg" width="400"></td>
 </tr>
 </table>
 
@@ -425,7 +429,7 @@ Three-tier architecture with semantic components showing Presentation → Busine
 </tr>
 <tr>
 <td><img src="examples/styled-architecture.svg" width="450"></td>
-<td><img src="examples/d2-output/styled-architecture.svg" width="450"></td>
+<td><img src="examples/styled-architecture-d2.svg" width="450"></td>
 </tr>
 </table>
 
@@ -440,7 +444,7 @@ Comprehensive multi-tier web application architecture with client, application, 
 </tr>
 <tr>
 <td><img src="examples/multi-tier-architecture.svg" width="500"></td>
-<td><img src="examples/d2-output/multi-tier-architecture.svg" width="500"></td>
+<td><img src="examples/multi-tier-architecture-d2.svg" width="500"></td>
 </tr>
 </table>
 
@@ -455,7 +459,7 @@ User authentication flow with conditional branches showing success and failure p
 </tr>
 <tr>
 <td><img src="examples/decision-flowchart.svg" width="400"></td>
-<td><img src="examples/d2-output/decision-flowchart.svg" width="400"></td>
+<td><img src="examples/decision-flowchart-d2.svg" width="400"></td>
 </tr>
 </table>
 
@@ -535,8 +539,13 @@ if (lints.length > 0) {
 **What it checks:**
 - **Short arrows** - Warns when arrows are too short (<20px) and may be hard to see
 - **Internal vs external spacing** - Warns when a box's internal padding is larger than the gap to adjacent boxes, which breaks visual hierarchy
+- **Crowded arrowheads** - Warns when two arrowheads land within ~16px of each other and visually merge
+- **Intersecting arrows** - Highlights when connectors cross, which creates confusing visual paths
+- **Arrow label overlap** - Flags labels that obscure unrelated nodes/connectors
+- **Text overflow** - Warns when measured copy exceeds the container width
+- **Tight text spacing** - Warns when vertically stacked text nodes have less than ~6px breathing room
 
-Run linter: `npm run lint`  
+Run linter: `pnpm lint`  
 See [LINTING_GUIDE.md](LINTING_GUIDE.md) for detailed documentation
 
 ## Text Measurement

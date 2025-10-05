@@ -10,18 +10,18 @@
   <rect width="800" height="600" fill="white"/>
     <text x="40" y="65.66666666666667" font-size="32" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Architecture Diagram</text>
       <rect x="310" y="100" width="180" height="100" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
-        <text x="365" y="149.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Frontend</text>
-        <text x="372" y="160" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">React App</text>
+        <text x="365" y="150.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Frontend</text>
+        <text x="372" y="160.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">React App</text>
       <rect x="310" y="220" width="180" height="100" fill="#fce4ec" stroke="#c2185b" stroke-width="2" rx="8" />
-        <text x="352" y="270.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">API Gateway</text>
-        <text x="373" y="281.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">REST API</text>
+        <text x="352" y="271.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">API Gateway</text>
+        <text x="373" y="282.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">REST API</text>
       <rect x="310" y="340" width="180" height="100" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
         <text x="364" y="389.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Database</text>
         <text x="367" y="400" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">PostgreSQL</text>
   <line x1="400" y1="200" x2="400" y2="220" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
-  <rect x="381.6" y="200" width="36.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <rect x="380" y="201.5" width="40" height="17" fill="white" fill-opacity="0.85" rx="2" />
   <text x="400" y="214" font-size="12" fill="#1976d2" text-anchor="middle">HTTP</text>
   <line x1="400" y1="320" x2="400" y2="340" stroke="#c2185b" stroke-width="2" marker-end="url(#arrowhead-c2185b)" />
-  <rect x="385.2" y="320" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <rect x="383.5" y="321" width="33" height="18" fill="white" fill-opacity="0.85" rx="2" />
   <text x="400" y="334" font-size="12" fill="#c2185b" text-anchor="middle">SQL</text>
 </svg>

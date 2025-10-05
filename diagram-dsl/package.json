@@ -10,7 +10,7 @@
     "dev:advanced": "tsx src/examples/advanced.tsx",
     "dev:simple": "tsx src/examples/simple.tsx",
     "dev:styled": "tsx src/examples/styled.tsx",
-    "examples": "npm run dev:simple && npm run dev && npm run dev:advanced && npm run dev:styled",
+    "examples": "pnpm run dev:simple && pnpm run dev && pnpm run dev:advanced && pnpm run dev:styled",
     "examples:d2": "tsx src/examples/generate-d2.ts",
     "examples:all": "tsx src/examples/generate-all.ts",
     "lint": "tsx src/examples/run-lints.tsx",
@@ -39,5 +39,12 @@
     "@types/react-dom": "^19.2.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
+  },
+  "packageManager": "pnpm@10.18.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "canvas",
+      "esbuild"
+    ]
   }
 }

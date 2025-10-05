@@ -5,6 +5,11 @@
 I've run the layout linter on both example diagrams in the diagrams-dsl project. The linting system checks for:
 1. **Short arrows** - arrows that are too short (< 20px) and may be difficult to see
 2. **Internal vs External spacing** - ensuring visual hierarchy by keeping internal padding smaller than external gaps
+3. **Crowded arrowheads** - highlights when two arrowheads land within ~16px of each other
+4. **Intersecting arrows** - warns when two connectors cross and visually compete
+5. **Arrow label overlap** - detects labels that obscure unrelated nodes/connectors
+6. **Text overflow** - flags text that exceeds the available width inside its container
+7. **Tight text spacing** - highlights stacked text elements with less than ~6px vertical gap
 
 ## Lint Results
 
@@ -155,8 +160,8 @@ This will fix the lint warning in both the linting script and the actual example
 ## Testing Plan
 
 After making the change:
-1. Run `npm run lint` to verify the warning is gone
-2. Run `npm run dev:styled` to regenerate the SVG
+1. Run `pnpm lint` to verify the warning is gone
+2. Run `pnpm dev:styled` to regenerate the SVG
 3. Visually inspect the updated diagram to ensure it looks better
 4. Verify the arrow is now clearly visible
 

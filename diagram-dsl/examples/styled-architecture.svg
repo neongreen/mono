@@ -12,35 +12,35 @@
   </defs>
   <rect width="900" height="800" fill="white"/>
       <text x="450.5" y="65.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Three-Tier Architecture</text>
-      <text x="450" y="86.66666666666667" font-size="14" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Modern web application design</text>
-      <text x="122" y="135.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Presentation Tier</text>
-        <rect x="262" y="148" width="180" height="90" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
-            <text x="352.5" y="187.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Web Application</text>
-            <text x="353" y="210" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">React + TypeScript</text>
-        <rect x="458" y="148" width="180" height="90" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
-            <text x="548" y="188.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Mobile App</text>
-            <text x="548.5" y="209.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">React Native</text>
-      <text x="135" y="286.1666666666667" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Business Logic Tier</text>
-        <rect x="360" y="301" width="180" height="90" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
-            <text x="450.5" y="340.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">API Gateway</text>
-            <text x="450.5" y="363" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">REST + GraphQL</text>
-        <rect x="360" y="407" width="180" height="90" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
-            <text x="450.5" y="446.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Microservices</text>
-            <text x="450.5" y="467" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Business logic</text>
-      <text x="83" y="543.1666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Data Tier</text>
-        <rect x="262" y="556" width="180" height="90" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
-            <text x="352" y="595.3333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Database</text>
-            <text x="352" y="616" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">PostgreSQL</text>
-        <rect x="458" y="556" width="180" height="90" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
-            <text x="548.5" y="597.3333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Cache</text>
-            <text x="548.5" y="616.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Redis</text>
-  <line x1="352" y1="238" x2="360" y2="346" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
-  <rect x="334" y="282" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
-  <text x="356" y="296" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
-  <line x1="548" y1="238" x2="540" y2="346" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
-  <line x1="450" y1="391" x2="450" y2="407" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
-  <line x1="450" y1="497" x2="442" y2="601" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
-  <rect x="431.2" y="539" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
-  <text x="446" y="553" font-size="12" fill="#7b1fa2" text-anchor="middle">SQL</text>
-  <line x1="450" y1="497" x2="458" y2="601" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+      <text x="450" y="86.16666666666667" font-size="14" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Modern web application design</text>
+      <text x="122" y="134.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Presentation Tier</text>
+        <rect x="254" y="147" width="180" height="90" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+            <text x="344.5" y="186.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Web Application</text>
+            <text x="345" y="209" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">React + TypeScript</text>
+        <rect x="466" y="147" width="180" height="90" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+            <text x="556" y="187.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Mobile App</text>
+            <text x="556.5" y="208.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">React Native</text>
+      <text x="135" y="285.1666666666667" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Business Logic Tier</text>
+        <rect x="360" y="300" width="180" height="90" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+            <text x="450.5" y="339.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">API Gateway</text>
+            <text x="450.5" y="362" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">REST + GraphQL</text>
+        <rect x="360" y="414" width="180" height="90" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+            <text x="450.5" y="453.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Microservices</text>
+            <text x="450.5" y="474" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Business logic</text>
+      <text x="83" y="550.1666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Data Tier</text>
+        <rect x="238" y="563" width="180" height="90" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+            <text x="328" y="602.3333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Database</text>
+            <text x="328" y="623" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">PostgreSQL</text>
+        <rect x="482" y="563" width="180" height="90" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+            <text x="572.5" y="604.3333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Cache</text>
+            <text x="572.5" y="623.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Redis</text>
+  <line x1="344" y1="237" x2="360" y2="345" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <rect x="328" y="282.5" width="48" height="17" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="352" y="295" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <line x1="556" y1="237" x2="540" y2="345" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <line x1="450" y1="390" x2="450" y2="414" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
+  <line x1="450" y1="504" x2="418" y2="608" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+  <rect x="417.5" y="547" width="33" height="18" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="434" y="560" font-size="12" fill="#7b1fa2" text-anchor="middle">SQL</text>
+  <line x1="450" y1="504" x2="482" y2="608" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
 </svg>
