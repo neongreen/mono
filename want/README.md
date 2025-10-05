@@ -8,6 +8,9 @@ Interactive task fulfillment tool for macOS.
 - [x] **Install tools via mise** - Request and install tools using `want <tool>`
 - [x] **Check if tools are already available** - Detects existing installations
 - [x] **Dry-run mode** - Preview actions with `--dry-run` flag
+- [x] **Compound commands with parameters** - Transform and execute commands
+  - [x] **`want json <command>`** - Convert command output to JSON using `jc`
+  - [x] **`want md <url>`** - Convert URL to markdown using `markitdown` or `pure.md`
 - [x] **Basic CLI interface** - Help, version, and command structure
 - [x] **Command stubs** - `list`, `check`, `forget` commands (not functional yet)
 
@@ -29,6 +32,8 @@ Interactive task fulfillment tool for macOS.
 ```bash
 want jujutsu                # Install a tool via mise
 want --dry-run jujutsu      # Preview what would be done
+want json ps                # Get process list as JSON (installs jc if needed)
+want md https://example.com # Convert URL to markdown
 want github.com/user/repo   # Clone a repository (NOT YET IMPLEMENTED)
 want list                   # Show what you have (NOT YET IMPLEMENTED)
 ```
@@ -79,7 +84,27 @@ Preview what would be done without actually doing it:
 
 ```bash
 want --dry-run jujutsu
+want --dry-run json ps
 ```
+
+### Compound commands with parameters (✅ WORKING)
+
+Transform command output or URLs using specialized tools:
+
+```bash
+# Convert command output to JSON
+want json ps                    # Get running processes as JSON
+want json ls -la                # Get directory listing as JSON
+want json df -h                 # Get disk usage as JSON
+
+# Convert URLs to markdown
+want md https://example.com     # Convert webpage to markdown
+want md https://news.ycombinator.com
+```
+
+**How it works:**
+- `want json <command>` automatically installs `jc` if needed, then runs `jc <command>`
+- `want md <url>` tries to install `markitdown` via pip, or falls back to the `pure.md` web service
 
 ### Commands not yet functional (❌ NOT IMPLEMENTED)
 
