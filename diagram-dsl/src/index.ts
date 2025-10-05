@@ -22,6 +22,17 @@ export { Spacer } from './components/Spacer';
 export { Grid } from './components/Grid';
 export { Callout } from './components/Callout';
 
+// Layout components
+export { TwoColumn } from './components/TwoColumn';
+export { ThreeColumn } from './components/ThreeColumn';
+export { FlowDiagram } from './components/FlowDiagram';
+
+// Content components
+export { CodeBlock } from './components/CodeBlock';
+export { Quote } from './components/Quote';
+export { Badge } from './components/Badge';
+export { Divider } from './components/Divider';
+
 export { renderToSVG, renderToSVGWithLayout } from './renderer';
 export type { RenderResult } from './renderer';
 
