@@ -62,6 +62,10 @@ export interface ArrowProps {
   color?: string;
   strokeWidth?: number;
   label?: string;
+  style?: 'solid' | 'dashed' | 'dotted';
+  curve?: 'straight' | 'curved' | 'step';
+  headType?: 'arrow' | 'none' | 'circle' | 'diamond';
+  tailType?: 'none' | 'arrow' | 'circle';
 }
 
 export interface LayoutNode {

@@ -27,6 +27,11 @@ export { TwoColumn } from './components/TwoColumn';
 export { ThreeColumn } from './components/ThreeColumn';
 export { FlowDiagram } from './components/FlowDiagram';
 
+// Grouping & organization components
+export { Cluster } from './components/Cluster';
+export { Container } from './components/Container';
+export { Group } from './components/Group';
+
 // Content components
 export { CodeBlock } from './components/CodeBlock';
 export { Quote } from './components/Quote';

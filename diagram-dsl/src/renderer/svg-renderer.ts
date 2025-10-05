@@ -120,6 +120,10 @@ export class SVGRenderer {
       if (fromPos && toPos) {
         const color = node.props.color || 'black';
         const strokeWidth = node.props.strokeWidth || 2;
+        const style = node.props.style || 'solid';
+        const curve = node.props.curve || 'straight';
+        const headType = node.props.headType || 'arrow';
+        const tailType = node.props.tailType || 'none';
 
         // Calculate centers of both boxes
         const fromCenterX = fromPos.x + fromPos.width / 2;
@@ -166,9 +170,44 @@ export class SVGRenderer {
         const x2 = bestTo.x;
         const y2 = bestTo.y;
 
-        // Draw line
-        svg += `\n${indent}<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" `;
-        svg += `stroke="${color}" stroke-width="${strokeWidth}" marker-end="url(#arrowhead-${color.replace('#', '')})" />`;
+        // Determine stroke dash array based on style
+        let strokeDashArray = '';
+        if (style === 'dashed') {
+          strokeDashArray = `stroke-dasharray="8,4" `;
+        } else if (style === 'dotted') {
+          strokeDashArray = `stroke-dasharray="2,4" `;
+        }
+
+        // Generate path based on curve style
+        let pathData = '';
+        if (curve === 'straight') {
+          pathData = `M ${x1} ${y1} L ${x2} ${y2}`;
+        } else if (curve === 'curved') {
+          // Bezier curve
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const controlX1 = x1 + dx * 0.5;
+          const controlY1 = y1;
+          const controlX2 = x2 - dx * 0.5;
+          const controlY2 = y2;
+          pathData = `M ${x1} ${y1} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${x2} ${y2}`;
+        } else if (curve === 'step') {
+          // Step/orthogonal path
+          const midX = (x1 + x2) / 2;
+          pathData = `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}`;
+        }
+
+        // Generate marker IDs
+        const colorKey = color.replace('#', '');
+        const headMarker = headType !== 'none' ? `url(#${headType}-${colorKey})` : '';
+        const tailMarker = tailType !== 'none' ? `url(#${tailType}-tail-${colorKey})` : '';
+
+        // Draw path
+        svg += `\n${indent}<path d="${pathData}" `;
+        svg += `stroke="${color}" stroke-width="${strokeWidth}" fill="none" ${strokeDashArray}`;
+        if (headMarker) svg += `marker-end="${headMarker}" `;
+        if (tailMarker) svg += `marker-start="${tailMarker}" `;
+        svg += `/>`;
 
         // Add label if present with semi-transparent background
         if (node.props.label) {
@@ -217,28 +256,71 @@ export class SVGRenderer {
   renderWithArrowMarkers(tree: LayoutNode, options: RenderOptions = {}): string {
     const svg = this.render(tree, options);
     
-    // Extract all unique colors used in arrows
-    const colors = new Set<string>();
-    this.collectArrowColors(tree, colors);
+    // Extract all unique colors and head types used in arrows
+    const arrowConfigs = new Map<string, Set<string>>(); // color -> set of head types
+    this.collectArrowConfigs(tree, arrowConfigs);
 
     // Generate marker definitions
     let markers = '\n  <defs>';
-    colors.forEach(color => {
+    
+    arrowConfigs.forEach((headTypes, color) => {
       const colorId = color.replace('#', '');
-      markers += `\n    <marker id="arrowhead-${colorId}" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">`;
-      markers += `\n      <polygon points="0 0, 10 3, 0 6" fill="${color}" />`;
-      markers += `\n    </marker>`;
+      
+      headTypes.forEach(headType => {
+        if (headType === 'arrow') {
+          // Standard arrow marker
+          markers += `\n    <marker id="arrow-${colorId}" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">`;
+          markers += `\n      <polygon points="0 0, 10 3, 0 6" fill="${color}" />`;
+          markers += `\n    </marker>`;
+          
+          // Tail arrow (reversed)
+          markers += `\n    <marker id="arrow-tail-${colorId}" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">`;
+          markers += `\n      <polygon points="10 0, 0 3, 10 6" fill="${color}" />`;
+          markers += `\n    </marker>`;
+        } else if (headType === 'circle') {
+          // Circle marker
+          markers += `\n    <marker id="circle-${colorId}" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">`;
+          markers += `\n      <circle cx="4" cy="4" r="3" fill="${color}" />`;
+          markers += `\n    </marker>`;
+          
+          // Tail circle
+          markers += `\n    <marker id="circle-tail-${colorId}" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">`;
+          markers += `\n      <circle cx="4" cy="4" r="3" fill="${color}" />`;
+          markers += `\n    </marker>`;
+        } else if (headType === 'diamond') {
+          // Diamond marker
+          markers += `\n    <marker id="diamond-${colorId}" markerWidth="12" markerHeight="12" refX="6" refY="6" orient="auto">`;
+          markers += `\n      <polygon points="6 0, 12 6, 6 12, 0 6" fill="${color}" />`;
+          markers += `\n    </marker>`;
+          
+          // Tail diamond
+          markers += `\n    <marker id="diamond-tail-${colorId}" markerWidth="12" markerHeight="12" refX="6" refY="6" orient="auto">`;
+          markers += `\n      <polygon points="6 0, 12 6, 6 12, 0 6" fill="${color}" />`;
+          markers += `\n    </marker>`;
+        }
+      });
     });
+    
     markers += '\n  </defs>';
 
     // Insert markers after the opening svg tag
     return svg.replace('<svg xmlns="http://www.w3.org/2000/svg"', '<svg xmlns="http://www.w3.org/2000/svg"').replace('>', '>' + markers);
   }
 
-  private collectArrowColors(node: LayoutNode, colors: Set<string>): void {
+  private collectArrowConfigs(node: LayoutNode, configs: Map<string, Set<string>>): void {
     if (node.type === 'Arrow') {
-      colors.add(node.props.color || 'black');
+      const color = node.props.color || 'black';
+      const headType = node.props.headType || 'arrow';
+      const tailType = node.props.tailType || 'none';
+      
+      if (!configs.has(color)) {
+        configs.set(color, new Set());
+      }
+      const types = configs.get(color)!;
+      
+      if (headType !== 'none') types.add(headType);
+      if (tailType !== 'none') types.add(tailType);
     }
-    node.children.forEach(child => this.collectArrowColors(child, colors));
+    node.children.forEach(child => this.collectArrowConfigs(child, configs));
   }
 }
