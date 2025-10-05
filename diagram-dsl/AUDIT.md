@@ -97,9 +97,6 @@ else if (node.type === 'Text') {
 
 ## What Is NOT an Issue
 
-### ❌ Not Backward Compatibility Code
-The old estimation logic is completely replaced - there's no backward compatibility code lingering.
-
 ### ❌ Not Half-Done Tasks
 All tasks are complete:
 - Text measurement: ✅ Fully implemented with canvas

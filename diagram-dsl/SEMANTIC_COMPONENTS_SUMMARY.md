@@ -231,8 +231,6 @@ All existing tests pass (14/14):
 - 7 SVG rendering tests
 - 7 layout assertion tests
 
-No breaking changes - backwards compatible.
-
 ## Technical Implementation
 
 ### Files Added
@@ -274,8 +272,6 @@ The semantic components provide a **dramatically improved developer experience**
 - ✅ Rich text support (title + subtitle)
 - ✅ Clear semantic intent
 - ✅ Better maintainability
-- ✅ Backwards compatible
-- ✅ Zero breaking changes
 - ✅ All tests passing
 
 Users can now focus on **content** rather than **styling**, making diagram-dsl much more productive and enjoyable to use.

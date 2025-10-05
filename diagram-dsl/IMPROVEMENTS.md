@@ -131,13 +131,6 @@ const metrics = measureText('Hello', 24, 'Arial', 'bold');
 console.log(metrics.width, metrics.height);
 ```
 
-### Backward Compatibility
-
-All existing APIs remain unchanged:
-- `renderToSVG()` still returns a string (uses `renderToSVGWithLayout()` internally)
-- All component props remain the same
-- All examples work without modifications
-
 ## Usage in Tests
 
 ```typescript
@@ -171,16 +164,6 @@ These improvements lay the groundwork for:
 3. **Font Loading** - Support custom fonts for accurate measurement
 4. **Multi-line Text** - Extend measurement for text wrapping
 5. **Advanced Metrics** - Letter spacing, line height, etc.
-
-## Migration Guide
-
-No migration needed - all changes are backward compatible.
-
-To use new features:
-1. `npm install` to get canvas package
-2. Use `renderToSVGWithLayout()` for testing
-3. Import `LayoutAssertions` for layout tests
-4. Run `npm test` to see new tests in action
 
 ## Verification
 
