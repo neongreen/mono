@@ -1,6 +1,28 @@
 # Agent Demo Workspace
 
-A monorepo for building presentations and diagrams with diagram-dsl.
+A monorepo for building presentations and diagrams with diagram-dsl, specializing in LLM agent architectures and context engineering visualizations.
+
+## 🎉 Latest: Phase 1 Complete!
+
+Phase 1 adds powerful components for visualizing agent architectures, data flows, and context management:
+
+**New Components:**
+- `StateNode` - Agent state machines
+- `ProcessNode` - Process flows and pipelines
+- `DecisionNode` - Decision points
+- `MemoryBlock` - Memory/storage visualization
+- `ContextWindow` - Token budget allocation
+- `Timeline` & `TimelineEvent` - Execution timelines
+- Enhanced `Arrow` - Thickness, curves, bidirectional, animated
+
+**See:** [PHASE1_SUMMARY.md](PHASE1_SUMMARY.md) for complete details.
+
+**Try the Showcase:**
+```bash
+cd diagram-dsl
+npx tsx examples/showcase-agent-system.tsx
+# Opens showcase-complete-agent-system.svg
+```
 
 ## Projects
 
@@ -14,12 +36,20 @@ A high-level DSL for creating diagrams and presentation slides using React and J
 - SVG output
 - Presentation helper components
 - Semantic styling variants
+- **NEW: Agent loop & state machine components**
+- **NEW: Memory & context visualization**
+- **NEW: Enhanced arrows with bidirectional, thickness, curves**
 
 **Location:** `diagram-dsl/`
 
 **Documentation:**
+- [Phase 1 Summary](PHASE1_SUMMARY.md) - **NEW: Agent & context components**
 - [Presentation Components Guide](diagram-dsl/PRESENTATION_COMPONENTS.md)
-- Component examples in `diagram-dsl/src/examples/`
+- Component examples in `diagram-dsl/examples/`
+
+**Examples:**
+- `examples/showcase-agent-system.tsx` - Complete agent architecture
+- `examples/agent-loops-demo.tsx` - All Phase 1 components
 
 ### Presentations
 
@@ -28,7 +58,11 @@ Collection of presentations built with diagram-dsl.
 **Location:** `presentations/`
 
 **Current presentations:**
-- `llm-context-management/` - Context management strategies in LLM agents (8 slides)
+- `llm-context-management/` - Context management strategies in LLM agents
+  - v1: Original (9 slides)
+  - v2: Refactored with better components (9 slides)
+  - v3: Multi-theme, multi-mode (9 slides × 4 themes × 3 modes)
+  - **v4: Agent-focused with Phase 1 components (8 slides)** ⭐ NEW
 
 ## Getting Started
 
@@ -87,8 +121,16 @@ pnpm build
 
 ```bash
 cd diagram-dsl
-pnpm exec tsx src/examples/presentation-helpers.tsx
-pnpm exec tsx src/examples/advanced-presentation.tsx
+
+# NEW: Complete agent system showcase
+npx tsx examples/showcase-agent-system.tsx
+
+# NEW: All Phase 1 component demos
+npx tsx examples/agent-loops-demo.tsx
+
+# Original examples
+npx tsx examples/presentation-helpers.tsx
+npx tsx examples/advanced-presentation.tsx
 ```
 
 ### Testing
@@ -127,6 +169,28 @@ agentdemo/
 ```
 
 ## Key Components
+
+### Phase 1: Agent & Context Components ⭐ NEW
+
+**State Machines & Flows:**
+- `StateNode` - Agent states (initial, active, final, default)
+- `ProcessNode` - Process steps (start, end, process, subprocess)
+- `DecisionNode` - Decision points (diamond shape)
+
+**Memory & Context:**
+- `MemoryBlock` - Storage capacity visualization with progress bars
+- `ContextWindow` - Token budget allocation (segmented bar)
+
+**Timelines:**
+- `Timeline` - Timeline axis (horizontal/vertical)
+- `TimelineEvent` - Events with icons and labels
+
+**Enhanced Arrows:**
+- `thickness`: thin | medium | thick | very-thick
+- `style`: solid | dashed | dotted | wave
+- `curve`: straight | curved | step | arc
+- `bidirectional`: true for two-headed arrows
+- `animated`: flow direction indicators
 
 ### Presentation Components
 
