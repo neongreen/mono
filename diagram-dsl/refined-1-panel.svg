@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="213.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Panel Component</text>
+    <text x="178.5" y="134.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Structured containers with header and footer</text>
+    <rect x="60" y="197" width="900" height="184" fill="white" stroke="#1976d2" stroke-width="2" rx="8" />
+      <rect x="60" y="197" width="900" height="44" fill="#e3f2fd" />
+        <text x="76" y="224.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">User Profile</text>
+          <text x="80" y="272.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Name: John Doe,</text>
+          <text x="80" y="293.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Email: john@example.com,</text>
+          <text x="80" y="315.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Role: Administrator,</text>
+      <rect x="60" y="337" width="900" height="44" fill="#e3f2fd" />
+        <text x="76" y="363" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Last updated: Today</text>
+    <rect x="60" y="437" width="900" height="102" fill="white" stroke="#7b1fa2" stroke-width="3" rx="8" />
+      <rect x="60" y="437" width="900" height="48" fill="#f3e5f5" />
+        <text x="76" y="466.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Settings</text>
+        <text x="80" y="516.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Configure your application settings here</text>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="202" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Well Component</text>
+    <text x="162" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Inset containers for secondary content</text>
+    <text x="60" y="212.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Main content goes here</text>
+    <rect x="60" y="267" width="900" height="71" fill="#e3f2fd" stroke="#90caf9" stroke-width="1" rx="6" />
+      <text x="76" y="296.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">ℹ️ Information</text>
+      <text x="76" y="319.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">This is additional context provided in an info well.</text>
+    <rect x="60" y="422" width="900" height="64" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1" rx="6" />
+      <text x="76" y="448.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">✓ Success</text>
+      <text x="76" y="467.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Operation completed successfully!</text>
+    <rect x="60" y="570" width="900" height="71" fill="#fff3e0" stroke="#ffcc80" stroke-width="1" rx="6" />
+      <text x="76" y="599.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">⚠️ Warning</text>
+      <text x="76" y="622.8333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Please review before proceeding.</text>
+</svg>
