@@ -1,0 +1,12 @@
+[
+  {
+    "timestamp": "2024-01-15T14:30:00Z",
+    "selectedText": "The quick brown fox jumps over the lazy dog",
+    "annotation": "Classic pangram used for font testing"
+  },
+  {
+    "timestamp": "2024-01-15T15:45:00Z",
+    "selectedText": "Machine learning is a subset of artificial intelligence",
+    "annotation": "Important to remember this distinction"
+  }
+]
