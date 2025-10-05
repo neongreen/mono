@@ -2,14 +2,35 @@
 
 Interactive task fulfillment tool for macOS.
 
+## ⚠️ Implementation Status
+
+### ✅ Currently Implemented
+- [x] **Install tools via mise** - Request and install tools using `want <tool>`
+- [x] **Check if tools are already available** - Detects existing installations
+- [x] **Dry-run mode** - Preview actions with `--dry-run` flag
+- [x] **Basic CLI interface** - Help, version, and command structure
+- [x] **Command stubs** - `list`, `check`, `forget` commands (not functional yet)
+
+### ❌ Not Yet Implemented
+- [ ] **Clone git repositories** - `want github.com/user/repo` not working yet
+- [ ] **Track requirements** - No persistence of what you've requested
+- [ ] **List tracked items** - `want list` shows placeholder message
+- [ ] **Check status** - `want check` shows placeholder message
+- [ ] **Forget requirements** - `want forget` shows placeholder message
+- [ ] **Multiple provider support** - Only mise is supported; no Homebrew, GitHub releases, etc.
+- [ ] **Interactive prompts** - No interactive selection when multiple options exist
+- [ ] **Preference learning** - No storage of user preferences
+- [ ] **Configuration persistence** - No `~/.config/want/` directory created
+
 ## Overview
 
 `want` helps you get things you need on your system through CLI commands. It's an interactive assistant that respects your preferences.
 
 ```bash
-want jujutsu                # Get a tool
-want github.com/user/repo   # Clone a repository
-want list                   # Show what you have
+want jujutsu                # Install a tool via mise
+want --dry-run jujutsu      # Preview what would be done
+want github.com/user/repo   # Clone a repository (NOT YET IMPLEMENTED)
+want list                   # Show what you have (NOT YET IMPLEMENTED)
 ```
 
 ## Installation
@@ -38,42 +59,36 @@ Or add to your `.mise.toml`:
 
 ## Usage
 
-Get a tool or resource:
+### Install a tool (✅ WORKING)
+
 ```bash
-want jujutsu                    # Get a tool
-want github.com/user/repo       # Clone a repository
+want jujutsu                    # Install jujutsu via mise
 ```
 
-View tracked requirements:
+If the tool is already available (installed via brew, apt, or any other method), `want` will detect it and skip installation:
+
 ```bash
-want list
+$ want jq
+✓ jq is already available
+  Location: /usr/bin/jq
 ```
 
-Check status of requirements:
+### Dry-run mode (✅ WORKING)
+
+Preview what would be done without actually doing it:
+
 ```bash
-want check
+want --dry-run jujutsu
 ```
 
-Remove from tracking:
+### Commands not yet functional (❌ NOT IMPLEMENTED)
+
 ```bash
-want forget <requirement>
+want github.com/user/repo       # Clone a repository - NOT WORKING YET
+want list                       # View tracked requirements - NOT WORKING YET
+want check                      # Check status of requirements - NOT WORKING YET
+want forget <requirement>       # Remove from tracking - NOT WORKING YET
 ```
-
-## MVP Status
-
-This is currently a minimal viable product (MVP) implementation. The tool provides the basic command structure but does not yet implement full functionality.
-
-Current MVP features:
-- Basic CLI interface
-- Command structure (`want`, `list`, `check`, `forget`)
-- Help and version commands
-
-Planned features:
-- Install tools via mise, Homebrew, or other providers
-- Clone git repositories
-- Interactive option selection when multiple options exist
-- Preference learning and storage
-- Configuration persistence at `~/.config/want/`
 
 ## How it works
 
