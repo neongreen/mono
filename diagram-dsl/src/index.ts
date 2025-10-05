@@ -50,6 +50,20 @@ export { Terminal } from './components/Terminal';
 export { DataFlow } from './components/DataFlow';
 export { ComparisonTable } from './components/ComparisonTable';
 
+// Agent loop & state machine components
+export { StateNode } from './components/StateNode';
+export { DecisionNode } from './components/DecisionNode';
+export { ProcessNode } from './components/ProcessNode';
+export { LoopIndicator } from './components/LoopIndicator';
+
+// Timeline components
+export { Timeline } from './components/Timeline';
+export { TimelineEvent } from './components/TimelineEvent';
+
+// Memory & context components
+export { MemoryBlock } from './components/MemoryBlock';
+export { ContextWindow } from './components/ContextWindow';
+
 export { renderToSVG, renderToSVGWithLayout } from './renderer';
 export type { RenderResult } from './renderer';
 
@@ -104,4 +118,16 @@ export type {
   ArrowProps,
   LayoutNode,
   ImageProps,
+  StateNodeProps,
+  DecisionNodeProps,
+  ProcessNodeProps,
+  LoopIndicatorProps,
+  TimelineProps,
+  TimelineEventProps,
+  TimelineRangeProps,
+  MemoryBlockProps,
+  StackVisualizationProps,
+  ContextWindowProps,
+  TokenBudgetProps,
+  DataTransformProps,
 } from './types';

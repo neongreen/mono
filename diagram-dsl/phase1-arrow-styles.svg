@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+    <marker id="arrow-4caf50" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#4caf50" />
+    </marker>
+    <marker id="arrow-tail-4caf50" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#4caf50" />
+    </marker>
+    <marker id="arrow-ff9800" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#ff9800" />
+    </marker>
+    <marker id="arrow-tail-ff9800" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#ff9800" />
+    </marker>
+    <marker id="arrow-f44336" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#f44336" />
+    </marker>
+    <marker id="arrow-tail-f44336" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#f44336" />
+    </marker>
+    <marker id="arrow-9c27b0" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#9c27b0" />
+    </marker>
+    <marker id="arrow-tail-9c27b0" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#9c27b0" />
+    </marker>
+  </defs>
+  <rect width="800" height="600" fill="white"/>
+    <text x="206" y="59.5" font-size="24" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Enhanced Arrow Capabilities</text>
+      <rect x="40" y="113" width="120" height="60" fill="#e3f2fd" stroke="#2196f3" stroke-width="2" rx="6" />
+        <text x="40" y="124.33333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Source A</text>
+      <rect x="190" y="113" width="120" height="60" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2" rx="6" />
+        <text x="190" y="125.83333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Target A</text>
+      <rect x="40" y="223" width="120" height="60" fill="#e3f2fd" stroke="#2196f3" stroke-width="2" rx="6" />
+        <text x="40" y="234.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Source B</text>
+      <rect x="190" y="223" width="120" height="60" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2" rx="6" />
+        <text x="190" y="235.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Target B</text>
+      <rect x="40" y="333" width="120" height="60" fill="#e3f2fd" stroke="#2196f3" stroke-width="2" rx="6" />
+        <text x="40" y="344.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Source C</text>
+      <rect x="190" y="333" width="120" height="60" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2" rx="6" />
+        <text x="190" y="346.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Target C</text>
+      <rect x="40" y="443" width="120" height="60" fill="#e3f2fd" stroke="#2196f3" stroke-width="2" rx="6" />
+        <text x="40" y="454.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Node D1</text>
+      <rect x="190" y="443" width="120" height="60" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2" rx="6" />
+        <text x="190" y="454.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Node D2</text>
+  <path d="M 160 143 L 190 143" stroke="#4caf50" stroke-width="2" fill="none" marker-end="url(#arrow-4caf50)" />
+  <rect x="124.19999999999999" y="133" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="175" y="147" font-size="12" fill="#4caf50" text-anchor="middle">solid, medium</text>
+  <path d="M 160 253 L 190 253" stroke="#ff9800" stroke-width="3" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-ff9800)" />
+  <rect x="124.19999999999999" y="243" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="175" y="257" font-size="12" fill="#ff9800" text-anchor="middle">dashed, thick</text>
+  <path d="M 160 363 C 175 363, 175 363, 190 363" stroke="#f44336" stroke-width="2" fill="none" stroke-dasharray="2,4" marker-end="url(#arrow-f44336)" />
+  <rect x="120.6" y="353" width="108.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="175" y="367" font-size="12" fill="#f44336" text-anchor="middle">dotted, curved</text>
+  <path d="M 160 473 L 190 473" stroke="#9c27b0" stroke-width="3" fill="none" marker-end="url(#arrow-9c27b0)" marker-start="url(#arrow-tail-9c27b0)" />
+  <rect x="124.19999999999999" y="463" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="175" y="477" font-size="12" fill="#9c27b0" text-anchor="middle">bidirectional</text>
+</svg>
