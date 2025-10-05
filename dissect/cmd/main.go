@@ -14,10 +14,17 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "dissect [paths]...",
+	Use:   "dissect",
 	Short: "A tool to refactor Go code by extracting functions to separate files.",
 	Long: `Dissect is a CLI tool that helps refactor Go code by extracting top-level functions 
 into their own files, following Go's best practices for code organization.`,
+}
+
+var splitCmd = &cobra.Command{
+	Use:   "split [paths]...",
+	Short: "Split Go files by extracting functions to separate files",
+	Long: `Split processes Go files and extracts each top-level function into its own file,
+following Go's best practices for code organization.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		cwd, err := os.Getwd()
@@ -96,8 +103,7 @@ into their own files, following Go's best practices for code organization.`,
 	},
 }
 
-func main() {
-	// Init logging
+func initLogging() {
 	programLevel := new(slog.Level)
 	if err := programLevel.UnmarshalText([]byte(os.Getenv("LOG_LEVEL"))); err != nil {
 		programLevel = new(slog.Level)
@@ -124,6 +130,36 @@ func main() {
 		),
 	))
 	slog.Debug("Logging level set", "level", programLevel.String())
+}
+
+func init() {
+	// Add subcommands
+	rootCmd.AddCommand(splitCmd)
+	rootCmd.AddCommand(moveCmd)
+}
+
+func main() {
+	initLogging()
+
+	// For backward compatibility: if the first argument is not a known subcommand,
+	// prepend 'split' to the arguments
+	args := os.Args[1:]
+	if len(args) > 0 {
+		knownCommands := map[string]bool{
+			"split":      true,
+			"move":       true,
+			"help":       true,
+			"completion": true,
+			"--help":     true,
+			"-h":         true,
+		}
+		
+		if !knownCommands[args[0]] && !strings.HasPrefix(args[0], "-") {
+			// Prepend 'split' to args for backward compatibility
+			newArgs := append([]string{"split"}, args...)
+			rootCmd.SetArgs(newArgs)
+		}
+	}
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
