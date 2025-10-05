@@ -1,14 +1,16 @@
-# Global Repository Rules
+# Agent Guidelines for This Monorepo
+
+This document contains guidelines for AI agents and automated tools working on projects in this monorepo.
 
 ## Backwards Compatibility Policy
 
-**Unless explicitly stated otherwise, backwards compatibility is NOT important in this repository.**
+**Unless explicitly stated otherwise, backwards compatibility is NOT important for ANY project in this repository.**
 
-All tools and projects in this monorepo are work in progress and do not have users yet. Breaking changes are acceptable and encouraged if they improve the API or implementation.
+All tools and projects in this monorepo (`diagram-dsl`, `dissect`, `markdown-format`, `want`, and any future projects) are work in progress and do not have users yet. Breaking changes are acceptable and encouraged if they improve the API or implementation.
 
 ### What This Means
 
-When making changes to any project:
+When making changes to **any project** in this monorepo:
 - ❌ **Do NOT** maintain old APIs for compatibility
 - ❌ **Do NOT** add migration guides
 - ❌ **Do NOT** add "backwards compatible" claims in documentation
@@ -23,6 +25,7 @@ Here are concrete examples from previous pull requests showing what **NOT** to d
 
 #### ❌ Example 1: Unnecessary Migration Guide (PR #6)
 
+**Project:** diagram-dsl  
 **File:** `diagram-dsl/IMPROVEMENTS.md`
 
 **What was wrong:**
@@ -50,6 +53,7 @@ To use new features:
 
 #### ❌ Example 2: Backwards Compatibility Claims (PR #6)
 
+**Project:** diagram-dsl  
 **File:** `diagram-dsl/IMPROVEMENTS.md`
 
 **What was wrong:**
@@ -73,6 +77,7 @@ All existing APIs remain unchanged:
 
 #### ❌ Example 3: Backwards Compatible Claims (PR #8)
 
+**Project:** diagram-dsl  
 **File:** `diagram-dsl/SEMANTIC_COMPONENTS_SUMMARY.md`
 
 **What was wrong:**
@@ -97,6 +102,7 @@ No breaking changes - backwards compatible.
 
 #### ❌ Example 4: Defensive Statements About Backwards Compatibility (PR #6)
 
+**Project:** diagram-dsl  
 **File:** `diagram-dsl/AUDIT.md`
 
 **What was wrong:**
@@ -125,6 +131,7 @@ The owner will explicitly request backwards compatibility when needed. Until the
 
 ### Summary
 
-- **Default assumption:** Backwards compatibility is NOT needed
+- **Default assumption:** Backwards compatibility is NOT needed for any project
 - **Only consider it when:** The owner explicitly asks for it
 - **Focus on:** Making the best possible code, not maintaining old code
+- **Applies to:** ALL projects in this monorepo (diagram-dsl, dissect, markdown-format, want, etc.)
