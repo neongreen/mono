@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <marker id="arrowhead-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrowhead-7b1fa2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#7b1fa2" />
+    </marker>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="344.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Strategy 3: Vector Memory (RAG)</text>
+    <text x="219.5" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Store embeddings and retrieve relevant context dynamically</text>
+      <rect x="290" y="190" width="180" height="63" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+        <text x="380" y="217.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">All Messages</text>
+        <text x="342" y="226.33333333333334" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Full conversation</text>
+        <text x="350" y="235.33333333333334" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">history stored</text>
+      <rect x="510" y="190" width="180" height="63" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+        <text x="600" y="216.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Vector DB</text>
+        <text x="551" y="225.33333333333334" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Semantic embeddings</text>
+        <text x="565" y="235.33333333333334" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">of all messages</text>
+      <rect x="730" y="190" width="180" height="63" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+        <text x="820.5" y="216.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Smart Retrieval</text>
+        <text x="787" y="225.33333333333334" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Query-relevant</text>
+        <text x="793" y="235.33333333333334" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">context only</text>
+        <rect x="60" y="337" width="211" height="278" fill="#f5f5f5" stroke="#999" stroke-width="2" rx="8" />
+          <text x="80" y="367.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#333" font-weight="bold" text-anchor="start">Process Flow</text>
+            <text x="80" y="390" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start"> 1. User query arrives,</text>
+            <text x="80" y="410" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start"> 2. Query embedded as vector,</text>
+            <text x="80" y="430" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start"> 3. Similar messages retrieved,</text>
+            <text x="80" y="449.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start"> 4. Relevant context assembled,</text>
+            <text x="80" y="469" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start"> 5. Sent to LLM with query,</text>
+          <rect x="959" y="337" width="181" height="132" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" rx="8" />
+            <text x="979" y="368.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#1b5e20" font-weight="bold" text-anchor="start">Advantages</text>
+              <text x="979" y="391.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Semantic search capability,</text>
+              <text x="979" y="410.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Handles unlimited history,</text>
+              <text x="979" y="428.6666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Retrieves relevant context,</text>
+              <text x="979" y="447.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Good for knowledge bases,</text>
+          <rect x="959" y="481" width="181" height="134" fill="#ffebee" stroke="#c62828" stroke-width="2" rx="8" />
+            <text x="979" y="512.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="#b71c1c" font-weight="bold" text-anchor="start">Challenges</text>
+              <text x="979" y="536.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Requires vector database,</text>
+              <text x="979" y="555.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Embedding costs,</text>
+              <text x="979" y="574.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• May miss context order,</text>
+              <text x="979" y="593.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Complex infrastructure,</text>
+  <line x1="470" y1="221.5" x2="510" y2="221.5" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <line x1="690" y1="221.5" x2="730" y2="221.5" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+</svg>

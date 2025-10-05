@@ -4,11 +4,17 @@ import type { BoxProps } from '../types';
 export interface CalloutProps extends Partial<BoxProps> {
   title?: string;
   children?: React.ReactNode;
-  variant?: 'info' | 'success' | 'warning' | 'danger';
+  variant?: 'info' | 'success' | 'warning' | 'danger' | 'default';
   icon?: string;
 }
 
 const variantConfig = {
+  default: { 
+    bg: '#f5f5f5', 
+    border: '#999', 
+    titleColor: '#333',
+    icon: '📌'
+  },
   info: { 
     bg: '#e3f2fd', 
     border: '#1976d2', 

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="271.5" y="85.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Practical Considerations</text>
+    <text x="159" y="129" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Implementation details and trade-offs</text>
+        <rect x="60" y="183" width="271" height="137" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <text x="80" y="214.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Token Counting &amp; Budgeting</text>
+            <text x="80" y="239" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Always count tokens accurately (tiktoken),</text>
+            <text x="80" y="259" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Reserve buffer for response (20-30%),</text>
+            <text x="80" y="278.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Monitor costs per conversation,</text>
+            <text x="80" y="298" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Set hard limits for safety,</text>
+        <rect x="915" y="183" width="225" height="137" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="935" y="213.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#6a1b9a" font-weight="bold" text-anchor="start">Context Freshness</text>
+            <text x="935" y="236" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Update summaries incrementally,</text>
+            <text x="935" y="256" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Invalidate stale embeddings,</text>
+            <text x="935" y="276" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Refresh vector DB periodically,</text>
+            <text x="935" y="295.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Balance freshness vs cost,</text>
+        <rect x="60" y="344" width="224" height="136" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+          <text x="80" y="375.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#e65100" font-weight="bold" text-anchor="start">Performance Optimization</text>
+            <text x="80" y="399" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Cache embeddings aggressively,</text>
+            <text x="80" y="418.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Batch vector operations,</text>
+            <text x="80" y="438" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Use streaming for summaries,</text>
+            <text x="80" y="457.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Parallel retrieval when possible,</text>
+        <rect x="887" y="344" width="253" height="136" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" rx="8" />
+          <text x="907" y="375.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#1b5e20" font-weight="bold" text-anchor="start">Quality Assurance</text>
+            <text x="907" y="400" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Test with various conversation lengths,</text>
+            <text x="907" y="420" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Validate summary quality,</text>
+            <text x="907" y="439.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Check retrieval relevance,</text>
+            <text x="907" y="458.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Monitor user satisfaction metrics,</text>
+    <rect x="60" y="560" width="1100" height="169" fill="#f5f5f5" stroke="#999" stroke-width="3" rx="8" />
+        <text x="84" y="601.5" font-size="18" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">📌</text>
+        <text x="110" y="601.3333333333334" font-size="16" font-family="Arial, sans-serif" fill="#333" font-weight="bold" text-anchor="start">Cost-Benefit Analysis</text>
+            <text x="84" y="629" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="start">Low Cost Strategies</text>
+              <text x="84" y="648.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Sliding window only,</text>
+              <text x="84" y="666.6666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Minimal summarization,</text>
+              <text x="84" y="684.6666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Small context windows,</text>
+            <text x="84" y="702.3333333333334" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Best for: Simple tasks, budget-constrained apps</text>
+            <text x="540" y="629" font-size="12" font-family="Arial, sans-serif" fill="#ff9800" font-weight="bold" text-anchor="start">Medium Cost Strategies</text>
+              <text x="540" y="647.6666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Hierarchical summaries,</text>
+              <text x="540" y="665.6666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Moderate context windows,</text>
+              <text x="540" y="683.6666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Selective retrieval,</text>
+            <text x="540" y="701.3333333333334" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Best for: Most production applications</text>
+            <text x="950" y="629" font-size="12" font-family="Arial, sans-serif" fill="#c62828" font-weight="bold" text-anchor="start">High Cost Strategies</text>
+              <text x="950" y="647.6666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Full vector RAG,</text>
+              <text x="950" y="666.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Large context windows,</text>
+              <text x="950" y="685.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Frequent re-embedding,</text>
+            <text x="950" y="703.3333333333334" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Best for: Enterprise, research applications</text>
+</svg>
