@@ -15,6 +15,6 @@
       <text x="346" y="236.5" font-size="18" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Process Data</text>
     <rect x="300" y="290" width="200" height="80" fill="#f1f8e9" stroke="#7cb342" stroke-width="2" rx="8" />
       <text x="349" y="336.5" font-size="18" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">End Process</text>
-  <line x1="400" y1="130" x2="400" y2="190" stroke="#00acc1" stroke-width="2" marker-end="url(#arrowhead-00acc1)" />
-  <line x1="400" y1="230" x2="400" y2="290" stroke="#fb8c00" stroke-width="2" marker-end="url(#arrowhead-fb8c00)" />
+  <line x1="400" y1="170" x2="400" y2="190" stroke="#00acc1" stroke-width="2" marker-end="url(#arrowhead-00acc1)" />
+  <line x1="400" y1="270" x2="400" y2="290" stroke="#fb8c00" stroke-width="2" marker-end="url(#arrowhead-fb8c00)" />
 </svg>

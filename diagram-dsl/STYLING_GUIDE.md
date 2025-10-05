@@ -394,18 +394,6 @@ const MyDiagram = () => (
 );
 ```
 
-## Migration Guide
-
-To migrate existing diagrams to use semantic components:
-
-1. Replace `Text` with heading style → Use `Title`
-2. Replace `Text` with description style → Use `Subtitle`  
-3. Replace `Text` with body style → Use `Label`
-4. Replace styled `Box` → Use `Card` with variant
-5. Replace manual color/size values → Use semantic props
-
-The old components still work, so you can migrate gradually!
-
 ## Examples
 
 See these generated examples:

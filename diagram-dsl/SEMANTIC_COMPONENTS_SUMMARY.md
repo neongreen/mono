@@ -171,42 +171,16 @@ Examples show proper hierarchy:
 - Explicit gap values in stacks
 - Good typography sizing
 
-## Migration Path
-
-### Gradual Migration
-Old components still work - migrate at your own pace:
-
-```tsx
-// Old way still works
-<Box backgroundColor="#e3f2fd" borderColor="#1976d2">
-  <Text fontSize={16}>Content</Text>
-</Box>
-
-// New way (optional)
-<Card variant="primary">
-  <Label>Content</Label>
-</Card>
-```
-
-### Quick Wins
-Start by replacing:
-1. Title Text → Title component
-2. Description Text → Subtitle component
-3. Styled Boxes → Card components
-
 ## Examples Generated
 
-**New Semantic Components:**
 1. `styled-flowchart.svg` - Flowchart with semantic components (2.4 KB)
 2. `styled-architecture.svg` - Three-tier architecture (5.0 KB)
 3. `title-hierarchy.svg` - Typography showcase (2.1 KB)
-
-**Original Examples (still work):**
-1. `simple-box.svg` - Basic box (416 bytes)
-2. `basic-flowchart.svg` - Simple flowchart (1.7 KB)
-3. `architecture-diagram.svg` - Three-tier (2.3 KB)
-4. `multi-tier-architecture.svg` - Complex architecture (6.0 KB)
-5. `decision-flowchart.svg` - Authentication flow (3.6 KB)
+4. `simple-box.svg` - Basic box (416 bytes)
+5. `basic-flowchart.svg` - Simple flowchart (1.7 KB)
+6. `architecture-diagram.svg` - Three-tier (2.3 KB)
+7. `multi-tier-architecture.svg` - Complex architecture (6.0 KB)
+8. `decision-flowchart.svg` - Authentication flow (3.6 KB)
 
 ## Documentation
 

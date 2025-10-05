@@ -34,11 +34,13 @@
         <rect x="458" y="450" width="180" height="90" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
             <text x="548.5" y="493.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Cache</text>
             <text x="548.5" y="508.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Redis</text>
-  <line x1="352" y1="193" x2="352" y2="301" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
-  <text x="352" y="242" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
-  <line x1="548" y1="193" x2="422.9441383361159" y2="318.3100684555466" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
-  <line x1="352" y1="346" x2="458" y2="346" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
-  <line x1="548" y1="346" x2="423.64755282900694" y2="467.7666189501989" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
-  <text x="485.82377641450347" y="401.88330947509945" font-size="12" fill="#7b1fa2" text-anchor="middle">SQL</text>
-  <line x1="548" y1="346" x2="548" y2="450" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+  <line x1="352" y1="238" x2="352" y2="301" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <rect x="330" y="259.5" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="352" y="273.5" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <line x1="548" y1="238" x2="442" y2="346" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <line x1="442" y1="346" x2="458" y2="346" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
+  <line x1="548" y1="391" x2="442" y2="495" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+  <rect x="480.2" y="433" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="495" y="447" font-size="12" fill="#7b1fa2" text-anchor="middle">SQL</text>
+  <line x1="548" y1="391" x2="548" y2="450" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
 </svg>

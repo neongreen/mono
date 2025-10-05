@@ -1,0 +1,28 @@
+# diagram-dsl Development Rules
+
+## Backwards Compatibility
+
+**No backwards compatibility is required for this library.**
+
+This library is still work in progress and does not have any users yet. Breaking changes are acceptable and encouraged if they improve the API or implementation.
+
+When making changes:
+- Do not maintain old APIs for compatibility
+- Do not add migration guides
+- Do not worry about breaking changes
+- Focus on making the best possible API and implementation
+- Update documentation to reflect current state only
+
+## Arrow Rendering
+
+Arrows must connect boxes at their attachment points:
+- Attachment points are the centers of the four rectangle sides (top, bottom, left, right)
+- Arrows should go from one attachment point to another attachment point
+- Calculate which attachment points to use based on the relative positions of the boxes
+
+## Arrow Labels
+
+Arrow labels must be legible:
+- Either position them to not intersect with the arrow line
+- Or use a semi-transparent background to ensure readability when they overlap
+- Labels should be centered along the arrow path
