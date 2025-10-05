@@ -30,6 +30,22 @@ go test ./... -v -race
 
 Tests automatically run in parallel using `t.Parallel()` for better performance.
 
+### Run External Project Test
+
+The external project integration test clones a real Go project and runs dissect on it:
+
+```bash
+go test ./cmd -v -run TestExternalProjectIntegration
+```
+
+This test is skipped in short mode. To skip it:
+
+```bash
+go test ./cmd -v -short
+```
+
+**Note:** This test requires an internet connection to clone the external repository.
+
 ## Test Structure
 
 ### Directory Layout
@@ -166,6 +182,69 @@ Tests handling of Go modules with `/v2` or higher version suffixes.
 **Validates:**
 - Correct import path generation for versioned modules
 - Module path parsing with version suffixes
+
+## External Project Integration Test
+
+The `TestExternalProjectIntegration` test validates dissect on a real-world Go project.
+
+### What It Tests
+
+This test:
+1. Clones [github.com/google/uuid](https://github.com/google/uuid) at a specific commit
+2. Runs dissect on one of its files (`version4.go`)
+3. Verifies the project still compiles with `go build`
+4. Verifies the project's test suite still passes with `go test`
+
+### Purpose
+
+This test ensures that:
+- dissect works correctly on real production code
+- The refactored code maintains correctness
+- All imports and dependencies are handled properly
+- The test suite continues to pass after refactoring
+
+### Project Selection Criteria
+
+The test uses `github.com/google/uuid` because it:
+- Is small and focused (single package)
+- Is popular and well-maintained
+- Has a comprehensive test suite
+- Has multiple functions suitable for extraction
+- Has no var/const declarations in the target file
+
+### Running the Test
+
+```bash
+# Run the external project test
+go test ./cmd -v -run TestExternalProjectIntegration
+
+# Skip external project test (use short mode)
+go test ./cmd -v -short
+```
+
+### Technical Details
+
+- **Commit**: Uses a pinned commit SHA for reproducibility
+- **Target file**: `version4.go` (contains 5 functions)
+- **gopls requirement**: Automatically installs gopls if not present
+- **Test duration**: ~17-20 seconds (includes git clone and test execution)
+- **Internet required**: Yes (to clone the repository)
+
+### Debugging
+
+The test preserves the cloned repository in `/tmp/dissect_external_uuid_*` for inspection. To examine the refactored code:
+
+```bash
+# Find the test directory
+ls -td /tmp/dissect_external_uuid_* | head -1
+
+# List files after refactoring
+ls /tmp/dissect_external_uuid_*/uuid/*.go
+
+# View the changes
+cd /tmp/dissect_external_uuid_*/uuid/
+git diff --no-index version4.go.orig version4.go  # if available
+```
 
 ## Test Execution Flow
 
