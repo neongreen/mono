@@ -1,0 +1,30 @@
+name: text-annotator
+
+on:
+  push:
+    paths:
+      - 'text-annotator/**'
+      - '.github/workflows/text-annotator.yml'
+  pull_request:
+    paths:
+      - 'text-annotator/**'
+      - '.github/workflows/text-annotator.yml'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Swift
+        run: swift --version
+      
+      - name: Build project
+        working-directory: text-annotator
+        run: swift build
+      
+      - name: Build release
+        working-directory: text-annotator
+        run: swift build -c release
