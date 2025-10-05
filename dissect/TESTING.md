@@ -191,7 +191,7 @@ The `TestExternalProjects` suite validates dissect on real-world Go projects usi
 
 This test suite:
 1. Clones external Go projects at specific commits
-2. Runs dissect on designated files
+2. Runs dissect on **all Go files** in the project (except test files, cmd packages, and deeply nested internal packages)
 3. Verifies the project still compiles with `go build`
 4. Verifies the project's test suite still passes with `go test`
 
@@ -199,7 +199,7 @@ This test suite:
 
 This test ensures that:
 - dissect works correctly on real production code
-- The refactored code maintains correctness
+- The refactored code maintains correctness when processing entire codebases
 - All imports and dependencies are handled properly
 - The test suite continues to pass after refactoring
 
@@ -207,12 +207,12 @@ This test ensures that:
 
 **google/uuid**
 - Small, focused single-package library
-- Target file: `version4.go` (5 functions extracted)
+- Processes all main package Go files (15 new files created)
 - Full test suite passes after refactoring
 
 **segmentio/ksuid**
 - K-Sortable Unique Identifier library
-- Target file: `base62.go` (demonstrates handling of files with var/const)
+- Processes all package files (13 new files created)
 - Project compiles and tests pass
 
 ### Running the Tests

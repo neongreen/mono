@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/golang-cz/devslog"
@@ -16,7 +17,6 @@ func main() {
 	// Parse command line flags
 	projectURL := flag.String("url", "", "Git clone URL for the project")
 	projectCommit := flag.String("commit", "HEAD", "Git commit SHA to checkout (default: HEAD)")
-	targetFiles := flag.String("files", "", "Comma-separated list of files to run dissect on")
 	showDiff := flag.Bool("diff", false, "Show git diff after running dissect")
 	listProjects := flag.Bool("list", false, "List available predefined projects")
 	projectName := flag.String("project", "", "Name of predefined project to test (e.g., 'google/uuid')")
@@ -37,7 +37,7 @@ func main() {
 			fmt.Printf("  %s\n", name)
 			fmt.Printf("    URL: %s\n", config.URL)
 			fmt.Printf("    Commit: %s\n", config.Commit)
-			fmt.Printf("    Target files: %v\n", config.TargetFiles)
+			fmt.Printf("    (will process all Go files in project)\n")
 		}
 		return
 	}
@@ -54,27 +54,15 @@ func main() {
 		}
 		fmt.Printf("Using predefined project: %s\n", *projectName)
 	} else if *projectURL != "" {
-		// Use custom project
-		if *targetFiles == "" {
-			fmt.Fprintf(os.Stderr, "Error: -files is required when using -url\n")
-			flag.Usage()
-			os.Exit(1)
-		}
-
-		files := strings.Split(*targetFiles, ",")
-		for i, f := range files {
-			files[i] = strings.TrimSpace(f)
-		}
-
+		// Use custom project - no need to specify files, will process all Go files
 		// Extract project name from URL
 		name := extractProjectName(*projectURL)
 
 		config = externaltest.ProjectConfig{
-			Name:        name,
-			URL:         *projectURL,
-			Commit:      *projectCommit,
-			TargetFiles: files,
-			ShowDiff:    *showDiff,
+			Name:     name,
+			URL:      *projectURL,
+			Commit:   *projectCommit,
+			ShowDiff: *showDiff,
 		}
 		fmt.Printf("Testing custom project: %s\n", name)
 	} else {
@@ -129,12 +117,15 @@ func main() {
 
 // runSmokeTest runs the external test without *testing.T
 func runSmokeTest(config externaltest.ProjectConfig) *externaltest.TestResult {
-	// Inject a ProcessFile function that just logs (actual dissect functionality would need to be linked)
+	// Inject a ProcessFile function that calls dissect binary
 	config.ProcessFile = func(absPath string) (int, string, error) {
-		// This is a placeholder - in a real implementation, you would need to
-		// either build dissect as a library or call it as a separate binary
-		fmt.Printf("Would process file: %s\n", absPath)
-		fmt.Println("Note: To use dissect functionality, import and call ProcessFile from dissect/cmd package")
+		// Call dissect split command on the file
+		cmd := exec.Command("dissect", "split", absPath)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return 1, "", fmt.Errorf("dissect split failed: %w\nOutput: %s", err, output)
+		}
+		// Return success - dissect split succeeded
 		return 0, "", nil
 	}
 

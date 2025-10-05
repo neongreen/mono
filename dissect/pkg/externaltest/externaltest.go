@@ -1,6 +1,7 @@
 package externaltest
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -15,12 +16,11 @@ type ProcessFileFunc func(absPath string) (status int, exclusionReason string, e
 
 // ProjectConfig defines configuration for testing an external project
 type ProjectConfig struct {
-	Name        string   // Project name (e.g., "google/uuid")
-	URL         string   // Git clone URL
-	Commit      string   // Specific commit SHA to test
-	TargetFiles []string // Files to run dissect on (relative to project root)
-	ShowDiff    bool     // Whether to show git diff after dissect
-	ProcessFile ProcessFileFunc // Function to process each file (injected dependency)
+	Name        string              // Project name (e.g., "google/uuid")
+	URL         string              // Git clone URL
+	Commit      string              // Specific commit SHA to test
+	ShowDiff    bool                // Whether to show git diff after dissect
+	ProcessFile ProcessFileFunc     // Function to process each file (injected dependency)
 }
 
 // TestResult contains the results of running dissect on an external project
@@ -101,17 +101,63 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 	}
 	slog.Debug("Tests passed before dissect", "output", string(testBeforeOutput))
 
-	// Run dissect on target files
-	if config.ProcessFile != nil {
-		for _, targetFile := range config.TargetFiles {
-			fullPath := filepath.Join(projectDir, targetFile)
-			slog.Debug("Running dissect on target file", "file", targetFile)
-			status, exclusionReason, err := config.ProcessFile(fullPath)
+	// Find all Go files in the project using go list
+	slog.Debug("Finding all Go files in project...")
+	goListCmd := exec.Command("go", "list", "-test", "-json", "./...")
+	goListCmd.Dir = projectDir
+	goListOutput, goListErr := goListCmd.CombinedOutput()
+	if goListErr != nil {
+		result.Error = fmt.Errorf("failed to list Go files: %w\nOutput: %s", goListErr, goListOutput)
+		return result
+	}
+
+	// Parse go list output to get all Go files
+	// Process all non-test files in the main package (skip test packages, internal packages, cmd packages)
+	var allGoFiles []string
+	decoder := json.NewDecoder(strings.NewReader(string(goListOutput)))
+	for {
+		var pkg struct {
+			Dir        string   `json:"Dir"`
+			ImportPath string   `json:"ImportPath"`
+			GoFiles    []string `json:"GoFiles"`
+		}
+		if err := decoder.Decode(&pkg); err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			// Skip any decode errors and continue
+			continue
+		}
+		
+		// Skip test packages, cmd packages, and deeply nested internal packages
+		if strings.Contains(pkg.ImportPath, ".test]") || 
+		   strings.Contains(pkg.ImportPath, "/cmd/") ||
+		   strings.Count(pkg.ImportPath, "/internal/") > 1 {
+			continue
+		}
+		
+		for _, goFile := range pkg.GoFiles {
+			// Skip files with absolute paths
+			if !filepath.IsAbs(goFile) {
+				fullPath := filepath.Join(pkg.Dir, goFile)
+				allGoFiles = append(allGoFiles, fullPath)
+			}
+		}
+	}
+
+	slog.Debug("Found Go files", "count", len(allGoFiles))
+
+	// Run dissect on all Go files
+	if config.ProcessFile != nil && len(allGoFiles) > 0 {
+		for _, goFile := range allGoFiles {
+			relativePath, _ := filepath.Rel(projectDir, goFile)
+			slog.Debug("Running dissect on file", "file", relativePath)
+			status, exclusionReason, err := config.ProcessFile(goFile)
 			if err != nil {
-				result.Error = fmt.Errorf("dissect failed on %s: %w", targetFile, err)
+				result.Error = fmt.Errorf("dissect failed on %s: %w", relativePath, err)
 				return result
 			}
-			slog.Debug("Dissect result", "file", targetFile, "status", status, "exclusionReason", exclusionReason)
+			slog.Debug("Dissect result", "file", relativePath, "status", status, "exclusionReason", exclusionReason)
 		}
 	}
 
