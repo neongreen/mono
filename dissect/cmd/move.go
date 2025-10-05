@@ -5,6 +5,7 @@ import (
 	"dissect/pkg/gopls"
 	"dissect/pkg/goutils"
 	"fmt"
+	"go/ast"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -112,7 +113,7 @@ func runMove(cmd *cobra.Command, args []string) {
 	slog.Info("Successfully moved all identifiers")
 }
 
-// moveIdentifier moves a single identifier from source to target file
+// moveIdentifier moves a single identifier from source to target file using AST operations
 func moveIdentifier(sourceFile string, identifier string, targetFile string, moduleRoot string) error {
 	// Check if target file exists
 	targetExists := false
@@ -125,11 +126,11 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 	// If target doesn't exist, we need to create it with the right package
 	if !targetExists {
 		// Get package name from source file
-		_, node, err := goutils.ReadGoFile(sourceFile)
+		_, sourceNode, err := goutils.ReadGoFile(sourceFile)
 		if err != nil {
 			return fmt.Errorf("error reading source file: %w", err)
 		}
-		packageName := node.Name.Name
+		packageName := sourceNode.Name.Name
 
 		// Create target directory if needed
 		targetDir := filepath.Dir(targetFile)
@@ -152,97 +153,58 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 	}
 	slog.Debug("Extracted identifier to temp file", "identifier", identifier, "tempFile", tempFile)
 
-	// Now we need to move the content from tempFile to targetFile
-	// Read the temp file
-	tempContent, err := os.ReadFile(tempFile)
-	if err != nil {
-		return fmt.Errorf("error reading temp file: %w", err)
-	}
-
-	// Read target file to verify it exists
-	_, err = os.ReadFile(targetFile)
-	if err != nil {
-		return fmt.Errorf("error reading target file: %w", err)
-	}
-
-	// For now, we'll use a simple approach: append the function to the target file
-	// This is a simplified version - a production version would:
-	// 1. Parse both files
-	// 2. Merge imports properly
-	// 3. Add the function declaration
-	// 4. Format the result
-
-	// Parse temp file content to extract function and imports
-	tempStr := string(tempContent)
-
-	// Remove the temp file
+	// Remove the temp file when done
 	defer os.Remove(tempFile)
 
-	// Extract only the function declaration from temp file (skip package and imports)
-	lines := strings.Split(tempStr, "\n")
-	var functionLines []string
-	skipImports := false
-	inImportBlock := false
-	
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		
-		// Skip package declaration
-		if strings.HasPrefix(trimmed, "package ") {
-			continue
-		}
-		
-		// Skip import statements
-		if strings.HasPrefix(trimmed, "import (") {
-			inImportBlock = true
-			skipImports = true
-			continue
-		}
-		if strings.HasPrefix(trimmed, "import ") && !inImportBlock {
-			skipImports = true
-			continue
-		}
-		if inImportBlock && trimmed == ")" {
-			inImportBlock = false
-			skipImports = false
-			continue
-		}
-		if skipImports && inImportBlock {
-			continue
-		}
-		
-		// Skip empty lines at the beginning
-		if len(functionLines) == 0 && trimmed == "" {
-			continue
-		}
-		
-		// Start collecting from the function declaration
-		if strings.HasPrefix(trimmed, "func ") || len(functionLines) > 0 {
-			functionLines = append(functionLines, line)
-		}
-		
-		// Stop after collecting if we hit the next line after a function
-		if len(functionLines) > 0 && i+1 < len(lines) && 
-		   strings.TrimSpace(lines[i+1]) == "" && 
-		   strings.HasPrefix(trimmed, "}") {
+	// Parse the temp file to extract the function declaration and imports using AST
+	_, tempNode, err := goutils.ReadGoFile(tempFile)
+	if err != nil {
+		return fmt.Errorf("error parsing temp file: %w", err)
+	}
+
+	// Parse the target file
+	targetFset, targetNode, err := goutils.ReadGoFile(targetFile)
+	if err != nil {
+		return fmt.Errorf("error parsing target file: %w", err)
+	}
+
+	// Find the function in the temp file
+	var funcToMove *ast.FuncDecl
+	for _, decl := range tempNode.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok {
+			funcToMove = fn
 			break
 		}
 	}
 
-	// Append to target file
-	f, err := os.OpenFile(targetFile, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return fmt.Errorf("error opening target file for append: %w", err)
-	}
-	defer f.Close()
-
-	// Add a blank line before the function
-	_, err = f.WriteString("\n" + strings.Join(functionLines, "\n") + "\n")
-	if err != nil {
-		return fmt.Errorf("error appending to target file: %w", err)
+	if funcToMove == nil {
+		return fmt.Errorf("no function found in temp file")
 	}
 
-	// Run goimports to fix imports and formatting
+	// Merge imports from temp file to target file
+	// Build a map of existing imports in target
+	existingImports := make(map[string]bool)
+	for _, imp := range targetNode.Imports {
+		existingImports[imp.Path.Value] = true
+	}
+
+	// Add new imports from temp file
+	for _, imp := range tempNode.Imports {
+		if !existingImports[imp.Path.Value] {
+			targetNode.Imports = append(targetNode.Imports, imp)
+		}
+	}
+
+	// Add the function declaration to the target file
+	targetNode.Decls = append(targetNode.Decls, funcToMove)
+
+	// Write the modified target file back using AST
+	err = goutils.WriteGoFile(targetFile, targetFset, targetNode)
+	if err != nil {
+		return fmt.Errorf("error writing target file: %w", err)
+	}
+
+	// Run goimports to organize imports and format properly
 	err = commands.RunGoimportsOnFile(targetFile)
 	if err != nil {
 		return fmt.Errorf("error running goimports: %w", err)
