@@ -10,9 +10,11 @@ import { join } from 'path';
 
 // Example 1: Simple flowchart using styled components
 const StyledFlowchart = () => (
-  <Stack gap={20} padding={40} alignItems="center">
-    <Title level={1}>Modern Flowchart</Title>
-    <Subtitle>Using semantic components for clean, professional styling</Subtitle>
+  <Stack gap={32} padding={40} alignItems="center">
+    <Stack gap={8} alignItems="center">
+      <Title level={1}>Modern Flowchart</Title>
+      <Subtitle>Using semantic components for clean, professional styling</Subtitle>
+    </Stack>
     
     <Card
       id="start"
@@ -20,7 +22,7 @@ const StyledFlowchart = () => (
       width={200}
       height={80}
     >
-      <Stack gap={4} alignItems="center">
+      <Stack gap={8} alignItems="center">
         <Label bold>Start Process</Label>
         <Subtitle>Initialize system</Subtitle>
       </Stack>
@@ -32,7 +34,7 @@ const StyledFlowchart = () => (
       width={200}
       height={80}
     >
-      <Stack gap={4} alignItems="center">
+      <Stack gap={8} alignItems="center">
         <Label bold>Process Data</Label>
         <Subtitle>Transform inputs</Subtitle>
       </Stack>
@@ -44,7 +46,7 @@ const StyledFlowchart = () => (
       width={200}
       height={80}
     >
-      <Stack gap={4} alignItems="center">
+      <Stack gap={8} alignItems="center">
         <Label bold>Complete</Label>
         <Subtitle>Return results</Subtitle>
       </Stack>
@@ -73,7 +75,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={6} alignItems="center">
+          <Stack gap={8} alignItems="center">
             <Label bold size="lg">Web Application</Label>
             <Subtitle>React + TypeScript</Subtitle>
           </Stack>
@@ -84,7 +86,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={6} alignItems="center">
+          <Stack gap={8} alignItems="center">
             <Label bold size="lg">Mobile App</Label>
             <Subtitle>React Native</Subtitle>
           </Stack>
@@ -95,14 +97,14 @@ const StyledArchitecture = () => (
     {/* Business Logic Tier */}
     <Stack gap={12}>
       <Title level={3}>Business Logic Tier</Title>
-      <Row gap={16} justifyContent="center">
+      <Stack gap={16} alignItems="center">
         <Card
           id="api-gateway"
           variant="success"
           width={180}
           height={90}
         >
-          <Stack gap={6} alignItems="center">
+          <Stack gap={8} alignItems="center">
             <Label bold size="lg">API Gateway</Label>
             <Subtitle>REST + GraphQL</Subtitle>
           </Stack>
@@ -113,12 +115,12 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={6} alignItems="center">
+          <Stack gap={8} alignItems="center">
             <Label bold size="lg">Microservices</Label>
             <Subtitle>Business logic</Subtitle>
           </Stack>
         </Card>
-      </Row>
+      </Stack>
     </Stack>
 
     {/* Data Tier */}
@@ -131,7 +133,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={6} alignItems="center">
+          <Stack gap={8} alignItems="center">
             <Label bold size="lg">Database</Label>
             <Subtitle>PostgreSQL</Subtitle>
           </Stack>
@@ -142,7 +144,7 @@ const StyledArchitecture = () => (
           width={180}
           height={90}
         >
-          <Stack gap={6} alignItems="center">
+          <Stack gap={8} alignItems="center">
             <Label bold size="lg">Cache</Label>
             <Subtitle>Redis</Subtitle>
           </Stack>
