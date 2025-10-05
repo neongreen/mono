@@ -1,0 +1,29 @@
+{
+  "name": "llm-context-management",
+  "version": "1.0.0",
+  "description": "Presentation on context management strategies in LLM agent implementations",
+  "type": "module",
+  "scripts": {
+    "generate": "tsx src/presentation.tsx",
+    "dev": "tsx src/presentation.tsx"
+  },
+  "keywords": [
+    "llm",
+    "agents",
+    "context-management",
+    "presentation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "diagram-dsl": "workspace:*",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.2",
+    "@types/react": "^19.2.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

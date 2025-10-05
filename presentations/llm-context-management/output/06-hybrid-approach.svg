@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+    <text x="303.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Strategy 4: Hybrid Approach</text>
+    <text x="183.5" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Combine multiple strategies for optimal results</text>
+        <rect x="136" y="190" width="220" height="86" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <text x="246.5" y="217.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Recent (Full)</text>
+          <text x="200" y="229.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Last 3-5 messages</text>
+          <text x="205" y="240.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Complete details</text>
+          <text x="209" y="258.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#1976d2" font-weight="bold" text-anchor="start">Sliding Window</text>
+        <rect x="372" y="190" width="220" height="86" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="482.5" y="218.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Summary Layer</text>
+          <text x="445" y="230.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Medium history</text>
+          <text x="435" y="241.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Compressed points</text>
+          <text x="446" y="258.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#7b1fa2" font-weight="bold" text-anchor="start">Summarization</text>
+        <rect x="608" y="190" width="220" height="86" fill="#fafafa" stroke="#e0e0e0" stroke-width="2" rx="8" />
+          <text x="718" y="220.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Vector Search</text>
+          <text x="680" y="229.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Related context</text>
+          <text x="679" y="239.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">From full history</text>
+          <text x="684" y="256.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#f57c00" font-weight="bold" text-anchor="start">RAG Retrieval</text>
+        <rect x="844" y="190" width="220" height="86" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+          <text x="954.5" y="218.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">System Context</text>
+          <text x="926" y="229.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Instructions</text>
+          <text x="911" y="239.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Agent capabilities</text>
+          <text x="917" y="257.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="start">Always Present</text>
+      <rect x="60" y="312" width="1000" height="236" fill="#fff3e0" stroke="#ff9800" stroke-width="2" rx="8" />
+        <text x="84" y="348.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Example Implementation</text>
+            <text x="84" y="377.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Context Assembly Order:</text>
+            <text x="84" y="399.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">1. System prompt &amp; instructions</text>
+            <text x="84" y="420.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">2. Session summary (if exists)</text>
+            <text x="84" y="441.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">3. Retrieved relevant messages (RAG)</text>
+            <text x="84" y="462.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">4. Recent message summaries</text>
+            <text x="84" y="483.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">5. Last 3-5 full messages</text>
+            <text x="84" y="504.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">6. Current user query</text>
+            <text x="305" y="377.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Token Budget Example:</text>
+            <text x="305" y="398.6666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Model limit: 8,000 tokens</text>
+            <text x="305" y="419.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• System prompt: 500 tokens</text>
+            <text x="305" y="440.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Session summary: 200 tokens</text>
+            <text x="305" y="460.6666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• RAG retrieved: 1,000 tokens</text>
+            <text x="305" y="481.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Recent messages: 2,000 tokens</text>
+            <text x="305" y="502.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Reserve for response: 2,000 tokens</text>
+            <text x="305" y="522.6666666666666" font-size="11" font-family="Arial, sans-serif" fill="#ff9800" font-weight="bold" text-anchor="start">Total used: 5,700 tokens</text>
+      <rect x="60" y="568" width="1000" height="57" fill="#fafafa" stroke="#e0e0e0" stroke-width="2" rx="8" />
+        <text x="560" y="595.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Why Hybrid Works Best</text>
+        <text x="-231" y="607" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">By combining strategies, agents maintain both immediate context and long-term memory, retrieve relevant information semantically, and stay within token budgets efficiently. This mirrors human memory: detailed recent memory, summarized medium-term memory, and searchable long-term memory.</text>
+</svg>

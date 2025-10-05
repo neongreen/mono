@@ -202,8 +202,10 @@ export class SVGRenderer {
     return svg;
   }
 
-  private escapeXml(text: string): string {
-    return text
+  private escapeXml(text: any): string {
+    if (text == null) return '';
+    const str = String(text);
+    return str
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+    <text x="600.5" y="185" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Context Management Strategies</text>
+    <text x="600.5" y="249.5" font-size="24" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">in LLM Agent Implementations</text>
+      <text x="600" y="369.1666666666667" font-size="20" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">Understanding how agents maintain coherent conversations</text>
+      <text x="567" y="404.1666666666667" font-size="20" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">while managing token limits and computational costs</text>
+      <text x="545" y="539.8333333333334" font-size="16" font-family="Arial, sans-serif" fill="#999" font-weight="normal" text-anchor="start">Topics Covered</text>
+      <text x="502" y="565.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">• Context Window Management</text>
+      <text x="528" y="591.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">• Memory Architectures</text>
+      <text x="521" y="616.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">• Compression Strategies</text>
+      <text x="494" y="642.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">• Retrieval Augmented Generation</text>
+</svg>
