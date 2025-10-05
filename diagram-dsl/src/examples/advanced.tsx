@@ -50,7 +50,7 @@ const MultiTierArchitecture = () => (
     {/* Application Tier */}
     <Stack gap={15}>
       <Text fontSize={20} fontWeight="bold" color="#388e3c">Application Tier</Text>
-      <Row gap={15} justifyContent="center">
+      <Stack gap={15} alignItems="center">
         <Box
           id="api"
           width={150}
@@ -66,37 +66,39 @@ const MultiTierArchitecture = () => (
           <Text fontSize={14} fontWeight="bold">API Gateway</Text>
           <Text fontSize={11}>REST/GraphQL</Text>
         </Box>
-        <Box
-          id="auth"
-          width={150}
-          height={80}
-          backgroundColor="#e8f5e9"
-          borderColor="#388e3c"
-          borderWidth={2}
-          borderRadius={8}
-          padding={15}
-          justifyContent="center"
-          alignItems="center"
-        >
-          <Text fontSize={14} fontWeight="bold">Auth Service</Text>
-          <Text fontSize={11}>OAuth2/JWT</Text>
-        </Box>
-        <Box
-          id="business"
-          width={150}
-          height={80}
-          backgroundColor="#e8f5e9"
-          borderColor="#388e3c"
-          borderWidth={2}
-          borderRadius={8}
-          padding={15}
-          justifyContent="center"
-          alignItems="center"
-        >
-          <Text fontSize={14} fontWeight="bold">Business Logic</Text>
-          <Text fontSize={11}>Services</Text>
-        </Box>
-      </Row>
+        <Row gap={15} justifyContent="center">
+          <Box
+            id="auth"
+            width={150}
+            height={80}
+            backgroundColor="#e8f5e9"
+            borderColor="#388e3c"
+            borderWidth={2}
+            borderRadius={8}
+            padding={15}
+            justifyContent="center"
+            alignItems="center"
+          >
+            <Text fontSize={14} fontWeight="bold">Auth Service</Text>
+            <Text fontSize={11}>OAuth2/JWT</Text>
+          </Box>
+          <Box
+            id="business"
+            width={150}
+            height={80}
+            backgroundColor="#e8f5e9"
+            borderColor="#388e3c"
+            borderWidth={2}
+            borderRadius={8}
+            padding={15}
+            justifyContent="center"
+            alignItems="center"
+          >
+            <Text fontSize={14} fontWeight="bold">Business Logic</Text>
+            <Text fontSize={11}>Services</Text>
+          </Box>
+        </Row>
+      </Stack>
     </Stack>
 
     {/* Data Tier */}

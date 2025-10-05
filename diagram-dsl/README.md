@@ -516,6 +516,29 @@ assertions.assertNoOverlap('box1', 'box2');
 
 Run tests: `npm test` - 14 tests total (7 SVG + 7 layout)
 
+### Layout Linting
+
+The library includes a layout linting system that provides warnings about potential visual hierarchy and spacing issues. These are suggestions to help create more professional-looking diagrams.
+
+```typescript
+import { LayoutLinter } from 'diagram-dsl';
+
+const { layout } = await renderToSVGWithLayout(<MyDiagram />);
+const linter = new LayoutLinter(layout);
+const lints = linter.runAllLints();
+
+if (lints.length > 0) {
+  console.log(LayoutLinter.formatLints(lints));
+}
+```
+
+**What it checks:**
+- **Short arrows** - Warns when arrows are too short (<20px) and may be hard to see
+- **Internal vs external spacing** - Warns when a box's internal padding is larger than the gap to adjacent boxes, which breaks visual hierarchy
+
+Run linter: `npm run lint`  
+See [LINTING_GUIDE.md](LINTING_GUIDE.md) for detailed documentation
+
 ## Text Measurement
 
 Uses the `canvas` package for accurate text measurement instead of estimates. This ensures text is properly sized and positioned within containers.

@@ -15,6 +15,8 @@ export { renderToSVG, renderToSVGWithLayout } from './renderer';
 export type { RenderResult } from './renderer';
 
 export { LayoutAssertions } from './test/layout-assertions';
+export { LayoutLinter } from './test/layout-lints';
+export type { LayoutLint } from './test/layout-lints';
 export { measureText } from './layout/text-measurement';
 export type { TextMetrics } from './layout/text-measurement';
 

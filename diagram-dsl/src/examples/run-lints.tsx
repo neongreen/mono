@@ -1,14 +1,11 @@
 import React from 'react';
-import { Stack, Row, Card, Title, Subtitle, Label, Arrow, renderToSVG } from '../index';
-import { writeFileSync } from 'fs';
-import { join } from 'path';
+import { renderToSVGWithLayout } from '../renderer';
+import { LayoutLinter } from '../test/layout-lints';
 
-/**
- * Example showcasing the new semantic/styled components
- * Demonstrates how to create beautiful diagrams with minimal code
- */
+// Import the examples
+import { Stack, Row, Card, Title, Subtitle, Label, Arrow } from '../index';
 
-// Example 1: Simple flowchart using styled components
+// Simple flowchart from styled.tsx
 const StyledFlowchart = () => (
   <Stack gap={40} padding={40} alignItems="center">
     <Stack gap={16} alignItems="center">
@@ -57,7 +54,7 @@ const StyledFlowchart = () => (
   </Stack>
 );
 
-// Example 2: Architecture diagram with semantic components
+// Architecture diagram from styled.tsx
 const StyledArchitecture = () => (
   <Stack gap={32} padding={40}>
     <Stack gap={8} alignItems="center">
@@ -160,64 +157,48 @@ const StyledArchitecture = () => (
   </Stack>
 );
 
-// Example 3: Comparison - showing title hierarchy
-const TitleHierarchy = () => (
-  <Stack gap={24} padding={40} alignItems="center">
-    <Title level={1}>Title Level 1</Title>
-    <Subtitle>Main diagram title - 36px, bold, centered</Subtitle>
+async function runLints() {
+  console.log('\n' + '='.repeat(70));
+  console.log('Running Layout Lints on Actual Examples');
+  console.log('='.repeat(70));
 
-    <Title level={2}>Title Level 2</Title>
-    <Subtitle>Section heading - 24px, bold, centered</Subtitle>
-
-    <Title level={3}>Title Level 3</Title>
-    <Subtitle>Subsection heading - 20px, bold, centered</Subtitle>
-
-    <Label bold size="lg">Large Label (Bold)</Label>
-    <Subtitle>For prominent information - 16px</Subtitle>
-
-    <Label>Regular Label</Label>
-    <Subtitle>Standard text - 14px</Subtitle>
-
-    <Label size="sm">Small Label</Label>
-    <Subtitle>Compact information - 12px</Subtitle>
-  </Stack>
-);
-
-// Render examples
-const outputDir = join(__dirname, '../../examples');
-
-async function generateStyledExamples() {
-  try {
-    const svg1 = await renderToSVG(<StyledFlowchart />, { 
-      width: 800, 
-      height: 700, 
-      backgroundColor: 'white' 
-    });
-    writeFileSync(join(outputDir, 'styled-flowchart.svg'), svg1);
-    console.log('✓ Generated styled-flowchart.svg');
-
-    const svg2 = await renderToSVG(<StyledArchitecture />, { 
-      width: 900, 
-      height: 800, 
-      backgroundColor: 'white' 
-    });
-    writeFileSync(join(outputDir, 'styled-architecture.svg'), svg2);
-    console.log('✓ Generated styled-architecture.svg');
-
-    const svg3 = await renderToSVG(<TitleHierarchy />, { 
-      width: 800, 
-      height: 600, 
-      backgroundColor: 'white' 
-    });
-    writeFileSync(join(outputDir, 'title-hierarchy.svg'), svg3);
-    console.log('✓ Generated title-hierarchy.svg');
-
-    console.log('\nStyled examples generated successfully!');
-  } catch (error) {
-    console.error('Error generating styled examples:', error);
-    console.error('Stack:', error instanceof Error ? error.stack : String(error));
-    process.exit(1);
+  // Lint flowchart
+  console.log('\n📋 Linting: Styled Flowchart');
+  console.log('-'.repeat(70));
+  const flowchart = await renderToSVGWithLayout(<StyledFlowchart />, { 
+    width: 800, 
+    height: 700 
+  });
+  const linter1 = new LayoutLinter(flowchart.layout);
+  const lints1 = linter1.runAllLints();
+  
+  if (lints1.length > 0) {
+    console.log(LayoutLinter.formatLints(lints1));
+  } else {
+    console.log('✅ No layout issues found!\n');
   }
+
+  // Lint architecture
+  console.log('\n📋 Linting: Three-Tier Architecture');
+  console.log('-'.repeat(70));
+  const architecture = await renderToSVGWithLayout(<StyledArchitecture />, { 
+    width: 900, 
+    height: 800 
+  });
+  const linter2 = new LayoutLinter(architecture.layout);
+  const lints2 = linter2.runAllLints();
+  
+  if (lints2.length > 0) {
+    console.log(LayoutLinter.formatLints(lints2));
+  } else {
+    console.log('✅ No layout issues found!\n');
+  }
+
+  console.log('\n' + '='.repeat(70));
+  console.log('Layout Linting Complete');
+  console.log('='.repeat(70));
+  console.log('\n💡 Tip: These are suggestions, not errors. Review them to improve');
+  console.log('   the visual hierarchy and spacing of your diagrams.\n');
 }
 
-generateStyledExamples();
+runLints().catch(console.error);

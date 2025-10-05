@@ -2,3 +2,6 @@ node_modules/
 dist/
 *.log
 .DS_Store
+examples/*.png
+examples/view.html
+lint-demo.html

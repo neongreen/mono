@@ -13,7 +13,9 @@
     "examples": "npm run dev:simple && npm run dev && npm run dev:advanced && npm run dev:styled",
     "examples:d2": "tsx src/examples/generate-d2.ts",
     "examples:all": "tsx src/examples/generate-all.ts",
-    "test": "tsx src/test/index.test.tsx"
+    "lint": "tsx src/examples/run-lints.tsx",
+    "test": "tsx src/test/index.test.tsx",
+    "test:lint": "tsx src/test/lint-tests.tsx"
   },
   "keywords": [
     "diagram",
