@@ -4,6 +4,13 @@ A simple macOS utility that allows you to quickly annotate selected text from an
 
 **Note**: This is a macOS-only application that requires macOS 12 or later and can only be built on macOS.
 
+## Highlights
+
+✨ **Extremely Customizable**: 60+ settings for hotkeys, UI, behavior, colors, fonts, spacing, and more  
+🎨 **Ready-to-Use Presets**: Dark mode, minimal, compact, and more  
+⚙️ **No Code Changes**: All customization via JSON config file  
+🔧 **CI/CD**: Automated builds via GitHub Actions
+
 ## Features
 
 - **Global Keyboard Shortcut**: Press `Cmd+Shift+A` to activate (customizable)
@@ -86,7 +93,10 @@ The app is highly customizable via `~/.text-annotator/config.json`. On first run
 - Customize colors: Set `backgroundColor`, `textColor`, etc.
 - Change storage location: Update `storageFilePath`
 
-See [CONFIGURATION.md](CONFIGURATION.md) for complete documentation of all settings.
+**Documentation**:
+- [CONFIGURATION.md](CONFIGURATION.md) - Complete settings reference
+- [PRESETS.md](PRESETS.md) - Ready-to-use configurations
+- [CUSTOMIZATION_EXAMPLES.md](CUSTOMIZATION_EXAMPLES.md) - Visual examples
 
 ## Usage Tips
 
