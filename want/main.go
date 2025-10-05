@@ -163,8 +163,13 @@ func handleJsonCommand(args []string, dryRun bool) {
 		fmt.Println()
 		
 		if dryRun {
-			fmt.Println("DRY RUN: Would install jc and then run:")
-			fmt.Printf("  jc %s\n", strings.Join(args, " "))
+			fmt.Println("DRY RUN - Execution plan:")
+			fmt.Println()
+			fmt.Println("Step 1: Install jc")
+			fmt.Println("  $ mise use -g jc")
+			fmt.Println()
+			fmt.Println("Step 2: Execute command")
+			fmt.Printf("  $ jc %s\n", strings.Join(args, " "))
 			return
 		}
 
@@ -183,8 +188,10 @@ func handleJsonCommand(args []string, dryRun bool) {
 	commandStr := strings.Join(args, " ")
 	
 	if dryRun {
-		fmt.Println("DRY RUN: Would execute:")
-		fmt.Printf("  jc %s\n", commandStr)
+		fmt.Println("DRY RUN - Execution plan:")
+		fmt.Println()
+		fmt.Println("Step 1: Execute command")
+		fmt.Printf("  $ jc %s\n", commandStr)
 		return
 	}
 
@@ -221,11 +228,24 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 		fmt.Println()
 		
 		if dryRun {
-			fmt.Println("DRY RUN: Would check for markitdown, and if not available:")
-			fmt.Println("  Option 1: Install via pip: pip install markitdown")
-			fmt.Println("  Option 2: Use pure.md service: curl https://pure.md/<url>")
+			fmt.Println("DRY RUN - Execution plan:")
 			fmt.Println()
-			fmt.Printf("Then would execute to convert: %s\n", url)
+			if isToolAvailable("pip") || isToolAvailable("pip3") {
+				pipCmd := "pip3"
+				if !isToolAvailable("pip3") {
+					pipCmd = "pip"
+				}
+				fmt.Println("Step 1: Install markitdown")
+				fmt.Printf("  $ %s install markitdown\n", pipCmd)
+				fmt.Println()
+				fmt.Println("Step 2: Convert URL to markdown")
+				fmt.Printf("  $ markitdown %s\n", url)
+				fmt.Println()
+				fmt.Println("  (If step 1 fails, fallback to pure.md)")
+			} else {
+				fmt.Println("Step 1: Convert URL to markdown using pure.md")
+				fmt.Printf("  $ curl -s https://pure.md/%s\n", url)
+			}
 			return
 		}
 
@@ -262,8 +282,10 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 	}
 
 	if dryRun {
-		fmt.Println("DRY RUN: Would execute:")
-		fmt.Printf("  markitdown %s\n", url)
+		fmt.Println("DRY RUN - Execution plan:")
+		fmt.Println()
+		fmt.Println("Step 1: Convert URL to markdown")
+		fmt.Printf("  $ markitdown %s\n", url)
 		return
 	}
 
@@ -326,13 +348,10 @@ func installToolViaMise(tool string, dryRun bool) {
 	
 	if dryRun {
 		fmt.Println()
-		fmt.Println("DRY RUN: Would execute:")
-		fmt.Printf("  mise use -g %s\n", tool)
+		fmt.Println("DRY RUN - Execution plan:")
 		fmt.Println()
-		fmt.Println("This would:")
-		fmt.Printf("  • Install %s globally via mise\n", tool)
-		fmt.Printf("  • Add %s to your mise global config\n", tool)
-		fmt.Printf("  • Make %s available in your PATH\n", tool)
+		fmt.Println("Step 1: Install tool via mise")
+		fmt.Printf("  $ mise use -g %s\n", tool)
 		return
 	}
 
