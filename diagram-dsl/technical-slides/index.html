@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Microservices Architecture - Slides</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 1240px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .slide {
+      margin-bottom: 40px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      display: none;
+    }
+    .slide.active {
+      display: block;
+    }
+    .slide img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .controls {
+      text-align: center;
+      margin-top: 20px;
+      position: sticky;
+      top: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 100;
+    }
+    button {
+      margin: 0 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+    button:hover:not(:disabled) {
+      background: #1565c0;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .slide-number {
+      display: inline-block;
+      margin: 0 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .keyboard-hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Microservices Architecture - Slides</h1>
+    
+    <div class="controls">
+      <button id="prevBtn" onclick="previousSlide()">← Previous</button>
+      <span class="slide-number" id="slideNumber">Slide 1 of 8</span>
+      <button id="nextBtn" onclick="nextSlide()">Next →</button>
+      <div class="keyboard-hint">
+        Use arrow keys or space to navigate
+      </div>
+    </div>
+
+    <div id="slideContainer">
+      
+      <div class="slide active" id="slide-0">
+        <img src="01-title.svg" alt="Slide 1">
+      </div>
+      
+      <div class="slide " id="slide-1">
+        <img src="02-architecture.svg" alt="Slide 2">
+      </div>
+      
+      <div class="slide " id="slide-2">
+        <img src="03-api.svg" alt="Slide 3">
+      </div>
+      
+      <div class="slide " id="slide-3">
+        <img src="04-sequence.svg" alt="Slide 4">
+      </div>
+      
+      <div class="slide " id="slide-4">
+        <img src="05-cli.svg" alt="Slide 5">
+      </div>
+      
+      <div class="slide " id="slide-5">
+        <img src="06-comparison.svg" alt="Slide 6">
+      </div>
+      
+      <div class="slide " id="slide-6">
+        <img src="07-code.svg" alt="Slide 7">
+      </div>
+      
+      <div class="slide " id="slide-7">
+        <img src="08-best-practices.svg" alt="Slide 8">
+      </div>
+      
+    </div>
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const totalSlides = 8;
+
+    function updateButtons() {
+      document.getElementById('prevBtn').disabled = currentSlide === 0;
+      document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+    }
+
+    function showSlide(n) {
+      document.querySelectorAll('.slide').forEach(slide => {
+        slide.classList.remove('active');
+      });
+      
+      currentSlide = Math.max(0, Math.min(n, totalSlides - 1));
+      document.getElementById('slide-' + currentSlide).classList.add('active');
+      document.getElementById('slideNumber').textContent = 
+        'Slide ' + (currentSlide + 1) + ' of ' + totalSlides;
+      
+      updateButtons();
+      
+      // Scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        showSlide(currentSlide + 1);
+      }
+    }
+
+    function previousSlide() {
+      if (currentSlide > 0) {
+        showSlide(currentSlide - 1);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        previousSlide();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        showSlide(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        showSlide(totalSlides - 1);
+      }
+    });
+
+    // Initialize button states
+    updateButtons();
+  </script>
+</body>
+</html>

@@ -42,6 +42,13 @@ export { Badge } from './components/Badge';
 export { Divider } from './components/Divider';
 export { Icon } from './components/Icon';
 
+// Technical components for software engineers
+export { SequenceDiagram } from './components/SequenceDiagram';
+export { APIEndpoint } from './components/APIEndpoint';
+export { Terminal } from './components/Terminal';
+export { DataFlow } from './components/DataFlow';
+export { ComparisonTable } from './components/ComparisonTable';
+
 export { renderToSVG, renderToSVGWithLayout } from './renderer';
 export type { RenderResult } from './renderer';
 
@@ -71,6 +78,10 @@ export type { PresentationTheme } from './presentation-theme';
 // Slide deck helpers
 export { generateSlideDeck, numberSlides } from './helpers/slide-deck';
 export type { SlideDefinition, SlideDeckOptions } from './helpers/slide-deck';
+
+// Scrolling page helper
+export { generateScrollingPage } from './helpers/scrolling-page';
+export type { PageSection, ScrollingPageOptions } from './helpers/scrolling-page';
 
 export type {
   LayoutProps,

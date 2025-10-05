@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <rect x="552" y="292" width="96" height="27" fill="#1976d2" rx="4" />
+      <text x="568" y="310.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Technical</text>
+    <text x="600.5" y="396.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Microservices Architecture</text>
+    <text x="600.5" y="440" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Design Patterns &amp; Best Practices</text>
+    <text x="456" y="505.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">A comprehensive guide for software engineers</text>
+</svg>

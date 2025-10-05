@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="266.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Deployment Commands</text>
+    <rect x="60" y="156" width="900" height="212" fill="transparent" stroke="#3e3e3e" stroke-width="1" rx="8" />
+      <rect x="60" y="156" width="900" height="36" fill="#2d2d2d" />
+          <rect x="72" y="168" width="12" height="12" fill="#ff5f56" rx="6" />
+          <rect x="90" y="168" width="12" height="12" fill="#ffbd2e" rx="6" />
+          <rect x="108" y="168" width="12" height="12" fill="#27c93f" rx="6" />
+        <text x="136" y="178" font-size="12" font-family="Arial, sans-serif" fill="#d4d4d4" font-weight="normal" text-anchor="start">Production Deployment</text>
+      <rect x="60" y="192" width="900" height="176" fill="#1e1e1e" />
+          <text x="76" y="218.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="219.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">docker build -t myapp:latest .</text>
+          <text x="76" y="236.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="237.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">docker tag myapp:latest registry.io/myapp:v1.2.3</text>
+          <text x="76" y="254.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="255.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">docker push registry.io/myapp:v1.2.3</text>
+          <text x="76" y="272.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="274.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"></text>
+          <text x="76" y="292.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="293.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">kubectl set image deployment/myapp myapp=registry.io/myapp:v1.2.3</text>
+          <text x="76" y="310.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="311.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">kubectl rollout status deployment/myapp</text>
+          <text x="76" y="328.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="330.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"></text>
+          <text x="76" y="348.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="349.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"># Deployment successful ✓</text>
+    <rect x="60" y="420" width="900" height="69" fill="#e3f2fd" stroke="#90caf9" stroke-width="1" rx="6" />
+      <text x="76" y="448.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">💡 Pro Tip</text>
+      <text x="76" y="471" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Always test in staging environment before deploying to production. Use blue-green deployment strategy for zero-downtime updates.</text>
+</svg>

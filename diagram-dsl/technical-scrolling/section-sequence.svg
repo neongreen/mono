@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+    <marker id="arrow-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-tail-1976d2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#1976d2" />
+    </marker>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="232" y="85.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Authentication Flow</text>
+    <text x="154" y="127.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">OAuth 2.0 Authorization Code Flow</text>
+        <rect x="200" y="210" width="120" height="60" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <text x="239" y="244.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">👤 User</text>
+        <rect x="259" y="270" width="2" height="560" fill="#ddd" />
+        <rect x="440" y="210" width="120" height="60" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="463" y="244.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">⚙️ Client App</text>
+        <rect x="499" y="270" width="2" height="560" fill="#ddd" />
+        <rect x="680" y="210" width="120" height="60" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="699" y="244.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">⚙️ Auth Server</text>
+        <rect x="739" y="270" width="2" height="560" fill="#ddd" />
+        <rect x="920" y="210" width="120" height="60" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" rx="8" />
+          <text x="942" y="244.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">💻 API Server</text>
+        <rect x="979" y="270" width="2" height="560" fill="#ddd" />
+  <path d="M 261 300.5 L 500 300.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="329.7" y="290.5" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="380.5" y="304.5" font-size="12" fill="#1976d2" text-anchor="middle">Login request</text>
+  <path d="M 501 360.5 L 740 360.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="540.9" y="350.5" width="159.2" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="620.5" y="364.5" font-size="12" fill="#1976d2" text-anchor="middle">Authorization request</text>
+  <path d="M 740 420.5 L 261 420.5" stroke="#1976d2" stroke-width="2" fill="none" stroke-dasharray="8,4" />
+  <rect x="460.5" y="410.5" width="80" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="500.5" y="424.5" font-size="12" fill="#1976d2" text-anchor="middle">Login page</text>
+  <path d="M 261 480.5 L 740 480.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="456.9" y="470.5" width="87.2" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="500.5" y="484.5" font-size="12" fill="#1976d2" text-anchor="middle">Credentials</text>
+  <path d="M 740 540.5 L 501 540.5" stroke="#1976d2" stroke-width="2" fill="none" stroke-dasharray="8,4" />
+  <rect x="584.1" y="530.5" width="72.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="620.5" y="544.5" font-size="12" fill="#1976d2" text-anchor="middle">Auth code</text>
+  <path d="M 501 600.5 L 740 600.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="569.7" y="590.5" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="620.5" y="604.5" font-size="12" fill="#1976d2" text-anchor="middle">Token request</text>
+  <path d="M 740 660.5 L 501 660.5" stroke="#1976d2" stroke-width="2" fill="none" stroke-dasharray="8,4" />
+  <rect x="573.3" y="650.5" width="94.39999999999999" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="620.5" y="664.5" font-size="12" fill="#1976d2" text-anchor="middle">Access token</text>
+  <path d="M 501 720.5 L 980 720.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="678.9" y="710.5" width="123.19999999999999" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="740.5" y="724.5" font-size="12" fill="#1976d2" text-anchor="middle">API call + token</text>
+  <path d="M 980 780.5 L 501 780.5" stroke="#1976d2" stroke-width="2" fill="none" stroke-dasharray="8,4" />
+  <rect x="671.7" y="770.5" width="137.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="740.5" y="784.5" font-size="12" fill="#1976d2" text-anchor="middle">Protected resource</text>
+</svg>

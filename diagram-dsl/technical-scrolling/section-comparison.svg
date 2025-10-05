@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="323" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Technology Stack Comparison</text>
+    <rect x="60" y="156" width="900" height="292" fill="transparent" stroke="#e0e0e0" stroke-width="1" rx="8" />
+      <rect x="60" y="156" width="900" height="37" fill="#f5f5f5" />
+          <text x="72" y="177.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Feature</text>
+          <text x="295.5" y="178.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Node.js</text>
+        <rect x="410" y="156" width="150" height="37" fill="#e3f2fd" />
+          <text x="431.5" y="177.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Go</text>
+          <text x="586.5" y="177.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Rust</text>
+      <rect x="60" y="193" width="900" height="39" fill="#fafafa" />
+          <text x="72" y="213.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Performance</text>
+          <text x="290" y="216.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">⭐⭐⭐</text>
+        <rect x="410" y="193" width="150" height="39" fill="#f0f7ff" />
+          <text x="446" y="216.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">⭐⭐⭐⭐</text>
+          <text x="602" y="216.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">⭐⭐⭐⭐⭐</text>
+      <rect x="60" y="232" width="900" height="36" fill="white" />
+          <text x="72" y="254" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Learning Curve</text>
+          <text x="285.5" y="254" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Easy</text>
+        <rect x="410" y="232" width="150" height="36" fill="#f0f7ff" />
+          <text x="443.5" y="252.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Medium</text>
+          <text x="585.5" y="252.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Hard</text>
+      <rect x="60" y="268" width="900" height="36" fill="#fafafa" />
+          <text x="72" y="290" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Async Support</text>
+          <text x="277" y="288.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+        <rect x="410" y="268" width="150" height="36" fill="#f0f7ff" />
+          <text x="427" y="288.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+          <text x="577" y="288.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+      <rect x="60" y="304" width="900" height="36" fill="white" />
+          <text x="72" y="326" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Memory Safety</text>
+          <text x="276" y="324" font-size="12" font-family="Arial, sans-serif" fill="#c62828" font-weight="bold" text-anchor="middle">✗</text>
+        <rect x="410" y="304" width="150" height="36" fill="#f0f7ff" />
+          <text x="426" y="324" font-size="12" font-family="Arial, sans-serif" fill="#c62828" font-weight="bold" text-anchor="middle">✗</text>
+          <text x="577" y="324.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+      <rect x="60" y="340" width="900" height="36" fill="#fafafa" />
+          <text x="72" y="362" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Concurrency</text>
+          <text x="302.5" y="361.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Event Loop</text>
+        <rect x="410" y="340" width="150" height="36" fill="#f0f7ff" />
+          <text x="451.5" y="360.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Goroutines</text>
+          <text x="586.5" y="360.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Tokio</text>
+      <rect x="60" y="376" width="900" height="36" fill="white" />
+          <text x="72" y="398" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Package Manager</text>
+          <text x="284" y="396.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">npm</text>
+        <rect x="410" y="376" width="150" height="36" fill="#f0f7ff" />
+          <text x="442.5" y="398" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">go mod</text>
+          <text x="587.5" y="396.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">cargo</text>
+      <rect x="60" y="412" width="900" height="36" fill="#fafafa" />
+          <text x="72" y="434" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Enterprise Ready</text>
+          <text x="277" y="432.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+        <rect x="410" y="412" width="150" height="36" fill="#f0f7ff" />
+          <text x="427" y="432.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+          <text x="577" y="432.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+    <rect x="60" y="500" width="1080" height="21" fill="#2e7d32" rx="4" />
+      <text x="565" y="514.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Go Selected</text>
+</svg>

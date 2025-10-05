@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+    <marker id="arrow-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-tail-1976d2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#1976d2" />
+    </marker>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="234.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">System Architecture</text>
+    <rect x="60" y="156" width="1080" height="205" fill="#f0f7ff" stroke="#1976d2" stroke-width="2" rx="8" />
+      <rect x="60" y="156" width="1080" height="37" fill="#e3f2fd" />
+        <text x="72" y="179.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Microservices Ecosystem</text>
+          <rect x="84" y="217" width="160" height="80" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="40" />
+            <text x="154" y="249.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">📥</text>
+            <text x="164" y="269.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Client Apps</text>
+            <text x="164.5" y="283.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">Web &amp; Mobile</text>
+          <rect x="324" y="217" width="160" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+            <text x="394" y="248.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">⚙️</text>
+            <text x="404.5" y="268.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">API Gateway</text>
+            <text x="404" y="283.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">Kong/Nginx</text>
+          <rect x="564" y="217" width="160" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+            <text x="634" y="250.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">⚙️</text>
+            <text x="644" y="269.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Services</text>
+            <text x="644" y="282.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">Business Logic</text>
+          <rect x="804" y="217" width="160" height="80" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+            <text x="874" y="250.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">💾</text>
+            <text x="884" y="269.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Databases</text>
+            <text x="884.5" y="282.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">PostgreSQL</text>
+  <path d="M 244 257 L 324 257" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="262" y="247" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="284" y="261" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <path d="M 484 257 L 564 257" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="505.6" y="247" width="36.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="524" y="261" font-size="12" fill="#1976d2" text-anchor="middle">gRPC</text>
+  <path d="M 724 257 L 804 257" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="749.2" y="247" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="764" y="261" font-size="12" fill="#1976d2" text-anchor="middle">SQL</text>
+</svg>
