@@ -1,0 +1,94 @@
+# This test checks that functions from test modules are moved into a separate package.
+#
+# Specifically:
+#
+# - Tests named like TestAbc (located in *_test.go files) are split into one file per test, `abc_test.go`.
+# - Test helper functions are moved into a separate package named `internal/testutils`.
+#
+# See docs/test-files.md for why this is necessary.
+
+###########################################################
+# Input files
+###########################################################
+
+
+[files_in]
+"go.mod" = '''
+module example.com/testproject
+
+go 1.20
+'''
+
+"my_package/main.go" = '''
+package my_package
+
+func main() {
+	// This is the main function
+}
+'''
+
+"my_package/main_test.go" = '''
+package my_package_test
+
+import (
+	"testing"
+)
+
+func TestMain(t *testing.T) {
+	helper(t)
+}
+
+// This is a test util
+func helper(t *testing.T) {
+	t.Log("This is a test helper function")
+}
+'''
+
+###########################################################
+# Output files
+###########################################################
+
+[files_out]
+"go.mod" = '''
+module example.com/testproject
+
+go 1.20
+'''
+
+# This file is unchanged.
+"my_package/main.go" = '''
+package my_package
+
+func main() {
+	// This is the main function
+}
+'''
+
+# The test file is split into a separate file named after the test.
+"my_package/main_test.go" = '''
+package my_package_test
+
+import (
+	"testing"
+
+	"example.com/testproject/my_package/internal/testutils"
+)
+
+func TestMain(t *testing.T) {
+	testutils.Helper(t)
+}
+'''
+
+# The test helper function is moved into a separate package and marked as exported.
+"my_package/internal/testutils/helper.go" = '''
+package testutils
+
+import (
+	"testing"
+)
+
+// This is a test util
+func Helper(t *testing.T) {
+	t.Log("This is a test helper function")
+}
+'''

@@ -1,0 +1,88 @@
+# This test checks that we can break a simple Go file with several functions into multiple files.
+
+[files_in]
+"go.mod" = '''
+module example.com/testproject
+
+go 1.20
+'''
+
+# This file contains `main`, `foo`, `barQuix`, `type MyStruct`, and `Baz`.
+"main.go" = '''
+package main
+
+import "fmt"
+
+func main() {
+	foo()
+	barQuix(2)
+	s := MyStruct{}
+	s.Baz()
+}
+
+func foo() {
+	fmt.Println("This is foo")
+}
+
+func barQuix(x int) int {
+	return x * 2
+}
+
+type MyStruct struct{}
+
+func (s *MyStruct) Baz() {
+	fmt.Println("This is Baz")
+}
+'''
+
+[files_out]
+"go.mod" = '''
+module example.com/testproject
+
+go 1.20
+'''
+
+# `main` and `type MyStruct` remain in the file.
+"main.go" = '''
+package main
+
+func main() {
+	foo()
+	barQuix(2)
+	s := MyStruct{}
+	s.Baz()
+}
+
+type MyStruct struct{}
+'''
+
+# `barQuix` is moved into `util_main_bar_quix.go`.
+"util_bar_quix.go" = '''
+package main
+
+func barQuix(x int) int {
+	return x * 2
+}
+'''
+
+# `Baz` is moved into `mystruct_baz.go` since it's a method.
+"mystruct_baz.go" = '''
+package main
+
+import "fmt"
+
+func (s *MyStruct) Baz() {
+	fmt.Println("This is Baz")
+}
+'''
+
+# `foo` is moved into `util_main_foo.go`.
+"util_foo.go" = '''
+package main
+
+import "fmt"
+
+func foo() {
+	fmt.Println("This is foo")
+}
+'''

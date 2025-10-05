@@ -1,0 +1,59 @@
+# Gemini CLI Rules for this project
+
+- **Commit Policy:** I will never commit changes by myself. You will always initiate and approve commits.
+- **Gopls Availability:** The `gopls` command is already available in the shell's PATH. Do NOT attempt to install `gopls` or upgrade the Go toolchain.
+- **String Literals:** The model is forbidden from using `\n` escapes in any code it outputs. The model is also forbidden from using backtick multiline strings.
+- **AST Parsing:** The model is forbidden from implementing AST parsing logic directly.
+- **Refactoring:** The model must use `gopls` for refactoring functionality.
+- **Temporary Rename:** Do not remove the temporary rename logic in `cmd/main.go`. It is essential for the correct operation of the tool.
+
+# Feedback from User
+
+- The model is struggling significantly with string replacements in files.
+- The model is forbidden from using `\n` in strings for `replace` operations.
+- For multiline output, the model should use multiple `print` statements or equivalent.
+
+# Gemini Added Memories
+- To get documentation for gopls, use `get_doc(path='golang.org/x/tools/gopls')`.
+- To see a list of gopls code transformations and refactorings, refer to: _gotools/gopls/doc/features/transformation.md
+- To build the project, use `go build -o _build/dissect ./...`.
+- You must *not* use `go run` for this project.
+  Instead, build the project and then run the binary directly.
+- When using `gopls` for `refactor.extract.toNewFile`, the position provided should be the location of the function's *name*, not the first character of the `func` keyword.
+
+# Debugging Go Project Issues
+
+## 1. How to run tests
+To run all Go tests in the current module and its subpackages, use the command:
+`go test ./...`
+
+## 2. How gopls operates
+`gopls` is the Go language server. It provides various code actions, including `refactor.extract.toNewFile`.
+- `gopls` operates within a Go module context.
+- When `refactor.extract.toNewFile` is applied to a function or method, it is designed to:
+    - Extract the selected code to a new `.go` file.
+    - Remove the extracted code from the original file.
+- Naming convention for extracted files: For top-level functions, the new file is typically named after the function (e.g., `foo.go`). For methods, `gopls` may use a convention like `methodname.go` (e.g., `baz.go` for `MyStruct.Baz`), rather than `receivertype_methodname.go`. Always verify the actual output.
+
+## 3. False assumptions made during debugging
+During the recent debugging session, the following false assumptions hindered the process:
+- **Assumption: `gopls` was not creating files or removing functions.** Initially, it was assumed that `gopls` was failing to perform the refactoring entirely. Debugging revealed that `gopls` *was* creating new files (e.g., `foo.go`, `bar.go`), but the test was failing because the functions were not being removed from the original `test.go` file. This was a misinterpretation of the test output and `gopls`'s behavior.
+- **Assumption: `gopls` would create `mystruct_baz.go` for the `Baz` method.** A common naming convention (`receivertype_methodname.go`) was assumed for extracted methods. However, `gopls` actually created `baz.go`. This led to a test failure due to a filename mismatch, not a refactoring failure.
+- **Assumption: The temporary directory structure was correct.** It was not immediately realized that the `dissect` tool creating its own separate temporary directory was the root cause of `gopls` operating in a different context than the test expected. This was a critical oversight that prevented the extracted files from being found in the location the test was checking.
+
+## 4. Concrete, actionable steps for future debugging
+When faced with similar problems in the future, consider these steps:
+- **Verify external tool behavior with direct calls:** If an external tool (like `gopls`) is suspected, try running the exact command it executes manually in the relevant directory. Observe its direct output (stdout and stderr) and any file changes it makes. This can provide clearer insights than relying solely on wrapper tool output.
+- **Inspect temporary directories immediately:** If temporary directories are used in the process, disable their automatic cleanup (e.g., by commenting out `defer os.RemoveAll`) and inspect their contents after a failed run. This allows for direct verification of what files were created, modified, or moved, and where.
+- **Cross-reference debug logs with test expectations:** Carefully compare the debug output from the tool (e.g., `gopls` info/error messages, `goimports` calls) with the test's specific assertions and expected outcomes. Look for subtle contradictions or unexpected behaviors that might indicate a misunderstanding of the tool's actual operation.
+- **Validate assumptions about naming conventions/tool behavior:** Do not assume standard conventions or expected behaviors for external tools or libraries. Always verify the actual output and behavior, especially when dealing with file naming, file locations, or side effects of operations.
+- **Enhance logging for external tool calls:** Add more verbose logging around external tool executions. Capture and print their full standard output and standard error streams, even if the tool returns a successful exit code. This can reveal warnings, non-critical errors, or unexpected informational messages that might be relevant to debugging.
+- **Break down complex problems and isolate variables:** When multiple issues seem to be present, try to isolate and address one variable at a time. For example, fixing the temporary directory issue first allowed the filename mismatch to become apparent, simplifying the overall debugging process.
+
+## 5. Using Jujutsu (jj) for controlled testing
+When testing refactoring operations, use Jujutsu (jj) to manage changes and easily inspect/revert them.
+- After setting up test files (e.g., creating `testdata/test_file.go`), run `jj new` to create a new commit. This isolates the test setup.
+- After running the conversion tool (e.g., `_build/dissect testdata/test_file.go`), inspect the changes using `jj show --git --no-pager`. This will display the diff of the refactoring.
+- If the conversion failed or the changes are undesirable, you can undo them with `jj restore`.
+- To return to the state where you were creating the test files (the parent commit of the test setup), use `jj edit @-`.
+- **Commit Approval:** Do not commit changes without explicit user approval.
