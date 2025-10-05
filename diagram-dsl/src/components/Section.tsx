@@ -6,7 +6,7 @@ export interface SectionProps extends Partial<BoxProps> {
   children?: React.ReactNode;
   titleSize?: number;
   titleColor?: string;
-  variant?: 'default' | 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'danger';
+  variant?: 'default' | 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'danger' | 'info';
 }
 
 const variantColors = {
@@ -17,6 +17,7 @@ const variantColors = {
   success: { bg: '#e8f5e9', border: '#2e7d32', text: '#1b5e20' },
   warning: { bg: '#fff3e0', border: '#ff9800', text: '#e65100' },
   danger: { bg: '#ffebee', border: '#c62828', text: '#b71c1c' },
+  info: { bg: '#e1f5fe', border: '#0288d1', text: '#01579b' },
 };
 
 /**

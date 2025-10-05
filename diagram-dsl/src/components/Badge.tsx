@@ -3,13 +3,14 @@ import type { BoxProps } from '../types';
 
 export interface BadgeProps extends Partial<BoxProps> {
   text: string;
-  variant?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' | 'default';
+  variant?: 'primary' | 'secondary' | 'accent' | 'success' | 'warning' | 'danger' | 'info' | 'default';
   size?: 'small' | 'medium' | 'large';
 }
 
 const variantColors = {
   primary: { bg: '#1976d2', text: '#fff' },
   secondary: { bg: '#7b1fa2', text: '#fff' },
+  accent: { bg: '#f57c00', text: '#fff' },
   success: { bg: '#2e7d32', text: '#fff' },
   warning: { bg: '#ff9800', text: '#fff' },
   danger: { bg: '#c62828', text: '#fff' },
