@@ -17,6 +17,10 @@ export { List } from './components/List';
 export { ProsCons } from './components/ProsCons';
 export { Section } from './components/Section';
 export { Highlight } from './components/Highlight';
+export { RichText } from './components/RichText';
+export { Spacer } from './components/Spacer';
+export { Grid } from './components/Grid';
+export { Callout } from './components/Callout';
 
 export { renderToSVG, renderToSVGWithLayout } from './renderer';
 export type { RenderResult } from './renderer';

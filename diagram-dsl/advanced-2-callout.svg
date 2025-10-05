@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="226" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Callout Component</text>
+    <rect x="60" y="146" width="1000" height="89" fill="#e8f5e9" stroke="#2e7d32" stroke-width="3" rx="8" />
+        <text x="84" y="184" font-size="18" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">✓</text>
+        <text x="106" y="182.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#1b5e20" font-weight="bold" text-anchor="start">Key Takeaway</text>
+      <text x="84" y="208.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">The new presentation components make it much easier to create consistent and professional-looking slides.</text>
+    <rect x="60" y="319" width="1000" height="135" fill="#fff3e0" stroke="#ff9800" stroke-width="3" rx="8" />
+        <text x="84" y="360.5" font-size="18" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">⚠️</text>
+        <text x="110" y="360.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#e65100" font-weight="bold" text-anchor="start">Watch Out!</text>
+        <text x="84" y="388" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Always rebuild diagram-dsl after making changes,</text>
+        <text x="84" y="408" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Test your slides before generating the full deck,</text>
+        <text x="84" y="428" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Use consistent sizing across slides,</text>
+</svg>

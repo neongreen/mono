@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="161.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Grid Layout</text>
+        <rect x="60" y="146" width="350" height="59" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <text x="235.5" y="176.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Card 1</text>
+          <text x="178" y="187" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Content in grid layout</text>
+        <rect x="430" y="146" width="350" height="59" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="605.5" y="176.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Card 2</text>
+          <text x="567" y="187" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Auto-arranged</text>
+        <rect x="800" y="146" width="350" height="59" fill="#fafafa" stroke="#e0e0e0" stroke-width="2" rx="8" />
+          <text x="975.5" y="176.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Card 3</text>
+          <text x="944" y="187" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Easy to use</text>
+        <rect x="60" y="225" width="350" height="59" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+          <text x="235.5" y="257.1666666666667" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Card 4</text>
+          <text x="190" y="266.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Flexible columns</text>
+        <rect x="790" y="225" width="350" height="59" fill="#fafafa" stroke="#e0e0e0" stroke-width="2" rx="8" />
+          <text x="965.5" y="255.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Card 5</text>
+          <text x="914" y="266" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Responsive design</text>
+</svg>

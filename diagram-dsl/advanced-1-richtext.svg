@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="240" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">RichText Component</text>
+    <text x="144.5" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Mixed formatting in a single line</text>
+    <rect x="60" y="190" width="1000" height="65" fill="#f5f5f5" stroke="#999" stroke-width="2" rx="8" />
+      <text x="80" y="221.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#333" font-weight="bold" text-anchor="start">Examples</text>
+</svg>
