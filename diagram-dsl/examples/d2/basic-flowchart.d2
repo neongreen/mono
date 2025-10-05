@@ -3,38 +3,17 @@
 
 direction: down
 
-title: Simple Flowchart {
-  style.font-size: 32
-  style.bold: true
-}
-
 start: Start Process {
   style.fill: "#e0f7fa"
-  style.stroke: "#00acc1"
-  style.stroke-width: 2
-  style.border-radius: 8
 }
 
 process: Process Data {
   style.fill: "#fff3e0"
-  style.stroke: "#fb8c00"
-  style.stroke-width: 2
-  style.border-radius: 8
 }
 
 end: End Process {
   style.fill: "#f1f8e9"
-  style.stroke: "#7cb342"
-  style.stroke-width: 2
-  style.border-radius: 8
 }
 
-start -> process: {
-  style.stroke: "#00acc1"
-  style.stroke-width: 2
-}
-
-process -> end: {
-  style.stroke: "#fb8c00"
-  style.stroke-width: 2
-}
+start -> process
+process -> end

@@ -3,30 +3,15 @@
 
 direction: down
 
-title: Three-Tier Architecture {
-  style.font-size: 36
-  style.bold: true
-}
-
-subtitle: Modern web application design {
-  style.font-size: 14
-}
-
 # Presentation Tier
 presentation: Presentation Tier {
   web-app: Web Application\nReact + TypeScript {
     style.fill: "#1976d2"
-    style.stroke: "#1565c0"
-    style.stroke-width: 2
-    style.border-radius: 8
     style.font-color: white
   }
   
   mobile-app: Mobile App\nReact Native {
     style.fill: "#1976d2"
-    style.stroke: "#1565c0"
-    style.stroke-width: 2
-    style.border-radius: 8
     style.font-color: white
   }
 }
@@ -35,17 +20,11 @@ presentation: Presentation Tier {
 business: Business Logic Tier {
   api-gateway: API Gateway\nREST + GraphQL {
     style.fill: "#66bb6a"
-    style.stroke: "#388e3c"
-    style.stroke-width: 2
-    style.border-radius: 8
     style.font-color: white
   }
   
   services: Microservices\nBusiness logic {
     style.fill: "#66bb6a"
-    style.stroke: "#388e3c"
-    style.stroke-width: 2
-    style.border-radius: 8
     style.font-color: white
   }
 }
@@ -54,42 +33,17 @@ business: Business Logic Tier {
 data: Data Tier {
   database: Database\nPostgreSQL {
     style.fill: "#757575"
-    style.stroke: "#424242"
-    style.stroke-width: 2
-    style.border-radius: 8
     style.font-color: white
   }
   
   cache: Cache\nRedis {
     style.fill: "#757575"
-    style.stroke: "#424242"
-    style.stroke-width: 2
-    style.border-radius: 8
     style.font-color: white
   }
 }
 
-presentation.web-app -> business.api-gateway: HTTPS {
-  style.stroke: "#1976d2"
-  style.stroke-width: 2
-}
-
-presentation.mobile-app -> business.api-gateway: {
-  style.stroke: "#1976d2"
-  style.stroke-width: 2
-}
-
-business.api-gateway -> business.services: {
-  style.stroke: "#388e3c"
-  style.stroke-width: 2
-}
-
-business.services -> data.database: SQL {
-  style.stroke: "#7b1fa2"
-  style.stroke-width: 2
-}
-
-business.services -> data.cache: {
-  style.stroke: "#7b1fa2"
-  style.stroke-width: 2
-}
+presentation.web-app -> business.api-gateway: HTTPS
+presentation.mobile-app -> business.api-gateway
+business.api-gateway -> business.services
+business.services -> data.database: SQL
+business.services -> data.cache

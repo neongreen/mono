@@ -3,25 +3,14 @@
 
 direction: down
 
-title: Multi-Tier Web Application Architecture {
-  style.font-size: 36
-  style.bold: true
-}
-
 # Client Tier
 client: Client Tier {
   web: Web Browser\nHTML/CSS/JS {
     style.fill: "#e3f2fd"
-    style.stroke: "#1976d2"
-    style.stroke-width: 2
-    style.border-radius: 8
   }
   
   mobile: Mobile App\niOS/Android {
     style.fill: "#e3f2fd"
-    style.stroke: "#1976d2"
-    style.stroke-width: 2
-    style.border-radius: 8
   }
 }
 
@@ -29,23 +18,14 @@ client: Client Tier {
 app: Application Tier {
   api: API Gateway\nREST/GraphQL {
     style.fill: "#e8f5e9"
-    style.stroke: "#388e3c"
-    style.stroke-width: 2
-    style.border-radius: 8
   }
   
   auth: Auth Service\nOAuth2/JWT {
     style.fill: "#e8f5e9"
-    style.stroke: "#388e3c"
-    style.stroke-width: 2
-    style.border-radius: 8
   }
   
   business: Business Logic\nServices {
     style.fill: "#e8f5e9"
-    style.stroke: "#388e3c"
-    style.stroke-width: 2
-    style.border-radius: 8
   }
 }
 
@@ -53,52 +33,20 @@ app: Application Tier {
 data: Data Tier {
   db: Database\nPostgreSQL {
     style.fill: "#f3e5f5"
-    style.stroke: "#7b1fa2"
-    style.stroke-width: 2
-    style.border-radius: 8
   }
   
   cache: Cache\nRedis {
     style.fill: "#f3e5f5"
-    style.stroke: "#7b1fa2"
-    style.stroke-width: 2
-    style.border-radius: 8
   }
   
   storage: File Storage\nS3/Azure Blob {
     style.fill: "#f3e5f5"
-    style.stroke: "#7b1fa2"
-    style.stroke-width: 2
-    style.border-radius: 8
   }
 }
 
-client.web -> app.api: HTTPS {
-  style.stroke: "#1976d2"
-  style.stroke-width: 2
-}
-
-client.mobile -> app.api: HTTPS {
-  style.stroke: "#1976d2"
-  style.stroke-width: 2
-}
-
-app.api -> app.auth: {
-  style.stroke: "#388e3c"
-  style.stroke-width: 2
-}
-
-app.api -> app.business: {
-  style.stroke: "#388e3c"
-  style.stroke-width: 2
-}
-
-app.business -> data.db: SQL {
-  style.stroke: "#7b1fa2"
-  style.stroke-width: 2
-}
-
-app.business -> data.cache: {
-  style.stroke: "#7b1fa2"
-  style.stroke-width: 2
-}
+client.web -> app.api: HTTPS
+client.mobile -> app.api: HTTPS
+app.api -> app.auth
+app.api -> app.business
+app.business -> data.db: SQL
+app.business -> data.cache

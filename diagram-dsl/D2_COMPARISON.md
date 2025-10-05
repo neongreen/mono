@@ -21,16 +21,17 @@ Located in `examples/d2/`:
 
 ### Generation Scripts
 
-Located in `scripts/`:
+Located in `src/examples/`:
 
-1. **`generate-d2-examples.sh`** - Generates SVG files from D2 source files
+1. **`generate-d2.ts`** - Generates SVG files from D2 source files
    - Input: `examples/d2/*.d2`
    - Output: `examples/d2-output/*.svg`
-   - Uses D2 CLI tool with theme 200
+   - Automatically downloads D2 from GitHub releases if not installed
+   - Uses D2 CLI tool with default theme
 
-2. **`generate-all-examples.sh`** - Master script that generates both versions
+2. **`generate-all.ts`** - Master script that generates both versions
    - Runs `npm run examples` (diagram-dsl examples)
-   - Runs `generate-d2-examples.sh` (D2 examples)
+   - Runs `generate-d2.ts` (D2 examples)
    - Provides unified output
 
 ### NPM Scripts
@@ -53,9 +54,10 @@ Added to `package.json`:
    - Provides generation instructions
    - Compares advantages of each tool
 
-### Configuration
+### Generated Files
 
-- Updated `.gitignore` to exclude `examples/d2-output/` (generated files)
+- D2 output files in `examples/d2-output/*.svg` are now committed to the repository
+- This allows users to see the comparison without needing to install D2
 
 ## Usage
 
@@ -79,18 +81,10 @@ Alternatively, SVG files can be viewed directly:
 
 ## Requirements
 
-To generate D2 examples, you need D2 installed:
+The generation script automatically downloads D2 from GitHub releases if it's not already installed. No manual installation is required!
 
-```bash
-# macOS
-brew install d2
-
-# Linux
-curl -fsSL https://d2lang.com/install.sh | sh -s --
-
-# Or download from GitHub releases
-# https://github.com/terrastruct/d2/releases
-```
+If you prefer to install D2 manually:
+- Download from: https://github.com/terrastruct/d2/releases
 
 ## Key Differences
 
@@ -122,10 +116,11 @@ diagram-dsl/
 │   │   ├── README.md            # D2 documentation
 │   │   └── *.d2                 # D2 source files (committed)
 │   └── d2-output/
-│       └── *.svg                # D2 generated SVGs (gitignored)
-├── scripts/
-│   ├── generate-d2-examples.sh      # D2 generation script
-│   └── generate-all-examples.sh     # Master generation script
+│       └── *.svg                # D2 generated SVGs (committed)
+├── src/
+│   └── examples/
+│       ├── generate-d2.ts       # D2 generation script
+│       └── generate-all.ts      # Master generation script
 └── README.md                    # Updated with comparison section
 ```
 

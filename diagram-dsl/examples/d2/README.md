@@ -24,8 +24,8 @@ To generate SVG files from these D2 diagrams:
 # From the diagram-dsl root directory
 npm run examples:d2
 
-# Or use the script directly
-./scripts/generate-d2-examples.sh
+# Or generate both at once
+npm run examples:all
 
 # Or generate both diagram-dsl and D2 examples
 npm run examples:all
@@ -35,18 +35,7 @@ The generated SVG files will be placed in `examples/d2-output/`.
 
 ## D2 Installation
 
-D2 needs to be installed on your system to generate the SVGs. Install it from:
-https://github.com/terrastruct/d2
-
-Or on macOS:
-```bash
-brew install d2
-```
-
-On Linux:
-```bash
-curl -fsSL https://d2lang.com/install.sh | sh -s --
-```
+The generation script (`npm run examples:d2`) automatically downloads D2 from GitHub releases if it's not already installed. No manual installation is required!
 
 ## Comparison Notes
 
