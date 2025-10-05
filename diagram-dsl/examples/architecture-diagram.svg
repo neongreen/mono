@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <defs>
+    <marker id="arrowhead-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrowhead-c2185b" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#c2185b" />
+    </marker>
+  </defs>
+  <rect width="800" height="600" fill="white"/>
+    <text x="40" y="65.66666666666667" font-size="32" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Architecture Diagram</text>
+      <rect x="310" y="100" width="180" height="100" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+        <text x="365" y="149.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Frontend</text>
+        <text x="372" y="160" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">React App</text>
+      <rect x="310" y="220" width="180" height="100" fill="#fce4ec" stroke="#c2185b" stroke-width="2" rx="8" />
+        <text x="352" y="270.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">API Gateway</text>
+        <text x="373" y="281.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">REST API</text>
+      <rect x="310" y="340" width="180" height="100" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+        <text x="364" y="389.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Database</text>
+        <text x="367" y="400" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">PostgreSQL</text>
+  <line x1="400" y1="150" x2="400" y2="220" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <text x="400" y="180" font-size="12" fill="#1976d2" text-anchor="middle">HTTP</text>
+  <line x1="400" y1="270" x2="400" y2="340" stroke="#c2185b" stroke-width="2" marker-end="url(#arrowhead-c2185b)" />
+  <text x="400" y="300" font-size="12" fill="#c2185b" text-anchor="middle">SQL</text>
+</svg>

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="700" viewBox="0 0 800 700">
+  <defs>
+    <marker id="arrowhead-0288d1" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#0288d1" />
+    </marker>
+    <marker id="arrowhead-43a047" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#43a047" />
+    </marker>
+    <marker id="arrowhead-e53935" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#e53935" />
+    </marker>
+  </defs>
+  <rect width="800" height="700" fill="white"/>
+    <text x="208" y="62.166666666666664" font-size="32" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">User Authentication Flow</text>
+    <rect x="310" y="93" width="180" height="70" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="35" />
+      <text x="327" y="133.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Start: Login Request</text>
+    <rect x="300" y="193" width="200" height="80" fill="#e1f5fe" stroke="#0288d1" stroke-width="2" rx="8" />
+      <text x="333" y="238.5" font-size="15" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Validate Credentials</text>
+      <rect x="190" y="303" width="180" height="80" fill="#e8f5e9" stroke="#43a047" stroke-width="2" rx="8" />
+        <text x="257" y="343.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Valid ✓</text>
+        <text x="237" y="352.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Generate Token</text>
+      <rect x="430" y="303" width="180" height="80" fill="#ffebee" stroke="#e53935" stroke-width="2" rx="8" />
+        <text x="492" y="343.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Invalid ✗</text>
+        <text x="490" y="353.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Show Error</text>
+      <rect x="190" y="413" width="180" height="70" fill="#c8e6c9" stroke="#43a047" stroke-width="2" rx="35" />
+        <text x="214" y="453" font-size="15" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Success: Logged In</text>
+      <rect x="430" y="413" width="180" height="70" fill="#ffcdd2" stroke="#e53935" stroke-width="2" rx="35" />
+        <text x="482" y="453" font-size="15" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Retry Login</text>
+  <line x1="400" y1="128" x2="400" y2="193" stroke="#0288d1" stroke-width="2" marker-end="url(#arrowhead-0288d1)" />
+  <line x1="400" y1="233" x2="346.3438726180667" y2="315.97101485930614" stroke="#43a047" stroke-width="2" marker-end="url(#arrowhead-43a047)" />
+  <text x="373.17193630903336" y="269.48550742965307" font-size="12" fill="#43a047" text-anchor="middle">Yes</text>
+  <line x1="400" y1="233" x2="453.6561273819333" y2="315.97101485930614" stroke="#e53935" stroke-width="2" marker-end="url(#arrowhead-e53935)" />
+  <text x="426.82806369096664" y="269.48550742965307" font-size="12" fill="#e53935" text-anchor="middle">No</text>
+  <line x1="280" y1="343" x2="280" y2="413" stroke="#43a047" stroke-width="2" marker-end="url(#arrowhead-43a047)" />
+  <line x1="520" y1="343" x2="520" y2="413" stroke="#e53935" stroke-width="2" marker-end="url(#arrowhead-e53935)" />
+</svg>
