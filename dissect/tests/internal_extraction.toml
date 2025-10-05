@@ -1,0 +1,67 @@
+# This test checks that non-exported functions are moved to internal/<filename>/
+
+[files_in]
+"go.mod" = '''
+module dissect_sample_project
+
+go 1.20
+'''
+
+"foo/foo.go" = '''
+package foo
+
+import "fmt"
+
+func myFunc() string {
+	return "Hello from myFunc!"
+}
+
+func ExportedFunc() string {
+	return "Hello from ExportedFunc!"
+}
+
+func CallFunctions() {
+	fmt.Println(myFunc())
+	fmt.Println(ExportedFunc())
+}
+'''
+
+[files_out]
+"go.mod" = '''
+module dissect_sample_project
+
+go 1.20
+'''
+
+"foo/foo.go" = '''
+package foo
+'''
+
+"foo/call_functions.go" = '''
+package foo
+
+import (
+	"fmt"
+)
+
+func CallFunctions() {
+	fmt.Println(myFunc())
+	fmt.Println(ExportedFunc())
+}
+'''
+
+"foo/util_my_func.go" = '''
+package foo
+
+func myFunc() string {
+	return "Hello from myFunc!"
+}
+'''
+
+"foo/exported_func.go" = '''
+package foo
+
+func ExportedFunc() string {
+	return "Hello from ExportedFunc!"
+}
+'''

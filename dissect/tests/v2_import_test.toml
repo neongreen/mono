@@ -1,0 +1,166 @@
+# This test checks that when moving imports to a new file, we don't lose the `v` suffix in the import path.
+
+[files_in]
+"go.mod" = '''
+module example.com/testproject
+
+go 1.21.0
+
+toolchain go1.24.4
+
+require github.com/pelletier/go-toml/v2 v2.2.4
+'''
+
+# This file imports `github.com/pelletier/go-toml/v2` and uses it in `main` and `foo`.
+"main.go" = '''
+package main
+
+import (
+	"fmt"
+	"github.com/pelletier/go-toml/v2"
+)
+
+func main() {
+	fmt.Println("Hello, v2 import!")
+	var data interface{}
+	err := toml.Unmarshal([]byte("key = \"value\""), &data)
+	if err != nil {
+		fmt.Printf("Error unmarshaling TOML")
+	}
+	foo()
+}
+
+func foo() {
+	fmt.Println("This is foo from v2 import test")
+	var data interface{}
+	err := toml.Unmarshal([]byte("another_key = \"another_value\""), &data)
+	if err != nil {
+		fmt.Printf("Error unmarshaling TOML in foo")
+	}
+}
+'''
+
+# This test file also imports `github.com/pelletier/go-toml/v2` and uses it in `TestMain` and `foo`.
+"main_test.go" = '''
+package main_test
+
+import (
+	"testing"
+
+	"github.com/pelletier/go-toml/v2"
+)
+
+func TestMain(t *testing.T) {
+	var data interface{}
+	err := toml.Unmarshal([]byte("key = \"value\""), &data)
+	if err != nil {
+		t.Fatalf("Error unmarshaling TOML: %v", err)
+	}
+	foo()
+}
+
+func foo() {
+	var data interface{}
+	err := toml.Unmarshal([]byte("another_key = \"another_value\""), &data)
+	if err != nil {
+		fmt.Printf("Error unmarshaling TOML in foo")
+	}
+}
+'''
+
+[files_out]
+"go.mod" = '''
+module example.com/testproject
+
+go 1.21.0
+
+toolchain go1.24.4
+
+require github.com/pelletier/go-toml/v2 v2.2.4
+'''
+
+"go.sum" = '''
+github.com/pelletier/go-toml/v2 v2.2.4 h1:mye9XuhQ6gvn5h28+VilKrrPoQVanw5PMw/TB0t5Ec4=
+github.com/pelletier/go-toml/v2 v2.2.4/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
+'''
+
+# After the refactor, `main.go` only contains `main`.
+"main.go" = '''
+package main
+
+import (
+	"fmt"
+
+	"github.com/pelletier/go-toml/v2"
+)
+
+func main() {
+	fmt.Println("Hello, v2 import!")
+	var data interface{}
+	err := toml.Unmarshal([]byte("key = \"value\""), &data)
+	if err != nil {
+		fmt.Printf("Error unmarshaling TOML")
+	}
+	foo()
+}
+'''
+
+# main's `foo` is moved into `util_foo.go`.
+"util_foo.go" = '''
+package main
+
+import (
+	"fmt"
+
+	"github.com/pelletier/go-toml/v2"
+)
+
+func foo() {
+	fmt.Println("This is foo from v2 import test")
+	var data interface{}
+	err := toml.Unmarshal([]byte("another_key = \"another_value\""), &data)
+	if err != nil {
+		fmt.Printf("Error unmarshaling TOML in foo")
+	}
+}
+'''
+
+# `TestMain` is moved into a separate file named after the function.
+"main_test.go" = '''
+package main_test
+
+import (
+	"testing"
+
+	"example.com/testproject/internal/testutils"
+	"github.com/pelletier/go-toml/v2"
+)
+
+func TestMain(t *testing.T) {
+	var data interface{}
+	err := toml.Unmarshal([]byte("key = \"value\""), &data)
+	if err != nil {
+		t.Fatalf("Error unmarshaling TOML: %v", err)
+	}
+	testutils.Foo()
+}
+'''
+
+# `main_test.foo` is moved into `internal/testutils/foo.go`.
+"internal/testutils/foo.go" = '''
+package testutils
+
+import (
+	"fmt"
+
+	"github.com/pelletier/go-toml/v2"
+)
+
+func Foo() {
+	var data interface{}
+	err := toml.Unmarshal([]byte("another_key = \"another_value\""), &data)
+	if err != nil {
+		fmt.Printf("Error unmarshaling TOML in foo")
+	}
+}
+'''

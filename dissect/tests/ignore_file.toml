@@ -1,0 +1,56 @@
+# This test checks that files with "// dissect:ignoreFile" comment are ignored.
+
+[files_in]
+"go.mod" = '''
+module example.com/testproject
+go 1.20
+'''
+
+"ignored_file.go" = '''
+// dissect:ignoreFile
+package main
+
+import "fmt"
+
+func IgnoredFunction() {
+	fmt.Println("This function should be ignored")
+}
+'''
+
+"main.go" = '''
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Main function")
+}
+'''
+
+[files_out]
+"go.mod" = '''
+module example.com/testproject
+
+go 1.20
+'''
+
+"ignored_file.go" = '''
+// dissect:ignoreFile
+package main
+
+import "fmt"
+
+func IgnoredFunction() {
+	fmt.Println("This function should be ignored")
+}
+'''
+
+"main.go" = '''
+package main
+
+import "fmt"
+
+func main() {
+	fmt.Println("Main function")
+}
+'''

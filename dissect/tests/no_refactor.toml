@@ -1,0 +1,191 @@
+[files_in]
+"go.mod" = '''
+module example.com/testproject
+
+go 1.21
+'''
+
+# This file has an init function and should NOT be refactored.
+"with_init.go" = '''
+package main
+
+import "fmt"
+
+func init() {
+	fmt.Println("init")
+}
+
+func funcA() {
+	fmt.Println("A")
+}
+
+func funcB() {
+	fmt.Println("B")
+}
+'''
+
+# This file has a global variable and should NOT be refactored.
+"with_var.go" = '''
+package main
+
+import "fmt"
+
+var myGlobal = 1
+
+func funcC() {
+	fmt.Println("C")
+}
+
+func funcD() {
+	fmt.Println("D")
+}
+'''
+
+# This file has a type declaration and SHOULD be refactored.
+"with_type.go" = '''
+package main
+
+import "fmt"
+
+type MyStruct struct {
+	Field int
+}
+
+func funcE() {
+	fmt.Println("E")
+}
+
+func funcF() {
+	fmt.Println("F")
+}
+'''
+
+# This file has only functions and SHOULD be refactored.
+"only_funcs.go" = '''
+package main
+
+import "fmt"
+
+func main() {
+	funcG()
+	funcH()
+}
+
+func funcG() {
+	fmt.Println("G")
+}
+
+func funcH() {
+	fmt.Println("H")
+}
+'''
+
+[files_out]
+"go.mod" = '''
+module example.com/testproject
+
+go 1.21
+'''
+
+# This file should be unchanged.
+"with_init.go" = '''
+package main
+
+import "fmt"
+
+func init() {
+	fmt.Println("init")
+}
+
+func funcA() {
+	fmt.Println("A")
+}
+
+func funcB() {
+	fmt.Println("B")
+}
+'''
+
+# This file should be unchanged.
+"with_var.go" = '''
+package main
+
+import "fmt"
+
+var myGlobal = 1
+
+func funcC() {
+	fmt.Println("C")
+}
+
+func funcD() {
+	fmt.Println("D")
+}
+'''
+
+# This file should have funcE and funcF extracted.
+"with_type.go" = '''
+package main
+
+type MyStruct struct {
+	Field int
+}
+'''
+
+"util_func_e.go" = '''
+package main
+
+import (
+	"fmt"
+)
+
+func funcE() {
+	fmt.Println("E")
+}
+'''
+
+"util_func_f.go" = '''
+package main
+
+import (
+	"fmt"
+)
+
+func funcF() {
+	fmt.Println("F")
+}
+'''
+
+# This file should have funcG and funcH extracted, main is skipped.
+"only_funcs.go" = '''
+package main
+
+func main() {
+	funcG()
+	funcH()
+}
+'''
+
+"util_func_g.go" = '''
+package main
+
+import (
+	"fmt"
+)
+
+func funcG() {
+	fmt.Println("G")
+}
+'''
+
+"util_func_h.go" = '''
+package main
+
+import (
+	"fmt"
+)
+
+func funcH() {
+	fmt.Println("H")
+}
+'''
