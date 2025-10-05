@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="184.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Code Example</text>
+        <rect x="60" y="146" width="500" height="115" fill="#ffebee" stroke="#c62828" stroke-width="2" rx="8" />
+          <text x="80" y="176.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#b71c1c" font-weight="bold" text-anchor="start">Before</text>
+            <text x="80" y="199" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Manual slide numbering,</text>
+            <text x="80" y="219" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Custom HTML generation,</text>
+            <text x="80" y="239" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Repetitive renderToSVG calls,</text>
+        <rect x="584" y="146" width="500" height="114" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" rx="8" />
+          <text x="604" y="176.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1b5e20" font-weight="bold" text-anchor="start">After</text>
+            <text x="604" y="199" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Automatic numbering,</text>
+            <text x="604" y="218.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Built-in HTML viewer,</text>
+            <text x="604" y="238" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Single function call,</text>
+</svg>

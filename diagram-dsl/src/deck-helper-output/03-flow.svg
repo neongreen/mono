@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <marker id="arrowhead-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="219.5" y="88.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Development Flow</text>
+          <text x="60" y="176.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Define Slides</text>
+          <text x="280" y="176.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Number Slides</text>
+          <text x="500" y="176.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Generate Deck</text>
+  <line x1="240" y1="171" x2="280" y2="171" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <line x1="460" y1="171" x2="500" y2="171" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+</svg>

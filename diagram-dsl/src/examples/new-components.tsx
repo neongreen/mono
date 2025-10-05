@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Slide, Title, Subtitle, Text, 
+  Slide, Title, Subtitle, Text, Row,
   FlowDiagram, TwoColumn, ThreeColumn, CodeBlock, Quote, Badge, Divider,
   Section, List, Callout,
   renderToSVG 
@@ -125,16 +125,16 @@ const QuoteAndBadgeExample = () => (
       <Text fontSize={14} marginBottom={16}>Use badges to highlight important information:</Text>
       <TwoColumn
         left={
-          <>
-            <Badge text="NEW" variant="success" size="small" />
-            <Text fontSize={12} marginLeft={8}>FlowDiagram component</Text>
-          </>
+          React.createElement(Row, { gap: 8, alignItems: 'center' },
+            React.createElement(Badge, { text: 'NEW', variant: 'success', size: 'small' }),
+            React.createElement(Text, { fontSize: 12, children: 'FlowDiagram component' })
+          )
         }
         right={
-          <>
-            <Badge text="v2.0" variant="info" size="small" />
-            <Text fontSize={12} marginLeft={8}>Latest release</Text>
-          </>
+          React.createElement(Row, { gap: 8, alignItems: 'center' },
+            React.createElement(Badge, { text: 'v2.0', variant: 'info', size: 'small' }),
+            React.createElement(Text, { fontSize: 12, children: 'Latest release' })
+          )
         }
       />
     </Section>
@@ -172,33 +172,46 @@ const ComprehensiveExample = () => (
     
     <Badge text="NEW" variant="success" size="medium" marginBottom={20} />
     
-    <ThreeColumn gap={16} marginTop={20}>
-      <Section title="Flow" variant="primary">
-        <Text fontSize={11}>FlowDiagram for processes</Text>
-      </Section>
-      <Section title="Layout" variant="secondary">
-        <Text fontSize={11}>Column layouts for structure</Text>
-      </Section>
-      <Section title="Content" variant="accent">
-        <Text fontSize={11}>Code, quotes, badges</Text>
-      </Section>
-    </ThreeColumn>
+    <ThreeColumn 
+      gap={16} 
+      marginTop={20}
+      left={
+        <Section title="Flow" variant="primary">
+          <Text fontSize={11}>FlowDiagram for processes</Text>
+        </Section>
+      }
+      center={
+        <Section title="Layout" variant="secondary">
+          <Text fontSize={11}>Column layouts for structure</Text>
+        </Section>
+      }
+      right={
+        <Section title="Content" variant="accent">
+          <Text fontSize={11}>Code, quotes, badges</Text>
+        </Section>
+      }
+    />
     
     <Divider width={1080} marginTop={20} marginBottom={20} />
     
-    <TwoColumn gap={24}>
-      <CodeBlock
-        code={['const x = 1;', 'const y = 2;', 'return x + y;']}
-        language="JavaScript"
-        width={500}
-      />
-      <Quote
-        text="Clean, composable, powerful"
-        author="diagram-dsl"
-        variant="accent"
-        width={500}
-      />
-    </TwoColumn>
+    <TwoColumn 
+      gap={24}
+      left={
+        <CodeBlock
+          code={['const x = 1;', 'const y = 2;', 'return x + y;']}
+          language="JavaScript"
+          width={500}
+        />
+      }
+      right={
+        <Quote
+          text="Clean, composable, powerful"
+          author="diagram-dsl"
+          variant="accent"
+          width={500}
+        />
+      }
+    />
   </Slide>
 );
 

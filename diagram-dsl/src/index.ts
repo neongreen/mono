@@ -46,6 +46,23 @@ export type { TextMetrics } from './layout/text-measurement';
 export { theme } from './theme';
 export type { Theme } from './theme';
 
+// Presentation themes
+export {
+  defaultTheme,
+  professionalTheme,
+  darkTheme,
+  vibrantTheme,
+  minimalTheme,
+  setCurrentTheme,
+  getCurrentTheme,
+  createCustomTheme
+} from './presentation-theme';
+export type { PresentationTheme } from './presentation-theme';
+
+// Slide deck helpers
+export { generateSlideDeck, numberSlides } from './helpers/slide-deck';
+export type { SlideDefinition, SlideDeckOptions } from './helpers/slide-deck';
+
 export type {
   LayoutProps,
   AlignmentProps,
