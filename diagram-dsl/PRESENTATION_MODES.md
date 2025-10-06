@@ -297,21 +297,7 @@ await generateScrollingPage(sections, {
 7. **Use continuous mode** when your narrative doesn't fit into discrete sections
 8. **Leverage spacing** to create visual rhythm and improve readability
 
----
 
-## Future Enhancements
-
-Coming soon:
-- Full image rendering (currently placeholders)
-- Interactive HTML output with animations
-- PDF export support
-- Video/GIF embedding
-- Custom fonts support
-- Slide transitions
-- Speaker notes
-- Presenter view
-
----
 
 ## Migration from Older Versions
 
