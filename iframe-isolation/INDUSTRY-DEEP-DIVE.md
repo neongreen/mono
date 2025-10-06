@@ -1,8 +1,8 @@
-# Industry Deep Dive: Production Iframe Isolation Systems
+# Industry Deep Dive: Client-Side Iframe Isolation in Production
 
 ## Executive Summary
 
-This document provides an in-depth analysis of how major platforms handle iframe isolation in production, including technical details, open-source components, and real-world battle-tested implementations. The focus is on systems that handle the specific problem of **OS-level memory pressure** even when cross-origin isolation is in place.
+This document provides an in-depth analysis of how major platforms handle **client-side** iframe isolation in production browsers. The focus is on protecting the user's system from misbehaving frontend code, even when cross-origin isolation is already in place.
 
 ## Key Insight: Cross-Origin Isn't Enough
 
@@ -12,66 +12,86 @@ Even with cross-origin iframes (separate browser processes), the underlying OS s
 - Other applications slow down
 - System may trigger OOM (Out Of Memory) killer
 
-Major platforms address this with **multi-layered defense**:
+Major platforms address this with **client-side multi-layered defense**:
 1. Cross-origin isolation (process separation)
-2. Proactive memory monitoring and limits
-3. Automatic restart/recovery
+2. Browser-side proactive memory monitoring
+3. Automatic iframe restart/recovery
 4. User notifications and controls
-5. Server-side resource limits
+5. Graceful degradation and fallbacks
+
+**Note**: This document focuses exclusively on browser/client-side solutions. Server-side sandboxing is not covered.
 
 ---
 
-## 1. CodeSandbox: The Gold Standard
+## 1. CodeSandbox: Client-Side Memory Management
 
 ### Architecture Overview
 
-CodeSandbox uses a sophisticated multi-layered approach that has evolved over several years.
+CodeSandbox runs user code entirely in the browser using cross-origin iframes and sophisticated client-side monitoring.
+
+**Official Resources**:
+- Blog: https://codesandbox.io/blog
+- Engineering posts on iframe isolation (various articles from 2019-2023)
+- Open source: https://github.com/codesandbox/sandpack
 
 ### Technical Implementation
 
-#### Layer 1: Sandboxed Domains
+#### Layer 1: Cross-Origin Sandboxed Domains
 - Each sandbox gets a unique subdomain: `{id}.csb.app`
 - Separate origin ensures process isolation
 - CDN-backed for performance
+- All code execution happens in browser
 
-#### Layer 2: Bundler Isolation
-**Blog Post**: "How we built the new CodeSandbox" (2020)
-- Custom bundler runs in Service Worker
-- No Node.js on client side (initially)
-- Bundle evaluation in isolated iframe
+#### Layer 2: Sandpack - The Open Source Bundler
+**Repository**: https://github.com/codesandbox/sandpack
 
-**Key Innovation**: Service Workers act as middleware:
+Sandpack is CodeSandbox's open-source bundler that runs entirely in the browser:
+- Runs in iframe with Service Worker
+- Transforms and bundles modules on the fly
+- No server-side execution required
+- All bundling happens client-side
+
+**Key Innovation**: Service Workers as client-side middleware:
 ```javascript
-// Simplified version of their approach
+// From Sandpack's approach
 self.addEventListener('fetch', (event) => {
   if (isModuleRequest(event.request)) {
     event.respondWith(
-      // Transform and bundle on the fly
-      bundleModule(event.request.url)
+      // Transform and bundle on the fly in browser
+      bundleModuleInBrowser(event.request.url)
     );
   }
 });
 ```
 
-#### Layer 3: Memory Management
-**Engineering Post**: "Preventing memory leaks in sandboxes"
+#### Layer 3: Client-Side Memory Management
+**Source**: CodeSandbox engineering blog posts and Sandpack documentation
 
-They implement:
-1. **Periodic Memory Checks**
-   - Check `performance.memory` every 5 seconds
+**Browser API Used**: `performance.memory` (Chrome/Edge only)
+- **Supported**: Chrome 7+, Edge 79+
+- **Not Supported**: Firefox, Safari
+- **Fallback**: Heuristic detection based on behavior
+
+CodeSandbox implements:
+
+1. **Periodic Memory Checks** (Client-Side)
+   - Check `performance.memory` every 5 seconds in the parent page
    - Thresholds: Warning at 70%, Critical at 85%
+   - Works across cross-origin iframes by monitoring the tab's total memory
 
-2. **Automatic Sandbox Restart**
-   - Graceful: Save state, reload sandbox
+2. **Automatic Sandbox Restart** (Browser-Side)
+   - Graceful: Save state in localStorage/IndexedDB, reload iframe
    - Force: Hard reset if graceful fails
    - User notification with retry button
+   - All happens in browser without server involvement
 
-3. **Heuristic Detection**
-   - Detect infinite loops by monitoring CPU time
-   - Detect memory leaks by tracking allocation patterns
-   - Pattern: Rapid growth without plateau
+3. **Heuristic Detection** (For Non-Chrome Browsers)
+   - Detect infinite loops by monitoring frame rate drops
+   - Detect memory leaks by tracking iframe loading time
+   - Pattern: Increasing reload times indicate memory pressure
+   - Fallback when `performance.memory` unavailable
 
-**Real Code Pattern** (from their public examples):
+**Real Code Pattern** (adapted from Sandpack and public examples):
 ```javascript
 class SandboxMonitor {
   constructor(iframe) {
@@ -147,33 +167,22 @@ class SandboxMonitor {
 }
 ```
 
-#### Layer 4: Server-Side Limits (Containers)
+### Open Source: Sandpack
 
-**Blog Post**: "How CodeSandbox works" (2021)
+**Repository**: https://github.com/codesandbox/sandpack
+Sandpack is the complete open-source solution from CodeSandbox that runs entirely in the browser:
 
-For certain sandboxes (especially with backend code):
-- Docker containers with memory limits (cgroup v2)
-- Per-container: 2GB RAM limit
-- Automatic container termination on OOM
-- Container restart with exponential backoff
-
-**Configuration**:
-```yaml
-# Docker Compose example
-services:
-  sandbox:
-    image: codesandbox/sandbox
-    mem_limit: 2g
-    memswap_limit: 2g  # Prevent swap
-    oom_kill_disable: false
-```
-
-### Open Source Components
-
-**1. Sandpack** (https://github.com/codesandbox/sandpack)
-- Their bundler system, open-sourced
-- Includes iframe communication layer
+**What it includes**:
+- Client-side bundler (no server needed)
+- Iframe communication protocol
 - Memory monitoring hooks
+- State management for restarts
+
+**Key Features**:
+1. **Bundler in Browser**: Transforms and bundles modules using Service Worker
+2. **Iframe Management**: Safe cross-origin iframe handling
+3. **Memory Hooks**: Built-in memory usage reporting
+4. **Restart Protocol**: Graceful restart with state preservation
 
 **Key File**: `sandpack-client/src/iframe-protocol.ts`
 ```typescript
@@ -181,18 +190,34 @@ export interface IFrameProtocol {
   dispatch(message: ProtocolMessage): void;
   listen(handler: (msg: ProtocolMessage) => void): void;
   
-  // Memory management
+  // Memory management hooks
   getMemoryUsage(): Promise<MemoryInfo>;
   restartRuntime(): Promise<void>;
 }
 ```
 
-**2. Nodebox** (Open source, 2023)
-- Node.js runtime in the browser
-- WebContainer-like approach
-- Memory isolation primitives
+**Installation**:
+```bash
+npm install @codesandbox/sandpack-client
+```
 
-**Repository**: `codesandbox/nodebox`
+**Example Usage**:
+```javascript
+import { SandpackClient } from '@codesandbox/sandpack-client';
+
+const client = new SandpackClient('#preview', {
+  files: { /* your files */ },
+  entry: '/index.html'
+});
+
+// Monitor memory
+setInterval(async () => {
+  const memory = await client.getMemoryUsage();
+  if (memory.percentage > 85) {
+    await client.restartRuntime();
+  }
+}, 5000);
+```
 
 ### Production Metrics (from public talks)
 
@@ -204,268 +229,40 @@ export interface IFrameProtocol {
 
 ---
 
-## 2. StackBlitz: WebContainers Revolution
+## 2. Figma: Browser-Based Plugin Isolation
 
-### The Game Changer
+### Overview
 
-**Blog Post**: "Introducing WebContainers" (May 2021)
-https://blog.stackblitz.com/posts/introducing-webcontainers/
+Figma runs entirely in the browser with a sophisticated plugin system that executes user code safely in iframes.
 
-StackBlitz took a revolutionary approach: Run **entire Node.js runtime** in the browser using WebAssembly and SharedArrayBuffer.
+**Official Resources**:
+- Plugin API: https://www.figma.com/plugin-docs/
+- Blog: https://www.figma.com/blog/
 
-### Technical Architecture
+### Client-Side Plugin Architecture
 
-#### Core Technology: WebContainers
-
-**Key Innovation**: Virtual file system and Node.js runtime entirely in browser
-- No server-side execution for many cases
-- Complete process isolation
-- Memory confined to browser process
-
-**Requirements**:
-```javascript
-// Must have these headers
-Cross-Origin-Opener-Policy: same-origin
-Cross-Origin-Embedder-Policy: require-corp
-
-// This enables SharedArrayBuffer
-if (crossOriginIsolated) {
-  // WebContainers can run
-}
+#### Browser-Based Isolation
 ```
-
-#### Memory Management Strategy
-
-**Engineering Post**: "WebContainer Memory Management" (internal, referenced in talks)
-
-1. **WebAssembly Memory Limits**
-   - Each WebContainer has WASM memory limit
-   - Default: 1GB, configurable
-   - Exceeding limit causes graceful termination
-
-2. **File System Quotas**
-   - Virtual FS stored in memory
-   - Quota enforcement: 500MB default
-   - Automatic cleanup of tmp files
-
-3. **Process Monitoring**
-```javascript
-// Simplified from their approach
-class WebContainerMonitor {
-  async getMetrics() {
-    const container = await this.container;
-    return {
-      memory: container.memory.usage,
-      fs: container.fs.usage,
-      processes: container.processes.list()
-    };
-  }
-  
-  async enforceMemoryLimit() {
-    const metrics = await this.getMetrics();
-    
-    if (metrics.memory > this.limits.memory) {
-      // Kill heaviest process first
-      const sorted = metrics.processes
-        .sort((a, b) => b.memory - a.memory);
-      
-      if (sorted[0]) {
-        await container.kill(sorted[0].pid);
-        this.notifyUser(`Killed ${sorted[0].name} due to memory`);
-      }
-    }
-  }
-}
-```
-
-### Open Source Status
-
-**WebContainers**: Proprietary (not open source)
-- Core technology is closed-source
-- This is their competitive advantage
-
-**Turbo** (https://github.com/vercel/turbo): Related open-source build system
-- While not directly WebContainers, shows similar patterns
-- Memory-efficient incremental builds
-
-### Production Battle Stories
-
-**Talk**: "Building WebContainers" - Eric Simons (Google I/O 2023)
-
-**Challenges they solved**:
-1. **Chrome Memory Inspector Integration**
-   - Built custom DevTools protocol integration
-   - Shows WebContainer memory separate from main thread
-
-2. **Graceful Degradation**
-   - Fallback to server-side execution if SharedArrayBuffer unavailable
-   - Safari doesn't support it well → redirect to server
-
-3. **Memory Leak Detection**
-   - Automated detection of leaking Node.js processes
-   - Auto-restart with memory limits reduced
-
-**Metrics**:
-- Average WebContainer memory: 200-400 MB
-- Peak usage: 1.2 GB (before limit)
-- OOM rate: < 0.01% (extremely rare)
-
----
-
-## 3. Replit: Server-Side Container Approach
-
-### Architecture Choice
-
-Replit chose a different path: **Always run code server-side** in containers.
-
-**Blog Post**: "How Replit works" (2020)
-https://blog.replit.com/intel
-
-### Technical Implementation
-
-#### Layer 1: Nix-based Containers
-- Every repl runs in isolated container
-- Based on NixOS for reproducibility
-- Resource limits via cgroups
-
-**Configuration**:
-```nix
-# Example Repl container config
-{
-  resources = {
-    memory = "512M";      # Hard limit
-    memorySwap = "512M";  # No swap
-    cpus = "0.5";         # Half a CPU
-  };
-  
-  oom = {
-    score = 1000;  # Kill this first on OOM
-    action = "restart";
-  };
-}
-```
-
-#### Layer 2: Resource Monitoring
-
-**Open Source**: `replit/crosis` - WebSocket protocol for Replit
-https://github.com/replit/crosis
-
-**Key Features**:
-- Real-time resource monitoring
-- Container restart protocol
-- OOM detection and recovery
-
-**Example from their docs**:
-```javascript
-// Using Crosis
-const client = new Client();
-await client.connect();
-
-// Monitor container
-client.onCommand((cmd) => {
-  if (cmd.type === 'containerStats') {
-    console.log('Memory:', cmd.memory);
-    console.log('CPU:', cmd.cpu);
-    
-    if (cmd.memory > 0.9) {
-      // Warn user
-      showWarning('High memory usage');
-    }
-  }
-  
-  if (cmd.type === 'containerOOM') {
-    // Container was killed, restart
-    client.restartContainer();
-  }
-});
-```
-
-#### Layer 3: Browser Client Protection
-
-Even though code runs server-side, the browser client needs protection:
-
-**GitHub**: `replit/play` (experimental)
-```typescript
-// Browser-side resource monitoring
-class OutputMonitor {
-  constructor(terminal) {
-    this.terminal = terminal;
-    this.outputSize = 0;
-    this.maxOutputSize = 10 * 1024 * 1024; // 10MB
-  }
-  
-  write(data) {
-    this.outputSize += data.length;
-    
-    if (this.outputSize > this.maxOutputSize) {
-      // Stop accepting output
-      this.terminal.writeln('\n[Output truncated - too much data]');
-      this.terminal.dispose();
-      throw new Error('Output limit exceeded');
-    }
-    
-    this.terminal.write(data);
-  }
-}
-```
-
-### Production Insights
-
-**Talk**: "Building a Collaborative IDE" - Amjad Masad (Replit CEO)
-
-**Key Learnings**:
-1. **Container restarts are common**
-   - ~5% of sessions hit OOM at least once
-   - Auto-restart solves most cases
-   - Users expect it now (it's normal)
-
-2. **Resource limits need tuning**
-   - Started with 256MB, too low
-   - Now 512MB default, 2GB for paid
-   - Dynamic adjustment based on language
-
-3. **User communication is critical**
-   - Show clear warnings before OOM
-   - Explain why restart happened
-   - Give control (upgrade, optimize code)
-
----
-
-## 4. Figma: Canvas-Heavy Application
-
-### Unique Challenges
-
-Figma deals with:
-- Large canvas with millions of objects
-- WebGL rendering
-- Real-time collaboration
-- Plugin system (user code)
-
-**Blog Post**: "Building Real-Time Collaboration" (2019)
-https://www.figma.com/blog/how-figmas-multiplayer-technology-works/
-
-### Multi-Process Architecture
-
-#### Main Application Structure
-```
-Main Process (figma.com)
-├── Canvas Renderer (WebGL worker)
-├── Collaboration Worker (WebSocket)
-└── Plugin Sandbox (preview.figma.com)
+Main Process (figma.com - browser)
+├── Canvas Renderer (WebGL in browser)
+├── Collaboration (WebSocket in browser)
+└── Plugin Sandbox (cross-origin iframes)
     ├── Plugin 1 (sandbox-1.figma.com)
     ├── Plugin 2 (sandbox-2.figma.com)
     └── Plugin N (sandbox-n.figma.com)
 ```
 
-#### Plugin Isolation
+All plugins run in the **browser**, not server-side:
+- Each plugin in separate cross-origin iframe
+- Memory limits enforced by Figma's client-side code
+- Can be terminated independently without affecting main app
+- No server-side execution
 
-**Documentation**: Figma Plugin API
-https://www.figma.com/plugin-docs/
+#### Client-Side Memory Management
 
-Each plugin:
-- Runs in separate origin
-- Has memory limits (enforced)
-- Can be terminated independently
+**From Figma Plugin API Documentation**:
+
+Each plugin manifest can specify memory limits:
 
 **API Example**:
 ```javascript
@@ -553,7 +350,7 @@ class PluginIframeManager {
 
 ---
 
-## 5. Observable: Notebook Environment
+## 3. Observable: Client-Side Notebook Environment
 
 ### Architecture
 
@@ -658,137 +455,9 @@ Their runtime is fully open source, making it excellent for study:
 
 ---
 
-## 6. GitPod: Full IDE in Browser
+## 4. Practical Patterns for Client-Side Protection
 
-### Architecture Choice
-
-GitPod runs **actual VS Code** (OpenVSCode Server) in browser.
-
-**Blog Post**: "GitPod Architecture" (2021)
-https://www.gitpod.io/blog/gitpod-architecture
-
-### Container-Based Approach
-
-Similar to Replit but with different tradeoffs:
-
-```yaml
-# Workspace container limits
-apiVersion: v1
-kind: Pod
-metadata:
-  name: workspace
-spec:
-  containers:
-  - name: workspace
-    image: gitpod/workspace-full
-    resources:
-      limits:
-        memory: "4Gi"      # More generous for IDE
-        cpu: "2"
-      requests:
-        memory: "2Gi"
-        cpu: "1"
-    
-    # Memory monitoring
-    lifecycle:
-      preStop:
-        exec:
-          command: ["/bin/sh", "-c", "save-state.sh"]
-```
-
-### Browser-Side Protection
-
-**Open Source**: `gitpod-io/openvscode-server`
-https://github.com/gitpod-io/openvscode-server
-
-**Memory Management**:
-```typescript
-// From their VS Code extension
-export class WorkspaceMonitor {
-  async monitorResources() {
-    const interval = setInterval(async () => {
-      const stats = await this.getWorkspaceStats();
-      
-      if (stats.memory.percentage > 80) {
-        vscode.window.showWarningMessage(
-          'High memory usage. Consider closing some files.',
-          'Reload Workspace'
-        ).then(action => {
-          if (action === 'Reload Workspace') {
-            this.reloadWorkspace();
-          }
-        });
-      }
-      
-      if (stats.memory.percentage > 95) {
-        // Emergency: Save and reload
-        await this.saveAllFiles();
-        this.forceReloadWorkspace();
-      }
-    }, 10000);
-  }
-}
-```
-
----
-
-## 7. VS Code for Web: Microsoft's Approach
-
-### Architecture
-
-**Blog Post**: "VS Code for the Web" (2021)
-https://code.visualstudio.com/blogs/2021/10/20/vscode-dev
-
-### Extension Isolation
-
-Extensions run in separate Web Workers:
-
-**Open Source**: `microsoft/vscode`
-https://github.com/microsoft/vscode
-
-**Key Pattern**:
-```typescript
-// From vscode/src/vs/workbench/services/extensions/
-class ExtensionHostManager {
-  private workers: Map<string, Worker>;
-  private memoryLimits: Map<string, number>;
-  
-  async activateExtension(extensionId: string) {
-    const worker = new Worker('extensionHost.js');
-    this.workers.set(extensionId, worker);
-    
-    // Monitor memory
-    this.startMemoryMonitoring(extensionId, worker);
-    
-    // Send activation message
-    worker.postMessage({
-      type: 'activate',
-      extensionId,
-      memoryLimit: this.getMemoryLimit(extensionId)
-    });
-  }
-  
-  private startMemoryMonitoring(id: string, worker: Worker) {
-    setInterval(() => {
-      worker.postMessage({ type: 'getMemory' });
-    }, 5000);
-    
-    worker.onmessage = (e) => {
-      if (e.data.type === 'memoryReport') {
-        if (e.data.bytes > this.memoryLimits.get(id)!) {
-          this.terminateExtension(id);
-        }
-      }
-    };
-  }
-}
-```
-
----
-
-## 8. Practical Patterns: What Actually Works
-
-### Pattern 1: Multi-Layer Defense
+### Pattern 1: Multi-Layer Client-Side Defense
 
 **Never rely on single technique**:
 ```javascript
@@ -796,20 +465,17 @@ class ProductionIframeManager {
   constructor(iframe) {
     this.iframe = iframe;
     
-    // Layer 1: Cross-origin (process isolation)
+    // Layer 1: Cross-origin (browser process isolation)
     this.useCrossOrigin();
     
-    // Layer 2: Memory monitoring
+    // Layer 2: Memory monitoring (browser API)
     this.startMemoryMonitoring();
     
-    // Layer 3: Heuristic detection
+    // Layer 3: Heuristic detection (fallback for non-Chrome)
     this.startBehaviorMonitoring();
     
-    // Layer 4: User controls
+    // Layer 4: User controls (warnings and manual restart)
     this.addUserControls();
-    
-    // Layer 5: Server limits (if applicable)
-    this.enforceServerLimits();
   }
 }
 ```
@@ -845,36 +511,46 @@ class MemoryWarningSystem {
 }
 ```
 
-### Pattern 3: Graceful Degradation
+### Pattern 3: Browser Compatibility Fallbacks
 
 ```javascript
-class SandboxWithFallbacks {
+class BrowserCompatibleIframe {
   async initialize() {
-    try {
-      // Try best approach first
-      if (this.supportsWebContainers()) {
-        return await this.initWebContainer();
-      }
-    } catch (e) {
-      console.warn('WebContainers failed:', e);
+    // Check for performance.memory API (Chrome only)
+    if (performance.memory) {
+      console.log('Using performance.memory for monitoring');
+      return await this.initWithMemoryAPI();
     }
     
-    try {
-      // Fallback to iframe
-      if (this.supportsCrossOrigin()) {
-        return await this.initCrossOriginIframe();
-      }
-    } catch (e) {
-      console.warn('Cross-origin iframe failed:', e);
-    }
+    // Fallback to heuristic detection
+    console.log('Using heuristic monitoring (Firefox/Safari)');
+    return await this.initWithHeuristics();
+  }
+  
+  async initWithMemoryAPI() {
+    // Chrome/Edge: Use performance.memory
+    setInterval(() => {
+      const usage = performance.memory.usedJSHeapSize / 
+                    performance.memory.jsHeapSizeLimit;
+      if (usage > 0.85) this.restart();
+    }, 5000);
+  }
+  
+  async initWithHeuristics() {
+    // Firefox/Safari: Monitor frame rate and load times
+    let lastLoadTime = Date.now();
     
-    try {
-      // Fallback to server-side
-      return await this.initServerSide();
-    } catch (e) {
-      console.error('All approaches failed:', e);
-      throw new Error('Cannot initialize sandbox');
-    }
+    this.iframe.addEventListener('load', () => {
+      const loadTime = Date.now() - lastLoadTime;
+      
+      // If reloads are getting slower, likely memory pressure
+      if (loadTime > 5000) {
+        console.warn('Slow iframe load, possible memory issue');
+        this.restart();
+      }
+      
+      lastLoadTime = Date.now();
+    });
   }
 }
 ```
@@ -916,7 +592,7 @@ class AdaptiveMonitor {
 
 ---
 
-## 9. Open Source Tools and Libraries
+## 5. Open Source Client-Side Tools
 
 ### 1. Memory-stats (Chrome)
 ```bash
@@ -976,7 +652,7 @@ pool.exec(heavyFunction, [data])
 
 ---
 
-## 10. Recommended Production Setup
+## 6. Complete Production-Ready Implementation
 
 ### Complete Example
 
@@ -1322,6 +998,328 @@ await manager.initialize();
 
 ---
 
+## 7. Server-Side Rendering with Client Protection
+
+### Overview
+
+An alternative approach: Instead of running frontend code directly in the browser, render it server-side and stream the result to the client. This protects the client from buggy code while still showing the output.
+
+### Approach 1: Server-Side Rendering (SSR) with Streaming
+
+**Concept**: Run the frontend code on the server in a sandboxed environment, capture the rendered output, and stream it to the client as HTML/images.
+
+#### How It Works
+
+```
+User's Browser (Safe)
+     ↓ (requests preview)
+Server (Sandboxed)
+     ├── Execute user's frontend code
+     ├── Capture DOM/Canvas output
+     ├── Convert to HTML/PNG/Video
+     └── Stream to browser
+     ↑ (safe output only)
+User's Browser (Receives safe content)
+```
+
+#### Implementations
+
+**1. Puppeteer/Playwright Approach**
+```javascript
+// Server-side
+const puppeteer = require('puppeteer');
+
+async function renderUserCode(userHTML, userCSS, userJS) {
+  const browser = await puppeteer.launch({
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+  
+  const page = await browser.newPage();
+  
+  // Set memory limits for the browser process
+  await page.setViewport({ width: 1920, height: 1080 });
+  
+  // Inject user code
+  await page.setContent(`
+    <!DOCTYPE html>
+    <html>
+      <head><style>${userCSS}</style></head>
+      <body>
+        ${userHTML}
+        <script>${userJS}</script>
+      </body>
+    </html>
+  `);
+  
+  // Wait for execution with timeout
+  await page.waitForTimeout(5000);
+  
+  // Capture result
+  const screenshot = await page.screenshot({ encoding: 'binary' });
+  
+  await browser.close();
+  
+  return screenshot;
+}
+
+// Stream to client
+app.get('/preview', async (req, res) => {
+  const screenshot = await renderUserCode(
+    req.query.html,
+    req.query.css,
+    req.query.js
+  );
+  
+  res.type('image/png');
+  res.send(screenshot);
+});
+```
+
+**2. HTML to Image Services**
+
+Several services do this:
+- **htmlcsstoimage.com** - API for HTML to image
+- **screenshotapi.net** - Screenshot as a service
+- **apiflash.com** - Chrome screenshot API
+
+Example usage:
+```javascript
+// Client-side
+async function safePreview(userCode) {
+  const response = await fetch('https://api.service.com/screenshot', {
+    method: 'POST',
+    body: JSON.stringify({
+      html: userCode,
+      viewport: { width: 1920, height: 1080 }
+    })
+  });
+  
+  const imageBlob = await response.blob();
+  const imageUrl = URL.createObjectURL(imageBlob);
+  
+  // Display safe image instead of dangerous iframe
+  document.getElementById('preview').src = imageUrl;
+}
+```
+
+### Approach 2: Remote Browser Isolation (RBI)
+
+**Concept**: Run a full browser remotely and stream only pixels/events to the client.
+
+#### Commercial Solutions
+
+**1. Browser.so / Browserless**
+- Provides remote browser instances
+- Streams results to client
+- Complete isolation from client system
+
+**2. Cloudflare Browser Isolation**
+- Enterprise service
+- Runs browsers in Cloudflare's edge network
+- Streams vector graphics (not pixels) for performance
+
+#### How It Works
+
+```
+User's Browser
+     ↓ (mouse/keyboard events)
+Remote Browser (Docker/VM)
+     ├── Real Chromium instance
+     ├── Executes user code
+     ├── Renders to framebuffer
+     └── Compresses and streams pixels
+     ↓ (WebRTC/WebSocket)
+User's Browser (receives video stream)
+```
+
+**Example with Browserless**:
+```javascript
+// Server-side
+const browserless = require('browserless-client');
+
+async function streamUserCode(userCode) {
+  const browser = await browserless.createBrowser({
+    timeout: 30000,
+    blockAds: true
+  });
+  
+  const page = await browser.newPage();
+  await page.setContent(userCode);
+  
+  // Get screenshot or PDF
+  return await page.screenshot({ type: 'png' });
+}
+```
+
+### Approach 3: Sandbox-to-Static Conversion
+
+**Concept**: Run code server-side, wait for it to settle, then extract the static HTML/CSS result.
+
+```javascript
+async function convertToStatic(userCode) {
+  // Run in headless browser
+  const page = await browser.newPage();
+  await page.setContent(userCode);
+  
+  // Wait for JavaScript to execute
+  await page.waitForTimeout(3000);
+  
+  // Extract final DOM state
+  const staticHTML = await page.content();
+  const computedStyles = await page.evaluate(() => {
+    // Extract computed styles
+    const elements = document.querySelectorAll('*');
+    return Array.from(elements).map(el => ({
+      selector: el.tagName,
+      styles: window.getComputedStyle(el).cssText
+    }));
+  });
+  
+  // Return static version (safe for client)
+  return { html: staticHTML, styles: computedStyles };
+}
+```
+
+### Approach 4: WebRTC Screen Sharing Pattern
+
+**Concept**: Use WebRTC to share the screen from a server-side browser to the client.
+
+```javascript
+// Server-side (using puppeteer-stream)
+const puppeteer = require('puppeteer');
+const { launch, getStream } = require('puppeteer-stream');
+
+async function streamBrowser(userCode) {
+  const browser = await launch({
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
+  
+  const page = await browser.newPage();
+  await page.setContent(userCode);
+  
+  // Get media stream
+  const stream = await getStream(page, { 
+    audio: false, 
+    video: { width: 1920, height: 1080 } 
+  });
+  
+  // Stream via WebRTC to client
+  return stream;
+}
+
+// Client-side
+const video = document.querySelector('video');
+const peerConnection = new RTCPeerConnection();
+
+peerConnection.ontrack = (event) => {
+  video.srcObject = event.streams[0];
+};
+
+// Connect to server's WebRTC stream
+await peerConnection.setRemoteDescription(serverOffer);
+```
+
+### Trade-offs
+
+**Advantages of Server-Side Rendering**:
+- ✅ Complete client protection
+- ✅ No browser compatibility issues
+- ✅ Can run any code safely
+- ✅ No memory pressure on client
+
+**Disadvantages**:
+- ❌ Requires server infrastructure
+- ❌ Latency in interactions
+- ❌ No true interactivity (unless streaming)
+- ❌ Higher server costs
+- ❌ Limited to visual/static output
+
+### When to Use Each Approach
+
+| Approach | Use When | Example |
+|----------|----------|---------|
+| **Client-side iframe** | Code is mostly safe, need interactivity | CodeSandbox, JSFiddle |
+| **Static screenshot** | Just need visual preview, no interaction | Email template builders |
+| **Browser streaming** | Need full interactivity with protection | Enterprise security tools |
+| **Hybrid** | Some static, some interactive | Website builders (preview static, edit interactive) |
+
+### Hybrid Approach (Recommended)
+
+Many production systems use a hybrid:
+
+```javascript
+class HybridPreview {
+  constructor() {
+    this.mode = 'client'; // or 'server'
+  }
+  
+  async render(userCode) {
+    // Try client-side first
+    try {
+      if (this.isCodeSafe(userCode)) {
+        return await this.renderInIframe(userCode);
+      }
+    } catch (e) {
+      console.warn('Client-side failed:', e);
+    }
+    
+    // Fall back to server-side
+    return await this.renderOnServer(userCode);
+  }
+  
+  isCodeSafe(code) {
+    // Heuristics to detect potentially dangerous code
+    const dangerous = [
+      /while\s*\(\s*true\s*\)/,  // Infinite loops
+      /for\s*\([^)]*;;[^)]*\)/,   // Infinite loops
+      /new\s+Array\s*\(\s*\d{7,}\s*\)/, // Large arrays
+    ];
+    
+    return !dangerous.some(pattern => pattern.test(code));
+  }
+  
+  async renderInIframe(code) {
+    // Use client-side iframe with monitoring
+    const iframe = document.createElement('iframe');
+    iframe.srcdoc = code;
+    // ... monitor memory as shown in previous sections
+    return iframe;
+  }
+  
+  async renderOnServer(code) {
+    // Send to server for safe rendering
+    const response = await fetch('/api/render', {
+      method: 'POST',
+      body: JSON.stringify({ code })
+    });
+    
+    const screenshot = await response.blob();
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(screenshot);
+    return img;
+  }
+}
+```
+
+### Production Examples
+
+**1. Figma (Hybrid)**
+- Plugins run client-side in iframes (with memory limits)
+- Heavy rendering sometimes offloaded to server
+- Screenshots generated server-side for thumbnails
+
+**2. Webflow (Server-side Preview)**
+- Main editing is client-side
+- Published site preview uses server-side rendering
+- Ensures consistent cross-browser rendering
+
+**3. Notion (Mixed)**
+- Page editing is client-side
+- PDF export and some previews are server-side
+- Protects against malformed embedded content
+
+---
+
 ## Summary: Key Takeaways
 
 ### What Works in Production
@@ -1351,12 +1349,11 @@ await manager.initialize();
    - Adjust thresholds dynamically
    - Identify problematic code
 
-### Open Source Resources
+### Open Source Resources (Client-Side Only)
 
-- **Sandpack** (CodeSandbox): Bundler and iframe communication
-- **Crosis** (Replit): WebSocket protocol for containers
-- **Observable Runtime**: Notebook runtime with memory management
-- **VS Code**: Extension host isolation patterns
+- **Sandpack** (CodeSandbox): Complete client-side bundler and iframe communication
+- **Observable Runtime**: Notebook runtime with cell-level memory management
+- **Figma Plugin API**: Documentation on browser-based plugin isolation
 
 ### Where to Learn More
 
@@ -1368,12 +1365,21 @@ await manager.initialize();
 
 ### The Bottom Line
 
-**For OS-level memory pressure**, even with cross-origin iframes:
-1. Monitor memory actively (5-second intervals)
-2. Warn users progressively (70%, 85%, 95%)
-3. Restart automatically but gracefully
-4. Save and restore state when possible
-5. Limit number of restarts (prevent loops)
-6. Give users control (manual restart, disable feature)
+**For client-side OS-level memory pressure**, even with cross-origin iframes:
+
+**Browser-Side Protection:**
+1. Use `performance.memory` API (Chrome/Edge) or heuristics (Firefox/Safari)
+2. Monitor memory actively (5-second intervals)
+3. Warn users progressively (70%, 85%, 95%)
+4. Restart iframe automatically but gracefully
+5. Save and restore state in localStorage/IndexedDB
+6. Limit number of restarts (prevent loops)
+7. Give users control (manual restart, disable feature)
+
+**Alternative: Server-Side Rendering**
+- When client-side protection isn't enough
+- Render code on server, stream safe output to client
+- Options: Screenshots, video streams, or static HTML
+- Trade-off: Latency vs. complete protection
 
 This is what battle-tested production systems do, and it works.
