@@ -299,28 +299,4 @@ await generateScrollingPage(sections, {
 
 
 
-## Migration from Older Versions
 
-If you're using older versions of the slide helpers:
-
-**Before:**
-```typescript
-await generateSlideDeck(slides, {
-  outputDir: './output', // Required
-});
-```
-
-**Now:**
-```typescript
-// Get SVGs as strings
-const svgs = await generateSlideDeck(slides, {
-  // outputDir is optional
-});
-
-// Or still write to files
-await generateSlideDeck(slides, {
-  outputDir: './output', // Still works!
-});
-```
-
-The new helpers return SVG strings for maximum flexibility while maintaining backward compatibility when `outputDir` is provided.
