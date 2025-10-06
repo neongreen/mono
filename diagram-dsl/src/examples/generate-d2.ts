@@ -1,9 +1,13 @@
 import { execSync } from 'child_process';
 import { existsSync, mkdirSync, readdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import * as os from 'os';
 import * as fs from 'fs';
 import * as https from 'https';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Script to generate SVG files from D2 diagram files

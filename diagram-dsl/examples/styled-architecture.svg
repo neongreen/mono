@@ -1,13 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="900" height="800" viewBox="0 0 900 800">
   <defs>
-    <marker id="arrowhead-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+    <marker id="arrow-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
       <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
     </marker>
-    <marker id="arrowhead-388e3c" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+    <marker id="arrow-tail-1976d2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-388e3c" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
       <polygon points="0 0, 10 3, 0 6" fill="#388e3c" />
     </marker>
-    <marker id="arrowhead-7b1fa2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+    <marker id="arrow-tail-388e3c" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#388e3c" />
+    </marker>
+    <marker id="arrow-7b1fa2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
       <polygon points="0 0, 10 3, 0 6" fill="#7b1fa2" />
+    </marker>
+    <marker id="arrow-tail-7b1fa2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#7b1fa2" />
     </marker>
   </defs>
   <rect width="900" height="800" fill="white"/>
@@ -34,13 +43,13 @@
         <rect x="458" y="556" width="180" height="90" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
             <text x="548.5" y="597.3333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Cache</text>
             <text x="548.5" y="616.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Redis</text>
-  <line x1="352" y1="238" x2="360" y2="346" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
+  <path d="M 352 238 L 360 346" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
   <rect x="334" y="282" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
   <text x="356" y="296" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
-  <line x1="548" y1="238" x2="540" y2="346" stroke="#1976d2" stroke-width="2" marker-end="url(#arrowhead-1976d2)" />
-  <line x1="450" y1="391" x2="450" y2="407" stroke="#388e3c" stroke-width="2" marker-end="url(#arrowhead-388e3c)" />
-  <line x1="450" y1="497" x2="442" y2="601" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+  <path d="M 548 238 L 540 346" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <path d="M 450 391 L 450 407" stroke="#388e3c" stroke-width="2" fill="none" marker-end="url(#arrow-388e3c)" />
+  <path d="M 450 497 L 442 601" stroke="#7b1fa2" stroke-width="2" fill="none" marker-end="url(#arrow-7b1fa2)" />
   <rect x="431.2" y="539" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
   <text x="446" y="553" font-size="12" fill="#7b1fa2" text-anchor="middle">SQL</text>
-  <line x1="450" y1="497" x2="458" y2="601" stroke="#7b1fa2" stroke-width="2" marker-end="url(#arrowhead-7b1fa2)" />
+  <path d="M 450 497 L 458 601" stroke="#7b1fa2" stroke-width="2" fill="none" marker-end="url(#arrow-7b1fa2)" />
 </svg>
