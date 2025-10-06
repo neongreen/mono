@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"ingest/pkg/command"
 	"ingest/pkg/database"
+	"ingest/pkg/fs"
 	"ingest/pkg/git"
 	"log"
 	"os"
@@ -17,8 +19,8 @@ var rootCmd = &cobra.Command{
 	Long:  `Ingest walks through git repositories and stores all commit and file metadata into an SQLite database.`,
 }
 
-var ingestCmd = &cobra.Command{
-	Use:   "ingest [repository-path]",
+var gitCmd = &cobra.Command{
+	Use:   "git [repository-path]",
 	Short: "Ingest a git repository",
 	Long:  `Ingest walks through all commits in a git repository and stores metadata in the database.`,
 	Args:  cobra.ExactArgs(1),
@@ -46,21 +48,24 @@ var ingestCmd = &cobra.Command{
 		defer db.Close()
 
 		// Create a new run
-		runID, err := db.CreateRun(absPath)
+		runID, err := db.CreateRun(absPath, "git")
 		if err != nil {
 			log.Fatalf("Failed to create run: %v", err)
 		}
 
 		fmt.Printf("Started ingestion run #%d\n", runID)
+		fmt.Println("Looking for commits...")
 
-		// Walk the repository
-		commits, err := git.WalkRepository(absPath)
+		// Walk the repository with progress callback
+		commits, err := git.WalkRepository(absPath, func(count int) {
+			fmt.Printf("Found %d commits so far...\r", count)
+		})
 		if err != nil {
 			db.FinishRun(runID, "failed")
 			log.Fatalf("Failed to walk repository: %v", err)
 		}
 
-		fmt.Printf("Found %d commits\n", len(commits))
+		fmt.Printf("\nFound %d commits total\n", len(commits))
 
 		// Store commits and files
 		totalFiles := 0
@@ -107,6 +112,163 @@ var ingestCmd = &cobra.Command{
 	},
 }
 
+var fsCmd = &cobra.Command{
+	Use:   "fs [path]",
+	Short: "Ingest filesystem entries recursively",
+	Long:  `Ingest walks through a filesystem path recursively and stores file/directory metadata and contents in the database.`,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		fsPath := args[0]
+
+		// Convert to absolute path
+		absPath, err := filepath.Abs(fsPath)
+		if err != nil {
+			log.Fatalf("Failed to get absolute path: %v", err)
+		}
+
+		// Verify path exists
+		if _, err := os.Stat(absPath); os.IsNotExist(err) {
+			log.Fatalf("Path does not exist: %s", absPath)
+		}
+
+		fmt.Printf("Ingesting filesystem: %s\n", absPath)
+
+		// Open database
+		db, err := database.Open()
+		if err != nil {
+			log.Fatalf("Failed to open database: %v", err)
+		}
+		defer db.Close()
+
+		// Create a new run
+		runID, err := db.CreateRun(absPath, "fs")
+		if err != nil {
+			log.Fatalf("Failed to create run: %v", err)
+		}
+
+		fmt.Printf("Started ingestion run #%d\n", runID)
+		fmt.Println("Walking filesystem...")
+
+		// Walk the filesystem with progress callback
+		entries, err := fs.WalkFilesystem(absPath, func(count int) {
+			fmt.Printf("Found %d entries so far...\r", count)
+		})
+		if err != nil {
+			db.FinishRun(runID, "failed")
+			log.Fatalf("Failed to walk filesystem: %v", err)
+		}
+
+		fmt.Printf("\nFound %d entries total\n", len(entries))
+
+		// Store entries
+		for i, entry := range entries {
+			if (i+1)%100 == 0 || (i+1) == len(entries) {
+				fmt.Printf("Processing entry %d/%d...\r", i+1, len(entries))
+			}
+
+			err := db.CreateFSEntry(
+				runID,
+				entry.Path,
+				entry.IsDir,
+				entry.Size,
+				entry.Mode,
+				entry.ModTime,
+				entry.Content,
+			)
+			if err != nil {
+				db.FinishRun(runID, "failed")
+				log.Fatalf("Failed to create fs entry: %v", err)
+			}
+		}
+
+		fmt.Printf("\nProcessed %d entries\n", len(entries))
+
+		// Update counts and finish run
+		if err := db.UpdateRunFileCount(runID); err != nil {
+			log.Fatalf("Failed to update run counts: %v", err)
+		}
+
+		if err := db.FinishRun(runID, "completed"); err != nil {
+			log.Fatalf("Failed to finish run: %v", err)
+		}
+
+		fmt.Printf("Ingestion completed successfully!\n")
+	},
+}
+
+var cmdCmd = &cobra.Command{
+	Use:   "cmd [command]",
+	Short: "Run a shell command and ingest its output",
+	Long:  `Run a shell command and store its output (stdout/stderr), exit code, and execution time in the database.`,
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		shellCmd := args[0]
+		if len(args) > 1 {
+			// Join all args as a single command
+			shellCmd = ""
+			for i, arg := range args {
+				if i > 0 {
+					shellCmd += " "
+				}
+				shellCmd += arg
+			}
+		}
+
+		fmt.Printf("Running command: %s\n", shellCmd)
+
+		// Open database
+		db, err := database.Open()
+		if err != nil {
+			log.Fatalf("Failed to open database: %v", err)
+		}
+		defer db.Close()
+
+		// Create a new run
+		runID, err := db.CreateRun(shellCmd, "cmd")
+		if err != nil {
+			log.Fatalf("Failed to create run: %v", err)
+		}
+
+		fmt.Printf("Started ingestion run #%d\n", runID)
+
+		// Run the command
+		result, err := command.RunCommand(shellCmd)
+		if err != nil {
+			db.FinishRun(runID, "failed")
+			log.Fatalf("Failed to run command: %v", err)
+		}
+
+		fmt.Printf("Command completed with exit code: %d (took %dms)\n", result.ExitCode, result.DurationMs)
+		if len(result.Stdout) > 0 {
+			fmt.Printf("Stdout length: %d bytes\n", len(result.Stdout))
+		}
+		if len(result.Stderr) > 0 {
+			fmt.Printf("Stderr length: %d bytes\n", len(result.Stderr))
+		}
+
+		// Store command result
+		err = db.CreateCmdRun(
+			runID,
+			result.Command,
+			result.ExitCode,
+			result.Stdout,
+			result.Stderr,
+			result.DurationMs,
+		)
+		if err != nil {
+			db.FinishRun(runID, "failed")
+			log.Fatalf("Failed to create cmd run: %v", err)
+		}
+
+		// Finish run
+		if err := db.FinishRun(runID, "completed"); err != nil {
+			log.Fatalf("Failed to finish run: %v", err)
+		}
+
+		fmt.Printf("Ingestion completed successfully!\n")
+	},
+}
+
 var listRunsCmd = &cobra.Command{
 	Use:   "list-runs",
 	Short: "List all ingestion runs",
@@ -128,7 +290,7 @@ var listRunsCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("\n%-5s %-20s %-50s %-8s %-10s %-10s\n", "ID", "Start Time", "Repository", "Status", "Commits", "Files")
+		fmt.Printf("\n%-5s %-6s %-19s %-45s %-8s %-10s %-10s\n", "ID", "Type", "Start Time", "Path/Command", "Status", "Commits", "Files")
 		fmt.Println("-----------------------------------------------------------------------------------------------------------------------------")
 
 		for _, run := range runs {
@@ -141,12 +303,13 @@ var listRunsCmd = &cobra.Command{
 
 			// Truncate repo path if too long
 			repoPath := run.RepoPath
-			if len(repoPath) > 50 {
-				repoPath = "..." + repoPath[len(repoPath)-47:]
+			if len(repoPath) > 45 {
+				repoPath = "..." + repoPath[len(repoPath)-42:]
 			}
 
-			fmt.Printf("%-5d %-20s %-50s %-8s %-10d %-10d%s\n",
+			fmt.Printf("%-5d %-6s %-19s %-45s %-8s %-10d %-10d%s\n",
 				run.ID,
+				run.RunType,
 				startTime,
 				repoPath,
 				run.Status,
@@ -176,7 +339,9 @@ var listRunsCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(ingestCmd)
+	rootCmd.AddCommand(gitCmd)
+	rootCmd.AddCommand(fsCmd)
+	rootCmd.AddCommand(cmdCmd)
 	rootCmd.AddCommand(listRunsCmd)
 }
 

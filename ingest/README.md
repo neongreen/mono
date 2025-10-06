@@ -1,10 +1,15 @@
 # ingest
 
-A CLI tool to ingest Git repository metadata into an SQLite database.
+A CLI tool to ingest various data sources into an SQLite database.
 
 ## Overview
 
-`ingest` walks through all commits in a Git repository and stores metadata about commits and files into an SQLite database located at `~/.ingest/ingest.db`. Each run is treated as separate, allowing you to track multiple ingestion runs for the same or different repositories.
+`ingest` is a flexible ingestion tool that can capture metadata and content from multiple sources:
+- **Git repositories**: All commits, files, and metadata
+- **Filesystems**: Files, directories, and their contents
+- **Shell commands**: Command output, exit codes, and execution time
+
+All data is stored in an SQLite database located at `~/.ingest/ingest.db`. Each run is treated as separate, allowing you to track multiple ingestion runs.
 
 ## Installation
 
@@ -15,17 +20,40 @@ go build -o ingest ./cmd
 
 ## Usage
 
-### Ingest a repository
+### Ingest a Git repository
 
 ```bash
-ingest ingest /path/to/repository
+ingest git /path/to/repository
 ```
 
 This will:
 1. Create a new ingestion run in the database
-2. Walk through all commits in the repository
+2. Walk through all commits in the repository (with progress indication)
 3. Store commit metadata (hash, author, date, message)
 4. Store file metadata for each commit (path, size, mode)
+
+### Ingest a filesystem path
+
+```bash
+ingest fs /path/to/directory
+```
+
+This will:
+1. Create a new ingestion run in the database
+2. Recursively walk through the directory (with progress indication)
+3. Store file and directory metadata (path, size, mode, modification time)
+4. Store file contents (for regular files under 10MB)
+
+### Run a shell command and ingest its output
+
+```bash
+ingest cmd "your command here"
+```
+
+This will:
+1. Create a new ingestion run in the database
+2. Execute the command
+3. Store the command text, exit code, stdout, stderr, and execution time
 
 ### List all ingestion runs
 
@@ -35,24 +63,25 @@ ingest list-runs
 
 This displays:
 - Run ID
+- Run type (git/fs/cmd)
 - Start time
-- Repository path
+- Path or command
 - Status (completed/failed/in_progress)
-- Number of commits ingested
-- Number of files ingested
+- Number of commits/files ingested
 - Duration (for completed runs)
 
 ## Database Schema
 
-The database consists of three tables:
+The database consists of five tables:
 
 ### runs
 - `id`: Unique run identifier
-- `repo_path`: Path to the repository
+- `repo_path`: Path to the repository/directory or command
+- `run_type`: Type of ingestion (git/fs/cmd)
 - `start_time`: When the ingestion started
 - `end_time`: When the ingestion finished (NULL if in progress)
-- `commit_count`: Number of commits ingested
-- `file_count`: Number of files ingested
+- `commit_count`: Number of commits ingested (git only)
+- `file_count`: Number of files/entries ingested
 - `status`: Run status (in_progress/completed/failed)
 
 ### commits
@@ -71,6 +100,25 @@ The database consists of three tables:
 - `size`: File size in bytes
 - `mode`: File mode (permissions)
 
+### fs_entries
+- `id`: Unique entry identifier
+- `run_id`: Foreign key to runs table
+- `path`: Relative path from ingestion root
+- `is_dir`: Whether this is a directory
+- `size`: File size in bytes
+- `mode`: File mode
+- `mod_time`: Last modification time
+- `content`: File contents (BLOB, for files under 10MB)
+
+### cmd_runs
+- `id`: Unique command run identifier
+- `run_id`: Foreign key to runs table
+- `command`: The shell command that was executed
+- `exit_code`: Exit code of the command
+- `stdout`: Standard output
+- `stderr`: Standard error
+- `duration_ms`: Execution time in milliseconds
+
 ## Features
 
 - **Additive database**: Running the tool multiple times adds new runs without deleting old data
@@ -81,33 +129,46 @@ The database consists of three tables:
 ## Examples
 
 ```bash
-# Ingest a repository
-$ ingest ingest ~/projects/myrepo
+# Ingest a Git repository
+$ ingest git ~/projects/myrepo
 Ingesting repository: /home/user/projects/myrepo
 Started ingestion run #1
-Found 150 commits
+Looking for commits...
+Found 1 commits so far...
+Found 150 commits total
 Processing commit 150/150...
 Processed 150 commits with 1234 files
 Ingestion completed successfully!
 
-# Ingest the same repository again (creates a separate run)
-$ ingest ingest ~/projects/myrepo
-Ingesting repository: /home/user/projects/myrepo
+# Ingest a filesystem directory
+$ ingest fs ~/Documents
+Ingesting filesystem: /home/user/Documents
 Started ingestion run #2
-Found 150 commits
-Processing commit 150/150...
-Processed 150 commits with 1234 files
+Walking filesystem...
+Found 100 entries so far...
+Found 523 entries total
+Processing entry 523/523...
+Processed 523 entries
+Ingestion completed successfully!
+
+# Run a command and capture its output
+$ ingest cmd "ls -la /tmp | wc -l"
+Running command: ls -la /tmp | wc -l
+Started ingestion run #3
+Command completed with exit code: 0 (took 5ms)
+Stdout length: 4 bytes
 Ingestion completed successfully!
 
 # View all runs
 $ ingest list-runs
 
-ID    Start Time           Repository                                         Status   Commits    Files     
+ID    Type   Start Time          Path/Command                                  Status   Commits    Files     
 -----------------------------------------------------------------------------------------------------------------------------
-2     2025-01-06 14:30:15  /home/user/projects/myrepo                        completed 150        1234       (2.3s)
-1     2025-01-06 14:25:00  /home/user/projects/myrepo                        completed 150        1234       (2.1s)
+3     cmd    2025-01-06 14:35:20 ls -la /tmp | wc -l                           completed 0          0          (0.0s)
+2     fs     2025-01-06 14:32:15 /home/user/Documents                          completed 0          523        (0.8s)
+1     git    2025-01-06 14:25:00 /home/user/projects/myrepo                    completed 150        1234       (2.1s)
 
-Summary: 2 total runs (2 completed), 300 commits, 2468 files
+Summary: 3 total runs (3 completed), 150 commits, 1757 files
 ```
 
 ## Dependencies

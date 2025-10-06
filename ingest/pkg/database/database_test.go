@@ -31,7 +31,7 @@ func TestDatabaseOperations(t *testing.T) {
 	}
 
 	// Test creating a run
-	runID, err := db.CreateRun("/test/repo")
+	runID, err := db.CreateRun("/test/repo", "git")
 	if err != nil {
 		t.Fatalf("Failed to create run: %v", err)
 	}
@@ -118,12 +118,12 @@ func TestMultipleRuns(t *testing.T) {
 	defer db.Close()
 
 	// Create multiple runs
-	run1ID, err := db.CreateRun("/test/repo1")
+	run1ID, err := db.CreateRun("/test/repo1", "git")
 	if err != nil {
 		t.Fatalf("Failed to create run 1: %v", err)
 	}
 
-	run2ID, err := db.CreateRun("/test/repo2")
+	run2ID, err := db.CreateRun("/test/repo2", "fs")
 	if err != nil {
 		t.Fatalf("Failed to create run 2: %v", err)
 	}

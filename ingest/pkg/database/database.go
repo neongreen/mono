@@ -17,6 +17,7 @@ type Database struct {
 type Run struct {
 	ID           int64
 	RepoPath     string
+	RunType      string
 	StartTime    time.Time
 	EndTime      *time.Time
 	CommitCount  int
@@ -80,6 +81,7 @@ func (d *Database) createTables() error {
 	CREATE TABLE IF NOT EXISTS runs (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		repo_path TEXT NOT NULL,
+		run_type TEXT NOT NULL DEFAULT 'git',
 		start_time DATETIME NOT NULL,
 		end_time DATETIME,
 		commit_count INTEGER DEFAULT 0,
@@ -107,8 +109,33 @@ func (d *Database) createTables() error {
 		FOREIGN KEY (commit_id) REFERENCES commits(id)
 	);
 
+	CREATE TABLE IF NOT EXISTS fs_entries (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		path TEXT NOT NULL,
+		is_dir INTEGER NOT NULL,
+		size INTEGER NOT NULL,
+		mode TEXT NOT NULL,
+		mod_time DATETIME NOT NULL,
+		content BLOB,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS cmd_runs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		command TEXT NOT NULL,
+		exit_code INTEGER NOT NULL,
+		stdout TEXT,
+		stderr TEXT,
+		duration_ms INTEGER NOT NULL,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_commits_run_id ON commits(run_id);
 	CREATE INDEX IF NOT EXISTS idx_files_commit_id ON files(commit_id);
+	CREATE INDEX IF NOT EXISTS idx_fs_entries_run_id ON fs_entries(run_id);
+	CREATE INDEX IF NOT EXISTS idx_cmd_runs_run_id ON cmd_runs(run_id);
 	`
 
 	_, err := d.db.Exec(schema)
@@ -120,10 +147,11 @@ func (d *Database) createTables() error {
 }
 
 // CreateRun creates a new ingestion run
-func (d *Database) CreateRun(repoPath string) (int64, error) {
+func (d *Database) CreateRun(repoPath string, runType string) (int64, error) {
 	result, err := d.db.Exec(
-		"INSERT INTO runs (repo_path, start_time, status) VALUES (?, ?, ?)",
+		"INSERT INTO runs (repo_path, run_type, start_time, status) VALUES (?, ?, ?, ?)",
 		repoPath,
+		runType,
 		time.Now(),
 		"in_progress",
 	)
@@ -201,7 +229,7 @@ func (d *Database) CreateFile(commitID int64, path string, size int64, mode stri
 // GetAllRuns retrieves all ingestion runs
 func (d *Database) GetAllRuns() ([]Run, error) {
 	rows, err := d.db.Query(`
-		SELECT id, repo_path, start_time, end_time, commit_count, file_count, status
+		SELECT id, repo_path, run_type, start_time, end_time, commit_count, file_count, status
 		FROM runs
 		ORDER BY start_time DESC
 	`)
@@ -217,6 +245,7 @@ func (d *Database) GetAllRuns() ([]Run, error) {
 		err := rows.Scan(
 			&run.ID,
 			&run.RepoPath,
+			&run.RunType,
 			&run.StartTime,
 			&endTime,
 			&run.CommitCount,
@@ -239,4 +268,55 @@ func (d *Database) GetAllRuns() ([]Run, error) {
 	}
 
 	return runs, nil
+}
+
+// CreateFSEntry creates a new filesystem entry record
+func (d *Database) CreateFSEntry(runID int64, path string, isDir bool, size int64, mode string, modTime time.Time, content []byte) error {
+	_, err := d.db.Exec(
+		"INSERT INTO fs_entries (run_id, path, is_dir, size, mode, mod_time, content) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		runID,
+		path,
+		isDir,
+		size,
+		mode,
+		modTime,
+		content,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create fs entry: %w", err)
+	}
+
+	return nil
+}
+
+// CreateCmdRun creates a new command run record
+func (d *Database) CreateCmdRun(runID int64, command string, exitCode int, stdout, stderr string, durationMs int64) error {
+	_, err := d.db.Exec(
+		"INSERT INTO cmd_runs (run_id, command, exit_code, stdout, stderr, duration_ms) VALUES (?, ?, ?, ?, ?, ?)",
+		runID,
+		command,
+		exitCode,
+		stdout,
+		stderr,
+		durationMs,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create cmd run: %w", err)
+	}
+
+	return nil
+}
+
+// UpdateRunFileCount updates the file count for filesystem and command runs
+func (d *Database) UpdateRunFileCount(runID int64) error {
+	_, err := d.db.Exec(`
+		UPDATE runs 
+		SET file_count = (SELECT COUNT(*) FROM fs_entries WHERE run_id = ?)
+		WHERE id = ?
+	`, runID, runID)
+	if err != nil {
+		return fmt.Errorf("failed to update run file count: %w", err)
+	}
+
+	return nil
 }

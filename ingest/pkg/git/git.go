@@ -24,7 +24,8 @@ type FileInfo struct {
 }
 
 // WalkRepository walks through all commits in a git repository
-func WalkRepository(repoPath string) ([]CommitInfo, error) {
+// The progressCallback is called periodically with the number of commits found so far
+func WalkRepository(repoPath string, progressCallback func(int)) ([]CommitInfo, error) {
 	repo, err := git.PlainOpen(repoPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open repository: %w", err)
@@ -37,6 +38,7 @@ func WalkRepository(repoPath string) ([]CommitInfo, error) {
 	}
 
 	var commits []CommitInfo
+	count := 0
 	err = commitIter.ForEach(func(c *object.Commit) error {
 		files, err := getFilesFromCommit(c)
 		if err != nil {
@@ -54,6 +56,13 @@ func WalkRepository(repoPath string) ([]CommitInfo, error) {
 		}
 
 		commits = append(commits, commitInfo)
+		count++
+		
+		// Call progress callback every 100 commits or on first commit
+		if progressCallback != nil && (count%100 == 0 || count == 1) {
+			progressCallback(count)
+		}
+		
 		return nil
 	})
 
