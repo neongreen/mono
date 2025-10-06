@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo 4: COOP/COEP Headers (Advanced Isolation)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      margin: 0 0 10px 0;
+      color: #9c27b0;
+    }
+    
+    .info {
+      background: #f3e5f5;
+      border: 2px solid #9c27b0;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    
+    .warning {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    
+    .section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .section h3 {
+      margin-top: 0;
+      color: #1976d2;
+    }
+    
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    th {
+      background: #f5f5f5;
+      font-weight: bold;
+    }
+    
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .comparison-box {
+      padding: 20px;
+      border-radius: 8px;
+      background: #f5f5f5;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔒 Demo 4: COOP/COEP Headers (Advanced Isolation)</h1>
+    <p>Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy for maximum isolation.</p>
+  </div>
+
+  <div class="info">
+    <h3>What are COOP/COEP?</h3>
+    <p>
+      <strong>COOP</strong> (Cross-Origin-Opener-Policy) and <strong>COEP</strong> 
+      (Cross-Origin-Embedder-Policy) are HTTP headers that enforce stricter cross-origin 
+      isolation boundaries.
+    </p>
+    <p>
+      They're required to enable powerful features like <code>SharedArrayBuffer</code> 
+      and high-resolution timers while maintaining security.
+    </p>
+  </div>
+
+  <div class="section">
+    <h3>Why Use COOP/COEP?</h3>
+    <ul>
+      <li><strong>Enable SharedArrayBuffer:</strong> Required for advanced features (WebAssembly threads, etc.)</li>
+      <li><strong>Stricter isolation:</strong> Forces cross-origin resources to explicitly opt-in</li>
+      <li><strong>Security:</strong> Protection against Spectre-like attacks</li>
+      <li><strong>Performance:</strong> High-resolution timers without throttling</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>COOP (Cross-Origin-Opener-Policy)</h3>
+    
+    <h4>Header Values:</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>Value</th>
+          <th>Effect</th>
+          <th>Use Case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>unsafe-none</code></td>
+          <td>Default behavior, no isolation</td>
+          <td>Standard websites</td>
+        </tr>
+        <tr>
+          <td><code>same-origin-allow-popups</code></td>
+          <td>Isolate but allow popups</td>
+          <td>Apps that need popups</td>
+        </tr>
+        <tr>
+          <td><code>same-origin</code></td>
+          <td>Strict isolation</td>
+          <td>Maximum security</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>Server Configuration:</h4>
+    <pre><code>// Node.js / Express
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  next();
+});
+
+// Nginx
+add_header Cross-Origin-Opener-Policy "same-origin";
+
+// Apache
+Header set Cross-Origin-Opener-Policy "same-origin"</code></pre>
+
+    <h4>What COOP Does:</h4>
+    <ul>
+      <li>Breaks relationships with windows opened via <code>window.open()</code></li>
+      <li>Prevents cross-origin windows from accessing your window</li>
+      <li>Creates separate browsing context group</li>
+      <li>Enables cross-origin isolation</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>COEP (Cross-Origin-Embedder-Policy)</h3>
+    
+    <h4>Header Values:</h4>
+    <table>
+      <thead>
+        <tr>
+          <th>Value</th>
+          <th>Effect</th>
+          <th>Requirements</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>unsafe-none</code></td>
+          <td>Default, no restrictions</td>
+          <td>None</td>
+        </tr>
+        <tr>
+          <td><code>require-corp</code></td>
+          <td>All resources must opt-in</td>
+          <td>CORP headers on resources</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h4>Server Configuration:</h4>
+    <pre><code>// Node.js / Express
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  next();
+});
+
+// Nginx
+add_header Cross-Origin-Embedder-Policy "require-corp";
+
+// Apache
+Header set Cross-Origin-Embedder-Policy "require-corp"</code></pre>
+
+    <h4>What COEP Does:</h4>
+    <ul>
+      <li>Requires all embedded resources to explicitly allow it</li>
+      <li>Resources need <code>Cross-Origin-Resource-Policy</code> header</li>
+      <li>Enables <code>crossOriginIsolated</code> capability</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>CORP (Cross-Origin-Resource-Policy)</h3>
+    <p>
+      When using COEP, your resources (images, scripts, etc.) need CORP headers:
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Value</th>
+          <th>Meaning</th>
+          <th>Use For</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>same-site</code></td>
+          <td>Same site only</td>
+          <td>Internal resources</td>
+        </tr>
+        <tr>
+          <td><code>same-origin</code></td>
+          <td>Same origin only</td>
+          <td>Sensitive resources</td>
+        </tr>
+        <tr>
+          <td><code>cross-origin</code></td>
+          <td>Anyone can embed</td>
+          <td>Public resources (CDN)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <pre><code>// On resource responses
+res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');</code></pre>
+  </div>
+
+  <div class="section">
+    <h3>Complete Implementation Example</h3>
+
+    <h4>HTML with Meta Tags (Not Recommended):</h4>
+    <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;!-- Less reliable, use HTTP headers instead --&gt;
+  &lt;meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin"&gt;
+  &lt;meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp"&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;script&gt;
+    console.log('Cross-origin isolated:', crossOriginIsolated);
+  &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+    <h4>Node.js Server (Recommended):</h4>
+    <pre><code>const express = require('express');
+const app = express();
+
+// Apply COOP/COEP headers
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+  
+  // For resources
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  
+  next();
+});
+
+app.get('/', (req, res) => {
+  res.send(`
+    &lt;!DOCTYPE html&gt;
+    &lt;html&gt;
+    &lt;body&gt;
+      &lt;h1&gt;Cross-Origin Isolated Page&lt;/h1&gt;
+      &lt;script&gt;
+        console.log('Cross-origin isolated:', crossOriginIsolated);
+        
+        if (crossOriginIsolated) {
+          // SharedArrayBuffer is available
+          const sab = new SharedArrayBuffer(1024);
+          console.log('SharedArrayBuffer created:', sab);
+        }
+      &lt;/script&gt;
+    &lt;/body&gt;
+    &lt;/html&gt;
+  `);
+});
+
+app.listen(3000, () => {
+  console.log('Server running on http://localhost:3000');
+});</code></pre>
+  </div>
+
+  <div class="section">
+    <h3>Checking If Isolation Works</h3>
+    
+    <pre><code>// In your page JavaScript
+if (crossOriginIsolated) {
+  console.log('✅ Page is cross-origin isolated');
+  console.log('✅ SharedArrayBuffer is available');
+  console.log('✅ High-resolution timers enabled');
+  
+  // You can now use SharedArrayBuffer
+  const buffer = new SharedArrayBuffer(1024);
+  
+} else {
+  console.log('❌ Page is NOT cross-origin isolated');
+  console.log('Missing COOP/COEP headers?');
+}</code></pre>
+  </div>
+
+  <div class="comparison">
+    <div class="comparison-box">
+      <h4>Before COOP/COEP:</h4>
+      <pre><code>crossOriginIsolated: false
+
+typeof SharedArrayBuffer: 
+  "undefined" (blocked)
+
+performance.now() precision:
+  ~0.1ms (throttled)</code></pre>
+    </div>
+
+    <div class="comparison-box">
+      <h4>After COOP/COEP:</h4>
+      <pre><code>crossOriginIsolated: true
+
+typeof SharedArrayBuffer:
+  "function" (available)
+
+performance.now() precision:
+  ~0.005ms (full resolution)</code></pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Common Issues and Solutions</h3>
+
+    <h4>Issue 1: Resources Failing to Load</h4>
+    <p><strong>Error:</strong> Images, scripts, or other resources blocked</p>
+    <p><strong>Solution:</strong> Add CORP headers to resources or use <code>crossorigin</code> attribute:</p>
+    <pre><code>&lt;!-- Add crossorigin attribute --&gt;
+&lt;img src="https://cdn.example.com/image.jpg" crossorigin="anonymous"&gt;
+&lt;script src="https://cdn.example.com/script.js" crossorigin&gt;&lt;/script&gt;
+
+&lt;!-- Or add CORP header on CDN --&gt;
+Cross-Origin-Resource-Policy: cross-origin</code></pre>
+
+    <h4>Issue 2: Third-Party Scripts Breaking</h4>
+    <p><strong>Problem:</strong> Analytics, ads, or third-party scripts don't work</p>
+    <p><strong>Solution:</strong> Either:</p>
+    <ul>
+      <li>Ask third-party to add CORP headers</li>
+      <li>Self-host the scripts</li>
+      <li>Use iframe without COEP for third-party content</li>
+    </ul>
+
+    <h4>Issue 3: OAuth/SSO Popups Breaking</h4>
+    <p><strong>Problem:</strong> <code>window.open()</code> for OAuth fails</p>
+    <p><strong>Solution:</strong> Use <code>same-origin-allow-popups</code> instead of <code>same-origin</code>:</p>
+    <pre><code>Cross-Origin-Opener-Policy: same-origin-allow-popups</code></pre>
+  </div>
+
+  <div class="section">
+    <h3>Real-World Usage</h3>
+
+    <h4>StackBlitz WebContainers</h4>
+    <p>
+      StackBlitz uses COOP/COEP to enable WebContainers, which run Node.js 
+      entirely in the browser using SharedArrayBuffer.
+    </p>
+    <pre><code>// StackBlitz sets these headers:
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Embedder-Policy: require-corp
+
+// This enables:
+- SharedArrayBuffer for WebContainers
+- Full Node.js runtime in browser
+- File system emulation
+- Package installation</code></pre>
+
+    <h4>Advanced Web Apps</h4>
+    <ul>
+      <li><strong>Video/Audio Processing:</strong> Use SharedArrayBuffer for efficient data sharing between workers</li>
+      <li><strong>WebAssembly:</strong> Enable threads and atomic operations</li>
+      <li><strong>Game Engines:</strong> High-resolution timers for smooth rendering</li>
+      <li><strong>Scientific Computing:</strong> Parallel processing with shared memory</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>Testing Your Implementation</h3>
+
+    <h4>Browser DevTools</h4>
+    <ol>
+      <li>Open DevTools (F12)</li>
+      <li>Go to Network tab</li>
+      <li>Check response headers for your page</li>
+      <li>Verify COOP and COEP headers are present</li>
+    </ol>
+
+    <h4>Console Check</h4>
+    <pre><code>// Run in console
+console.log('Cross-origin isolated:', crossOriginIsolated);
+console.log('SharedArrayBuffer:', typeof SharedArrayBuffer);</code></pre>
+
+    <h4>Automated Testing</h4>
+    <pre><code>// Jest/Puppeteer test
+test('page is cross-origin isolated', async () => {
+  await page.goto('https://yourdomain.com');
+  const isIsolated = await page.evaluate(() => crossOriginIsolated);
+  expect(isIsolated).toBe(true);
+});</code></pre>
+  </div>
+
+  <div class="warning">
+    <h3>⚠️ Important Considerations</h3>
+    <ul>
+      <li><strong>Breaking Change:</strong> Enabling COOP/COEP can break existing functionality</li>
+      <li><strong>Third-Party Content:</strong> May not work unless they support CORP</li>
+      <li><strong>OAuth/Popups:</strong> May need <code>same-origin-allow-popups</code></li>
+      <li><strong>Testing Required:</strong> Thoroughly test before deploying to production</li>
+      <li><strong>Browser Support:</strong> Modern browsers only (Chrome 88+, Firefox 79+, Safari 15.2+)</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>When to Use COOP/COEP</h3>
+
+    <h4>✅ Use When:</h4>
+    <ul>
+      <li>You need SharedArrayBuffer</li>
+      <li>You need high-resolution timers</li>
+      <li>You're building advanced web apps (IDEs, editors, games)</li>
+      <li>You want maximum security and isolation</li>
+      <li>You control all resources on your page</li>
+    </ul>
+
+    <h4>❌ Avoid When:</h4>
+    <ul>
+      <li>You rely heavily on third-party scripts</li>
+      <li>You need OAuth popups (use <code>same-origin-allow-popups</code>)</li>
+      <li>You embed content you don't control</li>
+      <li>Your CDN doesn't support CORP headers</li>
+    </ul>
+  </div>
+
+  <div class="info">
+    <h3>Summary</h3>
+    <p>
+      COOP/COEP headers provide the strictest form of cross-origin isolation, 
+      enabling powerful features like SharedArrayBuffer. However, they require 
+      careful implementation and testing.
+    </p>
+    <p>
+      For most iframe isolation use cases, <strong>cross-origin iframes alone</strong> 
+      (Demo 3) are sufficient. Use COOP/COEP only when you specifically need 
+      SharedArrayBuffer or maximum security.
+    </p>
+  </div>
+
+  <script>
+    console.log('[DEMO 4] COOP/COEP demo loaded');
+    console.log('[DEMO 4] Current page isolation status:', crossOriginIsolated);
+    
+    if (typeof SharedArrayBuffer !== 'undefined') {
+      console.log('[DEMO 4] ✅ SharedArrayBuffer is available');
+    } else {
+      console.log('[DEMO 4] ❌ SharedArrayBuffer is not available');
+      console.log('[DEMO 4] Enable COOP/COEP headers to use it');
+    }
+  </script>
+</body>
+</html>

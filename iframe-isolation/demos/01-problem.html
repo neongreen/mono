@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo 1: The Problem - Iframe Memory Leak</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      margin: 0 0 10px 0;
+      color: #d32f2f;
+    }
+    
+    .warning {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    
+    .warning strong {
+      color: #d32f2f;
+    }
+    
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    button {
+      background: #1976d2;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      background: #1565c0;
+    }
+    
+    button.danger {
+      background: #d32f2f;
+    }
+    
+    button.danger:hover {
+      background: #c62828;
+    }
+    
+    .stats {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 10px 0;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+    
+    .stat-label {
+      font-weight: bold;
+      color: #666;
+    }
+    
+    .stat-value {
+      font-family: 'Courier New', monospace;
+      color: #1976d2;
+    }
+    
+    .stat-value.danger {
+      color: #d32f2f;
+      font-weight: bold;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      background: white;
+    }
+    
+    .explanation {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .explanation h3 {
+      margin-top: 0;
+      color: #1976d2;
+    }
+    
+    .explanation code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .explanation pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    
+    ul {
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🚨 Demo 1: The Problem - Iframe Memory Leak</h1>
+    <p>This demo shows how a buggy iframe can impact the parent page's performance and memory.</p>
+  </div>
+
+  <div class="warning">
+    <strong>⚠️ Warning:</strong> This page intentionally creates a memory leak. 
+    Your browser tab may become slow or unresponsive. Close the tab if it becomes too slow.
+    Check the memory stats below to see the impact.
+  </div>
+
+  <div class="controls">
+    <h3>Controls</h3>
+    <button onclick="startLeak()">Start Memory Leak in Iframe</button>
+    <button onclick="stopLeak()">Stop Memory Leak</button>
+    <button class="danger" onclick="restartIframe()">Restart Iframe</button>
+    <button onclick="updateStats()">Update Stats</button>
+  </div>
+
+  <div class="stats">
+    <h3>Memory Statistics (Chrome only)</h3>
+    <div class="stat-row">
+      <span class="stat-label">Used JS Heap:</span>
+      <span class="stat-value" id="usedHeap">N/A</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Total JS Heap:</span>
+      <span class="stat-value" id="totalHeap">N/A</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Heap Limit:</span>
+      <span class="stat-value" id="heapLimit">N/A</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Memory Usage:</span>
+      <span class="stat-value" id="memoryPercent">N/A</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Parent Page Status:</span>
+      <span class="stat-value" id="parentStatus">Normal</span>
+    </div>
+    <p style="margin-top: 15px; color: #666; font-size: 14px;">
+      <strong>Note:</strong> Performance.memory API is non-standard and only available in Chrome.
+      Open Chrome DevTools > Memory tab for more detailed analysis.
+    </p>
+  </div>
+
+  <div id="iframe-container">
+    <iframe id="leakyFrame" srcdoc="
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+          }
+          h2 { margin-bottom: 20px; }
+          .status {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+          }
+          .leak-counter {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 20px 0;
+          }
+          button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px;
+          }
+          button:hover {
+            background: #f0f0f0;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>🧨 Leaky Iframe Content</h2>
+        <div class='status'>
+          <p>This iframe will create a memory leak when started.</p>
+          <p>It creates objects in an infinite loop without cleanup.</p>
+        </div>
+        <div class='leak-counter' id='counter'>0</div>
+        <div>
+          <button onclick='startLeaking()'>Start Leak</button>
+          <button onclick='stopLeaking()'>Stop Leak</button>
+        </div>
+        <div class='status' style='margin-top: 30px;'>
+          <p style='font-size: 14px;'>
+            Watch the parent page's memory stats increase.<br>
+            Notice how the parent page becomes sluggish too.
+          </p>
+        </div>
+        
+        <script>
+          let leakArray = [];
+          let leakInterval = null;
+          let counter = 0;
+          
+          function startLeaking() {
+            if (leakInterval) return;
+            
+            console.log('[IFRAME] Starting memory leak...');
+            
+            leakInterval = setInterval(() => {
+              // Create memory leak - accumulate objects
+              for (let i = 0; i < 10000; i++) {
+                leakArray.push({
+                  data: new Array(1000).fill('leak'),
+                  timestamp: Date.now(),
+                  random: Math.random(),
+                  nested: {
+                    more: new Array(100).fill('data'),
+                    stuff: 'x'.repeat(1000)
+                  }
+                });
+              }
+              
+              counter++;
+              document.getElementById('counter').textContent = 
+                leakArray.length.toLocaleString() + ' objects';
+              
+              // Also do some CPU-intensive work to make it more noticeable
+              let result = 0;
+              for (let i = 0; i < 100000; i++) {
+                result += Math.sqrt(i);
+              }
+              
+            }, 100); // Run every 100ms
+          }
+          
+          function stopLeaking() {
+            if (leakInterval) {
+              clearInterval(leakInterval);
+              leakInterval = null;
+              console.log('[IFRAME] Stopped leak. Accumulated objects:', leakArray.length);
+            }
+          }
+          
+          // Listen for messages from parent
+          window.addEventListener('message', (event) => {
+            if (event.data === 'START_LEAK') {
+              startLeaking();
+            } else if (event.data === 'STOP_LEAK') {
+              stopLeaking();
+            }
+          });
+        </script>
+      </body>
+      </html>
+    "></iframe>
+  </div>
+
+  <div class="explanation">
+    <h3>What's Happening?</h3>
+    <ul>
+      <li><strong>Memory Leak:</strong> The iframe continuously creates objects without freeing them</li>
+      <li><strong>Shared Process:</strong> The iframe runs in the same browser process as the parent page</li>
+      <li><strong>Shared Memory:</strong> Both share the same JavaScript heap space</li>
+      <li><strong>Impact on Parent:</strong> As iframe memory grows, the entire tab becomes sluggish</li>
+      <li><strong>Potential Crash:</strong> If memory exceeds limits, the entire tab crashes</li>
+    </ul>
+
+    <h3>Why This Happens</h3>
+    <p>
+      Same-origin iframes (or iframes without proper isolation) share the same browser process 
+      and memory space as the parent page. This means:
+    </p>
+    <ul>
+      <li>Memory leaks in iframe affect parent page memory</li>
+      <li>CPU-intensive operations in iframe block parent page</li>
+      <li>Crashes in iframe can crash the parent page</li>
+    </ul>
+
+    <h3>How to Verify</h3>
+    <ol>
+      <li>Open Chrome DevTools (F12)</li>
+      <li>Go to Performance Monitor (Cmd/Ctrl + Shift + P → "Performance Monitor")</li>
+      <li>Watch "JS heap size" increase when you start the leak</li>
+      <li>Try interacting with the parent page - notice it becomes sluggish</li>
+      <li>Open Chrome Task Manager (Shift + Esc) - see only one process for this tab</li>
+    </ol>
+
+    <h3>The Problem in Code</h3>
+    <pre><code>// Inside iframe - memory leak
+let leakArray = [];
+setInterval(() => {
+  for (let i = 0; i < 10000; i++) {
+    leakArray.push({ /* large object */ });
+  }
+}, 100);</code></pre>
+
+    <p>
+      This accumulates objects without limit, consuming more and more memory.
+      Since the iframe shares process space with the parent, this affects the entire tab.
+    </p>
+
+    <h3>Why Sandbox Doesn't Help</h3>
+    <pre><code>&lt;!-- This DOES NOT prevent memory leaks --&gt;
+&lt;iframe sandbox="allow-scripts"&gt;&lt;/iframe&gt;</code></pre>
+    <p>
+      The <code>sandbox</code> attribute restricts iframe capabilities (like accessing cookies, 
+      making requests, etc.) but it does <strong>NOT</strong> provide process isolation or memory isolation.
+    </p>
+
+    <h3>The Solution</h3>
+    <p>
+      See <strong>Demo 3: Cross-Origin Isolation</strong> for the proper solution using 
+      separate origins to achieve true process isolation.
+    </p>
+  </div>
+
+  <script>
+    const iframe = document.getElementById('leakyFrame');
+    
+    function startLeak() {
+      console.log('[PARENT] Sending START_LEAK message to iframe');
+      iframe.contentWindow.postMessage('START_LEAK', '*');
+      updateStats();
+      // Auto-update stats while leak is running
+      if (!window.statsInterval) {
+        window.statsInterval = setInterval(updateStats, 1000);
+      }
+    }
+    
+    function stopLeak() {
+      console.log('[PARENT] Sending STOP_LEAK message to iframe');
+      iframe.contentWindow.postMessage('STOP_LEAK', '*');
+      if (window.statsInterval) {
+        clearInterval(window.statsInterval);
+        window.statsInterval = null;
+      }
+    }
+    
+    function restartIframe() {
+      console.log('[PARENT] Restarting iframe...');
+      stopLeak();
+      const src = iframe.getAttribute('srcdoc');
+      iframe.src = 'about:blank';
+      setTimeout(() => {
+        iframe.setAttribute('srcdoc', src);
+        updateStats();
+      }, 100);
+    }
+    
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+    
+    function updateStats() {
+      if (!performance.memory) {
+        document.getElementById('usedHeap').textContent = 'Not available (Chrome only)';
+        document.getElementById('totalHeap').textContent = 'Not available (Chrome only)';
+        document.getElementById('heapLimit').textContent = 'Not available (Chrome only)';
+        document.getElementById('memoryPercent').textContent = 'Not available (Chrome only)';
+        return;
+      }
+      
+      const { usedJSHeapSize, totalJSHeapSize, jsHeapSizeLimit } = performance.memory;
+      const usagePercent = (usedJSHeapSize / jsHeapSizeLimit * 100).toFixed(1);
+      
+      document.getElementById('usedHeap').textContent = formatBytes(usedJSHeapSize);
+      document.getElementById('totalHeap').textContent = formatBytes(totalJSHeapSize);
+      document.getElementById('heapLimit').textContent = formatBytes(jsHeapSizeLimit);
+      
+      const percentElem = document.getElementById('memoryPercent');
+      percentElem.textContent = usagePercent + '%';
+      
+      const statusElem = document.getElementById('parentStatus');
+      
+      if (usagePercent > 80) {
+        percentElem.classList.add('danger');
+        statusElem.textContent = 'CRITICAL - May crash soon!';
+        statusElem.classList.add('danger');
+      } else if (usagePercent > 60) {
+        percentElem.classList.add('danger');
+        statusElem.textContent = 'HIGH - Experiencing slowdown';
+        statusElem.classList.add('danger');
+      } else {
+        percentElem.classList.remove('danger');
+        statusElem.textContent = 'Normal';
+        statusElem.classList.remove('danger');
+      }
+    }
+    
+    // Update stats on page load
+    updateStats();
+    
+    // Periodic update
+    setInterval(updateStats, 5000);
+    
+    // Log to console
+    console.log('[PARENT] Demo 1 loaded. This page demonstrates the iframe memory leak problem.');
+    console.log('[PARENT] Click "Start Memory Leak" and watch the memory stats increase.');
+    console.log('[PARENT] Notice how the parent page becomes sluggish too.');
+  </script>
+</body>
+</html>

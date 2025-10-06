@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo 5: Web Workers for Computation Isolation</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      margin: 0 0 10px 0;
+      color: #ff9800;
+    }
+    
+    .info {
+      background: #fff3e0;
+      border: 2px solid #ff9800;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    
+    .demo-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .demo-section h3 {
+      margin-top: 0;
+      color: #1976d2;
+    }
+    
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .demo-box {
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    
+    button {
+      background: #ff9800;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    
+    button:hover {
+      background: #f57c00;
+    }
+    
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .result {
+      background: #e8f5e9;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+    }
+    
+    .log {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    .log-entry {
+      padding: 5px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    th {
+      background: #f5f5f5;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>⚡ Demo 5: Web Workers for Computation Isolation</h1>
+    <p>Offload heavy computation to Web Workers to keep the main thread responsive.</p>
+  </div>
+
+  <div class="info">
+    <h3>What are Web Workers?</h3>
+    <p>
+      Web Workers run JavaScript in background threads, separate from the main UI thread.
+      They're useful for CPU-intensive tasks that would otherwise block the UI.
+    </p>
+  </div>
+
+  <div class="comparison">
+    <div class="demo-box">
+      <h3>❌ Without Web Worker</h3>
+      <p>Heavy computation blocks UI:</p>
+      <button id="blockingBtn">Run Blocking Calculation</button>
+      <div id="blockingResult" class="result" style="display:none;"></div>
+      <p style="color: #f44336; margin-top: 10px;">
+        Try clicking the button. The page will freeze during calculation!
+      </p>
+    </div>
+
+    <div class="demo-box">
+      <h3>✅ With Web Worker</h3>
+      <p>UI stays responsive:</p>
+      <button id="workerBtn">Run Worker Calculation</button>
+      <button id="cancelWorkerBtn" disabled>Cancel</button>
+      <div id="workerResult" class="result" style="display:none;"></div>
+      <p style="color: #4caf50; margin-top: 10px;">
+        Page remains responsive during calculation!
+      </p>
+    </div>
+  </div>
+
+  <div class="demo-section">
+    <h3>Activity Log</h3>
+    <div id="log" class="log"></div>
+  </div>
+
+  <div class="demo-section">
+    <h3>How Web Workers Work</h3>
+    <pre><code>// Main thread (UI)
+const worker = new Worker('worker.js');
+
+// Send data to worker
+worker.postMessage({ 
+  task: 'calculate', 
+  data: largeDataset 
+});
+
+// Receive result
+worker.onmessage = (e) => {
+  console.log('Result:', e.data.result);
+  updateUI(e.data.result);
+};
+
+// Terminate if needed
+worker.terminate();</code></pre>
+
+    <pre><code>// worker.js (runs in separate thread)
+self.onmessage = (e) => {
+  const { task, data } = e.data;
+  
+  // Heavy computation here
+  const result = performComplexCalculation(data);
+  
+  // Send back to main thread
+  self.postMessage({ result });
+};</code></pre>
+  </div>
+
+  <div class="demo-section">
+    <h3>Worker Capabilities</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>Available in Worker?</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>JavaScript execution</td>
+          <td>✅ Yes</td>
+          <td>Full JS support</td>
+        </tr>
+        <tr>
+          <td>DOM access</td>
+          <td>❌ No</td>
+          <td>Cannot access document</td>
+        </tr>
+        <tr>
+          <td>XMLHttpRequest / fetch</td>
+          <td>✅ Yes</td>
+          <td>Can make network requests</td>
+        </tr>
+        <tr>
+          <td>IndexedDB</td>
+          <td>✅ Yes</td>
+          <td>Can access storage</td>
+        </tr>
+        <tr>
+          <td>setTimeout / setInterval</td>
+          <td>✅ Yes</td>
+          <td>Timers work</td>
+        </tr>
+        <tr>
+          <td>Import scripts</td>
+          <td>✅ Yes</td>
+          <td>Via importScripts()</td>
+        </tr>
+        <tr>
+          <td>Separate memory</td>
+          <td>✅ Yes</td>
+          <td>Own heap space</td>
+        </tr>
+        <tr>
+          <td>Process isolation</td>
+          <td>⚠️ Limited</td>
+          <td>Still same process</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="demo-section">
+    <h3>Use Cases for Web Workers</h3>
+
+    <h4>1. Data Processing</h4>
+    <pre><code>// Process large datasets without blocking UI
+const worker = new Worker('data-processor.js');
+worker.postMessage({ csv: largeCSVData });
+worker.onmessage = (e) => {
+  displayChart(e.data.processed);
+};</code></pre>
+
+    <h4>2. Image/Video Processing</h4>
+    <pre><code>// Apply filters to images
+worker.postMessage({ 
+  imageData: ctx.getImageData(0, 0, width, height),
+  filter: 'blur'
+});
+worker.onmessage = (e) => {
+  ctx.putImageData(e.data.processedImage, 0, 0);
+};</code></pre>
+
+    <h4>3. Syntax Highlighting / Code Analysis</h4>
+    <pre><code>// Used by CodeMirror, Monaco Editor
+worker.postMessage({ code: userCode, language: 'javascript' });
+worker.onmessage = (e) => {
+  applyHighlighting(e.data.tokens);
+};</code></pre>
+
+    <h4>4. Encryption / Hashing</h4>
+    <pre><code>// CPU-intensive crypto operations
+worker.postMessage({ data: fileData, operation: 'encrypt' });
+worker.onmessage = (e) => {
+  saveEncryptedFile(e.data.encrypted);
+};</code></pre>
+  </div>
+
+  <div class="demo-section">
+    <h3>Limitations</h3>
+
+    <h4>Still Shares Process</h4>
+    <p>
+      While Workers have separate JavaScript heaps, they still run in the same 
+      browser process. A Worker memory leak can still affect the tab:
+    </p>
+    <pre><code>// worker.js - This WILL affect the tab!
+let leakyArray = [];
+setInterval(() => {
+  leakyArray.push(new Array(100000).fill('leak'));
+  // Memory grows in same process as main thread
+}, 100);</code></pre>
+
+    <h4>No DOM Access</h4>
+    <p>Workers can't manipulate the DOM. All UI updates must happen in main thread.</p>
+
+    <h4>Communication Overhead</h4>
+    <p>Data is copied (not shared) between worker and main thread by default:</p>
+    <pre><code>// This COPIES the data (can be slow for large objects)
+worker.postMessage(largeObject);
+
+// Use Transferable Objects for zero-copy transfer
+worker.postMessage(arrayBuffer, [arrayBuffer]);</code></pre>
+  </div>
+
+  <div class="demo-section">
+    <h3>Transferable Objects (Performance)</h3>
+    <p>
+      For large data, use Transferable Objects to avoid copying:
+    </p>
+    <pre><code>// Instead of copying (slow)
+const buffer = new ArrayBuffer(1024 * 1024); // 1MB
+worker.postMessage({ buffer }); // Copies 1MB
+
+// Transfer ownership (fast, zero-copy)
+const buffer = new ArrayBuffer(1024 * 1024);
+worker.postMessage({ buffer }, [buffer]);
+// buffer is now empty in main thread, ownership transferred</code></pre>
+
+    <p>Transferable types:</p>
+    <ul>
+      <li>ArrayBuffer</li>
+      <li>MessagePort</li>
+      <li>ImageBitmap</li>
+      <li>OffscreenCanvas</li>
+    </ul>
+  </div>
+
+  <div class="demo-section">
+    <h3>Real-World Examples</h3>
+
+    <h4>Monaco Editor (VS Code Editor)</h4>
+    <pre><code>// Syntax highlighting in worker
+// TypeScript language service in worker
+// Keeps editor responsive while analyzing code</code></pre>
+
+    <h4>Figma</h4>
+    <pre><code>// Canvas rendering in worker
+// Complex layout calculations in worker
+// Main thread only handles UI interactions</code></pre>
+
+    <h4>Google Docs</h4>
+    <pre><code>// Document processing in worker
+// Spell checking in worker
+// Collaborative editing sync in worker</code></pre>
+  </div>
+
+  <div class="demo-section">
+    <h3>Combining with Cross-Origin Iframes</h3>
+    <p>
+      For maximum isolation, use BOTH:
+    </p>
+    <pre><code>&lt;!-- Cross-origin iframe for process isolation --&gt;
+&lt;iframe src="https://sandbox.yourdomain.com"&gt;&lt;/iframe&gt;
+
+&lt;script&gt;
+  // Inside iframe: Use Web Worker for computation
+  const worker = new Worker('heavy-computation.js');
+  worker.postMessage({ data: userCode });
+&lt;/script&gt;</code></pre>
+
+    <p>This gives you:</p>
+    <ul>
+      <li>✅ Process isolation (cross-origin iframe)</li>
+      <li>✅ UI responsiveness (Web Worker)</li>
+      <li>✅ Separate memory heaps (both)</li>
+      <li>✅ Protection from crashes (cross-origin)</li>
+    </ul>
+  </div>
+
+  <div class="info">
+    <h3>Summary</h3>
+    <ul>
+      <li><strong>Web Workers:</strong> Great for keeping UI responsive during heavy computation</li>
+      <li><strong>Separate heap:</strong> Workers have their own JavaScript heap</li>
+      <li><strong>Not process isolation:</strong> Still shares same browser process</li>
+      <li><strong>Best practice:</strong> Combine with cross-origin iframes for complete protection</li>
+      <li><strong>Use for:</strong> Data processing, image/video work, syntax highlighting, crypto</li>
+    </ul>
+  </div>
+
+  <script>
+    const log = document.getElementById('log');
+    let worker = null;
+    
+    function addLog(message) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.insertBefore(entry, log.firstChild);
+    }
+    
+    // Blocking calculation (no worker)
+    document.getElementById('blockingBtn').addEventListener('click', function() {
+      addLog('Starting blocking calculation...');
+      this.disabled = true;
+      
+      // This will freeze the UI
+      setTimeout(() => {
+        const start = performance.now();
+        let result = 0;
+        
+        // CPU-intensive calculation
+        for (let i = 0; i < 1000000000; i++) {
+          result += Math.sqrt(i);
+        }
+        
+        const duration = (performance.now() - start).toFixed(2);
+        document.getElementById('blockingResult').style.display = 'block';
+        document.getElementById('blockingResult').textContent = 
+          `Result: ${result.toExponential(2)} (took ${duration}ms)`;
+        
+        addLog(`Blocking calculation finished in ${duration}ms`);
+        this.disabled = false;
+      }, 10);
+    });
+    
+    // Web Worker calculation
+    document.getElementById('workerBtn').addEventListener('click', function() {
+      if (worker) {
+        addLog('Worker already running');
+        return;
+      }
+      
+      addLog('Starting worker calculation...');
+      this.disabled = true;
+      document.getElementById('cancelWorkerBtn').disabled = false;
+      
+      // Create worker inline using Blob
+      const workerCode = `
+        self.onmessage = function(e) {
+          const start = performance.now();
+          let result = 0;
+          
+          // Same CPU-intensive calculation
+          for (let i = 0; i < 1000000000; i++) {
+            result += Math.sqrt(i);
+            
+            // Check for cancellation periodically
+            if (i % 10000000 === 0) {
+              // Allow worker to process messages
+            }
+          }
+          
+          const duration = performance.now() - start;
+          self.postMessage({ result, duration });
+        };
+      `;
+      
+      const blob = new Blob([workerCode], { type: 'application/javascript' });
+      worker = new Worker(URL.createObjectURL(blob));
+      
+      worker.onmessage = (e) => {
+        const { result, duration } = e.data;
+        document.getElementById('workerResult').style.display = 'block';
+        document.getElementById('workerResult').textContent = 
+          `Result: ${result.toExponential(2)} (took ${duration.toFixed(2)}ms)`;
+        
+        addLog(`Worker calculation finished in ${duration.toFixed(2)}ms`);
+        document.getElementById('workerBtn').disabled = false;
+        document.getElementById('cancelWorkerBtn').disabled = true;
+        
+        worker.terminate();
+        worker = null;
+      };
+      
+      worker.onerror = (error) => {
+        addLog(`Worker error: ${error.message}`);
+        document.getElementById('workerBtn').disabled = false;
+        document.getElementById('cancelWorkerBtn').disabled = true;
+        worker = null;
+      };
+      
+      worker.postMessage({});
+    });
+    
+    document.getElementById('cancelWorkerBtn').addEventListener('click', function() {
+      if (worker) {
+        addLog('Cancelling worker...');
+        worker.terminate();
+        worker = null;
+        document.getElementById('workerBtn').disabled = false;
+        this.disabled = true;
+        document.getElementById('workerResult').style.display = 'block';
+        document.getElementById('workerResult').textContent = 'Cancelled';
+      }
+    });
+    
+    // Add some initial logs
+    addLog('Demo loaded. Try both buttons to see the difference!');
+    addLog('The blocking button will freeze the UI.');
+    addLog('The worker button keeps the UI responsive.');
+    
+    console.log('[DEMO 5] Web Workers demo loaded');
+    console.log('[DEMO 5] Workers provide separate heap but same process');
+  </script>
+</body>
+</html>

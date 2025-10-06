@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iframe Isolation - Demo Index</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 50px;
+    }
+    
+    h1 {
+      font-size: 48px;
+      margin: 0 0 10px 0;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .subtitle {
+      font-size: 20px;
+      opacity: 0.9;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      color: #333;
+    }
+    
+    .intro {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    
+    .demo-grid {
+      display: grid;
+      gap: 20px;
+      margin: 30px 0;
+    }
+    
+    .demo-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 25px;
+      color: white;
+      text-decoration: none;
+      display: block;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .demo-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    
+    .demo-number {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-bottom: 5px;
+    }
+    
+    .demo-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 0 0 10px 0;
+    }
+    
+    .demo-description {
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+    
+    .demo-tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-top: 10px;
+      margin-right: 5px;
+    }
+    
+    .resources {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 2px solid #e0e0e0;
+    }
+    
+    .resource-link {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      margin: 5px;
+      transition: background 0.3s;
+    }
+    
+    .resource-link:hover {
+      background: #764ba2;
+    }
+    
+    .color-problem { background: linear-gradient(135deg, #ef5350 0%, #e53935 100%); }
+    .color-sandbox { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
+    .color-cross-origin { background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); }
+    .color-coop { background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); }
+    .color-workers { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); }
+    .color-monitor { background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🛡️ Iframe Isolation</h1>
+    <div class="subtitle">Research & Demonstrations</div>
+  </div>
+
+  <div class="container">
+    <div class="intro">
+      <h2 style="margin-top: 0;">About This Project</h2>
+      <p>
+        This project explores techniques to protect parent web pages from memory leaks, 
+        performance issues, and crashes in embedded iframes. It includes comprehensive 
+        research and working demonstrations of various isolation approaches.
+      </p>
+      <p>
+        <strong>The Problem:</strong> Even with cross-origin iframes (separate processes), 
+        heavy memory usage can cause OS-level issues affecting the entire system.
+      </p>
+      <p>
+        <strong>The Solution:</strong> Multi-layered defense combining cross-origin isolation, 
+        proactive memory monitoring, automatic restart, and user controls - battle-tested by 
+        CodeSandbox, StackBlitz, Figma, and other production systems.
+      </p>
+    </div>
+
+    <h2>🎯 Interactive Demos</h2>
+    <div class="demo-grid">
+      <a href="demos/01-problem.html" class="demo-card color-problem">
+        <div class="demo-number">DEMO 1</div>
+        <div class="demo-title">🚨 The Problem</div>
+        <div class="demo-description">
+          See how a memory leak in an iframe impacts the parent page. 
+          Watch memory grow and the page become sluggish.
+        </div>
+        <span class="demo-tag">Problem Demo</span>
+        <span class="demo-tag">Interactive</span>
+      </a>
+
+      <a href="demos/02-sandbox.html" class="demo-card color-sandbox">
+        <div class="demo-number">DEMO 2</div>
+        <div class="demo-title">🛡️ Sandbox Attributes</div>
+        <div class="demo-description">
+          Understanding what iframe sandbox can and cannot protect against. 
+          Spoiler: It doesn't prevent memory issues!
+        </div>
+        <span class="demo-tag">Limited Protection</span>
+        <span class="demo-tag">Educational</span>
+      </a>
+
+      <a href="demos/03-cross-origin.html" class="demo-card color-cross-origin">
+        <div class="demo-number">DEMO 3</div>
+        <div class="demo-title">✅ Cross-Origin Isolation</div>
+        <div class="demo-description">
+          The industry-standard solution using separate origins for true process isolation. 
+          Complete protection from memory leaks and crashes.
+        </div>
+        <span class="demo-tag">Recommended</span>
+        <span class="demo-tag">Best Practice</span>
+      </a>
+
+      <a href="demos/04-coop-coep.html" class="demo-card color-coop">
+        <div class="demo-number">DEMO 4</div>
+        <div class="demo-title">🔒 COOP/COEP Headers</div>
+        <div class="demo-description">
+          Advanced isolation using Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy. 
+          Enables SharedArrayBuffer and maximum security.
+        </div>
+        <span class="demo-tag">Advanced</span>
+        <span class="demo-tag">SharedArrayBuffer</span>
+      </a>
+
+      <a href="demos/05-web-workers.html" class="demo-card color-workers">
+        <div class="demo-number">DEMO 5</div>
+        <div class="demo-title">⚡ Web Workers</div>
+        <div class="demo-description">
+          Offload heavy computation to background threads. 
+          Keeps UI responsive but doesn't provide process isolation.
+        </div>
+        <span class="demo-tag">Performance</span>
+        <span class="demo-tag">Interactive Demo</span>
+      </a>
+
+      <a href="demos/06-memory-monitor.html" class="demo-card color-monitor">
+        <div class="demo-number">DEMO 6</div>
+        <div class="demo-title">📊 Memory Monitoring</div>
+        <div class="demo-description">
+          Proactive memory monitoring with automatic iframe restart. 
+          A reactive but effective approach used by CodeSandbox.
+        </div>
+        <span class="demo-tag">Monitoring</span>
+        <span class="demo-tag">Auto-Recovery</span>
+      </a>
+    </div>
+
+    <div class="resources">
+      <h2>📚 Documentation</h2>
+      <a href="README.md" class="resource-link">📖 README - Quick Start</a>
+      <a href="RESEARCH.md" class="resource-link">🔬 Research Report - Technical Analysis</a>
+      <a href="INDUSTRY-OVERVIEW.md" class="resource-link">🏭 Industry Overview - Production Systems</a>
+      <a href="IMPLEMENTATION-PATTERNS.md" class="resource-link">💻 Implementation Patterns - Code Examples</a>
+      <a href="REFERENCES.md" class="resource-link">🔗 References - Links & Resources</a>
+    </div>
+
+    <div class="resources">
+      <h2>🎓 What You'll Learn</h2>
+      <ul style="line-height: 2;">
+        <li><strong>Process Isolation:</strong> How cross-origin iframes achieve true isolation</li>
+        <li><strong>Industry Deep Dive:</strong> Production implementations from CodeSandbox, StackBlitz, Figma, Replit</li>
+        <li><strong>Open Source Tools:</strong> Sandpack, Crosis, Observable Runtime, and more</li>
+        <li><strong>Memory Monitoring:</strong> Battle-tested patterns for detecting and handling memory issues</li>
+        <li><strong>Automatic Recovery:</strong> Graceful restart strategies that preserve user work</li>
+        <li><strong>Multi-Layer Defense:</strong> Why you need more than just cross-origin isolation</li>
+      </ul>
+    </div>
+
+    <div class="resources">
+      <h2>🚀 Quick Start</h2>
+      <ol style="line-height: 2;">
+        <li>Click any demo above to see it in action</li>
+        <li>Open browser DevTools to monitor memory and performance</li>
+        <li>Read the <a href="RESEARCH.md" style="color: #667eea;">research report</a> for detailed explanations</li>
+        <li>Check the <a href="README.md" style="color: #667eea;">README</a> for implementation guidelines</li>
+      </ol>
+    </div>
+
+    <div class="resources">
+      <h2>⚠️ Browser Compatibility</h2>
+      <p>
+        <strong>Best viewed in Chrome/Chromium:</strong> Some demos use the non-standard 
+        <code>performance.memory</code> API which is only available in Chrome. Other demos 
+        work in all modern browsers.
+      </p>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 40px; opacity: 0.9;">
+    <p>Part of the <strong>neongreen/mono</strong> repository</p>
+  </div>
+
+  <script>
+    console.log('🛡️ Iframe Isolation Demo Index loaded');
+    console.log('📚 6 interactive demos + comprehensive research');
+    console.log('🎯 Click any demo card to start exploring');
+  </script>
+</body>
+</html>
