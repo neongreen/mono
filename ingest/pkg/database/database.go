@@ -15,14 +15,13 @@ type Database struct {
 }
 
 type Run struct {
-	ID           int64
-	RepoPath     string
-	RunType      string
-	StartTime    time.Time
-	EndTime      *time.Time
-	CommitCount  int
-	FileCount    int
-	Status       string
+	ID        int64
+	RepoPath  string
+	RunType   string
+	StartTime time.Time
+	EndTime   *time.Time
+	ItemCount int
+	Status    string
 }
 
 type Commit struct {
@@ -84,9 +83,15 @@ func (d *Database) createTables() error {
 		run_type TEXT NOT NULL DEFAULT 'git',
 		start_time DATETIME NOT NULL,
 		end_time DATETIME,
-		commit_count INTEGER DEFAULT 0,
-		file_count INTEGER DEFAULT 0,
+		item_count INTEGER DEFAULT 0,
 		status TEXT NOT NULL DEFAULT 'in_progress'
+	);
+
+	CREATE TABLE IF NOT EXISTS blobs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		sha256 TEXT NOT NULL UNIQUE,
+		content BLOB NOT NULL,
+		size INTEGER NOT NULL
 	);
 
 	CREATE TABLE IF NOT EXISTS commits (
@@ -95,9 +100,18 @@ func (d *Database) createTables() error {
 		hash TEXT NOT NULL,
 		author TEXT NOT NULL,
 		author_email TEXT NOT NULL,
+		committer TEXT NOT NULL,
+		committer_email TEXT NOT NULL,
 		date DATETIME NOT NULL,
 		message TEXT NOT NULL,
 		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS commit_parents (
+		commit_id INTEGER NOT NULL,
+		parent_hash TEXT NOT NULL,
+		FOREIGN KEY (commit_id) REFERENCES commits(id),
+		PRIMARY KEY (commit_id, parent_hash)
 	);
 
 	CREATE TABLE IF NOT EXISTS files (
@@ -106,7 +120,26 @@ func (d *Database) createTables() error {
 		path TEXT NOT NULL,
 		size INTEGER NOT NULL,
 		mode TEXT NOT NULL,
-		FOREIGN KEY (commit_id) REFERENCES commits(id)
+		blob_id INTEGER,
+		FOREIGN KEY (commit_id) REFERENCES commits(id),
+		FOREIGN KEY (blob_id) REFERENCES blobs(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS git_refs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		ref_type TEXT NOT NULL,
+		name TEXT NOT NULL,
+		target_hash TEXT NOT NULL,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS git_remotes (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		name TEXT NOT NULL,
+		url TEXT NOT NULL,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
 	);
 
 	CREATE TABLE IF NOT EXISTS fs_entries (
@@ -117,8 +150,9 @@ func (d *Database) createTables() error {
 		size INTEGER NOT NULL,
 		mode TEXT NOT NULL,
 		mod_time DATETIME NOT NULL,
-		content BLOB,
-		FOREIGN KEY (run_id) REFERENCES runs(id)
+		blob_id INTEGER,
+		FOREIGN KEY (run_id) REFERENCES runs(id),
+		FOREIGN KEY (blob_id) REFERENCES blobs(id)
 	);
 
 	CREATE TABLE IF NOT EXISTS cmd_runs (
@@ -132,9 +166,16 @@ func (d *Database) createTables() error {
 		FOREIGN KEY (run_id) REFERENCES runs(id)
 	);
 
+	CREATE INDEX IF NOT EXISTS idx_blobs_sha256 ON blobs(sha256);
 	CREATE INDEX IF NOT EXISTS idx_commits_run_id ON commits(run_id);
+	CREATE INDEX IF NOT EXISTS idx_commits_hash ON commits(hash);
+	CREATE INDEX IF NOT EXISTS idx_commit_parents_commit_id ON commit_parents(commit_id);
 	CREATE INDEX IF NOT EXISTS idx_files_commit_id ON files(commit_id);
+	CREATE INDEX IF NOT EXISTS idx_files_blob_id ON files(blob_id);
+	CREATE INDEX IF NOT EXISTS idx_git_refs_run_id ON git_refs(run_id);
+	CREATE INDEX IF NOT EXISTS idx_git_remotes_run_id ON git_remotes(run_id);
 	CREATE INDEX IF NOT EXISTS idx_fs_entries_run_id ON fs_entries(run_id);
+	CREATE INDEX IF NOT EXISTS idx_fs_entries_blob_id ON fs_entries(blob_id);
 	CREATE INDEX IF NOT EXISTS idx_cmd_runs_run_id ON cmd_runs(run_id);
 	`
 
@@ -177,29 +218,50 @@ func (d *Database) FinishRun(runID int64, status string) error {
 	return nil
 }
 
-// UpdateRunCounts updates commit and file counts for a run
-func (d *Database) UpdateRunCounts(runID int64) error {
-	_, err := d.db.Exec(`
-		UPDATE runs 
-		SET commit_count = (SELECT COUNT(*) FROM commits WHERE run_id = ?),
-		    file_count = (SELECT COUNT(*) FROM files WHERE commit_id IN (SELECT id FROM commits WHERE run_id = ?))
-		WHERE id = ?
-	`, runID, runID, runID)
+// UpdateRunItemCount updates item count for a run based on run type
+func (d *Database) UpdateRunItemCount(runID int64) error {
+	// Get run type first
+	var runType string
+	err := d.db.QueryRow("SELECT run_type FROM runs WHERE id = ?", runID).Scan(&runType)
 	if err != nil {
-		return fmt.Errorf("failed to update run counts: %w", err)
+		return fmt.Errorf("failed to get run type: %w", err)
+	}
+
+	var query string
+	switch runType {
+	case "git":
+		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM commits WHERE run_id = ?) WHERE id = ?"
+	case "fs":
+		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM fs_entries WHERE run_id = ?) WHERE id = ?"
+	case "cmd":
+		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM cmd_runs WHERE run_id = ?) WHERE id = ?"
+	default:
+		query = "UPDATE runs SET item_count = 0 WHERE id = ?"
+	}
+
+	_, err = d.db.Exec(query, runID, runID)
+	if err != nil {
+		return fmt.Errorf("failed to update run item count: %w", err)
 	}
 
 	return nil
 }
 
+// UpdateRunCounts is deprecated, use UpdateRunItemCount instead
+func (d *Database) UpdateRunCounts(runID int64) error {
+	return d.UpdateRunItemCount(runID)
+}
+
 // CreateCommit creates a new commit record
-func (d *Database) CreateCommit(runID int64, hash, author, authorEmail string, date time.Time, message string) (int64, error) {
+func (d *Database) CreateCommit(runID int64, hash, author, authorEmail, committer, committerEmail string, date time.Time, message string, parentHashes []string) (int64, error) {
 	result, err := d.db.Exec(
-		"INSERT INTO commits (run_id, hash, author, author_email, date, message) VALUES (?, ?, ?, ?, ?, ?)",
+		"INSERT INTO commits (run_id, hash, author, author_email, committer, committer_email, date, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 		runID,
 		hash,
 		author,
 		authorEmail,
+		committer,
+		committerEmail,
 		date,
 		message,
 	)
@@ -207,17 +269,62 @@ func (d *Database) CreateCommit(runID int64, hash, author, authorEmail string, d
 		return 0, fmt.Errorf("failed to create commit: %w", err)
 	}
 
+	commitID, err := result.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get commit ID: %w", err)
+	}
+
+	// Insert parent relationships
+	for _, parentHash := range parentHashes {
+		_, err := d.db.Exec(
+			"INSERT INTO commit_parents (commit_id, parent_hash) VALUES (?, ?)",
+			commitID,
+			parentHash,
+		)
+		if err != nil {
+			return 0, fmt.Errorf("failed to create commit parent: %w", err)
+		}
+	}
+
+	return commitID, nil
+}
+
+// GetOrCreateBlob stores a blob if it doesn't exist and returns its ID
+func (d *Database) GetOrCreateBlob(content []byte, sha256Hash string) (int64, error) {
+	// Check if blob already exists
+	var blobID int64
+	err := d.db.QueryRow("SELECT id FROM blobs WHERE sha256 = ?", sha256Hash).Scan(&blobID)
+	if err == nil {
+		// Blob exists, return its ID
+		return blobID, nil
+	}
+	if err != sql.ErrNoRows {
+		return 0, fmt.Errorf("failed to check for existing blob: %w", err)
+	}
+
+	// Blob doesn't exist, create it
+	result, err := d.db.Exec(
+		"INSERT INTO blobs (sha256, content, size) VALUES (?, ?, ?)",
+		sha256Hash,
+		content,
+		len(content),
+	)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create blob: %w", err)
+	}
+
 	return result.LastInsertId()
 }
 
 // CreateFile creates a new file record
-func (d *Database) CreateFile(commitID int64, path string, size int64, mode string) error {
+func (d *Database) CreateFile(commitID int64, path string, size int64, mode string, blobID *int64) error {
 	_, err := d.db.Exec(
-		"INSERT INTO files (commit_id, path, size, mode) VALUES (?, ?, ?, ?)",
+		"INSERT INTO files (commit_id, path, size, mode, blob_id) VALUES (?, ?, ?, ?, ?)",
 		commitID,
 		path,
 		size,
 		mode,
+		blobID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -229,7 +336,7 @@ func (d *Database) CreateFile(commitID int64, path string, size int64, mode stri
 // GetAllRuns retrieves all ingestion runs
 func (d *Database) GetAllRuns() ([]Run, error) {
 	rows, err := d.db.Query(`
-		SELECT id, repo_path, run_type, start_time, end_time, commit_count, file_count, status
+		SELECT id, repo_path, run_type, start_time, end_time, item_count, status
 		FROM runs
 		ORDER BY start_time DESC
 	`)
@@ -248,8 +355,7 @@ func (d *Database) GetAllRuns() ([]Run, error) {
 			&run.RunType,
 			&run.StartTime,
 			&endTime,
-			&run.CommitCount,
-			&run.FileCount,
+			&run.ItemCount,
 			&run.Status,
 		)
 		if err != nil {
@@ -271,16 +377,16 @@ func (d *Database) GetAllRuns() ([]Run, error) {
 }
 
 // CreateFSEntry creates a new filesystem entry record
-func (d *Database) CreateFSEntry(runID int64, path string, isDir bool, size int64, mode string, modTime time.Time, content []byte) error {
+func (d *Database) CreateFSEntry(runID int64, path string, isDir bool, size int64, mode string, modTime time.Time, blobID *int64) error {
 	_, err := d.db.Exec(
-		"INSERT INTO fs_entries (run_id, path, is_dir, size, mode, mod_time, content) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO fs_entries (run_id, path, is_dir, size, mode, mod_time, blob_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		runID,
 		path,
 		isDir,
 		size,
 		mode,
 		modTime,
-		content,
+		blobID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create fs entry: %w", err)
@@ -307,15 +413,37 @@ func (d *Database) CreateCmdRun(runID int64, command string, exitCode int, stdou
 	return nil
 }
 
-// UpdateRunFileCount updates the file count for filesystem and command runs
+// UpdateRunFileCount is deprecated, use UpdateRunItemCount instead
 func (d *Database) UpdateRunFileCount(runID int64) error {
-	_, err := d.db.Exec(`
-		UPDATE runs 
-		SET file_count = (SELECT COUNT(*) FROM fs_entries WHERE run_id = ?)
-		WHERE id = ?
-	`, runID, runID)
+	return d.UpdateRunItemCount(runID)
+}
+
+// CreateGitRef creates a new git reference record (branch or tag)
+func (d *Database) CreateGitRef(runID int64, refType, name, targetHash string) error {
+	_, err := d.db.Exec(
+		"INSERT INTO git_refs (run_id, ref_type, name, target_hash) VALUES (?, ?, ?, ?)",
+		runID,
+		refType,
+		name,
+		targetHash,
+	)
 	if err != nil {
-		return fmt.Errorf("failed to update run file count: %w", err)
+		return fmt.Errorf("failed to create git ref: %w", err)
+	}
+
+	return nil
+}
+
+// CreateGitRemote creates a new git remote record
+func (d *Database) CreateGitRemote(runID int64, name, url string) error {
+	_, err := d.db.Exec(
+		"INSERT INTO git_remotes (run_id, name, url) VALUES (?, ?, ?)",
+		runID,
+		name,
+		url,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create git remote: %w", err)
 	}
 
 	return nil

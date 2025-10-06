@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,12 +9,13 @@ import (
 )
 
 type FSEntry struct {
-	Path    string
-	IsDir   bool
-	Size    int64
-	Mode    string
-	ModTime time.Time
-	Content []byte
+	Path       string
+	IsDir      bool
+	Size       int64
+	Mode       string
+	ModTime    time.Time
+	Content    []byte
+	SHA256Hash string
 }
 
 // WalkFilesystem walks through a filesystem path recursively
@@ -54,6 +56,9 @@ func WalkFilesystem(rootPath string, progressCallback func(int)) ([]FSEntry, err
 			content, err := os.ReadFile(path)
 			if err == nil {
 				entry.Content = content
+				// Calculate SHA256 hash
+				hash := sha256.Sum256(content)
+				entry.SHA256Hash = fmt.Sprintf("%x", hash)
 			}
 		}
 

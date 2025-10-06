@@ -67,12 +67,12 @@ This displays:
 - Start time
 - Path or command
 - Status (completed/failed/in_progress)
-- Number of commits/files ingested
+- Number of items ingested (context-dependent: commits for git, entries for fs, commands for cmd)
 - Duration (for completed runs)
 
 ## Database Schema
 
-The database consists of five tables:
+The database consists of eight tables with efficient blob storage and deduplication:
 
 ### runs
 - `id`: Unique run identifier
@@ -80,9 +80,16 @@ The database consists of five tables:
 - `run_type`: Type of ingestion (git/fs/cmd)
 - `start_time`: When the ingestion started
 - `end_time`: When the ingestion finished (NULL if in progress)
-- `commit_count`: Number of commits ingested (git only)
-- `file_count`: Number of files/entries ingested
+- `item_count`: Number of items ingested (commits/entries/commands depending on type)
 - `status`: Run status (in_progress/completed/failed)
+
+### blobs
+- `id`: Unique blob identifier
+- `sha256`: SHA256 hash of the content (unique index for deduplication)
+- `content`: The actual file content (BLOB)
+- `size`: Size of the content in bytes
+
+**Note**: The `blobs` table provides efficient storage by deduplicating identical file contents across all ingestion types. Multiple files/entries can reference the same blob.
 
 ### commits
 - `id`: Unique commit identifier
@@ -90,8 +97,16 @@ The database consists of five tables:
 - `hash`: Git commit hash
 - `author`: Author name
 - `author_email`: Author email
+- `committer`: Committer name
+- `committer_email`: Committer email
 - `date`: Commit date
 - `message`: Commit message
+
+### commit_parents
+- `commit_id`: Foreign key to commits table
+- `parent_hash`: Hash of the parent commit
+
+**Note**: This table tracks the commit graph structure, allowing reconstruction of the full commit history.
 
 ### files
 - `id`: Unique file identifier
@@ -99,6 +114,20 @@ The database consists of five tables:
 - `path`: File path
 - `size`: File size in bytes
 - `mode`: File mode (permissions)
+- `blob_id`: Foreign key to blobs table (NULL if content not available)
+
+### git_refs
+- `id`: Unique ref identifier
+- `run_id`: Foreign key to runs table
+- `ref_type`: Type of reference (branch/tag/other)
+- `name`: Reference name (e.g., "main", "v1.0.0")
+- `target_hash`: Hash the reference points to
+
+### git_remotes
+- `id`: Unique remote identifier
+- `run_id`: Foreign key to runs table
+- `name`: Remote name (e.g., "origin")
+- `url`: Remote URL
 
 ### fs_entries
 - `id`: Unique entry identifier
@@ -108,7 +137,7 @@ The database consists of five tables:
 - `size`: File size in bytes
 - `mode`: File mode
 - `mod_time`: Last modification time
-- `content`: File contents (BLOB, for files under 10MB)
+- `blob_id`: Foreign key to blobs table (NULL for directories or if content not available)
 
 ### cmd_runs
 - `id`: Unique command run identifier
@@ -133,11 +162,13 @@ The database consists of five tables:
 $ ingest git ~/projects/myrepo
 Ingesting repository: /home/user/projects/myrepo
 Started ingestion run #1
+Collecting repository metadata...
+Found 2 remotes and 5 refs
 Looking for commits...
 Found 1 commits so far...
 Found 150 commits total
 Processing commit 150/150...
-Processed 150 commits with 1234 files
+Processed 150 commits with 1234 files and 856 blobs
 Ingestion completed successfully!
 
 # Ingest a filesystem directory
@@ -148,7 +179,7 @@ Walking filesystem...
 Found 100 entries so far...
 Found 523 entries total
 Processing entry 523/523...
-Processed 523 entries
+Processed 523 entries with 400 blobs
 Ingestion completed successfully!
 
 # Run a command and capture its output
@@ -162,13 +193,13 @@ Ingestion completed successfully!
 # View all runs
 $ ingest list-runs
 
-ID    Type   Start Time          Path/Command                                  Status   Commits    Files     
+ID    Type   Start Time          Path/Command                                       Status   Items     
 -----------------------------------------------------------------------------------------------------------------------------
-3     cmd    2025-01-06 14:35:20 ls -la /tmp | wc -l                           completed 0          0          (0.0s)
-2     fs     2025-01-06 14:32:15 /home/user/Documents                          completed 0          523        (0.8s)
-1     git    2025-01-06 14:25:00 /home/user/projects/myrepo                    completed 150        1234       (2.1s)
+3     cmd    2025-01-06 14:35:20 ls -la /tmp | wc -l                                completed 0          (0.0s)
+2     fs     2025-01-06 14:32:15 /home/user/Documents                               completed 523        (0.8s)
+1     git    2025-01-06 14:25:00 /home/user/projects/myrepo                         completed 150        (2.1s)
 
-Summary: 3 total runs (3 completed), 150 commits, 1757 files
+Summary: 3 total runs (3 completed), 673 items
 ```
 
 ## Dependencies

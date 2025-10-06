@@ -54,6 +54,35 @@ var gitCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Started ingestion run #%d\n", runID)
+		
+		// Get repository metadata
+		fmt.Println("Collecting repository metadata...")
+		metadata, err := git.GetRepoMetadata(absPath)
+		if err != nil {
+			db.FinishRun(runID, "failed")
+			log.Fatalf("Failed to get repository metadata: %v", err)
+		}
+
+		// Store remotes
+		for _, remote := range metadata.Remotes {
+			err := db.CreateGitRemote(runID, remote.Name, remote.URL)
+			if err != nil {
+				db.FinishRun(runID, "failed")
+				log.Fatalf("Failed to create remote: %v", err)
+			}
+		}
+
+		// Store refs (branches and tags)
+		for _, ref := range metadata.Refs {
+			err := db.CreateGitRef(runID, ref.Type, ref.Name, ref.TargetHash)
+			if err != nil {
+				db.FinishRun(runID, "failed")
+				log.Fatalf("Failed to create ref: %v", err)
+			}
+		}
+
+		fmt.Printf("Found %d remotes and %d refs\n", len(metadata.Remotes), len(metadata.Refs))
+
 		fmt.Println("Looking for commits...")
 
 		// Walk the repository with progress callback
@@ -69,6 +98,7 @@ var gitCmd = &cobra.Command{
 
 		// Store commits and files
 		totalFiles := 0
+		totalBlobs := 0
 		for i, commit := range commits {
 			if (i+1)%100 == 0 || (i+1) == len(commits) {
 				fmt.Printf("Processing commit %d/%d...\r", i+1, len(commits))
@@ -79,8 +109,11 @@ var gitCmd = &cobra.Command{
 				commit.Hash,
 				commit.Author,
 				commit.AuthorEmail,
+				commit.Committer,
+				commit.CommitterEmail,
 				commit.Date,
 				commit.Message,
+				commit.ParentHashes,
 			)
 			if err != nil {
 				db.FinishRun(runID, "failed")
@@ -88,7 +121,20 @@ var gitCmd = &cobra.Command{
 			}
 
 			for _, file := range commit.Files {
-				err := db.CreateFile(commitID, file.Path, file.Size, file.Mode)
+				var blobID *int64
+				
+				// Store file content as blob if available
+				if len(file.Content) > 0 {
+					id, err := db.GetOrCreateBlob(file.Content, file.SHA256Hash)
+					if err != nil {
+						db.FinishRun(runID, "failed")
+						log.Fatalf("Failed to create blob: %v", err)
+					}
+					blobID = &id
+					totalBlobs++
+				}
+
+				err := db.CreateFile(commitID, file.Path, file.Size, file.Mode, blobID)
 				if err != nil {
 					db.FinishRun(runID, "failed")
 					log.Fatalf("Failed to create file: %v", err)
@@ -97,10 +143,10 @@ var gitCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Printf("\nProcessed %d commits with %d files\n", len(commits), totalFiles)
+		fmt.Printf("\nProcessed %d commits with %d files and %d blobs\n", len(commits), totalFiles, totalBlobs)
 
 		// Update counts and finish run
-		if err := db.UpdateRunCounts(runID); err != nil {
+		if err := db.UpdateRunItemCount(runID); err != nil {
 			log.Fatalf("Failed to update run counts: %v", err)
 		}
 
@@ -161,9 +207,23 @@ var fsCmd = &cobra.Command{
 		fmt.Printf("\nFound %d entries total\n", len(entries))
 
 		// Store entries
+		totalBlobs := 0
 		for i, entry := range entries {
 			if (i+1)%100 == 0 || (i+1) == len(entries) {
 				fmt.Printf("Processing entry %d/%d...\r", i+1, len(entries))
+			}
+
+			var blobID *int64
+
+			// Store file content as blob if available
+			if len(entry.Content) > 0 {
+				id, err := db.GetOrCreateBlob(entry.Content, entry.SHA256Hash)
+				if err != nil {
+					db.FinishRun(runID, "failed")
+					log.Fatalf("Failed to create blob: %v", err)
+				}
+				blobID = &id
+				totalBlobs++
 			}
 
 			err := db.CreateFSEntry(
@@ -173,7 +233,7 @@ var fsCmd = &cobra.Command{
 				entry.Size,
 				entry.Mode,
 				entry.ModTime,
-				entry.Content,
+				blobID,
 			)
 			if err != nil {
 				db.FinishRun(runID, "failed")
@@ -181,10 +241,10 @@ var fsCmd = &cobra.Command{
 			}
 		}
 
-		fmt.Printf("\nProcessed %d entries\n", len(entries))
+		fmt.Printf("\nProcessed %d entries with %d blobs\n", len(entries), totalBlobs)
 
 		// Update counts and finish run
-		if err := db.UpdateRunFileCount(runID); err != nil {
+		if err := db.UpdateRunItemCount(runID); err != nil {
 			log.Fatalf("Failed to update run counts: %v", err)
 		}
 
@@ -290,7 +350,7 @@ var listRunsCmd = &cobra.Command{
 			return
 		}
 
-		fmt.Printf("\n%-5s %-6s %-19s %-45s %-8s %-10s %-10s\n", "ID", "Type", "Start Time", "Path/Command", "Status", "Commits", "Files")
+		fmt.Printf("\n%-5s %-6s %-19s %-50s %-8s %-10s\n", "ID", "Type", "Start Time", "Path/Command", "Status", "Items")
 		fmt.Println("-----------------------------------------------------------------------------------------------------------------------------")
 
 		for _, run := range runs {
@@ -303,18 +363,17 @@ var listRunsCmd = &cobra.Command{
 
 			// Truncate repo path if too long
 			repoPath := run.RepoPath
-			if len(repoPath) > 45 {
-				repoPath = "..." + repoPath[len(repoPath)-42:]
+			if len(repoPath) > 50 {
+				repoPath = "..." + repoPath[len(repoPath)-47:]
 			}
 
-			fmt.Printf("%-5d %-6s %-19s %-45s %-8s %-10d %-10d%s\n",
+			fmt.Printf("%-5d %-6s %-19s %-50s %-8s %-10d%s\n",
 				run.ID,
 				run.RunType,
 				startTime,
 				repoPath,
 				run.Status,
-				run.CommitCount,
-				run.FileCount,
+				run.ItemCount,
 				duration,
 			)
 		}
@@ -322,19 +381,17 @@ var listRunsCmd = &cobra.Command{
 		fmt.Println()
 
 		// Display summary statistics
-		totalCommits := 0
-		totalFiles := 0
+		totalItems := 0
 		completedRuns := 0
 		for _, run := range runs {
-			totalCommits += run.CommitCount
-			totalFiles += run.FileCount
+			totalItems += run.ItemCount
 			if run.Status == "completed" {
 				completedRuns++
 			}
 		}
 
-		fmt.Printf("Summary: %d total runs (%d completed), %d commits, %d files\n",
-			len(runs), completedRuns, totalCommits, totalFiles)
+		fmt.Printf("Summary: %d total runs (%d completed), %d items\n",
+			len(runs), completedRuns, totalItems)
 	},
 }
 

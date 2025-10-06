@@ -42,7 +42,7 @@ func TestDatabaseOperations(t *testing.T) {
 
 	// Test creating a commit
 	commitDate := time.Now()
-	commitID, err := db.CreateCommit(runID, "abc123", "Test Author", "test@example.com", commitDate, "Test commit")
+	commitID, err := db.CreateCommit(runID, "abc123", "Test Author", "test@example.com", "Test Committer", "committer@example.com", commitDate, "Test commit", []string{})
 	if err != nil {
 		t.Fatalf("Failed to create commit: %v", err)
 	}
@@ -52,13 +52,13 @@ func TestDatabaseOperations(t *testing.T) {
 	}
 
 	// Test creating a file
-	err = db.CreateFile(commitID, "/test/file.go", 1234, "100644")
+	err = db.CreateFile(commitID, "/test/file.go", 1234, "100644", nil)
 	if err != nil {
 		t.Fatalf("Failed to create file: %v", err)
 	}
 
 	// Test updating run counts
-	err = db.UpdateRunCounts(runID)
+	err = db.UpdateRunItemCount(runID)
 	if err != nil {
 		t.Fatalf("Failed to update run counts: %v", err)
 	}
@@ -88,12 +88,12 @@ func TestDatabaseOperations(t *testing.T) {
 		t.Errorf("Expected status 'completed', got '%s'", run.Status)
 	}
 
-	if run.CommitCount != 1 {
-		t.Errorf("Expected 1 commit, got %d", run.CommitCount)
+	if run.RunType != "git" {
+		t.Errorf("Expected run type 'git', got '%s'", run.RunType)
 	}
 
-	if run.FileCount != 1 {
-		t.Errorf("Expected 1 file, got %d", run.FileCount)
+	if run.ItemCount != 1 {
+		t.Errorf("Expected 1 item, got %d", run.ItemCount)
 	}
 
 	if run.EndTime == nil {

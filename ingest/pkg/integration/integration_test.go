@@ -112,15 +112,27 @@ func TestGitIngestion(t *testing.T) {
 			commit.Hash,
 			commit.Author,
 			commit.AuthorEmail,
+			commit.Committer,
+			commit.CommitterEmail,
 			commit.Date,
 			commit.Message,
+			commit.ParentHashes,
 		)
 		if err != nil {
 			t.Fatalf("Failed to create commit: %v", err)
 		}
 
 		for _, file := range commit.Files {
-			err := db.CreateFile(commitID, file.Path, file.Size, file.Mode)
+			var blobID *int64
+			if len(file.Content) > 0 {
+				id, err := db.GetOrCreateBlob(file.Content, file.SHA256Hash)
+				if err != nil {
+					t.Fatalf("Failed to create blob: %v", err)
+				}
+				blobID = &id
+			}
+
+			err := db.CreateFile(commitID, file.Path, file.Size, file.Mode, blobID)
 			if err != nil {
 				t.Fatalf("Failed to create file: %v", err)
 			}
@@ -128,7 +140,7 @@ func TestGitIngestion(t *testing.T) {
 	}
 
 	// Update run counts
-	if err := db.UpdateRunCounts(runID); err != nil {
+	if err := db.UpdateRunItemCount(runID); err != nil {
 		t.Fatalf("Failed to update run counts: %v", err)
 	}
 
@@ -156,13 +168,8 @@ func TestGitIngestion(t *testing.T) {
 		t.Errorf("Expected status 'completed', got '%s'", run.Status)
 	}
 
-	if run.CommitCount != 2 {
-		t.Errorf("Expected 2 commits, got %d", run.CommitCount)
-	}
-
-	// Each commit should have at least 1 file
-	if run.FileCount < 2 {
-		t.Errorf("Expected at least 2 files, got %d", run.FileCount)
+	if run.ItemCount != 2 {
+		t.Errorf("Expected 2 items (commits), got %d", run.ItemCount)
 	}
 
 	if run.EndTime == nil {
