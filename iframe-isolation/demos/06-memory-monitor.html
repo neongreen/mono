@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo 6: Memory Monitoring and Auto-Recovery</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    
+    .header {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      margin: 0 0 10px 0;
+      color: #2196f3;
+    }
+    
+    .info {
+      background: #e3f2fd;
+      border: 2px solid #2196f3;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    
+    .warning {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 4px;
+      padding: 15px;
+      margin: 20px 0;
+    }
+    
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    button {
+      background: #2196f3;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    
+    button:hover {
+      background: #1976d2;
+    }
+    
+    button.danger {
+      background: #f44336;
+    }
+    
+    button.danger:hover {
+      background: #d32f2f;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1976d2;
+    }
+    
+    .stat-value.warning {
+      color: #ff9800;
+    }
+    
+    .stat-value.danger {
+      color: #f44336;
+    }
+    
+    .chart {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      height: 300px;
+      position: relative;
+    }
+    
+    canvas {
+      width: 100% !important;
+      height: 250px !important;
+    }
+    
+    .event-log {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .log-entry {
+      padding: 10px;
+      margin: 5px 0;
+      border-left: 4px solid #2196f3;
+      background: #f5f5f5;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    .log-entry.warning {
+      border-left-color: #ff9800;
+    }
+    
+    .log-entry.danger {
+      border-left-color: #f44336;
+    }
+    
+    .log-entry.success {
+      border-left-color: #4caf50;
+    }
+    
+    iframe {
+      width: 100%;
+      height: 400px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      background: white;
+      margin: 15px 0;
+    }
+    
+    code {
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    
+    pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    
+    .config-section {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .config-item {
+      margin: 15px 0;
+    }
+    
+    .config-item label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #666;
+    }
+    
+    .config-item input[type="range"] {
+      width: 100%;
+    }
+    
+    .config-item .value-display {
+      display: inline-block;
+      min-width: 60px;
+      text-align: right;
+      color: #1976d2;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 Demo 6: Memory Monitoring and Auto-Recovery</h1>
+    <p>Proactive monitoring and automatic iframe restart on high memory usage.</p>
+  </div>
+
+  <div class="warning">
+    <strong>⚠️ Note:</strong> The <code>performance.memory</code> API is non-standard 
+    and only available in Chrome/Chromium browsers. This demo won't work in other browsers.
+  </div>
+
+  <div class="info">
+    <h3>Strategy: Monitor + React</h3>
+    <p>
+      When cross-origin isolation isn't possible, monitor memory usage and automatically 
+      restart iframes before they cause problems. This is a reactive approach used by 
+      CodeSandbox and other platforms.
+    </p>
+  </div>
+
+  <div class="config-section">
+    <h3>⚙️ Configuration</h3>
+    <div class="config-item">
+      <label>
+        Memory Threshold for Restart: 
+        <span class="value-display" id="thresholdDisplay">80%</span>
+      </label>
+      <input type="range" id="threshold" min="50" max="95" value="80" step="5">
+    </div>
+    <div class="config-item">
+      <label>
+        Check Interval: 
+        <span class="value-display" id="intervalDisplay">2s</span>
+      </label>
+      <input type="range" id="interval" min="1" max="10" value="2" step="1">
+    </div>
+    <div class="config-item">
+      <label>
+        Max Auto-Restarts: 
+        <span class="value-display" id="maxRestartsDisplay">3</span>
+      </label>
+      <input type="range" id="maxRestarts" min="1" max="10" value="3" step="1">
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Used Heap</div>
+      <div class="stat-value" id="usedHeap">Loading...</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Heap</div>
+      <div class="stat-value" id="totalHeap">Loading...</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Heap Limit</div>
+      <div class="stat-value" id="heapLimit">Loading...</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Memory Usage</div>
+      <div class="stat-value" id="memoryPercent">Loading...</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Auto-Restarts</div>
+      <div class="stat-value" id="restartCount">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Monitoring Status</div>
+      <div class="stat-value" id="monitorStatus">Active</div>
+    </div>
+  </div>
+
+  <div class="chart">
+    <h3>Memory Usage Over Time</h3>
+    <canvas id="memoryChart"></canvas>
+  </div>
+
+  <div class="controls">
+    <h3>Iframe Controls</h3>
+    <button onclick="startLeak()">Start Memory Leak</button>
+    <button onclick="stopLeak()">Stop Leak</button>
+    <button class="danger" onclick="manualRestart()">Manual Restart</button>
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+
+  <iframe id="monitoredFrame" srcdoc="
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body {
+          font-family: Arial;
+          padding: 40px;
+          text-align: center;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+        }
+        .counter {
+          font-size: 48px;
+          font-weight: bold;
+          margin: 20px 0;
+        }
+        button {
+          background: white;
+          color: #667eea;
+          border: none;
+          padding: 15px 30px;
+          margin: 10px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 16px;
+          font-weight: bold;
+        }
+      </style>
+    </head>
+    <body>
+      <h2>Monitored Iframe</h2>
+      <p>This iframe is being monitored for memory usage</p>
+      <div class='counter' id='counter'>Ready</div>
+      <div>
+        <button onclick='startLeaking()'>Start Leak</button>
+        <button onclick='stopLeaking()'>Stop Leak</button>
+      </div>
+      <script>
+        let leakArray = [];
+        let leakInterval = null;
+        
+        function startLeaking() {
+          if (leakInterval) return;
+          leakInterval = setInterval(() => {
+            for (let i = 0; i < 10000; i++) {
+              leakArray.push({
+                data: new Array(1000).fill('leak'),
+                timestamp: Date.now()
+              });
+            }
+            document.getElementById('counter').textContent = 
+              leakArray.length.toLocaleString() + ' objects';
+          }, 100);
+        }
+        
+        function stopLeaking() {
+          if (leakInterval) {
+            clearInterval(leakInterval);
+            leakInterval = null;
+          }
+        }
+        
+        window.addEventListener('message', (e) => {
+          if (e.data === 'START_LEAK') startLeaking();
+          if (e.data === 'STOP_LEAK') stopLeaking();
+        });
+      </script>
+    </body>
+    </html>
+  "></iframe>
+
+  <div class="event-log">
+    <h3>Event Log</h3>
+    <div id="eventLog"></div>
+  </div>
+
+  <div class="config-section">
+    <h3>Implementation Code</h3>
+    <pre><code>// Memory monitoring with auto-restart
+class IframeMemoryMonitor {
+  constructor(iframe, options = {}) {
+    this.iframe = iframe;
+    this.threshold = options.threshold || 80; // percent
+    this.checkInterval = options.interval || 2000; // ms
+    this.maxRestarts = options.maxRestarts || 3;
+    this.restartCount = 0;
+    this.monitoring = false;
+  }
+  
+  start() {
+    this.monitoring = true;
+    this.intervalId = setInterval(() => {
+      this.checkMemory();
+    }, this.checkInterval);
+  }
+  
+  stop() {
+    this.monitoring = false;
+    clearInterval(this.intervalId);
+  }
+  
+  checkMemory() {
+    if (!performance.memory) {
+      console.warn('performance.memory not available');
+      return;
+    }
+    
+    const { usedJSHeapSize, jsHeapSizeLimit } = performance.memory;
+    const usage = (usedJSHeapSize / jsHeapSizeLimit) * 100;
+    
+    if (usage > this.threshold && this.restartCount < this.maxRestarts) {
+      console.warn(\`High memory: \${usage.toFixed(1)}%\`);
+      this.restartIframe();
+    }
+  }
+  
+  restartIframe() {
+    this.restartCount++;
+    console.log(\`Restarting iframe (attempt \${this.restartCount})\`);
+    
+    const src = this.iframe.src;
+    this.iframe.src = 'about:blank';
+    
+    setTimeout(() => {
+      this.iframe.src = src;
+      // Reset counter after successful recovery
+      setTimeout(() => {
+        this.restartCount = Math.max(0, this.restartCount - 1);
+      }, 60000); // Reset after 1 minute
+    }, 100);
+  }
+}
+
+// Usage
+const monitor = new IframeMemoryMonitor(iframe, {
+  threshold: 80,
+  interval: 2000,
+  maxRestarts: 3
+});
+
+monitor.start();</code></pre>
+  </div>
+
+  <script>
+    const iframe = document.getElementById('monitoredFrame');
+    const eventLog = document.getElementById('eventLog');
+    let restartCount = 0;
+    let config = {
+      threshold: 80,
+      interval: 2000,
+      maxRestarts: 3
+    };
+    let monitoringInterval = null;
+    let chartData = [];
+    const maxChartPoints = 50;
+    
+    // Chart setup
+    const canvas = document.getElementById('memoryChart');
+    const ctx = canvas.getContext('2d');
+    
+    function addEvent(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      eventLog.insertBefore(entry, eventLog.firstChild);
+    }
+    
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+    
+    function updateStats() {
+      if (!performance.memory) {
+        document.getElementById('usedHeap').textContent = 'N/A';
+        document.getElementById('totalHeap').textContent = 'N/A';
+        document.getElementById('heapLimit').textContent = 'N/A';
+        document.getElementById('memoryPercent').textContent = 'Chrome only';
+        return null;
+      }
+      
+      const { usedJSHeapSize, totalJSHeapSize, jsHeapSizeLimit } = performance.memory;
+      const usagePercent = (usedJSHeapSize / jsHeapSizeLimit * 100);
+      
+      document.getElementById('usedHeap').textContent = formatBytes(usedJSHeapSize);
+      document.getElementById('totalHeap').textContent = formatBytes(totalJSHeapSize);
+      document.getElementById('heapLimit').textContent = formatBytes(jsHeapSizeLimit);
+      
+      const percentElem = document.getElementById('memoryPercent');
+      percentElem.textContent = usagePercent.toFixed(1) + '%';
+      
+      percentElem.className = 'stat-value';
+      if (usagePercent > config.threshold) {
+        percentElem.classList.add('danger');
+      } else if (usagePercent > config.threshold - 20) {
+        percentElem.classList.add('warning');
+      }
+      
+      return usagePercent;
+    }
+    
+    function drawChart() {
+      const width = canvas.width = canvas.offsetWidth;
+      const height = canvas.height = canvas.offsetHeight;
+      
+      ctx.clearRect(0, 0, width, height);
+      
+      if (chartData.length < 2) return;
+      
+      // Draw grid
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = (height / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      
+      // Draw threshold line
+      ctx.strokeStyle = '#ff9800';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      const thresholdY = height - (config.threshold / 100) * height;
+      ctx.beginPath();
+      ctx.moveTo(0, thresholdY);
+      ctx.lineTo(width, thresholdY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Draw memory line
+      ctx.strokeStyle = '#2196f3';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      const xStep = width / (maxChartPoints - 1);
+      chartData.forEach((value, index) => {
+        const x = index * xStep;
+        const y = height - (value / 100) * height;
+        
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      
+      ctx.stroke();
+      
+      // Draw labels
+      ctx.fillStyle = '#666';
+      ctx.font = '12px Arial';
+      ctx.fillText('0%', 5, height - 5);
+      ctx.fillText('100%', 5, 15);
+      ctx.fillText(`Threshold: ${config.threshold}%`, width - 120, thresholdY - 5);
+    }
+    
+    function checkMemory() {
+      const usage = updateStats();
+      if (usage === null) return;
+      
+      // Add to chart
+      chartData.push(usage);
+      if (chartData.length > maxChartPoints) {
+        chartData.shift();
+      }
+      drawChart();
+      
+      // Check threshold
+      if (usage > config.threshold && restartCount < config.maxRestarts) {
+        addEvent(`⚠️ High memory detected: ${usage.toFixed(1)}%`, 'warning');
+        restartIframe();
+      }
+    }
+    
+    function restartIframe() {
+      restartCount++;
+      document.getElementById('restartCount').textContent = restartCount;
+      
+      addEvent(`🔄 Auto-restarting iframe (attempt ${restartCount}/${config.maxRestarts})`, 'danger');
+      
+      const srcdoc = iframe.getAttribute('srcdoc');
+      iframe.src = 'about:blank';
+      
+      setTimeout(() => {
+        iframe.setAttribute('srcdoc', srcdoc);
+        addEvent('✅ Iframe restarted successfully', 'success');
+        
+        // Reset counter after recovery period
+        setTimeout(() => {
+          if (restartCount > 0) {
+            restartCount--;
+            document.getElementById('restartCount').textContent = restartCount;
+            addEvent('ℹ️ Restart counter decremented', 'info');
+          }
+        }, 60000);
+      }, 100);
+    }
+    
+    function startLeak() {
+      addEvent('Starting memory leak in iframe', 'info');
+      iframe.contentWindow.postMessage('START_LEAK', '*');
+    }
+    
+    function stopLeak() {
+      addEvent('Stopping memory leak', 'info');
+      iframe.contentWindow.postMessage('STOP_LEAK', '*');
+    }
+    
+    function manualRestart() {
+      addEvent('Manual restart requested', 'info');
+      restartIframe();
+    }
+    
+    function clearLog() {
+      eventLog.innerHTML = '';
+      addEvent('Log cleared', 'info');
+    }
+    
+    // Configuration controls
+    document.getElementById('threshold').addEventListener('input', function() {
+      config.threshold = parseInt(this.value);
+      document.getElementById('thresholdDisplay').textContent = config.threshold + '%';
+      addEvent(`Threshold updated to ${config.threshold}%`, 'info');
+      drawChart();
+    });
+    
+    document.getElementById('interval').addEventListener('input', function() {
+      config.interval = parseInt(this.value) * 1000;
+      document.getElementById('intervalDisplay').textContent = this.value + 's';
+      addEvent(`Check interval updated to ${this.value}s`, 'info');
+      
+      // Restart monitoring with new interval
+      if (monitoringInterval) {
+        clearInterval(monitoringInterval);
+        monitoringInterval = setInterval(checkMemory, config.interval);
+      }
+    });
+    
+    document.getElementById('maxRestarts').addEventListener('input', function() {
+      config.maxRestarts = parseInt(this.value);
+      document.getElementById('maxRestartsDisplay').textContent = config.maxRestarts;
+      addEvent(`Max restarts updated to ${config.maxRestarts}`, 'info');
+    });
+    
+    // Start monitoring
+    function startMonitoring() {
+      if (monitoringInterval) return;
+      
+      monitoringInterval = setInterval(checkMemory, config.interval);
+      document.getElementById('monitorStatus').textContent = 'Active';
+      addEvent('✅ Memory monitoring started', 'success');
+    }
+    
+    // Initialize
+    updateStats();
+    startMonitoring();
+    addEvent('Demo loaded. Monitoring active.', 'success');
+    
+    if (!performance.memory) {
+      addEvent('⚠️ performance.memory not available (Chrome only)', 'warning');
+    }
+    
+    console.log('[DEMO 6] Memory monitoring demo loaded');
+    console.log('[DEMO 6] Monitoring threshold:', config.threshold + '%');
+  </script>
+</body>
+</html>
