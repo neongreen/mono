@@ -5,6 +5,7 @@ This folder contains research and practical demonstrations of techniques to prot
 ## Contents
 
 - **RESEARCH.md** - Comprehensive research report on iframe isolation techniques and industry practices
+- **INDUSTRY-DEEP-DIVE.md** - In-depth analysis of production systems (CodeSandbox, StackBlitz, Figma, Replit) with code examples and open-source tools
 - **demos/** - Working HTML demonstrations of various isolation approaches
 
 ## The Problem
@@ -193,6 +194,13 @@ See **RESEARCH.md** for:
 - Implementation guidelines
 - Performance monitoring
 - Browser compatibility notes
+
+See **INDUSTRY-DEEP-DIVE.md** for:
+- Production implementation details from CodeSandbox, StackBlitz, Figma, Replit
+- Open-source tools and libraries (Sandpack, Crosis, Observable Runtime)
+- Battle-tested memory monitoring patterns
+- Complete production-ready code examples
+- Engineering blog posts and conference talks
 
 ## License
 

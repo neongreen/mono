@@ -139,12 +139,13 @@
         research and working demonstrations of various isolation approaches.
       </p>
       <p>
-        <strong>The Problem:</strong> Buggy code in an iframe can cause memory leaks that 
-        affect the entire browser tab, leading to slowdowns and crashes.
+        <strong>The Problem:</strong> Even with cross-origin iframes (separate processes), 
+        heavy memory usage can cause OS-level issues affecting the entire system.
       </p>
       <p>
-        <strong>The Solution:</strong> Cross-origin process isolation, memory monitoring, 
-        and defensive programming techniques.
+        <strong>The Solution:</strong> Multi-layered defense combining cross-origin isolation, 
+        proactive memory monitoring, automatic restart, and user controls - battle-tested by 
+        CodeSandbox, StackBlitz, Figma, and other production systems.
       </p>
     </div>
 
@@ -221,17 +222,18 @@
       <h2>📚 Documentation</h2>
       <a href="README.md" class="resource-link">📖 README</a>
       <a href="RESEARCH.md" class="resource-link">🔬 Full Research Report</a>
+      <a href="INDUSTRY-DEEP-DIVE.md" class="resource-link">🏭 Industry Deep Dive</a>
     </div>
 
     <div class="resources">
       <h2>🎓 What You'll Learn</h2>
       <ul style="line-height: 2;">
         <li><strong>Process Isolation:</strong> How cross-origin iframes achieve true isolation</li>
-        <li><strong>Industry Practices:</strong> How CodeSandbox, Figma, and StackBlitz handle this</li>
-        <li><strong>Sandbox Limitations:</strong> Why sandbox attributes aren't enough</li>
-        <li><strong>Memory Monitoring:</strong> Reactive approaches when isolation isn't possible</li>
-        <li><strong>Web Workers:</strong> Offloading computation to keep UI responsive</li>
-        <li><strong>COOP/COEP:</strong> Advanced headers for maximum isolation</li>
+        <li><strong>Industry Deep Dive:</strong> Production implementations from CodeSandbox, StackBlitz, Figma, Replit</li>
+        <li><strong>Open Source Tools:</strong> Sandpack, Crosis, Observable Runtime, and more</li>
+        <li><strong>Memory Monitoring:</strong> Battle-tested patterns for detecting and handling memory issues</li>
+        <li><strong>Automatic Recovery:</strong> Graceful restart strategies that preserve user work</li>
+        <li><strong>Multi-Layer Defense:</strong> Why you need more than just cross-origin isolation</li>
       </ul>
     </div>
 
