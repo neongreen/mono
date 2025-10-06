@@ -297,44 +297,6 @@ await generateScrollingPage(sections, {
 7. **Use continuous mode** when your narrative doesn't fit into discrete sections
 8. **Leverage spacing** to create visual rhythm and improve readability
 
----
 
-## Future Enhancements
 
-Coming soon:
-- Full image rendering (currently placeholders)
-- Interactive HTML output with animations
-- PDF export support
-- Video/GIF embedding
-- Custom fonts support
-- Slide transitions
-- Speaker notes
-- Presenter view
 
----
-
-## Migration from Older Versions
-
-If you're using older versions of the slide helpers:
-
-**Before:**
-```typescript
-await generateSlideDeck(slides, {
-  outputDir: './output', // Required
-});
-```
-
-**Now:**
-```typescript
-// Get SVGs as strings
-const svgs = await generateSlideDeck(slides, {
-  // outputDir is optional
-});
-
-// Or still write to files
-await generateSlideDeck(slides, {
-  outputDir: './output', // Still works!
-});
-```
-
-The new helpers return SVG strings for maximum flexibility while maintaining backward compatibility when `outputDir` is provided.
