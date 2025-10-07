@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1100" viewBox="0 0 1400 1100">
+  <defs>
+    <marker id="arrow-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-tail-1976d2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-66bb6a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#66bb6a" />
+    </marker>
+    <marker id="arrow-tail-66bb6a" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#66bb6a" />
+    </marker>
+    <marker id="arrow-ff9800" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#ff9800" />
+    </marker>
+    <marker id="arrow-tail-ff9800" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#ff9800" />
+    </marker>
+    <marker id="arrow-ab47bc" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#ab47bc" />
+    </marker>
+    <marker id="arrow-tail-ab47bc" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#ab47bc" />
+    </marker>
+    <marker id="arrow-4caf50" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#4caf50" />
+    </marker>
+    <marker id="arrow-tail-4caf50" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#4caf50" />
+    </marker>
+    <marker id="arrow-9e9e9e" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#9e9e9e" />
+    </marker>
+    <marker id="arrow-tail-9e9e9e" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#9e9e9e" />
+    </marker>
+    <marker id="arrow-2196f3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#2196f3" />
+    </marker>
+    <marker id="arrow-tail-2196f3" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#2196f3" />
+    </marker>
+    <marker id="arrow-7b1fa2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#7b1fa2" />
+    </marker>
+    <marker id="arrow-tail-7b1fa2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#7b1fa2" />
+    </marker>
+  </defs>
+  <rect width="1400" height="1100" fill="white"/>
+      <text x="700.5" y="69.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">AI Agent Conversation Flow</text>
+      <text x="700.5" y="96.66666666666667" font-size="14" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Request processing with safety layers and context management</text>
+      <rect x="120" y="134" width="350" height="343" fill="#f0f7ff" stroke="#1976d2" stroke-width="2" rx="8" />
+        <rect x="120" y="134" width="350" height="38" fill="#e3f2fd" />
+          <text x="132" y="157.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Input Processing</text>
+            <rect x="145" y="192" width="300" height="75" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+                <text x="295" y="225.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">User Message</text>
+                <text x="295" y="244" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Text input</text>
+            <rect x="145" y="287" width="300" height="75" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+                <text x="295.5" y="322.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Safety Check</text>
+                <text x="295" y="339.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Content moderation</text>
+            <rect x="145" y="382" width="300" height="75" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+                <text x="295" y="416.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Context Retrieval</text>
+                <text x="295" y="433" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">RAG / Memory</text>
+      <rect x="510" y="134" width="380" height="388" fill="#fff8f0" stroke="#f57c00" stroke-width="2" rx="8" />
+        <rect x="510" y="134" width="380" height="38" fill="#fff3e0" />
+          <text x="522" y="157.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#e65100" font-weight="bold" text-anchor="start">Model Processing</text>
+            <rect x="535" y="192" width="330" height="85" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+                <text x="700" y="219.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Prompt Assembly</text>
+                <text x="700.5" y="240" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">System + Context + User</text>
+                <text x="700.5" y="260" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Token budget: 200K</text>
+            <rect x="535" y="297" width="330" height="110" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+                <text x="700.5" y="330.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Claude Model</text>
+                <text x="700.5" y="349.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Neural inference</text>
+                  <rect x="608" y="364" width="120" height="21" fill="#2e7d32" rx="4" />
+                    <text x="620" y="378.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Constitutional AI</text>
+                  <rect x="736" y="364" width="56" height="21" fill="#0288d1" rx="4" />
+                    <text x="748" y="378.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">RLHF</text>
+            <rect x="535" y="427" width="330" height="75" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+                <text x="700" y="462.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Output Processing</text>
+                <text x="700.5" y="479.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Format &amp; validate</text>
+      <rect x="930" y="134" width="350" height="343" fill="#f1f8f1" stroke="#2e7d32" stroke-width="2" rx="8" />
+        <rect x="930" y="134" width="350" height="38" fill="#e8f5e9" />
+          <text x="942" y="157.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1b5e20" font-weight="bold" text-anchor="start">Response &amp; Feedback</text>
+            <rect x="955" y="192" width="300" height="75" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+                <text x="1105" y="225.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Response Delivery</text>
+                <text x="1105.5" y="244" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Streaming / Complete</text>
+            <rect x="955" y="287" width="300" height="75" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+                <text x="1105" y="321.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Feedback Collection</text>
+                <text x="1105.5" y="338" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Thumbs up/down</text>
+            <rect x="955" y="382" width="300" height="75" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+                <text x="1105" y="415.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Model Improvement</text>
+                <text x="1105" y="434" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Training data</text>
+    <rect x="40" y="573" width="1320" height="1" fill="#ddd" />
+    <rect x="40" y="625" width="1320" height="157" fill="#f9f3fb" stroke="#7b1fa2" stroke-width="2" rx="8" />
+      <rect x="40" y="625" width="1320" height="37" fill="#f3e5f5" />
+        <text x="52" y="648.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="#6a1b9a" font-weight="bold" text-anchor="start">Data &amp; Storage</text>
+          <rect x="155" y="682" width="250" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+              <text x="280.5" y="711.3333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Vector Database</text>
+              <text x="280.5" y="728" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Embeddings storage</text>
+              <text x="281" y="744.5" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Semantic search</text>
+          <rect x="435" y="682" width="250" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+              <text x="560" y="709.3333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Conversation Store</text>
+              <text x="560.5" y="726" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Chat history</text>
+              <text x="560.5" y="744" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Session management</text>
+          <rect x="715" y="682" width="250" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+              <text x="840.5" y="709.8333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Analytics DB</text>
+              <text x="840.5" y="728" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Usage metrics</text>
+              <text x="840.5" y="746" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Performance tracking</text>
+          <rect x="995" y="682" width="250" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+              <text x="1120" y="709.8333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Training Data</text>
+              <text x="1120" y="728" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">RLHF samples</text>
+              <text x="1120.5" y="746" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Model fine-tuning</text>
+      <rect x="374" y="837" width="140" height="24" fill="#1976d2" rx="4" />
+        <text x="386" y="853" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">→ Primary data flow</text>
+      <rect x="539" y="837" width="162" height="24" fill="#0288d1" rx="4" />
+        <text x="551" y="853.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">⟷ Bidirectional access</text>
+      <rect x="726" y="837" width="141" height="24" fill="#7b1fa2" rx="4" />
+        <text x="738" y="853" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">⋯ Async operations</text>
+      <rect x="892" y="837" width="135" height="24" fill="#2e7d32" rx="4" />
+        <text x="904" y="853.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">200K token context</text>
+  <path d="M 295 267 L 295 287" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="276.6" y="267" width="36.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="295" y="281" font-size="12" fill="#1976d2" text-anchor="middle">text</text>
+  <path d="M 295 362 L 295 382" stroke="#66bb6a" stroke-width="2" fill="none" marker-end="url(#arrow-66bb6a)" />
+  <rect x="258.6" y="362" width="72.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="295" y="376" font-size="12" fill="#66bb6a" text-anchor="middle">validated</text>
+  <path d="M 445 419.5 L 535 234.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="442.8" y="317" width="94.39999999999999" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="490" y="331" font-size="12" fill="#1976d2" text-anchor="middle">with context</text>
+  <path d="M 700 277 L 700 297" stroke="#ff9800" stroke-width="3" fill="none" marker-end="url(#arrow-ff9800)" />
+  <rect x="674.4" y="277" width="51.199999999999996" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="700" y="291" font-size="12" fill="#ff9800" text-anchor="middle">prompt</text>
+  <path d="M 700 407 L 700 427" stroke="#ab47bc" stroke-width="3" fill="none" marker-end="url(#arrow-ab47bc)" />
+  <rect x="667.2" y="407" width="65.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="700" y="421" font-size="12" fill="#ab47bc" text-anchor="middle">response</text>
+  <path d="M 865 464.5 L 955 229.5" stroke="#66bb6a" stroke-width="2" fill="none" marker-end="url(#arrow-66bb6a)" />
+  <rect x="873.6" y="337" width="72.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="910" y="351" font-size="12" fill="#66bb6a" text-anchor="middle">formatted</text>
+  <path d="M 1105 267 L 1105 287" stroke="#4caf50" stroke-width="2" fill="none" marker-end="url(#arrow-4caf50)" />
+  <rect x="1068.6" y="267" width="72.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="1105" y="281" font-size="12" fill="#4caf50" text-anchor="middle">delivered</text>
+  <path d="M 1105 362 L 1105 382" stroke="#9e9e9e" stroke-width="2" fill="none" marker-end="url(#arrow-9e9e9e)" />
+  <rect x="1072.2" y="362" width="65.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="1105" y="376" font-size="12" fill="#9e9e9e" text-anchor="middle">feedback</text>
+  <path d="M 295 457 L 280 682" stroke="#2196f3" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-2196f3)" marker-start="url(#arrow-tail-2196f3)" />
+  <path d="M 445 419.5 L 560 682" stroke="#2196f3" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-2196f3)" marker-start="url(#arrow-tail-2196f3)" />
+  <path d="M 955 229.5 L 685 722" stroke="#9e9e9e" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-9e9e9e)" />
+  <rect x="801.6" y="465.75" width="36.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="820" y="479.75" font-size="12" fill="#9e9e9e" text-anchor="middle">save</text>
+  <path d="M 955 229.5 L 840 682" stroke="#9e9e9e" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-9e9e9e)" />
+  <rect x="882.7" y="445.75" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="897.5" y="459.75" font-size="12" fill="#9e9e9e" text-anchor="middle">log</text>
+  <path d="M 1105 457 L 1120 682" stroke="#7b1fa2" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-7b1fa2)" />
+  <rect x="1090.5" y="559.5" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="1112.5" y="573.5" font-size="12" fill="#7b1fa2" text-anchor="middle">store</text>
+</svg>
