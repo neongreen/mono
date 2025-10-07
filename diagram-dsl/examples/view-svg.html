@@ -47,6 +47,27 @@
         <p class="subtitle">Professional AI system architecture diagrams created with diagram-dsl</p>
 
         <div class="diagram">
+            <h2>🎯 Original Anthropic Diagram - "Prompt engineering vs. context engineering"</h2>
+            <div class="description">
+                <p><strong>This is the specific diagram from Anthropic's documentation:</strong></p>
+                <ul>
+                    <li>✅ Two-panel comparison layout</li>
+                    <li>✅ Nested boxes with dashed borders (context windows)</li>
+                    <li>✅ Multiple element types (speech bubbles, docs, tools, memory)</li>
+                    <li>✅ Neural network grid (3×3 colored circles)</li>
+                    <li>✅ Custom arrow routing with specific attachment points</li>
+                    <li>✅ Arrow with label ("Curation")</li>
+                    <li>✅ Y-shaped arrow fork (model → outputs)</li>
+                    <li>✅ Feedback loop (tool result → message history)</li>
+                    <li>✅ Arrow shortening (stops before reaching target)</li>
+                </ul>
+                <p><strong>New Arrow Features:</strong> <code>fromSide</code>, <code>toSide</code>, <code>fromOffset</code>, <code>toOffset</code>, <code>shortenEnd</code></p>
+                <p><em>See <code>examples/anthropic-original-replication.tsx</code> and <code>ARROW_ENHANCEMENTS.md</code></em></p>
+            </div>
+            <img src="anthropic-original-replication.svg" alt="Anthropic Original Diagram Replication" />
+        </div>
+
+        <div class="diagram">
             <h2>1. Simple AI Conversation (Perfect Starting Point)</h2>
             <div class="description">
                 <p><strong>Perfect template for your own diagrams:</strong></p>

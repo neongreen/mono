@@ -111,10 +111,22 @@ const AISystemDiagram = () => (
 
 **View live examples:** Open `examples/view-svg.html` in a browser
 
+- **`anthropic-original-replication.tsx`** ⭐ - Replicates the specific "Prompt engineering vs. context engineering" diagram
 - **`anthropic-simple.tsx`** - Perfect starting template (3-column flow)
 - **`anthropic-style-diagram.tsx`** - Full layered architecture
 - **`anthropic-improved.tsx`** - Advanced with Cluster components
 - **`showcase-agent-system.tsx`** - Complex agent system with memory
+
+### Advanced Arrow Features
+
+For complex diagrams like the Anthropic original, new arrow capabilities include:
+
+- **`fromSide` / `toSide`** - Connect to specific edges (`'top'`, `'bottom'`, `'left'`, `'right'`)
+- **`fromOffset` / `toOffset`** - Position along edge for corner connections
+- **`shortenEnd` / `shortenStart`** - Arrows that stop short of their target
+- **`curve="step"`** - Orthogonal routing for feedback loops
+
+See **[ARROW_ENHANCEMENTS.md](ARROW_ENHANCEMENTS.md)** for complete documentation.
 
 ### Key Components for Anthropic-Style Diagrams
 

@@ -72,6 +72,15 @@ export interface ArrowProps {
   animated?: boolean;
   bidirectional?: boolean;
   thickness?: 'thin' | 'medium' | 'thick' | 'very-thick';
+  // Advanced arrow features for complex diagrams
+  fromSide?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
+  toSide?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
+  fromOffset?: number; // Offset from center along the edge (0 = center, positive/negative for offset)
+  toOffset?: number;
+  shortenStart?: number; // Shorten arrow from start point (in pixels)
+  shortenEnd?: number; // Shorten arrow from end point (in pixels)
+  // For Y-shaped forks - split into multiple endpoints
+  toMultiple?: string[]; // Array of target IDs for forked arrows
 }
 
 export interface ImageProps extends LayoutProps {
