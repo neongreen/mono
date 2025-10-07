@@ -39,6 +39,10 @@ export interface BoxProps extends LayoutProps, AlignmentProps, PositionProps {
   borderColor?: string;
   borderWidth?: number;
   borderRadius?: number;
+  borderStyle?: 'solid' | 'dashed' | 'dotted';
+  borderDashArray?: string; // e.g., "6 4" for 6px dash, 4px gap
+  flexGrow?: number; // Allow boxes to grow in flex containers
+  flexShrink?: number;
   id?: string;
 }
 

@@ -60,12 +60,22 @@ export class SVGRenderer {
         const borderColor = node.props.borderColor || 'black';
         const borderWidth = node.props.borderWidth || 0;
         const borderRadius = node.props.borderRadius || 0;
+        const borderStyle = node.props.borderStyle || 'solid';
+        const borderDashArray = node.props.borderDashArray;
 
         if (bgColor !== 'transparent' || borderWidth > 0) {
           svg += `\n${indent}<rect x="${x}" y="${y}" width="${width}" height="${height}" `;
           svg += `fill="${bgColor}" `;
           if (borderWidth > 0) {
             svg += `stroke="${borderColor}" stroke-width="${borderWidth}" `;
+            
+            // Handle dashed borders
+            if (borderStyle === 'dashed' || borderDashArray) {
+              const dashArray = borderDashArray || '6 4'; // Default: 6px dash, 4px gap
+              svg += `stroke-dasharray="${dashArray}" `;
+            } else if (borderStyle === 'dotted') {
+              svg += `stroke-dasharray="2 2" `;
+            }
           }
           if (borderRadius > 0) {
             svg += `rx="${borderRadius}" `;
