@@ -52,6 +52,7 @@ const colors = {
 };
 
 // Helper component for speech bubbles
+// Option 3A: Minimum font size 13px (bumped from 12px)
 const SpeechBubble = ({ id, text, width = 140, height = 40 }: any) => (
   <Box
     id={id}
@@ -65,65 +66,83 @@ const SpeechBubble = ({ id, text, width = 140, height = 40 }: any) => (
     justifyContent="center"
     alignItems="center"
   >
-    <Text fontSize={12} fontWeight="bold" color={colors.white}>
+    <Text fontSize={13} fontWeight="bold" color={colors.white}>
       {text}
     </Text>
   </Box>
 );
 
 // Helper component for doc cards
-const DocCard = ({ id, text, width = 120, height = 36 }: any) => (
-  <Box
-    id={id}
-    width={width}
-    height={height}
-    backgroundColor={colors.doc}
-    borderRadius={4}
-    padding={6}
-    justifyContent="center"
-    alignItems="center"
-  >
-    <Text fontSize={11} fontWeight="bold">
-      {text}
-    </Text>
-  </Box>
-);
+// Option 2C: Three predefined sizes (55px/85px/120px)
+const DocCard = ({ id, text, width = 85, height = 36, size = 'medium' }: any) => {
+  const widths = { small: 55, medium: 85, large: 120 };
+  const actualWidth = typeof width === 'number' ? width : widths[size as keyof typeof widths];
+  
+  return (
+    <Box
+      id={id}
+      width={actualWidth}
+      height={height}
+      backgroundColor={colors.doc}
+      borderRadius={4}
+      padding={6}
+      justifyContent="center"
+      alignItems="center"
+    >
+      <Text fontSize={13} fontWeight="bold">
+        {text}
+      </Text>
+    </Box>
+  );
+};
 
 // Helper component for tool pills
-const ToolPill = ({ id, text, width = 120, height = 36 }: any) => (
-  <Box
-    id={id}
-    width={width}
-    height={height}
-    backgroundColor={colors.tool}
-    borderRadius={18} // Rounded pill
-    padding={6}
-    justifyContent="center"
-    alignItems="center"
-  >
-    <Text fontSize={11} fontWeight="bold" color={colors.white}>
-      {text}
-    </Text>
-  </Box>
-);
+// Option 2C: Three predefined sizes (55px/85px/120px)
+const ToolPill = ({ id, text, width = 85, height = 36, size = 'medium' }: any) => {
+  const widths = { small: 55, medium: 85, large: 120 };
+  const actualWidth = typeof width === 'number' ? width : widths[size as keyof typeof widths];
+  
+  return (
+    <Box
+      id={id}
+      width={actualWidth}
+      height={height}
+      backgroundColor={colors.tool}
+      borderRadius={18} // Rounded pill
+      padding={6}
+      justifyContent="center"
+      alignItems="center"
+    >
+      <Text fontSize={13} fontWeight="bold" color={colors.white}>
+        {text}
+      </Text>
+    </Box>
+  );
+};
 
 // Helper component for memory cards
-const MemoryCard = ({ id, text, width = 120, height = 36 }: any) => (
-  <Box
-    id={id}
-    width={width}
-    height={height}
-    backgroundColor={colors.memory}
-    borderRadius={4}
-    padding={6}
-    justifyContent="center"
-    alignItems="center"
-  >
-    <Text fontSize={11} fontWeight="bold">
-      {text}
-    </Text>
-  </Box>
-);
+// Option 2C: Three predefined sizes
+const MemoryCard = ({ id, text, width = 85, height = 36, size = 'medium' }: any) => {
+  const widths = { small: 55, medium: 85, large: 120 };
+  const actualWidth = typeof width === 'number' ? width : widths[size as keyof typeof widths];
+  
+  return (
+    <Box
+      id={id}
+      width={actualWidth}
+      height={height}
+      backgroundColor={colors.memory}
+      borderRadius={4}
+      padding={6}
+      justifyContent="center"
+      alignItems="center"
+    >
+      <Text fontSize={13} fontWeight="bold">
+        {text}
+      </Text>
+    </Box>
+  );
+};
 
 // Helper component for instruction cards
 const InstructionCard = ({ id, text, width = 180, height = 36 }: any) => (
@@ -137,7 +156,7 @@ const InstructionCard = ({ id, text, width = 180, height = 36 }: any) => (
     justifyContent="center"
     alignItems="center"
   >
-    <Text fontSize={11} fontWeight="bold" color={colors.white}>
+    <Text fontSize={13} fontWeight="bold" color={colors.white}>
       {text}
     </Text>
   </Box>
@@ -157,7 +176,7 @@ const MessageHistory = ({ id, width = 140, height = 38 }: any) => (
     justifyContent="center"
     alignItems="center"
   >
-    <Text fontSize={11}>Message history</Text>
+    <Text fontSize={13}>Message history</Text>
   </Box>
 );
 
@@ -185,6 +204,7 @@ const NeuralGrid = ({ id }: { id: string }) => (
 );
 
 // Helper component for output boxes
+// Option 3A: Minimum font size 13px
 const OutputBox = ({ id, text, width = 110, bg = colors.white, borderColor = '#444444' }: any) => (
   <Box
     id={id}
@@ -198,7 +218,7 @@ const OutputBox = ({ id, text, width = 110, bg = colors.white, borderColor = '#4
     justifyContent="center"
     alignItems="center"
   >
-    <Text fontSize={11}>{text}</Text>
+    <Text fontSize={13}>{text}</Text>
   </Box>
 );
 
@@ -224,10 +244,11 @@ const AnthropicFaithfulReplication = () => (
     </Text>
 
     {/* Main content row with proper spacing for model grids */}
-    <Row gap={40} alignItems="stretch" height={700}>
+    {/* Option 1C: Adjust panel widths and gaps - left 470→420px, right 780→720px, gap 40→45px */}
+    <Row gap={45} alignItems="stretch" height={700}>
       {/* LEFT PANEL */}
       <Stack
-        width={470}
+        width={420}
         backgroundColor={colors.panel}
         borderRadius={12}
         padding={20}
@@ -276,8 +297,9 @@ const AnthropicFaithfulReplication = () => (
       </Stack>
 
       {/* RIGHT PANEL */}
+      {/* Option 1C: width 780→720px */}
       <Stack
-        width={780}
+        width={720}
         backgroundColor={colors.panel}
         borderRadius={12}
         padding={20}
@@ -289,7 +311,8 @@ const AnthropicFaithfulReplication = () => (
         </Text>
         
         {/* Two dashed boxes side by side */}
-        <Row gap={12} flexGrow={1}>
+        {/* Option 4A: Increase gap between dashed boxes from 12px to 40px for "Curation" arrow space */}
+        <Row gap={40} flexGrow={1}>
           {/* Possible context box */}
           <Stack gap={0} flexGrow={1}>
             <Text fontSize={14} color={colors.labelGray} marginBottom={6}>
@@ -307,18 +330,27 @@ const AnthropicFaithfulReplication = () => (
               padding={12}
             >
               <Stack gap={8}>
-                <DocCard id="doc-1" text="Doc 1" />
-                <DocCard id="doc-2" text="Doc 2" />
-                <DocCard id="doc-3" text="Doc 3" />
-                <ToolPill id="tool-1" text="Tool 1" />
-                <ToolPill id="tool-2" text="Tool 2" />
-                <ToolPill id="tool-3" text="Tool 3" />
-                <ToolPill id="tool-4" text="Tool 4" />
-                <MemoryCard id="memory-1" text="Memory file" />
-                <MemoryCard id="memory-2" text="Memory file" />
-                <InstructionCard id="instructions" text="Comprehensive instructions" />
-                <InstructionCard id="knowledge" text="Domain knowledge" />
-                <MessageHistory id="possible-history" />
+                {/* Option 2C: Multiple docs per line using small (55px) and medium (85px) sizes */}
+                <Row gap={6}>
+                  <DocCard id="doc-1" text="Doc 1" size="small" />
+                  <DocCard id="doc-2" text="Doc 2" size="small" />
+                  <DocCard id="doc-3" text="Doc 3" size="small" />
+                </Row>
+                <Row gap={6}>
+                  <ToolPill id="tool-1" text="Tool 1" size="medium" />
+                  <ToolPill id="tool-2" text="Tool 2" size="medium" />
+                </Row>
+                <Row gap={6}>
+                  <ToolPill id="tool-3" text="Tool 3" size="medium" />
+                  <ToolPill id="tool-4" text="Tool 4" size="medium" />
+                </Row>
+                <Row gap={6}>
+                  <MemoryCard id="memory-1" text="Memory" size="medium" />
+                  <MemoryCard id="memory-2" text="Memory" size="medium" />
+                </Row>
+                <InstructionCard id="instructions" text="Comprehensive instructions" width={180} />
+                <InstructionCard id="knowledge" text="Domain knowledge" width={180} />
+                <MessageHistory id="possible-history" width={140} />
               </Stack>
             </Box>
           </Stack>
@@ -342,18 +374,18 @@ const AnthropicFaithfulReplication = () => (
               <Stack gap={8}>
                 <SpeechBubble id="right-system-prompt" text="System prompt" width={140} height={36} />
                 
-                {/* Two docs side by side */}
+                {/* Two docs side by side - Option 2C: using medium size (85px) */}
                 <Row gap={6}>
-                  <DocCard id="curated-doc-1" text="Doc 1" width={67} />
-                  <DocCard id="curated-doc-2" text="Doc 2" width={67} />
+                  <DocCard id="curated-doc-1" text="Doc 1" size="medium" />
+                  <DocCard id="curated-doc-2" text="Doc 2" size="medium" />
                 </Row>
                 
-                <MemoryCard id="curated-memory" text="Memory file" width={140} />
+                <MemoryCard id="curated-memory" text="Memory file" size="large" />
                 
-                {/* Two tools side by side */}
+                {/* Two tools side by side - Option 2C: using medium size (85px) */}
                 <Row gap={6}>
-                  <ToolPill id="curated-tool-1" text="Tool 1" width={67} />
-                  <ToolPill id="curated-tool-2" text="Tool 2" width={67} />
+                  <ToolPill id="curated-tool-1" text="Tool 1" size="medium" />
+                  <ToolPill id="curated-tool-2" text="Tool 2" size="medium" />
                 </Row>
                 
                 <SpeechBubble id="right-user-message" text="User message" width={140} height={36} />
