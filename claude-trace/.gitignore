@@ -1,0 +1,19 @@
+# Binaries
+claude-trace
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Annotations (these are user-specific)
+*.annotations.json
