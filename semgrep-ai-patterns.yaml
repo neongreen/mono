@@ -1,0 +1,282 @@
+# Semgrep Rules for Detecting Common AI-Generated Duplicate Patterns
+#
+# These rules help identify patterns that AI agents commonly duplicate
+# when they're not aware of existing code in the project.
+#
+# Usage:
+#   semgrep --config=semgrep-ai-patterns.yaml .
+#
+# Customize these rules based on patterns you observe in your codebase.
+
+rules:
+  # Go Patterns
+  - id: duplicate-error-check
+    pattern: |
+      if err != nil {
+        return err
+      }
+    message: |
+      Common error handling pattern detected. Consider refactoring into a helper function
+      if this pattern appears multiple times.
+    languages: [go]
+    severity: INFO
+    metadata:
+      category: duplication
+      confidence: LOW
+      
+  - id: duplicate-nil-check
+    pattern: |
+      if $X == nil {
+        return errors.New($MSG)
+      }
+    message: |
+      Nil check with error return. Consider a validation helper if used frequently.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-string-validation
+    pattern: |
+      if $X == "" {
+        return $ERR
+      }
+    message: |
+      Empty string validation. Consider centralizing validation logic.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-slice-iteration
+    pattern: |
+      for _, $ITEM := range $SLICE {
+        $TOTAL += $ITEM.$FIELD
+      }
+    message: |
+      Sum calculation over slice. This might already exist as a utility function.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-http-handler-pattern
+    pattern: |
+      func $HANDLER(w http.ResponseWriter, r *http.Request) {
+        if r.Method != $METHOD {
+          http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+          return
+        }
+        ...
+      }
+    message: |
+      HTTP handler with method check. Consider using a router or middleware.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-json-decode
+    pattern: |
+      decoder := json.NewDecoder($R.Body)
+      err := decoder.Decode(&$VAR)
+      if err != nil {
+        return err
+      }
+    message: |
+      JSON decode with error handling. Consider a helper function.
+    languages: [go]
+    severity: INFO
+    
+  # TypeScript/JavaScript Patterns
+  - id: duplicate-email-validation
+    pattern: |
+      $EMAIL.includes('@') && $EMAIL.includes('.')
+    message: |
+      Email validation pattern. Consider using a validation library or centralized function.
+    languages: [javascript, typescript]
+    severity: INFO
+    
+  - id: duplicate-null-check-js
+    pattern: |
+      if (!$VAR) {
+        throw new Error($MSG);
+      }
+    message: |
+      Null/undefined check with error. Consider a validation helper.
+    languages: [javascript, typescript]
+    severity: INFO
+    
+  - id: duplicate-array-sum
+    pattern: |
+      let $SUM = 0;
+      for (const $ITEM of $ARRAY) {
+        $SUM += $ITEM;
+      }
+    message: |
+      Array sum calculation. Consider using reduce() or a utility function.
+    languages: [javascript, typescript]
+    severity: INFO
+    
+  - id: duplicate-fetch-pattern
+    pattern: |
+      const response = await fetch($URL);
+      if (!response.ok) {
+        throw new Error($MSG);
+      }
+      return await response.json();
+    message: |
+      Fetch with error handling pattern. Consider a wrapper function.
+    languages: [javascript, typescript]
+    severity: INFO
+    
+  - id: duplicate-promise-error-handling
+    pattern: |
+      try {
+        const $RESULT = await $PROMISE;
+      } catch ($ERR) {
+        console.error($MSG, $ERR);
+        throw $ERR;
+      }
+    message: |
+      Promise error handling pattern. Consider a wrapper or middleware.
+    languages: [javascript, typescript]
+    severity: INFO
+    
+  - id: duplicate-object-property-check
+    pattern: |
+      if (!$OBJ.$PROP) {
+        return $DEFAULT;
+      }
+    message: |
+      Object property check with default. Consider optional chaining or a helper.
+    languages: [javascript, typescript]
+    severity: INFO
+    
+  # Common Patterns (Both Languages)
+  - id: duplicate-id-validation-go
+    pattern: |
+      if $ID <= 0 {
+        return errors.New("invalid id")
+      }
+    message: |
+      ID validation pattern. Consider a centralized validation function.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-id-validation-js
+    pattern: |
+      if ($ID <= 0) {
+        throw new Error("invalid id");
+      }
+    message: |
+      ID validation pattern. Consider a centralized validation function.
+    languages: [javascript, typescript]
+    severity: INFO
+    
+  - id: duplicate-retry-logic
+    pattern: |
+      for $I := 0; $I < $MAX_RETRIES; $I++ {
+        $RESULT, $ERR := $OPERATION()
+        if $ERR == nil {
+          break
+        }
+        ...
+      }
+    message: |
+      Retry logic pattern. Consider a retry utility function.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-logger-creation-go
+    pattern: |
+      logger := log.New(os.Stdout, $PREFIX, log.LstdFlags)
+    message: |
+      Logger initialization. Consider centralizing logger configuration.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-logger-creation-js
+    pattern: |
+      const logger = $LOGGER.createLogger(...)
+    message: |
+      Logger initialization. Consider centralizing logger configuration.
+    languages: [javascript, typescript]
+    severity: INFO
+    
+  # AI-Specific Patterns
+  - id: ai-generated-comment-pattern
+    pattern: |
+      // $X
+      func $FUNC(...) { ... }
+    message: |
+      AI-generated comment style detected. Check if function already exists elsewhere.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-test-setup
+    pattern: |
+      func $TEST(t *testing.T) {
+        ...
+      }
+    message: |
+      Test function. Check if similar test already exists.
+    languages: [go]
+    severity: INFO
+    
+  # Database Patterns
+  - id: duplicate-db-query
+    pattern: |
+      rows, err := db.Query($QUERY, $ARGS)
+      if err != nil {
+        return nil, err
+      }
+      defer rows.Close()
+      ...
+    message: |
+      Database query pattern. Consider a query helper or repository pattern.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-transaction-pattern
+    pattern: |
+      tx, err := db.Begin()
+      if err != nil {
+        return err
+      }
+      defer tx.Rollback()
+      ...
+      return tx.Commit()
+    message: |
+      Transaction pattern. Consider a transaction helper function.
+    languages: [go]
+    severity: INFO
+
+  # API Response Patterns
+  - id: duplicate-json-response
+    pattern: |
+      w.Header().Set("Content-Type", "application/json")
+      json.NewEncoder(w).Encode($DATA)
+    message: |
+      JSON response pattern. Consider a response helper function.
+    languages: [go]
+    severity: INFO
+    
+  - id: duplicate-error-response
+    pattern: |
+      return res.status($CODE).json({ error: $MSG });
+    message: |
+      Error response pattern. Consider a centralized error handler.
+    languages: [javascript, typescript]
+    severity: INFO
+
+# Tips for using these rules:
+#
+# 1. Run with different severity levels:
+#    semgrep --config=semgrep-ai-patterns.yaml . --severity=INFO
+#
+# 2. Focus on specific patterns:
+#    semgrep --config=semgrep-ai-patterns.yaml . --include=duplicate-error-check
+#
+# 3. Exclude certain paths:
+#    semgrep --config=semgrep-ai-patterns.yaml . --exclude='*_test.go'
+#
+# 4. Generate HTML report:
+#    semgrep --config=semgrep-ai-patterns.yaml . --json > report.json
+#
+# 5. Integrate in CI/CD:
+#    - Run on pull requests
+#    - Set threshold for max duplicates
+#    - Fail build if threshold exceeded
