@@ -9,8 +9,9 @@ This document provides a comprehensive design specification for an mdbook plugin
 ### What is Real World Haskell's Comment System?
 
 Real World Haskell (RWH) features a comment system where:
-- Each paragraph in the book has a small "comment" link (usually shown as a speech bubble icon or text)
-- Clicking the link opens a comment section specific to that paragraph
+- Each paragraph in the book has a small text link that says "comment" at the end
+- The link is slightly smaller than the body text and blue (standard link styling)
+- Clicking the link expands a comment section below the paragraph
 - Users can read existing comments and add new ones
 - Comments are persistent and tied to specific paragraphs
 
@@ -38,80 +39,75 @@ Create an mdbook preprocessor/renderer plugin that adds similar functionality to
 
 ### 2. UI Elements
 
-**Requirement:** Add a visible comment link/button to each commentable block.
+**Requirement:** Add a visible comment link to each commentable block.
 
-**Design Options:**
+**Design Choice: Text Link (RWH-style)**
+- Small text link that says "comment" at the end of each paragraph
+- Slightly smaller font size than body text
+- Standard link styling (blue, underlined)
+- Always visible (not just on hover)
+- **Pros:** 
+  - Extremely obvious and discoverable
+  - No confusion about what it does
+  - Simple to implement
+  - Works everywhere (desktop, mobile, screen readers)
+- **Cons:** 
+  - Visible in text flow (but this is actually a feature)
+  - May be considered "ugly" by some designers
 
-**Option A: Inline Icon (RWH-style)**
-- Small speech bubble icon at the end of each paragraph
-- Appears on hover or always visible
-- Minimal visual disruption
-- **Pros:** Non-intrusive, familiar to RWH users
-- **Cons:** May be missed by users, accessibility concerns
-
-**Option B: Margin Icon**
-- Icon in the left/right margin
-- Appears on hover over the paragraph
-- **Pros:** Doesn't disrupt text flow, clear visual indicator
-- **Cons:** Requires margin space, may not work on mobile
-
-**Option C: Hover Overlay**
-- Button appears in a fixed position when hovering over paragraph
-- **Pros:** Very non-intrusive
-- **Cons:** Not discoverable, accessibility issues
-
-**Recommended:** Option A with Option B as alternative for different layouts.
+**Rationale:** While a speech bubble icon might be more aesthetically pleasing, the text link is proven to work well in Real World Haskell. It's completely unambiguous and requires no user education.
 
 ### 3. Comment Storage
 
 **Requirement:** Store and retrieve comments associated with paragraph IDs.
 
-**Storage Options:**
+**Design Choice: Simple API with Backend Database**
 
-**Option A: External Service (like Disqus, utterances, giscus)**
-- Use existing comment service
-- **Pros:** Maintained by others, feature-rich, handles moderation
-- **Cons:** External dependency, privacy concerns, vendor lock-in
+The plugin will use a simple HTTP API to store and retrieve comments. The frontend (static HTML + JavaScript) will make API calls to:
+- `GET /api/comments?paragraph_id=...` - Retrieve comments for a paragraph
+- `POST /api/comments` - Add a new comment
+- `POST /api/comments/:id/reply` - Reply to a comment
 
-**Option B: GitHub Issues/Discussions (like giscus)**
-- Each paragraph maps to a GitHub discussion
-- **Pros:** Free, version-controlled, familiar to developers
-- **Cons:** Requires GitHub account, public repo only
+**Backend Implementation (TBD):**
+The actual backend implementation is intentionally left flexible. Possible options:
+- **Supabase:** Managed Postgres with built-in API
+- **PocketBase:** Lightweight Go backend with SQLite
+- **Custom Postgres:** Direct database access with a thin API layer
 
-**Option C: Self-hosted Database**
-- Custom backend with SQLite/PostgreSQL
-- **Pros:** Full control, privacy-friendly
-- **Cons:** Requires server, maintenance burden
+**Key Requirements:**
+- Must support authentication (e.g., OAuth, session cookies)
+- Must be self-hostable for private use cases
+- API should be simple and well-documented for easy backend swapping
 
-**Option D: Static Comments (like staticman)**
-- Comments stored as JSON/YAML files in the repo
-- **Pros:** No external service, version-controlled
-- **Cons:** Requires PR workflow, slow feedback loop
-
-**Recommended:** Option B (GitHub Discussions via giscus) for developer-focused books, with extensibility for other backends.
+**Why NOT GitHub Issues/External Services:**
+- Need full control for private company handbooks
+- Want to avoid external dependencies
+- Need simple, fast API without platform lock-in
 
 ### 4. Comment UI
 
 **Requirement:** Provide an interface for viewing and adding comments.
 
-**Implementation Options:**
+**Design Choice: Inline Expansion (RWH-style)**
 
-**Option A: Inline Expansion**
-- Comments expand below the paragraph when clicked
-- **Pros:** Contextual, doesn't navigate away
-- **Cons:** Can make page very long, layout complexity
+When a user clicks the "comment" link:
+- The comment section expands directly below the paragraph
+- Existing comments are displayed in chronological order
+- A reply form is shown at the bottom
+- The page dynamically grows to accommodate the comments
+- Clicking the link again collapses the comments
 
-**Option B: Modal/Overlay**
-- Comments open in a modal window
-- **Pros:** Keeps page clean, focused experience
-- **Cons:** Loses context, requires closing
+**Features:**
+- One level of nesting (replies to comments)
+- Timestamp and author name for each comment
+- Simple text formatting (markdown in comments)
+- "Resolve" or "Mark as read" functionality (optional)
 
-**Option C: Sidebar Panel**
-- Comments appear in a sliding sidebar
-- **Pros:** Maintains context, doesn't break layout
-- **Cons:** Screen space, complexity
-
-**Recommended:** Option B (Modal) for simplicity, with Option C as advanced feature.
+**Rationale:** 
+- Keeps comments in context with the paragraph
+- Simple, proven UX from Real World Haskell
+- No modal complexity or navigation away from content
+- Making the page longer is not a problem - it's better than losing context
 
 ## Paragraph Identity & Stability
 
@@ -125,30 +121,34 @@ When content is updated, we need to maintain the link between comments and parag
 
 ### Identification Strategy
 
-**Option 1: Hash-Based IDs**
-- Generate ID from paragraph content hash
-- **Pros:** Automatic, deterministic
-- **Cons:** ANY text change breaks the link (too fragile)
+**Design Choice: Rich Context Storage**
 
-**Option 2: Position-Based IDs**
-- ID based on location: `chapter-3-para-5`
-- **Pros:** Simple to implement
-- **Cons:** Breaks when paragraphs are reordered or inserted
+Each comment will be associated with extensive metadata about its paragraph:
 
-**Option 3: Content Prefix + Hash**
-- ID includes first N words + hash: `"When-we-define-a-type-abc123"`
-- **Pros:** Human-readable, somewhat stable
-- **Cons:** Still breaks on text changes
+1. **Position Information:**
+   - File path (e.g., `src/chapter-3.md`)
+   - Position in file (block index within chapter)
+   - Position within section (paragraph number within current heading section)
 
-**Option 4: Manual Anchor IDs**
-- Author explicitly adds IDs: `{#my-custom-id}`
-- **Pros:** Full control, stable across changes
-- **Cons:** Manual work, easy to forget
+2. **Content Signature:**
+   - The complete text of the paragraph
+   - The text of the preceding paragraph (if exists)
+   - The text of the following paragraph (if exists)
 
-**Option 5: Hybrid Approach (RECOMMENDED)**
-- Start with Option 2 (position-based)
-- Allow manual override with Option 4
-- Use fuzzy matching to reconnect comments when content changes slightly
+3. **Structural Context:**
+   - Section heading hierarchy (e.g., `["Chapter 3", "Defining Types", "Pattern Matching"]`)
+   - Closest heading above the paragraph
+   - Commit hash of the book version when comment was made
+
+4. **Generated ID:**
+   - Combination of position + content hash: `chapter-3-para-5-abc123`
+   - Used for initial matching only
+
+**Rationale:**
+- No manual IDs required (authors won't maintain them)
+- Rich context enables fuzzy matching when content changes
+- Stateless: JavaScript has everything it needs to match comments to current content
+- Philosophy: Store enough context that matching is possible even without historical diffs
 
 ### Handling Content Updates
 
@@ -163,15 +163,16 @@ The quick brown fox jumps over the lazy dog.
 The quick brown fox leaps over the lazy dog.
 ```
 
-**Strategy: Fuzzy Matching**
-- Calculate similarity score (e.g., Levenshtein distance, cosine similarity)
-- If similarity > 80%, maintain the same ID
-- Show warning in admin interface: "This paragraph has changed, review comments"
+**Strategy: Client-Side Fuzzy Matching**
+- JavaScript calculates similarity score when loading the page
+- Compares stored paragraph text with current paragraph text
+- If similarity is high enough, displays comments
+- No admin interface - happens automatically on page load
 
 **Implementation Complexity:** Medium
-- Requires string similarity algorithm
+- Requires string similarity algorithm in JavaScript
 - Needs threshold tuning
-- May need human confirmation
+- Fully automatic, no human intervention
 
 #### Scenario 2: Paragraphs are Reordered
 
@@ -189,13 +190,14 @@ The quick brown fox leaps over the lazy dog.
 ```
 
 **Strategy: Content-Based Matching**
-- Don't rely on position
-- Match based on content hash or fuzzy matching
-- Update mapping: old position → new position
+- JavaScript matches based on paragraph content, not position
+- Uses stored paragraph text + prev/next paragraph context
+- Finds best match in current document structure
+- Displays comments at the matched location
 
-**Implementation Complexity:** Medium-High
-- Requires storing historical content hashes
-- Need migration tool to update mappings
+**Implementation Complexity:** Medium
+- Content matching algorithm in JavaScript
+- No server-side migration needed (stateless approach)
 
 #### Scenario 3: Paragraphs are Merged
 
@@ -209,27 +211,14 @@ The quick brown fox leaps over the lazy dog.
 1. The cat sat on the mat, and the dog lay on the rug. [should have 8 comments?]
 ```
 
-**Strategy Options:**
+**Strategy: Merge Comments**
+- JavaScript combines comments from all matching source paragraphs
+- Displays them all on the merged paragraph
+- Shows a notice: "Comments from 2 paragraphs"
+- **Pros:** No comments lost, simple and transparent
+- **Cons:** May have many comments on one paragraph
 
-**Option A: Merge Comments**
-- Combine comments from both paragraphs
-- Show notice: "Comments from merged paragraphs"
-- **Pros:** No comments lost
-- **Cons:** May be confusing, comments may not apply to merged text
-
-**Option B: Assign to Best Match**
-- Calculate which original paragraph is more similar to merged text
-- Assign all comments there, orphan the others
-- **Pros:** Clear ownership
-- **Cons:** Loses some comments
-
-**Option C: Create "Orphaned Comments" Section**
-- Keep comments but mark them as orphaned
-- Show in sidebar: "Comments from deleted/merged paragraphs"
-- **Pros:** No data loss, transparent
-- **Cons:** Extra UI complexity
-
-**Recommended:** Option C for safety, with Option A as user choice.
+**If no good match:** Comments become orphaned (see below)
 
 #### Scenario 4: Paragraphs are Split
 
@@ -243,10 +232,11 @@ The cat sat on the mat. The dog lay on the rug. [has 10 comments]
 2. The dog lay on the rug.
 ```
 
-**Strategy:**
-- Assign comments to the paragraph with highest similarity
-- Typically the first paragraph keeps the comments
-- Show notice: "This paragraph was split, review comments"
+**Strategy: Assign to Best Match**
+- JavaScript calculates similarity for each resulting paragraph
+- Assigns comments to the most similar one
+- Typically the first paragraph if content is evenly distributed
+- No special notice needed (comments just appear on one)
 
 #### Scenario 5: Paragraphs are Deleted
 
@@ -260,14 +250,20 @@ The cat sat on the mat. The dog lay on the rug. [has 10 comments]
 1. Another paragraph.
 ```
 
-**Strategy:**
-- Mark comments as "orphaned"
-- Don't delete them from database
-- Provide admin interface to:
-  - View orphaned comments
-  - Reassign to different paragraph
-  - Archive permanently
-  - Restore if paragraph comes back
+**Strategy: Display as Orphaned**
+- Comments that can't be matched appear at the end of the chapter/page
+- Section titled "Unmapped Comments" or similar
+- Each orphaned comment shows its stored context:
+  - Original paragraph text
+  - Section heading it was under
+  - Surrounding paragraphs
+- Users can still read and reply to orphaned comments
+- Comments stay in database forever (no data loss)
+
+**No Admin Interface:**
+- The system is stateless - just displays what it can match
+- Orphaned comments resolve themselves if matching content returns
+- Authors can see orphaned comments just like readers
 
 #### Scenario 6: Major Rewrite
 
@@ -280,11 +276,12 @@ Chapter about functional programming concepts.
 Complete rewrite about object-oriented programming.
 ```
 
-**Strategy:**
+**Strategy: Become Orphaned**
 - Similarity score will be very low
-- Treat as "new content"
-- Archive old comments with notice
-- Start fresh comment threads
+- Comments can't be matched to any current paragraph
+- Appear in "Unmapped Comments" section at end of chapter
+- Readers can see what was discussed in previous versions
+- New paragraphs start with no comments (fresh slate)
 
 ## Technical Architecture
 
@@ -308,46 +305,38 @@ mdbook supports:
 ```
 mdbook-comments/
 ├── src/
-│   ├── preprocessor.rs        # Rust preprocessor
-│   ├── id_generator.rs        # Paragraph ID generation
-│   ├── fuzzy_matcher.rs       # Content similarity matching
-│   └── migration.rs           # Handle content updates
+│   ├── preprocessor.rs        # Main preprocessor entry point
+│   ├── element_finder.rs      # Find commentable elements in AST
+│   ├── id_generator.rs        # Generate IDs from position + content
+│   ├── metadata_extractor.rs  # Extract context (prev/next, headings)
+│   └── html_injector.rs       # Inject metadata and links into HTML
 ├── js/
-│   ├── comments.js            # Frontend comment UI
-│   ├── api.js                 # Backend API integration
-│   └── storage.js             # Storage adapter interface
+│   ├── comments.js            # Main UI controller
+│   ├── matcher.js             # Fuzzy matching algorithm
+│   ├── api.js                 # HTTP API client
+│   └── ui.js                  # DOM manipulation for comment display
 ├── css/
-│   └── comments.css           # Styling
-├── config/
-│   └── default.toml           # Default configuration
+│   └── comments.css           # Styling for links and comment sections
 └── tests/
+    ├── integration/           # End-to-end tests
+    └── unit/                  # Unit tests for matcher
 ```
+
+**No Backend Code:** Backend implementation (Supabase/PocketBase/Postgres) is separate and pluggable.
 
 ### Configuration
 
 ```toml
 [preprocessor.comments]
-# Storage backend
-backend = "giscus"  # or "github-issues", "custom", "staticman"
+# API endpoint for comment storage
+api-url = "https://comments.example.com/api"
 
-# Backend configuration
-[preprocessor.comments.giscus]
-repo = "username/repo"
-repo-id = "R_xxx"
-category = "Comments"
-category-id = "DIC_xxx"
+# Authentication (cookies/headers passed through)
+auth-type = "cookie"  # or "bearer-token", "oauth"
 
-# ID generation
-[preprocessor.comments.ids]
-strategy = "hybrid"  # position, content-hash, manual, hybrid
-auto-fuzzy-match = true
-similarity-threshold = 0.8
-
-# UI options
-[preprocessor.comments.ui]
-icon-position = "inline"  # inline, margin, hover
-icon-type = "bubble"      # bubble, text, custom
-always-visible = false    # or only on hover
+# Matching configuration
+similarity-threshold = 0.85  # How similar content must be to match
+orphaned-comments-location = "end-of-chapter"  # or "end-of-page"
 
 # Commentable elements
 [preprocessor.comments.elements]
@@ -355,213 +344,161 @@ paragraphs = true
 lists = true
 blockquotes = true
 code-blocks = true
-tables = false
+tables = true  # entire tables
+headings = false  # headings are structural, not commentable
 
-# Migration settings
-[preprocessor.comments.migration]
-enable-fuzzy-matching = true
-orphan-comments-action = "preserve"  # preserve, archive, delete
-show-warnings = true
+# UI customization
+[preprocessor.comments.ui]
+link-text = "comment"  # text for comment links
+show-comment-count = true  # show "(3)" after "comment" if there are 3 comments
 ```
 
 ### Data Model
 
-#### Paragraph Metadata (Stored in Build Artifact)
+#### Paragraph Metadata (Injected into HTML by Preprocessor)
 
 ```json
 {
-  "chapter": "defining-types",
-  "paragraph-id": "chapter-3-para-5-abc123",
-  "content-hash": "sha256-of-content",
+  "id": "chapter-3-para-5-abc123",
   "position": {
     "file": "src/chapter3.md",
-    "line": 42,
-    "block-index": 5
+    "block-index": 5,
+    "section-index": 2
   },
-  "manual-id": null,
-  "created": "2024-01-15T10:00:00Z",
-  "last-modified": "2024-01-20T15:30:00Z"
+  "content": "The quick brown fox jumps over the lazy dog.",
+  "context": {
+    "prev": "This is the preceding paragraph.",
+    "next": "This is the following paragraph.",
+    "heading-path": ["Chapter 3", "Defining Types", "Pattern Matching"]
+  },
+  "commit": "7a3716b"
 }
 ```
 
-#### Comment Data (Stored in Backend)
+This metadata is embedded as a `data-comment-meta` attribute on each commentable element.
+
+#### Comment Data (Stored in Backend Database)
 
 ```json
 {
-  "comment-id": "comment-uuid",
+  "id": "comment-uuid-1",
   "paragraph-id": "chapter-3-para-5-abc123",
+  "metadata": {
+    "position": {
+      "file": "src/chapter3.md",
+      "block-index": 5
+    },
+    "content": "The quick brown fox jumps over the lazy dog.",
+    "context": {
+      "prev": "This is the preceding paragraph.",
+      "next": "This is the following paragraph.",
+      "heading-path": ["Chapter 3", "Defining Types", "Pattern Matching"]
+    },
+    "commit": "7a3716b"
+  },
   "author": "user@example.com",
   "text": "Great explanation!",
   "created": "2024-01-16T12:00:00Z",
-  "replies": [],
-  "status": "active"  // active, archived, orphaned
+  "parent-id": null,
+  "replies": ["comment-uuid-2"]
 }
 ```
 
-#### Migration Mapping (Stored During Updates)
-
-```json
-{
-  "old-paragraph-id": "chapter-3-para-5-old",
-  "new-paragraph-id": "chapter-3-para-6-new",
-  "reason": "reordered",
-  "confidence": 0.95,
-  "content-similarity": 0.98,
-  "requires-review": false
-}
-```
+**Key Design Decision:** Comments store their own context. This enables stateless matching - the JavaScript doesn't need access to old book versions or diffs.
 
 ## Implementation Phases
 
-### Phase 1: MVP (Minimum Viable Product)
-- Basic preprocessor that adds IDs to paragraphs
-- Simple position-based IDs
-- Manual comment links (open GitHub issue)
-- No automatic matching
-- **Effort:** 2-3 weeks
+### Phase 1: Basic Infrastructure
+- Rust preprocessor that:
+  - Identifies all commentable elements
+  - Generates IDs based on position + content hash
+  - Injects metadata into HTML as data attributes
+  - Adds "comment" links with appropriate styling
+- **Effort:** 1-2 weeks
 
-### Phase 2: UI Integration
-- JavaScript-based comment modal
-- Integration with one backend (giscus recommended)
+### Phase 2: Comment UI
+- JavaScript that:
+  - Fetches comments from API for current page
+  - Displays inline comment sections
+  - Handles expand/collapse of comments
+  - Provides reply form
 - Basic CSS styling
 - **Effort:** 2-3 weeks
 
-### Phase 3: Content Stability
-- Implement fuzzy matching for minor text changes
-- Basic reordering detection
-- Orphaned comment handling
-- **Effort:** 3-4 weeks
+### Phase 3: Matching Algorithm
+- Implement fuzzy matching in JavaScript:
+  - String similarity calculation
+  - Context-based matching (prev/next paragraphs)
+  - Position-based matching as fallback
+- Orphaned comment display at end of chapter
+- **Effort:** 2-3 weeks
 
-### Phase 4: Advanced Features
-- Migration tool for major content updates
-- Admin dashboard for orphaned comments
-- Multiple backend support
-- Custom styling options
-- **Effort:** 4-6 weeks
+### Phase 4: Backend Implementation
+- Choose backend (Supabase/PocketBase/Postgres)
+- Implement simple API endpoints
+- Add authentication integration
+- **Effort:** 1-2 weeks (depending on choice)
 
-## Open Questions & Design Choices
+## Design Decisions (Finalized)
 
-### Question 1: What granularity for comments?
+### 1. Commentable Elements
+**Decision:** Everything except inline elements and headings
+- Paragraphs ✓
+- List items ✓
+- Blockquotes ✓
+- Code blocks ✓ (entire block as one unit)
+- Tables ✓
+- Headings ✗ (structural, not content)
 
-**Options:**
-- A) Only paragraphs
-- B) Paragraphs + list items
-- C) Paragraphs + list items + code blocks
-- D) Everything except inline elements
+### 2. Comment Visibility
+**Decision:** Public comments with authentication required
+- Use case: Company handbook, internal documentation
+- Authentication required (e.g., Google OAuth, session cookies)
+- No anonymous comments
+- No spam concerns (private, authenticated site)
 
-**Trade-offs:**
-- More granular = more control but more UI clutter
-- Less granular = cleaner but less precise feedback
+### 3. Reply Nesting
+**Decision:** One level of replies
+- Top-level comments on paragraphs
+- One level of replies to comments
+- No deeply nested threads
 
-**Recommendation:** Start with B, make C configurable.
+### 4. Fuzzy Matching Threshold
+**Decision:** 85% similarity (configurable)
+- Balances between false positives and false negatives
+- Can be adjusted per-deployment based on usage patterns
+- No UI for confidence scores (keep it simple)
 
-### Question 2: How to handle code blocks?
+### 5. Offline Support
+**Decision:** Online only
+- Comments require API access
+- No offline caching or viewing
+- Acceptable for the use case (internal handbooks)
 
-Code blocks are special because:
-- They often get updated as code evolves
-- Line-by-line comments might be useful
-- Syntax highlighting complicates the UI
+### 6. Translations/Versions
+**Decision:** Out of scope
+- Single language per deployment
+- No multi-version comment tracking
+- Can be added later if needed
 
-**Options:**
-- A) Treat entire code block as one commentable unit
-- B) Allow line-level comments (like GitHub)
-- C) Don't allow code block comments at all
+### 7. Comment Export
+**Decision:** Not needed
+- Comments stay in database
+- Can be queried directly if needed
+- No special export tools
 
-**Recommendation:** Start with A, consider B as advanced feature.
+## Comparison: Content Update Handling
 
-### Question 3: Should comments be public or private?
+| Scenario | Strategy | Difficulty | Result |
+|----------|----------|-----------|--------|
+| Minor text changes | Fuzzy matching (85% threshold) | Medium | Comments stay attached |
+| Reordering | Content + context matching | Medium | Comments follow paragraph |
+| Merging paragraphs | Merge all comments | Low | All comments on merged paragraph |
+| Splitting paragraphs | Assign to best match | Low | Comments on most similar paragraph |
+| Deleting paragraphs | Show as orphaned | Low | Comments at end of chapter with context |
+| Major rewrites | Show as orphaned | Low | Comments at end of chapter with context |
 
-**Public Comments:**
-- **Pros:** Community learning, social proof
-- **Cons:** Moderation needed, may intimidate users
-
-**Private Comments:**
-- **Pros:** Safe space for questions, no moderation
-- **Cons:** No community benefit, author gets overwhelmed
-
-**Hybrid:**
-- Private by default, author can promote to public
-- Or public with option to flag for author-only
-
-**Recommendation:** Public (like RWH), with moderation tools.
-
-### Question 4: What about nested comments (replies)?
-
-**Options:**
-- A) Flat comments only (simpler)
-- B) One level of replies (standard)
-- C) Unlimited nesting (like Reddit)
-
-**Recommendation:** B (one level of replies) - good balance.
-
-### Question 5: How much fuzzy matching is too much?
-
-Setting the similarity threshold is critical:
-- Too high (>95%): Fragile, breaks on minor edits
-- Too low (<70%): False matches, wrong comments on wrong paragraphs
-
-**Recommendation:**
-- Default: 85%
-- Configurable by author
-- Show confidence score in UI
-- Allow manual reassignment
-
-### Question 6: Should the plugin work offline?
-
-**Options:**
-- A) Online only (requires backend)
-- B) Offline viewing, online commenting
-- C) Full offline with local storage
-
-**Recommendation:** B - view cached comments offline, need online to add.
-
-### Question 7: What about translations/multiple versions?
-
-If the book has multiple languages or versions:
-- Should comments be per-language?
-- Should they be shared across versions?
-- How to handle version-specific comments?
-
-**Recommendation:** Per-language comments, with option to share.
-
-### Question 8: How to handle spam and abuse?
-
-**Options:**
-- A) Rely on backend's moderation (giscus, GitHub)
-- B) Build custom moderation tools
-- C) Require authentication only
-- D) Rate limiting
-
-**Recommendation:** A + C for MVP.
-
-### Question 9: Anonymous comments?
-
-**Options:**
-- A) Require authentication (GitHub, email)
-- B) Allow anonymous with optional name/email
-- C) Fully anonymous
-
-**Recommendation:** A for quality and moderation.
-
-### Question 10: How to export comments?
-
-Authors may want to:
-- Export all comments as PDF/JSON
-- Generate summary reports
-- Integrate into book (as footnotes, appendix)
-
-**Recommendation:** Provide export tools in Phase 4.
-
-## Comparison: Difficulty of Content Update Options
-
-| Scenario | Strategy | Difficulty | Pros | Cons |
-|----------|----------|-----------|------|------|
-| Minor text changes | Fuzzy matching (85% threshold) | Medium | Maintains most links | May miss some changes |
-| Reordering | Content-based matching | Medium-High | Preserves comments | Requires content hashing |
-| Merging paragraphs | Create orphaned section | Low-Medium | No data loss | Extra UI complexity |
-| Splitting paragraphs | Assign to best match + notice | Medium | Clear ownership | Some context loss |
-| Deleting paragraphs | Orphan comments | Low | Safe, reversible | Requires cleanup UI |
-| Major rewrites | Archive old + start fresh | Low | Clean slate | Comments disconnected |
+**Key Principle:** Never lose data. If matching fails, show comments as orphaned with full context.
 
 ## Success Criteria
 
@@ -594,16 +531,24 @@ The plugin will be considered successful if:
 3. **User Testing:** Get early feedback on UI/UX
 4. **Iterate:** Refine based on real usage
 
+## Key Design Principles
+
+1. **Simple and Obvious:** Text link that says "comment" - no icons, no hover states
+2. **Stateless Matching:** All context stored with comments, no migration tools needed
+3. **No Data Loss:** Orphaned comments displayed with context, never deleted
+4. **Inline UI:** Comments expand below paragraphs, no modals or sidebars
+5. **Backend Agnostic:** Simple API, implementation details TBD (Supabase/PocketBase/Postgres)
+6. **Private Use Case:** Authenticated users only, no spam concerns
+
 ## References
 
 - Real World Haskell: https://book.realworldhaskell.org/
 - mdbook Documentation: https://rust-lang.github.io/mdBook/
-- giscus: https://giscus.app/
-- utterances: https://utteranc.es/
-- staticman: https://staticman.net/
+- Supabase: https://supabase.com/
+- PocketBase: https://pocketbase.io/
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** 2024-01-15  
-**Author:** AI Assistant
+**Document Version:** 2.0  
+**Last Updated:** 2025-10-10  
+**Status:** Design Finalized
