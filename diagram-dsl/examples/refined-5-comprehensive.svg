@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="250.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Polished Components</text>
+    <rect x="60" y="146" width="1080" height="337" fill="#f0f7ff" stroke="#1976d2" stroke-width="2" rx="8" />
+      <rect x="60" y="146" width="1080" height="35" fill="#e3f2fd" />
+        <text x="72" y="168.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Architecture Overview</text>
+        <rect x="84" y="205" width="1020" height="254" fill="white" stroke="#ddd" stroke-width="2" rx="8" />
+                <rect x="84" y="205" width="1020" height="34" fill="#f5f5f5" />
+                  <text x="96" y="226.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="#333" font-weight="bold" text-anchor="start">Frontend</text>
+                      <rect x="100" y="255" width="44" height="16" fill="#1976d2" rx="4" />
+                        <text x="108" y="266.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">React</text>
+                      <rect x="152" y="255" width="67" height="18" fill="#0288d1" rx="4" />
+                        <text x="160" y="267.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">TypeScript</text>
+            <rect x="84" y="289" width="1020" height="2" fill="#e0e0e0" />
+                <rect x="84" y="291" width="1020" height="34" fill="#f5f5f5" />
+                  <text x="96" y="312.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="#333" font-weight="bold" text-anchor="start">Backend</text>
+                      <rect x="100" y="341" width="53" height="18" fill="#2e7d32" rx="4" />
+                        <text x="108" y="353.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Node.js</text>
+                      <rect x="161" y="341" width="60" height="18" fill="#7b1fa2" rx="4" />
+                        <text x="169" y="353.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">GraphQL</text>
+            <rect x="84" y="375" width="1020" height="2" fill="#e0e0e0" />
+                <rect x="84" y="377" width="1020" height="34" fill="#f5f5f5" />
+                  <text x="96" y="398.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="#333" font-weight="bold" text-anchor="start">Infrastructure</text>
+                      <rect x="100" y="427" width="39" height="16" fill="#ff9800" rx="4" />
+                        <text x="108" y="438.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">AWS</text>
+                      <rect x="147" y="427" width="50" height="16" fill="#0288d1" rx="4" />
+                        <text x="155" y="438.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Docker</text>
+    <rect x="60" y="539" width="1080" height="1" fill="#ddd" />
+    <rect x="60" y="596" width="1080" height="71" fill="#e3f2fd" stroke="#90caf9" stroke-width="1" rx="6" />
+      <text x="76" y="625.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">💡 These components work together seamlessly</text>
+      <text x="76" y="648.8333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Combine Panel, Well, Icon, Steps, Cluster, and Container to create professional, polished presentations with minimal effort.</text>
+</svg>

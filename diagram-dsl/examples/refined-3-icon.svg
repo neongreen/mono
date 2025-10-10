@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="202" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Icon Component</text>
+    <text x="139" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Visual symbols and indicators</text>
+          <rect x="60" y="210" width="48" height="48" fill="#e8f5e9" rx="24" />
+            <text x="72" y="244.66666666666666" font-size="32" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="normal" text-anchor="start">✓</text>
+          <text x="61" y="278.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Success</text>
+          <rect x="132" y="210" width="48" height="48" fill="#ffebee" rx="24" />
+            <text x="146" y="244.66666666666666" font-size="32" font-family="Arial, sans-serif" fill="#c62828" font-weight="normal" text-anchor="start">✗</text>
+          <text x="143" y="278.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Error</text>
+          <rect x="204" y="210" width="48" height="48" fill="#fff3e0" rx="24" />
+            <text x="212" y="245.16666666666666" font-size="32" font-family="Arial, sans-serif" fill="#ff9800" font-weight="normal" text-anchor="start">⚠</text>
+          <text x="206" y="280" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Warning</text>
+          <rect x="276" y="210" width="48" height="48" fill="#e3f2fd" rx="24" />
+            <text x="289" y="245.16666666666666" font-size="32" font-family="Arial, sans-serif" fill="#1976d2" font-weight="normal" text-anchor="start">ℹ</text>
+          <text x="290" y="278.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Info</text>
+          <rect x="348" y="210" width="48" height="48" fill="#fff3e0" rx="24" />
+            <text x="356" y="244.66666666666666" font-size="32" font-family="Arial, sans-serif" fill="#f57c00" font-weight="normal" text-anchor="start">★</text>
+          <text x="350" y="278.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Favorite</text>
+    <rect x="60" y="354" width="900" height="1" fill="#ddd" />
+        <text x="60" y="473" font-size="48" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">🚀</text>
+        <text x="132" y="457.6666666666667" font-size="32" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">💡</text>
+        <text x="188" y="450" font-size="24" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">📊</text>
+        <text x="236" y="442.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">⚙️</text>
+</svg>

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="235.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">REST API Endpoints</text>
+    <rect x="60" y="146" width="800" height="350" fill="transparent" stroke="#1976d2" stroke-width="2" rx="8" />
+      <rect x="60" y="146" width="800" height="53" fill="#e3f2fd" />
+        <rect x="76" y="162" width="49" height="21" fill="#1565c0" rx="4" />
+          <text x="88" y="176.5" font-size="12" font-family="Arial, sans-serif" fill="white" font-weight="bold" text-anchor="start">GET</text>
+        <text x="137" y="177.16666666666666" font-size="14" font-family="Monaco, Courier, monospace" fill="black" font-weight="bold" text-anchor="start">/api/v1/users/:id</text>
+        <text x="76" y="225.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Retrieve user information by ID</text>
+        <text x="76" y="269" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">REQUEST</text>
+          <text x="76" y="290.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Parameters:</text>
+          <text x="76" y="304.6666666666667" font-size="11" font-family="Monaco, Courier, monospace" fill="black" font-weight="normal" text-anchor="start">  id: string (UUID)</text>
+        <text x="76" y="347.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">RESPONSE</text>
+          <rect x="76" y="360" width="35" height="17" fill="#e8f5e9" rx="4" />
+            <text x="84" y="372.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="start">200</text>
+        <rect x="76" y="389" width="768" height="91" fill="#1e1e1e" rx="4" />
+          <text x="88" y="438.1666666666667" font-size="11" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">{
+  &quot;id&quot;: &quot;123&quot;,
+  &quot;name&quot;: &quot;John Doe&quot;,
+  &quot;email&quot;: &quot;john@example.com&quot;
+}</text>
+    <rect x="60" y="548" width="800" height="428" fill="transparent" stroke="#2e7d32" stroke-width="2" rx="8" />
+      <rect x="60" y="548" width="800" height="53" fill="#e8f5e9" />
+        <rect x="76" y="564" width="57" height="21" fill="#1b5e20" rx="4" />
+          <text x="88" y="578.5" font-size="12" font-family="Arial, sans-serif" fill="white" font-weight="bold" text-anchor="start">POST</text>
+        <text x="145" y="579.1666666666666" font-size="14" font-family="Monaco, Courier, monospace" fill="black" font-weight="bold" text-anchor="start">/api/v1/users</text>
+        <text x="76" y="626.3333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Create a new user</text>
+        <text x="76" y="668" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">REQUEST</text>
+          <text x="76" y="690.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Body:</text>
+          <rect x="76" y="696" width="768" height="91" fill="#1e1e1e" rx="4" />
+            <text x="88" y="745.1666666666666" font-size="11" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">{
+  &quot;name&quot;: &quot;Jane Doe&quot;,
+  &quot;email&quot;: &quot;jane@example.com&quot;,
+  &quot;role&quot;: &quot;developer&quot;
+}</text>
+        <text x="76" y="827.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">RESPONSE</text>
+          <rect x="76" y="840" width="35" height="17" fill="#e8f5e9" rx="4" />
+            <text x="84" y="852.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="start">201</text>
+        <rect x="76" y="869" width="768" height="91" fill="#1e1e1e" rx="4" />
+          <text x="88" y="918.1666666666666" font-size="11" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">{
+  &quot;id&quot;: &quot;456&quot;,
+  &quot;name&quot;: &quot;Jane Doe&quot;,
+  &quot;created_at&quot;: &quot;2024-01-15T10:30:00Z&quot;
+}</text>
+</svg>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <rect x="555" y="321" width="90" height="29" fill="#2e7d32" rx="4" />
+      <text x="571" y="340.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Example</text>
+    <text x="600.5" y="431" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Using generateSlideDeck</text>
+    <text x="600" y="478" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Simplified presentation generation</text>
+</svg>

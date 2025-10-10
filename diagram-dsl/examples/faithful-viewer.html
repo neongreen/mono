@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anthropic Faithful Replication</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .description {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .svg-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: auto;
+            background: white;
+        }
+        img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Faithful Replication of Anthropic Diagram</h1>
+        <p class="description">
+            This is a faithful replication of the "Prompt engineering vs. context engineering" diagram
+            from Anthropic's documentation. It demonstrates:
+        </p>
+        <ul class="description">
+            <li>Two-panel comparison with proper width ratio (1:1.5)</li>
+            <li>Nested dashed boxes representing context windows</li>
+            <li>Hierarchical spacing (labels 6px from their boxes, 16px from section headers)</li>
+            <li>Multiple element types with accurate sizing</li>
+            <li>Flexible spacers filling unused token space</li>
+            <li>Complex arrow routing (Y-forks, shortening, feedback loops)</li>
+            <li>Accurate color palette from original diagram</li>
+        </ul>
+        
+        <div class="svg-container">
+            <img src="anthropic-faithful-replication.svg" alt="Anthropic Faithful Replication">
+        </div>
+    </div>
+</body>
+</html>

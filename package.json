@@ -1,0 +1,13 @@
+{
+  "name": "agentdemo-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Monorepo for agent demo projects",
+  "scripts": {
+    "build": "pnpm -r --filter='./diagram-dsl' build",
+    "test": "pnpm -r test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}

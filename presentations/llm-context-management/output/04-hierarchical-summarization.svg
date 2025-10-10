@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+    <text x="395.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Strategy 2: Hierarchical Summarization</text>
+    <text x="206.5" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Compress old context into summaries at multiple levels</text>
+        <rect x="205" y="190" width="200" height="67" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <text x="305" y="217.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Detailed Messages</text>
+          <text x="255" y="228.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Last 5-10 messages</text>
+          <text x="251" y="239.16666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Full content preserved</text>
+        <rect x="205" y="273" width="200" height="68" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="305.5" y="300.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Recent Summary</text>
+          <text x="260" y="312.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Last 50 messages</text>
+          <text x="255" y="323.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Key points extracted</text>
+        <rect x="205" y="357" width="200" height="66" fill="#fafafa" stroke="#e0e0e0" stroke-width="2" rx="8" />
+          <text x="305" y="384.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Session Summary</text>
+          <text x="258" y="395.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Entire conversation</text>
+          <text x="257" y="405.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">High-level overview</text>
+        <rect x="445" y="190" width="550" height="188" fill="#f5f5f5" stroke="#999" stroke-width="2" rx="8" />
+          <text x="465" y="220.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">How It Works</text>
+            <text x="465" y="243" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">[object Object], Kept in full detail</text>
+            <text x="465" y="265" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">[object Object], Summarized into key points</text>
+            <text x="465" y="287" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">[object Object], Compressed into single paragraph</text>
+          <rect x="465" y="305" width="510" height="53" fill="#e3f2fd" rx="6" />
+            <text x="477" y="326.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Example Compression</text>
+            <text x="477" y="344.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">&quot;User discussed implementing auth system. Decided on OAuth2. Then talked about database schema. Settled on PostgreSQL with normalized tables. Now working on API design.&quot;</text>
+        <rect x="445" y="394" width="550" height="98" fill="#fafafa" stroke="#e0e0e0" stroke-width="2" rx="8" />
+          <text x="720" y="420.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Trade-offs</text>
+              <text x="606" y="429.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="start">✓ Pros</text>
+              <text x="606" y="444.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Retains important info</text>
+              <text x="606" y="460.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Scales to long convos</text>
+              <text x="606" y="475.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Semantic awareness</text>
+              <text x="734" y="429.5" font-size="12" font-family="Arial, sans-serif" fill="#c62828" font-weight="bold" text-anchor="start">✗ Cons</text>
+              <text x="734" y="444.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Requires LLM calls</text>
+              <text x="734" y="459.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Summarization costs</text>
+              <text x="734" y="474.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• May lose nuance</text>
+</svg>

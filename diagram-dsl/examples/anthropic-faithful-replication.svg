@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="800" viewBox="0 0 1400 800">
+  <defs>
+    <marker id="arrow-4c4c4c" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#4c4c4c" />
+    </marker>
+    <marker id="arrow-tail-4c4c4c" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#4c4c4c" />
+    </marker>
+  </defs>
+  <rect width="1400" height="800" fill="#f7f7f5"/>
+  <rect x="0" y="0" width="1400" height="800" fill="#f7f7f5" />
+    <text x="700.5" y="49.666666666666664" font-size="32" font-family="Arial, sans-serif" fill="#000000" font-weight="bold" text-anchor="middle">Prompt engineering vs. context engineering</text>
+      <rect x="-77" y="78" width="420" height="700" fill="#ffffff" rx="12" />
+        <text x="-57" y="112.5" font-size="18" font-family="Arial, sans-serif" fill="#666666" font-weight="bold" text-anchor="start">Prompt engineering for single turn queries</text>
+        <text x="-57" y="141.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#666666" font-weight="normal" text-anchor="start">Context window</text>
+        <rect x="-57" y="148" width="380" height="610" fill="transparent" stroke="#888888" stroke-width="2" stroke-dasharray="6 4" rx="8" />
+            <rect x="-37" y="168" width="140" height="40" fill="#6fb4ff" stroke="#4a9ae5" stroke-width="2" rx="8" />
+              <text x="-14" y="192.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">System prompt</text>
+            <rect x="-37" y="216" width="140" height="40" fill="#6fb4ff" stroke="#4a9ae5" stroke-width="2" rx="8" />
+              <text x="-11" y="240.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">User message</text>
+                <text x="-37" y="395.5" font-size="24" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">✂️</text>
+              <rect x="389" y="383" width="10" height="10" fill="#a3d5ff" rx="5" />
+              <rect x="405" y="383" width="10" height="10" fill="#b8e6b8" rx="5" />
+              <rect x="421" y="383" width="10" height="10" fill="#ffe6a3" rx="5" />
+              <rect x="389" y="399" width="10" height="10" fill="#b8e6b8" rx="5" />
+              <rect x="405" y="399" width="10" height="10" fill="#ffe6a3" rx="5" />
+              <rect x="421" y="399" width="10" height="10" fill="#a3d5ff" rx="5" />
+              <rect x="389" y="415" width="10" height="10" fill="#ffe6a3" rx="5" />
+              <rect x="405" y="415" width="10" height="10" fill="#a3d5ff" rx="5" />
+              <rect x="421" y="415" width="10" height="10" fill="#b8e6b8" rx="5" />
+        <rect x="388" y="437" width="120" height="38" fill="#ffffff" stroke="#444444" stroke-width="1" rx="4" />
+          <text x="393" y="460.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Assistant message</text>
+      <rect x="573" y="78" width="720" height="700" fill="#ffffff" rx="12" />
+        <text x="593" y="112.5" font-size="18" font-family="Arial, sans-serif" fill="#666666" font-weight="bold" text-anchor="start">Context engineering for agents</text>
+            <text x="593" y="142.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#666666" font-weight="normal" text-anchor="start">Possible context to give model</text>
+            <rect x="593" y="151" width="365" height="607" fill="transparent" stroke="#888888" stroke-width="2" stroke-dasharray="6 4" rx="8" />
+                  <rect x="605" y="163" width="85" height="36" fill="#90EE90" rx="4" />
+                    <text x="630" y="185.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Doc 1</text>
+                  <rect x="696" y="163" width="85" height="36" fill="#90EE90" rx="4" />
+                    <text x="721" y="185.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Doc 2</text>
+                  <rect x="787" y="163" width="85" height="36" fill="#90EE90" rx="4" />
+                    <text x="812" y="185.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Doc 3</text>
+                  <rect x="605" y="207" width="85" height="36" fill="#FFA500" rx="18" />
+                    <text x="629" y="229.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">Tool 1</text>
+                  <rect x="696" y="207" width="85" height="36" fill="#FFA500" rx="18" />
+                    <text x="720" y="229.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">Tool 2</text>
+                  <rect x="605" y="251" width="85" height="36" fill="#FFA500" rx="18" />
+                    <text x="629" y="273.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">Tool 3</text>
+                  <rect x="696" y="251" width="85" height="36" fill="#FFA500" rx="18" />
+                    <text x="720" y="273.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">Tool 4</text>
+                  <rect x="605" y="295" width="85" height="36" fill="#DDA0DD" rx="4" />
+                    <text x="623" y="317.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Memory</text>
+                  <rect x="696" y="295" width="85" height="36" fill="#DDA0DD" rx="4" />
+                    <text x="714" y="317.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Memory</text>
+                <rect x="605" y="339" width="180" height="36" fill="#6fb4ff" rx="4" />
+                  <text x="607" y="361.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">Comprehensive instructions</text>
+                <rect x="605" y="383" width="180" height="36" fill="#6fb4ff" rx="4" />
+                  <text x="636" y="405.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">Domain knowledge</text>
+                <rect x="605" y="427" width="140" height="38" fill="#ffffff" stroke="#cccccc" stroke-width="1" rx="6" />
+                  <text x="628" y="450.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Message history</text>
+            <text x="999" y="141.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#666666" font-weight="normal" text-anchor="start">Context window</text>
+            <rect x="999" y="148" width="275" height="610" fill="transparent" stroke="#888888" stroke-width="2" stroke-dasharray="6 4" rx="8" />
+                <rect x="1011" y="160" width="140" height="36" fill="#6fb4ff" stroke="#4a9ae5" stroke-width="2" rx="8" />
+                  <text x="1034" y="182.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">System prompt</text>
+                  <rect x="1011" y="204" width="85" height="36" fill="#90EE90" rx="4" />
+                    <text x="1036" y="226.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Doc 1</text>
+                  <rect x="1102" y="204" width="85" height="36" fill="#90EE90" rx="4" />
+                    <text x="1127" y="226.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Doc 2</text>
+                <rect x="1011" y="248" width="85" height="36" fill="#DDA0DD" rx="4" />
+                  <text x="1017" y="270.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Memory file</text>
+                  <rect x="1011" y="292" width="85" height="36" fill="#FFA500" rx="18" />
+                    <text x="1035" y="314.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">Tool 1</text>
+                  <rect x="1102" y="292" width="85" height="36" fill="#FFA500" rx="18" />
+                    <text x="1126" y="314.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">Tool 2</text>
+                <rect x="1011" y="336" width="140" height="36" fill="#6fb4ff" stroke="#4a9ae5" stroke-width="2" rx="8" />
+                  <text x="1037" y="358.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="#ffffff" font-weight="bold" text-anchor="start">User message</text>
+                <rect x="1011" y="380" width="140" height="38" fill="#ffffff" stroke="#cccccc" stroke-width="1" rx="6" />
+                  <text x="1034" y="403.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Message history</text>
+                    <text x="1011" y="507.5" font-size="24" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">✂️</text>
+              <rect x="1339" y="333" width="10" height="10" fill="#a3d5ff" rx="5" />
+              <rect x="1355" y="333" width="10" height="10" fill="#b8e6b8" rx="5" />
+              <rect x="1371" y="333" width="10" height="10" fill="#ffe6a3" rx="5" />
+              <rect x="1339" y="349" width="10" height="10" fill="#b8e6b8" rx="5" />
+              <rect x="1355" y="349" width="10" height="10" fill="#ffe6a3" rx="5" />
+              <rect x="1371" y="349" width="10" height="10" fill="#a3d5ff" rx="5" />
+              <rect x="1339" y="365" width="10" height="10" fill="#ffe6a3" rx="5" />
+              <rect x="1355" y="365" width="10" height="10" fill="#a3d5ff" rx="5" />
+              <rect x="1371" y="365" width="10" height="10" fill="#b8e6b8" rx="5" />
+        <rect x="1338" y="387" width="120" height="38" fill="#ffffff" stroke="#444444" stroke-width="1" rx="4" />
+          <text x="1343" y="410.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Assistant message</text>
+        <rect x="1338" y="437" width="120" height="38" fill="#f8e0ba" stroke="#d4b896" stroke-width="1" rx="4" />
+          <text x="1375" y="460.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Tool call</text>
+        <rect x="1338" y="487" width="120" height="38" fill="#f8e0ba" stroke="#d4b896" stroke-width="1" rx="4" />
+          <text x="1368" y="510.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Tool result</text>
+  <path d="M 323 453 L 388 403" stroke="#4c4c4c" stroke-width="2" fill="none" marker-end="url(#arrow-4c4c4c)" />
+  <path d="M 432 403 L 388 456" stroke="#4c4c4c" stroke-width="2" fill="none" marker-end="url(#arrow-4c4c4c)" />
+  <path d="M 958 454.5 L 989.0066857341352 453.36560905850723" stroke="#4c4c4c" stroke-width="2" fill="none" marker-end="url(#arrow-4c4c4c)" />
+  <rect x="940.7033428670677" y="443.93280452925364" width="65.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="973.5033428670677" y="457.93280452925364" font-size="12" fill="#4c4c4c" text-anchor="middle">Curation</text>
+  <path d="M 1274 453 L 1338 353" stroke="#4c4c4c" stroke-width="2" fill="none" marker-end="url(#arrow-4c4c4c)" />
+  <path d="M 1382 353 L 1338 406" stroke="#4c4c4c" stroke-width="2" fill="none" marker-end="url(#arrow-4c4c4c)" />
+  <path d="M 1382 353 L 1338 456" stroke="#4c4c4c" stroke-width="2" fill="none" marker-end="url(#arrow-4c4c4c)" />
+  <path d="M 1398 475 L 1398 487" stroke="#4c4c4c" stroke-width="2" fill="none" marker-end="url(#arrow-4c4c4c)" />
+  <path d="M 1338 506 L 1209.5 506 L 1209.5 418 L 1081 418" stroke="#4c4c4c" stroke-width="2" fill="none" marker-end="url(#arrow-4c4c4c)" />
+</svg>

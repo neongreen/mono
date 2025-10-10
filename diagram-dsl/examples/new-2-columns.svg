@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="201.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Column Layouts</text>
+    <text x="137.5" y="136" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Flexible multi-column layouts</text>
+    <rect x="60" y="190" width="1080" height="79" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+      <text x="80" y="221.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Two Column Layout</text>
+          <text x="80" y="246.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Left column content automatically takes up 50% of the available space. Perfect for side-by-side comparisons.</text>
+          <text x="731" y="246.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Right column content. Both columns grow equally to fill the container. No manual width calculations needed!</text>
+    <rect x="60" y="321" width="1080" height="78" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+      <text x="80" y="352.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#6a1b9a" font-weight="bold" text-anchor="start">Three Column Layout</text>
+          <text x="80" y="377" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Column 1: Automatically sized</text>
+          <text x="265" y="377" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Column 2: All equal width</text>
+          <text x="424" y="375.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Column 3: No calculations</text>
+</svg>

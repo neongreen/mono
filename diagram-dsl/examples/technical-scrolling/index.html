@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Microservices Architecture - Documentation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+    
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    .sidebar {
+      width: 250px;
+      background: white;
+      border-right: 1px solid #e0e0e0;
+      padding: 24px;
+      position: fixed;
+      height: 100vh;
+      overflow-y: auto;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+    }
+    
+    .sidebar h1 {
+      font-size: 20px;
+      margin-bottom: 24px;
+      color: #1976d2;
+      font-weight: 600;
+    }
+    
+    .toc {
+      list-style: none;
+    }
+    
+    .toc li {
+      margin-bottom: 12px;
+    }
+    
+    .toc a {
+      color: #666;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+      text-transform: capitalize;
+      display: block;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    
+    .toc a:hover {
+      color: #1976d2;
+      background: #f0f7ff;
+    }
+    
+    .toc a.active {
+      color: #1976d2;
+      background: #e3f2fd;
+      font-weight: 600;
+    }
+    
+    .main-content {
+      margin-left: 250px;
+      flex: 1;
+      padding: 40px;
+      max-width: 1280px;
+    }
+    
+    .content-section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .section-content {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    
+    .section-content svg {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+    
+    .back-to-top {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.2s;
+      z-index: 1000;
+    }
+    
+    .back-to-top.visible {
+      opacity: 1;
+    }
+    
+    .back-to-top:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        display: none;
+      }
+      
+      .main-content {
+        margin-left: 0;
+        padding: 20px;
+      }
+    }
+    
+    @media print {
+      .sidebar,
+      .back-to-top {
+        display: none;
+      }
+      
+      .main-content {
+        margin-left: 0;
+      }
+      
+      .content-section {
+        page-break-inside: avoid;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <aside class="sidebar">
+      <h1>Microservices Architecture - Documentation</h1>
+      <ul class="toc">
+        
+    <li><a href="#section-title">title</a></li>
+  
+
+    <li><a href="#section-architecture">architecture</a></li>
+  
+
+    <li><a href="#section-api">api</a></li>
+  
+
+    <li><a href="#section-sequence">sequence</a></li>
+  
+
+    <li><a href="#section-cli">cli</a></li>
+  
+
+    <li><a href="#section-comparison">comparison</a></li>
+  
+
+    <li><a href="#section-code">code</a></li>
+  
+
+    <li><a href="#section-best-practices">best practices</a></li>
+  
+      </ul>
+    </aside>
+    
+    <main class="main-content">
+      
+    <section id="section-title" class="content-section" style="margin-bottom: 60px;">
+      <div class="section-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <rect x="552" y="292" width="96" height="27" fill="#1976d2" rx="4" />
+      <text x="568" y="310.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Technical</text>
+    <text x="600.5" y="396.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Microservices Architecture</text>
+    <text x="600.5" y="440" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Design Patterns &amp; Best Practices</text>
+    <text x="456" y="505.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">A comprehensive guide for software engineers</text>
+</svg>
+      </div>
+    </section>
+
+    <section id="section-architecture" class="content-section" style="margin-bottom: 60px;">
+      <div class="section-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+    <marker id="arrow-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-tail-1976d2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#1976d2" />
+    </marker>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="234.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">System Architecture</text>
+    <rect x="60" y="156" width="1080" height="205" fill="#f0f7ff" stroke="#1976d2" stroke-width="2" rx="8" />
+      <rect x="60" y="156" width="1080" height="37" fill="#e3f2fd" />
+        <text x="72" y="179.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Microservices Ecosystem</text>
+          <rect x="84" y="217" width="160" height="80" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="40" />
+            <text x="154" y="249.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">📥</text>
+            <text x="164" y="269.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Client Apps</text>
+            <text x="164.5" y="283.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">Web &amp; Mobile</text>
+          <rect x="324" y="217" width="160" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+            <text x="394" y="248.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">⚙️</text>
+            <text x="404.5" y="268.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">API Gateway</text>
+            <text x="404" y="283.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">Kong/Nginx</text>
+          <rect x="564" y="217" width="160" height="80" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+            <text x="634" y="250.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">⚙️</text>
+            <text x="644" y="269.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Services</text>
+            <text x="644" y="282.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">Business Logic</text>
+          <rect x="804" y="217" width="160" height="80" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+            <text x="874" y="250.16666666666666" font-size="20" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">💾</text>
+            <text x="884" y="269.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Databases</text>
+            <text x="884.5" y="282.3333333333333" font-size="10" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="middle">PostgreSQL</text>
+  <path d="M 244 257 L 324 257" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="262" y="247" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="284" y="261" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <path d="M 484 257 L 564 257" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="505.6" y="247" width="36.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="524" y="261" font-size="12" fill="#1976d2" text-anchor="middle">gRPC</text>
+  <path d="M 724 257 L 804 257" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="749.2" y="247" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="764" y="261" font-size="12" fill="#1976d2" text-anchor="middle">SQL</text>
+</svg>
+      </div>
+    </section>
+
+    <section id="section-api" class="content-section" style="margin-bottom: 60px;">
+      <div class="section-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="235.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">REST API Endpoints</text>
+    <rect x="60" y="146" width="800" height="350" fill="transparent" stroke="#1976d2" stroke-width="2" rx="8" />
+      <rect x="60" y="146" width="800" height="53" fill="#e3f2fd" />
+        <rect x="76" y="162" width="49" height="21" fill="#1565c0" rx="4" />
+          <text x="88" y="176.5" font-size="12" font-family="Arial, sans-serif" fill="white" font-weight="bold" text-anchor="start">GET</text>
+        <text x="137" y="177.16666666666666" font-size="14" font-family="Monaco, Courier, monospace" fill="black" font-weight="bold" text-anchor="start">/api/v1/users/:id</text>
+        <text x="76" y="225.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Retrieve user information by ID</text>
+        <text x="76" y="269" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">REQUEST</text>
+          <text x="76" y="290.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Parameters:</text>
+          <text x="76" y="304.6666666666667" font-size="11" font-family="Monaco, Courier, monospace" fill="black" font-weight="normal" text-anchor="start">  id: string (UUID)</text>
+        <text x="76" y="347.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">RESPONSE</text>
+          <rect x="76" y="360" width="35" height="17" fill="#e8f5e9" rx="4" />
+            <text x="84" y="372.1666666666667" font-size="11" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="start">200</text>
+        <rect x="76" y="389" width="768" height="91" fill="#1e1e1e" rx="4" />
+          <text x="88" y="438.1666666666667" font-size="11" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">{
+  &quot;id&quot;: &quot;123&quot;,
+  &quot;name&quot;: &quot;John Doe&quot;,
+  &quot;email&quot;: &quot;john@example.com&quot;
+}</text>
+    <rect x="60" y="548" width="800" height="428" fill="transparent" stroke="#2e7d32" stroke-width="2" rx="8" />
+      <rect x="60" y="548" width="800" height="53" fill="#e8f5e9" />
+        <rect x="76" y="564" width="57" height="21" fill="#1b5e20" rx="4" />
+          <text x="88" y="578.5" font-size="12" font-family="Arial, sans-serif" fill="white" font-weight="bold" text-anchor="start">POST</text>
+        <text x="145" y="579.1666666666666" font-size="14" font-family="Monaco, Courier, monospace" fill="black" font-weight="bold" text-anchor="start">/api/v1/users</text>
+        <text x="76" y="626.3333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Create a new user</text>
+        <text x="76" y="668" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">REQUEST</text>
+          <text x="76" y="690.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Body:</text>
+          <rect x="76" y="696" width="768" height="91" fill="#1e1e1e" rx="4" />
+            <text x="88" y="745.1666666666666" font-size="11" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">{
+  &quot;name&quot;: &quot;Jane Doe&quot;,
+  &quot;email&quot;: &quot;jane@example.com&quot;,
+  &quot;role&quot;: &quot;developer&quot;
+}</text>
+        <text x="76" y="827.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">RESPONSE</text>
+          <rect x="76" y="840" width="35" height="17" fill="#e8f5e9" rx="4" />
+            <text x="84" y="852.1666666666666" font-size="11" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="start">201</text>
+        <rect x="76" y="869" width="768" height="91" fill="#1e1e1e" rx="4" />
+          <text x="88" y="918.1666666666666" font-size="11" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">{
+  &quot;id&quot;: &quot;456&quot;,
+  &quot;name&quot;: &quot;Jane Doe&quot;,
+  &quot;created_at&quot;: &quot;2024-01-15T10:30:00Z&quot;
+}</text>
+</svg>
+      </div>
+    </section>
+
+    <section id="section-sequence" class="content-section" style="margin-bottom: 60px;">
+      <div class="section-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+    <marker id="arrow-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-tail-1976d2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#1976d2" />
+    </marker>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="232" y="85.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Authentication Flow</text>
+    <text x="154" y="127.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">OAuth 2.0 Authorization Code Flow</text>
+        <rect x="200" y="210" width="120" height="60" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <text x="239" y="244.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">👤 User</text>
+        <rect x="259" y="270" width="2" height="560" fill="#ddd" />
+        <rect x="440" y="210" width="120" height="60" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="463" y="244.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">⚙️ Client App</text>
+        <rect x="499" y="270" width="2" height="560" fill="#ddd" />
+        <rect x="680" y="210" width="120" height="60" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+          <text x="699" y="244.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">⚙️ Auth Server</text>
+        <rect x="739" y="270" width="2" height="560" fill="#ddd" />
+        <rect x="920" y="210" width="120" height="60" fill="#e8f5e9" stroke="#2e7d32" stroke-width="2" rx="8" />
+          <text x="942" y="244.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">💻 API Server</text>
+        <rect x="979" y="270" width="2" height="560" fill="#ddd" />
+  <path d="M 261 300.5 L 500 300.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="329.7" y="290.5" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="380.5" y="304.5" font-size="12" fill="#1976d2" text-anchor="middle">Login request</text>
+  <path d="M 501 360.5 L 740 360.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="540.9" y="350.5" width="159.2" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="620.5" y="364.5" font-size="12" fill="#1976d2" text-anchor="middle">Authorization request</text>
+  <path d="M 740 420.5 L 261 420.5" stroke="#1976d2" stroke-width="2" fill="none" stroke-dasharray="8,4" />
+  <rect x="460.5" y="410.5" width="80" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="500.5" y="424.5" font-size="12" fill="#1976d2" text-anchor="middle">Login page</text>
+  <path d="M 261 480.5 L 740 480.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="456.9" y="470.5" width="87.2" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="500.5" y="484.5" font-size="12" fill="#1976d2" text-anchor="middle">Credentials</text>
+  <path d="M 740 540.5 L 501 540.5" stroke="#1976d2" stroke-width="2" fill="none" stroke-dasharray="8,4" />
+  <rect x="584.1" y="530.5" width="72.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="620.5" y="544.5" font-size="12" fill="#1976d2" text-anchor="middle">Auth code</text>
+  <path d="M 501 600.5 L 740 600.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="569.7" y="590.5" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="620.5" y="604.5" font-size="12" fill="#1976d2" text-anchor="middle">Token request</text>
+  <path d="M 740 660.5 L 501 660.5" stroke="#1976d2" stroke-width="2" fill="none" stroke-dasharray="8,4" />
+  <rect x="573.3" y="650.5" width="94.39999999999999" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="620.5" y="664.5" font-size="12" fill="#1976d2" text-anchor="middle">Access token</text>
+  <path d="M 501 720.5 L 980 720.5" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="678.9" y="710.5" width="123.19999999999999" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="740.5" y="724.5" font-size="12" fill="#1976d2" text-anchor="middle">API call + token</text>
+  <path d="M 980 780.5 L 501 780.5" stroke="#1976d2" stroke-width="2" fill="none" stroke-dasharray="8,4" />
+  <rect x="671.7" y="770.5" width="137.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="740.5" y="784.5" font-size="12" fill="#1976d2" text-anchor="middle">Protected resource</text>
+</svg>
+      </div>
+    </section>
+
+    <section id="section-cli" class="content-section" style="margin-bottom: 60px;">
+      <div class="section-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="266.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Deployment Commands</text>
+    <rect x="60" y="156" width="900" height="212" fill="transparent" stroke="#3e3e3e" stroke-width="1" rx="8" />
+      <rect x="60" y="156" width="900" height="36" fill="#2d2d2d" />
+          <rect x="72" y="168" width="12" height="12" fill="#ff5f56" rx="6" />
+          <rect x="90" y="168" width="12" height="12" fill="#ffbd2e" rx="6" />
+          <rect x="108" y="168" width="12" height="12" fill="#27c93f" rx="6" />
+        <text x="136" y="178" font-size="12" font-family="Arial, sans-serif" fill="#d4d4d4" font-weight="normal" text-anchor="start">Production Deployment</text>
+      <rect x="60" y="192" width="900" height="176" fill="#1e1e1e" />
+          <text x="76" y="218.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="219.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">docker build -t myapp:latest .</text>
+          <text x="76" y="236.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="237.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">docker tag myapp:latest registry.io/myapp:v1.2.3</text>
+          <text x="76" y="254.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="255.33333333333334" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">docker push registry.io/myapp:v1.2.3</text>
+          <text x="76" y="272.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="274.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"></text>
+          <text x="76" y="292.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="293.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">kubectl set image deployment/myapp myapp=registry.io/myapp:v1.2.3</text>
+          <text x="76" y="310.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="311.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">kubectl rollout status deployment/myapp</text>
+          <text x="76" y="328.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="330.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"></text>
+          <text x="76" y="348.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#4ec9b0" font-weight="normal" text-anchor="start">$</text>
+          <text x="92" y="349.3333333333333" font-size="13" font-family="Monaco, Courier, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"># Deployment successful ✓</text>
+    <rect x="60" y="420" width="900" height="69" fill="#e3f2fd" stroke="#90caf9" stroke-width="1" rx="6" />
+      <text x="76" y="448.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">💡 Pro Tip</text>
+      <text x="76" y="471" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Always test in staging environment before deploying to production. Use blue-green deployment strategy for zero-downtime updates.</text>
+</svg>
+      </div>
+    </section>
+
+    <section id="section-comparison" class="content-section" style="margin-bottom: 60px;">
+      <div class="section-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="323" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Technology Stack Comparison</text>
+    <rect x="60" y="156" width="900" height="292" fill="transparent" stroke="#e0e0e0" stroke-width="1" rx="8" />
+      <rect x="60" y="156" width="900" height="37" fill="#f5f5f5" />
+          <text x="72" y="177.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Feature</text>
+          <text x="295.5" y="178.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Node.js</text>
+        <rect x="410" y="156" width="150" height="37" fill="#e3f2fd" />
+          <text x="431.5" y="177.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Go</text>
+          <text x="586.5" y="177.33333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="middle">Rust</text>
+      <rect x="60" y="193" width="900" height="39" fill="#fafafa" />
+          <text x="72" y="213.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Performance</text>
+          <text x="290" y="216.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">⭐⭐⭐</text>
+        <rect x="410" y="193" width="150" height="39" fill="#f0f7ff" />
+          <text x="446" y="216.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">⭐⭐⭐⭐</text>
+          <text x="602" y="216.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">⭐⭐⭐⭐⭐</text>
+      <rect x="60" y="232" width="900" height="36" fill="white" />
+          <text x="72" y="254" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Learning Curve</text>
+          <text x="285.5" y="254" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Easy</text>
+        <rect x="410" y="232" width="150" height="36" fill="#f0f7ff" />
+          <text x="443.5" y="252.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Medium</text>
+          <text x="585.5" y="252.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Hard</text>
+      <rect x="60" y="268" width="900" height="36" fill="#fafafa" />
+          <text x="72" y="290" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Async Support</text>
+          <text x="277" y="288.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+        <rect x="410" y="268" width="150" height="36" fill="#f0f7ff" />
+          <text x="427" y="288.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+          <text x="577" y="288.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+      <rect x="60" y="304" width="900" height="36" fill="white" />
+          <text x="72" y="326" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Memory Safety</text>
+          <text x="276" y="324" font-size="12" font-family="Arial, sans-serif" fill="#c62828" font-weight="bold" text-anchor="middle">✗</text>
+        <rect x="410" y="304" width="150" height="36" fill="#f0f7ff" />
+          <text x="426" y="324" font-size="12" font-family="Arial, sans-serif" fill="#c62828" font-weight="bold" text-anchor="middle">✗</text>
+          <text x="577" y="324.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+      <rect x="60" y="340" width="900" height="36" fill="#fafafa" />
+          <text x="72" y="362" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Concurrency</text>
+          <text x="302.5" y="361.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Event Loop</text>
+        <rect x="410" y="340" width="150" height="36" fill="#f0f7ff" />
+          <text x="451.5" y="360.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Goroutines</text>
+          <text x="586.5" y="360.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">Tokio</text>
+      <rect x="60" y="376" width="900" height="36" fill="white" />
+          <text x="72" y="398" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Package Manager</text>
+          <text x="284" y="396.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">npm</text>
+        <rect x="410" y="376" width="150" height="36" fill="#f0f7ff" />
+          <text x="442.5" y="398" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">go mod</text>
+          <text x="587.5" y="396.5" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="middle">cargo</text>
+      <rect x="60" y="412" width="900" height="36" fill="#fafafa" />
+          <text x="72" y="434" font-size="12" font-family="Arial, sans-serif" fill="#333" font-weight="normal" text-anchor="start">Enterprise Ready</text>
+          <text x="277" y="432.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+        <rect x="410" y="412" width="150" height="36" fill="#f0f7ff" />
+          <text x="427" y="432.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+          <text x="577" y="432.5" font-size="12" font-family="Arial, sans-serif" fill="#2e7d32" font-weight="bold" text-anchor="middle">✓</text>
+    <rect x="60" y="500" width="1080" height="21" fill="#2e7d32" rx="4" />
+      <text x="565" y="514.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Go Selected</text>
+</svg>
+      </div>
+    </section>
+
+    <section id="section-code" class="content-section" style="margin-bottom: 60px;">
+      <div class="section-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="272.5" y="88.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Implementation Example</text>
+    <rect x="60" y="155" width="900" height="251" fill="white" stroke="#7b1fa2" stroke-width="2" rx="8" />
+      <rect x="60" y="155" width="900" height="43" fill="#f3e5f5" />
+        <text x="76" y="181.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Go Microservice Handler</text>
+        <rect x="80" y="218" width="850" height="168" fill="#1e1e1e" stroke="#333" stroke-width="1" rx="6" />
+          <text x="96" y="241.33333333333334" font-size="10" font-family="Arial, sans-serif" fill="#808080" font-weight="normal" text-anchor="start">// Go</text>
+          <text x="96" y="259.6666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"> 1  func (h *Handler) GetUser(w http.ResponseWriter, r *http.Request) {</text>
+          <text x="96" y="271.6666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"> 2      id := chi.URLParam(r, &quot;id&quot;)</text>
+          <text x="96" y="282.1666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"> 3      </text>
+          <text x="96" y="292.6666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"> 4      user, err := h.userService.GetByID(r.Context(), id)</text>
+          <text x="96" y="304.1666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"> 5      if err != nil {</text>
+          <text x="96" y="315.6666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"> 6          http.Error(w, err.Error(), http.StatusNotFound)</text>
+          <text x="96" y="326.1666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"> 7          return</text>
+          <text x="96" y="336.1666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"> 8      }</text>
+          <text x="96" y="346.1666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start"> 9      </text>
+          <text x="96" y="356.6666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">10      json.NewEncoder(w).Encode(user)</text>
+          <text x="96" y="368.1666666666667" font-size="11" font-family="Monaco, Consolas, monospace" fill="#d4d4d4" font-weight="normal" text-anchor="start">11  }</text>
+</svg>
+      </div>
+    </section>
+
+    <section id="section-best-practices" class="content-section" style="margin-bottom: 60px;">
+      <div class="section-content">
+        <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600">
+  <defs>
+  </defs>
+  <rect width="1200" height="600" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="184.5" y="85.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Best Practices</text>
+    <rect x="60" y="149" width="900" height="162" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+      <text x="80" y="180.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Design Principles</text>
+        <text x="80" y="204.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Single Responsibility: Each service does one thing well,</text>
+        <text x="80" y="225.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• API First: Design APIs before implementation,</text>
+        <text x="80" y="246.83333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Loose Coupling: Services communicate through well-defined interfaces,</text>
+        <text x="80" y="267.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Fault Tolerance: Implement circuit breakers and retry logic,</text>
+        <text x="80" y="288.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Observability: Comprehensive logging, metrics, and tracing,</text>
+    <rect x="60" y="367" width="900" height="1" fill="#ddd" />
+    <rect x="60" y="424" width="900" height="160" fill="#ffebee" stroke="#c62828" stroke-width="2" rx="8" />
+      <text x="80" y="455.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="#b71c1c" font-weight="bold" text-anchor="start">Security Checklist</text>
+        <text x="80" y="480.3333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Use HTTPS for all communications,</text>
+        <text x="80" y="500.8333333333333" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Implement authentication &amp; authorization,</text>
+        <text x="80" y="521.3333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Validate and sanitize all inputs,</text>
+        <text x="80" y="541.3333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Keep dependencies updated,</text>
+        <text x="80" y="561.8333333333334" font-size="13" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• ✓ Use secrets management (Vault, AWS Secrets Manager),</text>
+</svg>
+      </div>
+    </section>
+    </main>
+  </div>
+  
+  <button class="back-to-top" id="backToTop" title="Back to top">↑</button>
+  
+  <script>
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+    
+    // Back to top button
+    const backToTop = document.getElementById('backToTop');
+    
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        backToTop.classList.add('visible');
+      } else {
+        backToTop.classList.remove('visible');
+      }
+    });
+    
+    backToTop.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    
+    // Active section highlighting
+    const sections = document.querySelectorAll('.content-section');
+    const tocLinks = document.querySelectorAll('.toc a');
+    
+    function updateActiveSection() {
+      const scrollPos = window.scrollY + 100;
+      
+      sections.forEach((section, index) => {
+        const top = section.offsetTop;
+        const bottom = top + section.offsetHeight;
+        
+        if (scrollPos >= top && scrollPos < bottom) {
+          tocLinks.forEach(link => link.classList.remove('active'));
+          tocLinks[index]?.classList.add('active');
+        }
+      });
+    }
+    
+    window.addEventListener('scroll', updateActiveSection);
+    updateActiveSection();
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Home') {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }
+    });
+  </script>
+</body>
+</html>

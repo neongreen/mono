@@ -10,6 +10,59 @@ export { Card } from './components/Card';
 export { Title } from './components/Title';
 export { Subtitle } from './components/Subtitle';
 export { Label } from './components/Label';
+export { Panel } from './components/Panel';
+export { Well } from './components/Well';
+
+// Presentation components
+export { Slide } from './components/Slide';
+export { List } from './components/List';
+export { ProsCons } from './components/ProsCons';
+export { Section } from './components/Section';
+export { Highlight } from './components/Highlight';
+export { RichText } from './components/RichText';
+export { Spacer } from './components/Spacer';
+export { Grid } from './components/Grid';
+export { Callout } from './components/Callout';
+export { Steps } from './components/Steps';
+export { Image } from './components/Image';
+
+// Layout components
+export { TwoColumn } from './components/TwoColumn';
+export { ThreeColumn } from './components/ThreeColumn';
+export { FlowDiagram } from './components/FlowDiagram';
+
+// Grouping & organization components
+export { Cluster } from './components/Cluster';
+export { Container } from './components/Container';
+export { Group } from './components/Group';
+
+// Content components
+export { CodeBlock } from './components/CodeBlock';
+export { Quote } from './components/Quote';
+export { Badge } from './components/Badge';
+export { Divider } from './components/Divider';
+export { Icon } from './components/Icon';
+
+// Technical components for software engineers
+export { SequenceDiagram } from './components/SequenceDiagram';
+export { APIEndpoint } from './components/APIEndpoint';
+export { Terminal } from './components/Terminal';
+export { DataFlow } from './components/DataFlow';
+export { ComparisonTable } from './components/ComparisonTable';
+
+// Agent loop & state machine components
+export { StateNode } from './components/StateNode';
+export { DecisionNode } from './components/DecisionNode';
+export { ProcessNode } from './components/ProcessNode';
+export { LoopIndicator } from './components/LoopIndicator';
+
+// Timeline components
+export { Timeline } from './components/Timeline';
+export { TimelineEvent } from './components/TimelineEvent';
+
+// Memory & context components
+export { MemoryBlock } from './components/MemoryBlock';
+export { ContextWindow } from './components/ContextWindow';
 
 export { renderToSVG, renderToSVGWithLayout } from './renderer';
 export type { RenderResult } from './renderer';
@@ -24,6 +77,37 @@ export type { TextMetrics } from './layout/text-measurement';
 export { theme } from './theme';
 export type { Theme } from './theme';
 
+// Presentation themes
+export {
+  defaultTheme,
+  professionalTheme,
+  darkTheme,
+  vibrantTheme,
+  minimalTheme,
+  solarizedLightTheme,
+  solarizedDarkTheme,
+  nordTheme,
+  draculaTheme,
+  githubTheme,
+  highContrastTheme,
+  setCurrentTheme,
+  getCurrentTheme,
+  createCustomTheme
+} from './presentation-theme';
+export type { PresentationTheme } from './presentation-theme';
+
+// Slide deck helpers
+export { generateSlideDeck, numberSlides } from './helpers/slide-deck';
+export type { SlideDefinition, SlideDeckOptions } from './helpers/slide-deck';
+
+// Scrolling page helper
+export { generateScrollingPage } from './helpers/scrolling-page';
+export type { PageSection, ScrollingPageOptions } from './helpers/scrolling-page';
+
+// Continuous page helper (pageless mode)
+export { generateContinuousPage, generateThemedContinuousPage } from './helpers/continuous-page';
+export type { ContentBlock, ContinuousPageOptions } from './helpers/continuous-page';
+
 export type {
   LayoutProps,
   AlignmentProps,
@@ -33,4 +117,17 @@ export type {
   TextProps,
   ArrowProps,
   LayoutNode,
+  ImageProps,
+  StateNodeProps,
+  DecisionNodeProps,
+  ProcessNodeProps,
+  LoopIndicatorProps,
+  TimelineProps,
+  TimelineEventProps,
+  TimelineRangeProps,
+  MemoryBlockProps,
+  StackVisualizationProps,
+  ContextWindowProps,
+  TokenBudgetProps,
+  DataTransformProps,
 } from './types';

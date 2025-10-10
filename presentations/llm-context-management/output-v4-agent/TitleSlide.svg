@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="#ffffff"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <rect x="501" y="188" width="198" height="29" fill="#1976d2" rx="4" />
+      <text x="517" y="207.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">LLM Agent Architectures</text>
+    <text x="600.5" y="298" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Context Engineering</text>
+    <text x="600.5" y="345" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Agent Loops, Data Flow, and Memory Management</text>
+    <rect x="250" y="471" width="700" height="141" fill="#f5f5f5" stroke="#999" stroke-width="2" rx="8" />
+      <text x="270" y="502.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#333" font-weight="bold" text-anchor="start">Topics Covered</text>
+        <text x="270" y="527.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Agent state machines and loops,</text>
+        <text x="270" y="548.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Context retrieval data flows,</text>
+        <text x="270" y="569.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Memory and storage patterns,</text>
+        <text x="270" y="590.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">• Decision points in context selection,</text>
+</svg>

@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700">
+  <defs>
+    <marker id="arrow-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-tail-1976d2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-66bb6a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#66bb6a" />
+    </marker>
+    <marker id="arrow-tail-66bb6a" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#66bb6a" />
+    </marker>
+    <marker id="arrow-ab47bc" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#ab47bc" />
+    </marker>
+    <marker id="arrow-tail-ab47bc" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#ab47bc" />
+    </marker>
+    <marker id="arrow-4caf50" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#4caf50" />
+    </marker>
+    <marker id="arrow-tail-4caf50" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#4caf50" />
+    </marker>
+    <marker id="arrow-2196f3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#2196f3" />
+    </marker>
+    <marker id="arrow-tail-2196f3" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#2196f3" />
+    </marker>
+    <marker id="arrow-9e9e9e" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#9e9e9e" />
+    </marker>
+    <marker id="arrow-tail-9e9e9e" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#9e9e9e" />
+    </marker>
+  </defs>
+  <rect width="1000" height="700" fill="white"/>
+      <text x="500.5" y="69.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Simple AI Conversation</text>
+      <text x="500.5" y="93" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">User → Claude → Response</text>
+      <rect x="45" y="125" width="280" height="233" fill="#f0f7ff" stroke="#1976d2" stroke-width="2" rx="8" />
+        <rect x="45" y="125" width="280" height="37" fill="#e3f2fd" />
+          <text x="57" y="148.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1565c0" font-weight="bold" text-anchor="start">Input</text>
+            <rect x="65" y="182" width="240" height="70" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+                <text x="186" y="213.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">User</text>
+                <text x="185.5" y="230" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Sends message</text>
+            <rect x="65" y="268" width="240" height="70" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+                <text x="185" y="300.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Safety Filter</text>
+                <text x="185.5" y="317.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Check content</text>
+      <rect x="360" y="125" width="280" height="233" fill="#fff8f0" stroke="#f57c00" stroke-width="2" rx="8" />
+        <rect x="360" y="125" width="280" height="38" fill="#fff3e0" />
+          <text x="372" y="148.66666666666666" font-size="14" font-family="Arial, sans-serif" fill="#e65100" font-weight="bold" text-anchor="start">Processing</text>
+            <rect x="380" y="183" width="240" height="100" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+                <text x="501" y="215.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Claude</text>
+                <text x="500.5" y="232.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">AI model inference</text>
+                <rect x="451" y="241" width="99" height="21" fill="#2e7d32" rx="4" />
+                  <text x="463" y="255.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">200K context</text>
+      <rect x="675" y="125" width="280" height="233" fill="#f1f8f1" stroke="#2e7d32" stroke-width="2" rx="8" />
+        <rect x="675" y="125" width="280" height="37" fill="#e8f5e9" />
+          <text x="687" y="148.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#1b5e20" font-weight="bold" text-anchor="start">Output</text>
+            <rect x="695" y="182" width="240" height="70" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+                <text x="815.5" y="213.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Format</text>
+                <text x="815" y="230" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Structure response</text>
+            <rect x="695" y="268" width="240" height="70" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+                <text x="815.5" y="300.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Response</text>
+                <text x="815.5" y="317.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Return to user</text>
+    <rect x="40" y="388" width="920" height="147" fill="#f9f3fb" stroke="#7b1fa2" stroke-width="2" rx="8" />
+      <rect x="40" y="388" width="920" height="37" fill="#f3e5f5" />
+        <text x="52" y="411.1666666666667" font-size="14" font-family="Arial, sans-serif" fill="#6a1b9a" font-weight="bold" text-anchor="start">Storage</text>
+          <rect x="288" y="445" width="200" height="70" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+              <text x="389" y="476.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Chat History</text>
+              <text x="388.5" y="495" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Previous messages</text>
+          <rect x="513" y="445" width="200" height="70" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+              <text x="613.5" y="476.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Logs</text>
+              <text x="613.5" y="495" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Analytics data</text>
+      <rect x="388" y="580" width="94" height="21" fill="#1976d2" rx="4" />
+        <text x="400" y="594.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">→ Main flow</text>
+      <rect x="502" y="580" width="110" height="21" fill="#7b1fa2" rx="4" />
+        <text x="514" y="594.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">⋯ Data access</text>
+  <path d="M 185 252 L 185 268" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="155.8" y="250" width="58.4" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="185" y="264" font-size="12" fill="#1976d2" text-anchor="middle">message</text>
+  <path d="M 305 303 L 380 233" stroke="#66bb6a" stroke-width="2" fill="none" marker-end="url(#arrow-66bb6a)" />
+  <rect x="306.1" y="258" width="72.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="342.5" y="272" font-size="12" fill="#66bb6a" text-anchor="middle">validated</text>
+  <path d="M 620 233 L 695 217" stroke="#ab47bc" stroke-width="3" fill="none" marker-end="url(#arrow-ab47bc)" />
+  <rect x="617.5" y="215" width="80" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="657.5" y="229" font-size="12" fill="#ab47bc" text-anchor="middle">raw output</text>
+  <path d="M 815 252 L 815 268" stroke="#4caf50" stroke-width="2" fill="none" marker-end="url(#arrow-4caf50)" />
+  <rect x="778.6" y="250" width="72.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="815" y="264" font-size="12" fill="#4caf50" text-anchor="middle">formatted</text>
+  <path d="M 500 283 L 388 445" stroke="#2196f3" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-2196f3)" marker-start="url(#arrow-tail-2196f3)" />
+  <path d="M 695 303 L 613 445" stroke="#9e9e9e" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-9e9e9e)" />
+  <rect x="639.2" y="364" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="654" y="378" font-size="12" fill="#9e9e9e" text-anchor="middle">log</text>
+</svg>

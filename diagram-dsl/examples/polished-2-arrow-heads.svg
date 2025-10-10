@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <marker id="arrow-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-tail-1976d2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#1976d2" />
+    </marker>
+    <marker id="circle-7b1fa2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <circle cx="4" cy="4" r="3" fill="#7b1fa2" />
+    </marker>
+    <marker id="circle-tail-7b1fa2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <circle cx="4" cy="4" r="3" fill="#7b1fa2" />
+    </marker>
+    <marker id="diamond-f57c00" markerWidth="12" markerHeight="12" refX="6" refY="6" orient="auto">
+      <polygon points="6 0, 12 6, 6 12, 0 6" fill="#f57c00" />
+    </marker>
+    <marker id="diamond-tail-f57c00" markerWidth="12" markerHeight="12" refX="6" refY="6" orient="auto">
+      <polygon points="6 0, 12 6, 6 12, 0 6" fill="#f57c00" />
+    </marker>
+    <marker id="arrow-2e7d32" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#2e7d32" />
+    </marker>
+    <marker id="arrow-tail-2e7d32" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#2e7d32" />
+    </marker>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+  <rect x="0" y="0" width="1200" height="800" fill="white" />
+    <text x="217" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Arrow Head Types</text>
+    <text x="159" y="134.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Different arrow head and tail markers</text>
+          <text x="60" y="205.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">Arrow Heads</text>
+            <rect x="60" y="218" width="150" height="60" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+              <text x="111" y="252.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Standard</text>
+            <rect x="226" y="218" width="150" height="60" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+              <text x="285" y="252.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Arrow</text>
+          <text x="60" y="310.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">Circle Heads</text>
+            <rect x="60" y="323" width="150" height="60" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+              <text x="122" y="357.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Start</text>
+            <rect x="226" y="323" width="150" height="60" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+              <text x="286" y="357.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Circle</text>
+          <text x="60" y="415.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">Diamond Heads</text>
+            <rect x="60" y="428" width="150" height="60" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+              <text x="120" y="462" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Begin</text>
+            <rect x="226" y="428" width="150" height="60" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+              <text x="277" y="462.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Diamond</text>
+          <text x="60" y="520.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="bold" text-anchor="start">Bidirectional</text>
+            <rect x="60" y="533" width="150" height="60" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+              <text x="111" y="567" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Two-way</text>
+            <rect x="226" y="533" width="150" height="60" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+              <text x="259" y="567.5" font-size="12" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">Communication</text>
+  <path d="M 210 248 L 226 248" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <path d="M 210 353 L 226 353" stroke="#7b1fa2" stroke-width="2" fill="none" marker-end="url(#circle-7b1fa2)" />
+  <path d="M 210 458 L 226 458" stroke="#f57c00" stroke-width="2" fill="none" marker-end="url(#diamond-f57c00)" />
+  <path d="M 210 563 L 226 563" stroke="#2e7d32" stroke-width="2" fill="none" marker-end="url(#arrow-2e7d32)" marker-start="url(#arrow-tail-2e7d32)" />
+</svg>

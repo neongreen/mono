@@ -181,15 +181,4 @@ For different diagram types, consider these spacing guidelines:
 - Branch spacing: 60-80px horizontal
 - Internal padding: 12-16px
 
-## Future Enhancements
 
-Potential future lints could include:
-- Detecting text overflow in boxes
-- Checking for inconsistent spacing patterns
-- Validating arrow label positioning
-- Detecting overlapping elements
-- Checking minimum font sizes for readability
-
-## Feedback
-
-The linting system is designed to be helpful, not restrictive. If you find false positives or have suggestions for new lints, please open an issue!

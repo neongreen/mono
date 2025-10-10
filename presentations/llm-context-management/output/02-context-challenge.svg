@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+  </defs>
+  <rect width="1200" height="800" fill="white"/>
+    <text x="255.5" y="89" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">The Context Challenge</text>
+        <rect x="60" y="146" width="350" height="87" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+          <text x="235.5" y="173.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">User Input</text>
+          <text x="235.5" y="185" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Long conversation history</text>
+          <text x="183" y="197" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Previous messages</text>
+          <text x="194" y="207.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Tool call results</text>
+          <text x="200" y="216.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">External data</text>
+        <rect x="434" y="150" width="80" height="80" fill="#fff3e0" stroke="#ff9800" stroke-width="3" rx="8" />
+          <text x="458" y="200.66666666666666" font-size="32" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">⚠️</text>
+        <rect x="538" y="146" width="350" height="85" fill="#fafafa" stroke="#e0e0e0" stroke-width="2" rx="8" />
+          <text x="713" y="172.16666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">LLM Constraints</text>
+          <text x="713.5" y="183" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Token limits vary by model</text>
+          <text x="650" y="193.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">GPT-4: 8K-128K tokens</text>
+          <text x="641" y="202.5" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Claude: 100K-200K tokens</text>
+          <text x="647" y="213" font-size="12" font-family="Arial, sans-serif" fill="#666" font-weight="normal" text-anchor="start">Cost per token increases</text>
+      <rect x="150" y="305" width="900" height="113" fill="#f5f5f5" stroke="#999" stroke-width="2" rx="8" />
+        <text x="174" y="343.5" font-size="18" font-family="Arial, sans-serif" fill="black" font-weight="bold" text-anchor="start">Key Trade-offs</text>
+        <text x="174" y="369.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">[object Object], Better understanding, higher accuracy, higher costs</text>
+        <text x="174" y="391.6666666666667" font-size="14" font-family="Arial, sans-serif" fill="black" font-weight="normal" text-anchor="start">[object Object], Faster responses, lower costs, potential information loss</text>
+</svg>
