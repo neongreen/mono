@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     # Make this check optional - it won't block PRs
     continue-on-error: true
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
