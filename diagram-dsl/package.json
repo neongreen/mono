@@ -14,6 +14,7 @@
     "examples:d2": "tsx src/examples/generate-d2.ts",
     "examples:all": "tsx src/examples/generate-all.ts",
     "lint": "tsx src/examples/run-lints.tsx",
+    "lint:ci": "tsx src/examples/run-lints-ci.tsx",
     "test": "tsx src/test/index.test.tsx",
     "test:lint": "tsx src/test/lint-tests.tsx"
   },
