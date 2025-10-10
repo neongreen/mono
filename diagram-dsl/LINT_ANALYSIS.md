@@ -68,10 +68,21 @@ The linter is based on the **proximity and visual grouping** principle:
 
 > **Internal distances should be smaller than external distances**
 
+The system now includes **6 different lint checks** covering:
+1. **Short Arrow Detection** - Ensuring arrows are visible (≥20px)
+2. **Internal vs External Spacing** - Maintaining visual hierarchy
+3. **Overlapping Elements** - Preventing content obscuration
+4. **Minimum Font Size** - Ensuring readability (≥10px)
+5. **Inconsistent Spacing** - Promoting visual rhythm
+6. **Arrow Crossings** - Improving flow clarity
+
 This ensures:
 - Elements that belong together appear closer
 - Visual hierarchy is clear and intuitive
 - Arrows are visible and not cramped
+- Content is readable and unobscured
+- Spacing is consistent and professional
+- Connections are easy to follow
 - The diagram is easy to read and understand
 
 ---
