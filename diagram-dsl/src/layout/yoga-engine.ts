@@ -169,6 +169,14 @@ export class YogaLayoutEngine {
       yogaNode.setJustifyContent(justifyMap[props.justifyContent] || this.yoga.JUSTIFY_FLEX_START);
     }
 
+    // Set flex properties (for flexible spacers and stretching)
+    if (props.flexGrow !== undefined) {
+      yogaNode.setFlexGrow(props.flexGrow);
+    }
+    if (props.flexShrink !== undefined) {
+      yogaNode.setFlexShrink(props.flexShrink);
+    }
+
     // Set position
     if (props.position === 'absolute') {
       yogaNode.setPositionType(this.yoga.POSITION_TYPE_ABSOLUTE);

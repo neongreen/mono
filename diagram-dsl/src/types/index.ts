@@ -39,6 +39,10 @@ export interface BoxProps extends LayoutProps, AlignmentProps, PositionProps {
   borderColor?: string;
   borderWidth?: number;
   borderRadius?: number;
+  borderStyle?: 'solid' | 'dashed' | 'dotted';
+  borderDashArray?: string; // e.g., "6 4" for 6px dash, 4px gap
+  flexGrow?: number; // Allow boxes to grow in flex containers
+  flexShrink?: number;
   id?: string;
 }
 
@@ -72,6 +76,15 @@ export interface ArrowProps {
   animated?: boolean;
   bidirectional?: boolean;
   thickness?: 'thin' | 'medium' | 'thick' | 'very-thick';
+  // Advanced arrow features for complex diagrams
+  fromSide?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
+  toSide?: 'top' | 'bottom' | 'left' | 'right' | 'auto';
+  fromOffset?: number; // Offset from center along the edge (0 = center, positive/negative for offset)
+  toOffset?: number;
+  shortenStart?: number; // Shorten arrow from start point (in pixels)
+  shortenEnd?: number; // Shorten arrow from end point (in pixels)
+  // For Y-shaped forks - split into multiple endpoints
+  toMultiple?: string[]; // Array of target IDs for forked arrows
 }
 
 export interface ImageProps extends LayoutProps {

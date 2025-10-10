@@ -60,12 +60,22 @@ export class SVGRenderer {
         const borderColor = node.props.borderColor || 'black';
         const borderWidth = node.props.borderWidth || 0;
         const borderRadius = node.props.borderRadius || 0;
+        const borderStyle = node.props.borderStyle || 'solid';
+        const borderDashArray = node.props.borderDashArray;
 
         if (bgColor !== 'transparent' || borderWidth > 0) {
           svg += `\n${indent}<rect x="${x}" y="${y}" width="${width}" height="${height}" `;
           svg += `fill="${bgColor}" `;
           if (borderWidth > 0) {
             svg += `stroke="${borderColor}" stroke-width="${borderWidth}" `;
+            
+            // Handle dashed borders
+            if (borderStyle === 'dashed' || borderDashArray) {
+              const dashArray = borderDashArray || '6 4'; // Default: 6px dash, 4px gap
+              svg += `stroke-dasharray="${dashArray}" `;
+            } else if (borderStyle === 'dotted') {
+              svg += `stroke-dasharray="2 2" `;
+            }
           }
           if (borderRadius > 0) {
             svg += `rx="${borderRadius}" `;
@@ -159,44 +169,107 @@ export class SVGRenderer {
         const toCenterX = toPos.x + toPos.width / 2;
         const toCenterY = toPos.y + toPos.height / 2;
 
+        // Helper to calculate attachment point with optional offset
+        const getAttachmentPoint = (pos: any, side: string, offset: number = 0) => {
+          const centerX = pos.x + pos.width / 2;
+          const centerY = pos.y + pos.height / 2;
+          
+          switch (side) {
+            case 'top':
+              return { x: centerX + offset, y: pos.y };
+            case 'bottom':
+              return { x: centerX + offset, y: pos.y + pos.height };
+            case 'left':
+              return { x: pos.x, y: centerY + offset };
+            case 'right':
+              return { x: pos.x + pos.width, y: centerY + offset };
+            default:
+              return { x: centerX, y: centerY };
+          }
+        };
+
         // Calculate attachment points (centers of rectangle sides)
         const fromAttachmentPoints = {
-          top: { x: fromCenterX, y: fromPos.y },
-          bottom: { x: fromCenterX, y: fromPos.y + fromPos.height },
-          left: { x: fromPos.x, y: fromCenterY },
-          right: { x: fromPos.x + fromPos.width, y: fromCenterY }
+          top: getAttachmentPoint(fromPos, 'top'),
+          bottom: getAttachmentPoint(fromPos, 'bottom'),
+          left: getAttachmentPoint(fromPos, 'left'),
+          right: getAttachmentPoint(fromPos, 'right')
         };
 
         const toAttachmentPoints = {
-          top: { x: toCenterX, y: toPos.y },
-          bottom: { x: toCenterX, y: toPos.y + toPos.height },
-          left: { x: toPos.x, y: toCenterY },
-          right: { x: toPos.x + toPos.width, y: toCenterY }
+          top: getAttachmentPoint(toPos, 'top'),
+          bottom: getAttachmentPoint(toPos, 'bottom'),
+          left: getAttachmentPoint(toPos, 'left'),
+          right: getAttachmentPoint(toPos, 'right')
         };
 
-        // Find closest attachment points
-        let minDistance = Infinity;
-        let bestFrom = fromAttachmentPoints.bottom;
-        let bestTo = toAttachmentPoints.top;
+        // Use specified sides or find closest attachment points
+        let bestFrom: { x: number; y: number };
+        let bestTo: { x: number; y: number };
 
-        for (const [fromSide, fromPoint] of Object.entries(fromAttachmentPoints)) {
+        if (node.props.fromSide && node.props.fromSide !== 'auto') {
+          bestFrom = getAttachmentPoint(fromPos, node.props.fromSide, node.props.fromOffset || 0);
+        } else {
+          // Auto-detect best from side
+          let minDistance = Infinity;
+          bestFrom = fromAttachmentPoints.bottom;
+          
+          for (const [fromSide, fromPoint] of Object.entries(fromAttachmentPoints)) {
+            for (const [toSide, toPoint] of Object.entries(toAttachmentPoints)) {
+              const distance = Math.sqrt(
+                Math.pow(toPoint.x - fromPoint.x, 2) + 
+                Math.pow(toPoint.y - fromPoint.y, 2)
+              );
+              if (distance < minDistance) {
+                minDistance = distance;
+                bestFrom = fromPoint;
+              }
+            }
+          }
+        }
+
+        if (node.props.toSide && node.props.toSide !== 'auto') {
+          bestTo = getAttachmentPoint(toPos, node.props.toSide, node.props.toOffset || 0);
+        } else {
+          // Auto-detect best to side
+          let minDistance = Infinity;
+          bestTo = toAttachmentPoints.top;
+          
           for (const [toSide, toPoint] of Object.entries(toAttachmentPoints)) {
             const distance = Math.sqrt(
-              Math.pow(toPoint.x - fromPoint.x, 2) + 
-              Math.pow(toPoint.y - fromPoint.y, 2)
+              Math.pow(toPoint.x - bestFrom.x, 2) + 
+              Math.pow(toPoint.y - bestFrom.y, 2)
             );
             if (distance < minDistance) {
               minDistance = distance;
-              bestFrom = fromPoint;
               bestTo = toPoint;
             }
           }
         }
 
-        const x1 = bestFrom.x;
-        const y1 = bestFrom.y;
-        const x2 = bestTo.x;
-        const y2 = bestTo.y;
+        let x1 = bestFrom.x;
+        let y1 = bestFrom.y;
+        let x2 = bestTo.x;
+        let y2 = bestTo.y;
+
+        // Apply shortening if specified
+        if (node.props.shortenStart || node.props.shortenEnd) {
+          const dx = x2 - x1;
+          const dy = y2 - y1;
+          const length = Math.sqrt(dx * dx + dy * dy);
+          const dirX = dx / length;
+          const dirY = dy / length;
+
+          if (node.props.shortenStart) {
+            x1 += dirX * node.props.shortenStart;
+            y1 += dirY * node.props.shortenStart;
+          }
+
+          if (node.props.shortenEnd) {
+            x2 -= dirX * node.props.shortenEnd;
+            y2 -= dirY * node.props.shortenEnd;
+          }
+        }
 
         // Handle thickness option
         let finalStrokeWidth = strokeWidth;

@@ -1,0 +1,860 @@
+{
+  "color_palette": {
+    "background": "#f7f7f5",
+    "panel_background": "#fafafa",
+    "panel_border": "#d0d0d0",
+    "dashed_border": "#888888",
+    "text_title": "#000000",
+    "text_header": "#666666",
+    "text_label": "#666666",
+    "text_content": "#4c4c4c",
+    "bubble_blue": "#6fb4ff",
+    "bubble_blue_border": "#4a9ae5",
+    "doc_green": "#90EE90",
+    "tool_orange": "#FFA500",
+    "memory_violet": "#DDA0DD",
+    "instruction_blue": "#6fb4ff",
+    "message_history_bg": "#ffffff",
+    "message_history_border": "#888888",
+    "tool_call_tan": "#f8e0ba",
+    "tool_call_border": "#d4b896",
+    "arrow_default": "#4c4c4c",
+    "circle_blue": "#a3d5ff",
+    "circle_green": "#b8e6b8",
+    "circle_yellow": "#ffe6a3"
+  },
+  "diagram_structure": {
+    "type": "Canvas",
+    "id": "root",
+    "properties": {
+      "width": "auto",
+      "height": "auto",
+      "backgroundColor": "#f7f7f5",
+      "padding": 24,
+      "sizing": "content-based"
+    },
+    "children": [
+      {
+        "type": "Text",
+        "id": "main-title",
+        "properties": {
+          "text": "Prompt engineering vs. context engineering",
+          "fontSize": 32,
+          "fontWeight": "bold",
+          "color": "#000000",
+          "textAlign": "center",
+          "marginBottom": 24,
+          "sizing": "content-based"
+        },
+        "layout_constraints": [
+          "centered horizontally",
+          "fixed vertical spacing from panels below (24px)"
+        ]
+      },
+      {
+        "type": "Row",
+        "id": "panels-container",
+        "properties": {
+          "gap": 40,
+          "alignItems": "stretch",
+          "justifyContent": "center",
+          "sizing": "content-based"
+        },
+        "layout_constraints": [
+          "equal height for all children panels",
+          "horizontal gap of 40px between panels"
+        ],
+        "children": [
+          {
+            "type": "Panel",
+            "id": "left-panel",
+            "properties": {
+              "width": "~450-500px",
+              "height": "auto",
+              "backgroundColor": "#fafafa",
+              "borderRadius": 12,
+              "padding": 20,
+              "sizing": "width: fixed, height: filled by content"
+            },
+            "layout_constraints": [
+              "width ratio to right panel: approximately 1:1.5 to 1:2",
+              "height must equal right panel height",
+              "internal padding: 20px all sides"
+            ],
+            "children": [
+              {
+                "type": "Text",
+                "id": "left-header",
+                "properties": {
+                  "text": "Prompt engineering for single turn queries",
+                  "fontSize": 18,
+                  "fontWeight": "bold",
+                  "color": "#666666",
+                  "marginBottom": 16,
+                  "sizing": "content-based"
+                },
+                "layout_constraints": [
+                  "larger gap to next element (16px) than label-to-box gap (6px)",
+                  "hierarchical spacing: this is farther from label than label is from its box"
+                ]
+              },
+              {
+                "type": "Text",
+                "id": "left-label",
+                "properties": {
+                  "text": "Context window",
+                  "fontSize": 14,
+                  "color": "#666666",
+                  "marginBottom": 6,
+                  "sizing": "content-based"
+                },
+                "layout_constraints": [
+                  "closer to dashed box below (6px) than to header above (16px)",
+                  "hierarchical spacing: logically belongs with dashed box"
+                ]
+              },
+              {
+                "type": "DashedBox",
+                "id": "left-context-window",
+                "properties": {
+                  "width": "panel_width - 40px",
+                  "height": "fills remaining panel height",
+                  "backgroundColor": "transparent",
+                  "borderColor": "#888888",
+                  "borderWidth": 2,
+                  "borderStyle": "dashed (6px dash, 4px gap)",
+                  "borderRadius": 8,
+                  "padding": 20,
+                  "sizing": "width: parent-based minus fixed inset, height: fill available"
+                },
+                "layout_constraints": [
+                  "20px inset from panel edges",
+                  "fills almost full panel height minus header/label space",
+                  "maintains internal padding of 20px"
+                ],
+                "children": [
+                  {
+                    "type": "Stack",
+                    "id": "left-bubbles",
+                    "properties": {
+                      "gap": 8,
+                      "alignItems": "flex-start",
+                      "sizing": "content-based"
+                    },
+                    "children": [
+                      {
+                        "type": "SpeechBubble",
+                        "id": "system-prompt-left",
+                        "properties": {
+                          "width": 140,
+                          "height": 40,
+                          "backgroundColor": "#6fb4ff",
+                          "borderColor": "#4a9ae5",
+                          "borderWidth": 2,
+                          "borderRadius": 6,
+                          "padding": "4px 8px",
+                          "text": "System prompt",
+                          "fontSize": 12,
+                          "fontWeight": "bold",
+                          "sizing": "fixed size"
+                        },
+                        "layout_constraints": [
+                          "fixed dimensions: 140x40px"
+                        ]
+                      },
+                      {
+                        "type": "SpeechBubble",
+                        "id": "user-message-left",
+                        "properties": {
+                          "width": 140,
+                          "height": 40,
+                          "backgroundColor": "#6fb4ff",
+                          "borderColor": "#4a9ae5",
+                          "borderWidth": 2,
+                          "borderRadius": 6,
+                          "padding": "4px 8px",
+                          "text": "User message",
+                          "fontSize": 12,
+                          "fontWeight": "bold",
+                          "sizing": "fixed size"
+                        },
+                        "layout_constraints": [
+                          "fixed dimensions: 140x40px",
+                          "8px gap from previous bubble"
+                        ]
+                      },
+                      {
+                        "type": "Spacer",
+                        "id": "empty-space-left",
+                        "properties": {
+                          "height": "fills remaining space",
+                          "sizing": "flexible, fills available height"
+                        },
+                        "layout_constraints": [
+                          "represents unused token space",
+                          "flexible height to push scissors to bottom"
+                        ]
+                      },
+                      {
+                        "type": "Icon",
+                        "id": "scissors-left",
+                        "properties": {
+                          "icon": "\u2702\ufe0f scissors",
+                          "size": 30,
+                          "position": "bottom-left of dashed box",
+                          "sizing": "fixed size"
+                        },
+                        "layout_constraints": [
+                          "aligned to bottom-left corner",
+                          "blade tips aligned with dashed border"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Stack",
+            "id": "left-model-output",
+            "properties": {
+              "gap": 12,
+              "alignItems": "center",
+              "marginTop": "panel_center_vertical_align",
+              "sizing": "content-based"
+            },
+            "layout_constraints": [
+              "positioned to the right of left panel",
+              "vertically centered relative to panel",
+              "not inside panel, but beside it"
+            ],
+            "children": [
+              {
+                "type": "NeuralNetworkGrid",
+                "id": "left-model",
+                "properties": {
+                  "rows": 3,
+                  "cols": 3,
+                  "circleSize": 10,
+                  "gap": 6,
+                  "colors": [
+                    "#a3d5ff",
+                    "#b8e6b8",
+                    "#ffe6a3"
+                  ],
+                  "sizing": "fixed grid: 3x3, 10px circles, 6px gaps"
+                },
+                "layout_constraints": [
+                  "3x3 grid of circles",
+                  "each circle 10px diameter",
+                  "6px spacing between circles",
+                  "total size: ~44x44px"
+                ]
+              },
+              {
+                "type": "Box",
+                "id": "assistant-message-left",
+                "properties": {
+                  "width": 110,
+                  "height": 38,
+                  "backgroundColor": "#ffffff",
+                  "borderColor": "#444444",
+                  "borderWidth": 1,
+                  "borderRadius": 4,
+                  "text": "Assistant message",
+                  "fontSize": 11,
+                  "sizing": "fixed size"
+                },
+                "layout_constraints": [
+                  "fixed dimensions: 110x38px"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Panel",
+            "id": "right-panel",
+            "properties": {
+              "width": "~750-900px",
+              "height": "auto",
+              "backgroundColor": "#fafafa",
+              "borderRadius": 12,
+              "padding": 20,
+              "sizing": "width: fixed (but larger than left), height: filled by content"
+            },
+            "layout_constraints": [
+              "width ratio to left panel: approximately 1.5:1 to 2:1",
+              "height must equal left panel height",
+              "internal padding: 20px all sides"
+            ],
+            "children": [
+              {
+                "type": "Text",
+                "id": "right-header",
+                "properties": {
+                  "text": "Context engineering for agents",
+                  "fontSize": 18,
+                  "fontWeight": "bold",
+                  "color": "#666666",
+                  "marginBottom": 16,
+                  "sizing": "content-based"
+                },
+                "layout_constraints": [
+                  "same styling as left header",
+                  "same hierarchical spacing (16px to labels)"
+                ]
+              },
+              {
+                "type": "Row",
+                "id": "right-dashed-boxes",
+                "properties": {
+                  "gap": 12,
+                  "alignItems": "flex-start",
+                  "sizing": "content-based"
+                },
+                "children": [
+                  {
+                    "type": "Stack",
+                    "id": "possible-context-container",
+                    "properties": {
+                      "gap": 0,
+                      "sizing": "content-based"
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "id": "possible-label",
+                        "properties": {
+                          "text": "Possible context to give model",
+                          "fontSize": 14,
+                          "color": "#666666",
+                          "marginBottom": 6,
+                          "sizing": "content-based"
+                        },
+                        "layout_constraints": [
+                          "closer to box below (6px) than header above (16px)"
+                        ]
+                      },
+                      {
+                        "type": "DashedBox",
+                        "id": "possible-context-box",
+                        "properties": {
+                          "width": "~360-400px",
+                          "height": "fills remaining height",
+                          "backgroundColor": "transparent",
+                          "borderColor": "#888888",
+                          "borderWidth": 2,
+                          "borderStyle": "dashed (6px dash, 4px gap)",
+                          "borderRadius": 8,
+                          "padding": 12,
+                          "sizing": "width: fixed, height: fill to match other box"
+                        },
+                        "layout_constraints": [
+                          "height must match context-window-box height",
+                          "20px inset from panel edges (approx)"
+                        ],
+                        "children": [
+                          {
+                            "type": "Stack",
+                            "id": "possible-items",
+                            "properties": {
+                              "gap": 8,
+                              "alignItems": "flex-start",
+                              "sizing": "content-based"
+                            },
+                            "children": [
+                              {
+                                "type": "DocCard",
+                                "text": "Doc 1",
+                                "width": 120,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "DocCard",
+                                "text": "Doc 2",
+                                "width": 120,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "DocCard",
+                                "text": "Doc 3",
+                                "width": 120,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "ToolPill",
+                                "text": "Tool 1",
+                                "width": 120,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "ToolPill",
+                                "text": "Tool 2",
+                                "width": 120,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "ToolPill",
+                                "text": "Tool 3",
+                                "width": 120,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "ToolPill",
+                                "text": "Tool 4",
+                                "width": 120,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "MemoryCard",
+                                "text": "Memory file",
+                                "width": 120,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "MemoryCard",
+                                "text": "Memory file",
+                                "width": 120,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "InstructionCard",
+                                "text": "Comprehensive instructions",
+                                "width": 180,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "InstructionCard",
+                                "text": "Domain knowledge",
+                                "width": 180,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "MessageHistory",
+                                "width": 140,
+                                "height": 38,
+                                "sizing": "fixed"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "Stack",
+                    "id": "context-window-container",
+                    "properties": {
+                      "gap": 0,
+                      "sizing": "content-based"
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "id": "context-label",
+                        "properties": {
+                          "text": "Context window",
+                          "fontSize": 14,
+                          "color": "#666666",
+                          "marginBottom": 6,
+                          "sizing": "content-based"
+                        },
+                        "layout_constraints": [
+                          "closer to box below (6px) than header above (16px)"
+                        ]
+                      },
+                      {
+                        "type": "DashedBox",
+                        "id": "context-window-box",
+                        "properties": {
+                          "width": "~360-400px",
+                          "height": "fills remaining height",
+                          "backgroundColor": "transparent",
+                          "borderColor": "#888888",
+                          "borderWidth": 2,
+                          "borderStyle": "dashed (6px dash, 4px gap)",
+                          "borderRadius": 8,
+                          "padding": 12,
+                          "sizing": "width: fixed, height: fill to match other box"
+                        },
+                        "layout_constraints": [
+                          "height must match possible-context-box height",
+                          "equal heights enforced"
+                        ],
+                        "children": [
+                          {
+                            "type": "Stack",
+                            "id": "curated-items",
+                            "properties": {
+                              "gap": 8,
+                              "alignItems": "flex-start",
+                              "sizing": "content-based"
+                            },
+                            "children": [
+                              {
+                                "type": "SpeechBubble",
+                                "text": "System prompt",
+                                "width": 140,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "Row",
+                                "children": [
+                                  {
+                                    "type": "DocCard",
+                                    "text": "Doc 1",
+                                    "width": 67,
+                                    "height": 36,
+                                    "sizing": "fixed"
+                                  },
+                                  {
+                                    "type": "DocCard",
+                                    "text": "Doc 2",
+                                    "width": 67,
+                                    "height": 36,
+                                    "sizing": "fixed"
+                                  }
+                                ],
+                                "gap": 6
+                              },
+                              {
+                                "type": "MemoryCard",
+                                "text": "Memory file",
+                                "width": 140,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "Row",
+                                "children": [
+                                  {
+                                    "type": "ToolPill",
+                                    "text": "Tool 1",
+                                    "width": 67,
+                                    "height": 36,
+                                    "sizing": "fixed"
+                                  },
+                                  {
+                                    "type": "ToolPill",
+                                    "text": "Tool 2",
+                                    "width": 67,
+                                    "height": 36,
+                                    "sizing": "fixed"
+                                  }
+                                ],
+                                "gap": 6
+                              },
+                              {
+                                "type": "SpeechBubble",
+                                "text": "User message",
+                                "width": 140,
+                                "height": 36,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "MessageHistory",
+                                "width": 140,
+                                "height": 38,
+                                "sizing": "fixed"
+                              },
+                              {
+                                "type": "Spacer",
+                                "height": "flexible",
+                                "sizing": "fills remaining"
+                              },
+                              {
+                                "type": "Icon",
+                                "icon": "\u2702\ufe0f",
+                                "size": 30,
+                                "sizing": "fixed"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Stack",
+            "id": "right-model-output",
+            "properties": {
+              "gap": 12,
+              "alignItems": "center",
+              "marginTop": "panel_center_vertical_align",
+              "sizing": "content-based"
+            },
+            "layout_constraints": [
+              "positioned to the right of right panel",
+              "vertically centered relative to panel",
+              "not inside panel, but beside it"
+            ],
+            "children": [
+              {
+                "type": "NeuralNetworkGrid",
+                "id": "right-model",
+                "properties": {
+                  "rows": 3,
+                  "cols": 3,
+                  "circleSize": 10,
+                  "gap": 6,
+                  "colors": [
+                    "#a3d5ff",
+                    "#b8e6b8",
+                    "#ffe6a3"
+                  ],
+                  "sizing": "fixed grid: 3x3, 10px circles, 6px gaps"
+                }
+              },
+              {
+                "type": "Box",
+                "id": "assistant-message-right",
+                "properties": {
+                  "width": 110,
+                  "height": 38,
+                  "backgroundColor": "#ffffff",
+                  "borderColor": "#444444",
+                  "borderWidth": 1,
+                  "borderRadius": 4,
+                  "text": "Assistant message",
+                  "fontSize": 11,
+                  "sizing": "fixed size"
+                }
+              },
+              {
+                "type": "Box",
+                "id": "tool-call",
+                "properties": {
+                  "width": 120,
+                  "height": 38,
+                  "backgroundColor": "#f8e0ba",
+                  "borderColor": "#d4b896",
+                  "borderWidth": 1,
+                  "borderRadius": 4,
+                  "text": "Tool call",
+                  "fontSize": 11,
+                  "sizing": "fixed size"
+                }
+              },
+              {
+                "type": "Box",
+                "id": "tool-result",
+                "properties": {
+                  "width": 120,
+                  "height": 38,
+                  "backgroundColor": "#f8e0ba",
+                  "borderColor": "#d4b896",
+                  "borderWidth": 1,
+                  "borderRadius": 4,
+                  "text": "Tool result",
+                  "fontSize": 11,
+                  "sizing": "fixed size"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "layout_constraints": {
+    "global_constraints": [
+      "Canvas has 24px padding all around",
+      "Title is centered horizontally",
+      "Title has 24px margin-bottom to panels",
+      "Panels have 40px horizontal gap between them",
+      "Left and right panels MUST have equal heights",
+      "Panels stretch to accommodate their content vertically"
+    ],
+    "panel_constraints": [
+      "Left panel width ~35-40% of total panel width (approximately 450-500px)",
+      "Right panel width ~52-60% of total panel width (approximately 750-900px)",
+      "Width ratio: left:right approximately 1:1.5 to 1:2",
+      "Both panels have 20px internal padding",
+      "Both panels have 12px border-radius",
+      "Both panels have #fafafa background"
+    ],
+    "hierarchical_spacing_rules": [
+      "Section header to label: 16px (larger gap)",
+      "Label to its box: 6px (smaller gap - they logically belong together)",
+      "Elements within a box: 8px gap",
+      "Rule: Elements that logically belong together have SMALLER spacing than elements that are logically apart"
+    ],
+    "dashed_box_constraints": [
+      "Dashed boxes have ~20px inset from their parent panel edges",
+      "Dashed boxes fill remaining height of their parent (after header/label)",
+      "All dashed boxes within same panel have equal heights",
+      "Border: 2px dashed, #888888, dash: 6px, gap: 4px",
+      "Border-radius: 8px",
+      "Internal padding: 12-20px"
+    ],
+    "element_sizing_categories": [
+      "Fixed size: speech bubbles (140x40px), doc cards (120x36px), tool pills (120x36px), memory cards (120x36px)",
+      "Fixed size: instruction cards (180x36px), message history (140x38px)",
+      "Fixed size: neural network grid (3x3, 10px circles, 6px gaps)",
+      "Fixed size: output boxes (110-120 x 38px)",
+      "Content-based: text elements (title, headers, labels)",
+      "Fill-available: spacers inside dashed boxes (represent unused token space)",
+      "Parent-based: dashed box widths (parent width minus fixed insets)"
+    ],
+    "positioning_constraints": [
+      "Model grids and output boxes are OUTSIDE panels, positioned beside them",
+      "Model grids are vertically centered relative to their adjacent panel",
+      "Scissors icons are positioned at bottom-left corner of dashed boxes",
+      "Elements in 'possible context' box are left-aligned and stacked vertically",
+      "Elements in 'context window' box are left-aligned, some arranged in rows"
+    ]
+  },
+  "arrow_routing": {
+    "left_side_arrows": [
+      {
+        "id": "left-context-to-model",
+        "from": "left-context-window (center-right edge)",
+        "to": "left-model (left side)",
+        "style": "2px solid #4c4c4c",
+        "arrowhead": "standard",
+        "routing": "straight line"
+      },
+      {
+        "id": "left-model-to-output",
+        "from": "left-model (right side)",
+        "to": "assistant-message-left (left side)",
+        "style": "2px solid #4c4c4c",
+        "arrowhead": "standard",
+        "routing": "straight line"
+      }
+    ],
+    "right_side_arrows": [
+      {
+        "id": "curation-arrow",
+        "from": "possible-context-box (center-right edge)",
+        "to": "context-window-box (left edge, stops short)",
+        "style": "2px solid #4c4c4c",
+        "arrowhead": "standard",
+        "label": "Curation (14px, monospace, gray, above arrow)",
+        "routing": "straight line",
+        "shortenEnd": 10,
+        "constraints": [
+          "arrow stops before reaching target",
+          "label positioned above arrow"
+        ]
+      },
+      {
+        "id": "brackets-to-model",
+        "from": "multiple elements in context-window-box (right edges)",
+        "to": "right-model (left side)",
+        "style": "2px solid #4c4c4c, bracket-shaped connectors merge",
+        "arrowhead": "standard",
+        "routing": "bracket connectors from each element merge into single arrow",
+        "constraints": [
+          "thin bracket lines from each card",
+          "merge point before model"
+        ]
+      },
+      {
+        "id": "model-to-outputs-fork",
+        "from": "right-model (right side)",
+        "to": [
+          "assistant-message-right",
+          "tool-call"
+        ],
+        "style": "2px solid #4c4c4c",
+        "arrowhead": "standard on both branches",
+        "routing": "Y-shaped fork",
+        "constraints": [
+          "single arrow splits into two",
+          "up branch to assistant message",
+          "down branch to tool call"
+        ]
+      },
+      {
+        "id": "tool-call-to-result",
+        "from": "tool-call (bottom)",
+        "to": "tool-result (top)",
+        "style": "2px solid #4c4c4c (thicker)",
+        "arrowhead": "standard",
+        "routing": "straight vertical line"
+      },
+      {
+        "id": "feedback-loop",
+        "from": "tool-result (left side)",
+        "to": "message-history in context-window-box (bottom edge)",
+        "style": "2px solid #4c4c4c",
+        "arrowhead": "standard",
+        "routing": "horizontal left, then vertical up, forming feedback loop",
+        "constraints": [
+          "orthogonal routing",
+          "goes left then bends up",
+          "connects to bottom of message history"
+        ]
+      }
+    ]
+  },
+  "typography": {
+    "main_title": {
+      "fontSize": 32,
+      "fontWeight": "bold",
+      "color": "#000000",
+      "family": "Inter/Helvetica"
+    },
+    "section_header": {
+      "fontSize": 18,
+      "fontWeight": "bold",
+      "color": "#666666",
+      "family": "Inter/Helvetica"
+    },
+    "label": {
+      "fontSize": 14,
+      "fontWeight": "normal",
+      "color": "#666666",
+      "family": "Inter/Helvetica"
+    },
+    "content": {
+      "fontSize": -1,
+      "fontWeight": "normal",
+      "color": "#4c4c4c",
+      "family": "Inter/Helvetica"
+    },
+    "content_bold": {
+      "fontSize": -1,
+      "fontWeight": "bold",
+      "color": "#000000",
+      "family": "Inter/Helvetica"
+    },
+    "arrow_label": {
+      "fontSize": 14,
+      "fontWeight": "normal",
+      "color": "#666666",
+      "family": "monospace"
+    }
+  },
+  "contrast_analysis": {
+    "background_to_panel": {
+      "background": "#f7f7f5",
+      "panel": "#fafafa",
+      "contrast_ratio": "~1.06:1",
+      "note": "Very subtle, should be more visible. Consider #ffffff for panels or #eeeeee for background"
+    },
+    "recommendations": {
+      "option_1": "Keep background #f7f7f5, use #ffffff for panels (better contrast)",
+      "option_2": "Use #eeeeee for background, keep #fafafa for panels",
+      "option_3": "Use #f0f0f0 for background, use #ffffff for panels (best contrast)"
+    }
+  }
+}

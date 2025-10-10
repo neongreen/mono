@@ -1,0 +1,184 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1200" viewBox="0 0 1600 1200">
+  <defs>
+    <marker id="arrow-1976d2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-tail-1976d2" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#1976d2" />
+    </marker>
+    <marker id="arrow-388e3c" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#388e3c" />
+    </marker>
+    <marker id="arrow-tail-388e3c" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#388e3c" />
+    </marker>
+    <marker id="arrow-ff9800" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#ff9800" />
+    </marker>
+    <marker id="arrow-tail-ff9800" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#ff9800" />
+    </marker>
+    <marker id="arrow-66bb6a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#66bb6a" />
+    </marker>
+    <marker id="arrow-tail-66bb6a" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#66bb6a" />
+    </marker>
+    <marker id="arrow-ab47bc" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#ab47bc" />
+    </marker>
+    <marker id="arrow-tail-ab47bc" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#ab47bc" />
+    </marker>
+    <marker id="arrow-4caf50" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#4caf50" />
+    </marker>
+    <marker id="arrow-tail-4caf50" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#4caf50" />
+    </marker>
+    <marker id="arrow-9e9e9e" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#9e9e9e" />
+    </marker>
+    <marker id="arrow-tail-9e9e9e" markerWidth="10" markerHeight="10" refX="1" refY="3" orient="auto">
+      <polygon points="10 0, 0 3, 10 6" fill="#9e9e9e" />
+    </marker>
+  </defs>
+  <rect width="1600" height="1200" fill="#fafafa"/>
+  <rect x="0" y="0" width="1600" height="1200" fill="#fafafa" />
+      <text x="800" y="79.5" font-size="36" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Claude API System Architecture</text>
+      <text x="800" y="108.66666666666667" font-size="14" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">End-to-end request flow with safety layers</text>
+        <rect x="50" y="151" width="87" height="24" fill="#0288d1" rx="4" />
+          <text x="62" y="167" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">User Layer</text>
+        <text x="226" y="167" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Application integration points</text>
+        <rect x="440" y="195" width="220" height="100" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+            <text x="550.5" y="229.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Web Application</text>
+            <text x="550.5" y="252" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">React / Vue / Angular</text>
+            <text x="550.5" y="272.5" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Direct API calls</text>
+        <rect x="690" y="195" width="220" height="100" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+            <text x="800" y="229.83333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Mobile App</text>
+            <text x="800.5" y="250.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">iOS / Android</text>
+            <text x="800.5" y="271" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">SDK integration</text>
+        <rect x="940" y="195" width="220" height="100" fill="#e3f2fd" stroke="#1976d2" stroke-width="2" rx="8" />
+            <text x="1050.5" y="230.33333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Backend Service</text>
+            <text x="1050.5" y="251" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Python / Node.js</text>
+            <text x="1050.5" y="271.5" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Server-to-server</text>
+    <rect x="50" y="351" width="1500" height="1" fill="#ddd" />
+        <rect x="50" y="408" width="97" height="24" fill="#2e7d32" rx="4" />
+          <text x="62" y="424" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">API Gateway</text>
+        <text x="252.5" y="424" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Request routing and authentication</text>
+        <rect x="460" y="452" width="200" height="90" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+            <text x="560" y="482.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Authentication</text>
+            <text x="560" y="501" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">API Key validation</text>
+            <text x="560.5" y="521" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Rate limiting</text>
+        <rect x="700" y="452" width="200" height="90" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+            <text x="800.5" y="484.3333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Load Balancer</text>
+            <text x="800.5" y="503" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Request distribution</text>
+            <text x="801" y="521.5" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Health checks</text>
+        <rect x="940" y="452" width="200" height="90" fill="#e8f5e9" stroke="#388e3c" stroke-width="2" rx="8" />
+            <text x="1040" y="482.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Request Queue</text>
+            <text x="1040.5" y="503" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Async processing</text>
+            <text x="1040.5" y="523" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Priority handling</text>
+    <rect x="50" y="598" width="1500" height="1" fill="#ddd" />
+        <rect x="50" y="655" width="125" height="24" fill="#ff9800" rx="4" />
+          <text x="62" y="671" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Processing Layer</text>
+        <text x="280.5" y="671" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Safety checks and model inference</text>
+          <text x="275" y="710.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Safety Pipeline</text>
+          <rect x="225" y="729" width="320" height="85" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+              <text x="386" y="760.8333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Input Safety</text>
+              <text x="385.5" y="779" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Content filtering</text>
+              <text x="385.5" y="795.5" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Harmful content detection</text>
+          <rect x="225" y="830" width="320" height="85" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+              <text x="385" y="859.8333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Prompt Optimization</text>
+              <text x="385" y="878" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Context preparation</text>
+              <text x="385" y="896" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Token management</text>
+          <text x="678.5" y="709.1666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Model Inference</text>
+          <rect x="625" y="726" width="320" height="140" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+              <text x="785.5" y="761.3333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Claude Model</text>
+              <text x="786" y="780.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Neural network inference</text>
+                <rect x="679" y="797" width="106" height="24" fill="#0288d1" rx="4" />
+                  <text x="691" y="813" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">100B+ params</text>
+                <rect x="793" y="797" width="99" height="24" fill="#2e7d32" rx="4" />
+                  <text x="805" y="813.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">200K context</text>
+              <text x="785.5" y="841" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Constitutional AI safety</text>
+          <text x="1088" y="710.6666666666666" font-size="14" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Output Processing</text>
+          <rect x="1025" y="729" width="320" height="85" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+              <text x="1185.5" y="758.8333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Output Safety</text>
+              <text x="1185.5" y="777" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Response filtering</text>
+              <text x="1185.5" y="795" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Quality assurance</text>
+          <rect x="1025" y="830" width="320" height="85" fill="#fff3e0" stroke="#f57c00" stroke-width="2" rx="8" />
+              <text x="1185.5" y="861.8333333333334" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Response Formatting</text>
+              <text x="1186" y="878.5" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Structure &amp; metadata</text>
+              <text x="1185.5" y="895" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Token counting</text>
+    <rect x="50" y="971" width="1500" height="1" fill="#ddd" />
+        <rect x="50" y="1028" width="128" height="24" fill="#7b1fa2" rx="4" />
+          <text x="62" y="1044" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">Data &amp; Monitoring</text>
+        <text x="277.5" y="1044" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Logging, analytics, and feedback</text>
+        <rect x="440" y="1072" width="220" height="85" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+            <text x="551" y="1099.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Analytics</text>
+            <text x="550.5" y="1120" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Usage metrics</text>
+            <text x="550.5" y="1140" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Performance tracking</text>
+        <rect x="690" y="1072" width="220" height="85" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+            <text x="801" y="1101.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Log Storage</text>
+            <text x="800.5" y="1122" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Request/response logs</text>
+            <text x="800.5" y="1140.5" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">Audit trail</text>
+        <rect x="940" y="1072" width="220" height="85" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" rx="8" />
+            <text x="1050" y="1099.8333333333333" font-size="16" font-family="Arial, sans-serif" fill="#212121" font-weight="bold" text-anchor="middle">Feedback Loop</text>
+            <text x="1050" y="1120" font-size="12" font-family="Arial, sans-serif" fill="#757575" font-weight="normal" text-anchor="middle">Model improvement</text>
+            <text x="1050.5" y="1140" font-size="12" font-family="Arial, sans-serif" fill="#212121" font-weight="normal" text-anchor="middle">RLHF training data</text>
+      <rect x="424" y="1227" width="181" height="27" fill="#1976d2" rx="4" />
+        <text x="436" y="1244.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">🔒 Secure HTTPS transport</text>
+      <rect x="635" y="1227" width="185" height="27" fill="#ff9800" rx="4" />
+        <text x="647" y="1244.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">🛡️ Multi-layer safety checks</text>
+      <rect x="850" y="1227" width="156" height="27" fill="#2e7d32" rx="4" />
+        <text x="862" y="1244.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">⚡ &lt;100ms p50 latency</text>
+      <rect x="1036" y="1227" width="141" height="27" fill="#7b1fa2" rx="4" />
+        <text x="1048" y="1244.5" font-size="12" font-family="Arial, sans-serif" fill="#fff" font-weight="bold" text-anchor="start">📊 Full observability</text>
+  <path d="M 550 295 L 560 452" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="533" y="363.5" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="555" y="377.5" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <path d="M 690 245 L 560 452" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="603" y="338.5" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="625" y="352.5" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <path d="M 940 245 L 660 497" stroke="#1976d2" stroke-width="2" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="778" y="361" width="44" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="800" y="375" font-size="12" fill="#1976d2" text-anchor="middle">HTTPS</text>
+  <path d="M 660 497 L 700 497" stroke="#388e3c" stroke-width="2" fill="none" marker-end="url(#arrow-388e3c)" />
+  <rect x="643.6" y="487" width="72.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="680" y="501" font-size="12" fill="#388e3c" text-anchor="middle">validated</text>
+  <path d="M 900 497 L 940 497" stroke="#388e3c" stroke-width="2" fill="none" marker-end="url(#arrow-388e3c)" />
+  <rect x="894.4" y="487" width="51.199999999999996" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="920" y="501" font-size="12" fill="#388e3c" text-anchor="middle">routed</text>
+  <path d="M 940 497 L 545 771.5" stroke="#ff9800" stroke-width="2" fill="none" marker-end="url(#arrow-ff9800)" />
+  <rect x="713.3" y="624.25" width="58.4" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="742.5" y="638.25" font-size="12" fill="#ff9800" text-anchor="middle">request</text>
+  <path d="M 385 814 L 385 830" stroke="#66bb6a" stroke-width="2" fill="none" marker-end="url(#arrow-66bb6a)" />
+  <rect x="366.6" y="812" width="36.8" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="385" y="826" font-size="12" fill="#66bb6a" text-anchor="middle">safe</text>
+  <path d="M 545 872.5 L 625 796" stroke="#1976d2" stroke-width="3" fill="none" marker-end="url(#arrow-1976d2)" />
+  <rect x="523.4" y="824.25" width="123.19999999999999" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="585" y="838.25" font-size="12" fill="#1976d2" text-anchor="middle">optimized prompt</text>
+  <path d="M 945 796 L 1025 771.5" stroke="#ab47bc" stroke-width="3" fill="none" marker-end="url(#arrow-ab47bc)" />
+  <rect x="937.8" y="773.75" width="94.39999999999999" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="985" y="787.75" font-size="12" fill="#ab47bc" text-anchor="middle">raw response</text>
+  <path d="M 1185 814 L 1185 830" stroke="#66bb6a" stroke-width="2" fill="none" marker-end="url(#arrow-66bb6a)" />
+  <rect x="1152.2" y="812" width="65.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="1185" y="826" font-size="12" fill="#66bb6a" text-anchor="middle">filtered</text>
+  <path d="M 1025 872.5 A 362.96737112308045 362.96737112308045 0 0 0 660 245" stroke="#4caf50" stroke-width="2" fill="none" marker-end="url(#arrow-4caf50)" />
+  <rect x="791.7" y="548.75" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="842.5" y="562.75" font-size="12" fill="#4caf50" text-anchor="middle">JSON response</text>
+  <path d="M 1025 872.5 A 309.89161411693607 309.89161411693607 0 0 0 800 295" stroke="#4caf50" stroke-width="2" fill="none" marker-end="url(#arrow-4caf50)" />
+  <rect x="861.7" y="573.75" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="912.5" y="587.75" font-size="12" fill="#4caf50" text-anchor="middle">JSON response</text>
+  <path d="M 1185 830 A 275.8849397846863 275.8849397846863 0 0 0 1050 295" stroke="#4caf50" stroke-width="2" fill="none" marker-end="url(#arrow-4caf50)" />
+  <rect x="1066.7" y="552.5" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="1117.5" y="566.5" font-size="12" fill="#4caf50" text-anchor="middle">JSON response</text>
+  <path d="M 800 542 L 550 1072" stroke="#9e9e9e" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-9e9e9e)" />
+  <rect x="645.8" y="797" width="58.4" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="675" y="811" font-size="12" fill="#9e9e9e" text-anchor="middle">metrics</text>
+  <path d="M 1040 542 L 800 1072" stroke="#9e9e9e" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-9e9e9e)" />
+  <rect x="905.2" y="797" width="29.599999999999998" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="920" y="811" font-size="12" fill="#9e9e9e" text-anchor="middle">log</text>
+  <path d="M 785 866 L 940 1114.5" stroke="#9e9e9e" stroke-width="2" fill="none" stroke-dasharray="8,4" marker-end="url(#arrow-9e9e9e)" />
+  <rect x="811.7" y="980.25" width="101.6" height="20" fill="white" fill-opacity="0.85" rx="2" />
+  <text x="862.5" y="994.25" font-size="12" fill="#9e9e9e" text-anchor="middle">training data</text>
+</svg>
