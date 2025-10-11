@@ -50,7 +50,7 @@ jobs:
             echo "has_projects=false" >> $GITHUB_OUTPUT
             echo "projects=[]" >> $GITHUB_OUTPUT
           else
-            projects_json=$(printf '%s\n' "${projects[@]}" | jq -R . | jq -s .)
+            projects_json=$(printf '%s\n' "${projects[@]}" | jq -R . | jq -s -c .)
             echo "has_projects=true" >> $GITHUB_OUTPUT
             echo "projects=$projects_json" >> $GITHUB_OUTPUT
           fi
