@@ -48,8 +48,8 @@ When the workflow runs:
 1. Detect job will correctly output: `projects=["dissect","markdown-format"]`
 2. Release job will trigger with a matrix strategy
 3. Two parallel jobs will build and release:
-   - `dissect/main.1` (or next version)
-   - `markdown-format/main.1` (or next version)
+   - `dissect--main.1` (or next version)
+   - `markdown-format--main.1` (or next version)
 4. Each release will include 4 binaries (Linux amd64/arm64, macOS amd64/arm64)
 
 ## Files Changed

@@ -95,7 +95,7 @@ jobs:
           REF_SAFE=$(echo "$REF" | tr '/' '-')
           
           # Find existing tags for this project+ref combination
-          TAG_PREFIX="${PROJECT}/${REF_SAFE}."
+          TAG_PREFIX="${PROJECT}--${REF_SAFE}."
           EXISTING_TAGS=$(git tag -l "${TAG_PREFIX}*" | sort -V)
           
           if [ -z "$EXISTING_TAGS" ]; then
@@ -108,7 +108,7 @@ jobs:
             VERSION_NUM=$((LAST_NUM + 1))
           fi
           
-          TAG="${PROJECT}/${REF_SAFE}.${VERSION_NUM}"
+          TAG="${PROJECT}--${REF_SAFE}.${VERSION_NUM}"
           VERSION="${REF_SAFE}.${VERSION_NUM}"
           
           echo "project=$PROJECT" >> $GITHUB_OUTPUT

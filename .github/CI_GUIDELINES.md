@@ -118,7 +118,7 @@ All Go projects in the monorepo are automatically released via `.github/workflow
 - **Triggers**: Push to main, pull request activity
 - **Auto-detection**: Finds all Go projects with `go.mod` and `main.go`
 - **Platforms**: Linux, macOS, Windows (amd64 and arm64)
-- **Versioning**: `<project>/<branch>.<number>` (e.g., `dissect/main.1`, `dissect/pr-42.1`)
+- **Versioning**: `<project>--<branch>.<number>` (e.g., `dissect--main.1`, `dissect--pr-42.1`)
 - **Documentation**: See `.github/workflows/RELEASE_WORKFLOW.md` for details
 
 ## Adding a New Project

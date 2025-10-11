@@ -24,12 +24,12 @@ You wanted to be able to:
 
 ### Version Naming Convention
 
-Format: `<project>/<branch>.<number>`
+Format: `<project>--<branch>.<number>`
 
 **Examples:**
-- `dissect/main.1`, `dissect/main.2`, `dissect/main.3` - Main branch releases
-- `dissect/pr-42.1`, `dissect/pr-42.2` - PR #42 releases
-- `markdown-format/main.1` - Markdown-format from main
+- `dissect--main.1`, `dissect--main.2`, `dissect--main.3` - Main branch releases
+- `dissect--pr-42.1`, `dissect--pr-42.2` - PR #42 releases
+- `markdown-format--main.1` - Markdown-format from main
 
 Each project and branch combination has independent version numbering. PR releases are marked as pre-releases.
 
@@ -73,7 +73,7 @@ chmod +x install.sh
 #### Option 3: Manual Download
 
 1. Go to [Releases](https://github.com/neongreen/mono/releases)
-2. Find your desired version (e.g., `dissect/main.1`)
+2. Find your desired version (e.g., `dissect--main.1`)
 3. Download the binary for your platform
 4. Make executable and move to PATH:
    ```bash
@@ -86,7 +86,7 @@ chmod +x install.sh
 When you want to test changes from a PR before merging:
 
 1. Open or update a PR
-2. Workflow creates a release (e.g., `dissect/pr-123.1`)
+2. Workflow creates a release (e.g., `dissect--pr-123.1`)
 3. Install it:
    ```bash
    ./install.sh dissect pr-123.1
@@ -124,7 +124,7 @@ Scans the repository for Go projects (directories with `go.mod` and `main.go`).
 
 ### 3. Version
 Calculates the next version number by:
-- Finding existing tags for `<project>/<branch>.*`
+- Finding existing tags for `<project>--<branch>.*`
 - Extracting the highest number
 - Incrementing by 1
 
@@ -194,8 +194,8 @@ When this PR is merged to main:
 3. Calculates versions: Both will be `.1` (first releases)
 4. Builds 8 binaries (4 platforms × 2 projects)
 5. Creates 2 releases:
-   - `dissect/main.1` with 4 binaries
-   - `markdown-format/main.1` with 4 binaries
+   - `dissect--main.1` with 4 binaries
+   - `markdown-format--main.1` with 4 binaries
 
 Then users can immediately install with:
 ```bash
@@ -238,12 +238,12 @@ Edit `.github/workflows/release.yml` and modify the `PLATFORMS` array.
 
 Each project is independent and can have its own version cadence. Users only install what they need.
 
-### Why tag format `project/branch.number`?
+### Why tag format `project--branch.number`?
 
 - Clearly identifies the project
 - Clearly identifies the branch/PR
 - Simple incrementing number
-- Git-friendly (slashes allowed in tags)
+- Compatible with Go tooling (avoids issues with slashes)
 
 ### Why pre-release for PRs?
 

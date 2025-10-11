@@ -37,7 +37,7 @@ chmod +x install.sh
 ### Manual Install
 
 1. Go to the [Releases](https://github.com/neongreen/mono/releases) page
-2. Find the release you want (e.g., `dissect/main.1`)
+2. Find the release you want (e.g., `dissect--main.1`)
 3. Download the binary for your platform
 4. Make it executable and move to your PATH:
 
@@ -56,8 +56,8 @@ sudo mv <binary-name> /usr/local/bin/<tool-name>
 
 Go projects in this repository are automatically released:
 
-- **Main branch releases**: Created on every push to main (e.g., `dissect/main.1`, `dissect/main.2`)
-- **PR releases**: Created for pull requests (e.g., `dissect/pr-42.1`) - useful for testing changes before merge
+- **Main branch releases**: Created on every push to main (e.g., `dissect--main.1`, `dissect--main.2`)
+- **PR releases**: Created for pull requests (e.g., `dissect--pr-42.1`) - useful for testing changes before merge
 
 See [Release Workflow Documentation](.github/workflows/RELEASE_WORKFLOW.md) for more details.
 
