@@ -1,0 +1,200 @@
+name: Release Go Projects
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # First job: detect which Go projects need releases
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.find-projects.outputs.projects }}
+      has_projects: ${{ steps.find-projects.outputs.has_projects }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find Go projects
+        id: find-projects
+        run: |
+          # Find all directories with go.mod at root level
+          projects=()
+          for dir in */; do
+            dir=${dir%/}
+            if [ -f "$dir/go.mod" ]; then
+              # Check if there's a main.go somewhere in the project
+              if find "$dir" -name "main.go" | grep -q .; then
+                projects+=("$dir")
+              fi
+            fi
+          done
+          
+          # Convert to JSON array
+          if [ ${#projects[@]} -eq 0 ]; then
+            echo "has_projects=false" >> $GITHUB_OUTPUT
+            echo "projects=[]" >> $GITHUB_OUTPUT
+          else
+            printf -v projects_json '%s\n' "${projects[@]}" | jq -R . | jq -s .
+            echo "has_projects=true" >> $GITHUB_OUTPUT
+            echo "projects=$projects_json" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "Found Go projects: ${projects[*]}"
+
+  # Second job: build and release each project
+  release:
+    needs: detect
+    if: needs.detect.outputs.has_projects == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.detect.outputs.projects) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.7'
+
+      - name: Determine version and branch
+        id: version
+        run: |
+          PROJECT="${{ matrix.project }}"
+          
+          # Determine branch/ref name
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PRs, use pr-NUMBER format
+            REF="pr-${{ github.event.pull_request.number }}"
+          else
+            # For push to main
+            REF="main"
+          fi
+          
+          # Sanitize ref name (replace / with -)
+          REF_SAFE=$(echo "$REF" | tr '/' '-')
+          
+          # Find existing tags for this project+ref combination
+          TAG_PREFIX="${PROJECT}/${REF_SAFE}."
+          EXISTING_TAGS=$(git tag -l "${TAG_PREFIX}*" | sort -V)
+          
+          if [ -z "$EXISTING_TAGS" ]; then
+            # No existing tags, start with .1
+            VERSION_NUM=1
+          else
+            # Get the highest version number
+            LAST_TAG=$(echo "$EXISTING_TAGS" | tail -1)
+            LAST_NUM=$(echo "$LAST_TAG" | sed "s|${TAG_PREFIX}||")
+            VERSION_NUM=$((LAST_NUM + 1))
+          fi
+          
+          TAG="${PROJECT}/${REF_SAFE}.${VERSION_NUM}"
+          VERSION="${REF_SAFE}.${VERSION_NUM}"
+          
+          echo "project=$PROJECT" >> $GITHUB_OUTPUT
+          echo "ref=$REF" >> $GITHUB_OUTPUT
+          echo "ref_safe=$REF_SAFE" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_num=$VERSION_NUM" >> $GITHUB_OUTPUT
+          
+          echo "Building ${PROJECT} version ${VERSION} (tag: ${TAG})"
+
+      - name: Build binaries
+        id: build
+        run: |
+          PROJECT="${{ matrix.project }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Find main.go location(s)
+          MAIN_FILES=$(find "$PROJECT" -name "main.go")
+          
+          # Determine build targets
+          # If there's cmd/main.go, build from cmd
+          # Otherwise build the main.go in root
+          if echo "$MAIN_FILES" | grep -q "cmd/main.go"; then
+            BUILD_TARGET="./cmd"
+          else
+            BUILD_TARGET="."
+          fi
+          
+          mkdir -p dist
+          DIST_DIR="$(pwd)/dist"
+          
+          # Build for multiple platforms
+          PLATFORMS=(
+            "linux/amd64"
+            "linux/arm64"
+            "darwin/amd64"
+            "darwin/arm64"
+            "windows/amd64"
+          )
+          
+          for platform in "${PLATFORMS[@]}"; do
+            IFS='/' read -r GOOS GOARCH <<< "$platform"
+            
+            OUTPUT_NAME="${PROJECT}-${VERSION}-${GOOS}-${GOARCH}"
+            if [ "$GOOS" = "windows" ]; then
+              OUTPUT_NAME="${OUTPUT_NAME}.exe"
+            fi
+            
+            echo "Building for $GOOS/$GOARCH..."
+            (cd "$PROJECT" && GOOS=$GOOS GOARCH=$GOARCH go build -o "$DIST_DIR/$OUTPUT_NAME" $BUILD_TARGET)
+            
+            if [ $? -ne 0 ]; then
+              echo "Failed to build for $GOOS/$GOARCH"
+              exit 1
+            fi
+            
+            echo "Built: dist/$OUTPUT_NAME"
+          done
+          
+          ls -lh dist/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "${{ matrix.project }} ${{ steps.version.outputs.version }}"
+          body: |
+            Release of **${{ matrix.project }}** version `${{ steps.version.outputs.version }}`
+            
+            Built from: ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || 'main branch' }}
+            Commit: ${{ github.sha }}
+            
+            ## Installation
+            
+            Download the appropriate binary for your platform, make it executable, and move it to your PATH:
+            
+            ```bash
+            # Linux AMD64
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64
+            chmod +x ${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64
+            sudo mv ${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64 /usr/local/bin/${{ matrix.project }}
+            
+            # macOS ARM64 (M1/M2)
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64
+            chmod +x ${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64
+            sudo mv ${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64 /usr/local/bin/${{ matrix.project }}
+            ```
+            
+            ## Available Binaries
+            
+            - Linux: amd64, arm64
+            - macOS: amd64 (Intel), arm64 (Apple Silicon)
+            - Windows: amd64
+          files: dist/*
+          draft: false
+          prerelease: ${{ github.event_name == 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
