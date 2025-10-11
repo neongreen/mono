@@ -53,9 +53,6 @@ case "$OS" in
     darwin)
         OS_NAME="darwin"
         ;;
-    mingw*|msys*|cygwin*)
-        OS_NAME="windows"
-        ;;
     *)
         print_error "Unsupported operating system: $OS"
         exit 1
@@ -98,9 +95,6 @@ fi
 # Construct download URL
 TAG="$PROJECT/$VERSION"
 BINARY_NAME="$PROJECT-$VERSION-$OS_NAME-$ARCH_NAME"
-if [ "$OS_NAME" = "windows" ]; then
-    BINARY_NAME="${BINARY_NAME}.exe"
-fi
 
 DOWNLOAD_URL="https://github.com/$REPO/releases/download/$TAG/$BINARY_NAME"
 
@@ -123,10 +117,8 @@ fi
 
 print_success "Download complete!"
 
-# Make executable (not needed on Windows)
-if [ "$OS_NAME" != "windows" ]; then
-    chmod +x "$TMP_FILE"
-fi
+# Make executable
+chmod +x "$TMP_FILE"
 
 # Determine install location
 INSTALL_DIR="/usr/local/bin"

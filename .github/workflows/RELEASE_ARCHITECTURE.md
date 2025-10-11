@@ -51,12 +51,11 @@ Decision: Has projects?
     |
     +-- Detect build target (./cmd or .)
     |
-    +-- Build for 5 platforms:
+    +-- Build for 4 platforms:
     |   +-- linux/amd64
     |   +-- linux/arm64
     |   +-- darwin/amd64
     |   +-- darwin/arm64
-    |   +-- windows/amd64
     |
     +-- Output: dist/PROJECT-VERSION-OS-ARCH[.exe]
     |
@@ -134,7 +133,7 @@ fi
 
 ### Cross-Compilation
 
-Each project is built for 5 platform combinations:
+Each project is built for 4 platform combinations:
 
 ```bash
 PLATFORMS=(
@@ -142,7 +141,6 @@ PLATFORMS=(
   "linux/arm64"
   "darwin/amd64"
   "darwin/arm64"
-  "windows/amd64"
 )
 
 for platform in "${PLATFORMS[@]}"; do
@@ -182,7 +180,6 @@ Download the appropriate binary for your platform...
 
 - Linux: amd64, arm64
 - macOS: amd64 (Intel), arm64 (Apple Silicon)
-- Windows: amd64
 ```
 
 ## Trigger Conditions

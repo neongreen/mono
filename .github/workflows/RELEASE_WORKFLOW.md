@@ -37,7 +37,6 @@ The version number automatically increments based on existing tags for that proj
 Binaries are built for:
 - **Linux**: amd64, arm64
 - **macOS**: amd64 (Intel), arm64 (Apple Silicon)
-- **Windows**: amd64
 
 ## Installing Releases
 

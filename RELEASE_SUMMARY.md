@@ -19,7 +19,7 @@ You wanted to be able to:
 - **Triggers:** Push to main, Pull request activity (open, sync, reopen)
 - **Path filters:** Only runs when Go files change (`*.go`, `go.mod`, `go.sum`)
 - **Auto-detection:** Finds Go projects automatically (directories with `go.mod` + `main.go`)
-- **Multi-platform:** Builds for Linux, macOS, and Windows (amd64 and arm64)
+- **Multi-platform:** Builds for Linux and macOS (amd64 and arm64)
 - **Version management:** Auto-increments versions per project and branch
 
 ### Version Naming Convention
@@ -38,9 +38,8 @@ Each project and branch combination has independent version numbering. PR releas
 Every release includes binaries for:
 - **Linux:** amd64, arm64
 - **macOS:** amd64 (Intel), arm64 (Apple Silicon)
-- **Windows:** amd64
 
-Total: 5 binaries per project per release.
+Total: 4 binaries per project per release.
 
 ### Installation Options
 
@@ -132,8 +131,8 @@ Calculates the next version number by:
 ### 4. Build
 For each detected project:
 - Determines build target (`./cmd` or `.`)
-- Builds for 5 platforms in parallel
-- Names binaries: `<project>-<version>-<os>-<arch>[.exe]`
+- Builds for 4 platforms in parallel
+- Names binaries: `<project>-<version>-<os>-<arch>`
 
 ### 5. Release
 - Creates GitHub release with the version tag
@@ -147,8 +146,8 @@ For each detected project:
 ✅ Project detection (correctly finds dissect and markdown-format)  
 ✅ Version calculation and auto-increment  
 ✅ Build testing for all platforms:
-  - dissect: 5 platforms ✓
-  - markdown-format: 5 platforms ✓
+  - dissect: 4 platforms ✓
+  - markdown-format: 4 platforms ✓
 ✅ Install script functionality  
 ⏳ End-to-end workflow (will run on first PR/push)
 
@@ -193,10 +192,10 @@ When this PR is merged to main:
 1. Workflow triggers (Go files changed)
 2. Detects 2 projects: `dissect`, `markdown-format`
 3. Calculates versions: Both will be `.1` (first releases)
-4. Builds 10 binaries (5 platforms × 2 projects)
+4. Builds 8 binaries (4 platforms × 2 projects)
 5. Creates 2 releases:
-   - `dissect/main.1` with 5 binaries
-   - `markdown-format/main.1` with 5 binaries
+   - `dissect/main.1` with 4 binaries
+   - `markdown-format/main.1` with 4 binaries
 
 Then users can immediately install with:
 ```bash

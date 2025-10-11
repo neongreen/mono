@@ -147,16 +147,12 @@ jobs:
             "linux/arm64"
             "darwin/amd64"
             "darwin/arm64"
-            "windows/amd64"
           )
           
           for platform in "${PLATFORMS[@]}"; do
             IFS='/' read -r GOOS GOARCH <<< "$platform"
             
             OUTPUT_NAME="${PROJECT}-${VERSION}-${GOOS}-${GOARCH}"
-            if [ "$GOOS" = "windows" ]; then
-              OUTPUT_NAME="${OUTPUT_NAME}.exe"
-            fi
             
             echo "Building for $GOOS/$GOARCH..."
             (cd "$PROJECT" && GOOS=$GOOS GOARCH=$GOARCH go build -o "$DIST_DIR/$OUTPUT_NAME" $BUILD_TARGET)
@@ -202,7 +198,6 @@ jobs:
             
             - Linux: amd64, arm64
             - macOS: amd64 (Intel), arm64 (Apple Silicon)
-            - Windows: amd64
           files: dist/*
           draft: false
           prerelease: ${{ github.event_name == 'pull_request' }}

@@ -51,7 +51,6 @@ sudo mv <binary-name> /usr/local/bin/<tool-name>
 
 - Linux: amd64, arm64
 - macOS: amd64 (Intel), arm64 (Apple Silicon)
-- Windows: amd64
 
 ## Releases
 
