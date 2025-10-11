@@ -4,8 +4,18 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**/*.go'
+      - '**/go.mod'
+      - '**/go.sum'
+      - '.github/workflows/release.yml'
   pull_request:
     types: [opened, synchronize, reopened]
+    paths:
+      - '**/*.go'
+      - '**/go.mod'
+      - '**/go.sum'
+      - '.github/workflows/release.yml'
 
 jobs:
   # First job: detect which Go projects need releases
