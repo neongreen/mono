@@ -65,6 +65,9 @@ jobs:
     strategy:
       matrix:
         project: ${{ fromJson(needs.detect.outputs.projects) }}
+
+    permissions:
+      contents: write
     
     steps:
       - name: Checkout code
