@@ -278,6 +278,8 @@ Lint your examples with:
 npm run lint
 ```
 
+**Note:** The lint command will exit with code 1 if any lints are found (warnings or info). This allows CI/workflows to fail and make the issues visible without having to check logs. When all diagrams pass linting, it exits with code 0.
+
 Test the linting system:
 
 ```bash
