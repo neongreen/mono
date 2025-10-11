@@ -82,18 +82,18 @@ Done
 ### Examples
 
 **Main Branch:**
-- First push: `dissect/main.1`
-- Second push: `dissect/main.2`
-- Third push: `dissect/main.3`
+- First push: `dissect--main.1`
+- Second push: `dissect--main.2`
+- Third push: `dissect--main.3`
 
 **Pull Request #42:**
-- First build: `dissect/pr-42.1`
-- Updated PR: `dissect/pr-42.2`
-- Another update: `dissect/pr-42.3`
+- First build: `dissect--pr-42.1`
+- Updated PR: `dissect--pr-42.2`
+- Another update: `dissect--pr-42.3`
 
 **Different Projects:**
-- `dissect/main.1` - dissect from main
-- `markdown-format/main.1` - markdown-format from main
+- `dissect--main.1` - dissect from main
+- `markdown-format--main.1` - markdown-format from main
 - Both can have `.1` as they're independent
 
 ### Version Determination Algorithm

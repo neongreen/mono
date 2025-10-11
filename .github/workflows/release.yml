@@ -50,7 +50,7 @@ jobs:
             echo "has_projects=false" >> $GITHUB_OUTPUT
             echo "projects=[]" >> $GITHUB_OUTPUT
           else
-            printf -v projects_json '%s\n' "${projects[@]}" | jq -R . | jq -s .
+            projects_json=$(printf '%s\n' "${projects[@]}" | jq -R . | jq -s -c .)
             echo "has_projects=true" >> $GITHUB_OUTPUT
             echo "projects=$projects_json" >> $GITHUB_OUTPUT
           fi
@@ -95,7 +95,7 @@ jobs:
           REF_SAFE=$(echo "$REF" | tr '/' '-')
           
           # Find existing tags for this project+ref combination
-          TAG_PREFIX="${PROJECT}/${REF_SAFE}."
+          TAG_PREFIX="${PROJECT}--${REF_SAFE}."
           EXISTING_TAGS=$(git tag -l "${TAG_PREFIX}*" | sort -V)
           
           if [ -z "$EXISTING_TAGS" ]; then
@@ -108,7 +108,7 @@ jobs:
             VERSION_NUM=$((LAST_NUM + 1))
           fi
           
-          TAG="${PROJECT}/${REF_SAFE}.${VERSION_NUM}"
+          TAG="${PROJECT}--${REF_SAFE}.${VERSION_NUM}"
           VERSION="${REF_SAFE}.${VERSION_NUM}"
           
           echo "project=$PROJECT" >> $GITHUB_OUTPUT

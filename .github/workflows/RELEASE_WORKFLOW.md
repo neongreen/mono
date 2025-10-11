@@ -17,13 +17,13 @@ The workflow automatically detects Go projects by:
 
 ### Version Naming
 
-Releases use the format: `<project>/<branch>.<number>`
+Releases use the format: `<project>--<branch>.<number>`
 
 Examples:
-- `dissect/main.1` - First release of dissect from main branch
-- `dissect/main.2` - Second release of dissect from main branch
-- `dissect/pr-42.1` - First release of dissect from PR #42
-- `markdown-format/main.1` - First release of markdown-format from main branch
+- `dissect--main.1` - First release of dissect from main branch
+- `dissect--main.2` - Second release of dissect from main branch
+- `dissect--pr-42.1` - First release of dissect from PR #42
+- `markdown-format--main.1` - First release of markdown-format from main branch
 
 The version number automatically increments based on existing tags for that project+branch combination.
 
@@ -60,7 +60,7 @@ sudo mv <binary-name> /usr/local/bin/<tool-name>
 To install the latest version from main:
 
 1. Go to the [Releases page](https://github.com/neongreen/mono/releases)
-2. Find the latest release for your project (e.g., `dissect/main.X`)
+2. Find the latest release for your project (e.g., `dissect--main.X`)
 3. Download the appropriate binary for your platform
 4. Follow installation instructions in the release notes
 
@@ -69,7 +69,7 @@ To install the latest version from main:
 To test a version from a specific PR:
 
 1. Go to the [Releases page](https://github.com/neongreen/mono/releases)
-2. Find releases tagged with `<project>/pr-<number>.X`
+2. Find releases tagged with `<project>--pr-<number>.X`
 3. Download the appropriate binary
 4. These releases are marked as "Pre-release"
 
@@ -78,14 +78,14 @@ To test a version from a specific PR:
 ### Install dissect from main
 
 ```bash
-# Find the latest release tag (e.g., dissect/main.5)
+# Find the latest release tag (e.g., dissect--main.5)
 # For Linux AMD64:
-wget https://github.com/neongreen/mono/releases/download/dissect/main.5/dissect-main.5-linux-amd64
+wget https://github.com/neongreen/mono/releases/download/dissect--main.5/dissect-main.5-linux-amd64
 chmod +x dissect-main.5-linux-amd64
 sudo mv dissect-main.5-linux-amd64 /usr/local/bin/dissect
 
 # For macOS ARM64 (M1/M2):
-wget https://github.com/neongreen/mono/releases/download/dissect/main.5/dissect-main.5-darwin-arm64
+wget https://github.com/neongreen/mono/releases/download/dissect--main.5/dissect-main.5-darwin-arm64
 chmod +x dissect-main.5-darwin-arm64
 sudo mv dissect-main.5-darwin-arm64 /usr/local/bin/dissect
 ```
@@ -93,8 +93,8 @@ sudo mv dissect-main.5-darwin-arm64 /usr/local/bin/dissect
 ### Install dissect from PR #123
 
 ```bash
-# Find the release tag (e.g., dissect/pr-123.1)
-wget https://github.com/neongreen/mono/releases/download/dissect/pr-123.1/dissect-pr-123.1-linux-amd64
+# Find the release tag (e.g., dissect--pr-123.1)
+wget https://github.com/neongreen/mono/releases/download/dissect--pr-123.1/dissect-pr-123.1-linux-amd64
 chmod +x dissect-pr-123.1-linux-amd64
 sudo mv dissect-pr-123.1-linux-amd64 /usr/local/bin/dissect
 ```
