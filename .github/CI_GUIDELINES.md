@@ -108,7 +108,7 @@ jobs:
 |---------|----------|---------------|--------|
 | `dissect` | Go | `.github/workflows/dissect.yml` | ✅ Active |
 | `markdown-format` | Go | `.github/workflows/markdown-format.yml` | ✅ Active |
-| `diagram-dsl` | TypeScript | - | 🔜 Pending |
+| `diagram-dsl` | TypeScript | `.github/workflows/diagram-dsl.yml` | ✅ Active |
 | `want` | - | - | 🔜 Pending |
 
 ## Adding a New Project
