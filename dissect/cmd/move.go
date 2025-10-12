@@ -20,9 +20,13 @@ var moveCmd = &cobra.Command{
 	Long: `Move extracts specific identifiers (functions, methods) from a source file 
 and moves them to a target file. The target file will be created if it doesn't exist.
 
+Source files can be specified using glob patterns (e.g., *.go, pkg/**/*.go).
+
 Example:
   dissect move source.go:Foo source.go:Bar target.go
-  dissect move source.go:Foo,Bar,Baz target.go`,
+  dissect move source.go:Foo,Bar,Baz target.go
+  dissect move *.go:Helper target.go
+  dissect move pkg/**/*.go:Utility target.go`,
 	Args: cobra.MinimumNArgs(2),
 	Run:  runMove,
 }
@@ -46,15 +50,30 @@ func runMove(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		sourceFile := parts[0]
+		sourcePattern := parts[0]
 		identifiers := parts[1]
+
+		// Expand glob pattern
+		matches, err := filepath.Glob(sourcePattern)
+		if err != nil {
+			slog.Error("Invalid glob pattern", "pattern", sourcePattern, "error", err)
+			fmt.Fprintf(os.Stderr, "Error: Invalid glob pattern '%s': %v\n", sourcePattern, err)
+			os.Exit(1)
+		}
+
+		// If no matches, treat it as a literal filename
+		if len(matches) == 0 {
+			matches = []string{sourcePattern}
+		}
 
 		// Split identifiers by comma
 		ids := strings.Split(identifiers, ",")
-		for _, id := range ids {
-			id = strings.TrimSpace(id)
-			if id != "" {
-				sourceMap[sourceFile] = append(sourceMap[sourceFile], id)
+		for _, sourceFile := range matches {
+			for _, id := range ids {
+				id = strings.TrimSpace(id)
+				if id != "" {
+					sourceMap[sourceFile] = append(sourceMap[sourceFile], id)
+				}
 			}
 		}
 	}

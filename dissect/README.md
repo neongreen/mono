@@ -95,6 +95,13 @@ Move functions from different files to the same target:
 dissect move file1.go:Foo file2.go:Bar target.go
 ```
 
+Move functions from files matching a glob pattern:
+
+```bash
+dissect move *.go:Helper target.go
+dissect move pkg/**/*.go:Utility target.go
+```
+
 The target file will be created if it doesn't exist, or functions will be appended if it does exist.
 
 ### What Gets Extracted
