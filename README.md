@@ -6,6 +6,7 @@ This repository contains multiple independent projects.
 
 - **[dissect](dissect/)** - Go tool for code refactoring
 - **[markdown-format](markdown-format/)** - Go tool for markdown formatting
+- **[prrun](prrun/)** - Go tool to run binaries from GitHub PR releases (for easy testing)
 - **[diagram-dsl](diagram-dsl/)** - TypeScript DSL for creating diagrams
 - **[want](want/)** - Work in progress
 
@@ -60,6 +61,26 @@ Go projects in this repository are automatically released:
 - **PR releases**: Created for pull requests (e.g., `dissect--pr-42.1`) - useful for testing changes before merge
 
 See [Release Workflow Documentation](.github/workflows/RELEASE_WORKFLOW.md) for more details.
+
+## Testing PR Changes
+
+Use **[prrun](prrun/)** to easily test binaries from pull requests without manual installation:
+
+```bash
+# Build prrun first (or wait for it to be released)
+cd prrun && go build -o prrun .
+
+# Test a PR binary directly
+./prrun https://github.com/neongreen/mono/pull/123 dissect -- --help
+
+# Run it on your files
+./prrun https://github.com/neongreen/mono/pull/123 dissect -- myfile.go
+```
+
+The tool automatically:
+1. Finds the PR release
+2. Downloads the binary to `~/.cache/prrun/`
+3. Runs it with your arguments
 
 ## Development
 

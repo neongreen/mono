@@ -11,3 +11,8 @@ dist/
 # Go build cache
 *.test
 *.out
+
+# Go binaries
+prrun/prrun
+dissect/dissect
+markdown-format/markdown-format
