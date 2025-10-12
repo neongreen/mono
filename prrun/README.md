@@ -153,18 +153,26 @@ prrun https://github.com/neongreen/mono/pull/123 dissect -- myfile.go
 
 ## Troubleshooting
 
-### "no releases found for PR #N"
+For detailed troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
+### Quick Fixes
+
+**"no releases found for PR #N"**
 - Make sure the PR has a release created (this repo auto-creates releases for PRs)
 - Check that the release follows the naming convention
 
-### "no binary found for <os>/<arch>"
-
+**"no binary found for <os>/<arch>"**
+- prrun will now show all available assets to help diagnose the issue
 - Verify that the release includes binaries for your platform
 - Check the release page on GitHub to see available binaries
 
-### "failed to download binary"
+**"download failed with status 404"**
+- prrun will now explain possible causes (no assets, wrong names, auth issues)
+- The release may exist but have no assets (build may have failed)
+- Check the GitHub Actions logs for build errors
+- See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed diagnosis steps
 
+**"failed to download binary"**
 - Check your internet connection
 - Verify the release URL is accessible
 - Make sure you have write permissions to `~/.cache/prrun/`

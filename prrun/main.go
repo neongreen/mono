@@ -184,18 +184,35 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 		return "", "", fmt.Errorf("unsupported architecture: %s", archName)
 	}
 
-	// Find the matching asset
+	// Debug: Show available assets
+	if len(release.Assets) == 0 {
+		return "", "", fmt.Errorf("release %s has no assets (the build may have failed)", release.TagName)
+	}
+
+	fmt.Printf("Available assets (%d):\n", len(release.Assets))
 	for _, asset := range release.Assets {
-		// Expected format: project-version-os-arch
-		// e.g., dissect-pr-123.1-linux-amd64
+		fmt.Printf("  - %s\n", asset.Name)
+	}
+	fmt.Println()
+
+	// Find the matching asset
+	// Expected formats:
+	// 1. project-version-os-arch (e.g., dissect-pr-123.1-linux-amd64)
+	// 2. project--version-os-arch (e.g., dissect--pr-123.1-linux-amd64)
+	for _, asset := range release.Assets {
 		if strings.Contains(asset.Name, osName) && strings.Contains(asset.Name, archName) {
-			if projectName == "" || strings.HasPrefix(asset.Name, projectName) {
+			if projectName == "" {
+				// No project filter, return first matching asset
+				return asset.Name, asset.BrowserDownloadURL, nil
+			}
+			// Check if asset starts with project name (handles both single and double dash)
+			if strings.HasPrefix(asset.Name, projectName) {
 				return asset.Name, asset.BrowserDownloadURL, nil
 			}
 		}
 	}
 
-	return "", "", fmt.Errorf("no binary found for %s/%s in release %s", osName, archName, release.TagName)
+	return "", "", fmt.Errorf("no binary found for %s/%s in release %s (expected name pattern: %s-*-%s-%s or %s--*-%s-%s)", osName, archName, release.TagName, projectName, osName, archName, projectName, osName, archName)
 }
 
 // downloadBinary downloads a binary from a URL to a local path
@@ -215,6 +232,13 @@ func downloadBinary(downloadURL, destPath string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == 404 {
+			return fmt.Errorf("download failed with status 404 (asset not found). This may mean:\n"+
+				"  1. The release exists but has no assets (build may have failed)\n"+
+				"  2. The asset name doesn't match what was expected\n"+
+				"  3. The release is private and requires authentication\n"+
+				"  Download URL: %s", downloadURL)
+		}
 		return fmt.Errorf("download failed with status %d", resp.StatusCode)
 	}
 
