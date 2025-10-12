@@ -43,10 +43,7 @@ cd reactflow-layout-system && pnpm install && pnpm build
 reactflow-layout-system/dist
 ```
 
-**Install Command**:
-```bash
-pnpm install -g pnpm
-```
+**Install Command**: Leave empty (Vercel has pnpm pre-installed)
 
 **Root Directory**: Leave empty (use monorepo root)
 
@@ -60,13 +57,14 @@ Located at `/vercel.json`, configures the deployment for the entire monorepo:
 {
   "buildCommand": "cd reactflow-layout-system && pnpm install && pnpm build",
   "outputDirectory": "reactflow-layout-system/dist",
-  "installCommand": "pnpm install -g pnpm",
   "framework": null,
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
 ```
+
+Note: No `installCommand` is needed as Vercel has pnpm pre-installed.
 
 ### Project vercel.json
 Located at `/reactflow-layout-system/vercel.json`, provides project-specific configuration:

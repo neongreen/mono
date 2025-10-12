@@ -1,7 +1,6 @@
 {
   "buildCommand": "cd reactflow-layout-system && pnpm install && pnpm build",
   "outputDirectory": "reactflow-layout-system/dist",
-  "installCommand": "pnpm install -g pnpm",
   "framework": null,
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
