@@ -11,8 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
+	"github.com/bmatcuk/doublestar/v4"
 	"github.com/gobwas/glob"
+	"github.com/spf13/cobra"
 )
 
 var moveCmd = &cobra.Command{
@@ -62,8 +63,8 @@ func runMove(cmd *cobra.Command, args []string) {
 		sourcePattern := parts[0]
 		identifierPatterns := parts[1]
 
-		// Expand file glob pattern
-		matches, err := filepath.Glob(sourcePattern)
+		// Expand file glob pattern using doublestar for ** support
+		matches, err := doublestar.FilepathGlob(sourcePattern)
 		if err != nil {
 			slog.Error("Invalid glob pattern", "pattern", sourcePattern, "error", err)
 			fmt.Fprintf(os.Stderr, "Error: Invalid glob pattern '%s': %v\n", sourcePattern, err)

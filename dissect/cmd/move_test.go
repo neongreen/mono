@@ -390,6 +390,91 @@ func SomeFunc() {}
 			t.Errorf("Expected 'No identifiers matched' error, got: %s", output)
 		}
 	})
+
+	t.Run("MoveWithDoubleStarPattern", func(t *testing.T) {
+		// Create nested directory structure with Go files
+		if err := os.MkdirAll(filepath.Join(tmpDir, "pkg/subpkg/deeper"), 0755); err != nil {
+			t.Fatalf("Failed to create nested directories: %v", err)
+		}
+
+		// Create files at different levels
+		file1Code := `package pkg
+
+func UtilOne() {
+	println("util one")
+}
+`
+		file2Code := `package subpkg
+
+func UtilTwo() {
+	println("util two")
+}
+`
+		file3Code := `package deeper
+
+func UtilThree() {
+	println("util three")
+}
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "pkg/util1.go"), []byte(file1Code), 0644); err != nil {
+			t.Fatalf("Failed to create pkg/util1.go: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(tmpDir, "pkg/subpkg/util2.go"), []byte(file2Code), 0644); err != nil {
+			t.Fatalf("Failed to create pkg/subpkg/util2.go: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(tmpDir, "pkg/subpkg/deeper/util3.go"), []byte(file3Code), 0644); err != nil {
+			t.Fatalf("Failed to create pkg/subpkg/deeper/util3.go: %v", err)
+		}
+
+		// Use ** pattern to match all Go files recursively
+		targetFile := filepath.Join(tmpDir, "all_utils.go")
+		cmd := exec.Command(dissectBinary, "move", "pkg/**/*.go:Util*", "all_utils.go")
+		cmd.Dir = tmpDir
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("Failed to move functions with ** pattern: %v\nOutput: %s", err, output)
+		}
+
+		// Check that target file contains all three Util* functions
+		targetContent, err := os.ReadFile(targetFile)
+		if err != nil {
+			t.Fatalf("Failed to read target file: %v", err)
+		}
+		targetStr := string(targetContent)
+		if !containsFunc(targetStr, "UtilOne") {
+			t.Errorf("UtilOne function should be in target file")
+		}
+		if !containsFunc(targetStr, "UtilTwo") {
+			t.Errorf("UtilTwo function should be in target file")
+		}
+		if !containsFunc(targetStr, "UtilThree") {
+			t.Errorf("UtilThree function should be in target file")
+		}
+
+		// Verify all source files had functions removed
+		source1Content, err := os.ReadFile(filepath.Join(tmpDir, "pkg/util1.go"))
+		if err != nil {
+			t.Fatalf("Failed to read pkg/util1.go: %v", err)
+		}
+		if containsFunc(string(source1Content), "UtilOne") {
+			t.Errorf("UtilOne should have been removed from pkg/util1.go")
+		}
+
+		source2Content, err := os.ReadFile(filepath.Join(tmpDir, "pkg/subpkg/util2.go"))
+		if err != nil {
+			t.Fatalf("Failed to read pkg/subpkg/util2.go: %v", err)
+		}
+		if containsFunc(string(source2Content), "UtilTwo") {
+			t.Errorf("UtilTwo should have been removed from pkg/subpkg/util2.go")
+		}
+
+		source3Content, err := os.ReadFile(filepath.Join(tmpDir, "pkg/subpkg/deeper/util3.go"))
+		if err != nil {
+			t.Fatalf("Failed to read pkg/subpkg/deeper/util3.go: %v", err)
+		}
+		if containsFunc(string(source3Content), "UtilThree") {
+			t.Errorf("UtilThree should have been removed from pkg/subpkg/deeper/util3.go")
+		}
+	})
 }
 
 // Helper function to check if a function exists in code

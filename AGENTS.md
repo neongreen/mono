@@ -135,3 +135,53 @@ The owner will explicitly request backwards compatibility when needed. Until the
 - **Only consider it when:** The owner explicitly asks for it
 - **Focus on:** Making the best possible code, not maintaining old code
 - **Applies to:** ALL projects in this monorepo (diagram-dsl, dissect, markdown-format, want, etc.)
+
+## Postmortem Requirements
+
+When a bug or issue is discovered after implementation (especially during code review), agents must create a postmortem analysis documenting:
+
+1. **Timeline**: Chronological sequence of events:
+   - What was documented/claimed in the implementation
+   - What the reviewer found (the actual bug)
+   - What tests were missing
+
+2. **Root Cause**: Why the issue occurred
+
+3. **Prevention Measures**: At least one concrete way this could have been caught earlier
+
+4. **Location**: 
+   - For project-specific issues: Add to `<project>/AGENTS.md`
+   - For cross-cutting concerns: Add to this global `AGENTS.md`
+
+### Example Format
+
+```markdown
+### Postmortem: [Brief Title] (YYYY-MM-DD)
+
+**Timeline:**
+1. [Initial implementation details]
+2. [Review finding]
+3. [Missing tests or verification]
+4. [Fix applied]
+
+**Root Cause:**
+- [Why it happened]
+
+**What Could Have Caught This Earlier:**
+1. [Specific action or check]
+2. [Another preventive measure]
+
+**Lessons Learned:**
+- [Key takeaway 1]
+- [Key takeaway 2]
+```
+
+### When to Create Postmortems
+
+- When documented functionality doesn't work as claimed
+- When tests don't cover documented features
+- When assumptions about libraries/APIs are proven wrong
+- When edge cases are missed in initial implementation
+- When reviewer finds bugs that should have been caught
+
+The goal is continuous improvement: learn from mistakes and build better practices for future work.
