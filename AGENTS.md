@@ -13,15 +13,21 @@ This document contains guidelines for AI agents and automated tools working on p
 - Keep the list of projects in [README.md](./README.md) up to date.
 - Record project status in README.md. If the project is incomplete, has known bugs, exploration, etc, it must be stated.
 
+------------------------------------------------------------
+
 ## Hallucination and bullshitting
 
 Do not try to "sell" the features you are implementing.
 Do not describe how convenient or useful the tools are.
 If the user hasn't told you why she wants the tool or what she'll be using it for -- don't try to guess; just describe what the tool does.
 
+------------------------------------------------------------
+
 ## AGENTS.md
 
 When you are asked to do something "always" or "never", you must also record this rule either in top level AGENTS.md or in project level AGENTS.md, where appropriate.
+
+------------------------------------------------------------
 
 ## Pull Request Template
 
@@ -31,6 +37,8 @@ All pull requests must include a code block at the very start showing how to run
 - Show the `prrun` command with placeholders for PR number and project name
 - Provide clear examples of how to use it
 - Assume the user already has `prrun` installed
+
+------------------------------------------------------------
 
 ## Build and Run Guidelines
 
@@ -199,6 +207,8 @@ The owner will explicitly request backwards compatibility when needed. Until the
 - **Only consider it when:** The owner explicitly asks for it
 - **Focus on:** Making the best possible code, not maintaining old code
 - **Applies to:** ALL projects in this monorepo (diagram-dsl, dissect, markdown-format, want, etc.)
+
+------------------------------------------------------------
 
 ## Postmortem Requirements
 
