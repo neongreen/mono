@@ -66,11 +66,56 @@ func getCacheDir() (string, error) {
 	return cacheDir, nil
 }
 
+// getGitHubToken attempts to get a GitHub token from multiple sources
+// It tries in order: GITHUB_TOKEN, MISE_GITHUB_TOKEN, gh CLI tool
+func getGitHubToken() string {
+	// Try GITHUB_TOKEN environment variable first
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		return token
+	}
+
+	// Try MISE_GITHUB_TOKEN environment variable
+	if token := os.Getenv("MISE_GITHUB_TOKEN"); token != "" {
+		return token
+	}
+
+	// Try gh CLI tool
+	cmd := exec.Command("gh", "auth", "token")
+	output, err := cmd.Output()
+	if err == nil && len(output) > 0 {
+		return strings.TrimSpace(string(output))
+	}
+
+	// No token found
+	return ""
+}
+
+// createAuthenticatedRequest creates an HTTP request with authentication if available
+func createAuthenticatedRequest(method, url string) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add authentication token if available
+	if token := getGitHubToken(); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	return req, nil
+}
+
 // findPRRelease finds the latest release for a specific PR
 func findPRRelease(owner, repo string, prNum int, project string) (*GitHubRelease, error) {
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", owner, repo)
 
-	resp, err := http.Get(apiURL)
+	req, err := createAuthenticatedRequest("GET", apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch releases: %w", err)
 	}
@@ -157,7 +202,13 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 func downloadBinary(downloadURL, destPath string) error {
 	fmt.Printf("Downloading binary from %s...\n", downloadURL)
 
-	resp, err := http.Get(downloadURL)
+	req, err := createAuthenticatedRequest("GET", downloadURL)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to download binary: %w", err)
 	}

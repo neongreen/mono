@@ -120,3 +120,94 @@ func TestGetPlatformBinaryName(t *testing.T) {
 	t.Logf("Platform binary: %s", binaryName)
 	t.Logf("Download URL: %s", downloadURL)
 }
+
+func TestGetGitHubToken(t *testing.T) {
+	// Save original environment variables
+	origGithubToken := os.Getenv("GITHUB_TOKEN")
+	origMiseToken := os.Getenv("MISE_GITHUB_TOKEN")
+
+	// Clean up after test
+	defer func() {
+		if origGithubToken != "" {
+			os.Setenv("GITHUB_TOKEN", origGithubToken)
+		} else {
+			os.Unsetenv("GITHUB_TOKEN")
+		}
+		if origMiseToken != "" {
+			os.Setenv("MISE_GITHUB_TOKEN", origMiseToken)
+		} else {
+			os.Unsetenv("MISE_GITHUB_TOKEN")
+		}
+	}()
+
+	t.Run("GITHUB_TOKEN takes precedence", func(t *testing.T) {
+		os.Setenv("GITHUB_TOKEN", "github_token")
+		os.Setenv("MISE_GITHUB_TOKEN", "mise_token")
+
+		token := getGitHubToken()
+		if token != "github_token" {
+			t.Errorf("getGitHubToken() = %v, want %v", token, "github_token")
+		}
+	})
+
+	t.Run("MISE_GITHUB_TOKEN used when GITHUB_TOKEN not set", func(t *testing.T) {
+		os.Unsetenv("GITHUB_TOKEN")
+		os.Setenv("MISE_GITHUB_TOKEN", "mise_token")
+
+		token := getGitHubToken()
+		if token != "mise_token" {
+			t.Errorf("getGitHubToken() = %v, want %v", token, "mise_token")
+		}
+	})
+
+	t.Run("returns empty string when no tokens available", func(t *testing.T) {
+		os.Unsetenv("GITHUB_TOKEN")
+		os.Unsetenv("MISE_GITHUB_TOKEN")
+
+		token := getGitHubToken()
+		// Token might be empty or come from gh CLI
+		// We just verify the function doesn't crash
+		t.Logf("getGitHubToken() = %q", token)
+	})
+}
+
+func TestCreateAuthenticatedRequest(t *testing.T) {
+	// Save original environment variable
+	origGithubToken := os.Getenv("GITHUB_TOKEN")
+	defer func() {
+		if origGithubToken != "" {
+			os.Setenv("GITHUB_TOKEN", origGithubToken)
+		} else {
+			os.Unsetenv("GITHUB_TOKEN")
+		}
+	}()
+
+	t.Run("adds authorization header when token available", func(t *testing.T) {
+		os.Setenv("GITHUB_TOKEN", "test_token_123")
+
+		req, err := createAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
+		if err != nil {
+			t.Fatalf("createAuthenticatedRequest() error = %v", err)
+		}
+
+		authHeader := req.Header.Get("Authorization")
+		expectedHeader := "Bearer test_token_123"
+		if authHeader != expectedHeader {
+			t.Errorf("Authorization header = %v, want %v", authHeader, expectedHeader)
+		}
+	})
+
+	t.Run("creates request without authorization when token not available", func(t *testing.T) {
+		os.Unsetenv("GITHUB_TOKEN")
+		os.Unsetenv("MISE_GITHUB_TOKEN")
+
+		req, err := createAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
+		if err != nil {
+			t.Fatalf("createAuthenticatedRequest() error = %v", err)
+		}
+
+		authHeader := req.Header.Get("Authorization")
+		// If gh CLI is available, there might be a token; otherwise it should be empty
+		t.Logf("Authorization header = %q", authHeader)
+	})
+}
