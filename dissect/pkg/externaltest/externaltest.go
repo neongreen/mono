@@ -16,23 +16,23 @@ type ProcessFileFunc func(absPath string) (status int, exclusionReason string, e
 
 // ProjectConfig defines configuration for testing an external project
 type ProjectConfig struct {
-	Name        string              // Project name (e.g., "google/uuid")
-	URL         string              // Git clone URL
-	Commit      string              // Specific commit SHA to test
-	ShowDiff    bool                // Whether to show git diff after dissect
-	ProcessFile ProcessFileFunc     // Function to process each file (injected dependency)
+	Name        string          // Project name (e.g., "google/uuid")
+	URL         string          // Git clone URL
+	Commit      string          // Specific commit SHA to test
+	ShowDiff    bool            // Whether to show git diff after dissect
+	ProcessFile ProcessFileFunc // Function to process each file (injected dependency)
 }
 
 // TestResult contains the results of running dissect on an external project
 type TestResult struct {
-	ProjectDir     string
-	FilesCreated   []string
-	FilesBefore    int
-	FilesAfter     int
-	Diff           string
-	BuildPassed    bool
-	TestsPassed    bool
-	Error          error
+	ProjectDir   string
+	FilesCreated []string
+	FilesBefore  int
+	FilesAfter   int
+	Diff         string
+	BuildPassed  bool
+	TestsPassed  bool
+	Error        error
 }
 
 // Logger interface for testing
@@ -128,14 +128,14 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 			// Skip any decode errors and continue
 			continue
 		}
-		
+
 		// Skip test packages, cmd packages, and deeply nested internal packages
-		if strings.Contains(pkg.ImportPath, ".test]") || 
-		   strings.Contains(pkg.ImportPath, "/cmd/") ||
-		   strings.Count(pkg.ImportPath, "/internal/") > 1 {
+		if strings.Contains(pkg.ImportPath, ".test]") ||
+			strings.Contains(pkg.ImportPath, "/cmd/") ||
+			strings.Count(pkg.ImportPath, "/internal/") > 1 {
 			continue
 		}
-		
+
 		for _, goFile := range pkg.GoFiles {
 			// Skip files with absolute paths
 			if !filepath.IsAbs(goFile) {

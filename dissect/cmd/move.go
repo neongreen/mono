@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"dissect/pkg/commands"
 	"dissect/pkg/gopls"
 	"dissect/pkg/goutils"
 	"fmt"
 	"go/ast"
+	"go/printer"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -246,16 +248,10 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 	// Remove the temp file when done
 	defer os.Remove(tempFile)
 
-	// Parse the temp file to extract the function declaration and imports using AST
-	_, tempNode, err := goutils.ReadGoFile(tempFile)
+	// Parse the temp file to extract the function (with comments preserved by gopls)
+	tempFset, tempNode, err := goutils.ReadGoFile(tempFile)
 	if err != nil {
 		return fmt.Errorf("error parsing temp file: %w", err)
-	}
-
-	// Parse the target file
-	targetFset, targetNode, err := goutils.ReadGoFile(targetFile)
-	if err != nil {
-		return fmt.Errorf("error parsing target file: %w", err)
 	}
 
 	// Find the function in the temp file
@@ -270,28 +266,55 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 	if funcToMove == nil {
 		return fmt.Errorf("no function found in temp file")
 	}
+	
+	// Extract imports from temp file for later merging
+	var tempImports []*ast.ImportSpec
+	for _, imp := range tempNode.Imports {
+		tempImports = append(tempImports, imp)
+	}
 
-	// Merge imports from temp file to target file
-	// Build a map of existing imports in target
+	// Serialize just the function declaration (not a whole file) using printer
+	// This gives us the function with its Doc comments as source text
+	var funcBuf bytes.Buffer
+	cfg := printer.Config{Mode: printer.UseSpaces | printer.TabIndent, Tabwidth: 8}
+	if err := cfg.Fprint(&funcBuf, tempFset, funcToMove); err != nil {
+		return fmt.Errorf("error serializing function: %w", err)
+	}
+	
+	// Read the current target file content
+	targetContent, err := os.ReadFile(targetFile)
+	if err != nil {
+		return fmt.Errorf("error reading target file: %w", err)
+	}
+	
+	// Append the serialized function to the target file
+	// printer.Fprint on a FuncDecl includes the Doc comments automatically
+	newContent := string(targetContent) + "\n" + funcBuf.String() + "\n"
+	if err := os.WriteFile(targetFile, []byte(newContent), 0644); err != nil {
+		return fmt.Errorf("error writing target file: %w", err)
+	}
+	
+	// Now reparse the entire target file to get a proper AST
+	targetFset, targetNode, err := goutils.ReadGoFile(targetFile)
+	if err != nil {
+		return fmt.Errorf("error reparsing target file: %w", err)
+	}
+	
+	// Merge imports from temp file using AST operations
 	existingImports := make(map[string]bool)
 	for _, imp := range targetNode.Imports {
 		existingImports[imp.Path.Value] = true
 	}
-
-	// Add new imports from temp file
-	for _, imp := range tempNode.Imports {
+	
+	for _, imp := range tempImports {
 		if !existingImports[imp.Path.Value] {
 			targetNode.Imports = append(targetNode.Imports, imp)
 		}
 	}
-
-	// Add the function declaration to the target file
-	targetNode.Decls = append(targetNode.Decls, funcToMove)
-
-	// Write the modified target file back using AST
-	err = goutils.WriteGoFile(targetFile, targetFset, targetNode)
-	if err != nil {
-		return fmt.Errorf("error writing target file: %w", err)
+	
+	// Write back the target file with merged imports
+	if err := goutils.WriteGoFile(targetFile, targetFset, targetNode); err != nil {
+		return fmt.Errorf("error writing target file with imports: %w", err)
 	}
 
 	// Run goimports to organize imports and format properly
