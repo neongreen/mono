@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"dissect/cmd/internal/testutils"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -90,30 +91,30 @@ func anotherFunc() {
 	targetStr := string(targetContent)
 
 	// Verify sourceFunc was added
-	if !containsFunc(targetStr, "sourceFunc") {
+	if !testutils.ContainsFunc(targetStr, "sourceFunc") {
 		t.Errorf("sourceFunc should be in target file after move")
 	}
 
 	// Verify sourceFunc's comment was preserved
-	if !containsString(targetStr, "sourceFunc is in the source file") {
+	if !testutils.ContainsString(targetStr, "sourceFunc is in the source file") {
 		t.Errorf("sourceFunc's comment should be preserved in target file")
 	}
 
 	// Verify existing functions are still there
-	if !containsFunc(targetStr, "targetFunc") {
+	if !testutils.ContainsFunc(targetStr, "targetFunc") {
 		t.Errorf("targetFunc should still be in target file")
 	}
-	
-	if !containsFunc(targetStr, "anotherFunc") {
+
+	if !testutils.ContainsFunc(targetStr, "anotherFunc") {
 		t.Errorf("anotherFunc should still be in target file")
 	}
 
 	// Verify existing function comments are preserved
-	if !containsString(targetStr, "targetFunc already exists in target") {
+	if !testutils.ContainsString(targetStr, "targetFunc already exists in target") {
 		t.Errorf("targetFunc's comment should be preserved")
 	}
-	
-	if !containsString(targetStr, "anotherFunc also exists") {
+
+	if !testutils.ContainsString(targetStr, "anotherFunc also exists") {
 		t.Errorf("anotherFunc's comment should be preserved")
 	}
 
@@ -227,7 +228,7 @@ func existingFunc() {
 	// Verify all functions are present
 	functions := []string{"existingFunc", "firstFunc", "secondFunc", "thirdFunc"}
 	for _, fn := range functions {
-		if !containsFunc(targetStr, fn) {
+		if !testutils.ContainsFunc(targetStr, fn) {
 			t.Errorf("%s should be in target file", fn)
 		}
 	}
@@ -240,7 +241,7 @@ func existingFunc() {
 		"thirdFunc is the third function",
 	}
 	for _, comment := range comments {
-		if !containsString(targetStr, comment) {
+		if !testutils.ContainsString(targetStr, comment) {
 			t.Errorf("Comment %q should be in target file", comment)
 		}
 	}
@@ -333,24 +334,24 @@ func processData() {
 	targetStr := string(targetContent)
 
 	// Verify function was moved
-	if !containsFunc(targetStr, "printMessage") {
+	if !testutils.ContainsFunc(targetStr, "printMessage") {
 		t.Errorf("printMessage should be in target file")
 	}
 
 	// Verify comment was preserved
-	if !containsString(targetStr, "printMessage prints a message") {
+	if !testutils.ContainsString(targetStr, "printMessage prints a message") {
 		t.Errorf("printMessage's comment should be preserved")
 	}
 
 	// Verify existing function is still there
-	if !containsFunc(targetStr, "processData") {
+	if !testutils.ContainsFunc(targetStr, "processData") {
 		t.Errorf("processData should still be in target file")
 	}
 
 	// Verify all necessary imports are present
 	requiredImports := []string{"fmt", "encoding/json", "io", "os"}
 	for _, imp := range requiredImports {
-		if !containsString(targetStr, `"`+imp+`"`) {
+		if !testutils.ContainsString(targetStr, `"`+imp+`"`) {
 			t.Errorf("Import %q should be in target file", imp)
 		}
 	}

@@ -9,11 +9,26 @@ A Go tool that automatically refactors Go code by extracting top-level functions
 ## Features
 
 - **Automatic function extraction** - Extracts each top-level function from a Go file into its own file
+- **Selective moving** - Move specific functions, types, and interfaces to target files
 - **Intelligent naming** - Creates descriptive file names based on function names (e.g., `util_foo.go` for `foo()`, `mystruct_baz.go` for `(*MyStruct).Baz()`)
 - **Import management** - Automatically handles imports using `gopls` and `goimports`
 - **Method support** - Correctly handles methods and groups them with their receiver type
 - **Test helper extraction** - Moves test helper functions to `internal/testutils` package
 - **Build verification** - Ensures the code still builds after refactoring
+
+## Supported Declarations
+
+The `move` command supports the following Go declarations:
+
+| Declaration Type | Status | Notes |
+|-----------------|--------|-------|
+| Functions | ✅ Implemented | Regular functions and methods |
+| Types | ✅ Implemented | Struct types, type aliases |
+| Interfaces | ✅ Implemented | Interface definitions |
+| Constants | ✅ Implemented | Const declarations |
+| Variables | ✅ Implemented | Var declarations |
+
+The `split` command currently only extracts **functions** automatically. Support for automatically splitting types and other declarations is not yet implemented.
 
 ## Installation
 
@@ -75,7 +90,7 @@ dissect split path/to/directory
 
 ### Move Command
 
-The `move` command allows you to selectively move specific functions to a target file.
+The `move` command allows you to selectively move specific declarations (functions, types, interfaces) to a target file.
 
 Move a single function to a new file:
 
@@ -83,21 +98,37 @@ Move a single function to a new file:
 dissect move source.go:FunctionName target.go
 ```
 
-Move multiple functions using comma-separated list:
+Move types and interfaces:
+
+```bash
+dissect move source.go:MyType,MyInterface target.go
+```
+
+Move multiple declarations using comma-separated list:
 
 ```bash
 dissect move source.go:Foo,Bar,Baz target.go
 ```
 
-Move functions from different files to the same target:
+Move declarations from different files to the same target:
 
 ```bash
 dissect move file1.go:Foo file2.go:Bar target.go
 ```
 
+#### What Can Be Moved
+
+The `move` command supports moving:
+
+- **Functions** - Regular functions and methods
+- **Types** - Struct types, type aliases (e.g., `type MyInt int`)
+- **Interfaces** - Interface definitions
+- **Consts** - Constant declarations
+- **Vars** - Variable declarations
+
 #### Glob Pattern Support
 
-Both file paths and function names support glob patterns:
+Both file paths and identifier names support glob patterns:
 
 ```bash
 # Move all functions named "Helper" from any .go file
@@ -106,16 +137,19 @@ dissect move *.go:Helper target.go
 # Move all functions starting with "Test" from files in pkg/
 dissect move pkg/**/*.go:Test* target.go
 
-# Move all functions ending with "Helper" or starting with "Util"
+# Move all identifiers ending with "Helper" or starting with "Util"
 dissect move file.go:*Helper,Util* target.go
+
+# Move all types matching a pattern
+dissect move source.go:*Type target.go
 ```
 
 **Glob Behavior:**
-- If a file doesn't contain a matching function, it's silently skipped (no error)
-- An error is only shown if no functions match across all files
-- File globs are expanded first, then function name globs match within each file
+- If a file doesn't contain a matching identifier, it's silently skipped (no error)
+- An error is only shown if no identifiers match across all files
+- File globs are expanded first, then identifier globs match within each file
 
-The target file will be created if it doesn't exist, or functions will be appended if it does exist.
+The target file will be created if it doesn't exist, or declarations will be appended if it does exist.
 
 ### What Gets Extracted
 
