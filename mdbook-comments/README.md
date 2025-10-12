@@ -67,7 +67,23 @@ link-text = "comment"
 show-comment-count = true
 ```
 
-## Backend API
+## Backend Options
+
+The plugin supports multiple backend options:
+
+### Option 1: Supabase (Recommended for production)
+- Full-featured database with PostgreSQL
+- Real-time capabilities
+- Built-in authentication
+- See `SUPABASE_DEPLOYMENT_GUIDE.md` for setup instructions
+
+### Option 2: Google Sheets (Simple alternative)
+- Uses Google Sheets as database
+- No server setup required
+- Easy comment management in spreadsheet
+- See `GOOGLE_SHEETS_DEPLOYMENT_GUIDE.md` for setup instructions
+
+### Option 3: Custom Backend API
 
 The plugin requires a backend API with the following endpoints:
 
@@ -128,13 +144,30 @@ Response: The created reply object.
 
 ## Backend Implementation
 
-The backend can be implemented using:
+Choose one of the following backends:
 
-- **Supabase**: Managed Postgres with built-in API
+- **Supabase**: Managed Postgres with built-in API (see `SUPABASE_DEPLOYMENT_GUIDE.md`)
+- **Google Sheets**: Use spreadsheet as database (see `GOOGLE_SHEETS_DEPLOYMENT_GUIDE.md`)
 - **PocketBase**: Lightweight Go backend with SQLite
 - **Custom**: Any database with a simple REST API
 
 See `MDBOOK_COMMENT_PLUGIN_DESIGN.md` for more details on backend requirements.
+
+### Which Backend to Choose?
+
+**Use Supabase if:**
+- Building a production application
+- Need fast performance (<100ms)
+- Expecting high traffic (>100 concurrent users)
+- Want real-time features
+- Need scalability
+
+**Use Google Sheets if:**
+- Building internal documentation
+- Low traffic (<50 users)
+- Want zero infrastructure setup
+- Need easy comment management in spreadsheet
+- Occasional commenting (not real-time)
 
 ## How It Works
 
