@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"dissect/cmd/internal/testutils"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -80,7 +81,7 @@ func Baz() {
 			t.Fatalf("Failed to read source file: %v", err)
 		}
 		sourceStr := string(sourceContent)
-		if containsFunc(sourceStr, "Foo") {
+		if testutils.ContainsFunc(sourceStr, "Foo") {
 			t.Errorf("Foo function should have been removed from source")
 		}
 
@@ -90,7 +91,7 @@ func Baz() {
 			t.Fatalf("Failed to read target file: %v", err)
 		}
 		targetStr := string(targetContent)
-		if !containsFunc(targetStr, "Foo") {
+		if !testutils.ContainsFunc(targetStr, "Foo") {
 			t.Errorf("Foo function should be in target file")
 		}
 
@@ -117,13 +118,13 @@ func Baz() {
 			t.Fatalf("Failed to read target file: %v", err)
 		}
 		targetStr := string(targetContent)
-		if !containsFunc(targetStr, "Foo") {
+		if !testutils.ContainsFunc(targetStr, "Foo") {
 			t.Errorf("Foo function should still be in target file")
 		}
-		if !containsFunc(targetStr, "Bar") {
+		if !testutils.ContainsFunc(targetStr, "Bar") {
 			t.Errorf("Bar function should be in target file")
 		}
-		if !containsFunc(targetStr, "Baz") {
+		if !testutils.ContainsFunc(targetStr, "Baz") {
 			t.Errorf("Baz function should be in target file")
 		}
 
@@ -133,10 +134,10 @@ func Baz() {
 			t.Fatalf("Failed to read source file: %v", err)
 		}
 		sourceStr := string(sourceContent)
-		if containsFunc(sourceStr, "Bar") {
+		if testutils.ContainsFunc(sourceStr, "Bar") {
 			t.Errorf("Bar function should have been removed from source")
 		}
-		if containsFunc(sourceStr, "Baz") {
+		if testutils.ContainsFunc(sourceStr, "Baz") {
 			t.Errorf("Baz function should have been removed from source")
 		}
 
@@ -187,10 +188,10 @@ func HelperTwo() {
 			t.Fatalf("Failed to read target file: %v", err)
 		}
 		targetStr := string(targetContent)
-		if !containsFunc(targetStr, "HelperOne") {
+		if !testutils.ContainsFunc(targetStr, "HelperOne") {
 			t.Errorf("HelperOne function should be in target file")
 		}
-		if !containsFunc(targetStr, "HelperTwo") {
+		if !testutils.ContainsFunc(targetStr, "HelperTwo") {
 			t.Errorf("HelperTwo function should be in target file")
 		}
 
@@ -199,7 +200,7 @@ func HelperTwo() {
 		if err != nil {
 			t.Fatalf("Failed to read helper1.go: %v", err)
 		}
-		if containsFunc(string(helper1Content), "HelperOne") {
+		if testutils.ContainsFunc(string(helper1Content), "HelperOne") {
 			t.Errorf("HelperOne function should have been removed from helper1.go")
 		}
 
@@ -207,7 +208,7 @@ func HelperTwo() {
 		if err != nil {
 			t.Fatalf("Failed to read helper2.go: %v", err)
 		}
-		if containsFunc(string(helper2Content), "HelperTwo") {
+		if testutils.ContainsFunc(string(helper2Content), "HelperTwo") {
 			t.Errorf("HelperTwo function should have been removed from helper2.go")
 		}
 
@@ -251,7 +252,7 @@ func GlobHelper() {
 		cmd := exec.Command(dissectBinary, "move", "glob*.go:GlobHelper", "globhelpers.go")
 		cmd.Dir = tmpDir
 		output, err := cmd.CombinedOutput()
-		
+
 		// We expect this to succeed for the first file but fail when building due to duplicates,
 		// or to move both and have build failures. Let's just verify the glob expansion worked
 		// by checking that at least one function was moved.
@@ -262,17 +263,17 @@ func GlobHelper() {
 				t.Fatalf("Failed to read target file: %v", err)
 			}
 			targetStr := string(targetContent)
-			if !containsFunc(targetStr, "GlobHelper") {
+			if !testutils.ContainsFunc(targetStr, "GlobHelper") {
 				t.Errorf("GlobHelper function should be in target file")
 			}
-			
+
 			// The code won't build due to duplicate function names, which is expected
 			buildCmd := exec.Command("go", "build", "-o", "/dev/null", ".")
 			buildCmd.Dir = tmpDir
 			buildOutput, buildErr := buildCmd.CombinedOutput()
 			if buildErr == nil {
 				t.Errorf("Expected build to fail due to duplicate function names, but it succeeded")
-			} else if !containsString(string(buildOutput), "redeclared") {
+			} else if !testutils.ContainsString(string(buildOutput), "redeclared") {
 				t.Logf("Build failed as expected with duplicate functions. Output: %s", buildOutput)
 			}
 		} else {
@@ -284,7 +285,7 @@ func GlobHelper() {
 	t.Run("MoveWithFunctionNameGlob", func(t *testing.T) {
 		// Clean up any leftover files from previous tests that might interfere
 		os.Remove(filepath.Join(tmpDir, "globhelpers.go"))
-		
+
 		// Create a source file with multiple test functions
 		testCode := `package main
 
@@ -324,18 +325,18 @@ func HelperFunc() {
 			t.Fatalf("Failed to read target file: %v", err)
 		}
 		targetStr := string(targetContent)
-		if !containsFunc(targetStr, "TestFoo") {
+		if !testutils.ContainsFunc(targetStr, "TestFoo") {
 			t.Errorf("TestFoo function should be in target file")
 		}
-		if !containsFunc(targetStr, "TestBar") {
+		if !testutils.ContainsFunc(targetStr, "TestBar") {
 			t.Errorf("TestBar function should be in target file")
 		}
-		if !containsFunc(targetStr, "TestBaz") {
+		if !testutils.ContainsFunc(targetStr, "TestBaz") {
 			t.Errorf("TestBaz function should be in target file")
 		}
 
 		// Check that HelperFunc was NOT moved
-		if containsFunc(targetStr, "HelperFunc") {
+		if testutils.ContainsFunc(targetStr, "HelperFunc") {
 			t.Errorf("HelperFunc should NOT be in target file")
 		}
 
@@ -345,16 +346,16 @@ func HelperFunc() {
 			t.Fatalf("Failed to read source file: %v", err)
 		}
 		sourceStr := string(sourceContent)
-		if containsFunc(sourceStr, "TestFoo") {
+		if testutils.ContainsFunc(sourceStr, "TestFoo") {
 			t.Errorf("TestFoo should have been removed from source")
 		}
-		if containsFunc(sourceStr, "TestBar") {
+		if testutils.ContainsFunc(sourceStr, "TestBar") {
 			t.Errorf("TestBar should have been removed from source")
 		}
-		if containsFunc(sourceStr, "TestBaz") {
+		if testutils.ContainsFunc(sourceStr, "TestBaz") {
 			t.Errorf("TestBaz should have been removed from source")
 		}
-		if !containsFunc(sourceStr, "HelperFunc") {
+		if !testutils.ContainsFunc(sourceStr, "HelperFunc") {
 			t.Errorf("HelperFunc should still be in source")
 		}
 
@@ -380,13 +381,13 @@ func SomeFunc() {}
 		cmd := exec.Command(dissectBinary, "move", "nomatch.go:NonExistent*", "target.go")
 		cmd.Dir = tmpDir
 		output, err := cmd.CombinedOutput()
-		
+
 		// Should fail with "no identifiers matched" error
 		if err == nil {
 			t.Fatalf("Expected move to fail when no functions match, but it succeeded")
 		}
-		
-		if !containsString(string(output), "No identifiers matched") {
+
+		if !testutils.ContainsString(string(output), "No identifiers matched") {
 			t.Errorf("Expected 'No identifiers matched' error, got: %s", output)
 		}
 	})
@@ -440,13 +441,13 @@ func UtilThree() {
 			t.Fatalf("Failed to read target file: %v", err)
 		}
 		targetStr := string(targetContent)
-		if !containsFunc(targetStr, "UtilOne") {
+		if !testutils.ContainsFunc(targetStr, "UtilOne") {
 			t.Errorf("UtilOne function should be in target file")
 		}
-		if !containsFunc(targetStr, "UtilTwo") {
+		if !testutils.ContainsFunc(targetStr, "UtilTwo") {
 			t.Errorf("UtilTwo function should be in target file")
 		}
-		if !containsFunc(targetStr, "UtilThree") {
+		if !testutils.ContainsFunc(targetStr, "UtilThree") {
 			t.Errorf("UtilThree function should be in target file")
 		}
 
@@ -455,7 +456,7 @@ func UtilThree() {
 		if err != nil {
 			t.Fatalf("Failed to read pkg/util1.go: %v", err)
 		}
-		if containsFunc(string(source1Content), "UtilOne") {
+		if testutils.ContainsFunc(string(source1Content), "UtilOne") {
 			t.Errorf("UtilOne should have been removed from pkg/util1.go")
 		}
 
@@ -463,7 +464,7 @@ func UtilThree() {
 		if err != nil {
 			t.Fatalf("Failed to read pkg/subpkg/util2.go: %v", err)
 		}
-		if containsFunc(string(source2Content), "UtilTwo") {
+		if testutils.ContainsFunc(string(source2Content), "UtilTwo") {
 			t.Errorf("UtilTwo should have been removed from pkg/subpkg/util2.go")
 		}
 
@@ -471,143 +472,8 @@ func UtilThree() {
 		if err != nil {
 			t.Fatalf("Failed to read pkg/subpkg/deeper/util3.go: %v", err)
 		}
-		if containsFunc(string(source3Content), "UtilThree") {
+		if testutils.ContainsFunc(string(source3Content), "UtilThree") {
 			t.Errorf("UtilThree should have been removed from pkg/subpkg/deeper/util3.go")
 		}
 	})
-}
-
-// Helper function to check if a function exists in code
-func containsFunc(code string, funcName string) bool {
-	funcDecl := "func " + funcName + "("
-	return containsString(code, funcDecl)
-}
-
-func containsString(s string, substr string) bool {
-	return len(s) >= len(substr) && findSubstring(s, substr)
-}
-
-func findSubstring(s string, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-func TestMoveCommandWithComments(t *testing.T) {
-	// Create a temporary directory for the test
-	tmpDir, err := os.MkdirTemp("", "dissect_move_comments_test_")
-	if err != nil {
-		t.Fatalf("Failed to create temporary directory: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	// Create a test Go module
-	goMod := `module example.com/commentstest
-
-go 1.24
-`
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
-		t.Fatalf("Failed to create go.mod: %v", err)
-	}
-
-	// Create a source file with commented functions
-	sourceCode := `package main
-
-import "fmt"
-
-// This is a function with a comment above it
-// It has multiple lines of comments
-func commentedFunction() {
-	fmt.Println("This function has comments")
-}
-
-// Another function with a single line comment
-func anotherFunction() {
-	fmt.Println("Another function")
-}
-
-func main() {
-	commentedFunction()
-	anotherFunction()
-}
-`
-	sourceFile := filepath.Join(tmpDir, "source.go")
-	if err := os.WriteFile(sourceFile, []byte(sourceCode), 0644); err != nil {
-		t.Fatalf("Failed to create source file: %v", err)
-	}
-
-	// Build the dissect binary
-	dissectBinary := filepath.Join(tmpDir, "dissect")
-	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./cmd")
-	buildCmd.Dir = findRepoRoot(t)
-	if output, err := buildCmd.CombinedOutput(); err != nil {
-		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)
-	}
-
-	// Move commentedFunction to a new file
-	targetFile := filepath.Join(tmpDir, "target.go")
-	cmd := exec.Command(dissectBinary, "move", "source.go:commentedFunction", "target.go")
-	cmd.Dir = tmpDir
-	if output, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("Failed to move function: %v\nOutput: %s", err, output)
-	}
-
-	// Check that target file was created and contains comments
-	targetContent, err := os.ReadFile(targetFile)
-	if err != nil {
-		t.Fatalf("Failed to read target file: %v", err)
-	}
-	targetStr := string(targetContent)
-
-	// Check that the function is in the target file
-	if !containsFunc(targetStr, "commentedFunction") {
-		t.Errorf("commentedFunction should be in target file")
-	}
-
-	// Check that comments are preserved in target file
-	expectedComment := "This is a function with a comment above it"
-	if !containsString(targetStr, expectedComment) {
-		t.Errorf("Comments should be preserved in target file. Expected to find: %q\nGot:\n%s", expectedComment, targetStr)
-	}
-
-	multiLineComment := "It has multiple lines of comments"
-	if !containsString(targetStr, multiLineComment) {
-		t.Errorf("Multi-line comments should be preserved. Expected to find: %q\nGot:\n%s", multiLineComment, targetStr)
-	}
-
-	// Check that source file no longer has the moved function or its comments
-	sourceContent, err := os.ReadFile(sourceFile)
-	if err != nil {
-		t.Fatalf("Failed to read source file: %v", err)
-	}
-	sourceStr := string(sourceContent)
-
-	if containsFunc(sourceStr, "commentedFunction") {
-		t.Errorf("commentedFunction should have been removed from source")
-	}
-
-	// Check that comments for commentedFunction are not orphaned in source
-	if containsString(sourceStr, expectedComment) {
-		t.Errorf("Comments for commentedFunction should not be orphaned in source file. Found: %q\nSource:\n%s", expectedComment, sourceStr)
-	}
-
-	// Check that anotherFunction and its comment still exist in source
-	if !containsFunc(sourceStr, "anotherFunction") {
-		t.Errorf("anotherFunction should still be in source file")
-	}
-
-	anotherComment := "Another function with a single line comment"
-	if !containsString(sourceStr, anotherComment) {
-		t.Errorf("Comments for anotherFunction should still be in source file")
-	}
-
-	// Verify the code still builds
-	buildCmd = exec.Command("go", "build", "-o", "/dev/null", ".")
-	buildCmd.Dir = tmpDir
-	if output, err := buildCmd.CombinedOutput(); err != nil {
-		t.Fatalf("Code doesn't build after move: %v\nOutput: %s", err, output)
-	}
 }

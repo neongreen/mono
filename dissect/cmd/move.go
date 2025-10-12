@@ -1,5 +1,13 @@
 package main
 
+// This file implements the "move" command for selectively moving Go declarations
+// between files. It uses two different approaches depending on the declaration type:
+//
+// - Functions: Uses gopls's refactor.extract.toNewFile (via pkg/gopls)
+// - Types/Interfaces/Consts/Vars: Manual AST manipulation (moveDeclarationManually)
+//
+// For detailed design rationale and limitations, see DESIGN.md.
+
 import (
 	"bytes"
 	"dissect/pkg/commands"
@@ -8,6 +16,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/printer"
+	"go/token"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -20,8 +29,8 @@ import (
 
 var moveCmd = &cobra.Command{
 	Use:   "move <source_file:identifier> [identifiers...] <target_file>",
-	Short: "Move specific identifiers (functions) to a target file",
-	Long: `Move extracts specific identifiers (functions, methods) from a source file 
+	Short: "Move specific identifiers (functions, types, interfaces) to a target file",
+	Long: `Move extracts specific identifiers (functions, methods, types, interfaces) from a source file 
 and moves them to a target file. The target file will be created if it doesn't exist.
 
 Both source files and identifiers support glob patterns:
@@ -29,8 +38,8 @@ Both source files and identifiers support glob patterns:
   - Identifier patterns: Test*, *Helper, Benchmark*
 
 Glob behavior:
-  - If a file doesn't contain a matching function, it's skipped (no error)
-  - An error is only shown if no functions match across all files
+  - If a file doesn't contain a matching identifier, it's skipped (no error)
+  - An error is only shown if no identifiers match across all files
   - File globs expand first, then identifier globs match within each file
 
 Example:
@@ -38,7 +47,8 @@ Example:
   dissect move source.go:Foo,Bar,Baz target.go
   dissect move *.go:Helper target.go
   dissect move pkg/**/*.go:Test* target.go
-  dissect move file.go:*Helper,Test* target.go`,
+  dissect move file.go:*Helper,Test* target.go
+  dissect move source.go:MyType,MyInterface target.go`,
 	Args: cobra.MinimumNArgs(2),
 	Run:  runMove,
 }
@@ -167,9 +177,9 @@ func runMove(cmd *cobra.Command, args []string) {
 	slog.Info("Successfully moved all identifiers", "count", totalMatches)
 }
 
-// findMatchingIdentifiers finds all function names in a file that match any of the given patterns
+// findMatchingIdentifiers finds all declaration names (functions, types, interfaces, etc.) in a file that match any of the given patterns
 func findMatchingIdentifiers(filePath string, patterns []string) ([]string, error) {
-	// Parse the file to get all function declarations
+	// Parse the file to get all declarations
 	_, node, err := goutils.ReadGoFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading file: %w", err)
@@ -185,17 +195,38 @@ func findMatchingIdentifiers(filePath string, patterns []string) ([]string, erro
 		globs = append(globs, g)
 	}
 
-	// Find all matching function names
+	// Find all matching declaration names
 	var matches []string
 	seen := make(map[string]bool)
 	for _, decl := range node.Decls {
-		if fn, ok := decl.(*ast.FuncDecl); ok {
-			funcName := fn.Name.Name
-			// Check if this function matches any pattern
+		var names []string
+		
+		switch d := decl.(type) {
+		case *ast.FuncDecl:
+			// Function or method declaration
+			names = append(names, d.Name.Name)
+		case *ast.GenDecl:
+			// General declaration (type, const, var)
+			for _, spec := range d.Specs {
+				switch s := spec.(type) {
+				case *ast.TypeSpec:
+					// Type or interface declaration
+					names = append(names, s.Name.Name)
+				case *ast.ValueSpec:
+					// Const or var declaration
+					for _, name := range s.Names {
+						names = append(names, name.Name)
+					}
+				}
+			}
+		}
+		
+		// Check if any of the names match any pattern
+		for _, name := range names {
 			for _, g := range globs {
-				if g.Match(funcName) && !seen[funcName] {
-					matches = append(matches, funcName)
-					seen[funcName] = true
+				if g.Match(name) && !seen[name] {
+					matches = append(matches, name)
+					seen[name] = true
 					break
 				}
 			}
@@ -238,6 +269,23 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 		slog.Debug("Created target file", "file", targetFile, "package", packageName)
 	}
 
+	// Find the declaration in the source file
+	sourceFset, declNode, err := goutils.FindDecl(sourceFile, identifier)
+	if err != nil {
+		return fmt.Errorf("error finding declaration: %w", err)
+	}
+
+	// Check if this is a function - if so, use gopls for extraction
+	if _, isFuncDecl := declNode.(*ast.FuncDecl); isFuncDecl {
+		return moveFunctionWithGopls(sourceFile, identifier, targetFile, moduleRoot)
+	}
+
+	// For non-function declarations (types, interfaces, consts, vars), do manual extraction
+	return moveDeclarationManually(sourceFile, identifier, targetFile, sourceFset, declNode)
+}
+
+// moveFunctionWithGopls moves a function using gopls's extract refactoring
+func moveFunctionWithGopls(sourceFile string, identifier string, targetFile string, moduleRoot string) error {
 	// Use gopls to extract the function to a new file first
 	tempFile, err := gopls.ExtractToNewFile(sourceFile, identifier, moduleRoot)
 	if err != nil {
@@ -324,6 +372,100 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 	}
 
 	slog.Debug("Merged function into target file", "identifier", identifier, "target", targetFile)
+
+	return nil
+}
+
+// moveDeclarationManually moves a non-function declaration (type, interface, const, var) manually
+// using AST manipulation. This approach is used because gopls doesn't offer code actions for
+// these declaration types. Uses goimports for import management.
+// See DESIGN.md for detailed explanation and known limitations.
+func moveDeclarationManually(sourceFile string, identifier string, targetFile string, sourceFset *token.FileSet, declNode ast.Node) error {
+	// Read source file
+	sourceFileSet, sourceNode, err := goutils.ReadGoFile(sourceFile)
+	if err != nil {
+		return fmt.Errorf("error reading source file: %w", err)
+	}
+
+	// Find and extract the declaration to move
+	var declToMove ast.Decl
+	var declIndex int = -1
+	
+	for i, decl := range sourceNode.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok {
+			continue
+		}
+		
+		// Check if this GenDecl contains our identifier
+		for _, spec := range genDecl.Specs {
+			found := false
+			switch s := spec.(type) {
+			case *ast.TypeSpec:
+				if s.Name.Name == identifier {
+					found = true
+				}
+			case *ast.ValueSpec:
+				for _, name := range s.Names {
+					if name.Name == identifier {
+						found = true
+						break
+					}
+				}
+			}
+			
+			if found {
+				declToMove = genDecl
+				declIndex = i
+				break
+			}
+		}
+		
+		if declToMove != nil {
+			break
+		}
+	}
+	
+	if declToMove == nil {
+		return fmt.Errorf("declaration not found in source file")
+	}
+
+	// Serialize the declaration with comments using printer
+	var declBuf bytes.Buffer
+	cfg := printer.Config{Mode: printer.UseSpaces | printer.TabIndent, Tabwidth: 8}
+	if err := cfg.Fprint(&declBuf, sourceFileSet, declToMove); err != nil {
+		return fmt.Errorf("error serializing declaration: %w", err)
+	}
+
+	// Read the current target file content
+	targetContent, err := os.ReadFile(targetFile)
+	if err != nil {
+		return fmt.Errorf("error reading target file: %w", err)
+	}
+
+	// Append the serialized declaration to the target file
+	newContent := string(targetContent) + "\n" + declBuf.String() + "\n"
+	if err := os.WriteFile(targetFile, []byte(newContent), 0644); err != nil {
+		return fmt.Errorf("error writing target file: %w", err)
+	}
+
+	// Remove the declaration from the source file
+	sourceNode.Decls = append(sourceNode.Decls[:declIndex], sourceNode.Decls[declIndex+1:]...)
+	
+	// Write back the source file
+	if err := goutils.WriteGoFile(sourceFile, sourceFileSet, sourceNode); err != nil {
+		return fmt.Errorf("error writing source file: %w", err)
+	}
+
+	// Run goimports on both files to organize imports and format properly
+	if err := commands.RunGoimportsOnFile(targetFile); err != nil {
+		return fmt.Errorf("error running goimports on target: %w", err)
+	}
+	if err := commands.RunGoimportsOnFile(sourceFile); err != nil {
+		return fmt.Errorf("error running goimports on source: %w", err)
+	}
+
+	slog.Debug("Moved declaration to target file", "identifier", identifier, "target", targetFile)
 
 	return nil
 }
