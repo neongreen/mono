@@ -109,12 +109,15 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 		if strings.Contains(
 			asset.Name, osName) && strings.Contains(asset.Name, archName) {
 			if projectName == "" {
-
-				return asset.Name, asset.BrowserDownloadURL, nil
+				// For private releases, we must use asset.URL (GitHub API URL) not asset.BrowserDownloadURL
+				// asset.URL works with authentication, asset.BrowserDownloadURL returns 404 for private releases
+				return asset.Name, asset.URL, nil
 			}
 			if strings.
 				HasPrefix(asset.Name, projectName) {
-				return asset.Name, asset.BrowserDownloadURL, nil
+				// For private releases, we must use asset.URL (GitHub API URL) not asset.BrowserDownloadURL
+				// asset.URL works with authentication, asset.BrowserDownloadURL returns 404 for private releases
+				return asset.Name, asset.URL, nil
 			}
 		}
 	}

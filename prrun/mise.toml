@@ -13,3 +13,7 @@ run = "go test -run=^$ ./..."
 [tasks.test]
 description = "Run tests"
 run = "go test ./..."
+
+[tasks."test:integration"]
+description = "Run integration tests (requires access to private repo)"
+run = "PRRUN_INTEGRATION_TEST=1 go test ./..."

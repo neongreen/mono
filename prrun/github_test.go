@@ -10,9 +10,9 @@ import (
 func TestGetPlatformBinaryName(t *testing.T) {
 	release := &GitHubRelease{TagName: "dissect--pr-123.1", Assets: []struct {
 		Name               string `json:"name"`
-		BrowserDownloadURL string `json:"browser_download_url"`
 		URL                string `json:"url"`
-	}{{Name: "dissect-pr-123.1-linux-amd64", BrowserDownloadURL: "https://github.com/example/repo/releases/download/dissect--pr-123.1/dissect-pr-123.1-linux-amd64"}, {Name: "dissect-pr-123.1-darwin-arm64", BrowserDownloadURL: "https://github.com/example/repo/releases/download/dissect--pr-123.1/dissect-pr-123.1-darwin-arm64"}}}
+		BrowserDownloadURL string `json:"browser_download_url"`
+	}{{Name: "dissect-pr-123.1-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/123", BrowserDownloadURL: "https://github.com/example/repo/releases/download/dissect--pr-123.1/dissect-pr-123.1-linux-amd64"}, {Name: "dissect-pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/124", BrowserDownloadURL: "https://github.com/example/repo/releases/download/dissect--pr-123.1/dissect-pr-123.1-darwin-arm64"}}}
 	binaryName, downloadURL, err := getPlatformBinaryName(release, "dissect")
 	if err != nil {
 		t.Fatalf("getPlatformBinaryName() error = %v", err)
@@ -30,8 +30,8 @@ func TestGetPlatformBinaryName_NoAssets(t *testing.T) {
 	release := &GitHubRelease{TagName: "test--pr-1.1",
 		Assets: []struct {
 			Name               string `json:"name"`
-			BrowserDownloadURL string `json:"browser_download_url"`
 			URL                string `json:"url"`
+			BrowserDownloadURL string `json:"browser_download_url"`
 		}{}}
 	_, _, err := getPlatformBinaryName(release, "test")
 	if err == nil {
@@ -46,9 +46,9 @@ func TestGetPlatformBinaryName_NoAssets(t *testing.T) {
 func TestGetPlatformBinaryName_DoubleDashFormat(t *testing.T) {
 	release := &GitHubRelease{TagName: "dissect--pr-123.1", Assets: []struct {
 		Name               string `json:"name"`
-		BrowserDownloadURL string `json:"browser_download_url"`
 		URL                string `json:"url"`
-	}{{Name: "dissect--pr-123.1-linux-amd64", BrowserDownloadURL: "https://github.com/example/repo/releases/download/dissect--pr-123.1/dissect--pr-123.1-linux-amd64"}, {Name: "dissect--pr-123.1-darwin-arm64", BrowserDownloadURL: "https://github.com/example/repo/releases/download/dissect--pr-123.1/dissect--pr-123.1-darwin-arm64"}}}
+		BrowserDownloadURL string `json:"browser_download_url"`
+	}{{Name: "dissect--pr-123.1-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/125", BrowserDownloadURL: "https://github.com/example/repo/releases/download/dissect--pr-123.1/dissect--pr-123.1-linux-amd64"}, {Name: "dissect--pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/126", BrowserDownloadURL: "https://github.com/example/repo/releases/download/dissect--pr-123.1/dissect--pr-123.1-darwin-arm64"}}}
 	binaryName, downloadURL, err := getPlatformBinaryName(release, "dissect")
 	if err != nil {
 		t.Fatalf("getPlatformBinaryName() should handle double dash format, error = %v",
