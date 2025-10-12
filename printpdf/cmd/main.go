@@ -56,15 +56,15 @@ func main() {
 	success := false
 	for _, conv := range converterList {
 		fmt.Printf("\n--- Converting with %s ---\n", conv.Name())
-		
+
 		outputPath := filepath.Join(*outputDir, fmt.Sprintf("output-%s.pdf", conv.Name()))
-		
+
 		err := conv.Convert(content, contentType, outputPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error with %s: %v\n", conv.Name(), err)
 			continue
 		}
-		
+
 		// Check file was created
 		if info, err := os.Stat(outputPath); err == nil {
 			fmt.Printf("✓ Generated %s (%d bytes)\n", outputPath, info.Size())

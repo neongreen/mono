@@ -61,7 +61,7 @@ func (p *PrinceConverter) prepareInput(content []byte, contentType string) (stri
 	var ext string
 	var htmlContent []byte
 	var err error
-	
+
 	switch contentType {
 	case fetcher.ContentTypeMarkdown:
 		// Convert markdown to HTML for Prince

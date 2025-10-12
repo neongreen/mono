@@ -69,7 +69,7 @@ func fetchHTTP(urlStr string) ([]byte, string, error) {
 
 	// Determine content type from URL or content
 	contentType := detectContentType(urlStr, content)
-	
+
 	// If it looks like HTML but not markdown, use Readability
 	if contentType == ContentTypeHTML && !strings.HasSuffix(urlStr, ".md") {
 		content, err = extractReadableContent(content)
@@ -83,7 +83,7 @@ func fetchHTTP(urlStr string) ([]byte, string, error) {
 
 func detectContentType(path string, content []byte) string {
 	ext := strings.ToLower(filepath.Ext(path))
-	
+
 	switch ext {
 	case ".md", ".markdown":
 		return ContentTypeMarkdown
@@ -93,9 +93,9 @@ func detectContentType(path string, content []byte) string {
 
 	// Check content
 	contentStr := string(content)
-	if strings.Contains(contentStr, "<!DOCTYPE html") || 
-	   strings.Contains(contentStr, "<html") ||
-	   strings.Contains(contentStr, "<HTML") {
+	if strings.Contains(contentStr, "<!DOCTYPE html") ||
+		strings.Contains(contentStr, "<html") ||
+		strings.Contains(contentStr, "<HTML") {
 		return ContentTypeHTML
 	}
 
@@ -105,9 +105,9 @@ func detectContentType(path string, content []byte) string {
 
 // isGitHubURL checks if the URL is a GitHub file URL
 func isGitHubURL(urlStr string) bool {
-	return strings.Contains(urlStr, "github.com") && 
-		   (strings.Contains(urlStr, "/blob/") || 
-		    strings.Contains(urlStr, "/raw/") ||
+	return strings.Contains(urlStr, "github.com") &&
+		(strings.Contains(urlStr, "/blob/") ||
+			strings.Contains(urlStr, "/raw/") ||
 			strings.Contains(urlStr, "/pull/"))
 }
 
@@ -143,7 +143,7 @@ func fetchGitHubFile(urlStr string) ([]byte, string, error) {
 func fetchGitHubRaw(rawURL string) ([]byte, string, error) {
 	// Try with GITHUB_TOKEN if available
 	token := os.Getenv("GITHUB_TOKEN")
-	
+
 	req, err := http.NewRequest("GET", rawURL, nil)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create request: %w", err)
@@ -172,17 +172,4 @@ func fetchGitHubRaw(rawURL string) ([]byte, string, error) {
 	// Detect content type from URL
 	contentType := detectContentType(rawURL, content)
 	return content, contentType, nil
-}
-
-// extractReadableContent uses Mozilla Readability to extract main content from HTML
-// For now, this is a simplified version that just returns the HTML
-// In a full implementation, this would use a headless browser or Node.js with Readability
-func extractReadableContent(htmlContent []byte) ([]byte, error) {
-	// TODO: Implement proper Readability extraction
-	// For now, just return the HTML as-is
-	// A full implementation would:
-	// 1. Use a headless browser (chromedp, rod) or
-	// 2. Use Node.js with @mozilla/readability or
-	// 3. Use a Go port of Readability
-	return htmlContent, nil
 }

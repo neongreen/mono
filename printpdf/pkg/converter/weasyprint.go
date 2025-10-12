@@ -84,7 +84,7 @@ func (w *WeasyPrintConverter) prepareInput(content []byte, contentType string) (
 	var ext string
 	var htmlContent []byte
 	var err error
-	
+
 	switch contentType {
 	case fetcher.ContentTypeMarkdown:
 		// Convert markdown to HTML for WeasyPrint

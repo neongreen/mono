@@ -62,13 +62,13 @@ func (t *TypstConverter) getTypst() (string, error) {
 	// Download typst
 	version := "0.12.0"
 	downloadURL := t.getDownloadURL(version)
-	
+
 	return t.downloader.GetTool("typst", version, downloadURL)
 }
 
 func (t *TypstConverter) getDownloadURL(version string) string {
 	platform := downloader.GetPlatform()
-	
+
 	// Typst release URLs
 	// https://github.com/typst/typst/releases/download/v0.12.0/typst-x86_64-unknown-linux-musl.tar.xz
 	switch platform {

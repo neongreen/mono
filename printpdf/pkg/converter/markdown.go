@@ -14,8 +14,8 @@ import (
 func convertMarkdownToHTML(markdown []byte) ([]byte, error) {
 	md := goldmark.New(
 		goldmark.WithExtensions(
-			extension.GFM,        // GitHub Flavored Markdown
-			extension.Table,      // Tables
+			extension.GFM,   // GitHub Flavored Markdown
+			extension.Table, // Tables
 			extension.Strikethrough,
 			extension.Linkify,
 			extension.TaskList,

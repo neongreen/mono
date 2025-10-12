@@ -36,7 +36,7 @@ func New() (*ToolDownloader, error) {
 // GetTool returns the path to a tool, downloading it if necessary
 func (td *ToolDownloader) GetTool(name, version, downloadURL string) (string, error) {
 	toolDir := filepath.Join(td.cacheDir, name, version)
-	
+
 	// Check if already downloaded
 	if _, err := os.Stat(toolDir); err == nil {
 		// Tool already exists, find the executable

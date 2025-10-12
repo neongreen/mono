@@ -11,7 +11,7 @@ func TestFetchLocalFile(t *testing.T) {
 	tmpDir := t.TempDir()
 	tmpFile := filepath.Join(tmpDir, "test.md")
 	content := []byte("# Test\n\nThis is a test.")
-	
+
 	if err := os.WriteFile(tmpFile, content, 0644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
