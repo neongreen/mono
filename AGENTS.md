@@ -32,6 +32,40 @@ All pull requests must include a code block at the very start showing how to run
 - Provide clear examples of how to use it
 - Assume the user already has `prrun` installed
 
+## Build and Run Guidelines
+
+**Always use `mise` for building and running Go projects. Never use `go build` or `go run` directly.**
+
+### Running Go Projects
+
+Use the mise task syntax from the monorepo root:
+```bash
+mise run //project-name:task-name
+```
+
+Examples:
+- `mise run //claude-trace:run` - Run claude-trace with default command (TUI mode)
+- `mise run //claude-trace:run list` - Run claude-trace list command
+- `mise run //claude-trace:run extract -o output` - Run claude-trace extract command
+
+### Why mise?
+
+- Ensures correct Go version is used
+- Manages dependencies consistently
+- Provides consistent build environment
+- Defined in each project's `mise.toml` file
+
+### Project Tasks
+
+All projects should define standard tasks in their `mise.toml` where applicable:
+
+- **`run`** - Build and run the project (for applications)
+- **`test`** - Run all tests
+
+These tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
+
+------------------------------------------------------------
+
 ## Backwards Compatibility Policy
 
 **Unless explicitly stated otherwise, backwards compatibility is NOT important for ANY project in this repository.**
@@ -166,34 +200,52 @@ The owner will explicitly request backwards compatibility when needed. Until the
 - **Focus on:** Making the best possible code, not maintaining old code
 - **Applies to:** ALL projects in this monorepo (diagram-dsl, dissect, markdown-format, want, etc.)
 
-## Build and Run Guidelines
+## Postmortem Requirements
 
-**Always use `mise` for building and running Go projects. Never use `go build` or `go run` directly.**
+When a bug or issue is discovered after implementation (especially during code review), agents must create a postmortem analysis documenting:
 
-### Running Go Projects
+1. **Timeline**: Chronological sequence of events:
+   - What was documented/claimed in the implementation
+   - What the reviewer found (the actual bug)
+   - What tests were missing
 
-Use the mise task syntax from the monorepo root:
-```bash
-mise run //project-name:task-name
+2. **Root Cause**: Why the issue occurred
+
+3. **Prevention Measures**: At least one concrete way this could have been caught earlier
+
+4. **Location**: 
+   - For project-specific issues: Add to `<project>/AGENTS.md`
+   - For cross-cutting concerns: Add to this global `AGENTS.md`
+
+### Example Format
+
+```markdown
+### Postmortem: [Brief Title] (YYYY-MM-DD)
+
+**Timeline:**
+1. [Initial implementation details]
+2. [Review finding]
+3. [Missing tests or verification]
+4. [Fix applied]
+
+**Root Cause:**
+- [Why it happened]
+
+**What Could Have Caught This Earlier:**
+1. [Specific action or check]
+2. [Another preventive measure]
+
+**Lessons Learned:**
+- [Key takeaway 1]
+- [Key takeaway 2]
 ```
 
-Examples:
-- `mise run //claude-trace:run` - Run claude-trace with default command (TUI mode)
-- `mise run //claude-trace:run list` - Run claude-trace list command
-- `mise run //claude-trace:run extract -o output` - Run claude-trace extract command
+### When to Create Postmortems
 
-### Why mise?
+- When documented functionality doesn't work as claimed
+- When tests don't cover documented features
+- When assumptions about libraries/APIs are proven wrong
+- When edge cases are missed in initial implementation
+- When reviewer finds bugs that should have been caught
 
-- Ensures correct Go version is used
-- Manages dependencies consistently
-- Provides consistent build environment
-- Defined in each project's `mise.toml` file
-
-### Project Tasks
-
-All projects should define standard tasks in their `mise.toml` where applicable:
-
-- **`run`** - Build and run the project (for applications)
-- **`test`** - Run all tests
-
-These tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
+The goal is continuous improvement: learn from mistakes and build better practices for future work.
