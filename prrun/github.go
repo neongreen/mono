@@ -190,7 +190,8 @@ func extractProjectFromTag(tag string) string {
 
 // checkWorkflowApproval checks if the workflow run for a PR is pending approval
 func checkWorkflowApproval(owner, repo string, prNum int) {
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/actions/runs?event=pull_request&per_page=10", owner, repo)
+	// Get the PR details to find associated workflow runs
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%d", owner, repo, prNum)
 	req, err := createAuthenticatedRequest("GET", apiURL)
 	if err != nil {
 		// Silently fail - this is just a warning feature
@@ -208,20 +209,57 @@ func checkWorkflowApproval(owner, repo string, prNum int) {
 		return
 	}
 	
-	var runsResp GitHubWorkflowRunsResponse
-	if err := json.NewDecoder(resp.Body).Decode(&runsResp); err != nil {
+	var prDetails struct {
+		Head struct {
+			SHA string `json:"sha"`
+		} `json:"head"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&prDetails); err != nil {
 		return
 	}
 	
-	// Check if any workflow run for this PR is waiting for approval
-	for _, run := range runsResp.WorkflowRuns {
-		if run.Status == "waiting" || run.Status == "action_required" {
-			// Try to match this to our PR number (we can't easily do this without more API calls)
-			// So we'll just warn if ANY workflow is waiting
-			fmt.Fprintf(os.Stderr, "Warning: The release workflow for this PR may be pending approval.\n")
-			fmt.Fprintf(os.Stderr, "         Check GitHub Actions to approve it if needed.\n\n")
-			break
+	// Now get workflow runs for this commit
+	apiURL = fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s/check-runs", owner, repo, prDetails.Head.SHA)
+	req, err = createAuthenticatedRequest("GET", apiURL)
+	if err != nil {
+		return
+	}
+	
+	resp, err = client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
+	
+	var checkRuns struct {
+		CheckRuns []struct {
+			Name       string `json:"name"`
+			Status     string `json:"status"`
+			Conclusion string `json:"conclusion"`
+		} `json:"check_runs"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&checkRuns); err != nil {
+		return
+	}
+	
+	// Check if any workflow run is waiting for approval
+	hasWaitingRelease := false
+	for _, run := range checkRuns.CheckRuns {
+		if strings.Contains(strings.ToLower(run.Name), "release") {
+			if run.Status == "waiting" || run.Status == "action_required" || run.Status == "queued" {
+				hasWaitingRelease = true
+				break
+			}
 		}
+	}
+	
+	if hasWaitingRelease {
+		fmt.Fprintf(os.Stderr, "Warning: The release workflow for PR #%d may be pending approval.\n", prNum)
+		fmt.Fprintf(os.Stderr, "         Check GitHub Actions at https://github.com/%s/%s/pull/%d/checks to approve it.\n\n", owner, repo, prNum)
 	}
 }
 

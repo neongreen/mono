@@ -41,3 +41,12 @@ func TestExtractProjectFromTag(t *testing.T) {
 		})
 	}
 }
+
+func TestFindAllPRReleases(t *testing.T) {
+	// This test requires network access and GitHub API
+	// We'll just verify the function signature and basic error handling
+	_, err := findAllPRReleases("", "", 0)
+	if err == nil {
+		t.Error("findAllPRReleases should fail with empty owner/repo")
+	}
+}
