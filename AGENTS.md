@@ -2,6 +2,27 @@
 
 This document contains guidelines for AI agents and automated tools working on projects in this monorepo.
 
+## Basic rules
+
+- All tools are written in Go unless stated otherwise. 
+- All new projects are created as top-level folders in the repository unless stated otherwise.
+- All projects must contain a `mise.toml`. Check existing `mise.toml` files to see what is expected from you.
+- In all prose that you write, don't be excited, don't use emojis unless necessary, and don't use pervasive bold text.
+- All temporary files (like summaries of fixes you did, one-off scripts you wrote during PR development, etc) must have names prefixed with `ai-temp-`.
+- Do not create temporary files in the repository root.
+- Keep the list of projects in [README.md](./README.md) up to date.
+- Record project status in README.md. If the project is incomplete, has known bugs, exploration, etc, it must be stated.
+
+## Hallucination and bullshitting
+
+Do not try to "sell" the features you are implementing.
+Do not describe how convenient or useful the tools are.
+If the user hasn't told you why she wants the tool or what she'll be using it for -- don't try to guess; just describe what the tool does.
+
+## AGENTS.md
+
+When you are asked to do something "always" or "never", you must also record this rule either in top level AGENTS.md or in project level AGENTS.md, where appropriate.
+
 ## Backwards Compatibility Policy
 
 **Unless explicitly stated otherwise, backwards compatibility is NOT important for ANY project in this repository.**
