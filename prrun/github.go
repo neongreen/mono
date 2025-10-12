@@ -141,6 +141,90 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 	)
 }
 
+// findAllPRReleases finds all releases for a given PR number
+func findAllPRReleases(owner, repo string, prNum int) ([]GitHubRelease, error) {
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", owner, repo)
+	req, err := createAuthenticatedRequest("GET", apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch releases: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
+	}
+	
+	var releases []GitHubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+		return nil, fmt.Errorf("failed to decode releases: %w", err)
+	}
+	
+	// Find all releases for this PR
+	prPattern := fmt.Sprintf("pr-%d.", prNum)
+	var matchingReleases []GitHubRelease
+	for _, release := range releases {
+		if strings.Contains(release.TagName, prPattern) {
+			matchingReleases = append(matchingReleases, release)
+		}
+	}
+	
+	return matchingReleases, nil
+}
+
+// extractProjectFromTag extracts the project name from a release tag
+// e.g., "dissect--pr-123.1" -> "dissect"
+func extractProjectFromTag(tag string) string {
+	// Tag format: project--pr-N.X or project--main.X
+	parts := strings.Split(tag, "--")
+	if len(parts) >= 1 {
+		return parts[0]
+	}
+	return ""
+}
+
+// checkWorkflowApproval checks if the workflow run for a PR is pending approval
+func checkWorkflowApproval(owner, repo string, prNum int) {
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/actions/runs?event=pull_request&per_page=10", owner, repo)
+	req, err := createAuthenticatedRequest("GET", apiURL)
+	if err != nil {
+		// Silently fail - this is just a warning feature
+		return
+	}
+	
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return
+	}
+	
+	var runsResp GitHubWorkflowRunsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&runsResp); err != nil {
+		return
+	}
+	
+	// Check if any workflow run for this PR is waiting for approval
+	for _, run := range runsResp.WorkflowRuns {
+		if run.Status == "waiting" || run.Status == "action_required" {
+			// Try to match this to our PR number (we can't easily do this without more API calls)
+			// So we'll just warn if ANY workflow is waiting
+			fmt.Fprintf(os.Stderr, "Warning: The release workflow for this PR may be pending approval.\n")
+			fmt.Fprintf(os.Stderr, "         Check GitHub Actions to approve it if needed.\n\n")
+			break
+		}
+	}
+}
+
 func downloadBinary(downloadURL, destPath string) error {
 	req, err := createAuthenticatedRequest("GET", downloadURL)
 	if err !=

@@ -16,25 +16,32 @@ Think of it like a version manager (e.g., Mise) but for testing PR binaries.
 ## Usage
 
 ```bash
-# Basic usage - run a PR binary
-prrun https://github.com/neongreen/mono/pull/123 dissect
+# Auto-detect project (if PR has only one project)
+prrun https://github.com/neongreen/mono/pull/123 --help
 
-# Pass arguments to the binary
-prrun https://github.com/neongreen/mono/pull/123 dissect -- --help
+# Specify project with arguments (no -- separator needed)
+prrun https://github.com/neongreen/mono/pull/123 -p dissect --help
 
 # Run with files as arguments
-prrun github.com/neongreen/mono/pull/123 markdown-format -- file.md
+prrun github.com/neongreen/mono/pull/123 -p markdown-format file.md
+
+# Old syntax still works (with -- separator)
+prrun https://github.com/neongreen/mono/pull/123 -p dissect -- --help
 ```
 
 ### Syntax
 
 ```
-prrun <github-pr-url> [project-name] [-- args...]
+prrun <github-pr-url> [args...]
+prrun <github-pr-url> --project <name> [args...]
+prrun <github-pr-url> -p <name> [args...]
 ```
 
 - `github-pr-url`: Full or short GitHub PR URL (e.g., `https://github.com/owner/repo/pull/123` or `github.com/owner/repo/pull/123`)
-- `project-name`: Optional. Name of the project if the repo contains multiple projects (e.g., `dissect`, `markdown-format`)
-- `-- args...`: Optional. Arguments to pass to the binary (everything after `--` is forwarded)
+- `--project, -p`: Specify project name (required only if PR has multiple projects)
+- `[args...]`: Arguments to pass to the binary (no `--` separator needed anymore!)
+
+The tool automatically detects which project the PR modifies. If multiple projects are detected, you'll need to specify one with `--project` or `-p`.
 
 ## Installation
 
@@ -118,19 +125,37 @@ Once downloaded, subsequent runs use the cached binary instantly.
 ### Test dissect from PR #123
 
 ```bash
-prrun https://github.com/neongreen/mono/pull/123 dissect
+# Auto-detect if PR only modifies dissect
+prrun https://github.com/neongreen/mono/pull/123
+
+# Or explicitly specify the project
+prrun https://github.com/neongreen/mono/pull/123 -p dissect
 ```
 
 ### Test markdown-format with a file
 
 ```bash
-prrun https://github.com/neongreen/mono/pull/456 markdown-format -- README.md
+prrun https://github.com/neongreen/mono/pull/456 -p markdown-format README.md
 ```
 
-### Test without specifying project (if repo has single project)
+### Test without specifying project (auto-detect)
 
 ```bash
-prrun github.com/someowner/somerepo/pull/789
+prrun github.com/someowner/somerepo/pull/789 --help
+```
+
+### Multiple projects in PR
+
+If a PR modifies multiple projects, prrun will ask you to specify which one:
+
+```bash
+$ prrun https://github.com/neongreen/mono/pull/123 --help
+Error: multiple projects found for PR #123:
+  - dissect
+  - markdown-format
+
+Please specify a project with --project or -p flag:
+  prrun https://github.com/neongreen/mono/pull/123 --project <project-name> --help
 ```
 
 ## Requirements
@@ -145,10 +170,10 @@ This tool is perfect for maintainers and reviewers who want to quickly test chan
 
 ```bash
 # Test the PR immediately
-prrun https://github.com/neongreen/mono/pull/123 dissect -- --help
+prrun https://github.com/neongreen/mono/pull/123 -p dissect --help
 
-# Test it on your actual files
-prrun https://github.com/neongreen/mono/pull/123 dissect -- myfile.go
+# Test it on your actual files  
+prrun https://github.com/neongreen/mono/pull/123 -p dissect myfile.go
 ```
 
 ## Troubleshooting
