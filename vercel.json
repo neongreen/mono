@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd reactflow-layout-system && pnpm install && pnpm build",
+  "outputDirectory": "reactflow-layout-system/dist",
+  "installCommand": "echo 'Skipping global install'",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
