@@ -92,6 +92,7 @@ func TestGetPlatformBinaryName(t *testing.T) {
 		Assets: []struct {
 			Name               string `json:"name"`
 			BrowserDownloadURL string `json:"browser_download_url"`
+			URL                string `json:"url"`
 		}{
 			{
 				Name:               "dissect-pr-123.1-linux-amd64",
@@ -125,9 +126,10 @@ func TestGetPlatformBinaryName(t *testing.T) {
 func TestGetPlatformBinaryName_NoAssets(t *testing.T) {
 	release := &GitHubRelease{
 		TagName: "test--pr-1.1",
-		Assets:  []struct {
+		Assets: []struct {
 			Name               string `json:"name"`
 			BrowserDownloadURL string `json:"browser_download_url"`
+			URL                string `json:"url"`
 		}{},
 	}
 
@@ -149,6 +151,7 @@ func TestGetPlatformBinaryName_DoubleDashFormat(t *testing.T) {
 		Assets: []struct {
 			Name               string `json:"name"`
 			BrowserDownloadURL string `json:"browser_download_url"`
+			URL                string `json:"url"`
 		}{
 			{
 				Name:               "dissect--pr-123.1-linux-amd64",

@@ -36,11 +36,54 @@ The tool automatically searches for Claude Code traces in these locations:
 - `~/.local/share/Claude/traces` (legacy location)
 - `./traces` (current directory)
 
+### Interactive TUI Mode
+
 Simply run:
 
 ```bash
 ./claude-trace
 ```
+
+This opens an interactive terminal UI for browsing and annotating traces.
+
+### List Traces
+
+To see where traces are located and how many exist in each location:
+
+```bash
+./claude-trace list
+```
+
+### Extract Traces
+
+To extract all found traces as structured JSON and rendered Markdown files:
+
+```bash
+./claude-trace extract
+```
+
+By default, this creates an `extracted-traces` directory with two subdirectories:
+- `extracted-traces/json/` - One JSON file per trace with structured data
+- `extracted-traces/markdown/` - One Markdown file per trace with human-readable formatting
+
+You can specify a custom output directory:
+
+```bash
+./claude-trace extract -o /path/to/output
+```
+
+The extracted files include:
+- Trace content
+- Metadata (path, modification time)
+- Tags and annotations
+- Freeform notes
+- Annotation history with timestamps
+
+This is useful for:
+- Reviewing traces in your editor
+- Processing traces with other tools
+- Creating backups of annotated traces
+- Annotating traces in Markdown format manually
 
 ### Keyboard Shortcuts
 

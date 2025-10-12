@@ -2,3 +2,13 @@ experimental_monorepo_root = true
 
 [tools]
 go = "1.24.7"
+
+[tasks.cloc]
+description = "Count lines of Go code by file"
+run = "cloc --by-file --include-lang=Go ."
+
+[tasks."jj:track"]
+description = "Track all remote bookmarks"
+run = """
+jj git fetch && jj b t "glob:*@origin"
+"""

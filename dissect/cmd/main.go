@@ -153,7 +153,7 @@ func main() {
 			"--help":     true,
 			"-h":         true,
 		}
-		
+
 		if !knownCommands[args[0]] && !strings.HasPrefix(args[0], "-") {
 			// Prepend 'split' to args for backward compatibility
 			newArgs := append([]string{"split"}, args...)

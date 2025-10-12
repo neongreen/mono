@@ -17,3 +17,6 @@ go.work
 
 # Annotations (these are user-specific)
 *.annotations.json
+
+# Output
+extracted-traces/
