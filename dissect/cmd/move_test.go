@@ -280,6 +280,116 @@ func GlobHelper() {
 			t.Logf("Move failed as expected when trying to move same function from multiple files: %v\nOutput: %s", err, output)
 		}
 	})
+
+	t.Run("MoveWithFunctionNameGlob", func(t *testing.T) {
+		// Clean up any leftover files from previous tests that might interfere
+		os.Remove(filepath.Join(tmpDir, "globhelpers.go"))
+		
+		// Create a source file with multiple test functions
+		testCode := `package main
+
+import "fmt"
+
+func TestFoo() {
+	fmt.Println("Test Foo")
+}
+
+func TestBar() {
+	fmt.Println("Test Bar")
+}
+
+func TestBaz() {
+	fmt.Println("Test Baz")
+}
+
+func HelperFunc() {
+	fmt.Println("Helper")
+}
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "tests.go"), []byte(testCode), 0644); err != nil {
+			t.Fatalf("Failed to create tests.go: %v", err)
+		}
+
+		// Use function name glob to move all Test* functions
+		targetFile := filepath.Join(tmpDir, "test_funcs.go")
+		cmd := exec.Command(dissectBinary, "move", "tests.go:Test*", "test_funcs.go")
+		cmd.Dir = tmpDir
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("Failed to move functions with glob: %v\nOutput: %s", err, output)
+		}
+
+		// Check that target file contains all Test* functions
+		targetContent, err := os.ReadFile(targetFile)
+		if err != nil {
+			t.Fatalf("Failed to read target file: %v", err)
+		}
+		targetStr := string(targetContent)
+		if !containsFunc(targetStr, "TestFoo") {
+			t.Errorf("TestFoo function should be in target file")
+		}
+		if !containsFunc(targetStr, "TestBar") {
+			t.Errorf("TestBar function should be in target file")
+		}
+		if !containsFunc(targetStr, "TestBaz") {
+			t.Errorf("TestBaz function should be in target file")
+		}
+
+		// Check that HelperFunc was NOT moved
+		if containsFunc(targetStr, "HelperFunc") {
+			t.Errorf("HelperFunc should NOT be in target file")
+		}
+
+		// Check that source file no longer has Test* functions but has HelperFunc
+		sourceContent, err := os.ReadFile(filepath.Join(tmpDir, "tests.go"))
+		if err != nil {
+			t.Fatalf("Failed to read source file: %v", err)
+		}
+		sourceStr := string(sourceContent)
+		if containsFunc(sourceStr, "TestFoo") {
+			t.Errorf("TestFoo should have been removed from source")
+		}
+		if containsFunc(sourceStr, "TestBar") {
+			t.Errorf("TestBar should have been removed from source")
+		}
+		if containsFunc(sourceStr, "TestBaz") {
+			t.Errorf("TestBaz should have been removed from source")
+		}
+		if !containsFunc(sourceStr, "HelperFunc") {
+			t.Errorf("HelperFunc should still be in source")
+		}
+
+		// Verify the code still builds
+		buildCmd := exec.Command("go", "build", "-o", "/dev/null", ".")
+		buildCmd.Dir = tmpDir
+		if output, err := buildCmd.CombinedOutput(); err != nil {
+			t.Fatalf("Code doesn't build after move: %v\nOutput: %s", err, output)
+		}
+	})
+
+	t.Run("MoveWithNoMatches", func(t *testing.T) {
+		// Create a file without any matching functions
+		noMatchCode := `package main
+
+func SomeFunc() {}
+`
+		if err := os.WriteFile(filepath.Join(tmpDir, "nomatch.go"), []byte(noMatchCode), 0644); err != nil {
+			t.Fatalf("Failed to create nomatch.go: %v", err)
+		}
+
+		// Try to move functions that don't exist
+		cmd := exec.Command(dissectBinary, "move", "nomatch.go:NonExistent*", "target.go")
+		cmd.Dir = tmpDir
+		output, err := cmd.CombinedOutput()
+		
+		// Should fail with "no identifiers matched" error
+		if err == nil {
+			t.Fatalf("Expected move to fail when no functions match, but it succeeded")
+		}
+		
+		if !containsString(string(output), "No identifiers matched") {
+			t.Errorf("Expected 'No identifiers matched' error, got: %s", output)
+		}
+	})
 }
 
 // Helper function to check if a function exists in code

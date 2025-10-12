@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/gobwas/glob"
 )
 
 var moveCmd = &cobra.Command{
@@ -20,13 +21,21 @@ var moveCmd = &cobra.Command{
 	Long: `Move extracts specific identifiers (functions, methods) from a source file 
 and moves them to a target file. The target file will be created if it doesn't exist.
 
-Source files can be specified using glob patterns (e.g., *.go, pkg/**/*.go).
+Both source files and identifiers support glob patterns:
+  - File patterns: *.go, pkg/**/*.go
+  - Identifier patterns: Test*, *Helper, Benchmark*
+
+Glob behavior:
+  - If a file doesn't contain a matching function, it's skipped (no error)
+  - An error is only shown if no functions match across all files
+  - File globs expand first, then identifier globs match within each file
 
 Example:
   dissect move source.go:Foo source.go:Bar target.go
   dissect move source.go:Foo,Bar,Baz target.go
   dissect move *.go:Helper target.go
-  dissect move pkg/**/*.go:Utility target.go`,
+  dissect move pkg/**/*.go:Test* target.go
+  dissect move file.go:*Helper,Test* target.go`,
 	Args: cobra.MinimumNArgs(2),
 	Run:  runMove,
 }
@@ -39,7 +48,7 @@ func runMove(cmd *cobra.Command, args []string) {
 	// All other arguments are source specifications (file:identifier or file:id1,id2,id3)
 	sourceSpecs := args[:len(args)-1]
 
-	// Parse source specifications into a map of file -> []identifiers
+	// Parse source specifications into a map of file -> []identifier patterns
 	sourceMap := make(map[string][]string)
 	for _, spec := range sourceSpecs {
 		// Split by colon
@@ -51,9 +60,9 @@ func runMove(cmd *cobra.Command, args []string) {
 		}
 
 		sourcePattern := parts[0]
-		identifiers := parts[1]
+		identifierPatterns := parts[1]
 
-		// Expand glob pattern
+		// Expand file glob pattern
 		matches, err := filepath.Glob(sourcePattern)
 		if err != nil {
 			slog.Error("Invalid glob pattern", "pattern", sourcePattern, "error", err)
@@ -66,13 +75,13 @@ func runMove(cmd *cobra.Command, args []string) {
 			matches = []string{sourcePattern}
 		}
 
-		// Split identifiers by comma
-		ids := strings.Split(identifiers, ",")
+		// Split identifier patterns by comma
+		idPatterns := strings.Split(identifierPatterns, ",")
 		for _, sourceFile := range matches {
-			for _, id := range ids {
-				id = strings.TrimSpace(id)
-				if id != "" {
-					sourceMap[sourceFile] = append(sourceMap[sourceFile], id)
+			for _, pattern := range idPatterns {
+				pattern = strings.TrimSpace(pattern)
+				if pattern != "" {
+					sourceMap[sourceFile] = append(sourceMap[sourceFile], pattern)
 				}
 			}
 		}
@@ -92,8 +101,11 @@ func runMove(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Track total matches across all files
+	totalMatches := 0
+
 	// Process each source file
-	for sourceFile, identifiers := range sourceMap {
+	for sourceFile, identifierPatterns := range sourceMap {
 		absSourceFile, err := filepath.Abs(sourceFile)
 		if err != nil {
 			slog.Error("Error getting absolute path", "file", sourceFile, "error", err)
@@ -103,9 +115,8 @@ func runMove(cmd *cobra.Command, args []string) {
 
 		// Check if source file exists
 		if _, err := os.Stat(absSourceFile); os.IsNotExist(err) {
-			slog.Error("Source file does not exist", "file", absSourceFile)
-			fmt.Fprintf(os.Stderr, "Error: Source file '%s' does not exist\n", sourceFile)
-			os.Exit(1)
+			slog.Warn("Source file does not exist, skipping", "file", absSourceFile)
+			continue
 		}
 
 		// Find module root
@@ -116,8 +127,23 @@ func runMove(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		// Move each identifier
-		for _, identifier := range identifiers {
+		// Find matching identifiers in this file
+		matchingIdentifiers, err := findMatchingIdentifiers(absSourceFile, identifierPatterns)
+		if err != nil {
+			slog.Error("Error finding identifiers", "file", sourceFile, "error", err)
+			fmt.Fprintf(os.Stderr, "Error finding identifiers in '%s': %v\n", sourceFile, err)
+			os.Exit(1)
+		}
+
+		if len(matchingIdentifiers) == 0 {
+			slog.Debug("No matching identifiers in file", "file", sourceFile, "patterns", identifierPatterns)
+			continue
+		}
+
+		totalMatches += len(matchingIdentifiers)
+
+		// Move each matched identifier
+		for _, identifier := range matchingIdentifiers {
 			slog.Info("Moving identifier", "identifier", identifier, "from", sourceFile, "to", targetFile)
 
 			err := moveIdentifier(absSourceFile, identifier, absTargetFile, moduleRoot)
@@ -129,7 +155,51 @@ func runMove(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	slog.Info("Successfully moved all identifiers")
+	if totalMatches == 0 {
+		slog.Error("No matching identifiers found")
+		fmt.Fprintln(os.Stderr, "Error: No identifiers matched the specified patterns")
+		os.Exit(1)
+	}
+
+	slog.Info("Successfully moved all identifiers", "count", totalMatches)
+}
+
+// findMatchingIdentifiers finds all function names in a file that match any of the given patterns
+func findMatchingIdentifiers(filePath string, patterns []string) ([]string, error) {
+	// Parse the file to get all function declarations
+	_, node, err := goutils.ReadGoFile(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("error reading file: %w", err)
+	}
+
+	// Compile glob patterns
+	var globs []glob.Glob
+	for _, pattern := range patterns {
+		g, err := glob.Compile(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("invalid glob pattern '%s': %w", pattern, err)
+		}
+		globs = append(globs, g)
+	}
+
+	// Find all matching function names
+	var matches []string
+	seen := make(map[string]bool)
+	for _, decl := range node.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok {
+			funcName := fn.Name.Name
+			// Check if this function matches any pattern
+			for _, g := range globs {
+				if g.Match(funcName) && !seen[funcName] {
+					matches = append(matches, funcName)
+					seen[funcName] = true
+					break
+				}
+			}
+		}
+	}
+
+	return matches, nil
 }
 
 // moveIdentifier moves a single identifier from source to target file using AST operations
