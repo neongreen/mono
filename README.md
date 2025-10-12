@@ -9,6 +9,7 @@ This repository contains multiple independent projects.
 - **[prrun](prrun/)** - Go tool to run binaries from GitHub PR releases (for easy testing)
 - **[diagram-dsl](diagram-dsl/)** - TypeScript DSL for creating diagrams
 - **[want](want/)** - Work in progress
+- **[data-extraction-research](data-extraction-research/)** - Research on extracting data from business apps
 
 ## Installing Tools
 
