@@ -40,3 +40,30 @@ func DiscoverTraceLocations() ([]string, error) {
 
 	return paths, nil
 }
+
+// GetAllSearchedLocations returns all possible trace locations that are checked,
+// regardless of whether they exist or not. This is useful for displaying where
+// the tool searched for traces.
+func GetAllSearchedLocations() []string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		// If we can't get home directory, return just the current directory fallback
+		return []string{"./traces"}
+	}
+
+	// Same locations as DiscoverTraceLocations but always return all of them
+	return []string{
+		// Linux/XDG locations
+		filepath.Join(homeDir, ".config", "Claude", "traces"),
+		filepath.Join(homeDir, ".local", "share", "Claude", "traces"),
+		filepath.Join(homeDir, ".local", "share", "claude-code", "traces"),
+		// macOS locations
+		filepath.Join(homeDir, "Library", "Application Support", "Claude", "traces"),
+		filepath.Join(homeDir, "Library", "Application Support", "claude-code", "traces"),
+		// Windows locations (if on Windows)
+		filepath.Join(homeDir, "AppData", "Roaming", "Claude", "traces"),
+		filepath.Join(homeDir, "AppData", "Local", "Claude", "traces"),
+		// Current directory fallback for testing
+		"./traces",
+	}
+}

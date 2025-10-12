@@ -13,13 +13,13 @@ import (
 
 // Trace represents a Claude Code conversation trace
 type Trace struct {
-	Path         string            `json:"path"`
-	Name         string            `json:"name"`
-	Content      string            `json:"content"`
-	ModTime      time.Time         `json:"mod_time"`
-	Annotations  []Annotation      `json:"annotations"`
-	Tags         map[string]bool   `json:"tags"`
-	FreeformNote string            `json:"freeform_note"`
+	Path         string          `json:"path"`
+	Name         string          `json:"name"`
+	Content      string          `json:"content"`
+	ModTime      time.Time       `json:"mod_time"`
+	Annotations  []Annotation    `json:"annotations"`
+	Tags         map[string]bool `json:"tags"`
+	FreeformNote string          `json:"freeform_note"`
 }
 
 // Annotation represents a single annotation on a trace
@@ -87,7 +87,7 @@ func LoadTraces(directories []string) ([]*Trace, error) {
 // SaveAnnotations saves the annotations for a trace
 func SaveAnnotations(trace *Trace) error {
 	annotationPath := trace.Path + ".annotations.json"
-	
+
 	data, err := json.MarshalIndent(trace, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal annotations: %w", err)
@@ -104,7 +104,7 @@ func SaveAnnotations(trace *Trace) error {
 // LoadAnnotations loads existing annotations for a trace if they exist
 func LoadAnnotations(trace *Trace) error {
 	annotationPath := trace.Path + ".annotations.json"
-	
+
 	data, err := os.ReadFile(annotationPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -126,4 +126,29 @@ func LoadAnnotations(trace *Trace) error {
 	trace.FreeformNote = savedTrace.FreeformNote
 
 	return nil
+}
+
+// CountTracesInDirectory counts trace files in a directory without loading their content
+func CountTracesInDirectory(dir string) (int, error) {
+	count := 0
+
+	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() {
+			return nil
+		}
+
+		// Look for log files, JSON files, or text files
+		ext := strings.ToLower(filepath.Ext(path))
+		if ext == ".log" || ext == ".json" || ext == ".txt" || ext == ".md" {
+			count++
+		}
+
+		return nil
+	})
+
+	return count, err
 }
