@@ -184,6 +184,17 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 		return "", "", fmt.Errorf("unsupported architecture: %s", archName)
 	}
 
+	// Debug: Show available assets
+	if len(release.Assets) == 0 {
+		return "", "", fmt.Errorf("release %s has no assets (the build may have failed)", release.TagName)
+	}
+
+	fmt.Printf("Available assets (%d):\n", len(release.Assets))
+	for _, asset := range release.Assets {
+		fmt.Printf("  - %s\n", asset.Name)
+	}
+	fmt.Println()
+
 	// Find the matching asset
 	for _, asset := range release.Assets {
 		// Expected format: project-version-os-arch
@@ -195,7 +206,7 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 		}
 	}
 
-	return "", "", fmt.Errorf("no binary found for %s/%s in release %s", osName, archName, release.TagName)
+	return "", "", fmt.Errorf("no binary found for %s/%s in release %s (expected name pattern: %s-*-%s-%s)", osName, archName, release.TagName, projectName, osName, archName)
 }
 
 // downloadBinary downloads a binary from a URL to a local path

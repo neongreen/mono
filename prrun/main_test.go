@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -119,6 +120,26 @@ func TestGetPlatformBinaryName(t *testing.T) {
 
 	t.Logf("Platform binary: %s", binaryName)
 	t.Logf("Download URL: %s", downloadURL)
+}
+
+func TestGetPlatformBinaryName_NoAssets(t *testing.T) {
+	release := &GitHubRelease{
+		TagName: "test--pr-1.1",
+		Assets:  []struct {
+			Name               string `json:"name"`
+			BrowserDownloadURL string `json:"browser_download_url"`
+		}{},
+	}
+
+	_, _, err := getPlatformBinaryName(release, "test")
+	if err == nil {
+		t.Error("getPlatformBinaryName() should return error for release with no assets")
+	}
+
+	expectedErrMsg := "release test--pr-1.1 has no assets"
+	if !strings.Contains(err.Error(), expectedErrMsg) {
+		t.Errorf("Expected error to contain '%s', got: %v", expectedErrMsg, err)
+	}
 }
 
 func TestGetGitHubToken(t *testing.T) {
