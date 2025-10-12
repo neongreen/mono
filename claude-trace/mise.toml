@@ -9,3 +9,7 @@ run = "go test ./..."
 [tasks.fmt]
 description = "Format Go code"
 run = "go fmt ./..."
+
+[tasks.check]
+description = "Check that Go code and tests compile and type check"
+run = "go test -run=^$ ./..."
