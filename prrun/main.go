@@ -196,17 +196,23 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 	fmt.Println()
 
 	// Find the matching asset
+	// Expected formats:
+	// 1. project-version-os-arch (e.g., dissect-pr-123.1-linux-amd64)
+	// 2. project--version-os-arch (e.g., dissect--pr-123.1-linux-amd64)
 	for _, asset := range release.Assets {
-		// Expected format: project-version-os-arch
-		// e.g., dissect-pr-123.1-linux-amd64
 		if strings.Contains(asset.Name, osName) && strings.Contains(asset.Name, archName) {
-			if projectName == "" || strings.HasPrefix(asset.Name, projectName) {
+			if projectName == "" {
+				// No project filter, return first matching asset
+				return asset.Name, asset.BrowserDownloadURL, nil
+			}
+			// Check if asset starts with project name (handles both single and double dash)
+			if strings.HasPrefix(asset.Name, projectName) {
 				return asset.Name, asset.BrowserDownloadURL, nil
 			}
 		}
 	}
 
-	return "", "", fmt.Errorf("no binary found for %s/%s in release %s (expected name pattern: %s-*-%s-%s)", osName, archName, release.TagName, projectName, osName, archName)
+	return "", "", fmt.Errorf("no binary found for %s/%s in release %s (expected name pattern: %s-*-%s-%s or %s--*-%s-%s)", osName, archName, release.TagName, projectName, osName, archName, projectName, osName, archName)
 }
 
 // downloadBinary downloads a binary from a URL to a local path
