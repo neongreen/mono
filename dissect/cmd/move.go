@@ -1,5 +1,13 @@
 package main
 
+// This file implements the "move" command for selectively moving Go declarations
+// between files. It uses two different approaches depending on the declaration type:
+//
+// - Functions: Uses gopls's refactor.extract.toNewFile (via pkg/gopls)
+// - Types/Interfaces/Consts/Vars: Manual AST manipulation (moveDeclarationManually)
+//
+// For detailed design rationale and limitations, see DESIGN.md.
+
 import (
 	"bytes"
 	"dissect/pkg/commands"
@@ -369,6 +377,9 @@ func moveFunctionWithGopls(sourceFile string, identifier string, targetFile stri
 }
 
 // moveDeclarationManually moves a non-function declaration (type, interface, const, var) manually
+// using AST manipulation. This approach is used because gopls doesn't offer code actions for
+// these declaration types. Uses goimports for import management.
+// See DESIGN.md for detailed explanation and known limitations.
 func moveDeclarationManually(sourceFile string, identifier string, targetFile string, sourceFset *token.FileSet, declNode ast.Node) error {
 	// Read source file
 	sourceFileSet, sourceNode, err := goutils.ReadGoFile(sourceFile)

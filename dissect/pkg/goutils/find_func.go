@@ -23,6 +23,8 @@ func FindFunc(filePath, funcName string) (*token.FileSet, *ast.FuncDecl, error) 
 
 // FindDecl finds any top-level declaration (function, type, interface, const, var) in a Go file by its name.
 // Returns the FileSet, the declaration node, and any error.
+// This function is used by the move command to locate declarations for AST-based moving.
+// See DESIGN.md for implementation details.
 func FindDecl(filePath, declName string) (*token.FileSet, ast.Node, error) {
 	fset, node, err := ReadGoFile(filePath)
 	if err != nil {

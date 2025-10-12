@@ -238,7 +238,11 @@ The tool respects `.gitignore` patterns and won't process ignored files.
 
 - Functions with the same name in the same package may have naming conflicts (gopls handles this)
 - Very large files may take longer to process
-- Some edge cases with complex type definitions (see [TODO.md](TODO.md))
+- Grouped declarations (e.g., `const (...)`) move as a complete block
+- Moving a type doesn't move its methods (they remain in the source file)
+- Dot imports are not validated upfront
+
+For detailed information about limitations and edge cases, see [DESIGN.md](DESIGN.md).
 
 ## Development
 
@@ -246,9 +250,14 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for details about the internal structure.
 
 See [TESTING.md](TESTING.md) for information about running tests.
 
+See [DESIGN.md](DESIGN.md) for implementation approach and design decisions.
+
 ## Design Documents
 
-- [plan.md](plan.md) - Original development plan and design decisions
+- [DESIGN.md](DESIGN.md) - Implementation approach, technical analysis, and limitations
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture and component structure
+- [TESTING.md](TESTING.md) - Testing approach and guidelines
+- [plan.md](plan.md) - Original development plan
 - [TODO.md](TODO.md) - Known issues and future improvements
 - [docs/gopls/](docs/gopls/) - Documentation about gopls integration
 - [docs/logic/](docs/logic/) - Logic and design decisions
