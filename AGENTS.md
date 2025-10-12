@@ -23,6 +23,15 @@ If the user hasn't told you why she wants the tool or what she'll be using it fo
 
 When you are asked to do something "always" or "never", you must also record this rule either in top level AGENTS.md or in project level AGENTS.md, where appropriate.
 
+## Pull Request Template
+
+All pull requests must include a code block at the very start showing how to run the PR with the `prrun` tool. This is handled automatically via the pull request template at `.github/pull_request_template.md`. The template should:
+
+- Be at the very start of the PR description
+- Show the `prrun` command with placeholders for PR number and project name
+- Provide clear examples of how to use it
+- Assume the user already has `prrun` installed
+
 ## Backwards Compatibility Policy
 
 **Unless explicitly stated otherwise, backwards compatibility is NOT important for ANY project in this repository.**
