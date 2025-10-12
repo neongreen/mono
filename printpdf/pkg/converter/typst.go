@@ -86,22 +86,20 @@ func (t *TypstConverter) getDownloadURL(version string) string {
 }
 
 func (t *TypstConverter) prepareMarkdownInput(content []byte) (string, error) {
+	// Convert Markdown to Typst format
+	typstContent, err := convertMarkdownToTypst(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to convert markdown to typst: %w", err)
+	}
+
 	// Create a temporary Typst file
-	// Typst can handle markdown-like syntax, but we need to wrap it properly
 	tmpFile, err := os.CreateTemp("", "printpdf-*.typ")
 	if err != nil {
 		return "", err
 	}
 	defer tmpFile.Close()
 
-	// Write Typst document with markdown content
-	// This is a simple wrapper - a more sophisticated version would convert MD to Typst
-	typstContent := fmt.Sprintf(`#set page(paper: "a4")
-#set text(font: "Linux Libertine", size: 11pt)
-
-%s
-`, content)
-
+	// Write the converted Typst content
 	if _, err := tmpFile.WriteString(typstContent); err != nil {
 		return "", err
 	}

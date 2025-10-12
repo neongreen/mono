@@ -17,10 +17,20 @@ echo ""
 # Clean old samples
 rm -f samples/*.pdf
 
-# Local markdown file
+# Local markdown file - generate with both converters for comparison
 echo "1. Converting local Markdown file (sample.md)..."
+echo "   - Using WeasyPrint..."
 ./printpdf -converters weasyprint -o samples samples/sample.md
 mv samples/output-weasyprint.pdf samples/local-markdown-sample.pdf
+
+# Check if typst is available
+if command -v typst &> /dev/null; then
+    echo "   - Using Typst..."
+    ./printpdf -converters typst -o samples samples/sample.md
+    mv samples/output-typst.pdf samples/sample-typst.pdf
+else
+    echo "   - Typst not found, skipping (install from https://github.com/typst/typst)"
+fi
 
 # GitHub file
 echo "2. Converting GitHub file (golang/go README)..."
@@ -42,6 +52,6 @@ echo "Done! Generated samples:"
 ls -lh samples/*.pdf
 
 echo ""
-echo "Note: These samples use WeasyPrint converter."
-echo "To try other converters, install Typst or Prince and run:"
+echo "Note: Samples are generated with available converters (WeasyPrint, Typst if installed)."
+echo "To manually try all converters, install Typst and Prince, then run:"
 echo "  ./printpdf -converters typst,prince,weasyprint -o samples samples/sample.md"

@@ -18,14 +18,14 @@ A versatile tool for converting various content sources to PDF format using mult
 
 The tool supports multiple PDF conversion engines and will try all of them by default:
 
-- **Typst**: Modern typesetting system (automatically downloaded if not present)
+- **Typst**: Modern typesetting system with proper Markdown to Typst conversion (automatically downloaded if not present)
 - **Prince XML**: Commercial HTML-to-PDF converter (requires manual installation)
 - **WeasyPrint**: Python-based HTML-to-PDF converter (requires `pip install weasyprint`)
 
 Each converter has different strengths:
-- Typst: Best for documents with modern typography
+- Typst: Best for documents with modern typography, excellent for academic papers and technical documents
 - Prince: Professional output with excellent CSS support
-- WeasyPrint: Open-source, good for simple documents
+- WeasyPrint: Open-source, good for documentation and simple layouts
 
 ## Installation
 

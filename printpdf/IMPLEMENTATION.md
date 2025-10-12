@@ -50,7 +50,7 @@ The tool supports multiple input sources through the `fetcher` package:
 
 ### 2. Content Processing
 
-#### Markdown to HTML Conversion
+#### Markdown to HTML Conversion (for WeasyPrint/Prince)
 
 Uses [goldmark](https://github.com/yuin/goldmark) for robust Markdown parsing:
 
@@ -59,6 +59,16 @@ Uses [goldmark](https://github.com/yuin/goldmark) for robust Markdown parsing:
 - Auto-generated heading IDs
 - GitHub-like styling (fonts, colors, spacing)
 - Syntax highlighting-friendly code blocks
+
+#### Markdown to Typst Conversion (for Typst)
+
+Converts Markdown AST directly to Typst markup:
+
+- Parses Markdown with goldmark
+- Walks AST and generates native Typst syntax
+- Supports headings, paragraphs, lists (ordered/unordered), code blocks, links, emphasis, tables
+- Properly escapes Typst special characters
+- Preserves document structure and formatting
 
 #### HTML Content Extraction
 
@@ -73,8 +83,9 @@ Implements a simplified Readability algorithm:
 
 #### Typst
 - Modern typesetting system
-- Auto-download support (tar.xz extraction not yet implemented)
-- Best for: Academic papers, modern typography
+- Proper Markdown to Typst conversion (not just wrapping)
+- Auto-download support (tar.xz extraction not yet implemented, use system tar)
+- Best for: Academic papers, modern typography, technical documents
 
 #### Prince XML
 - Commercial HTML-to-PDF converter
@@ -218,10 +229,11 @@ Regenerate with: `cd samples && ./generate-samples.sh`
 
 ## Known Limitations
 
-1. **Typst**: tar.xz auto-download not supported (use system installation)
-2. **Readability**: Simplified algorithm, may miss content on complex pages
-3. **Network restrictions**: Some sites may block automated access
-4. **GitHub API**: Rate limits apply (60 requests/hour without auth)
+1. **Typst**: tar.xz auto-download requires system tar command (works on most Linux/macOS systems)
+2. **Typst tables**: Complex table layouts may need manual adjustment
+3. **Readability**: Simplified algorithm, may miss content on complex pages
+4. **Network restrictions**: Some sites may block automated access
+5. **GitHub API**: Rate limits apply (60 requests/hour without auth)
 
 ## Code Quality
 
