@@ -33,15 +33,46 @@ jobs:
       - name: Find Go projects
         id: find-projects
         run: |
+          # Get list of changed files
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            # For PRs, compare against the base branch
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
+          else
+            # For push to main, compare against previous commit
+            # Handle initial commit or when before SHA is all zeros
+            BEFORE_SHA="${{ github.event.before }}"
+            if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+              # First commit or forced push - get all files in current commit
+              CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
+            else
+              CHANGED_FILES=$(git diff --name-only $BEFORE_SHA...${{ github.sha }})
+            fi
+          fi
+          
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          
           # Find all directories with go.mod at root level
-          projects=()
+          all_projects=()
           for dir in */; do
             dir=${dir%/}
             if [ -f "$dir/go.mod" ]; then
               # Check if there's a main.go somewhere in the project
               if find "$dir" -name "main.go" | grep -q .; then
-                projects+=("$dir")
+                all_projects+=("$dir")
               fi
+            fi
+          done
+          
+          echo "All Go projects: ${all_projects[*]}"
+          
+          # Filter projects to only those with changed files
+          projects=()
+          for project in "${all_projects[@]}"; do
+            # Check if any changed file is in this project directory
+            if echo "$CHANGED_FILES" | grep -q "^$project/"; then
+              projects+=("$project")
+              echo "Project $project has changes"
             fi
           done
           
@@ -49,13 +80,13 @@ jobs:
           if [ ${#projects[@]} -eq 0 ]; then
             echo "has_projects=false" >> $GITHUB_OUTPUT
             echo "projects=[]" >> $GITHUB_OUTPUT
+            echo "No projects with changes found"
           else
             projects_json=$(printf '%s\n' "${projects[@]}" | jq -R . | jq -s -c .)
             echo "has_projects=true" >> $GITHUB_OUTPUT
             echo "projects=$projects_json" >> $GITHUB_OUTPUT
+            echo "Projects with changes: ${projects[*]}"
           fi
-          
-          echo "Found Go projects: ${projects[*]}"
 
   # Second job: build and release each project
   release:
