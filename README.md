@@ -8,6 +8,7 @@ This repository contains multiple independent projects.
 - **[markdown-format](markdown-format/)** - Go tool for markdown formatting
 - **[prrun](prrun/)** - Go tool to run binaries from GitHub PR releases (for easy testing)
 - **[diagram-dsl](diagram-dsl/)** - TypeScript DSL for creating diagrams
+- **[reactflow-layout-system](reactflow-layout-system/)** - Constraint-based layout system for ReactFlow documents
 - **[want](want/)** - Work in progress
 
 ## Installing Tools
