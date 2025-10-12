@@ -1,0 +1,3 @@
+[tasks.run]
+description = "Build and run"
+run = "go run ."

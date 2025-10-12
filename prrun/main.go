@@ -22,6 +22,7 @@ type GitHubRelease struct {
 	Assets     []struct {
 		Name               string `json:"name"`
 		BrowserDownloadURL string `json:"browser_download_url"`
+		URL                string `json:"url"`
 	} `json:"assets"`
 }
 
@@ -203,11 +204,11 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 		if strings.Contains(asset.Name, osName) && strings.Contains(asset.Name, archName) {
 			if projectName == "" {
 				// No project filter, return first matching asset
-				return asset.Name, asset.BrowserDownloadURL, nil
+				return asset.Name, asset.URL, nil
 			}
 			// Check if asset starts with project name (handles both single and double dash)
 			if strings.HasPrefix(asset.Name, projectName) {
-				return asset.Name, asset.BrowserDownloadURL, nil
+				return asset.Name, asset.URL, nil
 			}
 		}
 	}
@@ -223,6 +224,9 @@ func downloadBinary(downloadURL, destPath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
+
+	// Set Accept header to get binary data instead of JSON metadata
+	req.Header.Set("Accept", "application/octet-stream")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
