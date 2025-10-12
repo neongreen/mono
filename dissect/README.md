@@ -95,6 +95,26 @@ Move functions from different files to the same target:
 dissect move file1.go:Foo file2.go:Bar target.go
 ```
 
+#### Glob Pattern Support
+
+Both file paths and function names support glob patterns:
+
+```bash
+# Move all functions named "Helper" from any .go file
+dissect move *.go:Helper target.go
+
+# Move all functions starting with "Test" from files in pkg/
+dissect move pkg/**/*.go:Test* target.go
+
+# Move all functions ending with "Helper" or starting with "Util"
+dissect move file.go:*Helper,Util* target.go
+```
+
+**Glob Behavior:**
+- If a file doesn't contain a matching function, it's silently skipped (no error)
+- An error is only shown if no functions match across all files
+- File globs are expanded first, then function name globs match within each file
+
 The target file will be created if it doesn't exist, or functions will be appended if it does exist.
 
 ### What Gets Extracted
