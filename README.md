@@ -70,17 +70,22 @@ Use **[prrun](prrun/)** to easily test binaries from pull requests without manua
 # Build prrun first (or wait for it to be released)
 cd prrun && go build -o prrun .
 
-# Test a PR binary directly
-./prrun https://github.com/neongreen/mono/pull/123 dissect -- --help
+# Test a PR binary directly (auto-detects project if only one modified)
+./prrun https://github.com/neongreen/mono/pull/123 --help
+
+# Or specify the project explicitly
+./prrun https://github.com/neongreen/mono/pull/123 -p dissect --help
 
 # Run it on your files
-./prrun https://github.com/neongreen/mono/pull/123 dissect -- myfile.go
+./prrun https://github.com/neongreen/mono/pull/123 -p dissect myfile.go
 ```
 
 The tool automatically:
-1. Finds the PR release
-2. Downloads the binary to `~/.cache/prrun/`
-3. Runs it with your arguments
+1. Detects which project the PR modifies (or lets you specify with `-p`)
+2. Finds the PR release
+3. Downloads the binary to `~/.cache/prrun/`
+4. Runs it with your arguments
+5. Warns if the release workflow is pending approval
 
 ## Development
 
