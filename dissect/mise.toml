@@ -27,3 +27,7 @@ run = """
   fi
   _build/dissect "$dir"
 """
+
+[tasks."fmt"]
+description = "Format Go code"
+run = "go fmt ./..."

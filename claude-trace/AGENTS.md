@@ -49,3 +49,4 @@ Human-readable conversation with:
 - Tool uses formatted nicely
 - Collapsible thinking sections
 - Timestamps in readable format
+

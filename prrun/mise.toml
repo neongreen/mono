@@ -1,3 +1,7 @@
 [tasks.run]
 description = "Build and run"
 run = "go run ."
+
+[tasks.fmt]
+description = "Format Go code"
+run = "go fmt ./..."

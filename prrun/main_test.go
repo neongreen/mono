@@ -125,7 +125,7 @@ func TestGetPlatformBinaryName(t *testing.T) {
 func TestGetPlatformBinaryName_NoAssets(t *testing.T) {
 	release := &GitHubRelease{
 		TagName: "test--pr-1.1",
-		Assets:  []struct {
+		Assets: []struct {
 			Name               string `json:"name"`
 			BrowserDownloadURL string `json:"browser_download_url"`
 		}{},
