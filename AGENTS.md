@@ -135,3 +135,26 @@ The owner will explicitly request backwards compatibility when needed. Until the
 - **Only consider it when:** The owner explicitly asks for it
 - **Focus on:** Making the best possible code, not maintaining old code
 - **Applies to:** ALL projects in this monorepo (diagram-dsl, dissect, markdown-format, want, etc.)
+
+## Build and Run Guidelines
+
+**Always use `mise` for building and running Go projects. Never use `go build` or `go run` directly.**
+
+### Running Go Projects
+
+Use the mise task syntax from the monorepo root:
+```bash
+mise run //project-name:task-name
+```
+
+Examples:
+- `mise run //claude-trace:run` - Run claude-trace with default command (TUI mode)
+- `mise run //claude-trace:run list` - Run claude-trace list command
+- `mise run //claude-trace:run extract -o output` - Run claude-trace extract command
+
+### Why mise?
+
+- Ensures correct Go version is used
+- Manages dependencies consistently
+- Provides consistent build environment
+- Defined in each project's `mise.toml` file
