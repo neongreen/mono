@@ -36,9 +36,12 @@ func runTUI(cmd *cobra.Command, args []string) {
 	if len(tracePaths) == 0 {
 		fmt.Println("No Claude Code traces found.")
 		fmt.Println("\nSearched in:")
-		fmt.Println("  - ~/.config/Claude/traces")
-		fmt.Println("  - ~/Library/Application Support/Claude/traces")
-		fmt.Println("  - ~/.local/share/Claude/traces")
+		fmt.Println("  - ~/.claude/projects/ (conversation histories)")
+		fmt.Println("  - ~/.claude/debug/ (debug logs)")
+		fmt.Println("  - ~/.claude/traces/ (user traces)")
+		fmt.Println("  - ~/.config/Claude/traces (legacy)")
+		fmt.Println("  - ~/Library/Application Support/Claude/traces (legacy)")
+		fmt.Println("  - ~/.local/share/Claude/traces (legacy)")
 		fmt.Println("  - ./traces (current directory)")
 		os.Exit(1)
 	}

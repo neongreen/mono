@@ -18,6 +18,11 @@ func DiscoverTraceLocations() ([]string, error) {
 	// Note: These are best guesses based on typical application data storage patterns
 	// The actual location may vary depending on the Claude Code version and platform
 	possibleLocations := []string{
+		// Actual Claude Code storage locations
+		filepath.Join(homeDir, ".claude", "projects"),
+		filepath.Join(homeDir, ".claude", "debug"),
+		filepath.Join(homeDir, ".claude", "traces"),
+		// Legacy locations (fallback)
 		// Linux/XDG locations
 		filepath.Join(homeDir, ".config", "Claude", "traces"),
 		filepath.Join(homeDir, ".local", "share", "Claude", "traces"),
@@ -53,6 +58,11 @@ func GetAllSearchedLocations() []string {
 
 	// Same locations as DiscoverTraceLocations but always return all of them
 	return []string{
+		// Actual Claude Code storage locations
+		filepath.Join(homeDir, ".claude", "projects"),
+		filepath.Join(homeDir, ".claude", "debug"),
+		filepath.Join(homeDir, ".claude", "traces"),
+		// Legacy locations (fallback)
 		// Linux/XDG locations
 		filepath.Join(homeDir, ".config", "Claude", "traces"),
 		filepath.Join(homeDir, ".local", "share", "Claude", "traces"),

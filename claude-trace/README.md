@@ -27,10 +27,13 @@ go run ./cmd
 
 ## Usage
 
-The tool automatically searches for Claude Code traces in common locations:
-- `~/.config/Claude/traces`
-- `~/Library/Application Support/Claude/traces`
-- `~/.local/share/Claude/traces`
+The tool automatically searches for Claude Code traces in these locations:
+- `~/.claude/projects/` (conversation histories in JSONL format)
+- `~/.claude/debug/` (debug logs per session)
+- `~/.claude/traces/` (user-created traces)
+- `~/.config/Claude/traces` (legacy location)
+- `~/Library/Application Support/Claude/traces` (legacy location)
+- `~/.local/share/Claude/traces` (legacy location)
 - `./traces` (current directory)
 
 Simply run:
@@ -67,7 +70,18 @@ Simply run:
 
 ## Trace Discovery
 
-Since Claude Code's actual trace storage location may vary by version and platform, this tool searches multiple common locations. If your traces are stored elsewhere, you can:
+Since Claude Code's actual trace storage location may vary by version and platform, this tool searches multiple locations. The primary locations are:
+
+1. **`~/.claude/projects/`** - Contains conversation histories in JSONL format, organized by project path
+2. **`~/.claude/debug/`** - Contains debug logs for each session
+3. **`~/.claude/traces/`** - User-created trace files
+
+Legacy locations are also searched for compatibility:
+- `~/.config/Claude/traces`
+- `~/Library/Application Support/Claude/traces`
+- `~/.local/share/Claude/traces`
+
+If your traces are stored elsewhere, you can:
 
 1. Create a symbolic link from one of the searched locations to your actual trace directory
 2. Copy your traces to the `./traces` directory in the claude-trace folder
@@ -101,7 +115,7 @@ The repository includes sample traces in the `traces/` directory for testing pur
 
 - **Persistent Storage**: Annotations are saved to disk and reloaded when viewing traces again
 
-- **File Format Support**: Automatically detects `.log`, `.json`, `.txt`, and `.md` files
+- **File Format Support**: Automatically detects `.log`, `.json`, `.jsonl`, `.txt`, and `.md` files
 
 ## Requirements
 

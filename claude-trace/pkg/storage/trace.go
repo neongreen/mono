@@ -43,9 +43,9 @@ func LoadTraces(directories []string) ([]*Trace, error) {
 				return nil
 			}
 
-			// Look for log files, JSON files, or text files
+			// Look for log files, JSON files, JSONL files, or text files
 			ext := strings.ToLower(filepath.Ext(path))
-			if ext == ".log" || ext == ".json" || ext == ".txt" || ext == ".md" {
+			if ext == ".log" || ext == ".json" || ext == ".jsonl" || ext == ".txt" || ext == ".md" {
 				content, err := os.ReadFile(path)
 				if err != nil {
 					return fmt.Errorf("failed to read %s: %w", path, err)
@@ -141,9 +141,9 @@ func CountTracesInDirectory(dir string) (int, error) {
 			return nil
 		}
 
-		// Look for log files, JSON files, or text files
+		// Look for log files, JSON files, JSONL files, or text files
 		ext := strings.ToLower(filepath.Ext(path))
-		if ext == ".log" || ext == ".json" || ext == ".txt" || ext == ".md" {
+		if ext == ".log" || ext == ".json" || ext == ".jsonl" || ext == ".txt" || ext == ".md" {
 			count++
 		}
 
