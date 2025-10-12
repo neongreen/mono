@@ -232,6 +232,13 @@ func downloadBinary(downloadURL, destPath string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == 404 {
+			return fmt.Errorf("download failed with status 404 (asset not found). This may mean:\n"+
+				"  1. The release exists but has no assets (build may have failed)\n"+
+				"  2. The asset name doesn't match what was expected\n"+
+				"  3. The release is private and requires authentication\n"+
+				"  Download URL: %s", downloadURL)
+		}
 		return fmt.Errorf("download failed with status %d", resp.StatusCode)
 	}
 
