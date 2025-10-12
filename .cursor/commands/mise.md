@@ -14,3 +14,7 @@ If you propose options:
 - Don't add the task until the user picks the name.
 - After the user picks the name, update this file (mise.md) with the command, proposed names, and user's decision.
 This way you can become smarter over time.
+
+## Syntax Notes:
+- Use `"""` syntax for multi-line commands instead of escaped quotes
+- Example: `run = """command with "quotes" and && operators"""` instead of `run = "command with \"quotes\" and && operators"`
