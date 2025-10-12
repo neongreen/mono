@@ -60,24 +60,16 @@ func (p *PrinceConverter) getPrince() (string, error) {
 func (p *PrinceConverter) prepareInput(content []byte, contentType string) (string, error) {
 	var ext string
 	var htmlContent []byte
+	var err error
 	
 	switch contentType {
 	case fetcher.ContentTypeMarkdown:
 		// Convert markdown to HTML for Prince
-		// For now, just wrap in basic HTML
 		ext = ".html"
-		htmlContent = []byte(fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-body { font-family: serif; max-width: 800px; margin: 40px auto; line-height: 1.6; }
-</style>
-</head>
-<body>
-<pre style="white-space: pre-wrap; font-family: sans-serif;">%s</pre>
-</body>
-</html>`, content))
+		htmlContent, err = convertMarkdownToHTML(content)
+		if err != nil {
+			return "", fmt.Errorf("failed to convert markdown to HTML: %w", err)
+		}
 	case fetcher.ContentTypeHTML:
 		ext = ".html"
 		htmlContent = content
