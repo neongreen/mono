@@ -64,6 +64,36 @@ curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | ba
 4. **Cache**: Downloads to `~/.cache/prrun/<release-tag>/<binary-name>`
 5. **Execute**: Runs the cached binary with your arguments
 
+## Authentication
+
+`prrun` transparently supports authentication for accessing private repositories. It tries multiple authentication methods in order:
+
+1. **GITHUB_TOKEN** environment variable
+2. **MISE_GITHUB_TOKEN** environment variable
+3. **gh CLI** tool (if authenticated via `gh auth login`)
+
+If any of these are available, `prrun` will use them to authenticate GitHub API requests. This allows you to:
+
+- Access releases from private repositories
+- Avoid GitHub API rate limits
+- Download private release assets
+
+### Examples
+
+```bash
+# Using GITHUB_TOKEN
+export GITHUB_TOKEN="ghp_your_token_here"
+prrun https://github.com/private-org/private-repo/pull/123 tool
+
+# Using MISE_GITHUB_TOKEN
+export MISE_GITHUB_TOKEN="ghp_your_token_here"
+prrun https://github.com/private-org/private-repo/pull/123 tool
+
+# Using gh CLI (if already authenticated)
+gh auth login
+prrun https://github.com/private-org/private-repo/pull/123 tool
+```
+
 ## Caching
 
 Binaries are cached at `~/.cache/prrun/` organized by release tag:
