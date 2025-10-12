@@ -1,0 +1,3 @@
+_build/
+*.pdf
+!samples/*.pdf
