@@ -5,6 +5,7 @@ import (
 	"dissect/pkg/gopls"
 	"dissect/pkg/goutils"
 	"fmt"
+	"go/ast"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -155,28 +156,65 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 	// Remove the temp file when done
 	defer os.Remove(tempFile)
 
-	// Extract the function text (including comments) from the temp file
-	funcText, err := goutils.ExtractFunctionText(tempFile)
+	// Parse the temp file to extract the function declaration and imports using AST
+	tempFset, tempNode, err := goutils.ReadGoFile(tempFile)
 	if err != nil {
-		return fmt.Errorf("error extracting function text: %w", err)
+		return fmt.Errorf("error parsing temp file: %w", err)
 	}
 
-	// Read the current target file content
-	targetContent, err := os.ReadFile(targetFile)
+	// Parse the target file  
+	_, targetNode, err := goutils.ReadGoFile(targetFile)
 	if err != nil {
-		return fmt.Errorf("error reading target file: %w", err)
+		return fmt.Errorf("error parsing target file: %w", err)
 	}
 
-	// Append the function text to the target file
-	// Add two newlines before the function for proper formatting
-	newContent := string(targetContent) + "\n" + funcText + "\n"
-	err = os.WriteFile(targetFile, []byte(newContent), 0644)
+	// Find the function in the temp file
+	var funcToMove *ast.FuncDecl
+	for _, decl := range tempNode.Decls {
+		if fn, ok := decl.(*ast.FuncDecl); ok {
+			funcToMove = fn
+			break
+		}
+	}
+
+	if funcToMove == nil {
+		return fmt.Errorf("no function found in temp file")
+	}
+
+	// Merge imports from temp file to target file using AST operations
+	// Build a map of existing imports in target
+	existingImports := make(map[string]bool)
+	for _, imp := range targetNode.Imports {
+		existingImports[imp.Path.Value] = true
+	}
+
+	// Add new imports from temp file
+	for _, imp := range tempNode.Imports {
+		if !existingImports[imp.Path.Value] {
+			targetNode.Imports = append(targetNode.Imports, imp)
+		}
+	}
+
+	// Add the function to the target using AST operations
+	// We add it to targetNode.Decls which will be written using the target FileSet
+	targetNode.Decls = append(targetNode.Decls, funcToMove)
+	
+	// To preserve comments when using different FileSets, we need to add the function's
+	// comments to the target file's comment list. Extract comments using CommentMap.
+	cmap := ast.NewCommentMap(tempFset, tempNode, tempNode.Comments)
+	funcComments := cmap.Filter(funcToMove).Comments()
+	targetNode.Comments = append(targetNode.Comments, funcComments...)
+
+	// Write the modified target file back using AST
+	// We write using targetFset, but the comments are from tempFset
+	// This is the key limitation: position information from different FileSets is incompatible
+	// The workaround is to use the temp FileSet for writing
+	err = goutils.WriteGoFile(targetFile, tempFset, targetNode)
 	if err != nil {
 		return fmt.Errorf("error writing target file: %w", err)
 	}
 
 	// Run goimports to organize imports and format properly
-	// This will handle merging imports and proper formatting
 	err = commands.RunGoimportsOnFile(targetFile)
 	if err != nil {
 		return fmt.Errorf("error running goimports: %w", err)
