@@ -158,3 +158,12 @@ Examples:
 - Manages dependencies consistently
 - Provides consistent build environment
 - Defined in each project's `mise.toml` file
+
+### Project Tasks
+
+All projects should define standard tasks in their `mise.toml` where applicable:
+
+- **`run`** - Build and run the project (for applications)
+- **`test`** - Run all tests
+
+These tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.

@@ -1,3 +1,7 @@
 [tasks.run]
 description = "Build and run claude-trace"
 run = "go run ./cmd"
+
+[tasks.test]
+description = "Run tests for claude-trace"
+run = "go test ./..."
