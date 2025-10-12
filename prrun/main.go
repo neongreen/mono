@@ -185,16 +185,10 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 		return "", "", fmt.Errorf("unsupported architecture: %s", archName)
 	}
 
-	// Debug: Show available assets
+	// Debug: Show available assets only on error
 	if len(release.Assets) == 0 {
 		return "", "", fmt.Errorf("release %s has no assets (the build may have failed)", release.TagName)
 	}
-
-	fmt.Printf("Available assets (%d):\n", len(release.Assets))
-	for _, asset := range release.Assets {
-		fmt.Printf("  - %s\n", asset.Name)
-	}
-	fmt.Println()
 
 	// Find the matching asset
 	// Expected formats:
@@ -213,12 +207,17 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 		}
 	}
 
-	return "", "", fmt.Errorf("no binary found for %s/%s in release %s (expected name pattern: %s-*-%s-%s or %s--*-%s-%s)", osName, archName, release.TagName, projectName, osName, archName, projectName, osName, archName)
+	return "", "", fmt.Errorf("no binary found for %s/%s in release %s (expected name pattern: %s-*-%s-%s or %s--*-%s-%s). Available assets: %v", osName, archName, release.TagName, projectName, osName, archName, projectName, osName, archName, func() []string {
+		var names []string
+		for _, asset := range release.Assets {
+			names = append(names, asset.Name)
+		}
+		return names
+	}())
 }
 
 // downloadBinary downloads a binary from a URL to a local path
 func downloadBinary(downloadURL, destPath string) error {
-	fmt.Printf("Downloading binary from %s...\n", downloadURL)
 
 	req, err := createAuthenticatedRequest("GET", downloadURL)
 	if err != nil {
@@ -268,7 +267,7 @@ func downloadBinary(downloadURL, destPath string) error {
 		return fmt.Errorf("failed to make binary executable: %w", err)
 	}
 
-	fmt.Printf("✓ Binary cached at %s\n", destPath)
+	// Binary successfully cached (no output on success)
 	return nil
 }
 
@@ -342,24 +341,23 @@ func main() {
 		projectName = prInfo.Project
 	}
 
-	fmt.Printf("Looking for PR #%d in %s/%s", prInfo.PRNum, prInfo.Owner, prInfo.Repo)
-	if projectName != "" {
-		fmt.Printf(" (project: %s)", projectName)
-	}
-	fmt.Println()
+	// Only show debug info on errors, not on success
 
 	// Find the PR release
 	release, err := findPRRelease(prInfo.Owner, prInfo.Repo, prInfo.PRNum, projectName)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Looking for PR #%d in %s/%s", prInfo.PRNum, prInfo.Owner, prInfo.Repo)
+		if projectName != "" {
+			fmt.Fprintf(os.Stderr, " (project: %s)", projectName)
+		}
+		fmt.Fprintf(os.Stderr, "\nError: %v\n", err)
 		os.Exit(1)
 	}
-
-	fmt.Printf("Found release: %s\n", release.TagName)
 
 	// Get the binary name for the current platform
 	binaryName, downloadURL, err := getPlatformBinaryName(release, projectName)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "Found release: %s\n", release.TagName)
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
@@ -381,18 +379,9 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-	} else {
-		fmt.Printf("✓ Using cached binary at %s\n", cachePath)
 	}
 
-	// Run the binary
-	fmt.Println()
-	if len(binaryArgs) > 0 {
-		fmt.Printf("Running: %s %s\n", binaryName, strings.Join(binaryArgs, " "))
-	} else {
-		fmt.Printf("Running: %s\n", binaryName)
-	}
-	fmt.Println(strings.Repeat("-", 50))
+	// Run the binary (no debug output on success)
 
 	if err := runBinary(cachePath, binaryArgs); err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
