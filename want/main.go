@@ -348,10 +348,10 @@ func installMise(dryRun bool, planJson bool) error {
 		shellName := getShellName()
 
 		fmt.Printf("Adding mise activation to %s...\n", configFile)
-		
+
 		// Add the activation line to the shell config
 		activationLine := fmt.Sprintf("\n# Added by want - enables mise\neval \"$(mise activate %s)\"\n", shellName)
-		
+
 		file, err := os.OpenFile(configFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			fmt.Printf("⚠ Could not automatically add mise activation to %s: %v\n", configFile, err)
@@ -422,7 +422,7 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 	}
 
 	commandStr := strings.Join(args, " ")
-	
+
 	// Build the plan
 	plan := FulfillmentPlan{
 		Requirement: fmt.Sprintf("json %s", commandStr),
@@ -954,7 +954,7 @@ func handleGitHubAsset(url string, dryRun bool, planJson bool) {
 		fmt.Printf("Project: %s\n", projectName)
 	}
 	fmt.Println()
-	
+
 	plan.PrintPlan()
 	if !plan.ConfirmPlan() {
 		fmt.Println("Cancelled.")
