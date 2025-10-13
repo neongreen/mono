@@ -33,27 +33,24 @@ If automatic detection doesn't work, use these settings:
 
 **Framework Preset**: Other
 
-**Root Directory**:
-```
-reactflow-layout-system
-```
-
 **Build Command**:
 ```bash
-pnpm build
+cd reactflow-layout-system && pnpm install && pnpm build
 ```
 
 **Output Directory**:
 ```
-dist
+reactflow-layout-system/dist
 ```
 
 **Install Command**:
 ```bash
-pnpm install
+echo 'Skipping global install'
 ```
 
-**Framework Preset**: Vite
+**Root Directory**: Leave empty (monorepo root)
+
+**Framework Preset**: Other
 
 ## Vercel Configuration Files
 
@@ -64,11 +61,9 @@ Located at `/vercel.json`, configures the deployment for the monorepo:
 ```json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm build",
-  "outputDirectory": "dist",
-  "installCommand": "pnpm install",
-  "rootDirectory": "reactflow-layout-system",
-  "framework": "vite",
+  "buildCommand": "cd reactflow-layout-system && pnpm install && pnpm build",
+  "outputDirectory": "reactflow-layout-system/dist",
+  "installCommand": "echo 'Skipping global install'",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
@@ -76,11 +71,10 @@ Located at `/vercel.json`, configures the deployment for the monorepo:
 ```
 
 Key configuration points:
-- `rootDirectory`: Points Vercel to the project subdirectory in the monorepo
-- `installCommand`: Runs pnpm install (uses lockfile automatically)
-- `buildCommand`: Builds the Vite project
-- `outputDirectory`: Relative to rootDirectory
-- `framework`: Set to "vite" for optimal Vite support
+- `buildCommand`: Changes to the project directory, installs dependencies, and builds
+- `outputDirectory`: Path relative to repository root
+- `installCommand`: Dummy command (actual install happens in buildCommand)
+- `rewrites`: Handle client-side routing for the SPA
 
 ## How It Works
 
@@ -92,11 +86,13 @@ Key configuration points:
 
 ### Build Process
 
-1. Vercel clones the repository
-2. Sets working directory to `reactflow-layout-system` (via `rootDirectory` config)
-3. Runs `pnpm install` to install dependencies (uses `pnpm-lock.yaml` for reproducible builds)
-4. Runs `pnpm build` to create the production build with Vite
-5. Deploys the contents of the `dist` directory
+1. Vercel clones the repository at the root
+2. Runs the install command (dummy command that does nothing)
+3. Runs the build command which:
+   - Changes to the `reactflow-layout-system` directory
+   - Runs `pnpm install` to install dependencies (uses `pnpm-lock.yaml` for reproducible builds)
+   - Runs `pnpm build` to create the production build with Vite
+4. Deploys the contents of the `reactflow-layout-system/dist` directory
 
 The lockfile (`pnpm-lock.yaml`) is committed to ensure consistent dependency versions across all deployments.
 
