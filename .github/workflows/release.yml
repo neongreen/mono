@@ -110,6 +110,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.7'
+          cache-dependency-path: ${{ matrix.project }}/go.sum
 
       - name: Determine version and branch
         id: version

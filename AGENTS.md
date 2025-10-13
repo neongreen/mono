@@ -225,19 +225,25 @@ All Go projects in this monorepo must have a `go.sum` file to enable dependency 
 
 ### CI Workflow Setup
 
-All CI workflows use the default caching behavior of `actions/setup-go@v5`:
+All CI workflows must specify the `cache-dependency-path` to point to the project's `go.sum` file:
 
 ```yaml
 - name: Set up Go
   uses: actions/setup-go@v5
   with:
     go-version: '1.24.7'
+    cache-dependency-path: <project-name>/go.sum
 ```
 
-The action automatically:
-- Detects `go.sum` files in the project
-- Caches Go module dependencies and build cache
-- Restores cache on subsequent runs
+For example:
+- `cache-dependency-path: prrun/go.sum` for the prrun project
+- `cache-dependency-path: dissect/go.sum` for the dissect project
+- `cache-dependency-path: ${{ matrix.project }}/go.sum` for matrix builds
+
+The action will:
+- Look for `go.sum` at the specified path
+- Cache Go module dependencies and build cache
+- Restore cache on subsequent runs
 
 ### Keeping go.sum Up-to-Date
 
