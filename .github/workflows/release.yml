@@ -106,21 +106,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check if project has go.sum
-        id: check-gosum
-        run: |
-          if [ -f "${{ matrix.project }}/go.sum" ]; then
-            echo "has_gosum=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_gosum=false" >> $GITHUB_OUTPUT
-          fi
-      
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.24.7'
-          cache: ${{ steps.check-gosum.outputs.has_gosum == 'true' }}
-          cache-dependency-path: ${{ steps.check-gosum.outputs.has_gosum == 'true' && format('{0}/go.sum', matrix.project) || '' }}
 
       - name: Determine version and branch
         id: version

@@ -213,17 +213,20 @@ The owner will explicitly request backwards compatibility when needed. Until the
 
 ## Go CI Workflow Configuration
 
-When creating CI workflows for Go projects, configure the `actions/setup-go@v5` caching appropriately:
+All Go projects in this monorepo must have a `go.sum` file to enable dependency caching in CI workflows.
 
-### Projects with External Dependencies
+### Required: go.sum for All Go Projects
 
-For projects that have external Go dependencies (e.g., `github.com/yuin/goldmark`, `github.com/pelletier/go-toml`):
+**Every Go project must have a `go.sum` file, even if it only has local dependencies.**
 
-- **Do NOT** set `cache: false`
-- **Do** ensure a `go.sum` file exists by running `go mod tidy`
-- The action will automatically cache dependencies based on `go.sum`
+- Run `go mod tidy` in each Go project directory to ensure `go.sum` is up-to-date
+- If a project has no external dependencies, an empty `go.sum` file is acceptable
+- The `go.sum` file must be committed to the repository
 
-Example:
+### CI Workflow Setup
+
+All CI workflows use the default caching behavior of `actions/setup-go@v5`:
+
 ```yaml
 - name: Set up Go
   uses: actions/setup-go@v5
@@ -231,60 +234,20 @@ Example:
     go-version: '1.24.7'
 ```
 
-### Projects with Only Local Dependencies
+The action automatically:
+- Detects `go.sum` files in the project
+- Caches Go module dependencies and build cache
+- Restores cache on subsequent runs
 
-For projects that only depend on local modules within the monorepo (e.g., `prrun`, `want` which only use `lib/ghrelease`):
+### Keeping go.sum Up-to-Date
 
-- **Do** set `cache: false` to disable dependency caching
-- These projects won't have a `go.sum` file (which is correct)
-- Without `cache: false`, you'll get warnings: "Restore cache failed: Dependencies file is not found"
+Run `go mod tidy` whenever:
+- Adding new dependencies
+- Removing dependencies
+- Updating Go version
+- Changing module requirements
 
-Example:
-```yaml
-- name: Set up Go
-  uses: actions/setup-go@v5
-  with:
-    go-version: '1.24.7'
-    cache: false
-```
-
-### Workflows That Build Multiple Projects (e.g., Release Workflow)
-
-For workflows that build multiple projects using a matrix, where some projects have external dependencies and others don't:
-
-- **Do** conditionally enable caching based on the presence of `go.sum`
-- This ensures projects with external dependencies benefit from caching while avoiding warnings for projects without
-
-Example:
-```yaml
-- name: Check if project has go.sum
-  id: check-gosum
-  run: |
-    if [ -f "${{ matrix.project }}/go.sum" ]; then
-      echo "has_gosum=true" >> $GITHUB_OUTPUT
-    else
-      echo "has_gosum=false" >> $GITHUB_OUTPUT
-    fi
-
-- name: Set up Go
-  uses: actions/setup-go@v5
-  with:
-    go-version: '1.24.7'
-    cache: ${{ steps.check-gosum.outputs.has_gosum }}
-    cache-dependency-path: ${{ steps.check-gosum.outputs.has_gosum == 'true' && format('{0}/go.sum', matrix.project) || '' }}
-```
-
-### How to Determine Which Configuration to Use
-
-Run `go mod tidy` in the project directory:
-- If it creates a `go.sum` file → project has external dependencies → use caching (don't set `cache: false`)
-- If it doesn't create a `go.sum` file → project has only local dependencies → disable caching (`cache: false`)
-
-### Why This Matters
-
-The `actions/setup-go@v5` action has built-in dependency caching that looks for `go.sum` files. When caching is enabled but no `go.sum` exists, the action shows a warning that clutters CI logs. Disabling caching for projects without external dependencies keeps CI output clean and accurate.
-
-For workflows building multiple projects, conditional caching ensures optimal performance: projects with external dependencies get faster builds through caching, while projects with only local dependencies skip unnecessary cache operations.
+This ensures the `go.sum` file stays synchronized with `go.mod`.
 
 ------------------------------------------------------------
 
