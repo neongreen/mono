@@ -6,7 +6,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
+
+	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 const version = "0.1.0-mvp"
@@ -57,6 +60,7 @@ Examples:
   want --dry-run jujutsu          # Preview installation
   want json ps                    # Get running processes as JSON (uses jc)
   want md https://example.com     # Convert webpage to markdown
+  want https://github.com/org/repo/releases/tag/v1.0.0  # Download GitHub release
   want github.com/user/repo       # Clone a repository (not yet implemented)
 
 Configuration is stored at ~/.config/want/
@@ -82,6 +86,12 @@ func handleWant(args []string) {
 	// Check for compound commands (e.g., "want json ps" or "want md url")
 	if handler, ok := getCompoundHandler(requirement); ok {
 		handler(remainingArgs, *dryRun)
+		return
+	}
+
+	// Check if requirement looks like a GitHub release download URL
+	if strings.Contains(requirement, "github.com") && (strings.Contains(requirement, "/releases/download/") || strings.Contains(requirement, "/releases/tag/")) {
+		handleGitHubAsset(requirement, *dryRun)
 		return
 	}
 
@@ -644,4 +654,139 @@ func installToolViaMise(tool string, dryRun bool) {
 		fmt.Println("You may need to restart your shell or run:")
 		fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
 	}
+}
+
+// handleGitHubAsset downloads a binary from a GitHub release
+func handleGitHubAsset(url string, dryRun bool) {
+fmt.Printf("Downloading GitHub release asset from: %s\n", url)
+fmt.Println()
+
+// Parse the URL to extract owner, repo, and tag
+var owner, repo, tag, projectName string
+
+// Handle two URL formats:
+// 1. https://github.com/owner/repo/releases/download/tag/asset-name
+// 2. https://github.com/owner/repo/releases/tag/tag-name
+
+if strings.Contains(url, "/releases/download/") {
+// Direct download URL
+re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/([^/]+)`)
+matches := re.FindStringSubmatch(url)
+if matches == nil || len(matches) < 5 {
+fmt.Printf("Error: Invalid GitHub release download URL: %s\n", url)
+fmt.Println("\nExpected format:")
+fmt.Println("  https://github.com/owner/repo/releases/download/tag/asset-name")
+os.Exit(1)
+}
+owner = matches[1]
+repo = matches[2]
+tag = matches[3]
+assetName := matches[4]
+
+// Try to extract project name from asset name (e.g., "want-main.3-darwin-arm64" -> "want")
+// Asset name format: project-version-os-arch or project--version-os-arch
+parts := strings.Split(assetName, "-")
+if len(parts) > 0 {
+projectName = parts[0]
+}
+} else if strings.Contains(url, "/releases/tag/") {
+// Release tag URL - will detect platform automatically
+re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/releases/tag/([^/]+)`)
+matches := re.FindStringSubmatch(url)
+if matches == nil || len(matches) < 4 {
+fmt.Printf("Error: Invalid GitHub release tag URL: %s\n", url)
+fmt.Println("\nExpected format:")
+fmt.Println("  https://github.com/owner/repo/releases/tag/tag-name")
+os.Exit(1)
+}
+owner = matches[1]
+repo = matches[2]
+tag = matches[3]
+
+// Try to extract project name from tag (e.g., "want--main.3" -> "want")
+parts := strings.Split(tag, "--")
+if len(parts) > 0 {
+projectName = parts[0]
+}
+} else {
+fmt.Printf("Error: URL doesn't contain /releases/download/ or /releases/tag/\n")
+fmt.Println("\nSupported formats:")
+fmt.Println("  https://github.com/owner/repo/releases/download/tag/asset-name")
+fmt.Println("  https://github.com/owner/repo/releases/tag/tag-name")
+os.Exit(1)
+}
+
+fmt.Printf("Owner: %s\n", owner)
+fmt.Printf("Repo: %s\n", repo)
+fmt.Printf("Tag: %s\n", tag)
+if projectName != "" {
+fmt.Printf("Project: %s\n", projectName)
+}
+fmt.Println()
+
+// Determine destination path
+homeDir, err := os.UserHomeDir()
+if err != nil {
+fmt.Printf("Error: Failed to get home directory: %v\n", err)
+os.Exit(1)
+}
+
+destDir := filepath.Join(homeDir, ".local", "bin")
+destFile := projectName
+if destFile == "" {
+destFile = tag
+}
+destPath := filepath.Join(destDir, destFile)
+
+if dryRun {
+fmt.Println("DRY RUN - Execution plan:")
+fmt.Println()
+fmt.Println("Step 1: Fetch release information")
+fmt.Printf("  GET https://api.github.com/repos/%s/%s/releases/tags/%s\n", owner, repo, tag)
+fmt.Println()
+fmt.Println("Step 2: Find asset for current platform")
+platform := ghrelease.GetCurrentPlatform()
+fmt.Printf("  Platform: %s-%s\n", platform.OS, platform.Arch)
+fmt.Println()
+fmt.Println("Step 3: Download asset")
+fmt.Printf("  Destination: %s\n", destPath)
+fmt.Println()
+fmt.Println("Step 4: Make executable")
+fmt.Printf("  chmod +x %s\n", destPath)
+return
+}
+
+fmt.Println("Fetching release information...")
+err = ghrelease.DownloadReleaseAsset(owner, repo, tag, projectName, destPath)
+if err != nil {
+fmt.Printf("\nError: Failed to download release asset: %v\n", err)
+fmt.Println("\nTroubleshooting:")
+fmt.Println("  • Check that the release exists")
+fmt.Println("  • Check that there's an asset for your platform")
+fmt.Println("  • For private repositories, set GITHUB_TOKEN environment variable")
+platform := ghrelease.GetCurrentPlatform()
+fmt.Printf("  • Your platform: %s-%s\n", platform.OS, platform.Arch)
+os.Exit(1)
+}
+
+fmt.Println()
+fmt.Printf("✓ Downloaded to: %s\n", destPath)
+fmt.Println()
+
+// Check if destDir is in PATH
+pathEnv := os.Getenv("PATH")
+if !strings.Contains(pathEnv, destDir) {
+fmt.Printf("Note: %s is not in your PATH\n", destDir)
+fmt.Println()
+fmt.Println("To use the binary, either:")
+fmt.Println("  1. Run it with the full path:")
+fmt.Printf("     %s\n", destPath)
+fmt.Println()
+fmt.Println("  2. Add the directory to your PATH:")
+configFile := getShellConfigFile()
+fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
+fmt.Printf("     source %s\n", configFile)
+} else {
+fmt.Printf("✓ Binary is available in your PATH as: %s\n", destFile)
+}
 }

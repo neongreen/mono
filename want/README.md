@@ -5,6 +5,10 @@ Interactive task fulfillment tool for macOS.
 ## ⚠️ Implementation Status
 
 ### ✅ Currently Implemented
+- [x] **Download GitHub release assets** - `want https://github.com/owner/repo/releases/tag/v1.0.0`
+  - Auto-detects platform (OS and architecture)
+  - Works with both public and private repositories (with GITHUB_TOKEN)
+  - Downloads to `~/.local/bin/` and makes executable
 - [x] **Install tools via mise** - Request and install tools using `want <tool>`
 - [x] **Install mise itself** - `want mise` installs mise and detects shell config needs
 - [x] **Check if tools are already available** - Detects existing installations
@@ -36,6 +40,7 @@ want jujutsu                # Install a tool via mise
 want --dry-run jujutsu      # Preview what would be done
 want json ps                # Get process list as JSON (installs jc if needed)
 want md https://example.com # Convert URL to markdown
+want https://github.com/org/repo/releases/tag/v1.0.0  # Download GitHub release
 want github.com/user/repo   # Clone a repository (NOT YET IMPLEMENTED)
 want list                   # Show what you have (NOT YET IMPLEMENTED)
 ```
@@ -65,6 +70,28 @@ Or add to your `.mise.toml`:
 ```
 
 ## Usage
+
+### Download GitHub release assets (✅ WORKING)
+
+```bash
+# Download from a release tag (auto-detects platform)
+want https://github.com/neongreen/mono/releases/tag/want--main.3
+
+# Download specific asset
+want https://github.com/neongreen/mono/releases/download/want--main.3/want-main.3-darwin-arm64
+
+# Preview what would be downloaded
+want --dry-run https://github.com/neongreen/mono/releases/tag/want--main.3
+```
+
+The tool will:
+- Fetch the release information from GitHub
+- Find the asset matching your platform (OS and architecture)
+- Download it to `~/.local/bin/`
+- Make it executable
+- Notify you if `~/.local/bin/` is not in your PATH
+
+For private repositories, set `GITHUB_TOKEN` environment variable.
 
 ### Install a tool (✅ WORKING)
 

@@ -3,14 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
+
+	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 func parsePRURL(prURL string) (*PRInfo, error) {
@@ -31,7 +29,7 @@ func findPRRelease(owner, repo string,
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases",
 		owner, repo)
 	req,
-		err := createAuthenticatedRequest("GET", apiURL)
+		err := ghrelease.CreateAuthenticatedRequest("GET", apiURL)
 	if err !=
 		nil {
 		return nil, fmt.Errorf("failed to create request: %w",
@@ -77,74 +75,33 @@ func findPRRelease(owner, repo string,
 }
 
 func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, string, error) {
-	osName := runtime.GOOS
-	archName := runtime.GOARCH
-	if osName == "darwin" {
-		osName = "darwin"
-	} else if osName ==
-		"linux" {
-		osName = "linux"
-	} else {
-		return "", "", fmt.Errorf("unsupported OS: %s",
-
-			osName)
+	// Convert GitHubRelease to ghrelease.Release
+	ghrRelease := &ghrelease.Release{
+		TagName:    release.TagName,
+		Name:       release.Name,
+		Prerelease: release.Prerelease,
+		Assets:     make([]ghrelease.Asset, len(release.Assets)),
 	}
-	if archName == "amd64" {
-		archName = "amd64"
-	} else if archName == "arm64" {
-		archName = "arm64"
-	} else {
-		return "", "", fmt.Errorf("unsupported architecture: %s",
-			archName)
-	}
-	if len(
-		release.Assets) == 0 {
-		return "", "", fmt.Errorf(
-			"release %s has no assets (the build may have failed)",
-
-			release.TagName)
-	}
-
-	for _, asset := range release.Assets {
-		if strings.Contains(
-			asset.Name, osName) && strings.Contains(asset.Name, archName) {
-			if projectName == "" {
-				// For private releases, we must use asset.URL (GitHub API URL) not asset.BrowserDownloadURL
-				// asset.URL works with authentication, asset.BrowserDownloadURL returns 404 for private releases
-				return asset.Name, asset.URL, nil
-			}
-			if strings.
-				HasPrefix(asset.Name, projectName) {
-				// For private releases, we must use asset.URL (GitHub API URL) not asset.BrowserDownloadURL
-				// asset.URL works with authentication, asset.BrowserDownloadURL returns 404 for private releases
-				return asset.Name, asset.URL, nil
-			}
+	for i, asset := range release.Assets {
+		ghrRelease.Assets[i] = ghrelease.Asset{
+			Name:               asset.Name,
+			URL:                asset.URL,
+			BrowserDownloadURL: asset.BrowserDownloadURL,
 		}
 	}
-	return "", "", fmt.Errorf(
-		"no binary found for %s/%s in release %s (expected name pattern: %s-*-%s-%s or %s--*-%s-%s). Available assets: %v",
 
-		osName, archName,
-		release.TagName, projectName, osName, archName, projectName,
+	asset, err := ghrelease.FindPlatformAsset(ghrRelease, projectName)
+	if err != nil {
+		return "", "", err
+	}
 
-		osName, archName,
-		func() []string {
-			var names []string
-			for _, asset := range release.Assets {
-				names = append(names,
-
-					asset.
-						Name)
-			}
-			return names
-		}(),
-	)
+	return asset.Name, asset.URL, nil
 }
 
 // findAllPRReleases finds all releases for a given PR number
 func findAllPRReleases(owner, repo string, prNum int) ([]GitHubRelease, error) {
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", owner, repo)
-	req, err := createAuthenticatedRequest("GET", apiURL)
+	req, err := ghrelease.CreateAuthenticatedRequest("GET", apiURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -206,7 +163,7 @@ func extractUniqueProjects(releases []GitHubRelease) []string {
 func checkWorkflowApproval(owner, repo string, prNum int) {
 	// Get the PR details to find associated workflow runs
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%d", owner, repo, prNum)
-	req, err := createAuthenticatedRequest("GET", apiURL)
+	req, err := ghrelease.CreateAuthenticatedRequest("GET", apiURL)
 	if err != nil {
 		// Silently fail - this is just a warning feature
 		return
@@ -234,7 +191,7 @@ func checkWorkflowApproval(owner, repo string, prNum int) {
 
 	// Now get workflow runs for this commit
 	apiURL = fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s/check-runs", owner, repo, prDetails.Head.SHA)
-	req, err = createAuthenticatedRequest("GET", apiURL)
+	req, err = ghrelease.CreateAuthenticatedRequest("GET", apiURL)
 	if err != nil {
 		return
 	}
@@ -272,66 +229,15 @@ func checkWorkflowApproval(owner, repo string, prNum int) {
 	}
 
 	if hasWaitingRelease {
-		fmt.Fprintf(os.Stderr, "Warning: The release workflow for PR #%d may be pending approval.\n", prNum)
-		fmt.Fprintf(os.Stderr, "         Check GitHub Actions at https://github.com/%s/%s/pull/%d/checks to approve it.\n\n", owner, repo, prNum)
+		fmt.Printf("Warning: The release workflow for PR #%d may be pending approval.\n", prNum)
+		fmt.Printf("         Check GitHub Actions at https://github.com/%s/%s/pull/%d/checks to approve it.\n\n", owner, repo, prNum)
 	}
 }
 
 func downloadBinary(downloadURL, destPath string) error {
-	req, err := createAuthenticatedRequest("GET", downloadURL)
-	if err !=
-		nil {
-		return fmt.Errorf("failed to create request: %w",
-			err)
+	// Create a temporary asset object for the download
+	asset := &ghrelease.Asset{
+		URL: downloadURL,
 	}
-
-	req.Header.
-		Set("Accept",
-			"application/octet-stream")
-	client := &http.Client{}
-	resp,
-		err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to download binary: %w",
-
-			err)
-	}
-	defer resp.Body.
-		Close()
-	if resp.StatusCode != http.StatusOK {
-		if resp.StatusCode == 404 {
-			return fmt.Errorf("download failed with status 404 (asset not found). This may mean:\n"+
-				"  1. The release exists but has no assets (build may have failed)\n"+
-				"  2. The asset name doesn't match what was expected\n"+
-				"  3. The release is private and requires authentication\n"+
-				"  Download URL: %s", downloadURL)
-		}
-		return fmt.Errorf("download failed with status %d", resp.StatusCode)
-	}
-
-	if err := os.
-		MkdirAll(filepath.Dir(destPath), 0755); err != nil {
-		return fmt.Errorf("failed to create cache directory: %w",
-
-			err)
-	}
-	outFile, err := os.Create(destPath)
-	if err != nil {
-		return fmt.Errorf("failed to create file: %w",
-
-			err)
-	}
-	defer outFile.Close()
-	if _, err := io.Copy(outFile, resp.Body); err != nil {
-		return fmt.
-			Errorf("failed to write binary: %w",
-				err)
-	}
-	if err := os.Chmod(destPath,
-		0755); err != nil {
-		return fmt.Errorf("failed to make binary executable: %w",
-
-			err)
-	}
-	return nil
+	return ghrelease.DownloadAsset(asset, destPath)
 }
