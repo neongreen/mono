@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 func getCacheDir() (string, error) {
@@ -18,41 +16,8 @@ func getCacheDir() (string, error) {
 	return cacheDir, nil
 }
 
-func getGitHubToken() string {
-
-	// getCacheDir returns the cache directory path
-	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
-		return token
-	}
-	if token := os.Getenv("MISE_GITHUB_TOKEN"); token != "" {
-		return token
-	}
-	cmd := exec.Command("gh", "auth", "token")
-	output, err := cmd.Output()
-	if err == nil && len(output) > 0 {
-		return strings.TrimSpace(string(output))
-	}
-	return ""
-}
-
-func createAuthenticatedRequest(method,
-	url string) (*http.Request, error) {
-	req, err := http.NewRequest(method,
-		url, nil)
-	if err !=
-
-		nil {
-		return nil, err
-	}
-
-	if token := getGitHubToken(); token != "" {
-		req.Header.Set("Authorization",
-
-			"Bearer "+
-				token)
-	}
-	return req, nil
-}
+// getGitHubToken is now provided by ghrelease library
+// createAuthenticatedRequest is now provided by ghrelease library
 
 func runBinary(binaryPath string, args []string) error {
 	cmd := exec.
