@@ -205,7 +205,7 @@ func installMise(dryRun bool) error {
 	if dryRun {
 		fmt.Println("DRY RUN - Execution plan:")
 		fmt.Println()
-		fmt.Println("Step 1: Download and run mise installation script")
+		fmt.Println("Step 1 (AUTOMATIC): Download and run mise installation script")
 		fmt.Println("  $ curl https://mise.run | sh")
 		fmt.Println()
 
@@ -213,17 +213,21 @@ func installMise(dryRun bool) error {
 		if !isMiseActivated() {
 			configFile := getShellConfigFile()
 			shellName := getShellName()
-			fmt.Println("Step 2: Add mise activation to shell configuration (AUTOMATIC)")
+			fmt.Println("Step 2 (AUTOMATIC): Add mise activation to shell configuration")
 			fmt.Printf("  File: %s\n", configFile)
 			fmt.Printf("  Command: eval \"$(mise activate %s)\"\n", shellName)
 			fmt.Println()
 			fmt.Println("  This ensures mise-installed tools are available in your PATH.")
+			fmt.Println()
+			fmt.Println("Step 3 (MANUAL): Activate mise in current shell")
+			fmt.Printf("  $ eval \"$(mise activate %s)\"\n", shellName)
+			fmt.Println("  Or restart your shell")
 		} else {
 			fmt.Println("Step 2: Shell activation already configured")
 			fmt.Println("  mise activation is already present in your shell config")
+			fmt.Println()
+			fmt.Println("No manual steps required.")
 		}
-		fmt.Println()
-		fmt.Println("All steps will be performed automatically.")
 		return nil
 	}
 
@@ -282,12 +286,23 @@ func installMise(dryRun bool) error {
 
 		fmt.Println("✓ mise activation added to your shell configuration")
 		fmt.Println()
-		fmt.Println("To activate mise in your current shell, run:")
-		fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
+		fmt.Println("Summary:")
+		fmt.Println("  ✓ mise installed")
+		fmt.Println("  ✓ Shell configuration updated")
 		fmt.Println()
-		fmt.Println("Or restart your shell.")
+		fmt.Println("Manual step required:")
+		fmt.Println("  To activate mise in your current shell, run:")
+		fmt.Printf("    eval \"$(mise activate %s)\"\n", shellName)
+		fmt.Println()
+		fmt.Println("  Or restart your shell to automatically load mise.")
 	} else {
 		fmt.Println("✓ mise activation already configured in your shell")
+		fmt.Println()
+		fmt.Println("Summary:")
+		fmt.Println("  ✓ mise installed")
+		fmt.Println("  ✓ Shell configuration already present")
+		fmt.Println()
+		fmt.Println("No manual steps required.")
 	}
 
 	return nil
