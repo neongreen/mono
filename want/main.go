@@ -161,7 +161,7 @@ func handleJsonCommand(args []string, dryRun bool) {
 	if !isToolAvailable("jc") {
 		fmt.Println("The 'json' command requires 'jc' (JSON CLI output formatter)")
 		fmt.Println()
-		
+
 		if dryRun {
 			fmt.Println("DRY RUN - Execution plan:")
 			fmt.Println()
@@ -176,7 +176,7 @@ func handleJsonCommand(args []string, dryRun bool) {
 		fmt.Println("Installing jc...")
 		installToolViaMise("jc", false)
 		fmt.Println()
-		
+
 		// Check if installation succeeded
 		if !isToolAvailable("jc") {
 			fmt.Println("Error: jc installation failed")
@@ -186,7 +186,7 @@ func handleJsonCommand(args []string, dryRun bool) {
 
 	// Build and execute the command
 	commandStr := strings.Join(args, " ")
-	
+
 	if dryRun {
 		fmt.Println("DRY RUN - Execution plan:")
 		fmt.Println()
@@ -199,7 +199,7 @@ func handleJsonCommand(args []string, dryRun bool) {
 	cmd := exec.Command("jc", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("\nError: Command failed: jc %s\n", commandStr)
@@ -221,17 +221,17 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 
 	// Check which tool is available (prefer markitdown, fallback to pure.md via curl)
 	hasMarkitdown := isToolAvailable("markitdown")
-	
+
 	if !hasMarkitdown {
 		fmt.Println("The 'md' command requires 'markitdown' (Microsoft's HTML to Markdown converter)")
 		fmt.Println("Repository: https://github.com/microsoft/markitdown")
 		fmt.Println()
-		
+
 		// Determine the best installation method
 		hasUvx := isToolAvailable("uvx")
 		hasMise := isMiseAvailable()
 		hasUv := isToolAvailable("uv")
-		
+
 		if dryRun {
 			fmt.Println("DRY RUN - Execution plan:")
 			fmt.Println()
@@ -266,7 +266,7 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 			cmd := exec.Command("uvx", "markitdown", url)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-			
+
 			if err := cmd.Run(); err != nil {
 				fmt.Println("\nWarning: uvx markitdown failed")
 				fmt.Println("Falling back to pure.md service...")
@@ -277,7 +277,7 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 			fmt.Println("Installing markitdown via mise...")
 			installToolViaMise("python:markitdown", false)
 			fmt.Println()
-			
+
 			hasMarkitdown = isToolAvailable("markitdown")
 		} else if hasUv {
 			// uv is available but uvx might not be in PATH yet
@@ -285,7 +285,7 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 			cmd := exec.Command("uv", "tool", "run", "markitdown", url)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-			
+
 			if err := cmd.Run(); err != nil {
 				fmt.Println("\nWarning: uv tool run markitdown failed")
 				fmt.Println("Falling back to pure.md service...")
@@ -306,7 +306,7 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 			usePureMd(url)
 			return
 		}
-		
+
 		// If still not available after mise installation, use pure.md
 		if !hasMarkitdown {
 			fmt.Println("markitdown not available, using pure.md service...")
@@ -327,7 +327,7 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 	cmd := exec.Command("markitdown", url)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("\nError: Command failed: markitdown %s\n", url)
@@ -345,11 +345,11 @@ func usePureMd(url string) {
 
 	pureMdURL := "https://pure.md/" + url
 	fmt.Printf("Fetching from pure.md: %s\n\n", pureMdURL)
-	
+
 	cmd := exec.Command("curl", "-s", pureMdURL)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("\nError: Failed to fetch from pure.md\n")
@@ -363,14 +363,14 @@ func installToolViaMise(tool string, dryRun bool) {
 	if isToolAvailable(tool) {
 		fmt.Printf("✓ %s is already available\n", tool)
 		fmt.Println()
-		
+
 		// Show where it's from
 		cmd := exec.Command("which", tool)
 		output, err := cmd.Output()
 		if err == nil {
 			fmt.Printf("  Location: %s", string(output))
 		}
-		
+
 		fmt.Println("\nNote: The tool is already available, so no installation is needed.")
 		fmt.Println("If you want to install it via mise specifically, you can run:")
 		fmt.Printf("  mise use -g %s\n", tool)
@@ -379,7 +379,7 @@ func installToolViaMise(tool string, dryRun bool) {
 
 	// Try to install via mise
 	fmt.Printf("Installing %s via mise...\n", tool)
-	
+
 	if dryRun {
 		fmt.Println()
 		fmt.Println("DRY RUN - Execution plan:")
@@ -400,7 +400,7 @@ func installToolViaMise(tool string, dryRun bool) {
 	cmd := exec.Command("mise", "use", "-g", tool)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	err := cmd.Run()
 	if err != nil {
 		fmt.Printf("\nError: Failed to install %s via mise\n", tool)
@@ -416,7 +416,7 @@ func installToolViaMise(tool string, dryRun bool) {
 
 	fmt.Println()
 	fmt.Printf("✓ %s installed successfully\n", tool)
-	
+
 	// Verify installation
 	if isToolAvailable(tool) {
 		fmt.Printf("✓ %s is now available in your PATH\n", tool)
