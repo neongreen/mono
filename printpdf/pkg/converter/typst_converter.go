@@ -42,16 +42,16 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 	} else {
 		buf.WriteString("#set page(paper: \"a4\", margin: (x: 2cm, y: 2cm))\n")
 	}
-	
+
 	buf.WriteString("#set text(font: \"Linux Libertine\", size: 11pt)\n")
 	buf.WriteString("#set par(justify: false, leading: 0.65em)\n")
 	buf.WriteString("#set heading(numbering: none)\n")
-	
+
 	// Add column layout if more than 1 column
 	if options.Columns > 1 {
 		buf.WriteString(fmt.Sprintf("#show: columns.with(%d, gutter: 1em)\n", options.Columns))
 	}
-	
+
 	buf.WriteString("\n")
 
 	// Convert the document

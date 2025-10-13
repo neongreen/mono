@@ -76,7 +76,43 @@ printpdf -converters typst,weasyprint document.md
 
 # Use only one converter
 printpdf -converters typst document.md
+
+# Create a multi-column layout (newspaper style)
+printpdf -columns 2 document.md
+printpdf -columns 3 document.md
+
+# Use landscape orientation
+printpdf -orientation landscape document.md
+
+# Combine options: 3 columns in landscape mode
+printpdf -columns 3 -orientation landscape document.md
 ```
+
+#### Column Layout
+
+The `-columns` flag allows you to split the document into multiple columns, similar to newspaper layouts:
+
+- Default: 1 column (standard single-column layout)
+- `-columns 2`: Two-column layout
+- `-columns 3`: Three-column layout
+- Works with any number of columns
+
+The implementation varies by converter:
+- **Typst**: Uses native `columns` function with automatic text flow
+- **WeasyPrint/Prince**: Uses CSS Multi-column Layout
+
+Headings (h1, h2, h3) typically span all columns for better readability.
+
+#### Page Orientation
+
+The `-orientation` flag controls whether the page is in portrait or landscape mode:
+
+- Default: `portrait` (standard vertical orientation)
+- `landscape`: Horizontal orientation (useful for wider content)
+
+The implementation:
+- **Typst**: Uses `flipped: true` page attribute
+- **WeasyPrint/Prince**: Uses CSS `@page { size: A4 landscape; }`
 
 ### GitHub Authentication
 
