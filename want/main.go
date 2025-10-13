@@ -22,6 +22,7 @@ type PlanStep struct {
 	Description string `json:"description"` // Human-readable description
 	Command     string `json:"command"`     // Command to execute
 	Automatic   bool   `json:"automatic"`   // Whether this step is automatic
+	Safe        bool   `json:"safe"`        // Whether this step is read-only/safe
 }
 
 // FulfillmentPlan represents a complete plan to fulfill a requirement
@@ -67,11 +68,12 @@ func (p *FulfillmentPlan) PrintPlan() {
 	fmt.Println("Fulfillment plan:")
 	fmt.Println()
 	for i, step := range p.Steps {
-		stepLabel := "AUTOMATIC"
+		// Only show label for manual steps
 		if !step.Automatic {
-			stepLabel = "MANUAL"
+			fmt.Printf("Step %d (MANUAL): %s\n", i+1, step.Description)
+		} else {
+			fmt.Printf("Step %d: %s\n", i+1, step.Description)
 		}
-		fmt.Printf("Step %d (%s): %s\n", i+1, stepLabel, step.Description)
 		fmt.Printf("  $ %s\n", step.Command)
 		fmt.Println()
 	}
@@ -84,6 +86,16 @@ func (p *FulfillmentPlan) ToJSON() (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+// HasOnlySafeSteps returns true if all steps in the plan are marked as safe
+func (p *FulfillmentPlan) HasOnlySafeSteps() bool {
+	for _, step := range p.Steps {
+		if !step.Safe {
+			return false
+		}
+	}
+	return len(p.Steps) > 0
 }
 
 // ConfirmPlan asks the user to confirm the plan
@@ -418,6 +430,31 @@ func getCompoundHandler(command string) (CompoundHandler, bool) {
 	return handler, ok
 }
 
+// isCommandSafe checks if a command is read-only/safe (doesn't modify system state)
+func isCommandSafe(command string) bool {
+	// List of safe/read-only commands that can be run without confirmation
+	// NOTE: This is a conservative list. Commands that CAN modify state with certain flags
+	// (like 'find -delete', 'date -s') are excluded for safety.
+	// Future improvement: Implement argument inspection to allow safe uses of these commands.
+	safeCommands := []string{
+		"ps", "top", "uptime", "whoami", "id", "hostname", "uname",
+		"df", "du", "free", "vmstat", "iostat", "netstat", "ss",
+		"ls", "pwd", "cat", "head", "tail", "wc", "grep",
+		"cal", "env", "printenv", "which", "whereis",
+		"git status", "git log", "git diff", "git show",
+	}
+	
+	// Check if the command starts with any safe command
+	cmdLower := strings.ToLower(strings.TrimSpace(command))
+	for _, safe := range safeCommands {
+		if strings.HasPrefix(cmdLower, safe) {
+			return true
+		}
+	}
+	
+	return false
+}
+
 // handleJsonCommand handles "want json <command>" - converts command output to JSON
 func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 	if len(args) == 0 {
@@ -456,6 +493,7 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 		Description: "Execute command with jc",
 		Command:     fmt.Sprintf("jc %s", commandStr),
 		Automatic:   true,
+		Safe:        isCommandSafe(commandStr),
 	})
 
 	// Handle plan output modes
@@ -476,9 +514,13 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 
 	// Execute the plan
 	plan.PrintPlan()
-	if !plan.ConfirmPlan() {
-		fmt.Println("Cancelled.")
-		os.Exit(0)
+	
+	// Skip confirmation if all steps are safe
+	if !plan.HasOnlySafeSteps() {
+		if !plan.ConfirmPlan() {
+			fmt.Println("Cancelled.")
+			os.Exit(0)
+		}
 	}
 	fmt.Println()
 
