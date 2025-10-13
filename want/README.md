@@ -6,7 +6,9 @@ Interactive task fulfillment tool for macOS.
 
 ### ✅ Currently Implemented
 - [x] **Install tools via mise** - Request and install tools using `want <tool>`
+- [x] **Install mise itself** - `want mise` installs mise and detects shell config needs
 - [x] **Check if tools are already available** - Detects existing installations
+- [x] **Shell configuration detection** - Detects if mise activation is configured
 - [x] **Dry-run mode** - Preview actions with `--dry-run` flag
 - [x] **Compound commands with parameters** - Transform and execute commands
   - [x] **`want json <command>`** - Convert command output to JSON using `jc`
@@ -68,6 +70,7 @@ Or add to your `.mise.toml`:
 
 ```bash
 want jujutsu                    # Install jujutsu via mise
+want mise                       # Install mise itself (special case)
 ```
 
 If the tool is already available (installed via brew, apt, or any other method), `want` will detect it and skip installation:
@@ -76,6 +79,27 @@ If the tool is already available (installed via brew, apt, or any other method),
 $ want jq
 ✓ jq is already available
   Location: /usr/bin/jq
+```
+
+When installing `mise` itself, `want` will:
+- Download and install mise using the official installation script
+- Detect if mise activation is needed in your shell config (.bashrc, .zshrc, etc.)
+- Provide instructions for adding the activation line
+
+```bash
+$ want --dry-run mise
+Installing mise...
+
+DRY RUN - Execution plan:
+
+Step 1: Download and run mise installation script
+  $ curl https://mise.run | sh
+
+Step 2: Add mise activation to shell configuration
+  File: /home/user/.bashrc
+  Command: eval "$(mise activate bash)"
+
+  This ensures mise-installed tools are available in your PATH.
 ```
 
 ### Dry-run mode (✅ WORKING)

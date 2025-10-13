@@ -53,6 +53,7 @@ Flags:
 
 Examples:
   want jujutsu                    # Install a tool
+  want mise                       # Install mise itself
   want --dry-run jujutsu          # Preview installation
   want json ps                    # Get running processes as JSON (uses jc)
   want md https://example.com     # Convert webpage to markdown
@@ -228,9 +229,16 @@ func installMise(dryRun bool) error {
 	cmd := exec.Command("sh", "-c", "curl https://mise.run | sh")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	
+
 	err := cmd.Run()
 	if err != nil {
+		fmt.Println()
+		fmt.Println("Error: Failed to download and install mise")
+		fmt.Println()
+		fmt.Println("You can try installing manually:")
+		fmt.Println("  curl https://mise.run | sh")
+		fmt.Println()
+		fmt.Println("Or visit: https://mise.jdx.dev/getting-started.html")
 		return fmt.Errorf("failed to install mise: %w", err)
 	}
 
