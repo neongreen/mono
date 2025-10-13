@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -132,6 +133,131 @@ func isToolAvailable(tool string) bool {
 func isMiseAvailable() bool {
 	_, err := exec.LookPath("mise")
 	return err == nil
+}
+
+// getShellConfigFile returns the shell configuration file path based on the current shell
+func getShellConfigFile() string {
+	shell := os.Getenv("SHELL")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	// Determine config file based on shell
+	if strings.Contains(shell, "zsh") {
+		zshrc := filepath.Join(homeDir, ".zshrc")
+		if _, err := os.Stat(zshrc); err == nil {
+			return zshrc
+		}
+		zprofile := filepath.Join(homeDir, ".zprofile")
+		return zprofile
+	} else if strings.Contains(shell, "bash") {
+		bashrc := filepath.Join(homeDir, ".bashrc")
+		if _, err := os.Stat(bashrc); err == nil {
+			return bashrc
+		}
+		bashProfile := filepath.Join(homeDir, ".bash_profile")
+		if _, err := os.Stat(bashProfile); err == nil {
+			return bashProfile
+		}
+		profile := filepath.Join(homeDir, ".profile")
+		return profile
+	}
+
+	// Default to .profile for other shells
+	return filepath.Join(homeDir, ".profile")
+}
+
+// isMiseActivated checks if mise activation is present in the shell config
+func isMiseActivated() bool {
+	configFile := getShellConfigFile()
+	if configFile == "" {
+		return false
+	}
+
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		return false
+	}
+
+	content := string(data)
+	// Check for mise activation command
+	return strings.Contains(content, "mise activate") || strings.Contains(content, "mise.jdx.dev")
+}
+
+// getShellName returns a human-readable name for the current shell
+func getShellName() string {
+	shell := os.Getenv("SHELL")
+	if strings.Contains(shell, "zsh") {
+		return "zsh"
+	} else if strings.Contains(shell, "bash") {
+		return "bash"
+	}
+	return filepath.Base(shell)
+}
+
+// installMise installs mise using the official installation script
+func installMise(dryRun bool) error {
+	fmt.Println("Installing mise...")
+	fmt.Println()
+
+	if dryRun {
+		fmt.Println("DRY RUN - Execution plan:")
+		fmt.Println()
+		fmt.Println("Step 1: Download and run mise installation script")
+		fmt.Println("  $ curl https://mise.run | sh")
+		fmt.Println()
+
+		// Check if mise activation is needed
+		if !isMiseActivated() {
+			configFile := getShellConfigFile()
+			shellName := getShellName()
+			fmt.Println("Step 2: Add mise activation to shell configuration")
+			fmt.Printf("  File: %s\n", configFile)
+			fmt.Printf("  Command: eval \"$(mise activate %s)\"\n", shellName)
+			fmt.Println()
+			fmt.Println("  This ensures mise-installed tools are available in your PATH.")
+		} else {
+			fmt.Println("Step 2: Shell activation already configured")
+			fmt.Println("  mise activation is already present in your shell config")
+		}
+		return nil
+	}
+
+	// Install mise using the official installation script
+	cmd := exec.Command("sh", "-c", "curl https://mise.run | sh")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	
+	err := cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to install mise: %w", err)
+	}
+
+	fmt.Println()
+	fmt.Println("✓ mise installed successfully")
+	fmt.Println()
+
+	// Check if we need to add activation to shell config
+	if !isMiseActivated() {
+		configFile := getShellConfigFile()
+		shellName := getShellName()
+
+		fmt.Printf("⚠ mise activation not found in %s\n", configFile)
+		fmt.Println()
+		fmt.Println("To make mise-installed tools available in your PATH, add this line:")
+		fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
+		fmt.Println()
+		fmt.Printf("You can add it automatically with:\n")
+		fmt.Printf("  echo 'eval \"$(mise activate %s)\"' >> %s\n", shellName, configFile)
+		fmt.Println()
+		fmt.Println("Or restart your shell and run:")
+		fmt.Println("  eval \"$(mise activate " + shellName + ")\"")
+	} else {
+		fmt.Println("✓ mise activation already configured in your shell")
+	}
+
+	return nil
 }
 
 // CompoundHandler is a function that handles compound commands
@@ -359,6 +485,47 @@ func usePureMd(url string) {
 
 // installToolViaMise installs a tool using mise
 func installToolViaMise(tool string, dryRun bool) {
+	// Special case: handle mise installation request
+	if tool == "mise" {
+		if isMiseAvailable() {
+			fmt.Printf("✓ mise is already available\n")
+			fmt.Println()
+
+			// Show where it's from
+			cmd := exec.Command("which", "mise")
+			output, err := cmd.Output()
+			if err == nil {
+				fmt.Printf("  Location: %s", string(output))
+			}
+
+			// Check activation status
+			if !isMiseActivated() {
+				configFile := getShellConfigFile()
+				shellName := getShellName()
+				fmt.Println()
+				fmt.Printf("⚠ mise activation not found in %s\n", configFile)
+				fmt.Println()
+				fmt.Println("To make mise-installed tools available in your PATH, add this line:")
+				fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
+				fmt.Println()
+				fmt.Printf("You can add it automatically with:\n")
+				fmt.Printf("  echo 'eval \"$(mise activate %s)\"' >> %s\n", shellName, configFile)
+			} else {
+				fmt.Println()
+				fmt.Println("✓ mise activation is configured in your shell")
+			}
+			return
+		}
+
+		// Install mise using the official installation script
+		err := installMise(dryRun)
+		if err != nil {
+			fmt.Printf("\nError: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	// Check if tool is already available
 	if isToolAvailable(tool) {
 		fmt.Printf("✓ %s is already available\n", tool)
@@ -394,6 +561,9 @@ func installToolViaMise(tool string, dryRun bool) {
 		fmt.Println()
 		fmt.Println("Error: mise is not installed")
 		fmt.Println("Please install mise first: https://mise.jdx.dev/")
+		fmt.Println()
+		fmt.Println("You can install mise with:")
+		fmt.Println("  want mise")
 		os.Exit(1)
 	}
 
@@ -422,8 +592,8 @@ func installToolViaMise(tool string, dryRun bool) {
 		fmt.Printf("✓ %s is now available in your PATH\n", tool)
 	} else {
 		fmt.Printf("⚠ %s was installed but may not be in your PATH yet\n", tool)
+		shellName := getShellName()
 		fmt.Println("You may need to restart your shell or run:")
-		fmt.Println("  eval \"$(mise activate bash)\"  # for bash")
-		fmt.Println("  eval \"$(mise activate zsh)\"   # for zsh")
+		fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
 	}
 }
