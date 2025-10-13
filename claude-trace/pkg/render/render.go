@@ -18,6 +18,7 @@ type TraceData struct {
 	Tags         map[string]bool     `json:"tags"`
 	FreeformNote string              `json:"freeform_note,omitempty"`
 	Annotations  []AnnotationData    `json:"annotations,omitempty"`
+	RawContent   string              `json:"raw_content,omitempty"`
 }
 
 // AnnotationData represents an annotation in the intermediate format
@@ -47,6 +48,7 @@ func ToTraceData(trace *storage.Trace) *TraceData {
 		Tags:         trace.Tags,
 		FreeformNote: trace.FreeformNote,
 		Annotations:  make([]AnnotationData, len(trace.Annotations)),
+		RawContent:   trace.Content,
 	}
 
 	// Convert annotations

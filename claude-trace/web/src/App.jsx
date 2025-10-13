@@ -97,7 +97,7 @@ function App() {
               ))}
             </div>
           ) : (
-            <pre className="raw-content">{traceData.parsed_trace?.raw_content || 'No content available'}</pre>
+            <pre className="raw-content">{traceData.raw_content || 'No content available'}</pre>
           )}
         </div>
 
