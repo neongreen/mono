@@ -1,6 +1,9 @@
 package main
 
 import (
+	"os"
+	"os/exec"
+	"strings"
 	"testing"
 )
 
@@ -113,6 +116,62 @@ func TestExtractUniqueProjects(t *testing.T) {
 			for _, p := range tt.want {
 				if !gotMap[p] {
 					t.Errorf("extractUniqueProjects() missing project %q, got %v, want %v", p, got, tt.want)
+				}
+			}
+		})
+	}
+}
+
+func TestHelpFlagPositioning(t *testing.T) {
+	// Build the binary first
+	cmd := exec.Command("go", "build", "-o", "prrun-test-help")
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to build prrun: %v", err)
+	}
+	defer os.Remove("prrun-test-help")
+
+	tests := []struct {
+		name           string
+		args           []string
+		expectPrrunHelp bool
+	}{
+		{
+			name:           "--help as first argument shows prrun help",
+			args:           []string{"--help"},
+			expectPrrunHelp: true,
+		},
+		{
+			name:           "-h as first argument shows prrun help",
+			args:           []string{"-h"},
+			expectPrrunHelp: true,
+		},
+		{
+			name:           "--version as first argument shows prrun version",
+			args:           []string{"--version"},
+			expectPrrunHelp: true, // version output is also prrun output
+		},
+		{
+			name:           "-v as first argument shows prrun version",
+			args:           []string{"-v"},
+			expectPrrunHelp: true, // version output is also prrun output
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := exec.Command("./prrun-test-help", tt.args...)
+			output, err := cmd.CombinedOutput()
+
+			// All these cases should exit with code 0
+			if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() != 0 {
+				t.Errorf("Expected exit code 0, got %d", exitErr.ExitCode())
+			}
+
+			outputStr := string(output)
+			if tt.expectPrrunHelp {
+				// Should contain prrun help/version text
+				if !strings.Contains(outputStr, "prrun") && !strings.Contains(outputStr, "PR Binary Runner") {
+					t.Errorf("Expected prrun help/version output, got: %s", outputStr)
 				}
 			}
 		})
