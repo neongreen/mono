@@ -188,6 +188,20 @@ func extractProjectFromTag(tag string) string {
 	return ""
 }
 
+// extractUniqueProjects extracts unique project names from a list of releases
+func extractUniqueProjects(releases []GitHubRelease) []string {
+	projectSet := make(map[string]bool)
+	var uniqueProjects []string
+	for _, r := range releases {
+		project := extractProjectFromTag(r.TagName)
+		if !projectSet[project] {
+			projectSet[project] = true
+			uniqueProjects = append(uniqueProjects, project)
+		}
+	}
+	return uniqueProjects
+}
+
 // checkWorkflowApproval checks if the workflow run for a PR is pending approval
 func checkWorkflowApproval(owner, repo string, prNum int) {
 	// Get the PR details to find associated workflow runs

@@ -189,7 +189,12 @@ jobs:
             OUTPUT_NAME="${PROJECT}-${VERSION}-${GOOS}-${GOARCH}"
             
             echo "Building for $GOOS/$GOARCH..."
-            (cd "$PROJECT" && GOOS=$GOOS GOARCH=$GOARCH go build -o "$DIST_DIR/$OUTPUT_NAME" $BUILD_TARGET)
+            
+            # Set ldflags for version information
+            BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            LDFLAGS="-X main.Version=${VERSION} -X main.GitCommit=${{ github.sha }} -X main.BuildTime=${BUILD_TIME}"
+            
+            (cd "$PROJECT" && GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="$LDFLAGS" -o "$DIST_DIR/$OUTPUT_NAME" $BUILD_TARGET)
             
             if [ $? -ne 0 ]; then
               echo "Failed to build for $GOOS/$GOARCH"

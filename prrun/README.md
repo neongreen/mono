@@ -16,6 +16,9 @@ Think of it like a version manager (e.g., Mise) but for testing PR binaries.
 ## Usage
 
 ```bash
+# Check version and updates
+prrun --version
+
 # Auto-detect project (if PR has only one project)
 prrun https://github.com/neongreen/mono/pull/123 --help
 
@@ -35,10 +38,12 @@ prrun https://github.com/neongreen/mono/pull/123 -p dissect -- --help
 prrun <github-pr-url> [args...]
 prrun <github-pr-url> --project <name> [args...]
 prrun <github-pr-url> -p <name> [args...]
+prrun --version
 ```
 
 - `github-pr-url`: Full or short GitHub PR URL (e.g., `https://github.com/owner/repo/pull/123` or `github.com/owner/repo/pull/123`)
 - `--project, -p`: Specify project name (required only if PR has multiple projects)
+- `--version, -v`: Show version information and check for updates
 - `[args...]`: Arguments to pass to the binary (no `--` separator needed anymore!)
 
 The tool automatically detects which project the PR modifies. If multiple projects are detected, you'll need to specify one with `--project` or `-p`.
@@ -49,9 +54,11 @@ The tool automatically detects which project the PR modifies. If multiple projec
 
 ```bash
 cd prrun
-go build -o prrun .
+go build -ldflags="-X main.GitCommit=$(git rev-parse HEAD) -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o prrun .
 sudo mv prrun /usr/local/bin/
 ```
+
+Note: The build includes version information (commit hash and build time) for the `--version` flag.
 
 ### Once Released
 

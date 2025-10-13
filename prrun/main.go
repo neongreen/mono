@@ -20,6 +20,10 @@ func main() {
 			printUsage()
 			os.Exit(0)
 		}
+		if arg == "--version" || arg == "-v" {
+			printVersion()
+			os.Exit(0)
+		}
 	}
 
 	// Parse arguments
@@ -91,15 +95,19 @@ func main() {
 		}
 		
 		if len(releases) > 1 && !explicitProject {
-			// Multiple projects detected
-			fmt.Fprintf(os.Stderr, "Error: multiple projects found for PR #%d:\n", prInfo.PRNum)
-			for _, r := range releases {
-				project := extractProjectFromTag(r.TagName)
-				fmt.Fprintf(os.Stderr, "  - %s\n", project)
+			// Multiple projects detected - extract unique project names
+			uniqueProjects := extractUniqueProjects(releases)
+			
+			// Only error if there are truly multiple different projects
+			if len(uniqueProjects) > 1 {
+				fmt.Fprintf(os.Stderr, "Error: multiple projects found for PR #%d:\n", prInfo.PRNum)
+				for _, project := range uniqueProjects {
+					fmt.Fprintf(os.Stderr, "  - %s\n", project)
+				}
+				fmt.Fprintf(os.Stderr, "\nPlease specify a project with --project or -p flag:\n")
+				fmt.Fprintf(os.Stderr, "  prrun %s --project <project-name> %s\n", prURL, strings.Join(binaryArgs, " "))
+				os.Exit(1)
 			}
-			fmt.Fprintf(os.Stderr, "\nPlease specify a project with --project or -p flag:\n")
-			fmt.Fprintf(os.Stderr, "  prrun %s --project <project-name> %s\n", prURL, strings.Join(binaryArgs, " "))
-			os.Exit(1)
 		}
 		
 		release = &releases[0]
