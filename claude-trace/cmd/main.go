@@ -29,15 +29,26 @@ var extractCmd = &cobra.Command{
 	Run:   runExtract,
 }
 
+var viewCmd = &cobra.Command{
+	Use:   "view <trace-file>",
+	Short: "Open a trace in the web viewer",
+	Long:  `Open a trace file in a web-based viewer. The viewer will be opened in your default browser.`,
+	Run:   runView,
+	Args:  cobra.MinimumNArgs(1),
+}
+
 var extractOutputDir string
+var viewPort int
 
 func init() {
 	extractCmd.Flags().StringVarP(&extractOutputDir, "output", "o", "./extracted-traces", "Output directory for extracted traces")
+	viewCmd.Flags().IntVarP(&viewPort, "port", "p", 8080, "Port to run the viewer server on")
 }
 
 func main() {
 	rootCmd.AddCommand(listCmd)
 	rootCmd.AddCommand(extractCmd)
+	rootCmd.AddCommand(viewCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
