@@ -33,13 +33,24 @@ func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error)
 		return nil, fmt.Errorf("failed to convert markdown to HTML: %w", err)
 	}
 
-	// Build page CSS with orientation and columns
+	// Build page CSS with orientation, margin, and zoom
+	margin := options.Margin
+	if margin == "" {
+		margin = "2cm"
+	}
 	var pageCSS string
 	if options.Orientation == "landscape" {
-		pageCSS = "@page { size: A4 landscape; margin: 2cm; }\n"
+		pageCSS = fmt.Sprintf("@page { size: A4 landscape; margin: %s; }\n", margin)
 	} else {
-		pageCSS = "@page { size: A4 portrait; margin: 2cm; }\n"
+		pageCSS = fmt.Sprintf("@page { size: A4 portrait; margin: %s; }\n", margin)
 	}
+
+	// Calculate zoom factor for font sizes
+	zoom := options.Zoom
+	if zoom == 0 {
+		zoom = 100
+	}
+	zoomFactor := float64(zoom) / 100.0
 
 	// Wrap in a complete HTML document with nice styling
 	html := fmt.Sprintf(`<!DOCTYPE html>
@@ -48,6 +59,10 @@ func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error)
 <meta charset="UTF-8">
 <style>
 %s
+html {
+    font-size: %.0f%%;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     max-width: 800px;
@@ -170,7 +185,7 @@ hr {
 <body>
 %s
 </body>
-</html>`, pageCSS, buf.String())
+</html>`, pageCSS, zoomFactor*100, buf.String())
 
 	// If columns are requested, wrap the content in a container with column CSS
 	if options.Columns > 1 {

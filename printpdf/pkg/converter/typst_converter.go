@@ -36,14 +36,24 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 	var buf bytes.Buffer
 
 	// Write Typst document preamble with page options
-	// Build the page setup with orientation
+	// Build the page setup with orientation and margin
+	margin := options.Margin
+	if margin == "" {
+		margin = "2cm"
+	}
 	if options.Orientation == "landscape" {
-		buf.WriteString("#set page(paper: \"a4\", flipped: true, margin: (x: 2cm, y: 2cm))\n")
+		buf.WriteString(fmt.Sprintf("#set page(paper: \"a4\", flipped: true, margin: %s)\n", margin))
 	} else {
-		buf.WriteString("#set page(paper: \"a4\", margin: (x: 2cm, y: 2cm))\n")
+		buf.WriteString(fmt.Sprintf("#set page(paper: \"a4\", margin: %s)\n", margin))
 	}
 
-	buf.WriteString("#set text(font: \"Linux Libertine\", size: 11pt)\n")
+	// Calculate base font size with zoom
+	zoom := options.Zoom
+	if zoom == 0 {
+		zoom = 100
+	}
+	baseFontSize := 11.0 * float64(zoom) / 100.0
+	buf.WriteString(fmt.Sprintf("#set text(font: \"Linux Libertine\", size: %.2fpt)\n", baseFontSize))
 	buf.WriteString("#set par(justify: false, leading: 0.65em)\n")
 	buf.WriteString("#set heading(numbering: none)\n")
 

@@ -15,6 +15,8 @@ func main() {
 	converters := flag.String("converters", "all", "comma-separated list of converters to use (typst,prince,weasyprint) or 'all'")
 	columns := flag.Int("columns", 1, "number of columns for text layout (e.g., 2 or 3 for newspaper-style layout)")
 	orientation := flag.String("orientation", "portrait", "page orientation (portrait or landscape)")
+	margin := flag.String("margin", "2cm", "page margin (e.g., '2cm', '1in', '20mm')")
+	zoom := flag.Int("zoom", 100, "zoom percentage for all font sizes (e.g., 80 for 80%, 120 for 120%)")
 	flag.Parse()
 
 	args := flag.Args()
@@ -50,10 +52,16 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: orientation must be 'portrait' or 'landscape'\n")
 		os.Exit(1)
 	}
+	if *zoom < 1 || *zoom > 500 {
+		fmt.Fprintf(os.Stderr, "Error: zoom must be between 1 and 500\n")
+		os.Exit(1)
+	}
 
 	pageOptions := converter.PageOptions{
 		Columns:     *columns,
 		Orientation: *orientation,
+		Margin:      *margin,
+		Zoom:        *zoom,
 	}
 
 	// Determine which converters to use
