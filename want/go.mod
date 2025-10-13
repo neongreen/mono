@@ -2,6 +2,6 @@ module github.com/neongreen/mono/want
 
 go 1.24.7
 
-require github.com/neongreen/mono/ghrelease v0.0.0
+require github.com/neongreen/mono/lib/ghrelease v0.0.0
 
-replace github.com/neongreen/mono/ghrelease => ../ghrelease
+replace github.com/neongreen/mono/lib/ghrelease => ../lib/ghrelease

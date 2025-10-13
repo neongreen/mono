@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neongreen/mono/ghrelease"
+	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 func TestGetPlatformBinaryName(t *testing.T) {

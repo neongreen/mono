@@ -7,7 +7,7 @@ import (
 "strings"
 "time"
 
-"github.com/neongreen/mono/ghrelease"
+"github.com/neongreen/mono/lib/ghrelease"
 )
 
 // These variables are set at build time using -ldflags

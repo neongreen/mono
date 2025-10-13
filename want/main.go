@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/neongreen/mono/ghrelease"
+	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 const version = "0.1.0-mvp"

@@ -12,7 +12,7 @@ Library for downloading GitHub release assets with platform detection and authen
 ## Usage
 
 ```go
-import "github.com/neongreen/mono/ghrelease"
+import "github.com/neongreen/mono/lib/ghrelease"
 
 // Download a release asset for the current platform
 err := ghrelease.DownloadReleaseAsset(

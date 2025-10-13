@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/neongreen/mono/ghrelease"
+	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 func parsePRURL(prURL string) (*PRInfo, error) {
