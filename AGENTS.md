@@ -211,6 +211,55 @@ The owner will explicitly request backwards compatibility when needed. Until the
 
 ------------------------------------------------------------
 
+## Go CI Workflow Configuration
+
+When creating CI workflows for Go projects, configure the `actions/setup-go@v5` caching appropriately:
+
+### Projects with External Dependencies
+
+For projects that have external Go dependencies (e.g., `github.com/yuin/goldmark`, `github.com/pelletier/go-toml`):
+
+- **Do NOT** set `cache: false`
+- **Do** ensure a `go.sum` file exists by running `go mod tidy`
+- The action will automatically cache dependencies based on `go.sum`
+
+Example:
+```yaml
+- name: Set up Go
+  uses: actions/setup-go@v5
+  with:
+    go-version: '1.24.7'
+```
+
+### Projects with Only Local Dependencies
+
+For projects that only depend on local modules within the monorepo (e.g., `prrun`, `want` which only use `lib/ghrelease`):
+
+- **Do** set `cache: false` to disable dependency caching
+- These projects won't have a `go.sum` file (which is correct)
+- Without `cache: false`, you'll get warnings: "Restore cache failed: Dependencies file is not found"
+
+Example:
+```yaml
+- name: Set up Go
+  uses: actions/setup-go@v5
+  with:
+    go-version: '1.24.7'
+    cache: false
+```
+
+### How to Determine Which Configuration to Use
+
+Run `go mod tidy` in the project directory:
+- If it creates a `go.sum` file → project has external dependencies → use caching (don't set `cache: false`)
+- If it doesn't create a `go.sum` file → project has only local dependencies → disable caching (`cache: false`)
+
+### Why This Matters
+
+The `actions/setup-go@v5` action has built-in dependency caching that looks for `go.sum` files. When caching is enabled but no `go.sum` exists, the action shows a warning that clutters CI logs. Disabling caching for projects without external dependencies keeps CI output clean and accurate.
+
+------------------------------------------------------------
+
 ## Postmortem Requirements
 
 When a bug or issue is discovered after implementation (especially during code review), agents must create a postmortem analysis documenting:
