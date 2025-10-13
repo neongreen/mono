@@ -5,6 +5,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/neongreen/mono/ghrelease"
 )
 
 func TestGetPlatformBinaryName(t *testing.T) {
@@ -88,9 +90,9 @@ func TestGetGitHubToken(t *testing.T) {
 		os.Setenv("GITHUB_TOKEN", "github_token")
 		os.Setenv("MISE_GITHUB_TOKEN",
 			"mise_token")
-		token := getGitHubToken()
+		token := ghrelease.GetGitHubToken()
 		if token != "github_token" {
-			t.Errorf("getGitHubToken() = %v, want %v",
+			t.Errorf("GetGitHubToken() = %v, want %v",
 				token, "github_token")
 		}
 	})
@@ -99,10 +101,10 @@ func TestGetGitHubToken(t *testing.T) {
 			os.
 				Unsetenv("GITHUB_TOKEN")
 			os.Setenv("MISE_GITHUB_TOKEN", "mise_token")
-			token := getGitHubToken()
+			token := ghrelease.GetGitHubToken()
 			if token != "mise_token" {
 				t.
-					Errorf("getGitHubToken() = %v, want %v",
+					Errorf("GetGitHubToken() = %v, want %v",
 						token,
 						"mise_token")
 			}
@@ -112,9 +114,9 @@ func TestGetGitHubToken(t *testing.T) {
 			os.
 				Unsetenv("GITHUB_TOKEN")
 			os.Unsetenv("MISE_GITHUB_TOKEN")
-			token := getGitHubToken()
+			token := ghrelease.GetGitHubToken()
 
-			t.Logf("getGitHubToken() = %q", token)
+			t.Logf("GetGitHubToken() = %q", token)
 		})
 }
 func TestCreateAuthenticatedRequest(t *testing.T) {
@@ -130,9 +132,9 @@ func TestCreateAuthenticatedRequest(t *testing.T) {
 	}()
 	t.Run("adds authorization header when token available", func(t *testing.T) {
 		os.Setenv("GITHUB_TOKEN", "test_token_123")
-		req, err := createAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
+		req, err := ghrelease.CreateAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
 		if err != nil {
-			t.Fatalf("createAuthenticatedRequest() error = %v", err)
+			t.Fatalf("CreateAuthenticatedRequest() error = %v", err)
 		}
 		authHeader := req.Header.Get("Authorization")
 		expectedHeader := "Bearer test_token_123"
@@ -149,9 +151,9 @@ func TestCreateAuthenticatedRequest(t *testing.T) {
 			T) {
 			os.Unsetenv("GITHUB_TOKEN")
 			os.Unsetenv("MISE_GITHUB_TOKEN")
-			req, err := createAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
+			req, err := ghrelease.CreateAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
 			if err != nil {
-				t.Fatalf("createAuthenticatedRequest() error = %v",
+				t.Fatalf("CreateAuthenticatedRequest() error = %v",
 					err)
 			}
 			authHeader := req.Header.Get("Authorization")
