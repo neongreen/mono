@@ -30,6 +30,38 @@ type FulfillmentPlan struct {
 	Steps       []PlanStep `json:"steps"`       // Steps to fulfill the requirement
 }
 
+// buildMiseInstallationSteps returns the steps needed to install mise
+func buildMiseInstallationSteps() []PlanStep {
+	steps := []PlanStep{
+		{
+			Type:        "install",
+			Description: "Download and run mise installation script",
+			Command:     "curl https://mise.run | sh",
+			Automatic:   true,
+		},
+	}
+
+	// Check if mise activation is needed
+	if !isMiseActivated() {
+		configFile := getShellConfigFile()
+		shellName := getShellName()
+		steps = append(steps, PlanStep{
+			Type:        "configure",
+			Description: fmt.Sprintf("Add mise activation to %s", configFile),
+			Command:     fmt.Sprintf("echo 'eval \"$(mise activate %s)\"' >> %s", shellName, configFile),
+			Automatic:   true,
+		})
+		steps = append(steps, PlanStep{
+			Type:        "configure",
+			Description: "Activate mise in current shell (or restart shell)",
+			Command:     fmt.Sprintf("eval \"$(mise activate %s)\"", shellName),
+			Automatic:   false,
+		})
+	}
+
+	return steps
+}
+
 // PrintPlan displays the plan in human-readable format
 func (p *FulfillmentPlan) PrintPlan() {
 	fmt.Println("Fulfillment plan:")
@@ -267,32 +299,7 @@ func installMise(dryRun bool, planJson bool) error {
 	// Build the plan
 	plan := FulfillmentPlan{
 		Requirement: "mise",
-		Steps:       []PlanStep{},
-	}
-
-	plan.Steps = append(plan.Steps, PlanStep{
-		Type:        "install",
-		Description: "Download and run mise installation script",
-		Command:     "curl https://mise.run | sh",
-		Automatic:   true,
-	})
-
-	// Check if mise activation is needed
-	if !isMiseActivated() {
-		configFile := getShellConfigFile()
-		shellName := getShellName()
-		plan.Steps = append(plan.Steps, PlanStep{
-			Type:        "configure",
-			Description: fmt.Sprintf("Add mise activation to %s", configFile),
-			Command:     fmt.Sprintf("echo 'eval \"$(mise activate %s)\"' >> %s", shellName, configFile),
-			Automatic:   true,
-		})
-		plan.Steps = append(plan.Steps, PlanStep{
-			Type:        "configure",
-			Description: "Activate mise in current shell (or restart shell)",
-			Command:     fmt.Sprintf("eval \"$(mise activate %s)\"", shellName),
-			Automatic:   false,
-		})
+		Steps:       buildMiseInstallationSteps(),
 	}
 
 	// Handle plan output modes
@@ -431,9 +438,14 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 
 	// Check if jc is available
 	if !isToolAvailable("jc") {
+		// Check if mise is available - if not, add mise installation steps first
+		if !isMiseAvailable() {
+			plan.Steps = append(plan.Steps, buildMiseInstallationSteps()...)
+		}
+
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "install",
-			Description: "Install jc",
+			Description: "Install jc via mise",
 			Command:     "mise use -g jc",
 			Automatic:   true,
 		})
@@ -534,6 +546,7 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 			Automatic:   true,
 		})
 	} else if hasMise {
+		// mise is available, use it to install markitdown
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "install",
 			Description: "Install markitdown via mise",
@@ -740,12 +753,7 @@ func installToolViaMise(tool string, dryRun bool, planJson bool) {
 
 	// Check if mise is available and add to plan if needed
 	if !isMiseAvailable() {
-		plan.Steps = append(plan.Steps, PlanStep{
-			Type:        "install",
-			Description: "Install mise (required for tool installation)",
-			Command:     "want mise",
-			Automatic:   false,
-		})
+		plan.Steps = append(plan.Steps, buildMiseInstallationSteps()...)
 	}
 
 	plan.Steps = append(plan.Steps, PlanStep{
