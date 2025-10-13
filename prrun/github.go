@@ -148,23 +148,23 @@ func findAllPRReleases(owner, repo string, prNum int) ([]GitHubRelease, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch releases: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
 	}
-	
+
 	var releases []GitHubRelease
 	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
 		return nil, fmt.Errorf("failed to decode releases: %w", err)
 	}
-	
+
 	// Find all releases for this PR
 	prPattern := fmt.Sprintf("pr-%d.", prNum)
 	var matchingReleases []GitHubRelease
@@ -173,7 +173,7 @@ func findAllPRReleases(owner, repo string, prNum int) ([]GitHubRelease, error) {
 			matchingReleases = append(matchingReleases, release)
 		}
 	}
-	
+
 	return matchingReleases, nil
 }
 
@@ -211,18 +211,18 @@ func checkWorkflowApproval(owner, repo string, prNum int) {
 		// Silently fail - this is just a warning feature
 		return
 	}
-	
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return
 	}
-	
+
 	var prDetails struct {
 		Head struct {
 			SHA string `json:"sha"`
@@ -231,24 +231,24 @@ func checkWorkflowApproval(owner, repo string, prNum int) {
 	if err := json.NewDecoder(resp.Body).Decode(&prDetails); err != nil {
 		return
 	}
-	
+
 	// Now get workflow runs for this commit
 	apiURL = fmt.Sprintf("https://api.github.com/repos/%s/%s/commits/%s/check-runs", owner, repo, prDetails.Head.SHA)
 	req, err = createAuthenticatedRequest("GET", apiURL)
 	if err != nil {
 		return
 	}
-	
+
 	resp, err = client.Do(req)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return
 	}
-	
+
 	var checkRuns struct {
 		CheckRuns []struct {
 			Name       string `json:"name"`
@@ -259,7 +259,7 @@ func checkWorkflowApproval(owner, repo string, prNum int) {
 	if err := json.NewDecoder(resp.Body).Decode(&checkRuns); err != nil {
 		return
 	}
-	
+
 	// Check if any workflow run is waiting for approval
 	hasWaitingRelease := false
 	for _, run := range checkRuns.CheckRuns {
@@ -270,7 +270,7 @@ func checkWorkflowApproval(owner, repo string, prNum int) {
 			}
 		}
 	}
-	
+
 	if hasWaitingRelease {
 		fmt.Fprintf(os.Stderr, "Warning: The release workflow for PR #%d may be pending approval.\n", prNum)
 		fmt.Fprintf(os.Stderr, "         Check GitHub Actions at https://github.com/%s/%s/pull/%d/checks to approve it.\n\n", owner, repo, prNum)

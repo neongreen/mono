@@ -20,7 +20,7 @@ func printVersion() {
 	fmt.Printf("prrun version: %s\n", Version)
 	fmt.Printf("Git commit: %s\n", GitCommit)
 	fmt.Printf("Build time: %s\n", BuildTime)
-	
+
 	// Check for newer version
 	checkForNewerVersion()
 }
@@ -31,7 +31,7 @@ func checkForNewerVersion() {
 	if GitCommit == "unknown" || GitCommit == "" {
 		return
 	}
-	
+
 	// Get commits from main branch
 	apiURL := "https://api.github.com/repos/neongreen/mono/commits?sha=main&per_page=1"
 	req, err := createAuthenticatedRequest("GET", apiURL)
@@ -39,7 +39,7 @@ func checkForNewerVersion() {
 		// Silently fail - this is just informational
 		return
 	}
-	
+
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -49,11 +49,11 @@ func checkForNewerVersion() {
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return
 	}
-	
+
 	var commits []struct {
 		SHA    string `json:"sha"`
 		Commit struct {
@@ -62,22 +62,22 @@ func checkForNewerVersion() {
 			} `json:"author"`
 		} `json:"commit"`
 	}
-	
+
 	if err := json.NewDecoder(resp.Body).Decode(&commits); err != nil {
 		return
 	}
-	
+
 	if len(commits) == 0 {
 		return
 	}
-	
+
 	latestCommit := commits[0]
 	latestSHA := latestCommit.SHA
-	
+
 	// Compare commit SHAs (case-insensitive, allowing for short hashes)
 	currentCommit := strings.ToLower(GitCommit)
 	latestCommitLower := strings.ToLower(latestSHA)
-	
+
 	// Check if current commit is a prefix of latest, or exact match
 	if strings.HasPrefix(latestCommitLower, currentCommit) || currentCommit == latestCommitLower {
 		fmt.Println("\nYou are using the latest version from main.")

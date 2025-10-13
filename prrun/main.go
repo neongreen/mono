@@ -88,16 +88,16 @@ func main() {
 			fmt.Fprintf(os.Stderr, "\nError: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		if len(releases) == 0 {
 			fmt.Fprintf(os.Stderr, "Error: no releases found for PR #%d\n", prInfo.PRNum)
 			os.Exit(1)
 		}
-		
+
 		if len(releases) > 1 && !explicitProject {
 			// Multiple projects detected - extract unique project names
 			uniqueProjects := extractUniqueProjects(releases)
-			
+
 			// Only error if there are truly multiple different projects
 			if len(uniqueProjects) > 1 {
 				fmt.Fprintf(os.Stderr, "Error: multiple projects found for PR #%d:\n", prInfo.PRNum)
@@ -109,7 +109,7 @@ func main() {
 				os.Exit(1)
 			}
 		}
-		
+
 		release = &releases[0]
 		projectName = extractProjectFromTag(release.TagName)
 	}

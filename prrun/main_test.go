@@ -31,7 +31,7 @@ func TestExtractProjectFromTag(t *testing.T) {
 			want: "project",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := extractProjectFromTag(tt.tag)
