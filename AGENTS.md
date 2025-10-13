@@ -211,6 +211,52 @@ The owner will explicitly request backwards compatibility when needed. Until the
 
 ------------------------------------------------------------
 
+## Go CI Workflow Configuration
+
+All Go projects in this monorepo must have a `go.sum` file to enable dependency caching in CI workflows.
+
+### Required: go.sum for All Go Projects
+
+**Every Go project must have a `go.sum` file, even if it only has local dependencies.**
+
+- Run `go mod tidy` in each Go project directory to ensure `go.sum` is up-to-date
+- If a project has no external dependencies, an empty `go.sum` file is acceptable
+- The `go.sum` file must be committed to the repository
+
+### CI Workflow Setup
+
+All CI workflows must specify the `cache-dependency-path` to point to the project's `go.sum` file:
+
+```yaml
+- name: Set up Go
+  uses: actions/setup-go@v5
+  with:
+    go-version: '1.24.7'
+    cache-dependency-path: <project-name>/go.sum
+```
+
+For example:
+- `cache-dependency-path: prrun/go.sum` for the prrun project
+- `cache-dependency-path: dissect/go.sum` for the dissect project
+- `cache-dependency-path: ${{ matrix.project }}/go.sum` for matrix builds
+
+The action will:
+- Look for `go.sum` at the specified path
+- Cache Go module dependencies and build cache
+- Restore cache on subsequent runs
+
+### Keeping go.sum Up-to-Date
+
+Run `go mod tidy` whenever:
+- Adding new dependencies
+- Removing dependencies
+- Updating Go version
+- Changing module requirements
+
+This ensures the `go.sum` file stays synchronized with `go.mod`.
+
+------------------------------------------------------------
+
 ## Postmortem Requirements
 
 When a bug or issue is discovered after implementation (especially during code review), agents must create a postmortem analysis documenting:
