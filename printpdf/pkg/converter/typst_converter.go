@@ -2,6 +2,7 @@ package converter
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -13,7 +14,7 @@ import (
 )
 
 // convertMarkdownToTypst converts Markdown content to Typst markup
-func convertMarkdownToTypst(markdown []byte) (string, error) {
+func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error) {
 	// Parse the markdown
 	md := goldmark.New(
 		goldmark.WithExtensions(
@@ -34,11 +35,23 @@ func convertMarkdownToTypst(markdown []byte) (string, error) {
 	// Convert AST to Typst
 	var buf bytes.Buffer
 
-	// Write Typst document preamble
-	buf.WriteString("#set page(paper: \"a4\", margin: (x: 2cm, y: 2cm))\n")
+	// Write Typst document preamble with page options
+	// Build the page setup with orientation
+	if options.Orientation == "landscape" {
+		buf.WriteString("#set page(paper: \"a4\", flipped: true, margin: (x: 2cm, y: 2cm))\n")
+	} else {
+		buf.WriteString("#set page(paper: \"a4\", margin: (x: 2cm, y: 2cm))\n")
+	}
+
 	buf.WriteString("#set text(font: \"Linux Libertine\", size: 11pt)\n")
 	buf.WriteString("#set par(justify: false, leading: 0.65em)\n")
 	buf.WriteString("#set heading(numbering: none)\n")
+
+	// Add column layout if more than 1 column
+	if options.Columns > 1 {
+		buf.WriteString(fmt.Sprintf("#show: columns.with(%d, gutter: 1em)\n", options.Columns))
+	}
+
 	buf.WriteString("\n")
 
 	// Convert the document

@@ -22,7 +22,7 @@ func (t *TypstConverter) Name() string {
 	return "typst"
 }
 
-func (t *TypstConverter) Convert(content []byte, contentType string, outputPath string) error {
+func (t *TypstConverter) Convert(content []byte, contentType string, outputPath string, options PageOptions) error {
 	// Get or download Typst
 	typstPath, err := t.getTypst()
 	if err != nil {
@@ -33,7 +33,7 @@ func (t *TypstConverter) Convert(content []byte, contentType string, outputPath 
 	var inputFile string
 	if contentType == fetcher.ContentTypeMarkdown {
 		// Convert markdown to Typst format
-		inputFile, err = t.prepareMarkdownInput(content)
+		inputFile, err = t.prepareMarkdownInput(content, options)
 	} else {
 		// For HTML, we need to convert to markdown first
 		return fmt.Errorf("HTML conversion not yet supported for Typst")
@@ -85,9 +85,9 @@ func (t *TypstConverter) getDownloadURL(version string) string {
 	}
 }
 
-func (t *TypstConverter) prepareMarkdownInput(content []byte) (string, error) {
+func (t *TypstConverter) prepareMarkdownInput(content []byte, options PageOptions) (string, error) {
 	// Convert Markdown to Typst format
-	typstContent, err := convertMarkdownToTypst(content)
+	typstContent, err := convertMarkdownToTypst(content, options)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert markdown to typst: %w", err)
 	}

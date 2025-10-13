@@ -11,7 +11,7 @@ import (
 )
 
 // convertMarkdownToHTML converts markdown content to HTML
-func convertMarkdownToHTML(markdown []byte) ([]byte, error) {
+func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error) {
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM,   // GitHub Flavored Markdown
@@ -33,12 +33,21 @@ func convertMarkdownToHTML(markdown []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to convert markdown to HTML: %w", err)
 	}
 
+	// Build page CSS with orientation and columns
+	var pageCSS string
+	if options.Orientation == "landscape" {
+		pageCSS = "@page { size: A4 landscape; margin: 2cm; }\n"
+	} else {
+		pageCSS = "@page { size: A4 portrait; margin: 2cm; }\n"
+	}
+
 	// Wrap in a complete HTML document with nice styling
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>
+%s
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     max-width: 800px;
@@ -161,7 +170,25 @@ hr {
 <body>
 %s
 </body>
-</html>`, buf.String())
+</html>`, pageCSS, buf.String())
+
+	// If columns are requested, wrap the content in a container with column CSS
+	if options.Columns > 1 {
+		// Add column support via CSS
+		columnCSS := fmt.Sprintf(`<style>
+body {
+    column-count: %d;
+    column-gap: 2em;
+    column-rule: 1px solid #dfe2e5;
+}
+h1, h2, h3 {
+    column-span: all;
+}
+</style>`, options.Columns)
+		// Insert the column CSS before </head>
+		htmlBytes := bytes.Replace([]byte(html), []byte("</head>"), []byte(columnCSS+"\n</head>"), 1)
+		return htmlBytes, nil
+	}
 
 	return []byte(html), nil
 }
