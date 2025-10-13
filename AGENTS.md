@@ -75,6 +75,19 @@ These tasks ensure consistent commands across all projects and make it easy for 
 
 ------------------------------------------------------------
 
+## Code Formatting
+
+**All Go code must be formatted with `go fmt` before work is considered complete.**
+
+Before submitting any changes to Go projects:
+- Run `go fmt ./...` in the project directory
+- Ensure all Go files are properly formatted
+- This applies to both new and modified Go code
+
+The `go fmt` tool ensures consistent formatting across all Go code in the monorepo and is a standard requirement for Go development.
+
+------------------------------------------------------------
+
 ## Backwards Compatibility Policy
 
 **Unless explicitly stated otherwise, backwards compatibility is NOT important for ANY project in this repository.**
