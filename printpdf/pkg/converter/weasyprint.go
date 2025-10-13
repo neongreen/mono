@@ -22,7 +22,7 @@ func (w *WeasyPrintConverter) Name() string {
 	return "weasyprint"
 }
 
-func (w *WeasyPrintConverter) Convert(content []byte, contentType string, outputPath string) error {
+func (w *WeasyPrintConverter) Convert(content []byte, contentType string, outputPath string, options PageOptions) error {
 	// Get or download WeasyPrint
 	weasyPath, err := w.getWeasyPrint()
 	if err != nil {
@@ -30,7 +30,7 @@ func (w *WeasyPrintConverter) Convert(content []byte, contentType string, output
 	}
 
 	// Prepare input file
-	inputFile, err := w.prepareInput(content, contentType)
+	inputFile, err := w.prepareInput(content, contentType, options)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ exec %s -m weasyprint "$@"
 	return wrapperPath, nil
 }
 
-func (w *WeasyPrintConverter) prepareInput(content []byte, contentType string) (string, error) {
+func (w *WeasyPrintConverter) prepareInput(content []byte, contentType string, options PageOptions) (string, error) {
 	var ext string
 	var htmlContent []byte
 	var err error
@@ -89,7 +89,7 @@ func (w *WeasyPrintConverter) prepareInput(content []byte, contentType string) (
 	case fetcher.ContentTypeMarkdown:
 		// Convert markdown to HTML for WeasyPrint
 		ext = ".html"
-		htmlContent, err = convertMarkdownToHTML(content)
+		htmlContent, err = convertMarkdownToHTML(content, options)
 		if err != nil {
 			return "", fmt.Errorf("failed to convert markdown to HTML: %w", err)
 		}

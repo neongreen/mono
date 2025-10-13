@@ -13,6 +13,8 @@ import (
 func main() {
 	outputDir := flag.String("o", ".", "output directory for generated PDFs")
 	converters := flag.String("converters", "all", "comma-separated list of converters to use (typst,prince,weasyprint) or 'all'")
+	columns := flag.Int("columns", 1, "number of columns for text layout (e.g., 2 or 3 for newspaper-style layout)")
+	orientation := flag.String("orientation", "portrait", "page orientation (portrait or landscape)")
 	flag.Parse()
 
 	args := flag.Args()
@@ -39,6 +41,21 @@ func main() {
 	}
 	fmt.Printf("Content type: %s (%d bytes)\n", contentType, len(content))
 
+	// Validate and prepare page options
+	if *columns < 1 {
+		fmt.Fprintf(os.Stderr, "Error: columns must be at least 1\n")
+		os.Exit(1)
+	}
+	if *orientation != "portrait" && *orientation != "landscape" {
+		fmt.Fprintf(os.Stderr, "Error: orientation must be 'portrait' or 'landscape'\n")
+		os.Exit(1)
+	}
+
+	pageOptions := converter.PageOptions{
+		Columns:     *columns,
+		Orientation: *orientation,
+	}
+
 	// Determine which converters to use
 	converterList := converter.ParseConverterList(*converters)
 	if len(converterList) == 0 {
@@ -59,7 +76,7 @@ func main() {
 
 		outputPath := filepath.Join(*outputDir, fmt.Sprintf("output-%s.pdf", conv.Name()))
 
-		err := conv.Convert(content, contentType, outputPath)
+		err := conv.Convert(content, contentType, outputPath, pageOptions)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error with %s: %v\n", conv.Name(), err)
 			continue
