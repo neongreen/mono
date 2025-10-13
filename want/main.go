@@ -213,7 +213,7 @@ func installMise(dryRun bool) error {
 		if !isMiseActivated() {
 			configFile := getShellConfigFile()
 			shellName := getShellName()
-			fmt.Println("Step 2: Add mise activation to shell configuration")
+			fmt.Println("Step 2: Add mise activation to shell configuration (AUTOMATIC)")
 			fmt.Printf("  File: %s\n", configFile)
 			fmt.Printf("  Command: eval \"$(mise activate %s)\"\n", shellName)
 			fmt.Println()
@@ -222,6 +222,8 @@ func installMise(dryRun bool) error {
 			fmt.Println("Step 2: Shell activation already configured")
 			fmt.Println("  mise activation is already present in your shell config")
 		}
+		fmt.Println()
+		fmt.Println("All steps will be performed automatically.")
 		return nil
 	}
 
@@ -251,16 +253,39 @@ func installMise(dryRun bool) error {
 		configFile := getShellConfigFile()
 		shellName := getShellName()
 
-		fmt.Printf("⚠ mise activation not found in %s\n", configFile)
+		fmt.Printf("Adding mise activation to %s...\n", configFile)
+		
+		// Add the activation line to the shell config
+		activationLine := fmt.Sprintf("\n# Added by want - enables mise\neval \"$(mise activate %s)\"\n", shellName)
+		
+		file, err := os.OpenFile(configFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		if err != nil {
+			fmt.Printf("⚠ Could not automatically add mise activation to %s: %v\n", configFile, err)
+			fmt.Println()
+			fmt.Println("Please add this line manually:")
+			fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
+			fmt.Println()
+			fmt.Printf("You can add it with:\n")
+			fmt.Printf("  echo 'eval \"$(mise activate %s)\"' >> %s\n", shellName, configFile)
+			return nil
+		}
+		defer file.Close()
+
+		_, err = file.WriteString(activationLine)
+		if err != nil {
+			fmt.Printf("⚠ Could not write to %s: %v\n", configFile, err)
+			fmt.Println()
+			fmt.Println("Please add this line manually:")
+			fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
+			return nil
+		}
+
+		fmt.Println("✓ mise activation added to your shell configuration")
 		fmt.Println()
-		fmt.Println("To make mise-installed tools available in your PATH, add this line:")
+		fmt.Println("To activate mise in your current shell, run:")
 		fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
 		fmt.Println()
-		fmt.Printf("You can add it automatically with:\n")
-		fmt.Printf("  echo 'eval \"$(mise activate %s)\"' >> %s\n", shellName, configFile)
-		fmt.Println()
-		fmt.Println("Or restart your shell and run:")
-		fmt.Println("  eval \"$(mise activate " + shellName + ")\"")
+		fmt.Println("Or restart your shell.")
 	} else {
 		fmt.Println("✓ mise activation already configured in your shell")
 	}
