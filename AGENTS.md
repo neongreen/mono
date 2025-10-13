@@ -248,6 +248,32 @@ Example:
     cache: false
 ```
 
+### Workflows That Build Multiple Projects (e.g., Release Workflow)
+
+For workflows that build multiple projects using a matrix, where some projects have external dependencies and others don't:
+
+- **Do** conditionally enable caching based on the presence of `go.sum`
+- This ensures projects with external dependencies benefit from caching while avoiding warnings for projects without
+
+Example:
+```yaml
+- name: Check if project has go.sum
+  id: check-gosum
+  run: |
+    if [ -f "${{ matrix.project }}/go.sum" ]; then
+      echo "has_gosum=true" >> $GITHUB_OUTPUT
+    else
+      echo "has_gosum=false" >> $GITHUB_OUTPUT
+    fi
+
+- name: Set up Go
+  uses: actions/setup-go@v5
+  with:
+    go-version: '1.24.7'
+    cache: ${{ steps.check-gosum.outputs.has_gosum }}
+    cache-dependency-path: ${{ steps.check-gosum.outputs.has_gosum == 'true' && format('{0}/go.sum', matrix.project) || '' }}
+```
+
 ### How to Determine Which Configuration to Use
 
 Run `go mod tidy` in the project directory:
@@ -257,6 +283,8 @@ Run `go mod tidy` in the project directory:
 ### Why This Matters
 
 The `actions/setup-go@v5` action has built-in dependency caching that looks for `go.sum` files. When caching is enabled but no `go.sum` exists, the action shows a warning that clutters CI logs. Disabling caching for projects without external dependencies keeps CI output clean and accurate.
+
+For workflows building multiple projects, conditional caching ensures optimal performance: projects with external dependencies get faster builds through caching, while projects with only local dependencies skip unnecessary cache operations.
 
 ------------------------------------------------------------
 
