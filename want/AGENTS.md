@@ -51,6 +51,11 @@ Some commands are read-only/safe and don't modify the system:
 - Installation steps and other modifications still require confirmation
 - Safe commands are identified by the `isCommandSafe()` function
 
+**Current Limitations:**
+- The safe command list is conservative and based on command names only
+- Commands that CAN modify state with certain flags (e.g., `find -delete`, `date -s`) are excluded entirely for safety
+- Future improvement: Implement argument inspection to allow safe uses of potentially dangerous commands
+
 ### History
 
 This guideline was created in response to issue where `want --dry-run mise` showed Step 2 (adding shell activation) but didn't actually perform it automatically during real execution. The user expectation was that want should:

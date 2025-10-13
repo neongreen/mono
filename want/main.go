@@ -433,11 +433,14 @@ func getCompoundHandler(command string) (CompoundHandler, bool) {
 // isCommandSafe checks if a command is read-only/safe (doesn't modify system state)
 func isCommandSafe(command string) bool {
 	// List of safe/read-only commands that can be run without confirmation
+	// NOTE: This is a conservative list. Commands that CAN modify state with certain flags
+	// (like 'find -delete', 'date -s') are excluded for safety.
+	// Future improvement: Implement argument inspection to allow safe uses of these commands.
 	safeCommands := []string{
 		"ps", "top", "uptime", "whoami", "id", "hostname", "uname",
 		"df", "du", "free", "vmstat", "iostat", "netstat", "ss",
-		"ls", "pwd", "cat", "head", "tail", "wc", "grep", "find",
-		"date", "cal", "env", "printenv", "which", "whereis",
+		"ls", "pwd", "cat", "head", "tail", "wc", "grep",
+		"cal", "env", "printenv", "which", "whereis",
 		"git status", "git log", "git diff", "git show",
 	}
 	
