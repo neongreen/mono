@@ -36,13 +36,20 @@ The shell activation step should be:
 - Performed automatically during installation
 - Only marked as manual if the automatic addition fails
 
-### Dry-Run Mode
+### Plan Display
 
-In dry-run mode:
-- Clearly indicate which steps will be automatic: "(AUTOMATIC)" or similar
-- Mark steps that would require manual action: "(MANUAL)"
-- Show the complete execution plan
-- End with a summary of automatic vs manual steps
+When showing fulfillment plans:
+- Only mark manual steps with "(MANUAL)" label
+- Automatic steps have no label (cleaner output)
+- This highlights what requires user action without cluttering the display
+
+### Safe Commands and Confirmation
+
+Some commands are read-only/safe and don't modify the system:
+- Commands like `ps`, `ls`, `git status`, etc.
+- When a plan contains ONLY safe steps, no confirmation is needed
+- Installation steps and other modifications still require confirmation
+- Safe commands are identified by the `isCommandSafe()` function
 
 ### History
 

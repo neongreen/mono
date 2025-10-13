@@ -9,7 +9,8 @@ Interactive task fulfillment tool for macOS.
   - Structured plan with steps showing what will be done
   - Interactive confirmation before executing (unless dry-run or plan-json mode)
   - JSON output option with `--plan-json` flag
-  - Distinguishes between automatic and manual steps
+  - Highlights manual steps that require user action
+  - Skips confirmation for safe/read-only commands
 - [x] **Download GitHub release assets** - `want https://github.com/owner/repo/releases/tag/v1.0.0`
   - Auto-detects platform (OS and architecture)
   - Works with both public and private repositories (with GITHUB_TOKEN)
@@ -138,7 +139,7 @@ Fulfillment plan:
 Step 1 (MANUAL): Install mise (required for tool installation)
   $ want mise
 
-Step 2 (AUTOMATIC): Install jujutsu via mise
+Step 2: Install jujutsu via mise
   $ mise use -g jujutsu
 
 Proceed with this plan? [Y/n]: y
@@ -198,9 +199,11 @@ want --dry-run jujutsu
 want --plan-json jujutsu
 ```
 
-Plans distinguish between automatic and manual steps:
-- **AUTOMATIC** steps are executed by want
-- **MANUAL** steps require user action (e.g., activating mise in current shell)
+Plans highlight manual steps that require user action:
+- Manual steps are marked with **(MANUAL)**
+- Automatic steps have no label (executed by want)
+
+For safe/read-only commands (like `want json ps`), confirmation is skipped automatically.
 
 ### Compound commands with parameters (✅ WORKING)
 
