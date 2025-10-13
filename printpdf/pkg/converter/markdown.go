@@ -52,6 +52,14 @@ func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error)
 	}
 	zoomFactor := float64(zoom) / 100.0
 
+	// Build body CSS - don't add max-width or auto margins when using page margins
+	// because it conflicts with the user's margin settings
+	bodyCSS := `body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #24292e;
+}`
+
 	// Wrap in a complete HTML document with nice styling
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
@@ -63,14 +71,7 @@ html {
     font-size: %.0f%%;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    max-width: 800px;
-    margin: 40px auto;
-    padding: 0 20px;
-    line-height: 1.6;
-    color: #24292e;
-}
+%s
 
 h1, h2, h3, h4, h5, h6 {
     margin-top: 24px;
@@ -185,7 +186,7 @@ hr {
 <body>
 %s
 </body>
-</html>`, pageCSS, zoomFactor*100, buf.String())
+</html>`, pageCSS, zoomFactor*100, bodyCSS, buf.String())
 
 	// If columns are requested, wrap the content in a container with column CSS
 	if options.Columns > 1 {

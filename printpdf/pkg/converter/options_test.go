@@ -212,3 +212,31 @@ func TestHTMLConverterWithCustomZoom(t *testing.T) {
 		})
 	}
 }
+
+func TestBodyCSSNoMaxWidth(t *testing.T) {
+	markdown := []byte("# Test")
+	
+	options := PageOptions{
+		Columns:     1,
+		Orientation: "portrait",
+		Margin:      "0cm",
+		Zoom:        100,
+	}
+	
+	result, err := convertMarkdownToHTML(markdown, options)
+	if err != nil {
+		t.Fatalf("Error: %v", err)
+	}
+	
+	resultStr := string(result)
+	
+	// Check that body no longer has max-width
+	if strings.Contains(resultStr, "max-width: 800px") {
+		t.Errorf("Body should not have max-width constraint when using custom margins")
+	}
+	
+	// Check that body no longer has auto margins
+	if strings.Contains(resultStr, "margin: 40px auto") {
+		t.Errorf("Body should not have auto margins when using custom margins")
+	}
+}
