@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -13,6 +15,88 @@ import (
 )
 
 const version = "0.1.0-mvp"
+
+// PlanStep represents a single step in a fulfillment plan
+type PlanStep struct {
+	Type        string `json:"type"`        // "install", "download", "execute", "configure"
+	Description string `json:"description"` // Human-readable description
+	Command     string `json:"command"`     // Command to execute
+	Automatic   bool   `json:"automatic"`   // Whether this step is automatic
+}
+
+// FulfillmentPlan represents a complete plan to fulfill a requirement
+type FulfillmentPlan struct {
+	Requirement string     `json:"requirement"` // What the user requested
+	Steps       []PlanStep `json:"steps"`       // Steps to fulfill the requirement
+}
+
+// buildMiseInstallationSteps returns the steps needed to install mise
+func buildMiseInstallationSteps() []PlanStep {
+	steps := []PlanStep{
+		{
+			Type:        "install",
+			Description: "Download and run mise installation script",
+			Command:     "curl https://mise.run | sh",
+			Automatic:   true,
+		},
+	}
+
+	// Check if mise activation is needed
+	if !isMiseActivated() {
+		configFile := getShellConfigFile()
+		shellName := getShellName()
+		steps = append(steps, PlanStep{
+			Type:        "configure",
+			Description: fmt.Sprintf("Add mise activation to %s", configFile),
+			Command:     fmt.Sprintf("echo 'eval \"$(mise activate %s)\"' >> %s", shellName, configFile),
+			Automatic:   true,
+		})
+		steps = append(steps, PlanStep{
+			Type:        "configure",
+			Description: "Activate mise in current shell (or restart shell)",
+			Command:     fmt.Sprintf("eval \"$(mise activate %s)\"", shellName),
+			Automatic:   false,
+		})
+	}
+
+	return steps
+}
+
+// PrintPlan displays the plan in human-readable format
+func (p *FulfillmentPlan) PrintPlan() {
+	fmt.Println("Fulfillment plan:")
+	fmt.Println()
+	for i, step := range p.Steps {
+		stepLabel := "AUTOMATIC"
+		if !step.Automatic {
+			stepLabel = "MANUAL"
+		}
+		fmt.Printf("Step %d (%s): %s\n", i+1, stepLabel, step.Description)
+		fmt.Printf("  $ %s\n", step.Command)
+		fmt.Println()
+	}
+}
+
+// ToJSON returns the plan as a JSON string
+func (p *FulfillmentPlan) ToJSON() (string, error) {
+	data, err := json.MarshalIndent(p, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// ConfirmPlan asks the user to confirm the plan
+func (p *FulfillmentPlan) ConfirmPlan() bool {
+	fmt.Print("Proceed with this plan? [Y/n]: ")
+	reader := bufio.NewReader(os.Stdin)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+	response = strings.TrimSpace(strings.ToLower(response))
+	return response == "" || response == "y" || response == "yes"
+}
 
 func main() {
 	if len(os.Args) < 2 {
@@ -42,22 +126,24 @@ func printUsage() {
 	fmt.Println(`want - Interactive task fulfillment tool for macOS
 
 Usage:
-  want [--dry-run] <requirement>  Get a tool, repository, or resource
-  want json <command>             Convert command output to JSON
-  want md <url>                   Convert URL to markdown
-  want list                       Show what you have
-  want check                      Check status of requirements
-  want forget <name>              Remove from tracking (doesn't uninstall)
-  want version                    Show version
-  want help                       Show this help
+  want [--dry-run] [--plan-json] <requirement>  Get a tool, repository, or resource
+  want json <command>                           Convert command output to JSON
+  want md <url>                                 Convert URL to markdown
+  want list                                     Show what you have
+  want check                                    Check status of requirements
+  want forget <name>                            Remove from tracking (doesn't uninstall)
+  want version                                  Show version
+  want help                                     Show this help
 
 Flags:
   --dry-run                       Show what would be done without actually doing it
+  --plan-json                     Output the fulfillment plan as JSON
 
 Examples:
-  want jujutsu                    # Install a tool
+  want jujutsu                    # Install a tool (asks for confirmation)
   want mise                       # Install mise itself
-  want --dry-run jujutsu          # Preview installation
+  want --dry-run jujutsu          # Preview installation without confirmation
+  want --plan-json jujutsu        # Show installation plan as JSON
   want json ps                    # Get running processes as JSON (uses jc)
   want md https://example.com     # Convert webpage to markdown
   want https://github.com/org/repo/releases/tag/v1.0.0  # Download GitHub release
@@ -72,11 +158,12 @@ func handleWant(args []string) {
 	// Parse flags
 	fs := flag.NewFlagSet("want", flag.ExitOnError)
 	dryRun := fs.Bool("dry-run", false, "Show what would be done without doing it")
+	planJson := fs.Bool("plan-json", false, "Output the fulfillment plan as JSON")
 	fs.Parse(args)
 
 	if fs.NArg() == 0 {
 		fmt.Println("Error: no requirement specified")
-		fmt.Println("Usage: want [--dry-run] <requirement>")
+		fmt.Println("Usage: want [--dry-run] [--plan-json] <requirement>")
 		os.Exit(1)
 	}
 
@@ -85,13 +172,13 @@ func handleWant(args []string) {
 
 	// Check for compound commands (e.g., "want json ps" or "want md url")
 	if handler, ok := getCompoundHandler(requirement); ok {
-		handler(remainingArgs, *dryRun)
+		handler(remainingArgs, *dryRun, *planJson)
 		return
 	}
 
 	// Check if requirement looks like a GitHub release download URL
 	if strings.Contains(requirement, "github.com") && (strings.Contains(requirement, "/releases/download/") || strings.Contains(requirement, "/releases/tag/")) {
-		handleGitHubAsset(requirement, *dryRun)
+		handleGitHubAsset(requirement, *dryRun, *planJson)
 		return
 	}
 
@@ -103,7 +190,7 @@ func handleWant(args []string) {
 	}
 
 	// Try to install as a tool via mise
-	installToolViaMise(requirement, *dryRun)
+	installToolViaMise(requirement, *dryRun, *planJson)
 }
 
 func handleList() {
@@ -208,38 +295,38 @@ func getShellName() string {
 }
 
 // installMise installs mise using the official installation script
-func installMise(dryRun bool) error {
-	fmt.Println("Installing mise...")
-	fmt.Println()
+func installMise(dryRun bool, planJson bool) error {
+	// Build the plan
+	plan := FulfillmentPlan{
+		Requirement: "mise",
+		Steps:       buildMiseInstallationSteps(),
+	}
 
-	if dryRun {
-		fmt.Println("DRY RUN - Execution plan:")
-		fmt.Println()
-		fmt.Println("Step 1 (AUTOMATIC): Download and run mise installation script")
-		fmt.Println("  $ curl https://mise.run | sh")
-		fmt.Println()
-
-		// Check if mise activation is needed
-		if !isMiseActivated() {
-			configFile := getShellConfigFile()
-			shellName := getShellName()
-			fmt.Println("Step 2 (AUTOMATIC): Add mise activation to shell configuration")
-			fmt.Printf("  File: %s\n", configFile)
-			fmt.Printf("  Command: eval \"$(mise activate %s)\"\n", shellName)
-			fmt.Println()
-			fmt.Println("  This ensures mise-installed tools are available in your PATH.")
-			fmt.Println()
-			fmt.Println("Step 3 (MANUAL): Activate mise in current shell")
-			fmt.Printf("  $ eval \"$(mise activate %s)\"\n", shellName)
-			fmt.Println("  Or restart your shell")
-		} else {
-			fmt.Println("Step 2: Shell activation already configured")
-			fmt.Println("  mise activation is already present in your shell config")
-			fmt.Println()
-			fmt.Println("No manual steps required.")
+	// Handle plan output modes
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			return fmt.Errorf("failed to generate JSON: %w", err)
 		}
+		fmt.Println(jsonStr)
 		return nil
 	}
+
+	if dryRun {
+		plan.PrintPlan()
+		return nil
+	}
+
+	// Execute the plan
+	plan.PrintPlan()
+	if !plan.ConfirmPlan() {
+		fmt.Println("Cancelled.")
+		os.Exit(0)
+	}
+	fmt.Println()
+
+	fmt.Println("Installing mise...")
+	fmt.Println()
 
 	// Install mise using the official installation script
 	cmd := exec.Command("sh", "-c", "curl https://mise.run | sh")
@@ -268,10 +355,10 @@ func installMise(dryRun bool) error {
 		shellName := getShellName()
 
 		fmt.Printf("Adding mise activation to %s...\n", configFile)
-		
+
 		// Add the activation line to the shell config
 		activationLine := fmt.Sprintf("\n# Added by want - enables mise\neval \"$(mise activate %s)\"\n", shellName)
-		
+
 		file, err := os.OpenFile(configFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			fmt.Printf("⚠ Could not automatically add mise activation to %s: %v\n", configFile, err)
@@ -319,7 +406,7 @@ func installMise(dryRun bool) error {
 }
 
 // CompoundHandler is a function that handles compound commands
-type CompoundHandler func(args []string, dryRun bool)
+type CompoundHandler func(args []string, dryRun bool, planJson bool)
 
 // getCompoundHandler returns a handler for compound commands if one exists
 func getCompoundHandler(command string) (CompoundHandler, bool) {
@@ -332,7 +419,7 @@ func getCompoundHandler(command string) (CompoundHandler, bool) {
 }
 
 // handleJsonCommand handles "want json <command>" - converts command output to JSON
-func handleJsonCommand(args []string, dryRun bool) {
+func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 	if len(args) == 0 {
 		fmt.Println("Error: no command specified")
 		fmt.Println("Usage: want json <command>")
@@ -341,24 +428,64 @@ func handleJsonCommand(args []string, dryRun bool) {
 		os.Exit(1)
 	}
 
+	commandStr := strings.Join(args, " ")
+
+	// Build the plan
+	plan := FulfillmentPlan{
+		Requirement: fmt.Sprintf("json %s", commandStr),
+		Steps:       []PlanStep{},
+	}
+
 	// Check if jc is available
 	if !isToolAvailable("jc") {
-		fmt.Println("The 'json' command requires 'jc' (JSON CLI output formatter)")
-		fmt.Println()
-
-		if dryRun {
-			fmt.Println("DRY RUN - Execution plan:")
-			fmt.Println()
-			fmt.Println("Step 1: Install jc")
-			fmt.Println("  $ mise use -g jc")
-			fmt.Println()
-			fmt.Println("Step 2: Execute command")
-			fmt.Printf("  $ jc %s\n", strings.Join(args, " "))
-			return
+		// Check if mise is available - if not, add mise installation steps first
+		if !isMiseAvailable() {
+			plan.Steps = append(plan.Steps, buildMiseInstallationSteps()...)
 		}
 
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "install",
+			Description: "Install jc via mise",
+			Command:     "mise use -g jc",
+			Automatic:   true,
+		})
+	}
+
+	plan.Steps = append(plan.Steps, PlanStep{
+		Type:        "execute",
+		Description: "Execute command with jc",
+		Command:     fmt.Sprintf("jc %s", commandStr),
+		Automatic:   true,
+	})
+
+	// Handle plan output modes
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(jsonStr)
+		return
+	}
+
+	if dryRun {
+		plan.PrintPlan()
+		return
+	}
+
+	// Execute the plan
+	plan.PrintPlan()
+	if !plan.ConfirmPlan() {
+		fmt.Println("Cancelled.")
+		os.Exit(0)
+	}
+	fmt.Println()
+
+	// Install jc if needed
+	if !isToolAvailable("jc") {
 		fmt.Println("Installing jc...")
-		installToolViaMise("jc", false)
+		installToolViaMise("jc", false, false)
 		fmt.Println()
 
 		// Check if installation succeeded
@@ -366,17 +493,6 @@ func handleJsonCommand(args []string, dryRun bool) {
 			fmt.Println("Error: jc installation failed")
 			os.Exit(1)
 		}
-	}
-
-	// Build and execute the command
-	commandStr := strings.Join(args, " ")
-
-	if dryRun {
-		fmt.Println("DRY RUN - Execution plan:")
-		fmt.Println()
-		fmt.Println("Step 1: Execute command")
-		fmt.Printf("  $ jc %s\n", commandStr)
-		return
 	}
 
 	// Execute jc with the provided command
@@ -392,7 +508,7 @@ func handleJsonCommand(args []string, dryRun bool) {
 }
 
 // handleMarkdownCommand handles "want md <url>" - converts URL to markdown
-func handleMarkdownCommand(args []string, dryRun bool) {
+func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 	if len(args) == 0 {
 		fmt.Println("Error: no URL specified")
 		fmt.Println("Usage: want md <url>")
@@ -403,54 +519,98 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 
 	url := args[0]
 
-	// Check which tool is available (prefer markitdown, fallback to pure.md via curl)
+	// Build the plan based on available tools
+	plan := FulfillmentPlan{
+		Requirement: fmt.Sprintf("md %s", url),
+		Steps:       []PlanStep{},
+	}
+
 	hasMarkitdown := isToolAvailable("markitdown")
+	hasUvx := isToolAvailable("uvx")
+	hasMise := isMiseAvailable()
+	hasUv := isToolAvailable("uv")
 
-	if !hasMarkitdown {
-		fmt.Println("The 'md' command requires 'markitdown' (Microsoft's HTML to Markdown converter)")
-		fmt.Println("Repository: https://github.com/microsoft/markitdown")
-		fmt.Println()
+	// Determine the best method and build the plan
+	if hasMarkitdown {
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "execute",
+			Description: "Convert URL to markdown",
+			Command:     fmt.Sprintf("markitdown %s", url),
+			Automatic:   true,
+		})
+	} else if hasUvx {
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "execute",
+			Description: "Run markitdown via uvx",
+			Command:     fmt.Sprintf("uvx markitdown %s", url),
+			Automatic:   true,
+		})
+	} else if hasMise {
+		// mise is available, use it to install markitdown
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "install",
+			Description: "Install markitdown via mise",
+			Command:     "mise use -g python:markitdown",
+			Automatic:   true,
+		})
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "execute",
+			Description: "Convert URL to markdown",
+			Command:     fmt.Sprintf("markitdown %s", url),
+			Automatic:   true,
+		})
+	} else if hasUv {
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "execute",
+			Description: "Run markitdown via uv",
+			Command:     fmt.Sprintf("uv tool run markitdown %s", url),
+			Automatic:   true,
+		})
+	} else {
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "install",
+			Description: "Install uv (recommended)",
+			Command:     "curl -LsSf https://astral.sh/uv/install.sh | sh",
+			Automatic:   false,
+		})
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "execute",
+			Description: "Run markitdown via uvx",
+			Command:     fmt.Sprintf("uvx markitdown %s", url),
+			Automatic:   true,
+		})
+	}
 
-		// Determine the best installation method
-		hasUvx := isToolAvailable("uvx")
-		hasMise := isMiseAvailable()
-		hasUv := isToolAvailable("uv")
-
-		if dryRun {
-			fmt.Println("DRY RUN - Execution plan:")
-			fmt.Println()
-			if hasUvx {
-				fmt.Println("Step 1: Run markitdown via uvx")
-				fmt.Printf("  $ uvx markitdown %s\n", url)
-			} else if hasMise {
-				fmt.Println("Step 1: Install markitdown via mise")
-				fmt.Println("  $ mise use -g python:markitdown")
-				fmt.Println()
-				fmt.Println("Step 2: Convert URL to markdown")
-				fmt.Printf("  $ markitdown %s\n", url)
-			} else if hasUv {
-				fmt.Println("Step 1: Run markitdown via uvx")
-				fmt.Printf("  $ uvx markitdown %s\n", url)
-			} else {
-				fmt.Println("Step 1: Install uv (recommended)")
-				fmt.Println("  $ curl -LsSf https://astral.sh/uv/install.sh | sh")
-				fmt.Println()
-				fmt.Println("Step 2: Run markitdown via uvx")
-				fmt.Printf("  $ uvx markitdown %s\n", url)
-				fmt.Println()
-				fmt.Println("  (Or fallback to pure.md)")
-			}
-			return
+	// Handle plan output modes
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			os.Exit(1)
 		}
+		fmt.Println(jsonStr)
+		return
+	}
 
-		// Try to install/run markitdown using the best available method
+	if dryRun {
+		plan.PrintPlan()
+		return
+	}
+
+	// Execute the plan
+	plan.PrintPlan()
+	if !plan.ConfirmPlan() {
+		fmt.Println("Cancelled.")
+		os.Exit(0)
+	}
+	fmt.Println()
+
+	// Execute based on available tools
+	if !hasMarkitdown {
 		if hasUvx {
-			// Use uvx to run markitdown directly (it will install if needed)
-			fmt.Println("Running markitdown via uvx...")
 			cmd := exec.Command("uvx", "markitdown", url)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-
 			if err := cmd.Run(); err != nil {
 				fmt.Println("\nWarning: uvx markitdown failed")
 				fmt.Println("Falling back to pure.md service...")
@@ -459,17 +619,13 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 			return
 		} else if hasMise {
 			fmt.Println("Installing markitdown via mise...")
-			installToolViaMise("python:markitdown", false)
+			installToolViaMise("python:markitdown", false, false)
 			fmt.Println()
-
 			hasMarkitdown = isToolAvailable("markitdown")
 		} else if hasUv {
-			// uv is available but uvx might not be in PATH yet
-			fmt.Println("Running markitdown via uv...")
 			cmd := exec.Command("uv", "tool", "run", "markitdown", url)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-
 			if err := cmd.Run(); err != nil {
 				fmt.Println("\nWarning: uv tool run markitdown failed")
 				fmt.Println("Falling back to pure.md service...")
@@ -477,34 +633,21 @@ func handleMarkdownCommand(args []string, dryRun bool) {
 			}
 			return
 		} else {
-			// No suitable tool available
 			fmt.Println("Error: Neither uvx nor mise is available for installing markitdown")
 			fmt.Println()
 			fmt.Println("Please install uv (recommended):")
 			fmt.Println("  curl -LsSf https://astral.sh/uv/install.sh | sh")
-			fmt.Println()
-			fmt.Println("Or install mise:")
-			fmt.Println("  https://mise.jdx.dev/getting-started.html")
 			fmt.Println()
 			fmt.Println("Falling back to pure.md service...")
 			usePureMd(url)
 			return
 		}
 
-		// If still not available after mise installation, use pure.md
 		if !hasMarkitdown {
 			fmt.Println("markitdown not available, using pure.md service...")
 			usePureMd(url)
 			return
 		}
-	}
-
-	if dryRun {
-		fmt.Println("DRY RUN - Execution plan:")
-		fmt.Println()
-		fmt.Println("Step 1: Convert URL to markdown")
-		fmt.Printf("  $ markitdown %s\n", url)
-		return
 	}
 
 	// Execute markitdown
@@ -542,7 +685,7 @@ func usePureMd(url string) {
 }
 
 // installToolViaMise installs a tool using mise
-func installToolViaMise(tool string, dryRun bool) {
+func installToolViaMise(tool string, dryRun bool, planJson bool) {
 	// Special case: handle mise installation request
 	if tool == "mise" {
 		if isMiseAvailable() {
@@ -576,7 +719,7 @@ func installToolViaMise(tool string, dryRun bool) {
 		}
 
 		// Install mise using the official installation script
-		err := installMise(dryRun)
+		err := installMise(dryRun, planJson)
 		if err != nil {
 			fmt.Printf("\nError: %v\n", err)
 			os.Exit(1)
@@ -602,29 +745,59 @@ func installToolViaMise(tool string, dryRun bool) {
 		return
 	}
 
-	// Try to install via mise
-	fmt.Printf("Installing %s via mise...\n", tool)
+	// Build the plan
+	plan := FulfillmentPlan{
+		Requirement: tool,
+		Steps:       []PlanStep{},
+	}
 
-	if dryRun {
-		fmt.Println()
-		fmt.Println("DRY RUN - Execution plan:")
-		fmt.Println()
-		fmt.Println("Step 1: Install tool via mise")
-		fmt.Printf("  $ mise use -g %s\n", tool)
+	// Check if mise is available and add to plan if needed
+	if !isMiseAvailable() {
+		plan.Steps = append(plan.Steps, buildMiseInstallationSteps()...)
+	}
+
+	plan.Steps = append(plan.Steps, PlanStep{
+		Type:        "install",
+		Description: fmt.Sprintf("Install %s via mise", tool),
+		Command:     fmt.Sprintf("mise use -g %s", tool),
+		Automatic:   true,
+	})
+
+	// Handle plan output modes
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(jsonStr)
 		return
 	}
 
-	// Check if mise is available (only for actual installation)
+	if dryRun {
+		plan.PrintPlan()
+		return
+	}
+
+	// Execute the plan
+	plan.PrintPlan()
+	if !plan.ConfirmPlan() {
+		fmt.Println("Cancelled.")
+		os.Exit(0)
+	}
+	fmt.Println()
+
+	// Check if mise is available before executing
 	if !isMiseAvailable() {
 		fmt.Println()
 		fmt.Println("Error: mise is not installed")
-		fmt.Println("Please install mise first: https://mise.jdx.dev/")
-		fmt.Println()
-		fmt.Println("You can install mise with:")
+		fmt.Println("Please install mise first with:")
 		fmt.Println("  want mise")
 		os.Exit(1)
 	}
 
+	// Execute installation
+	fmt.Printf("Installing %s via mise...\n", tool)
 	cmd := exec.Command("mise", "use", "-g", tool)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -657,136 +830,176 @@ func installToolViaMise(tool string, dryRun bool) {
 }
 
 // handleGitHubAsset downloads a binary from a GitHub release
-func handleGitHubAsset(url string, dryRun bool) {
-fmt.Printf("Downloading GitHub release asset from: %s\n", url)
-fmt.Println()
+func handleGitHubAsset(url string, dryRun bool, planJson bool) {
+	// Parse the URL to extract owner, repo, and tag
+	var owner, repo, tag, projectName string
 
-// Parse the URL to extract owner, repo, and tag
-var owner, repo, tag, projectName string
+	// Handle two URL formats:
+	// 1. https://github.com/owner/repo/releases/download/tag/asset-name
+	// 2. https://github.com/owner/repo/releases/tag/tag-name
 
-// Handle two URL formats:
-// 1. https://github.com/owner/repo/releases/download/tag/asset-name
-// 2. https://github.com/owner/repo/releases/tag/tag-name
+	if strings.Contains(url, "/releases/download/") {
+		// Direct download URL
+		re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/([^/]+)`)
+		matches := re.FindStringSubmatch(url)
+		if matches == nil || len(matches) < 5 {
+			fmt.Printf("Error: Invalid GitHub release download URL: %s\n", url)
+			fmt.Println("\nExpected format:")
+			fmt.Println("  https://github.com/owner/repo/releases/download/tag/asset-name")
+			os.Exit(1)
+		}
+		owner = matches[1]
+		repo = matches[2]
+		tag = matches[3]
+		assetName := matches[4]
 
-if strings.Contains(url, "/releases/download/") {
-// Direct download URL
-re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/([^/]+)`)
-matches := re.FindStringSubmatch(url)
-if matches == nil || len(matches) < 5 {
-fmt.Printf("Error: Invalid GitHub release download URL: %s\n", url)
-fmt.Println("\nExpected format:")
-fmt.Println("  https://github.com/owner/repo/releases/download/tag/asset-name")
-os.Exit(1)
-}
-owner = matches[1]
-repo = matches[2]
-tag = matches[3]
-assetName := matches[4]
+		// Try to extract project name from asset name (e.g., "want-main.3-darwin-arm64" -> "want")
+		parts := strings.Split(assetName, "-")
+		if len(parts) > 0 {
+			projectName = parts[0]
+		}
+	} else if strings.Contains(url, "/releases/tag/") {
+		// Release tag URL - will detect platform automatically
+		re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/releases/tag/([^/]+)`)
+		matches := re.FindStringSubmatch(url)
+		if matches == nil || len(matches) < 4 {
+			fmt.Printf("Error: Invalid GitHub release tag URL: %s\n", url)
+			fmt.Println("\nExpected format:")
+			fmt.Println("  https://github.com/owner/repo/releases/tag/tag-name")
+			os.Exit(1)
+		}
+		owner = matches[1]
+		repo = matches[2]
+		tag = matches[3]
 
-// Try to extract project name from asset name (e.g., "want-main.3-darwin-arm64" -> "want")
-// Asset name format: project-version-os-arch or project--version-os-arch
-parts := strings.Split(assetName, "-")
-if len(parts) > 0 {
-projectName = parts[0]
-}
-} else if strings.Contains(url, "/releases/tag/") {
-// Release tag URL - will detect platform automatically
-re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/releases/tag/([^/]+)`)
-matches := re.FindStringSubmatch(url)
-if matches == nil || len(matches) < 4 {
-fmt.Printf("Error: Invalid GitHub release tag URL: %s\n", url)
-fmt.Println("\nExpected format:")
-fmt.Println("  https://github.com/owner/repo/releases/tag/tag-name")
-os.Exit(1)
-}
-owner = matches[1]
-repo = matches[2]
-tag = matches[3]
+		// Try to extract project name from tag (e.g., "want--main.3" -> "want")
+		parts := strings.Split(tag, "--")
+		if len(parts) > 0 {
+			projectName = parts[0]
+		}
+	} else {
+		fmt.Printf("Error: URL doesn't contain /releases/download/ or /releases/tag/\n")
+		fmt.Println("\nSupported formats:")
+		fmt.Println("  https://github.com/owner/repo/releases/download/tag/asset-name")
+		fmt.Println("  https://github.com/owner/repo/releases/tag/tag-name")
+		os.Exit(1)
+	}
 
-// Try to extract project name from tag (e.g., "want--main.3" -> "want")
-parts := strings.Split(tag, "--")
-if len(parts) > 0 {
-projectName = parts[0]
-}
-} else {
-fmt.Printf("Error: URL doesn't contain /releases/download/ or /releases/tag/\n")
-fmt.Println("\nSupported formats:")
-fmt.Println("  https://github.com/owner/repo/releases/download/tag/asset-name")
-fmt.Println("  https://github.com/owner/repo/releases/tag/tag-name")
-os.Exit(1)
-}
+	// Determine destination path
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error: Failed to get home directory: %v\n", err)
+		os.Exit(1)
+	}
 
-fmt.Printf("Owner: %s\n", owner)
-fmt.Printf("Repo: %s\n", repo)
-fmt.Printf("Tag: %s\n", tag)
-if projectName != "" {
-fmt.Printf("Project: %s\n", projectName)
-}
-fmt.Println()
+	destDir := filepath.Join(homeDir, ".local", "bin")
+	destFile := projectName
+	if destFile == "" {
+		destFile = tag
+	}
+	destPath := filepath.Join(destDir, destFile)
 
-// Determine destination path
-homeDir, err := os.UserHomeDir()
-if err != nil {
-fmt.Printf("Error: Failed to get home directory: %v\n", err)
-os.Exit(1)
-}
+	// Build the plan
+	platform := ghrelease.GetCurrentPlatform()
+	plan := FulfillmentPlan{
+		Requirement: url,
+		Steps:       []PlanStep{},
+	}
 
-destDir := filepath.Join(homeDir, ".local", "bin")
-destFile := projectName
-if destFile == "" {
-destFile = tag
-}
-destPath := filepath.Join(destDir, destFile)
+	plan.Steps = append(plan.Steps, PlanStep{
+		Type:        "download",
+		Description: fmt.Sprintf("Fetch release information from GitHub (platform: %s-%s)", platform.OS, platform.Arch),
+		Command:     fmt.Sprintf("GET https://api.github.com/repos/%s/%s/releases/tags/%s", owner, repo, tag),
+		Automatic:   true,
+	})
 
-if dryRun {
-fmt.Println("DRY RUN - Execution plan:")
-fmt.Println()
-fmt.Println("Step 1: Fetch release information")
-fmt.Printf("  GET https://api.github.com/repos/%s/%s/releases/tags/%s\n", owner, repo, tag)
-fmt.Println()
-fmt.Println("Step 2: Find asset for current platform")
-platform := ghrelease.GetCurrentPlatform()
-fmt.Printf("  Platform: %s-%s\n", platform.OS, platform.Arch)
-fmt.Println()
-fmt.Println("Step 3: Download asset")
-fmt.Printf("  Destination: %s\n", destPath)
-fmt.Println()
-fmt.Println("Step 4: Make executable")
-fmt.Printf("  chmod +x %s\n", destPath)
-return
-}
+	plan.Steps = append(plan.Steps, PlanStep{
+		Type:        "download",
+		Description: fmt.Sprintf("Download asset to %s", destPath),
+		Command:     fmt.Sprintf("download asset to %s", destPath),
+		Automatic:   true,
+	})
 
-fmt.Println("Fetching release information...")
-err = ghrelease.DownloadReleaseAsset(owner, repo, tag, projectName, destPath)
-if err != nil {
-fmt.Printf("\nError: Failed to download release asset: %v\n", err)
-fmt.Println("\nTroubleshooting:")
-fmt.Println("  • Check that the release exists")
-fmt.Println("  • Check that there's an asset for your platform")
-fmt.Println("  • For private repositories, set GITHUB_TOKEN environment variable")
-platform := ghrelease.GetCurrentPlatform()
-fmt.Printf("  • Your platform: %s-%s\n", platform.OS, platform.Arch)
-os.Exit(1)
-}
+	plan.Steps = append(plan.Steps, PlanStep{
+		Type:        "configure",
+		Description: "Make executable",
+		Command:     fmt.Sprintf("chmod +x %s", destPath),
+		Automatic:   true,
+	})
 
-fmt.Println()
-fmt.Printf("✓ Downloaded to: %s\n", destPath)
-fmt.Println()
+	// Handle plan output modes
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(jsonStr)
+		return
+	}
 
-// Check if destDir is in PATH
-pathEnv := os.Getenv("PATH")
-if !strings.Contains(pathEnv, destDir) {
-fmt.Printf("Note: %s is not in your PATH\n", destDir)
-fmt.Println()
-fmt.Println("To use the binary, either:")
-fmt.Println("  1. Run it with the full path:")
-fmt.Printf("     %s\n", destPath)
-fmt.Println()
-fmt.Println("  2. Add the directory to your PATH:")
-configFile := getShellConfigFile()
-fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
-fmt.Printf("     source %s\n", configFile)
-} else {
-fmt.Printf("✓ Binary is available in your PATH as: %s\n", destFile)
-}
+	if dryRun {
+		fmt.Printf("Downloading GitHub release asset from: %s\n", url)
+		fmt.Println()
+		fmt.Printf("Owner: %s\n", owner)
+		fmt.Printf("Repo: %s\n", repo)
+		fmt.Printf("Tag: %s\n", tag)
+		if projectName != "" {
+			fmt.Printf("Project: %s\n", projectName)
+		}
+		fmt.Println()
+		plan.PrintPlan()
+		return
+	}
+
+	// Execute the plan
+	fmt.Printf("Downloading GitHub release asset from: %s\n", url)
+	fmt.Println()
+	fmt.Printf("Owner: %s\n", owner)
+	fmt.Printf("Repo: %s\n", repo)
+	fmt.Printf("Tag: %s\n", tag)
+	if projectName != "" {
+		fmt.Printf("Project: %s\n", projectName)
+	}
+	fmt.Println()
+
+	plan.PrintPlan()
+	if !plan.ConfirmPlan() {
+		fmt.Println("Cancelled.")
+		os.Exit(0)
+	}
+	fmt.Println()
+
+	fmt.Println("Fetching release information...")
+	err = ghrelease.DownloadReleaseAsset(owner, repo, tag, projectName, destPath)
+	if err != nil {
+		fmt.Printf("\nError: Failed to download release asset: %v\n", err)
+		fmt.Println("\nTroubleshooting:")
+		fmt.Println("  • Check that the release exists")
+		fmt.Println("  • Check that there's an asset for your platform")
+		fmt.Println("  • For private repositories, set GITHUB_TOKEN environment variable")
+		fmt.Printf("  • Your platform: %s-%s\n", platform.OS, platform.Arch)
+		os.Exit(1)
+	}
+
+	fmt.Println()
+	fmt.Printf("✓ Downloaded to: %s\n", destPath)
+	fmt.Println()
+
+	// Check if destDir is in PATH
+	pathEnv := os.Getenv("PATH")
+	if !strings.Contains(pathEnv, destDir) {
+		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Println()
+		fmt.Println("To use the binary, either:")
+		fmt.Println("  1. Run it with the full path:")
+		fmt.Printf("     %s\n", destPath)
+		fmt.Println()
+		fmt.Println("  2. Add the directory to your PATH:")
+		configFile := getShellConfigFile()
+		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
+		fmt.Printf("     source %s\n", configFile)
+	} else {
+		fmt.Printf("✓ Binary is available in your PATH as: %s\n", destFile)
+	}
 }
