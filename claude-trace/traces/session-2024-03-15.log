@@ -1,0 +1,40 @@
+=== Claude Code Session ===
+Date: 2024-03-15
+Duration: 45 minutes
+
+[User]: Can you help me implement a function to parse JSON?
+
+[Claude]: I'd be happy to help! Let me create a JSON parser function for you.
+
+```go
+func ParseJSON(data []byte) (map[string]interface{}, error) {
+    var result map[string]interface{}
+    err := json.Unmarshal(data, &result)
+    if err != nil {
+        return nil, fmt.Errorf("failed to parse JSON: %w", err)
+    }
+    return result, nil
+}
+```
+
+[User]: This works great! Can you also add error handling for empty input?
+
+[Claude]: Sure! Here's the updated version with better error handling:
+
+```go
+func ParseJSON(data []byte) (map[string]interface{}, error) {
+    if len(data) == 0 {
+        return nil, fmt.Errorf("empty input")
+    }
+    var result map[string]interface{}
+    err := json.Unmarshal(data, &result)
+    if err != nil {
+        return nil, fmt.Errorf("failed to parse JSON: %w", err)
+    }
+    return result, nil
+}
+```
+
+[User]: Perfect! Thanks!
+
+=== End of Session ===

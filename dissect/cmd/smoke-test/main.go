@@ -25,7 +25,7 @@ func main() {
 
 	// Init logging
 	slog.SetDefault(slog.New(devslog.NewHandler(os.Stdout, &devslog.Options{
-		HandlerOptions: &slog.HandlerOptions{Level: slog.LevelInfo, AddSource: false},
+		HandlerOptions:  &slog.HandlerOptions{Level: slog.LevelInfo, AddSource: false},
 		NewLineAfterLog: true,
 	})))
 
@@ -137,9 +137,12 @@ func runSmokeTest(config externaltest.ProjectConfig) *externaltest.TestResult {
 // mockLogger is a minimal implementation of Logger for non-test usage
 type mockLogger struct{}
 
-func (m *mockLogger) Helper()                                  {}
-func (m *mockLogger) Fatalf(format string, args ...interface{}) { fmt.Fprintf(os.Stderr, format+"\n", args...); os.Exit(1) }
-func (m *mockLogger) Logf(format string, args ...interface{})  { fmt.Printf(format+"\n", args...) }
+func (m *mockLogger) Helper() {}
+func (m *mockLogger) Fatalf(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, format+"\n", args...)
+	os.Exit(1)
+}
+func (m *mockLogger) Logf(format string, args ...interface{}) { fmt.Printf(format+"\n", args...) }
 
 // extractProjectName extracts a project name from a git URL
 func extractProjectName(url string) string {

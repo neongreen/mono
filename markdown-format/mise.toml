@@ -1,0 +1,15 @@
+[tasks.run]
+description = "Build and run markdown-format"
+run = "go run ."
+
+[tasks.test]
+description = "Run tests for markdown-format"
+run = "go test ./..."
+
+[tasks.fmt]
+description = "Format Go code"
+run = "go fmt ./..."
+
+[tasks.check]
+description = "Check that Go code and tests compile and type check"
+run = "go test -run=^$ ./..."

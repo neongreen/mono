@@ -15,6 +15,8 @@ This means:
 
 ## Available Lints
 
+The linter now includes 6 different checks to help you create better diagrams:
+
 ### 1. Short Arrow Detection
 
 **What it checks:** Detects arrows that are too short (shorter than 20px)
@@ -48,7 +50,7 @@ This means:
 </Stack>
 ```
 
-### 2. Internal vs External Spacing
+### 2. Internal vs External Spacing (Visual Hierarchy)
 
 **What it checks:** Detects when a box's internal spacing (padding) is larger than the external gap to adjacent boxes
 
@@ -98,6 +100,148 @@ This means:
 </Stack>
 ```
 
+### 3. Overlapping Elements
+
+**What it checks:** Detects when two boxes or cards physically overlap each other
+
+**Why it matters:** Overlapping elements obscure content and create visual confusion. Each element should have its own clear space in the diagram.
+
+**Example warning:**
+```
+⚠ Elements "box1" and "box2" are overlapping. 
+  This may obscure content and create visual confusion.
+```
+
+**How to fix:**
+- Increase spacing between elements
+- Adjust element sizes to fit better
+- Reorganize layout to prevent overlap
+- Check for absolute positioning conflicts
+
+**Example:**
+```tsx
+// Before (overlapping due to tight layout)
+<Stack gap={10}>
+  <Box id="box1" width={200} height={100} position="absolute" top={0} left={0} />
+  <Box id="box2" width={200} height={100} position="absolute" top={50} left={50} />
+</Stack>
+
+// After (no overlap)
+<Stack gap={20}>
+  <Box id="box1" width={200} height={100} />
+  <Box id="box2" width={200} height={100} />
+</Stack>
+```
+
+### 4. Minimum Font Size
+
+**What it checks:** Detects text with font sizes smaller than 10px
+
+**Why it matters:** Text smaller than 10px can be difficult to read, especially on lower-resolution displays or when printed. This affects accessibility and overall diagram usability.
+
+**Example warning:**
+```
+ℹ Text has very small font size (8px). 
+  Minimum recommended: 10px for readability.
+```
+
+**How to fix:**
+- Increase `fontSize` prop to at least 10px
+- Consider 12-14px for body text
+- Use 16px or larger for headings
+
+**Example:**
+```tsx
+// Before (too small)
+<Text fontSize={8}>Important info</Text>
+
+// After (readable)
+<Text fontSize={12}>Important info</Text>
+```
+
+### 5. Inconsistent Spacing
+
+**What it checks:** Detects when a container (Stack or Row) has highly variable gaps between its children
+
+**Why it matters:** Inconsistent spacing creates visual noise and makes the diagram look unpolished. Uniform spacing creates better visual rhythm and professionalism.
+
+**Example warning:**
+```
+ℹ Container "main-stack" has inconsistent spacing between children 
+  (10.0px to 40.0px). Consider using uniform gaps for visual consistency.
+```
+
+**How to fix:**
+- Use the same `gap` value for all children in a container
+- If different spacing is needed, consider using nested containers
+- Be intentional about spacing variations
+
+**Example:**
+```tsx
+// Before (inconsistent - gaps vary)
+<Stack gap={10}>
+  <Card height={50} />
+  <Card height={50} marginTop={30} />  {/* Extra margin creates inconsistency */}
+  <Card height={50} />
+</Stack>
+
+// After (consistent)
+<Stack gap={20}>
+  <Card height={50} />
+  <Card height={50} />
+  <Card height={50} />
+</Stack>
+```
+
+### 6. Arrow Crossings
+
+**What it checks:** Detects when arrows cross each other in the diagram
+
+**Why it matters:** Crossed arrows make it harder to follow connections and understand the flow of information. Clean, non-crossing paths are easier to trace visually.
+
+**Example warning:**
+```
+ℹ Arrows "box1→box2" and "box3→box4" are crossing. 
+  Consider rearranging elements to avoid crossed connections.
+```
+
+**How to fix:**
+- Rearrange elements to minimize crossings
+- Change the order of boxes in the layout
+- Consider a different layout structure (e.g., use layers/tiers)
+- For complex diagrams, accept some crossings as unavoidable
+
+**Example:**
+```tsx
+// Before (arrows cross)
+<Stack gap={20}>
+  <Row gap={20}>
+    <Box id="A" />
+    <Box id="B" />
+  </Row>
+  <Row gap={20}>
+    <Box id="C" />
+    <Box id="D" />
+  </Row>
+  <Arrow from="A" to="D" />  {/* These arrows */}
+  <Arrow from="B" to="C" />  {/* will cross */}
+</Stack>
+
+// After (no crossing - reordered)
+<Stack gap={20}>
+  <Row gap={20}>
+    <Box id="A" />
+    <Box id="B" />
+  </Row>
+  <Row gap={20}>
+    <Box id="D" />
+    <Box id="C" />
+  </Row>
+  <Arrow from="A" to="D" />
+  <Arrow from="B" to="C" />
+</Stack>
+```
+
 ## Using the Linter
 
 ### In Your Code
@@ -134,6 +278,8 @@ Lint your examples with:
 npm run lint
 ```
 
+**Note:** The lint command will exit with code 1 if any lints are found (warnings or info). This allows CI/workflows to fail and make the issues visible without having to check logs. When all diagrams pass linting, it exits with code 0.
+
 Test the linting system:
 
 ```bash
@@ -153,13 +299,25 @@ interface LayoutLint {
 }
 ```
 
+## Lint Severity Levels
+
+The linter uses two severity levels:
+
+- **⚠ Warning** - Issues that likely affect usability or visual clarity (short arrows, overlapping elements, poor visual hierarchy)
+- **ℹ Info** - Suggestions for improvement that may be acceptable in context (font sizes, inconsistent spacing, arrow crossings)
+
 ## Best Practices
 
 1. **Review lints regularly** - Run the linter after making spacing changes
-2. **Don't ignore short arrow warnings** - They usually indicate cramped layouts
-3. **Follow the internal < external rule** - It creates better visual hierarchy
-4. **Lints are suggestions** - Sometimes you may have good reasons to ignore them
-5. **Consider context** - What works for flowcharts may differ from architecture diagrams
+2. **Address warnings first** - Warnings (⚠) indicate more serious issues
+3. **Don't ignore short arrow warnings** - They usually indicate cramped layouts
+4. **Follow the internal < external rule** - It creates better visual hierarchy
+5. **Consider info lints contextually** - Info (ℹ) suggestions may be acceptable depending on your needs
+6. **Use consistent spacing** - Uniform gaps create visual rhythm
+7. **Avoid overlapping elements** - Each element needs its own space
+8. **Keep text readable** - Use font sizes of 10px or larger
+9. **Minimize arrow crossings** - Clean paths are easier to follow
+10. **Lints are suggestions** - Sometimes you may have good reasons to ignore them
 
 ## Advanced: Custom Spacing Guidelines
 
@@ -181,14 +339,25 @@ For different diagram types, consider these spacing guidelines:
 - Branch spacing: 60-80px horizontal
 - Internal padding: 12-16px
 
+## Summary of All Checks
+
+| Check | Type | What it detects |
+|-------|------|----------------|
+| Short Arrow Detection | Warning | Arrows shorter than 20px |
+| Internal vs External Spacing | Warning | Padding larger than gaps |
+| Overlapping Elements | Warning | Elements that physically overlap |
+| Minimum Font Size | Info | Text smaller than 10px |
+| Inconsistent Spacing | Info | Variable gaps in containers |
+| Arrow Crossings | Info | Arrows that intersect each other |
+
 ## Future Enhancements
 
 Potential future lints could include:
-- Detecting text overflow in boxes
-- Checking for inconsistent spacing patterns
-- Validating arrow label positioning
-- Detecting overlapping elements
-- Checking minimum font sizes for readability
+- Detecting text overflow in boxes (when text is wider/taller than container)
+- Validating arrow label positioning and collisions
+- Checking for proper alignment of related elements
+- Detecting color contrast issues for accessibility
+- Suggesting optimal container sizes based on content
 
 ## Feedback
 

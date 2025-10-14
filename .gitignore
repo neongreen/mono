@@ -1,0 +1,18 @@
+# Test artifacts
+tmp/
+
+# Build artifacts
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go build cache
+*.test
+*.out
+
+# Go binaries
+prrun/prrun
+dissect/dissect
+markdown-format/markdown-format

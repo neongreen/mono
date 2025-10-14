@@ -536,7 +536,11 @@ if (lints.length > 0) {
 - **Short arrows** - Warns when arrows are too short (<20px) and may be hard to see
 - **Internal vs external spacing** - Warns when a box's internal padding is larger than the gap to adjacent boxes, which breaks visual hierarchy
 
-Run linter: `npm run lint`  
+**Usage:**
+- Run linter locally: `npm run lint`
+- CI linter (with GitHub annotations): `npm run lint:ci`
+- Automatic linting on pull requests via GitHub Actions
+
 See [LINTING_GUIDE.md](LINTING_GUIDE.md) for detailed documentation
 
 ## Text Measurement

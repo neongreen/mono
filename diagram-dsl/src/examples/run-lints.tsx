@@ -162,6 +162,10 @@ async function runLints() {
   console.log('Running Layout Lints on Actual Examples');
   console.log('='.repeat(70));
 
+  let totalLints = 0;
+  let totalWarnings = 0;
+  let totalInfos = 0;
+
   // Lint flowchart
   console.log('\n📋 Linting: Styled Flowchart');
   console.log('-'.repeat(70));
@@ -174,6 +178,9 @@ async function runLints() {
   
   if (lints1.length > 0) {
     console.log(LayoutLinter.formatLints(lints1));
+    totalLints += lints1.length;
+    totalWarnings += lints1.filter(l => l.type === 'warning').length;
+    totalInfos += lints1.filter(l => l.type === 'info').length;
   } else {
     console.log('✅ No layout issues found!\n');
   }
@@ -190,6 +197,9 @@ async function runLints() {
   
   if (lints2.length > 0) {
     console.log(LayoutLinter.formatLints(lints2));
+    totalLints += lints2.length;
+    totalWarnings += lints2.filter(l => l.type === 'warning').length;
+    totalInfos += lints2.filter(l => l.type === 'info').length;
   } else {
     console.log('✅ No layout issues found!\n');
   }
@@ -197,8 +207,23 @@ async function runLints() {
   console.log('\n' + '='.repeat(70));
   console.log('Layout Linting Complete');
   console.log('='.repeat(70));
-  console.log('\n💡 Tip: These are suggestions, not errors. Review them to improve');
-  console.log('   the visual hierarchy and spacing of your diagrams.\n');
+  
+  // Summary
+  if (totalLints > 0) {
+    console.log(`\n⚠️  Found ${totalLints} issue(s): ${totalWarnings} warning(s), ${totalInfos} info(s)`);
+    console.log('\n💡 Tip: These are suggestions to help improve your diagrams.');
+    console.log('   Review them to enhance visual hierarchy and spacing.\n');
+    
+    // Exit with non-zero code to indicate lints were found
+    // This makes the check visible in CI/workflow status
+    process.exit(1);
+  } else {
+    console.log('\n✅ All diagrams passed linting with no issues!\n');
+    process.exit(0);
+  }
 }
 
-runLints().catch(console.error);
+runLints().catch((error) => {
+  console.error('Error running lints:', error);
+  process.exit(1);
+});
