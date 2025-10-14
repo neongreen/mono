@@ -84,8 +84,18 @@ printpdf -columns 3 document.md
 # Use landscape orientation
 printpdf -orientation landscape document.md
 
-# Combine options: 3 columns in landscape mode
-printpdf -columns 3 -orientation landscape document.md
+# Customize page margins
+printpdf -margin 1cm document.md
+printpdf -margin 1in document.md
+printpdf -margin 20mm document.md
+
+# Adjust zoom (scales all font sizes proportionally)
+printpdf -zoom 80 document.md   # 80% of default size
+printpdf -zoom 120 document.md  # 120% of default size
+
+# Combine options
+printpdf -columns 2 -margin 1.5cm -zoom 90 document.md
+printpdf -orientation landscape -margin 2cm -zoom 110 document.md
 ```
 
 #### Column Layout
@@ -113,6 +123,39 @@ The `-orientation` flag controls whether the page is in portrait or landscape mo
 The implementation:
 - **Typst**: Uses `flipped: true` page attribute
 - **WeasyPrint/Prince**: Uses CSS `@page { size: A4 landscape; }`
+
+#### Page Margins
+
+The `-margin` flag allows you to customize the page margins:
+
+- Default: `2cm` (2 centimeters on all sides)
+- Supports various units: `cm`, `mm`, `in`, `pt`, etc.
+- Examples:
+  - `-margin 1cm`: 1 centimeter margins
+  - `-margin 1in`: 1 inch margins
+  - `-margin 20mm`: 20 millimeter margins
+
+The margin value is applied to all sides of the page. For asymmetric margins, you may need to use converter-specific options.
+
+#### Zoom (Font Size Scaling)
+
+The `-zoom` flag scales all font sizes proportionally:
+
+- Default: `100` (100%, no scaling)
+- Range: 1-500 (percentage)
+- Examples:
+  - `-zoom 80`: All fonts at 80% of their normal size
+  - `-zoom 120`: All fonts at 120% of their normal size
+
+This is useful when you want to:
+- Make the document more compact without manually adjusting individual font sizes
+- Increase readability by making all text larger
+- Fit more content on a page by reducing font sizes
+
+The zoom affects:
+- **All text elements**: headings, body text, code blocks, lists, etc.
+- **Typst**: Adjusts the base font size (11pt by default becomes 8.8pt at 80%, 13.2pt at 120%)
+- **HTML/CSS**: Uses `font-size` percentage on the root element, so all relative sizes scale proportionally
 
 ### GitHub Authentication
 

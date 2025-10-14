@@ -43,6 +43,9 @@ func main() {
 			projectName = os.Args[i+1]
 			explicitProject = true
 			i += 2
+		} else if arg == "--debug" {
+			debugMode = true
+			i++
 		} else if arg == "--" {
 			// Everything after -- goes to binary
 			binaryArgs = os.Args[i+1:]

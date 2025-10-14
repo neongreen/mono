@@ -11,6 +11,8 @@ import (
 type PageOptions struct {
 	Columns     int    // Number of columns (1 = no columns)
 	Orientation string // "portrait" or "landscape"
+	Margin      string // Page margin (e.g., "2cm", "1in")
+	Zoom        int    // Zoom percentage (e.g., 80 for 80%, 100 is default)
 }
 
 // Converter interface for PDF conversion
