@@ -11,6 +11,19 @@ An mdbook preprocessor that adds paragraph-level commenting functionality simila
 - **Orphaned Comments**: Shows unmatched comments at the end of chapters with full context
 - **No Data Loss**: All comments are preserved, even when content changes significantly
 
+## Quick Start with Docker
+
+Try mdbook-comments with Neon backend instantly using Docker:
+
+```bash
+docker run -p 3000:3000 \
+  -e NEON_API_URL="https://ep-xxx-xxx.us-east-2.aws.neon.tech/v2/query" \
+  -e NEON_API_KEY="neon_api_key_xxxxxxxxxxxxxxxxxxxxx" \
+  ghcr.io/neongreen/mono/mdbook-comments-demo:latest
+```
+
+See [DOCKER_DEMO.md](DOCKER_DEMO.md) for complete setup instructions including Neon database configuration.
+
 ## Installation
 
 ### Building from Source
