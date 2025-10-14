@@ -24,5 +24,8 @@ link-text = "comment"
 show-comment-count = true
 
 [output.html]
-additional-js = ["../js/comments.js"]
-additional-css = ["../css/comments.css"]
+additional-js = [
+    "supabase-config.js",
+    "js/comments-supabase.js"
+]
+additional-css = ["css/comments.css"]

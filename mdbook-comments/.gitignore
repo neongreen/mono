@@ -1,6 +1,5 @@
 # Rust
 /target/
-Cargo.lock
 **/*.rs.bk
 
 # mdbook
@@ -16,3 +15,15 @@ Cargo.lock
 # OS
 .DS_Store
 Thumbs.db
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+.env
+.env.local
+example-book/supabase-config.js
+
+# Playwright
+node_modules/
+playwright-report/
+test-results/
