@@ -3,19 +3,16 @@
 
 FROM rust:1.75 AS builder
 
-# Set environment variables to work around SSL issues in build environment
-ENV CARGO_HTTP_CHECK_REVOKE=false
+# Install mdbook
+RUN cargo install --locked --version =0.4.52 mdbook
 
 # Copy mdbook-comments source and build preprocessor
 WORKDIR /build
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 
-# Build the preprocessor (this will also download mdbook as a dependency)
+# Build the preprocessor
 RUN cargo build --release
-
-# Install mdbook separately 
-RUN cargo install --locked --version =0.4.52 mdbook || true
 
 # Runtime stage
 FROM debian:bookworm-slim
