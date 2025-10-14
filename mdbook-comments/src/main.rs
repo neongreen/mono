@@ -1,6 +1,6 @@
 use anyhow::Result;
 use mdbook::book::{Book, BookItem};
-use mdbook::preprocess::{Preprocessor, PreprocessorContext, CmdPreprocessor};
+use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
 use serde::{Deserialize, Serialize};
 use std::io;
 use std::process;
@@ -103,7 +103,7 @@ impl Preprocessor for CommentsPreprocessor {
             .unwrap_or_default();
 
         let processor = CommentsProcessor::new(config);
-        
+
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 if let Err(e) = processor.process_chapter(chapter) {
@@ -122,7 +122,7 @@ impl Preprocessor for CommentsPreprocessor {
 
 fn main() -> Result<()> {
     let mut args = std::env::args().skip(1);
-    
+
     // Handle preprocessor commands
     match args.next().as_deref() {
         Some("supports") => {
@@ -143,6 +143,6 @@ fn main() -> Result<()> {
             serde_json::to_writer(io::stdout(), &processed_book)?;
         }
     }
-    
+
     Ok(())
 }
