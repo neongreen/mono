@@ -1,0 +1,38 @@
+[tools]
+# Rust toolchain is managed by rustup, not mise
+
+[tasks.build]
+description = "Build the mdbook-comments preprocessor"
+run = "cargo build --release"
+
+[tasks.test]
+description = "Run tests"
+run = "cargo test"
+
+[tasks.fmt]
+description = "Format Rust code"
+run = "cargo fmt"
+
+[tasks.check]
+description = "Check that code compiles and passes clippy"
+run = "cargo clippy -- -D warnings"
+
+[tasks."docker:build"]
+description = "Build Docker image locally"
+run = "docker build -t mdbook-comments-demo ."
+
+[tasks."docker:run"]
+description = "Run Docker image locally (requires NEON_API_URL and NEON_API_KEY env vars)"
+run = """
+  if [ -z "$NEON_API_URL" ] || [ -z "$NEON_API_KEY" ]; then
+    echo "Error: NEON_API_URL and NEON_API_KEY environment variables are required"
+    echo "Set them before running this task:"
+    echo '  export NEON_API_URL="https://ep-xxx-xxx.us-east-2.aws.neon.tech/v2/query"'
+    echo '  export NEON_API_KEY="neon_api_key_xxxxxxxxxxxxxxxxxxxxx"'
+    exit 1
+  fi
+  docker run -p 3000:3000 \
+    -e NEON_API_URL="$NEON_API_URL" \
+    -e NEON_API_KEY="$NEON_API_KEY" \
+    mdbook-comments-demo
+"""
