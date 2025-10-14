@@ -1,0 +1,19 @@
+[tasks.run]
+description = "Build and run"
+run = "go run ./cmd"
+
+[tasks.fmt]
+description = "Format Go code"
+run = "go fmt ./..."
+
+[tasks.check]
+description = "Check that Go code and tests compile and type check"
+run = "go test -run=^$ ./..."
+
+[tasks.test]
+description = "Run tests"
+run = "go test ./..."
+
+[tasks.build]
+description = "Build the project into _build/printpdf"
+run = "go build -trimpath -o _build/printpdf ./cmd"

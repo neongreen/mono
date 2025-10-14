@@ -7,6 +7,7 @@ This document contains guidelines for AI agents and automated tools working on p
 - All tools are written in Go unless stated otherwise. 
 - All new projects are created as top-level folders in the repository unless stated otherwise.
 - All projects must contain a `mise.toml`. Check existing `mise.toml` files to see what is expected from you.
+- All new Go projects must have CI workflows in `.github/workflows/<project-name>.yml`. Check existing workflow files to see what is expected from you.
 - In all prose that you write, don't be excited, don't use emojis unless necessary, and don't use pervasive bold text.
 - All temporary files (like summaries of fixes you did, one-off scripts you wrote during PR development, etc) must have names prefixed with `ai-temp-`.
 - Do not create temporary files in the repository root.
@@ -71,6 +72,19 @@ All projects should define standard tasks in their `mise.toml` where applicable:
 - **`test`** - Run all tests
 
 These tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
+
+------------------------------------------------------------
+
+## Code Formatting
+
+**All Go code must be formatted with `go fmt` before work is considered complete.**
+
+Before submitting any changes to Go projects:
+- Run `go fmt ./...` in the project directory
+- Ensure all Go files are properly formatted
+- This applies to both new and modified Go code
+
+The `go fmt` tool ensures consistent formatting across all Go code in the monorepo and is a standard requirement for Go development.
 
 ------------------------------------------------------------
 
@@ -207,6 +221,52 @@ The owner will explicitly request backwards compatibility when needed. Until the
 - **Only consider it when:** The owner explicitly asks for it
 - **Focus on:** Making the best possible code, not maintaining old code
 - **Applies to:** ALL projects in this monorepo (diagram-dsl, dissect, markdown-format, want, etc.)
+
+------------------------------------------------------------
+
+## Go CI Workflow Configuration
+
+All Go projects in this monorepo must have a `go.sum` file to enable dependency caching in CI workflows.
+
+### Required: go.sum for All Go Projects
+
+**Every Go project must have a `go.sum` file, even if it only has local dependencies.**
+
+- Run `go mod tidy` in each Go project directory to ensure `go.sum` is up-to-date
+- If a project has no external dependencies, an empty `go.sum` file is acceptable
+- The `go.sum` file must be committed to the repository
+
+### CI Workflow Setup
+
+All CI workflows must specify the `cache-dependency-path` to point to the project's `go.sum` file:
+
+```yaml
+- name: Set up Go
+  uses: actions/setup-go@v5
+  with:
+    go-version: '1.24.7'
+    cache-dependency-path: <project-name>/go.sum
+```
+
+For example:
+- `cache-dependency-path: prrun/go.sum` for the prrun project
+- `cache-dependency-path: dissect/go.sum` for the dissect project
+- `cache-dependency-path: ${{ matrix.project }}/go.sum` for matrix builds
+
+The action will:
+- Look for `go.sum` at the specified path
+- Cache Go module dependencies and build cache
+- Restore cache on subsequent runs
+
+### Keeping go.sum Up-to-Date
+
+Run `go mod tidy` whenever:
+- Adding new dependencies
+- Removing dependencies
+- Updating Go version
+- Changing module requirements
+
+This ensures the `go.sum` file stays synchronized with `go.mod`.
 
 ------------------------------------------------------------
 
