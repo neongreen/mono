@@ -4,6 +4,7 @@ This document contains guidelines for AI agents and automated tools working on p
 
 ## Basic rules
 
+- Don't use Markdown files for tracking issues or TODOs. Use Beads. Run `bd quickstart` to see how.
 - All tools are written in Go unless stated otherwise. 
 - All new projects are created as top-level folders in the repository unless stated otherwise.
 - All projects must contain a `mise.toml`. Check existing `mise.toml` files to see what is expected from you.
@@ -12,7 +13,8 @@ This document contains guidelines for AI agents and automated tools working on p
 - All temporary files (like summaries of fixes you did, one-off scripts you wrote during PR development, etc) must have names prefixed with `ai-temp-`.
 - Do not create temporary files in the repository root.
 - Keep the list of projects in [README.md](./README.md) up to date.
-- Record project status in README.md. If the project is incomplete, has known bugs, exploration, etc, it must be stated.
+- Record project status in README.md. If the project is incomplete, it must be stated.
+  - Use `bd` to keep track of known bugs, issues, and future work.
 
 ------------------------------------------------------------
 
