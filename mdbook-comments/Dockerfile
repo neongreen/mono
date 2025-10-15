@@ -1,7 +1,7 @@
 # Multi-stage build for mdbook-comments demo
 # This creates a working demo of mdbook with the comments plugin and Neon backend
 
-FROM rust:1.75 AS builder
+FROM rust:1.90 AS builder
 
 # Install mdbook
 RUN cargo install --locked --version =0.4.52 mdbook
