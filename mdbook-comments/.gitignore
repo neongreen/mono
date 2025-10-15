@@ -22,3 +22,8 @@ supabase/.temp/
 .env
 .env.local
 example-book/supabase-config.js
+
+# Playwright
+node_modules/
+playwright-report/
+test-results/
