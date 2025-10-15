@@ -1,0 +1,25 @@
+{
+  "name": "Monorepo Development",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.24.7"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  "remoteEnv": {
+    "PATH": "${containerEnv:HOME}/.local/share/mise/shims:${containerEnv:PATH}"
+  }
+}
