@@ -1,5 +1,7 @@
 [tools]
-# Rust toolchain is managed by rustup, not mise
+mdbook = "latest"
+rust = "1.90"
+# "go:github.com/supabase/cli" = "latest"  # This doesn't work, just use brew
 
 [tasks.build]
 description = "Build the mdbook-comments preprocessor"
@@ -16,6 +18,115 @@ run = "cargo fmt"
 [tasks.check]
 description = "Check that code compiles and passes clippy"
 run = "cargo clippy -- -D warnings"
+
+[tasks."dev:setup"]
+description = "Set up local Supabase for development (one-time setup)"
+run = """
+  echo "Setting up local development environment..."
+  echo ""
+  
+  # Check for Supabase CLI
+  if ! command -v supabase &> /dev/null; then
+    echo "❌ Supabase CLI not found."
+    echo ""
+    echo "Please install it from: https://supabase.com/docs/guides/cli"
+    echo ""
+    echo "macOS:   brew install supabase/tap/supabase"
+    echo "Linux:   See https://supabase.com/docs/guides/cli/getting-started"
+    exit 1
+  fi
+  
+  echo "✓ Supabase CLI found"
+  
+  # Initialize Supabase (if not already initialized)
+  if [ ! -f "supabase/config.toml" ]; then
+    echo "Initializing Supabase project..."
+    supabase init
+  else
+    echo "✓ Supabase already initialized"
+  fi
+  
+  echo ""
+  echo "✅ Setup complete!"
+  echo ""
+  echo "Next steps:"
+  echo "  1. Run 'mise run :dev' to start local development"
+  echo "  2. Open http://localhost:3000 in your browser"
+  echo "  3. Open http://localhost:54323 for Supabase Studio"
+"""
+
+[tasks.dev]
+description = "Start local development environment"
+run = """
+  set -e
+  
+  echo "Starting local development environment..."
+  echo ""
+  
+  # Check if supabase is installed
+  if ! command -v supabase &> /dev/null; then
+    echo "❌ Supabase CLI not found. Run 'mise run dev:setup' first."
+    exit 1
+  fi
+  
+  # Build the preprocessor if needed
+  if [ ! -f "target/release/mdbook-comments" ]; then
+    echo "Building mdbook-comments preprocessor..."
+    cargo build --release
+    echo ""
+  fi
+  
+  # Add preprocessor to PATH for this session
+  export PATH="$PWD/target/release:$PATH"
+  
+  # Start Supabase if not running
+  echo "Starting Supabase..."
+  supabase start
+  
+  # Configure the book with Supabase credentials
+  echo ""
+  echo "Configuring book..."
+  ./scripts/configure-supabase.sh
+  
+  # Start mdbook serve
+  echo ""
+  echo "Starting mdbook..."
+  echo ""
+  echo "📚 Book will be available at: http://localhost:3000"
+  echo "🔧 Supabase Studio at: http://localhost:54323"
+  echo ""
+  cd example-book && mise x mdbook -- mdbook serve
+"""
+
+[tasks."dev:stop"]
+description = "Stop local Supabase"
+run = "supabase stop"
+
+[tasks."dev:reset"]
+description = "Reset local database (deletes all data)"
+run = """
+  echo "⚠️  This will delete all local comments data."
+  read -p "Are you sure? (y/N) " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    supabase db reset
+    echo "✅ Database reset complete"
+  else
+    echo "Cancelled"
+  fi
+"""
+
+[tasks."dev:studio"]
+description = "Open Supabase Studio in browser"
+run = "open http://localhost:54323 || xdg-open http://localhost:54323 || echo 'Open http://localhost:54323 in your browser'"
+
+[tasks."dev:logs"]
+description = "View Supabase logs"
+run = "supabase logs"
+
+[tasks."dev:status"]
+description = "Show Supabase status"
+run = "supabase status"
 
 [tasks."docker:build"]
 description = "Build Docker image locally"

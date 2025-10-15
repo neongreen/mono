@@ -35,3 +35,20 @@
         transform: translateY(0);
     }
 }
+
+/* Author name input field */
+.comment-form .author-input {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.comment-form .author-input:focus {
+    outline: none;
+    border-color: #0066cc;
+}

@@ -11,6 +11,24 @@ An mdbook preprocessor that adds paragraph-level commenting functionality simila
 - **Orphaned Comments**: Shows unmatched comments at the end of chapters with full context
 - **No Data Loss**: All comments are preserved, even when content changes significantly
 
+## Local Development
+
+Get started with local development in minutes:
+
+```bash
+cd mdbook-comments
+
+# One-time setup
+mise run dev:setup
+
+# Start local environment
+mise run dev
+```
+
+This starts a local Supabase database and mdbook server. No external services required!
+
+See [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for complete guide.
+
 ## Quick Start with Docker
 
 Try mdbook-comments with Neon backend instantly using Docker:
