@@ -1,0 +1,16 @@
+# Build artifacts
+ingest
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+*.out
+
+# Go workspace file
+go.work
+
+# Dependencies
+vendor/

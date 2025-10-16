@@ -116,6 +116,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := ensureConfigDirectory(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
 	command := os.Args[1]
 
 	switch command {
@@ -164,6 +169,20 @@ Examples:
 Configuration is stored at ~/.config/want/
 
 For more information, see README.md`)
+}
+
+func ensureConfigDirectory() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to determine user home directory: %w", err)
+	}
+
+	configDir := filepath.Join(homeDir, ".config", "want")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create want config directory %s: %w", configDir, err)
+	}
+
+	return nil
 }
 
 func handleWant(args []string) {
@@ -443,7 +462,7 @@ func isCommandSafe(command string) bool {
 		"cal", "env", "printenv", "which", "whereis",
 		"git status", "git log", "git diff", "git show",
 	}
-	
+
 	// Check if the command starts with any safe command
 	cmdLower := strings.ToLower(strings.TrimSpace(command))
 	for _, safe := range safeCommands {
@@ -451,7 +470,7 @@ func isCommandSafe(command string) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -514,7 +533,7 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 
 	// Execute the plan
 	plan.PrintPlan()
-	
+
 	// Skip confirmation if all steps are safe
 	if !plan.HasOnlySafeSteps() {
 		if !plan.ConfirmPlan() {

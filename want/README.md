@@ -11,6 +11,7 @@ Interactive task fulfillment tool for macOS.
   - JSON output option with `--plan-json` flag
   - Highlights manual steps that require user action
   - Skips confirmation for safe/read-only commands
+- [x] **Configuration directory** - Creates `~/.config/want/` if missing
 - [x] **Download GitHub release assets** - `want https://github.com/owner/repo/releases/tag/v1.0.0`
   - Auto-detects platform (OS and architecture)
   - Works with both public and private repositories (with GITHUB_TOKEN)
@@ -39,7 +40,7 @@ Interactive task fulfillment tool for macOS.
 - [ ] **Multiple provider support** - Only mise is supported; no Homebrew, GitHub releases, etc.
 - [ ] **Interactive prompts** - No interactive selection when multiple options exist
 - [ ] **Preference learning** - No storage of user preferences
-- [ ] **Configuration persistence** - No `~/.config/want/` directory created
+- [ ] **Configuration persistence** - Configuration data is not stored yet
 
 ## Overview
 

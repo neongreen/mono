@@ -522,7 +522,14 @@ This repository has been initialized with:
 - Database at `.beads/mono.db` (not committed)
 - Issue prefix: `mono` (issues are named `mono-1`, `mono-2`, etc.)
 - JSONL export at `.beads/issues.jsonl` (committed to git)
-- Devcontainer configuration at `.devcontainer/devcontainer.json` that automatically installs bd for GitHub Copilot
+- GitHub Copilot coding agent setup at `.github/workflows/copilot-setup-steps.yml` that automatically installs bd
+
+### GitHub Copilot Integration
+
+The `.github/workflows/copilot-setup-steps.yml` workflow ensures bd is available when GitHub Copilot's remote coding agent starts:
+- Installs bd using `go install github.com/steveyegge/beads/cmd/bd@latest`
+- Imports issues from `.beads/issues.jsonl`
+- Copilot can immediately use `bd ready`, `bd create`, `bd update`, etc.
 
 ### Resources
 

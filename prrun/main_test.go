@@ -131,28 +131,28 @@ func TestHelpFlagPositioning(t *testing.T) {
 	defer os.Remove("prrun-test-help")
 
 	tests := []struct {
-		name           string
-		args           []string
+		name            string
+		args            []string
 		expectPrrunHelp bool
 	}{
 		{
-			name:           "--help as first argument shows prrun help",
-			args:           []string{"--help"},
+			name:            "--help as first argument shows prrun help",
+			args:            []string{"--help"},
 			expectPrrunHelp: true,
 		},
 		{
-			name:           "-h as first argument shows prrun help",
-			args:           []string{"-h"},
+			name:            "-h as first argument shows prrun help",
+			args:            []string{"-h"},
 			expectPrrunHelp: true,
 		},
 		{
-			name:           "--version as first argument shows prrun version",
-			args:           []string{"--version"},
+			name:            "--version as first argument shows prrun version",
+			args:            []string{"--version"},
 			expectPrrunHelp: true, // version output is also prrun output
 		},
 		{
-			name:           "-v as first argument shows prrun version",
-			args:           []string{"-v"},
+			name:            "-v as first argument shows prrun version",
+			args:            []string{"-v"},
 			expectPrrunHelp: true, // version output is also prrun output
 		},
 	}

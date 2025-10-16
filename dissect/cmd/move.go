@@ -200,7 +200,7 @@ func findMatchingIdentifiers(filePath string, patterns []string) ([]string, erro
 	seen := make(map[string]bool)
 	for _, decl := range node.Decls {
 		var names []string
-		
+
 		switch d := decl.(type) {
 		case *ast.FuncDecl:
 			// Function or method declaration
@@ -220,7 +220,7 @@ func findMatchingIdentifiers(filePath string, patterns []string) ([]string, erro
 				}
 			}
 		}
-		
+
 		// Check if any of the names match any pattern
 		for _, name := range names {
 			for _, g := range globs {
@@ -314,7 +314,7 @@ func moveFunctionWithGopls(sourceFile string, identifier string, targetFile stri
 	if funcToMove == nil {
 		return fmt.Errorf("no function found in temp file")
 	}
-	
+
 	// Extract imports from temp file for later merging
 	var tempImports []*ast.ImportSpec
 	for _, imp := range tempNode.Imports {
@@ -328,38 +328,38 @@ func moveFunctionWithGopls(sourceFile string, identifier string, targetFile stri
 	if err := cfg.Fprint(&funcBuf, tempFset, funcToMove); err != nil {
 		return fmt.Errorf("error serializing function: %w", err)
 	}
-	
+
 	// Read the current target file content
 	targetContent, err := os.ReadFile(targetFile)
 	if err != nil {
 		return fmt.Errorf("error reading target file: %w", err)
 	}
-	
+
 	// Append the serialized function to the target file
 	// printer.Fprint on a FuncDecl includes the Doc comments automatically
 	newContent := string(targetContent) + "\n" + funcBuf.String() + "\n"
 	if err := os.WriteFile(targetFile, []byte(newContent), 0644); err != nil {
 		return fmt.Errorf("error writing target file: %w", err)
 	}
-	
+
 	// Now reparse the entire target file to get a proper AST
 	targetFset, targetNode, err := goutils.ReadGoFile(targetFile)
 	if err != nil {
 		return fmt.Errorf("error reparsing target file: %w", err)
 	}
-	
+
 	// Merge imports from temp file using AST operations
 	existingImports := make(map[string]bool)
 	for _, imp := range targetNode.Imports {
 		existingImports[imp.Path.Value] = true
 	}
-	
+
 	for _, imp := range tempImports {
 		if !existingImports[imp.Path.Value] {
 			targetNode.Imports = append(targetNode.Imports, imp)
 		}
 	}
-	
+
 	// Write back the target file with merged imports
 	if err := goutils.WriteGoFile(targetFile, targetFset, targetNode); err != nil {
 		return fmt.Errorf("error writing target file with imports: %w", err)
@@ -390,13 +390,13 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 	// Find and extract the declaration to move
 	var declToMove ast.Decl
 	var declIndex int = -1
-	
+
 	for i, decl := range sourceNode.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)
 		if !ok {
 			continue
 		}
-		
+
 		// Check if this GenDecl contains our identifier
 		for _, spec := range genDecl.Specs {
 			found := false
@@ -413,19 +413,19 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 					}
 				}
 			}
-			
+
 			if found {
 				declToMove = genDecl
 				declIndex = i
 				break
 			}
 		}
-		
+
 		if declToMove != nil {
 			break
 		}
 	}
-	
+
 	if declToMove == nil {
 		return fmt.Errorf("declaration not found in source file")
 	}
@@ -451,7 +451,7 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 
 	// Remove the declaration from the source file
 	sourceNode.Decls = append(sourceNode.Decls[:declIndex], sourceNode.Decls[declIndex+1:]...)
-	
+
 	// Write back the source file
 	if err := goutils.WriteGoFile(sourceFile, sourceFileSet, sourceNode); err != nil {
 		return fmt.Errorf("error writing source file: %w", err)
