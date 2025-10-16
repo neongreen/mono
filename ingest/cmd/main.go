@@ -7,9 +7,11 @@ import (
 	"ingest/pkg/database"
 	"ingest/pkg/fs"
 	"ingest/pkg/git"
+	"ingest/pkg/github"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -426,10 +428,239 @@ var queryCmd = &cobra.Command{
 	},
 }
 
+var githubCmd = &cobra.Command{
+	Use:   "github [owner/repo]",
+	Short: "Ingest GitHub issues and pull requests",
+	Long:  `Ingest fetches all issues and pull requests from a GitHub repository, including all comments and metadata.`,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		repoSpec := args[0]
+
+		// Parse owner/repo
+		parts := strings.Split(repoSpec, "/")
+		if len(parts) != 2 {
+			log.Fatalf("Invalid repository specification: %s (expected format: owner/repo)", repoSpec)
+		}
+		owner := parts[0]
+		repo := parts[1]
+
+		fmt.Printf("Ingesting GitHub repository: %s/%s\n", owner, repo)
+
+		// Open database
+		db, err := database.Open()
+		if err != nil {
+			log.Fatalf("Failed to open database: %v", err)
+		}
+		defer db.Close()
+
+		// Create a new run
+		runID, err := db.CreateRun(repoSpec, "github")
+		if err != nil {
+			log.Fatalf("Failed to create run: %v", err)
+		}
+
+		fmt.Printf("Started ingestion run #%d\n", runID)
+
+		// Create GitHub client
+		client := github.NewClient()
+
+		// Fetch issues
+		fmt.Println("Fetching issues...")
+		issues, err := client.FetchIssues(owner, repo, "all", func(count int) {
+			fmt.Printf("Found %d issues so far...\r", count)
+		})
+		if err != nil {
+			db.FinishRun(runID, "failed")
+			log.Fatalf("Failed to fetch issues: %v", err)
+		}
+		fmt.Printf("\nFound %d issues total\n", len(issues))
+
+		// Store issues with comments
+		for i, issue := range issues {
+			if (i+1)%10 == 0 || (i+1) == len(issues) {
+				fmt.Printf("Processing issue %d/%d...\r", i+1, len(issues))
+			}
+
+			// Convert labels to comma-separated string
+			var labelNames []string
+			for _, label := range issue.Labels {
+				labelNames = append(labelNames, label.Name)
+			}
+			labels := strings.Join(labelNames, ",")
+
+			// Convert assignees to comma-separated string
+			var assigneeNames []string
+			for _, assignee := range issue.Assignees {
+				assigneeNames = append(assigneeNames, assignee.Login)
+			}
+			assignees := strings.Join(assigneeNames, ",")
+
+			// Get milestone title
+			milestone := ""
+			if issue.Milestone != nil {
+				milestone = issue.Milestone.Title
+			}
+
+			err := db.CreateGitHubIssue(
+				runID,
+				issue.Number,
+				issue.Title,
+				issue.Body,
+				issue.State,
+				issue.User.Login,
+				issue.CreatedAt,
+				issue.UpdatedAt,
+				issue.ClosedAt,
+				labels,
+				assignees,
+				milestone,
+			)
+			if err != nil {
+				db.FinishRun(runID, "failed")
+				log.Fatalf("Failed to create issue: %v", err)
+			}
+
+			// Fetch and store comments
+			comments, err := client.FetchIssueComments(owner, repo, issue.Number)
+			if err != nil {
+				db.FinishRun(runID, "failed")
+				log.Fatalf("Failed to fetch comments for issue #%d: %v", issue.Number, err)
+			}
+
+			for _, comment := range comments {
+				err := db.CreateGitHubComment(
+					runID,
+					"issue",
+					issue.Number,
+					comment.ID,
+					comment.User.Login,
+					comment.Body,
+					comment.CreatedAt,
+					comment.UpdatedAt,
+				)
+				if err != nil {
+					db.FinishRun(runID, "failed")
+					log.Fatalf("Failed to create comment: %v", err)
+				}
+			}
+		}
+
+		fmt.Printf("\nProcessed %d issues with their comments\n", len(issues))
+
+		// Fetch pull requests
+		fmt.Println("Fetching pull requests...")
+		prs, err := client.FetchPullRequests(owner, repo, "all", func(count int) {
+			fmt.Printf("Found %d pull requests so far...\r", count)
+		})
+		if err != nil {
+			db.FinishRun(runID, "failed")
+			log.Fatalf("Failed to fetch pull requests: %v", err)
+		}
+		fmt.Printf("\nFound %d pull requests total\n", len(prs))
+
+		// Store PRs with comments
+		for i, pr := range prs {
+			if (i+1)%10 == 0 || (i+1) == len(prs) {
+				fmt.Printf("Processing PR %d/%d...\r", i+1, len(prs))
+			}
+
+			// Convert labels to comma-separated string
+			var labelNames []string
+			for _, label := range pr.Labels {
+				labelNames = append(labelNames, label.Name)
+			}
+			labels := strings.Join(labelNames, ",")
+
+			// Convert assignees to comma-separated string
+			var assigneeNames []string
+			for _, assignee := range pr.Assignees {
+				assigneeNames = append(assigneeNames, assignee.Login)
+			}
+			assignees := strings.Join(assigneeNames, ",")
+
+			// Convert reviewers to comma-separated string
+			var reviewerNames []string
+			for _, reviewer := range pr.RequestedReviewers {
+				reviewerNames = append(reviewerNames, reviewer.Login)
+			}
+			reviewers := strings.Join(reviewerNames, ",")
+
+			// Get milestone title
+			milestone := ""
+			if pr.Milestone != nil {
+				milestone = pr.Milestone.Title
+			}
+
+			err := db.CreateGitHubPR(
+				runID,
+				pr.Number,
+				pr.Title,
+				pr.Body,
+				pr.State,
+				pr.User.Login,
+				pr.CreatedAt,
+				pr.UpdatedAt,
+				pr.ClosedAt,
+				pr.MergedAt,
+				pr.Merged,
+				pr.Draft,
+				pr.Base.Ref,
+				pr.Head.Ref,
+				labels,
+				assignees,
+				reviewers,
+				milestone,
+			)
+			if err != nil {
+				db.FinishRun(runID, "failed")
+				log.Fatalf("Failed to create pull request: %v", err)
+			}
+
+			// Fetch and store comments (including review comments)
+			comments, err := client.FetchPRComments(owner, repo, pr.Number)
+			if err != nil {
+				db.FinishRun(runID, "failed")
+				log.Fatalf("Failed to fetch comments for PR #%d: %v", pr.Number, err)
+			}
+
+			for _, comment := range comments {
+				err := db.CreateGitHubComment(
+					runID,
+					"pr",
+					pr.Number,
+					comment.ID,
+					comment.User.Login,
+					comment.Body,
+					comment.CreatedAt,
+					comment.UpdatedAt,
+				)
+				if err != nil {
+					db.FinishRun(runID, "failed")
+					log.Fatalf("Failed to create comment: %v", err)
+				}
+			}
+		}
+
+		fmt.Printf("\nProcessed %d pull requests with their comments\n", len(prs))
+
+		// Update counts and finish run
+		if err := db.UpdateRunItemCount(runID); err != nil {
+			log.Fatalf("Failed to update run counts: %v", err)
+		}
+
+		if err := db.FinishRun(runID, "completed"); err != nil {
+			log.Fatalf("Failed to finish run: %v", err)
+		}
+
+		fmt.Printf("Ingestion completed successfully!\n")
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(gitCmd)
 	rootCmd.AddCommand(fsCmd)
 	rootCmd.AddCommand(cmdCmd)
+	rootCmd.AddCommand(githubCmd)
 	rootCmd.AddCommand(listRunsCmd)
 	rootCmd.AddCommand(queryCmd)
 }

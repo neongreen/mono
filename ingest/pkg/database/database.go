@@ -166,6 +166,59 @@ func (d *Database) createTables() error {
 		FOREIGN KEY (run_id) REFERENCES runs(id)
 	);
 
+	CREATE TABLE IF NOT EXISTS github_issues (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		number INTEGER NOT NULL,
+		title TEXT NOT NULL,
+		body TEXT,
+		state TEXT NOT NULL,
+		author TEXT NOT NULL,
+		created_at DATETIME NOT NULL,
+		updated_at DATETIME NOT NULL,
+		closed_at DATETIME,
+		labels TEXT,
+		assignees TEXT,
+		milestone TEXT,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS github_prs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		number INTEGER NOT NULL,
+		title TEXT NOT NULL,
+		body TEXT,
+		state TEXT NOT NULL,
+		author TEXT NOT NULL,
+		created_at DATETIME NOT NULL,
+		updated_at DATETIME NOT NULL,
+		closed_at DATETIME,
+		merged_at DATETIME,
+		merged INTEGER NOT NULL DEFAULT 0,
+		draft INTEGER NOT NULL DEFAULT 0,
+		base_branch TEXT NOT NULL,
+		head_branch TEXT NOT NULL,
+		labels TEXT,
+		assignees TEXT,
+		reviewers TEXT,
+		milestone TEXT,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS github_comments (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		item_type TEXT NOT NULL,
+		item_number INTEGER NOT NULL,
+		comment_id INTEGER NOT NULL,
+		author TEXT NOT NULL,
+		body TEXT NOT NULL,
+		created_at DATETIME NOT NULL,
+		updated_at DATETIME NOT NULL,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_blobs_sha256 ON blobs(sha256);
 	CREATE INDEX IF NOT EXISTS idx_commits_run_id ON commits(run_id);
 	CREATE INDEX IF NOT EXISTS idx_commits_hash ON commits(hash);
@@ -177,6 +230,12 @@ func (d *Database) createTables() error {
 	CREATE INDEX IF NOT EXISTS idx_fs_entries_run_id ON fs_entries(run_id);
 	CREATE INDEX IF NOT EXISTS idx_fs_entries_blob_id ON fs_entries(blob_id);
 	CREATE INDEX IF NOT EXISTS idx_cmd_runs_run_id ON cmd_runs(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_issues_run_id ON github_issues(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_issues_number ON github_issues(run_id, number);
+	CREATE INDEX IF NOT EXISTS idx_github_prs_run_id ON github_prs(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_prs_number ON github_prs(run_id, number);
+	CREATE INDEX IF NOT EXISTS idx_github_comments_run_id ON github_comments(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_comments_item ON github_comments(run_id, item_type, item_number);
 	`
 
 	_, err := d.db.Exec(schema)
@@ -228,18 +287,26 @@ func (d *Database) UpdateRunItemCount(runID int64) error {
 	}
 
 	var query string
+	var args []interface{}
 	switch runType {
 	case "git":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM commits WHERE run_id = ?) WHERE id = ?"
+		args = []interface{}{runID, runID}
 	case "fs":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM fs_entries WHERE run_id = ?) WHERE id = ?"
+		args = []interface{}{runID, runID}
 	case "cmd":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM cmd_runs WHERE run_id = ?) WHERE id = ?"
+		args = []interface{}{runID, runID}
+	case "github":
+		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM github_issues WHERE run_id = ?) + (SELECT COUNT(*) FROM github_prs WHERE run_id = ?) WHERE id = ?"
+		args = []interface{}{runID, runID, runID}
 	default:
 		query = "UPDATE runs SET item_count = 0 WHERE id = ?"
+		args = []interface{}{runID}
 	}
 
-	_, err = d.db.Exec(query, runID, runID)
+	_, err = d.db.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update run item count: %w", err)
 	}
@@ -495,4 +562,78 @@ func (d *Database) Query(query string) ([]map[string]interface{}, error) {
 	}
 
 	return results, nil
+}
+
+// CreateGitHubIssue creates a new GitHub issue record
+func (d *Database) CreateGitHubIssue(runID int64, number int, title, body, state, author string, createdAt, updatedAt time.Time, closedAt *time.Time, labels, assignees, milestone string) error {
+	_, err := d.db.Exec(
+		"INSERT INTO github_issues (run_id, number, title, body, state, author, created_at, updated_at, closed_at, labels, assignees, milestone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		runID,
+		number,
+		title,
+		body,
+		state,
+		author,
+		createdAt,
+		updatedAt,
+		closedAt,
+		labels,
+		assignees,
+		milestone,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create github issue: %w", err)
+	}
+
+	return nil
+}
+
+// CreateGitHubPR creates a new GitHub pull request record
+func (d *Database) CreateGitHubPR(runID int64, number int, title, body, state, author string, createdAt, updatedAt time.Time, closedAt, mergedAt *time.Time, merged, draft bool, baseBranch, headBranch, labels, assignees, reviewers, milestone string) error {
+	_, err := d.db.Exec(
+		"INSERT INTO github_prs (run_id, number, title, body, state, author, created_at, updated_at, closed_at, merged_at, merged, draft, base_branch, head_branch, labels, assignees, reviewers, milestone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		runID,
+		number,
+		title,
+		body,
+		state,
+		author,
+		createdAt,
+		updatedAt,
+		closedAt,
+		mergedAt,
+		merged,
+		draft,
+		baseBranch,
+		headBranch,
+		labels,
+		assignees,
+		reviewers,
+		milestone,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create github pull request: %w", err)
+	}
+
+	return nil
+}
+
+// CreateGitHubComment creates a new GitHub comment record
+func (d *Database) CreateGitHubComment(runID int64, itemType string, itemNumber int, commentID int64, author, body string, createdAt, updatedAt time.Time) error {
+	_, err := d.db.Exec(
+		"INSERT INTO github_comments (run_id, item_type, item_number, comment_id, author, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		runID,
+		itemType,
+		itemNumber,
+		commentID,
+		author,
+		body,
+		createdAt,
+		updatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create github comment: %w", err)
+	}
+
+	return nil
 }
