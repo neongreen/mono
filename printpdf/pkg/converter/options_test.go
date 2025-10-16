@@ -43,6 +43,20 @@ func TestTypstConverterWithCustomMargin(t *testing.T) {
 			},
 			expectedMargin: "margin: 20mm",
 		},
+		{
+			name: "per-edge margins",
+			options: PageOptions{
+				Columns:      1,
+				Orientation:  "portrait",
+				Margin:       "2cm",
+				MarginTop:    "3cm",
+				MarginRight:  "1.5cm",
+				MarginBottom: "2.5cm",
+				MarginLeft:   "2cm",
+				Zoom:         100,
+			},
+			expectedMargin: "margin: (top: 3cm, right: 1.5cm, bottom: 2.5cm, left: 2cm)",
+		},
 	}
 
 	for _, tt := range tests {
@@ -140,6 +154,20 @@ func TestHTMLConverterWithCustomMargin(t *testing.T) {
 				Zoom:        100,
 			},
 			expectedMargin: "margin: 1in",
+		},
+		{
+			name: "per-edge margins",
+			options: PageOptions{
+				Columns:      1,
+				Orientation:  "portrait",
+				Margin:       "1in",
+				MarginTop:    "3cm",
+				MarginRight:  "1.25in",
+				MarginBottom: "2.5cm",
+				MarginLeft:   "2cm",
+				Zoom:         100,
+			},
+			expectedMargin: "margin: 3cm 1.25in 2.5cm 2cm",
 		},
 	}
 

@@ -34,10 +34,7 @@ func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error)
 	}
 
 	// Build page CSS with orientation, margin, and zoom
-	margin := options.Margin
-	if margin == "" {
-		margin = "2cm"
-	}
+	margin := options.cssMarginValue()
 	var pageCSS string
 	if options.Orientation == "landscape" {
 		pageCSS = fmt.Sprintf("@page { size: A4 landscape; margin: %s; }\n", margin)

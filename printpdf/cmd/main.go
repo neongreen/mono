@@ -16,6 +16,10 @@ func main() {
 	columns := flag.Int("columns", 1, "number of columns for text layout (e.g., 2 or 3 for newspaper-style layout)")
 	orientation := flag.String("orientation", "portrait", "page orientation (portrait or landscape)")
 	margin := flag.String("margin", "2cm", "page margin (e.g., '2cm', '1in', '20mm')")
+	marginTop := flag.String("margin-top", "", "top page margin (overrides the value from -margin when set)")
+	marginRight := flag.String("margin-right", "", "right page margin (overrides the value from -margin when set)")
+	marginBottom := flag.String("margin-bottom", "", "bottom page margin (overrides the value from -margin when set)")
+	marginLeft := flag.String("margin-left", "", "left page margin (overrides the value from -margin when set)")
 	zoom := flag.Int("zoom", 100, "zoom percentage for all font sizes (e.g., 80 for 80%, 120 for 120%)")
 	flag.Parse()
 
@@ -58,10 +62,14 @@ func main() {
 	}
 
 	pageOptions := converter.PageOptions{
-		Columns:     *columns,
-		Orientation: *orientation,
-		Margin:      *margin,
-		Zoom:        *zoom,
+		Columns:      *columns,
+		Orientation:  *orientation,
+		Margin:       *margin,
+		MarginTop:    *marginTop,
+		MarginRight:  *marginRight,
+		MarginBottom: *marginBottom,
+		MarginLeft:   *marginLeft,
+		Zoom:         *zoom,
 	}
 
 	// Determine which converters to use

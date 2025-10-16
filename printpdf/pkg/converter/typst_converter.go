@@ -37,10 +37,7 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 
 	// Write Typst document preamble with page options
 	// Build the page setup with orientation and margin
-	margin := options.Margin
-	if margin == "" {
-		margin = "2cm"
-	}
+	margin := options.typstMarginValue()
 	if options.Orientation == "landscape" {
 		buf.WriteString(fmt.Sprintf("#set page(paper: \"a4\", flipped: true, margin: %s)\n", margin))
 	} else {
