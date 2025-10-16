@@ -3,6 +3,7 @@ package database
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -241,5 +242,185 @@ func TestQuery(t *testing.T) {
 	_, err = db.Query("SELECT * FROM nonexistent_table")
 	if err == nil {
 		t.Error("Expected error for invalid query, got nil")
+	}
+}
+
+func TestGitHubOperations(t *testing.T) {
+	// Create a temporary directory for test database
+	tempDir := t.TempDir()
+
+	// Mock the home directory for testing
+	originalHomeDir := os.Getenv("HOME")
+	testHome := tempDir
+	os.Setenv("HOME", testHome)
+	defer os.Setenv("HOME", originalHomeDir)
+
+	// Open database
+	db, err := Open()
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Test creating a GitHub run
+	runID, err := db.CreateRun("owner/repo", "github")
+	if err != nil {
+		t.Fatalf("Failed to create run: %v", err)
+	}
+
+	if runID != 1 {
+		t.Errorf("Expected run ID 1, got %d", runID)
+	}
+
+	// Test creating a GitHub issue
+	now := time.Now()
+	closedAt := now.Add(24 * time.Hour)
+	err = db.CreateGitHubIssue(
+		runID,
+		1,
+		"Test Issue",
+		"Issue body",
+		"closed",
+		"testuser",
+		now,
+		now.Add(1*time.Hour),
+		&closedAt,
+		"bug,enhancement",
+		"assignee1,assignee2",
+		"v1.0",
+	)
+	if err != nil {
+		t.Fatalf("Failed to create GitHub issue: %v", err)
+	}
+
+	// Test creating a GitHub PR
+	mergedAt := now.Add(48 * time.Hour)
+	err = db.CreateGitHubPR(
+		runID,
+		2,
+		"Test PR",
+		"PR body",
+		"closed",
+		"prauthor",
+		now,
+		now.Add(2*time.Hour),
+		&closedAt,
+		&mergedAt,
+		true,
+		false,
+		"main",
+		"feature-branch",
+		"enhancement",
+		"reviewer1",
+		"reviewer2",
+		"v1.0",
+	)
+	if err != nil {
+		t.Fatalf("Failed to create GitHub PR: %v", err)
+	}
+
+	// Test creating a GitHub comment for issue
+	err = db.CreateGitHubComment(
+		runID,
+		"issue",
+		1,
+		12345,
+		"commenter1",
+		"This is a comment",
+		now,
+		now.Add(30*time.Minute),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create GitHub issue comment: %v", err)
+	}
+
+	// Test creating a GitHub comment for PR
+	err = db.CreateGitHubComment(
+		runID,
+		"pr",
+		2,
+		67890,
+		"commenter2",
+		"This is a PR comment",
+		now,
+		now.Add(45*time.Minute),
+	)
+	if err != nil {
+		t.Fatalf("Failed to create GitHub PR comment: %v", err)
+	}
+
+	// Test UpdateRunItemCount for github type
+	err = db.UpdateRunItemCount(runID)
+	if err != nil {
+		t.Fatalf("Failed to update run item count: %v", err)
+	}
+
+	// Verify the item count (1 issue + 1 PR = 2)
+	runs, err := db.GetAllRuns()
+	if err != nil {
+		t.Fatalf("Failed to get runs: %v", err)
+	}
+
+	if len(runs) != 1 {
+		t.Errorf("Expected 1 run, got %d", len(runs))
+	}
+
+	if runs[0].ItemCount != 2 {
+		t.Errorf("Expected item count 2, got %d", runs[0].ItemCount)
+	}
+
+	// Test querying GitHub issues
+	results, err := db.Query("SELECT number, title, state, labels FROM github_issues")
+	if err != nil {
+		t.Fatalf("Failed to query GitHub issues: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 issue, got %d", len(results))
+	}
+
+	if results[0]["title"] != "Test Issue" {
+		t.Errorf("Expected title 'Test Issue', got '%v'", results[0]["title"])
+	}
+
+	labels := results[0]["labels"].(string)
+	if !strings.Contains(labels, "bug") || !strings.Contains(labels, "enhancement") {
+		t.Errorf("Expected labels to contain 'bug' and 'enhancement', got '%s'", labels)
+	}
+
+	// Test querying GitHub PRs
+	results, err = db.Query("SELECT number, title, merged, base_branch, head_branch FROM github_prs")
+	if err != nil {
+		t.Fatalf("Failed to query GitHub PRs: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 PR, got %d", len(results))
+	}
+
+	if results[0]["title"] != "Test PR" {
+		t.Errorf("Expected title 'Test PR', got '%v'", results[0]["title"])
+	}
+
+	if results[0]["base_branch"] != "main" {
+		t.Errorf("Expected base_branch 'main', got '%v'", results[0]["base_branch"])
+	}
+
+	// Test querying GitHub comments
+	results, err = db.Query("SELECT item_type, item_number, author, body FROM github_comments ORDER BY item_type")
+	if err != nil {
+		t.Fatalf("Failed to query GitHub comments: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("Expected 2 comments, got %d", len(results))
+	}
+
+	if results[0]["item_type"] != "issue" {
+		t.Errorf("Expected item_type 'issue', got '%v'", results[0]["item_type"])
+	}
+
+	if results[1]["item_type"] != "pr" {
+		t.Errorf("Expected item_type 'pr', got '%v'", results[1]["item_type"])
 	}
 }
