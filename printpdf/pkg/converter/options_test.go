@@ -7,7 +7,7 @@ import (
 
 func TestTypstConverterWithCustomMargin(t *testing.T) {
 	markdown := []byte("# Test\n\nSome text")
-	
+
 	tests := []struct {
 		name           string
 		options        PageOptions
@@ -51,7 +51,7 @@ func TestTypstConverterWithCustomMargin(t *testing.T) {
 			if err != nil {
 				t.Fatalf("convertMarkdownToTypst failed: %v", err)
 			}
-			
+
 			if !strings.Contains(result, tt.expectedMargin) {
 				t.Errorf("Expected margin '%s' not found in output:\n%s", tt.expectedMargin, result)
 			}
@@ -61,7 +61,7 @@ func TestTypstConverterWithCustomMargin(t *testing.T) {
 
 func TestTypstConverterWithCustomZoom(t *testing.T) {
 	markdown := []byte("# Test\n\nSome text")
-	
+
 	tests := []struct {
 		name             string
 		options          PageOptions
@@ -105,7 +105,7 @@ func TestTypstConverterWithCustomZoom(t *testing.T) {
 			if err != nil {
 				t.Fatalf("convertMarkdownToTypst failed: %v", err)
 			}
-			
+
 			if !strings.Contains(result, tt.expectedFontSize) {
 				t.Errorf("Expected font size '%s' not found in output:\n%s", tt.expectedFontSize, result)
 			}
@@ -115,7 +115,7 @@ func TestTypstConverterWithCustomZoom(t *testing.T) {
 
 func TestHTMLConverterWithCustomMargin(t *testing.T) {
 	markdown := []byte("# Test\n\nSome text")
-	
+
 	tests := []struct {
 		name           string
 		options        PageOptions
@@ -149,7 +149,7 @@ func TestHTMLConverterWithCustomMargin(t *testing.T) {
 			if err != nil {
 				t.Fatalf("convertMarkdownToHTML failed: %v", err)
 			}
-			
+
 			resultStr := string(result)
 			if !strings.Contains(resultStr, tt.expectedMargin) {
 				t.Errorf("Expected margin '%s' not found in output", tt.expectedMargin)
@@ -160,7 +160,7 @@ func TestHTMLConverterWithCustomMargin(t *testing.T) {
 
 func TestHTMLConverterWithCustomZoom(t *testing.T) {
 	markdown := []byte("# Test\n\nSome text")
-	
+
 	tests := []struct {
 		name        string
 		options     PageOptions
@@ -204,7 +204,7 @@ func TestHTMLConverterWithCustomZoom(t *testing.T) {
 			if err != nil {
 				t.Fatalf("convertMarkdownToHTML failed: %v", err)
 			}
-			
+
 			resultStr := string(result)
 			if !strings.Contains(resultStr, tt.expectedCSS) {
 				t.Errorf("Expected CSS '%s' not found in output", tt.expectedCSS)
@@ -215,26 +215,26 @@ func TestHTMLConverterWithCustomZoom(t *testing.T) {
 
 func TestBodyCSSNoMaxWidth(t *testing.T) {
 	markdown := []byte("# Test")
-	
+
 	options := PageOptions{
 		Columns:     1,
 		Orientation: "portrait",
 		Margin:      "0cm",
 		Zoom:        100,
 	}
-	
+
 	result, err := convertMarkdownToHTML(markdown, options)
 	if err != nil {
 		t.Fatalf("Error: %v", err)
 	}
-	
+
 	resultStr := string(result)
-	
+
 	// Check that body no longer has max-width
 	if strings.Contains(resultStr, "max-width: 800px") {
 		t.Errorf("Body should not have max-width constraint when using custom margins")
 	}
-	
+
 	// Check that body no longer has auto margins
 	if strings.Contains(resultStr, "margin: 40px auto") {
 		t.Errorf("Body should not have auto margins when using custom margins")

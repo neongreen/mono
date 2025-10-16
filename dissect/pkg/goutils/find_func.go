@@ -30,7 +30,7 @@ func FindDecl(filePath, declName string) (*token.FileSet, ast.Node, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("error reading Go file %s: %w", filePath, err)
 	}
-	
+
 	for _, decl := range node.Decls {
 		switch d := decl.(type) {
 		case *ast.FuncDecl:
@@ -57,6 +57,6 @@ func FindDecl(filePath, declName string) (*token.FileSet, ast.Node, error) {
 			}
 		}
 	}
-	
+
 	return nil, nil, fmt.Errorf("declaration %s not found in file %s", declName, filePath)
 }
