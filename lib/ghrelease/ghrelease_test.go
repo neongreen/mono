@@ -1,16 +1,70 @@
 package ghrelease
 
 import (
+	"bytes"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 )
 
+func setupTestLogger(t *testing.T) *bytes.Buffer {
+	t.Helper()
+	var buf bytes.Buffer
+	handler := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})
+	prev := slog.Default()
+	slog.SetDefault(slog.New(handler))
+	t.Cleanup(func() {
+		slog.SetDefault(prev)
+	})
+	return &buf
+}
+
+func installGhStub(t *testing.T, stdout string, exitCode int) {
+	t.Helper()
+	dir := t.TempDir()
+
+	var scriptName string
+	var content string
+	if runtime.GOOS == "windows" {
+		scriptName = "gh.bat"
+		content = "@echo off\r\n"
+		if stdout != "" {
+			content += "echo " + stdout + "\r\n"
+		}
+		content += "exit /b " + strconv.Itoa(exitCode) + "\r\n"
+	} else {
+		scriptName = "gh"
+		content = "#!/bin/sh\n"
+		if stdout != "" {
+			content += "printf '%s\\n' '" + stdout + "'\n"
+		}
+		content += "exit " + strconv.Itoa(exitCode) + "\n"
+	}
+
+	mode := os.FileMode(0o755)
+	if runtime.GOOS == "windows" {
+		mode = 0o666
+	}
+
+	scriptPath := filepath.Join(dir, scriptName)
+	if err := os.WriteFile(scriptPath, []byte(content), mode); err != nil {
+		t.Fatalf("failed to write gh stub: %v", err)
+	}
+
+	originalPath := os.Getenv("PATH")
+	if originalPath == "" {
+		t.Setenv("PATH", dir)
+		return
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+originalPath)
+}
 func TestGetCurrentPlatform(t *testing.T) {
 	platform := GetCurrentPlatform()
 
-	// Check that we get valid values
 	if platform.OS == "" {
 		t.Error("GetCurrentPlatform() returned empty OS")
 	}
@@ -18,7 +72,6 @@ func TestGetCurrentPlatform(t *testing.T) {
 		t.Error("GetCurrentPlatform() returned empty Arch")
 	}
 
-	// Check that the values match runtime values
 	if platform.OS != runtime.GOOS {
 		t.Errorf("Expected OS to be %s, got %s", runtime.GOOS, platform.OS)
 	}
@@ -30,77 +83,109 @@ func TestGetCurrentPlatform(t *testing.T) {
 }
 
 func TestGetGitHubToken(t *testing.T) {
-	origGithubToken := os.Getenv("GITHUB_TOKEN")
-	origMiseToken := os.Getenv("MISE_GITHUB_TOKEN")
-	defer func() {
-		if origGithubToken != "" {
-			os.Setenv("GITHUB_TOKEN", origGithubToken)
-		} else {
-			os.Unsetenv("GITHUB_TOKEN")
-		}
-		if origMiseToken != "" {
-			os.Setenv("MISE_GITHUB_TOKEN", origMiseToken)
-		} else {
-			os.Unsetenv("MISE_GITHUB_TOKEN")
-		}
-	}()
-
 	t.Run("GITHUB_TOKEN takes precedence", func(t *testing.T) {
-		os.Setenv("GITHUB_TOKEN", "github_token")
-		os.Setenv("MISE_GITHUB_TOKEN", "mise_token")
+		buf := setupTestLogger(t)
+		t.Setenv("GITHUB_TOKEN", "github_token")
+		t.Setenv("MISE_GITHUB_TOKEN", "mise_token")
+
 		token := GetGitHubToken()
 		if token != "github_token" {
-			t.Errorf("GetGitHubToken() = %v, want %v", token, "github_token")
+			t.Fatalf("GetGitHubToken() = %q, want %q", token, "github_token")
+		}
+
+		output := buf.String()
+		if !strings.Contains(output, "source=GITHUB_TOKEN") {
+			t.Fatalf("expected log to mention GITHUB_TOKEN source, got %q", output)
+		}
+		if strings.Contains(output, "github_token") {
+			t.Fatalf("logs must not contain actual token, got %q", output)
 		}
 	})
 
 	t.Run("MISE_GITHUB_TOKEN used when GITHUB_TOKEN not set", func(t *testing.T) {
-		os.Unsetenv("GITHUB_TOKEN")
-		os.Setenv("MISE_GITHUB_TOKEN", "mise_token")
+		buf := setupTestLogger(t)
+		t.Setenv("GITHUB_TOKEN", "")
+		t.Setenv("MISE_GITHUB_TOKEN", "mise_token")
+
 		token := GetGitHubToken()
 		if token != "mise_token" {
-			t.Errorf("GetGitHubToken() = %v, want %v", token, "mise_token")
+			t.Fatalf("GetGitHubToken() = %q, want %q", token, "mise_token")
+		}
+
+		output := buf.String()
+		if !strings.Contains(output, "source=MISE_GITHUB_TOKEN") {
+			t.Fatalf("expected log to mention MISE_GITHUB_TOKEN source, got %q", output)
+		}
+		if strings.Contains(output, "mise_token") {
+			t.Fatalf("logs must not contain actual token, got %q", output)
 		}
 	})
 
 	t.Run("returns empty string when no tokens available", func(t *testing.T) {
-		os.Unsetenv("GITHUB_TOKEN")
-		os.Unsetenv("MISE_GITHUB_TOKEN")
+		buf := setupTestLogger(t)
+		t.Setenv("GITHUB_TOKEN", "")
+		t.Setenv("MISE_GITHUB_TOKEN", "")
+		installGhStub(t, "", 1)
+
 		token := GetGitHubToken()
-		t.Logf("GetGitHubToken() = %q", token)
+		if token != "" {
+			t.Fatalf("GetGitHubToken() = %q, want empty string", token)
+		}
+
+		output := buf.String()
+		if !strings.Contains(output, "GitHub token unavailable after checking all sources") {
+			t.Fatalf("expected log to note unavailable token, got %q", output)
+		}
+		if !strings.Contains(output, "source=gh_cli") {
+			t.Fatalf("expected log to mention gh_cli source check, got %q", output)
+		}
+	})
+
+	t.Run("gh CLI token used when available", func(t *testing.T) {
+		buf := setupTestLogger(t)
+		t.Setenv("GITHUB_TOKEN", "")
+		t.Setenv("MISE_GITHUB_TOKEN", "")
+		installGhStub(t, "cli_token", 0)
+
+		token := GetGitHubToken()
+		if token != "cli_token" {
+			t.Fatalf("GetGitHubToken() = %q, want %q", token, "cli_token")
+		}
+
+		output := buf.String()
+		if !strings.Contains(output, "source=gh_cli") {
+			t.Fatalf("expected log to mention gh_cli source, got %q", output)
+		}
+		if strings.Contains(output, "cli_token") {
+			t.Fatalf("logs must not contain actual token, got %q", output)
+		}
 	})
 }
 
 func TestCreateAuthenticatedRequest(t *testing.T) {
-	origGithubToken := os.Getenv("GITHUB_TOKEN")
-	defer func() {
-		if origGithubToken != "" {
-			os.Setenv("GITHUB_TOKEN", origGithubToken)
-		} else {
-			os.Unsetenv("GITHUB_TOKEN")
-		}
-	}()
-
 	t.Run("adds authorization header when token available", func(t *testing.T) {
-		os.Setenv("GITHUB_TOKEN", "test_token_123")
+		t.Setenv("GITHUB_TOKEN", "test_token_123")
+
 		req, err := CreateAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
 		if err != nil {
 			t.Fatalf("CreateAuthenticatedRequest() error = %v", err)
 		}
+
 		authHeader := req.Header.Get("Authorization")
-		expectedHeader := "Bearer test_token_123"
-		if authHeader != expectedHeader {
-			t.Errorf("Authorization header = %v, want %v", authHeader, expectedHeader)
+		if authHeader != "Bearer test_token_123" {
+			t.Fatalf("Authorization header = %q, want %q", authHeader, "Bearer test_token_123")
 		}
 	})
 
 	t.Run("creates request without authorization when token not available", func(t *testing.T) {
-		os.Unsetenv("GITHUB_TOKEN")
-		os.Unsetenv("MISE_GITHUB_TOKEN")
+		t.Setenv("GITHUB_TOKEN", "")
+		t.Setenv("MISE_GITHUB_TOKEN", "")
+
 		req, err := CreateAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
 		if err != nil {
 			t.Fatalf("CreateAuthenticatedRequest() error = %v", err)
 		}
+
 		authHeader := req.Header.Get("Authorization")
 		t.Logf("Authorization header = %q", authHeader)
 	})
@@ -115,6 +200,7 @@ func TestFindPlatformAsset(t *testing.T) {
 				{Name: "dissect-pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/124"},
 			},
 		}
+
 		asset, err := FindPlatformAsset(release, "dissect")
 		if err != nil {
 			t.Fatalf("FindPlatformAsset() error = %v", err)
@@ -128,6 +214,7 @@ func TestFindPlatformAsset(t *testing.T) {
 		if asset.URL == "" {
 			t.Error("FindPlatformAsset() returned empty asset URL")
 		}
+
 		t.Logf("Platform asset: %s", asset.Name)
 	})
 
@@ -136,13 +223,13 @@ func TestFindPlatformAsset(t *testing.T) {
 			TagName: "test--pr-1.1",
 			Assets:  []Asset{},
 		}
+
 		_, err := FindPlatformAsset(release, "test")
 		if err == nil {
-			t.Error("FindPlatformAsset() should return error for release with no assets")
+			t.Fatal("FindPlatformAsset() should return error for release with no assets")
 		}
-		expectedErrMsg := "release test--pr-1.1 has no assets"
-		if !strings.Contains(err.Error(), expectedErrMsg) {
-			t.Errorf("Expected error to contain '%s', got: %v", expectedErrMsg, err)
+		if !strings.Contains(err.Error(), "release test--pr-1.1 has no assets") {
+			t.Fatalf("expected error to mention missing assets, got %v", err)
 		}
 	})
 
@@ -154,13 +241,15 @@ func TestFindPlatformAsset(t *testing.T) {
 				{Name: "dissect--pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/126"},
 			},
 		}
+
 		asset, err := FindPlatformAsset(release, "dissect")
 		if err != nil {
 			t.Fatalf("FindPlatformAsset() should handle double dash format, error = %v", err)
 		}
 		if !strings.Contains(asset.Name, runtime.GOOS) || !strings.Contains(asset.Name, runtime.GOARCH) {
-			t.Errorf("Expected asset name to contain platform info, got: %s", asset.Name)
+			t.Fatalf("Expected asset name to contain platform info, got %s", asset.Name)
 		}
+
 		t.Logf("Double dash format asset: %s", asset.Name)
 	})
 
@@ -172,6 +261,7 @@ func TestFindPlatformAsset(t *testing.T) {
 				{Name: "want-main.3-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/128"},
 			},
 		}
+
 		asset, err := FindPlatformAsset(release, "")
 		if err != nil {
 			t.Fatalf("FindPlatformAsset() error = %v", err)
@@ -179,6 +269,7 @@ func TestFindPlatformAsset(t *testing.T) {
 		if asset == nil {
 			t.Fatal("FindPlatformAsset() returned nil asset")
 		}
+
 		t.Logf("Asset without project name: %s", asset.Name)
 	})
 }

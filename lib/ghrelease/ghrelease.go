@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
@@ -61,19 +62,30 @@ func GetCurrentPlatform() Platform {
 func GetGitHubToken() string {
 	// Check GITHUB_TOKEN first
 	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		slog.Debug("GitHub token resolved", "source", "GITHUB_TOKEN")
 		return token
 	}
 	// Check MISE_GITHUB_TOKEN
 	if token := os.Getenv("MISE_GITHUB_TOKEN"); token != "" {
+		slog.Debug("GitHub token resolved", "source", "MISE_GITHUB_TOKEN")
 		return token
 	}
 	// Try gh CLI
 	cmd := exec.Command("gh", "auth", "token")
 	output, err := cmd.Output()
-	if err == nil && len(output) > 0 {
-		return strings.TrimSpace(string(output))
+	if err != nil {
+		slog.Debug("Failed to retrieve GitHub token via gh CLI", "source", "gh_cli", "error", err)
+		slog.Debug("GitHub token unavailable after checking all sources")
+		return ""
 	}
-	return ""
+	token := strings.TrimSpace(string(output))
+	if token == "" {
+		slog.Debug("gh CLI returned empty GitHub token output", "source", "gh_cli")
+		slog.Debug("GitHub token unavailable after checking all sources")
+		return ""
+	}
+	slog.Debug("GitHub token resolved", "source", "gh_cli")
+	return token
 }
 
 // CreateAuthenticatedRequest creates an HTTP request with GitHub authentication
