@@ -59,6 +59,7 @@ func TestIsGitHubURL(t *testing.T) {
 		expected bool
 	}{
 		{"https://github.com/owner/repo/blob/main/file.md", true},
+		{"https://github.com/owner/repo/blob/d0c77b78977c00723fa5e2f58a9c8e683cf0714c/path/to/file.md", true},
 		{"https://github.com/owner/repo/raw/main/file.md", true},
 		{"https://github.com/owner/repo/pull/123/files", true},
 		{"https://github.com/owner/repo/files/d0c77b78977c00723fa5e2f58a9c8e683cf0714c/path/to/file.md", true},
@@ -70,6 +71,64 @@ func TestIsGitHubURL(t *testing.T) {
 		result := isGitHubURL(tt.url)
 		if result != tt.expected {
 			t.Errorf("isGitHubURL(%s) = %v, want %v", tt.url, result, tt.expected)
+		}
+	}
+}
+
+func TestGitHubBlobRegex(t *testing.T) {
+	tests := []struct {
+		url         string
+		shouldMatch bool
+		owner       string
+		repo        string
+		ref         string
+		path        string
+	}{
+		{
+			url:         "https://github.com/neongreen/mono/blob/d0c77b78977c00723fa5e2f58a9c8e683cf0714c/mdbook-comments/DOCKER_DEMO.md",
+			shouldMatch: true,
+			owner:       "neongreen",
+			repo:        "mono",
+			ref:         "d0c77b78977c00723fa5e2f58a9c8e683cf0714c",
+			path:        "mdbook-comments/DOCKER_DEMO.md",
+		},
+		{
+			url:         "https://github.com/owner/repo/blob/main/path/to/file.md",
+			shouldMatch: true,
+			owner:       "owner",
+			repo:        "repo",
+			ref:         "main",
+			path:        "path/to/file.md",
+		},
+		{
+			url:         "https://github.com/owner/repo/files/abc123/path/to/file.md",
+			shouldMatch: false,
+		},
+	}
+
+	for _, tt := range tests {
+		matches := githubBlobRegex.FindStringSubmatch(tt.url)
+		if tt.shouldMatch {
+			if matches == nil {
+				t.Errorf("githubBlobRegex did not match %s", tt.url)
+				continue
+			}
+			if matches[1] != tt.owner {
+				t.Errorf("Expected owner %s, got %s", tt.owner, matches[1])
+			}
+			if matches[2] != tt.repo {
+				t.Errorf("Expected repo %s, got %s", tt.repo, matches[2])
+			}
+			if matches[3] != tt.ref {
+				t.Errorf("Expected ref %s, got %s", tt.ref, matches[3])
+			}
+			if matches[4] != tt.path {
+				t.Errorf("Expected path %s, got %s", tt.path, matches[4])
+			}
+		} else {
+			if matches != nil {
+				t.Errorf("githubBlobRegex should not match %s", tt.url)
+			}
 		}
 	}
 }
