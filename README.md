@@ -9,6 +9,7 @@ This repository contains multiple independent projects.
 - **[prrun](prrun/)** - Go tool to run binaries from GitHub PR releases (for easy testing)
 - **[printpdf](printpdf/)** - Go tool for converting Markdown and web content to PDF
 - **[diagram-dsl](diagram-dsl/)** - TypeScript DSL for creating diagrams
+- **[reactflow-layout-system](reactflow-layout-system/)** - Constraint-based layout system for ReactFlow documents
 - **[want](want/)** - Work in progress
 - **[claude-trace](claude-trace/)** - Terminal UI for reviewing Claude Code conversation logs
 - **[ghrelease](lib/ghrelease/)** - Go library for downloading GitHub release assets
