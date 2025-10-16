@@ -16,3 +16,12 @@ dist/
 prrun/prrun
 dissect/dissect
 markdown-format/markdown-format
+
+# BD (beads) - SQLite databases are not committed, only JSONL
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Keep BD JSONL exports (source of truth for git)
+!.beads/*.jsonl

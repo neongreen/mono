@@ -1,0 +1,59 @@
+name: bd Setup
+
+# This workflow runs on all PRs and pushes to main (not path-filtered)
+# because bd is a repository-wide issue tracking tool that should be
+# available for all work across all projects.
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  setup-bd:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.7'
+      
+      - name: Install bd
+        run: |
+          go install github.com/steveyegge/beads/cmd/bd@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+      
+      - name: Verify bd installation
+        run: |
+          bd version
+      
+      - name: Initialize bd (if not already initialized)
+        run: |
+          if [ ! -f .beads/mono.db ]; then
+            bd init --prefix mono
+            echo "bd initialized"
+          else
+            echo "bd already initialized"
+          fi
+      
+      - name: Import issues from JSONL
+        run: |
+          if [ -f .beads/issues.jsonl ]; then
+            bd import -i .beads/issues.jsonl
+            echo "Issues imported from JSONL"
+          else
+            echo "No issues.jsonl file found"
+          fi
+      
+      - name: Show bd status
+        run: |
+          echo "=== bd Statistics ==="
+          bd stats || echo "No statistics available yet"
+          echo ""
+          echo "=== Ready Work ==="
+          bd ready --limit 10 || echo "No ready work"

@@ -88,6 +88,66 @@ The `go fmt` tool ensures consistent formatting across all Go code in the monore
 
 ------------------------------------------------------------
 
+## Error Handling Guidelines
+
+**All Go code must follow consistent error handling patterns.**
+
+### Error Wrapping
+
+- **ALWAYS** use `%w` verb when wrapping errors to preserve the error chain
+- **NEVER** use `%v` or `%s` for error wrapping as it breaks error unwrapping
+- Add context to errors to make debugging easier
+
+**Good examples:**
+```go
+return fmt.Errorf("failed to fetch release %s/%s tag %s: %w", owner, repo, tag, err)
+return fmt.Errorf("failed to create cache directory %s: %w", dirPath, err)
+```
+
+**Bad examples:**
+```go
+return fmt.Errorf("failed to fetch release: %v", err)  // Loses error chain
+return fmt.Errorf("error: %s", err)                    // Loses error chain
+return fmt.Errorf("GitHub API returned status %d", statusCode)  // No context about what failed
+```
+
+### Error Context
+
+Always include relevant context in error messages:
+- File paths for file operations
+- URLs for HTTP requests
+- Resource identifiers (project names, tag names, etc.)
+- What operation was being performed
+
+### HTTP Operations
+
+For HTTP operations:
+- Use `context.Context` for timeout and cancellation support
+- Set reasonable timeouts (30s for API calls, 5min for downloads)
+- Include the URL in error messages for debugging
+- Include status codes and relevant details
+
+**Example:**
+```go
+client := &http.Client{Timeout: 30 * time.Second}
+resp, err := client.Do(req)
+if err != nil {
+    return fmt.Errorf("failed to fetch release %s/%s from %s: %w", owner, repo, apiURL, err)
+}
+if resp.StatusCode != http.StatusOK {
+    return fmt.Errorf("GitHub API returned status %d for %s/%s (URL: %s)", resp.StatusCode, owner, repo, apiURL)
+}
+```
+
+### Context Propagation
+
+- Add context parameters to long-running functions
+- Prefer functions with context variants (e.g., `http.NewRequestWithContext`)
+- Provide both context and non-context versions for backward compatibility
+- Default to `context.Background()` in non-context wrapper functions
+
+------------------------------------------------------------
+
 ## Backwards Compatibility Policy
 
 **Unless explicitly stated otherwise, backwards compatibility is NOT important for ANY project in this repository.**
@@ -319,3 +379,154 @@ When a bug or issue is discovered after implementation (especially during code r
 - When reviewer finds bugs that should have been caught
 
 The goal is continuous improvement: learn from mistakes and build better practices for future work.
+
+------------------------------------------------------------
+
+## bd (Beads) Issue Tracker
+
+This repository uses **bd (beads)** for issue tracking instead of Markdown TODO files or external issue trackers.
+
+### What is bd?
+
+bd is a lightweight, git-based issue tracker designed specifically for AI coding agents. It stores issues in `.beads/issues.jsonl` (committed to git) and maintains a local SQLite database for fast queries.
+
+### Installation
+
+bd is installed globally via:
+
+```bash
+# Quick install (recommended)
+curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/install.sh | bash
+
+# Or via Homebrew
+brew tap steveyegge/beads
+brew install bd
+
+# Or via go install
+go install github.com/steveyegge/beads/cmd/bd@latest
+```
+
+### Basic Usage
+
+**Check for ready work:**
+```bash
+bd ready --json
+```
+
+**Create a new issue:**
+```bash
+bd create "Issue title" -t bug|feature|task -p 0-4 -d "Description" --json
+```
+
+**Update issue status:**
+```bash
+bd update <id> --status in_progress --json
+```
+
+**Close an issue:**
+```bash
+bd close <id> --reason "Done" --json
+```
+
+**Show issue details:**
+```bash
+bd show <id> --json
+```
+
+**List all issues:**
+```bash
+bd list --json
+```
+
+**Add dependencies:**
+```bash
+bd dep add <issue-id> <blocks-id> --type blocks
+```
+
+**Show dependency tree:**
+```bash
+bd dep tree <id>
+```
+
+### Issue Types
+
+- `bug` - Something broken that needs fixing
+- `feature` - New functionality
+- `task` - Work item (tests, docs, refactoring)
+- `epic` - Large feature composed of multiple issues
+- `chore` - Maintenance work (dependencies, tooling)
+
+### Priorities
+
+- `0` - Critical (security, data loss, broken builds)
+- `1` - High (major features, important bugs)
+- `2` - Medium (nice-to-have features, minor bugs)
+- `3` - Low (polish, optimization)
+- `4` - Backlog (future ideas)
+
+### Dependency Types
+
+- `blocks` - Hard dependency (issue X blocks issue Y)
+- `related` - Soft relationship (issues are connected)
+- `parent-child` - Epic/subtask relationship
+- `discovered-from` - Track issues discovered during work
+
+Only `blocks` dependencies affect the ready work queue.
+
+### Workflow
+
+1. **At session start**: Run `bd ready` to see what's unblocked
+2. **Claim a task**: `bd update <id> --status in_progress`
+3. **Work on it**: Implement, test, document
+4. **Discover new work**: Create issues for bugs/TODOs found during work
+5. **Complete**: `bd close <id> --reason "Implemented"`
+6. **Auto-sync**: Changes automatically export to `.beads/issues.jsonl` after 5 seconds
+
+### Agent Guidelines
+
+- **Always use `--json` flag** for programmatic use
+- **Use bd instead of Markdown** for all new work tracking
+- **Link discovered issues** using `discovered-from` dependency type
+- **Check `bd ready`** before asking "what should I work on next?"
+- **Auto-sync is enabled**: JSONL is automatically updated after CRUD operations
+- **Issues are git-versioned**: The `.beads/issues.jsonl` file is the source of truth
+- **SQLite DB is local**: The `*.db` files are in `.gitignore` and regenerated from JSONL
+
+### Git Workflow
+
+bd automatically handles git synchronization:
+
+- **Export**: After any CRUD operation, changes are exported to `.beads/issues.jsonl` (5-second debounce)
+- **Import**: When JSONL is newer than DB (e.g., after `git pull`), it's automatically imported
+
+```bash
+# Make changes
+bd create "Fix bug" -p 1
+bd update mono-42 --status in_progress
+
+# Wait 5 seconds for auto-export, or run manually
+bd export
+
+# Commit
+git add .beads/issues.jsonl
+git commit -m "Your message"
+
+# After pull, BD auto-imports the updated JSONL
+git pull
+bd ready  # Fresh data from git
+```
+
+### Repository Setup
+
+This repository has been initialized with:
+- Database at `.beads/mono.db` (not committed)
+- Issue prefix: `mono` (issues are named `mono-1`, `mono-2`, etc.)
+- JSONL export at `.beads/issues.jsonl` (committed to git)
+- Devcontainer configuration at `.devcontainer/devcontainer.json` that automatically installs bd for GitHub Copilot
+
+### Resources
+
+- [bd GitHub Repository](https://github.com/steveyegge/beads)
+- [bd Documentation](https://github.com/steveyegge/beads/blob/main/README.md)
+- [bd Workflow Guide](https://github.com/steveyegge/beads/blob/main/WORKFLOW.md)
+- [bd for Agents](https://github.com/steveyegge/beads/blob/main/AGENTS.md)
