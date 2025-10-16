@@ -108,22 +108,32 @@ func isGitHubURL(urlStr string) bool {
 	return strings.Contains(urlStr, "github.com") &&
 		(strings.Contains(urlStr, "/blob/") ||
 			strings.Contains(urlStr, "/raw/") ||
-			strings.Contains(urlStr, "/pull/"))
+			strings.Contains(urlStr, "/pull/") ||
+			strings.Contains(urlStr, "/files/"))
 }
 
 // GitHub URL patterns:
 // - https://github.com/owner/repo/blob/branch/path/to/file.md
 // - https://github.com/owner/repo/blob/commit-sha/path/to/file.md
 // - https://github.com/owner/repo/pull/123/files#diff-abc123
+// - https://github.com/owner/repo/files/commit-sha/path/to/file.md
 var githubBlobRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)`)
 var githubRawRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/raw/([^/]+)/(.+)`)
 var githubPullFileRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/pull/(\d+)/files`)
+var githubFilesRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/files/([^/]+)/(.+)`)
 
 func fetchGitHubFile(urlStr string) ([]byte, string, error) {
 	// Try to convert blob URL to raw URL
 	if matches := githubBlobRegex.FindStringSubmatch(urlStr); matches != nil {
 		owner, repo, ref, path := matches[1], matches[2], matches[3], matches[4]
 		rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, ref, path)
+		return fetchGitHubRaw(rawURL)
+	}
+
+	// Try to convert files URL to raw URL (commit file links)
+	if matches := githubFilesRegex.FindStringSubmatch(urlStr); matches != nil {
+		owner, repo, commitSha, path := matches[1], matches[2], matches[3], matches[4]
+		rawURL := fmt.Sprintf("https://raw.githubusercontent.com/%s/%s/%s/%s", owner, repo, commitSha, path)
 		return fetchGitHubRaw(rawURL)
 	}
 

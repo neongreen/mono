@@ -12,6 +12,7 @@ A versatile tool for converting various content sources to PDF format using mult
   - Blob URLs: `https://github.com/owner/repo/blob/branch/file.md`
   - Raw URLs: `https://raw.githubusercontent.com/owner/repo/branch/file.md`
   - Commit URLs: `https://github.com/owner/repo/blob/commit-sha/file.md`
+  - Commit file URLs: `https://github.com/owner/repo/files/commit-sha/path/to/file.md`
 - **Web pages**: Regular web pages (processed with Mozilla Readability for clean content)
 
 ### PDF Converters
