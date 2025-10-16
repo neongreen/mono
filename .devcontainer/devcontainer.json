@@ -1,0 +1,17 @@
+{
+  "name": "mono",
+  "image": "mcr.microsoft.com/devcontainers/go:1.24",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+  "postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/install.sh | bash && bd init --prefix mono 2>/dev/null || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go"
+      ]
+    }
+  }
+}

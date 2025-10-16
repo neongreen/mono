@@ -382,17 +382,17 @@ The goal is continuous improvement: learn from mistakes and build better practic
 
 ------------------------------------------------------------
 
-## BD (Beads) Issue Tracker
+## bd (Beads) Issue Tracker
 
-This repository uses **BD (beads)** for issue tracking instead of Markdown TODO files or external issue trackers.
+This repository uses **bd (beads)** for issue tracking instead of Markdown TODO files or external issue trackers.
 
-### What is BD?
+### What is bd?
 
-BD is a lightweight, git-based issue tracker designed specifically for AI coding agents. It stores issues in `.beads/issues.jsonl` (committed to git) and maintains a local SQLite database for fast queries.
+bd is a lightweight, git-based issue tracker designed specifically for AI coding agents. It stores issues in `.beads/issues.jsonl` (committed to git) and maintains a local SQLite database for fast queries.
 
 ### Installation
 
-BD is installed globally via:
+bd is installed globally via:
 
 ```bash
 # Quick install (recommended)
@@ -485,7 +485,7 @@ Only `blocks` dependencies affect the ready work queue.
 ### Agent Guidelines
 
 - **Always use `--json` flag** for programmatic use
-- **Use BD instead of Markdown** for all new work tracking
+- **Use bd instead of Markdown** for all new work tracking
 - **Link discovered issues** using `discovered-from` dependency type
 - **Check `bd ready`** before asking "what should I work on next?"
 - **Auto-sync is enabled**: JSONL is automatically updated after CRUD operations
@@ -494,7 +494,7 @@ Only `blocks` dependencies affect the ready work queue.
 
 ### Git Workflow
 
-BD automatically handles git synchronization:
+bd automatically handles git synchronization:
 
 - **Export**: After any CRUD operation, changes are exported to `.beads/issues.jsonl` (5-second debounce)
 - **Import**: When JSONL is newer than DB (e.g., after `git pull`), it's automatically imported
@@ -522,10 +522,11 @@ This repository has been initialized with:
 - Database at `.beads/mono.db` (not committed)
 - Issue prefix: `mono` (issues are named `mono-1`, `mono-2`, etc.)
 - JSONL export at `.beads/issues.jsonl` (committed to git)
+- Devcontainer configuration at `.devcontainer/devcontainer.json` that automatically installs bd for GitHub Copilot
 
 ### Resources
 
-- [BD GitHub Repository](https://github.com/steveyegge/beads)
-- [BD Documentation](https://github.com/steveyegge/beads/blob/main/README.md)
-- [BD Workflow Guide](https://github.com/steveyegge/beads/blob/main/WORKFLOW.md)
-- [BD for Agents](https://github.com/steveyegge/beads/blob/main/AGENTS.md)
+- [bd GitHub Repository](https://github.com/steveyegge/beads)
+- [bd Documentation](https://github.com/steveyegge/beads/blob/main/README.md)
+- [bd Workflow Guide](https://github.com/steveyegge/beads/blob/main/WORKFLOW.md)
+- [bd for Agents](https://github.com/steveyegge/beads/blob/main/AGENTS.md)

@@ -94,9 +94,9 @@ The tool automatically:
 
 Each project has its own development workflow and documentation. See the individual project directories for details.
 
-### Issue Tracking with BD
+### Issue Tracking with bd
 
-This repository uses **BD (beads)** for issue tracking. BD is a lightweight, git-based issue tracker designed for AI coding agents.
+This repository uses **bd (beads)** for issue tracking. bd is a lightweight, git-based issue tracker designed for AI coding agents.
 
 **Quick Reference:**
 
@@ -120,7 +120,8 @@ Issues are stored in `.beads/issues.jsonl` and tracked in a local SQLite databas
 
 - Each project has its own test workflow
 - All Go projects are automatically released via `.github/workflows/release.yml`
-- BD is automatically set up in CI environments via `.github/workflows/bd-setup.yml`
+- bd is automatically set up in CI environments via `.github/workflows/bd-setup.yml`
+- GitHub Copilot environment is configured via `.devcontainer/devcontainer.json`
 - See [CI Guidelines](.github/CI_GUIDELINES.md) for workflow structure
 
 ## Contributing

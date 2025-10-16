@@ -136,7 +136,7 @@ When adding a new project to the monorepo:
 
 Some workflows are repository-wide and should run on all PRs:
 
-- **BD Setup** (`.github/workflows/bd-setup.yml`): Installs and configures the BD issue tracker, which is used across all projects
+- **bd Setup** (`.github/workflows/bd-setup.yml`): Installs and configures the bd issue tracker, which is used across all projects
 
 These workflows should document why they don't use path filtering.
 
