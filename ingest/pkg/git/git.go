@@ -90,12 +90,12 @@ func WalkRepository(repoPath string, progressCallback func(int)) ([]CommitInfo, 
 
 		commits = append(commits, commitInfo)
 		count++
-		
+
 		// Call progress callback every 100 commits or on first commit
 		if progressCallback != nil && (count%100 == 0 || count == 1) {
 			progressCallback(count)
 		}
-		
+
 		return nil
 	})
 

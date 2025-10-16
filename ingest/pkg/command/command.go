@@ -20,7 +20,7 @@ func RunCommand(command string) (*CmdResult, error) {
 	startTime := time.Now()
 
 	cmd := exec.Command("sh", "-c", command)
-	
+
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

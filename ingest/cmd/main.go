@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"ingest/pkg/command"
 	"ingest/pkg/database"
@@ -54,7 +55,7 @@ var gitCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Started ingestion run #%d\n", runID)
-		
+
 		// Get repository metadata
 		fmt.Println("Collecting repository metadata...")
 		metadata, err := git.GetRepoMetadata(absPath)
@@ -122,7 +123,7 @@ var gitCmd = &cobra.Command{
 
 			for _, file := range commit.Files {
 				var blobID *int64
-				
+
 				// Store file content as blob if available
 				if len(file.Content) > 0 {
 					id, err := db.GetOrCreateBlob(file.Content, file.SHA256Hash)
@@ -395,11 +396,42 @@ var listRunsCmd = &cobra.Command{
 	},
 }
 
+var queryCmd = &cobra.Command{
+	Use:   "query [sql]",
+	Short: "Query the database with SQL and output JSON",
+	Long:  `Execute a SQL query against the ingest database and output the results as JSON.`,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		sqlQuery := args[0]
+
+		// Open database
+		db, err := database.Open()
+		if err != nil {
+			log.Fatalf("Failed to open database: %v", err)
+		}
+		defer db.Close()
+
+		// Execute query
+		results, err := db.Query(sqlQuery)
+		if err != nil {
+			log.Fatalf("Failed to execute query: %v", err)
+		}
+
+		// Output as JSON
+		encoder := json.NewEncoder(os.Stdout)
+		encoder.SetIndent("", "  ")
+		if err := encoder.Encode(results); err != nil {
+			log.Fatalf("Failed to encode results as JSON: %v", err)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(gitCmd)
 	rootCmd.AddCommand(fsCmd)
 	rootCmd.AddCommand(cmdCmd)
 	rootCmd.AddCommand(listRunsCmd)
+	rootCmd.AddCommand(queryCmd)
 }
 
 func main() {
