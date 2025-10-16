@@ -32,7 +32,7 @@ func TestGitIngestion(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to configure git email: %v", err)
 	}
-	
+
 	cmd = exec.Command("git", "config", "user.name", "Test User")
 	cmd.Dir = testRepo
 	if err := cmd.Run(); err != nil {

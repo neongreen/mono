@@ -147,3 +147,99 @@ func TestMultipleRuns(t *testing.T) {
 		t.Error("Runs should be ordered by start time descending")
 	}
 }
+
+func TestQuery(t *testing.T) {
+	// Create a temporary directory for test database
+	tempDir := t.TempDir()
+
+	// Mock the home directory for testing
+	originalHomeDir := os.Getenv("HOME")
+	testHome := tempDir
+	os.Setenv("HOME", testHome)
+	defer os.Setenv("HOME", originalHomeDir)
+
+	// Open database
+	db, err := Open()
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Create test data
+	runID, err := db.CreateRun("/test/repo", "git")
+	if err != nil {
+		t.Fatalf("Failed to create run: %v", err)
+	}
+
+	commitDate := time.Now()
+	commitID, err := db.CreateCommit(runID, "abc123", "Test Author", "test@example.com", "Test Committer", "committer@example.com", commitDate, "Test commit", []string{})
+	if err != nil {
+		t.Fatalf("Failed to create commit: %v", err)
+	}
+
+	err = db.CreateFile(commitID, "/test/file.go", 1234, "100644", nil)
+	if err != nil {
+		t.Fatalf("Failed to create file: %v", err)
+	}
+
+	// Test simple SELECT query
+	results, err := db.Query("SELECT id, repo_path, run_type FROM runs")
+	if err != nil {
+		t.Fatalf("Failed to execute query: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+
+	if results[0]["repo_path"] != "/test/repo" {
+		t.Errorf("Expected repo_path '/test/repo', got '%v'", results[0]["repo_path"])
+	}
+
+	if results[0]["run_type"] != "git" {
+		t.Errorf("Expected run_type 'git', got '%v'", results[0]["run_type"])
+	}
+
+	// Test query with WHERE clause
+	results, err = db.Query("SELECT hash, author FROM commits WHERE hash = 'abc123'")
+	if err != nil {
+		t.Fatalf("Failed to execute query: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+
+	if results[0]["hash"] != "abc123" {
+		t.Errorf("Expected hash 'abc123', got '%v'", results[0]["hash"])
+	}
+
+	if results[0]["author"] != "Test Author" {
+		t.Errorf("Expected author 'Test Author', got '%v'", results[0]["author"])
+	}
+
+	// Test query with COUNT
+	results, err = db.Query("SELECT COUNT(*) as count FROM files")
+	if err != nil {
+		t.Fatalf("Failed to execute query: %v", err)
+	}
+
+	if len(results) != 1 {
+		t.Errorf("Expected 1 result, got %d", len(results))
+	}
+
+	count, ok := results[0]["count"].(int64)
+	if !ok {
+		t.Errorf("Expected count to be int64, got %T", results[0]["count"])
+	}
+
+	if count != 1 {
+		t.Errorf("Expected count 1, got %d", count)
+	}
+
+	// Test invalid query
+	_, err = db.Query("SELECT * FROM nonexistent_table")
+	if err == nil {
+		t.Error("Expected error for invalid query, got nil")
+	}
+}

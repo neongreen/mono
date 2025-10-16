@@ -448,3 +448,51 @@ func (d *Database) CreateGitRemote(runID int64, name, url string) error {
 
 	return nil
 }
+
+// Query executes a SQL query and returns results as JSON-serializable data
+func (d *Database) Query(query string) ([]map[string]interface{}, error) {
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columns: %w", err)
+	}
+
+	var results []map[string]interface{}
+	for rows.Next() {
+		// Create a slice of interface{} to hold each column's value
+		values := make([]interface{}, len(columns))
+		valuePtrs := make([]interface{}, len(columns))
+		for i := range columns {
+			valuePtrs[i] = &values[i]
+		}
+
+		if err := rows.Scan(valuePtrs...); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		// Create a map for this row
+		row := make(map[string]interface{})
+		for i, col := range columns {
+			val := values[i]
+			// Convert []byte to string for better JSON output
+			if b, ok := val.([]byte); ok {
+				row[col] = string(b)
+			} else {
+				row[col] = val
+			}
+		}
+
+		results = append(results, row)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return results, nil
+}

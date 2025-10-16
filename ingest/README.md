@@ -70,6 +70,28 @@ This displays:
 - Number of items ingested (context-dependent: commits for git, entries for fs, commands for cmd)
 - Duration (for completed runs)
 
+### Query the database with SQL
+
+```bash
+ingest query "SELECT * FROM runs"
+```
+
+This allows you to run arbitrary SQL queries against the ingest database and outputs results as JSON. Examples:
+
+```bash
+# Get all runs
+ingest query "SELECT id, run_type, status FROM runs"
+
+# Get commits with file counts
+ingest query "SELECT c.hash, c.author, COUNT(f.id) as file_count FROM commits c LEFT JOIN files f ON c.id = f.commit_id GROUP BY c.id"
+
+# Find large files
+ingest query "SELECT path, size FROM files WHERE size > 1000000 ORDER BY size DESC LIMIT 10"
+
+# Get filesystem entries
+ingest query "SELECT path, size FROM fs_entries WHERE is_dir = 0 ORDER BY size DESC LIMIT 5"
+```
+
 ## Database Schema
 
 The database consists of eight tables with efficient blob storage and deduplication:
