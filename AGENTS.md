@@ -319,3 +319,153 @@ When a bug or issue is discovered after implementation (especially during code r
 - When reviewer finds bugs that should have been caught
 
 The goal is continuous improvement: learn from mistakes and build better practices for future work.
+
+------------------------------------------------------------
+
+## BD (Beads) Issue Tracker
+
+This repository uses **BD (beads)** for issue tracking instead of Markdown TODO files or external issue trackers.
+
+### What is BD?
+
+BD is a lightweight, git-based issue tracker designed specifically for AI coding agents. It stores issues in `.beads/issues.jsonl` (committed to git) and maintains a local SQLite database for fast queries.
+
+### Installation
+
+BD is installed globally via:
+
+```bash
+# Quick install (recommended)
+curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/install.sh | bash
+
+# Or via Homebrew
+brew tap steveyegge/beads
+brew install bd
+
+# Or via go install
+go install github.com/steveyegge/beads/cmd/bd@latest
+```
+
+### Basic Usage
+
+**Check for ready work:**
+```bash
+bd ready --json
+```
+
+**Create a new issue:**
+```bash
+bd create "Issue title" -t bug|feature|task -p 0-4 -d "Description" --json
+```
+
+**Update issue status:**
+```bash
+bd update <id> --status in_progress --json
+```
+
+**Close an issue:**
+```bash
+bd close <id> --reason "Done" --json
+```
+
+**Show issue details:**
+```bash
+bd show <id> --json
+```
+
+**List all issues:**
+```bash
+bd list --json
+```
+
+**Add dependencies:**
+```bash
+bd dep add <issue-id> <blocks-id> --type blocks
+```
+
+**Show dependency tree:**
+```bash
+bd dep tree <id>
+```
+
+### Issue Types
+
+- `bug` - Something broken that needs fixing
+- `feature` - New functionality
+- `task` - Work item (tests, docs, refactoring)
+- `epic` - Large feature composed of multiple issues
+- `chore` - Maintenance work (dependencies, tooling)
+
+### Priorities
+
+- `0` - Critical (security, data loss, broken builds)
+- `1` - High (major features, important bugs)
+- `2` - Medium (nice-to-have features, minor bugs)
+- `3` - Low (polish, optimization)
+- `4` - Backlog (future ideas)
+
+### Dependency Types
+
+- `blocks` - Hard dependency (issue X blocks issue Y)
+- `related` - Soft relationship (issues are connected)
+- `parent-child` - Epic/subtask relationship
+- `discovered-from` - Track issues discovered during work
+
+Only `blocks` dependencies affect the ready work queue.
+
+### Workflow
+
+1. **At session start**: Run `bd ready` to see what's unblocked
+2. **Claim a task**: `bd update <id> --status in_progress`
+3. **Work on it**: Implement, test, document
+4. **Discover new work**: Create issues for bugs/TODOs found during work
+5. **Complete**: `bd close <id> --reason "Implemented"`
+6. **Auto-sync**: Changes automatically export to `.beads/issues.jsonl` after 5 seconds
+
+### Agent Guidelines
+
+- **Always use `--json` flag** for programmatic use
+- **Use BD instead of Markdown** for all new work tracking
+- **Link discovered issues** using `discovered-from` dependency type
+- **Check `bd ready`** before asking "what should I work on next?"
+- **Auto-sync is enabled**: JSONL is automatically updated after CRUD operations
+- **Issues are git-versioned**: The `.beads/issues.jsonl` file is the source of truth
+- **SQLite DB is local**: The `*.db` files are in `.gitignore` and regenerated from JSONL
+
+### Git Workflow
+
+BD automatically handles git synchronization:
+
+- **Export**: After any CRUD operation, changes are exported to `.beads/issues.jsonl` (5-second debounce)
+- **Import**: When JSONL is newer than DB (e.g., after `git pull`), it's automatically imported
+
+```bash
+# Make changes
+bd create "Fix bug" -p 1
+bd update mono-42 --status in_progress
+
+# Wait 5 seconds for auto-export, or run manually
+bd export
+
+# Commit
+git add .beads/issues.jsonl
+git commit -m "Your message"
+
+# After pull, BD auto-imports the updated JSONL
+git pull
+bd ready  # Fresh data from git
+```
+
+### Repository Setup
+
+This repository has been initialized with:
+- Database at `.beads/mono.db` (not committed)
+- Issue prefix: `mono` (issues are named `mono-1`, `mono-2`, etc.)
+- JSONL export at `.beads/issues.jsonl` (committed to git)
+
+### Resources
+
+- [BD GitHub Repository](https://github.com/steveyegge/beads)
+- [BD Documentation](https://github.com/steveyegge/beads/blob/main/README.md)
+- [BD Workflow Guide](https://github.com/steveyegge/beads/blob/main/WORKFLOW.md)
+- [BD for Agents](https://github.com/steveyegge/beads/blob/main/AGENTS.md)

@@ -1,0 +1,55 @@
+name: BD Setup
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  setup-bd:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.7'
+      
+      - name: Install BD
+        run: |
+          go install github.com/steveyegge/beads/cmd/bd@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+      
+      - name: Verify BD installation
+        run: |
+          bd version
+      
+      - name: Initialize BD (if not already initialized)
+        run: |
+          if [ ! -f .beads/mono.db ]; then
+            bd init --prefix mono
+            echo "BD initialized"
+          else
+            echo "BD already initialized"
+          fi
+      
+      - name: Import issues from JSONL
+        run: |
+          if [ -f .beads/issues.jsonl ]; then
+            bd import -i .beads/issues.jsonl
+            echo "Issues imported from JSONL"
+          else
+            echo "No issues.jsonl file found"
+          fi
+      
+      - name: Show BD status
+        run: |
+          echo "=== BD Statistics ==="
+          bd stats || echo "No statistics available yet"
+          echo ""
+          echo "=== Ready Work ==="
+          bd ready --limit 10 || echo "No ready work"
