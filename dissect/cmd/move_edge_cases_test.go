@@ -69,7 +69,7 @@ func main() {
 			t.Fatalf("Failed to read target file: %v", err)
 		}
 		targetStr := string(targetContent)
-		
+
 		// All three constants should be in the target
 		if !testutils.ContainsString(targetStr, "Red") {
 			t.Errorf("Red should be in target file (grouped declarations move together)")
@@ -92,7 +92,7 @@ func main() {
 	t.Run("TypeWithMethodsSeparation", func(t *testing.T) {
 		// Moving a type doesn't move its methods - they stay in source
 		// This is valid Go - methods can be in different files
-		
+
 		// Create a separate subdirectory for this test
 		testDir := filepath.Join(tmpDir, "methods_test")
 		if err := os.MkdirAll(testDir, 0755); err != nil {
@@ -101,7 +101,7 @@ func main() {
 		if err := os.WriteFile(filepath.Join(testDir, "go.mod"), []byte(goMod), 0644); err != nil {
 			t.Fatalf("Failed to create go.mod: %v", err)
 		}
-		
+
 		sourceCode := `package main
 
 import "fmt"
@@ -162,7 +162,7 @@ func main() {
 
 	t.Run("ImportManagementWithTypes", func(t *testing.T) {
 		// Test that imports are properly managed when moving types
-		
+
 		// Create a separate subdirectory for this test
 		testDir := filepath.Join(tmpDir, "import_test")
 		if err := os.MkdirAll(testDir, 0755); err != nil {
@@ -171,7 +171,7 @@ func main() {
 		if err := os.WriteFile(filepath.Join(testDir, "go.mod"), []byte(goMod), 0644); err != nil {
 			t.Fatalf("Failed to create go.mod: %v", err)
 		}
-		
+
 		sourceCode := `package main
 
 import (
@@ -219,7 +219,7 @@ func main() {
 		if testutils.ContainsString(sourceStr, "\"time\"") {
 			t.Errorf("time import should be removed from source file (unused after move)")
 		}
-		
+
 		// Verify main function is still in source
 		if !testutils.ContainsString(sourceStr, "func main()") {
 			t.Fatalf("main function should still be in source file. Source content:\n%s", sourceStr)
@@ -235,7 +235,7 @@ func main() {
 
 	t.Run("DotImportHandling", func(t *testing.T) {
 		// Dot imports should be handled without errors (goimports won't add them to target)
-		
+
 		// Create a separate subdirectory for this test
 		testDir := filepath.Join(tmpDir, "dot_import_test")
 		if err := os.MkdirAll(testDir, 0755); err != nil {
@@ -244,7 +244,7 @@ func main() {
 		if err := os.WriteFile(filepath.Join(testDir, "go.mod"), []byte(goMod), 0644); err != nil {
 			t.Fatalf("Failed to create go.mod: %v", err)
 		}
-		
+
 		sourceCode := `package main
 
 import . "fmt"

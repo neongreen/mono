@@ -443,7 +443,7 @@ func isCommandSafe(command string) bool {
 		"cal", "env", "printenv", "which", "whereis",
 		"git status", "git log", "git diff", "git show",
 	}
-	
+
 	// Check if the command starts with any safe command
 	cmdLower := strings.ToLower(strings.TrimSpace(command))
 	for _, safe := range safeCommands {
@@ -451,7 +451,7 @@ func isCommandSafe(command string) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -514,7 +514,7 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 
 	// Execute the plan
 	plan.PrintPlan()
-	
+
 	// Skip confirmation if all steps are safe
 	if !plan.HasOnlySafeSteps() {
 		if !plan.ConfirmPlan() {
