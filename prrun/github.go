@@ -12,7 +12,10 @@ import (
 	"github.com/neongreen/mono/lib/ghrelease"
 )
 
-var debugMode bool
+var (
+	debugMode  bool
+	prURLRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/pull/(\d+)`)
+)
 
 func debugLog(format string, args ...interface{}) {
 	if debugMode {
@@ -21,8 +24,7 @@ func debugLog(format string, args ...interface{}) {
 }
 
 func parsePRURL(prURL string) (*PRInfo, error) {
-	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/pull/(\d+)`)
-	matches := re.FindStringSubmatch(prURL)
+	matches := prURLRegex.FindStringSubmatch(prURL)
 	if matches == nil || len(matches) < 4 {
 		return nil, fmt.Errorf("invalid GitHub PR URL: %s", prURL)
 	}
@@ -42,9 +44,9 @@ func fetchAllReleases(owner, repo string) ([]GitHubRelease, error) {
 	for {
 		apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases?per_page=%d&page=%d",
 			owner, repo, perPage, page)
-		
+
 		debugLog("Fetching releases page %d from: %s", page, apiURL)
-		
+
 		req, err := ghrelease.CreateAuthenticatedRequest("GET", apiURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
@@ -67,7 +69,7 @@ func fetchAllReleases(owner, repo string) ([]GitHubRelease, error) {
 		}
 
 		debugLog("Found %d releases on page %d", len(releases), page)
-		
+
 		if len(releases) == 0 {
 			break
 		}
@@ -89,7 +91,7 @@ func fetchAllReleases(owner, repo string) ([]GitHubRelease, error) {
 func findPRRelease(owner, repo string,
 	prNum int, project string) (*GitHubRelease, error) {
 	debugLog("Looking for PR #%d in %s/%s (project: %s)", prNum, owner, repo, project)
-	
+
 	releases, err := fetchAllReleases(owner, repo)
 	if err != nil {
 		return nil, err
@@ -148,7 +150,7 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 // findAllPRReleases finds all releases for a given PR number
 func findAllPRReleases(owner, repo string, prNum int) ([]GitHubRelease, error) {
 	debugLog("Looking for all releases for PR #%d in %s/%s", prNum, owner, repo)
-	
+
 	releases, err := fetchAllReleases(owner, repo)
 	if err != nil {
 		return nil, err

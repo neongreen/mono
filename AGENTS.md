@@ -88,6 +88,66 @@ The `go fmt` tool ensures consistent formatting across all Go code in the monore
 
 ------------------------------------------------------------
 
+## Error Handling Guidelines
+
+**All Go code must follow consistent error handling patterns.**
+
+### Error Wrapping
+
+- **ALWAYS** use `%w` verb when wrapping errors to preserve the error chain
+- **NEVER** use `%v` or `%s` for error wrapping as it breaks error unwrapping
+- Add context to errors to make debugging easier
+
+**Good examples:**
+```go
+return fmt.Errorf("failed to fetch release %s/%s tag %s: %w", owner, repo, tag, err)
+return fmt.Errorf("failed to create cache directory %s: %w", dirPath, err)
+```
+
+**Bad examples:**
+```go
+return fmt.Errorf("failed to fetch release: %v", err)  // Loses error chain
+return fmt.Errorf("error: %s", err)                    // Loses error chain
+return fmt.Errorf("GitHub API returned status %d", statusCode)  // No context about what failed
+```
+
+### Error Context
+
+Always include relevant context in error messages:
+- File paths for file operations
+- URLs for HTTP requests
+- Resource identifiers (project names, tag names, etc.)
+- What operation was being performed
+
+### HTTP Operations
+
+For HTTP operations:
+- Use `context.Context` for timeout and cancellation support
+- Set reasonable timeouts (30s for API calls, 5min for downloads)
+- Include the URL in error messages for debugging
+- Include status codes and relevant details
+
+**Example:**
+```go
+client := &http.Client{Timeout: 30 * time.Second}
+resp, err := client.Do(req)
+if err != nil {
+    return fmt.Errorf("failed to fetch release %s/%s from %s: %w", owner, repo, apiURL, err)
+}
+if resp.StatusCode != http.StatusOK {
+    return fmt.Errorf("GitHub API returned status %d for %s/%s (URL: %s)", resp.StatusCode, owner, repo, apiURL)
+}
+```
+
+### Context Propagation
+
+- Add context parameters to long-running functions
+- Prefer functions with context variants (e.g., `http.NewRequestWithContext`)
+- Provide both context and non-context versions for backward compatibility
+- Default to `context.Background()` in non-context wrapper functions
+
+------------------------------------------------------------
+
 ## Backwards Compatibility Policy
 
 **Unless explicitly stated otherwise, backwards compatibility is NOT important for ANY project in this repository.**
