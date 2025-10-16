@@ -1,5 +1,9 @@
 name: BD Setup
 
+# This workflow runs on all PRs and pushes to main (not path-filtered)
+# because BD is a repository-wide issue tracking tool that should be
+# available for all work across all projects.
+
 on:
   pull_request:
     branches: [ main ]
