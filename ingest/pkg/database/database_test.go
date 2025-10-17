@@ -245,6 +245,62 @@ func TestQuery(t *testing.T) {
 	}
 }
 
+func TestUpdateRunItemCountForCommandRun(t *testing.T) {
+	tempDir := t.TempDir()
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	db, err := Open()
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	cmdRunID, err := db.CreateRun("echo multiline", "cmd")
+	if err != nil {
+		t.Fatalf("Failed to create cmd run: %v", err)
+	}
+
+	stdout := "line one\nline two\n"
+	stderr := "warning only\n"
+	if err := db.CreateCmdRun(cmdRunID, "echo multiline", 0, stdout, stderr, 25); err != nil {
+		t.Fatalf("Failed to create cmd run record: %v", err)
+	}
+
+	if err := db.UpdateRunItemCount(cmdRunID); err != nil {
+		t.Fatalf("UpdateRunItemCount failed: %v", err)
+	}
+
+	var itemCount int
+	if err := db.db.QueryRow("SELECT item_count FROM runs WHERE id = ?", cmdRunID).Scan(&itemCount); err != nil {
+		t.Fatalf("Failed to fetch item count: %v", err)
+	}
+	if itemCount != 3 {
+		t.Fatalf("expected item count 3 (stdout lines 2 + stderr lines 1), got %d", itemCount)
+	}
+
+	emptyRunID, err := db.CreateRun("true", "cmd")
+	if err != nil {
+		t.Fatalf("Failed to create empty cmd run: %v", err)
+	}
+
+	if err := db.CreateCmdRun(emptyRunID, "true", 0, "", "", 1); err != nil {
+		t.Fatalf("Failed to insert empty cmd run: %v", err)
+	}
+
+	if err := db.UpdateRunItemCount(emptyRunID); err != nil {
+		t.Fatalf("UpdateRunItemCount failed for empty run: %v", err)
+	}
+
+	if err := db.db.QueryRow("SELECT item_count FROM runs WHERE id = ?", emptyRunID).Scan(&itemCount); err != nil {
+		t.Fatalf("Failed to fetch empty run item count: %v", err)
+	}
+	if itemCount != 0 {
+		t.Fatalf("expected item count 0 for empty command output, got %d", itemCount)
+	}
+}
+
 func TestGitHubOperations(t *testing.T) {
 	// Create a temporary directory for test database
 	tempDir := t.TempDir()

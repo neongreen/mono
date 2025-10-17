@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -296,8 +297,15 @@ func (d *Database) UpdateRunItemCount(runID int64) error {
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM fs_entries WHERE run_id = ?) WHERE id = ?"
 		args = []interface{}{runID, runID}
 	case "cmd":
-		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM cmd_runs WHERE run_id = ?) WHERE id = ?"
-		args = []interface{}{runID, runID}
+		lineCount, err := d.totalCommandOutputLines(runID)
+		if err != nil {
+			return fmt.Errorf("failed to calculate command output lines: %w", err)
+		}
+		_, err = d.db.Exec("UPDATE runs SET item_count = ? WHERE id = ?", lineCount, runID)
+		if err != nil {
+			return fmt.Errorf("failed to update run item count: %w", err)
+		}
+		return nil
 	case "github":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM github_issues WHERE run_id = ?) + (SELECT COUNT(*) FROM github_prs WHERE run_id = ?) WHERE id = ?"
 		args = []interface{}{runID, runID, runID}
@@ -312,6 +320,51 @@ func (d *Database) UpdateRunItemCount(runID int64) error {
 	}
 
 	return nil
+}
+
+func (d *Database) totalCommandOutputLines(runID int64) (int, error) {
+	rows, err := d.db.Query("SELECT stdout, stderr FROM cmd_runs WHERE run_id = ?", runID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to select command outputs: %w", err)
+	}
+	defer rows.Close()
+
+	total := 0
+	for rows.Next() {
+		var stdout, stderr sql.NullString
+		if err := rows.Scan(&stdout, &stderr); err != nil {
+			return 0, fmt.Errorf("failed to scan command outputs: %w", err)
+		}
+		if stdout.Valid {
+			total += countOutputLines(stdout.String)
+		}
+		if stderr.Valid {
+			total += countOutputLines(stderr.String)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("error iterating command outputs: %w", err)
+	}
+
+	return total, nil
+}
+
+func countOutputLines(output string) int {
+	if output == "" {
+		return 0
+	}
+
+	count := 1
+	for _, r := range output {
+		if r == '\n' {
+			count++
+		}
+	}
+	if strings.HasSuffix(output, "\n") {
+		count--
+	}
+	return count
 }
 
 // UpdateRunCounts is deprecated, use UpdateRunItemCount instead

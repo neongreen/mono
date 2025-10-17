@@ -196,6 +196,7 @@ The database consists of eleven tables with efficient blob storage and deduplica
 - `stdout`: Standard output
 - `stderr`: Standard error
 - `duration_ms`: Execution time in milliseconds
+- `item_count`: For `cmd` runs, counts total stdout and stderr lines captured
 
 ### github_issues
 - `id`: Unique issue identifier
