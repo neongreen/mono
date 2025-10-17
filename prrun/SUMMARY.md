@@ -32,6 +32,7 @@ A Go tool called **prrun** (PR Runner) that transparently downloads and runs bin
 - **Transparent Execution**: Behaves exactly like running the binary directly
 - **Multiple Projects**: Supports monorepos with multiple projects
 - **Flexible URLs**: Accepts full or short GitHub PR URLs
+- **Release Alerts**: Warns when a newer PR release replaces a cached binary
 
 ## File Structure
 
@@ -106,6 +107,8 @@ Binaries are organized by release tag:
     └── markdown-format-pr-456.1-darwin-arm64
 ```
 
+When a higher `pr-N.X` release is published for a PR you have cached, prrun prints a notice with the previous tag and the new tag before running the binary.
+
 ## Integration with Existing Workflow
 
 This tool complements the existing release system:
@@ -132,7 +135,6 @@ Potential improvements that could be added:
 - List cached binaries (`prrun list`)
 - Specify cache directory via env variable
 - Support for non-PR releases (main branch, tags)
-- Automatic updates when new PR releases are available
 - Verbose mode for debugging
 
 ## Supported Platforms

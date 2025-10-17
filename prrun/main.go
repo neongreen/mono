@@ -133,6 +133,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	if projectFromTag, parsedPRNumber, sequence, ok := parsePRReleaseTag(release.TagName); ok && parsedPRNumber == prInfo.PRNum {
+		previousTag, err := findPreviousReleaseTag(cacheDir, projectFromTag, parsedPRNumber, sequence)
+		if err != nil {
+			debugLog("failed to inspect cache for PR #%d release updates: %v", prInfo.PRNum, err)
+		} else if previousTag != "" {
+			fmt.Fprintf(os.Stderr, "Notice: %s PR #%d release updated to %s (previous %s)\n",
+				projectFromTag, prInfo.PRNum, release.TagName, previousTag)
+		}
+	}
+
 	// Create a cache path based on the release tag and binary name
 	cachePath := filepath.Join(cacheDir, release.TagName, binaryName)
 
