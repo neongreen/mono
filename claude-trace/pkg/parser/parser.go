@@ -8,17 +8,17 @@ import (
 
 // ParsedTrace represents the internal representation of a trace
 type ParsedTrace struct {
-	SessionID string              `json:"session_id"`
-	Summary   string              `json:"summary"`
-	StartTime time.Time           `json:"start_time"`
-	Items     []ConversationItem  `json:"items"`
+	SessionID string             `json:"session_id"`
+	Summary   string             `json:"summary"`
+	StartTime time.Time          `json:"start_time"`
+	Items     []ConversationItem `json:"items"`
 }
 
 // ConversationItem represents a single item in the conversation
 type ConversationItem struct {
-	Type      ItemType          `json:"type"`
-	Timestamp time.Time         `json:"timestamp"`
-	UUID      string            `json:"uuid,omitempty"`
+	Type      ItemType  `json:"type"`
+	Timestamp time.Time `json:"timestamp"`
+	UUID      string    `json:"uuid,omitempty"`
 
 	// User message fields
 	UserMessage *UserMessage `json:"user_message,omitempty"`
