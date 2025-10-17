@@ -2,15 +2,14 @@ package github
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"os/exec"
-	"strings"
 	"time"
+
+	api "github.com/google/go-github/v61/github"
+	"github.com/neongreen/mono/lib/ghclient"
 )
+
+const defaultPerPage = 100
 
 // Issue represents a GitHub issue
 type Issue struct {
@@ -77,302 +76,284 @@ type Branch struct {
 	Ref string `json:"ref"`
 }
 
-// Client is a GitHub API client
+// Client wraps the shared GitHub client helpers for ingest.
 type Client struct {
-	baseURL string
-	token   string
-	ctx     context.Context
+	ctx context.Context
+	gh  *api.Client
 }
 
-// NewClient creates a new GitHub API client
+// NewClient creates a GitHub API client with shared HTTP configuration.
 func NewClient() *Client {
-	token := getGitHubToken()
+	return NewClientWithContext(context.Background())
+}
+
+// NewClientWithContext creates a GitHub API client using the provided context.
+func NewClientWithContext(ctx context.Context) *Client {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	return &Client{
-		baseURL: "https://api.github.com",
-		token:   token,
-		ctx:     context.Background(),
+		ctx: ctx,
+		gh:  ghclient.NewClient(ctx),
 	}
 }
 
-// getGitHubToken retrieves GitHub token from environment or gh CLI
-func getGitHubToken() string {
-	// Check GITHUB_TOKEN first
-	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
-		return token
+// FetchIssues fetches all issues for a repository with pagination.
+func (c *Client) FetchIssues(owner, repo, state string, progressCallback func(count int)) ([]Issue, error) {
+	opts := &api.IssueListByRepoOptions{
+		State: state,
+		ListOptions: api.ListOptions{
+			PerPage: defaultPerPage,
+		},
 	}
-	// Try gh CLI
-	cmd := exec.Command("gh", "auth", "token")
-	output, err := cmd.Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(output))
-}
 
-// FetchIssues fetches all issues for a repository with pagination
-func (c *Client) FetchIssues(owner, repo string, state string, progressCallback func(count int)) ([]Issue, error) {
 	var allIssues []Issue
-	page := 1
-	perPage := 100
-
 	for {
-		url := fmt.Sprintf("%s/repos/%s/%s/issues?state=%s&page=%d&per_page=%d", c.baseURL, owner, repo, state, page, perPage)
-		req, err := http.NewRequestWithContext(c.ctx, "GET", url, nil)
+		items, resp, err := c.gh.Issues.ListByRepo(c.ctx, owner, repo, opts)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
+			return nil, fmt.Errorf("failed to list issues for %s/%s: %w", owner, repo, err)
 		}
 
-		if c.token != "" {
-			req.Header.Set("Authorization", "Bearer "+c.token)
-		}
-		req.Header.Set("Accept", "application/vnd.github.v3+json")
-
-		client := &http.Client{Timeout: 30 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch issues from %s: %w", url, err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-			return nil, fmt.Errorf("GitHub API returned status %d for %s/%s (URL: %s): %s", resp.StatusCode, owner, repo, url, string(body))
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read response body: %w", err)
-		}
-
-		var issues []Issue
-		if err := json.Unmarshal(body, &issues); err != nil {
-			return nil, fmt.Errorf("failed to parse issues response: %w", err)
-		}
-
-		// Filter out pull requests (they appear in issues endpoint but have pull_request field)
-		var actualIssues []Issue
-		for _, issue := range issues {
-			// Check if it's a pull request by trying to unmarshal the pull_request field
-			var raw map[string]interface{}
-			if err := json.Unmarshal(body, &raw); err == nil {
-				// Re-parse to check for pull_request field
-				issueBytes, _ := json.Marshal(issue)
-				var issueMap map[string]interface{}
-				json.Unmarshal(issueBytes, &issueMap)
-				if _, hasPR := issueMap["pull_request"]; !hasPR {
-					actualIssues = append(actualIssues, issue)
-				}
+		for _, item := range items {
+			if item == nil || item.IsPullRequest() {
+				continue
 			}
+			allIssues = append(allIssues, convertIssue(item))
 		}
-
-		// Re-parse properly to filter out PRs
-		actualIssues = []Issue{}
-		var rawIssues []map[string]interface{}
-		if err := json.Unmarshal(body, &rawIssues); err == nil {
-			for _, rawIssue := range rawIssues {
-				if _, hasPR := rawIssue["pull_request"]; !hasPR {
-					issueBytes, _ := json.Marshal(rawIssue)
-					var issue Issue
-					if json.Unmarshal(issueBytes, &issue) == nil {
-						actualIssues = append(actualIssues, issue)
-					}
-				}
-			}
-		}
-
-		allIssues = append(allIssues, actualIssues...)
 
 		if progressCallback != nil {
 			progressCallback(len(allIssues))
 		}
 
-		// Check if there are more pages
-		if len(issues) < perPage {
+		if resp.NextPage == 0 {
 			break
 		}
-		page++
+		opts.Page = resp.NextPage
 	}
 
 	return allIssues, nil
 }
 
-// FetchPullRequests fetches all pull requests for a repository with pagination
-func (c *Client) FetchPullRequests(owner, repo string, state string, progressCallback func(count int)) ([]PullRequest, error) {
+// FetchPullRequests fetches all pull requests for a repository with pagination.
+func (c *Client) FetchPullRequests(owner, repo, state string, progressCallback func(count int)) ([]PullRequest, error) {
+	opts := &api.PullRequestListOptions{
+		State: state,
+		ListOptions: api.ListOptions{
+			PerPage: defaultPerPage,
+		},
+	}
+
 	var allPRs []PullRequest
-	page := 1
-	perPage := 100
-
 	for {
-		url := fmt.Sprintf("%s/repos/%s/%s/pulls?state=%s&page=%d&per_page=%d", c.baseURL, owner, repo, state, page, perPage)
-		req, err := http.NewRequestWithContext(c.ctx, "GET", url, nil)
+		items, resp, err := c.gh.PullRequests.List(c.ctx, owner, repo, opts)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
+			return nil, fmt.Errorf("failed to list pull requests for %s/%s: %w", owner, repo, err)
 		}
 
-		if c.token != "" {
-			req.Header.Set("Authorization", "Bearer "+c.token)
+		for _, item := range items {
+			if item == nil {
+				continue
+			}
+			allPRs = append(allPRs, convertPullRequest(item))
 		}
-		req.Header.Set("Accept", "application/vnd.github.v3+json")
-
-		client := &http.Client{Timeout: 30 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch pull requests from %s: %w", url, err)
-		}
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-			return nil, fmt.Errorf("GitHub API returned status %d for %s/%s (URL: %s): %s", resp.StatusCode, owner, repo, url, string(body))
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read response body: %w", err)
-		}
-
-		var prs []PullRequest
-		if err := json.Unmarshal(body, &prs); err != nil {
-			return nil, fmt.Errorf("failed to parse pull requests response: %w", err)
-		}
-
-		allPRs = append(allPRs, prs...)
 
 		if progressCallback != nil {
 			progressCallback(len(allPRs))
 		}
 
-		// Check if there are more pages
-		if len(prs) < perPage {
+		if resp.NextPage == 0 {
 			break
 		}
-		page++
+		opts.Page = resp.NextPage
 	}
 
 	return allPRs, nil
 }
 
-// FetchIssueComments fetches all comments for an issue
+// FetchIssueComments fetches all comments for an issue.
 func (c *Client) FetchIssueComments(owner, repo string, issueNumber int) ([]Comment, error) {
+	opts := &api.IssueListCommentsOptions{
+		ListOptions: api.ListOptions{
+			PerPage: defaultPerPage,
+		},
+	}
+
 	var allComments []Comment
-	page := 1
-	perPage := 100
-
 	for {
-		url := fmt.Sprintf("%s/repos/%s/%s/issues/%d/comments?page=%d&per_page=%d", c.baseURL, owner, repo, issueNumber, page, perPage)
-		req, err := http.NewRequestWithContext(c.ctx, "GET", url, nil)
+		items, resp, err := c.gh.Issues.ListComments(c.ctx, owner, repo, issueNumber, opts)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
+			return nil, fmt.Errorf("failed to list comments for issue %d in %s/%s: %w", issueNumber, owner, repo, err)
 		}
 
-		if c.token != "" {
-			req.Header.Set("Authorization", "Bearer "+c.token)
-		}
-		req.Header.Set("Accept", "application/vnd.github.v3+json")
-
-		client := &http.Client{Timeout: 30 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch comments from %s: %w", url, err)
+		for _, item := range items {
+			if item == nil {
+				continue
+			}
+			allComments = append(allComments, convertIssueComment(item))
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-			return nil, fmt.Errorf("GitHub API returned status %d for issue %d (URL: %s): %s", resp.StatusCode, issueNumber, url, string(body))
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read response body: %w", err)
-		}
-
-		var comments []Comment
-		if err := json.Unmarshal(body, &comments); err != nil {
-			return nil, fmt.Errorf("failed to parse comments response: %w", err)
-		}
-
-		allComments = append(allComments, comments...)
-
-		// Check if there are more pages
-		if len(comments) < perPage {
+		if resp.NextPage == 0 {
 			break
 		}
-		page++
+		opts.Page = resp.NextPage
 	}
 
 	return allComments, nil
 }
 
-// FetchPRComments fetches all comments for a pull request (includes review comments)
+// FetchPRComments fetches all comments for a pull request (includes review comments).
 func (c *Client) FetchPRComments(owner, repo string, prNumber int) ([]Comment, error) {
-	// Fetch issue comments (general PR comments)
 	issueComments, err := c.FetchIssueComments(owner, repo, prNumber)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch PR issue comments: %w", err)
+		return nil, fmt.Errorf("failed to fetch PR issue comments for %s/%s#%d: %w", owner, repo, prNumber, err)
 	}
 
-	// Fetch review comments (code review comments)
 	reviewComments, err := c.fetchPRReviewComments(owner, repo, prNumber)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch PR review comments: %w", err)
+		return nil, fmt.Errorf("failed to fetch PR review comments for %s/%s#%d: %w", owner, repo, prNumber, err)
 	}
 
 	return append(issueComments, reviewComments...), nil
 }
 
-// fetchPRReviewComments fetches review comments for a pull request
 func (c *Client) fetchPRReviewComments(owner, repo string, prNumber int) ([]Comment, error) {
+	opts := &api.PullRequestListCommentsOptions{
+		ListOptions: api.ListOptions{
+			PerPage: defaultPerPage,
+		},
+	}
+
 	var allComments []Comment
-	page := 1
-	perPage := 100
-
 	for {
-		url := fmt.Sprintf("%s/repos/%s/%s/pulls/%d/comments?page=%d&per_page=%d", c.baseURL, owner, repo, prNumber, page, perPage)
-		req, err := http.NewRequestWithContext(c.ctx, "GET", url, nil)
+		items, resp, err := c.gh.PullRequests.ListComments(c.ctx, owner, repo, prNumber, opts)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
+			return nil, fmt.Errorf("failed to list PR review comments for %s/%s#%d: %w", owner, repo, prNumber, err)
 		}
 
-		if c.token != "" {
-			req.Header.Set("Authorization", "Bearer "+c.token)
-		}
-		req.Header.Set("Accept", "application/vnd.github.v3+json")
-
-		client := &http.Client{Timeout: 30 * time.Second}
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch review comments from %s: %w", url, err)
+		for _, item := range items {
+			if item == nil {
+				continue
+			}
+			allComments = append(allComments, convertReviewComment(item))
 		}
 
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-			return nil, fmt.Errorf("GitHub API returned status %d for PR %d (URL: %s): %s", resp.StatusCode, prNumber, url, string(body))
-		}
-
-		body, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read response body: %w", err)
-		}
-
-		var comments []Comment
-		if err := json.Unmarshal(body, &comments); err != nil {
-			return nil, fmt.Errorf("failed to parse review comments response: %w", err)
-		}
-
-		allComments = append(allComments, comments...)
-
-		// Check if there are more pages
-		if len(comments) < perPage {
+		if resp.NextPage == 0 {
 			break
 		}
-		page++
+		opts.Page = resp.NextPage
 	}
 
 	return allComments, nil
+}
+
+func convertIssue(src *api.Issue) Issue {
+	return Issue{
+		Number:    src.GetNumber(),
+		Title:     src.GetTitle(),
+		Body:      src.GetBody(),
+		State:     src.GetState(),
+		User:      convertUser(src.User),
+		CreatedAt: convertTimestamp(src.GetCreatedAt()),
+		UpdatedAt: convertTimestamp(src.GetUpdatedAt()),
+		ClosedAt:  cloneTimestampPtr(src.ClosedAt),
+		Labels:    convertLabels(src.Labels),
+		Assignees: convertUsers(src.Assignees),
+		Milestone: convertMilestone(src.Milestone),
+	}
+}
+
+func convertPullRequest(src *api.PullRequest) PullRequest {
+	return PullRequest{
+		Number:             src.GetNumber(),
+		Title:              src.GetTitle(),
+		Body:               src.GetBody(),
+		State:              src.GetState(),
+		User:               convertUser(src.User),
+		CreatedAt:          convertTimestamp(src.GetCreatedAt()),
+		UpdatedAt:          convertTimestamp(src.GetUpdatedAt()),
+		ClosedAt:           cloneTimestampPtr(src.ClosedAt),
+		MergedAt:           cloneTimestampPtr(src.MergedAt),
+		Merged:             src.GetMerged(),
+		Draft:              src.GetDraft(),
+		Base:               convertBranch(src.Base),
+		Head:               convertBranch(src.Head),
+		Labels:             convertLabels(src.Labels),
+		Assignees:          convertUsers(src.Assignees),
+		RequestedReviewers: convertUsers(src.RequestedReviewers),
+		Milestone:          convertMilestone(src.Milestone),
+	}
+}
+
+func convertIssueComment(src *api.IssueComment) Comment {
+	return Comment{
+		ID:        src.GetID(),
+		Body:      src.GetBody(),
+		User:      convertUser(src.User),
+		CreatedAt: convertTimestamp(src.GetCreatedAt()),
+		UpdatedAt: convertTimestamp(src.GetUpdatedAt()),
+	}
+}
+
+func convertReviewComment(src *api.PullRequestComment) Comment {
+	return Comment{
+		ID:        src.GetID(),
+		Body:      src.GetBody(),
+		User:      convertUser(src.User),
+		CreatedAt: convertTimestamp(src.GetCreatedAt()),
+		UpdatedAt: convertTimestamp(src.GetUpdatedAt()),
+	}
+}
+
+func convertUser(src *api.User) User {
+	if src == nil {
+		return User{}
+	}
+	return User{Login: src.GetLogin()}
+}
+
+func convertUsers(items []*api.User) []User {
+	out := make([]User, 0, len(items))
+	for _, item := range items {
+		out = append(out, convertUser(item))
+	}
+	return out
+}
+
+func convertLabels(items []*api.Label) []Label {
+	out := make([]Label, 0, len(items))
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		out = append(out, Label{Name: item.GetName()})
+	}
+	return out
+}
+
+func convertMilestone(src *api.Milestone) *Milestone {
+	if src == nil {
+		return nil
+	}
+	result := &Milestone{Title: src.GetTitle()}
+	return result
+}
+
+func convertBranch(src *api.PullRequestBranch) Branch {
+	if src == nil {
+		return Branch{}
+	}
+	return Branch{Ref: src.GetRef()}
+}
+
+func convertTimestamp(value api.Timestamp) time.Time {
+	return value.Time
+}
+
+func cloneTimestampPtr(t *api.Timestamp) *time.Time {
+	if t == nil {
+		return nil
+	}
+	clone := t.Time
+	return &clone
 }

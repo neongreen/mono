@@ -1,6 +1,7 @@
 package github
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -96,15 +97,27 @@ func TestCommentStructure(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	// Test that we can create a new client
 	client := NewClient()
 	if client == nil {
-		t.Error("Expected client to be non-nil")
-	}
-	if client.baseURL != "https://api.github.com" {
-		t.Errorf("Expected baseURL 'https://api.github.com', got '%s'", client.baseURL)
+		t.Fatal("expected client to be non-nil")
 	}
 	if client.ctx == nil {
-		t.Error("Expected context to be non-nil")
+		t.Fatal("expected client context to be non-nil")
+	}
+	if client.gh == nil {
+		t.Fatal("expected go-github client to be non-nil")
+	}
+}
+
+func TestNewClientWithContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	client := NewClientWithContext(ctx)
+	if client.ctx != ctx {
+		t.Fatal("expected client to use provided context")
+	}
+	if client.gh == nil {
+		t.Fatal("expected go-github client to be non-nil")
 	}
 }

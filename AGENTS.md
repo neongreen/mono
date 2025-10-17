@@ -13,6 +13,7 @@ This document contains guidelines for AI agents and automated tools working on p
 - Do not create temporary files in the repository root.
 - Keep the list of projects in [README.md](./README.md) up to date.
 - Record project status in README.md. If the project is incomplete, has known bugs, exploration, etc, it must be stated.
+- Always manage work through bd: create issues when needed, set them to `in_progress` while working, close them as soon as the task is done, and make a Jujutsu commit after closing.
 
 ------------------------------------------------------------
 
