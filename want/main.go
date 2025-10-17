@@ -327,13 +327,11 @@ func getShellName() string {
 
 // installMise installs mise using the official installation script
 func installMise(dryRun bool, planJson bool) error {
-	// Build the plan
 	plan := FulfillmentPlan{
 		Requirement: "mise",
 		Steps:       buildMiseInstallationSteps(),
 	}
 
-	// Handle plan output modes
 	if planJson {
 		jsonStr, err := plan.ToJSON()
 		if err != nil {
@@ -348,7 +346,6 @@ func installMise(dryRun bool, planJson bool) error {
 		return nil
 	}
 
-	// Execute the plan
 	plan.PrintPlan()
 	if !plan.ConfirmPlan() {
 		fmt.Println("Cancelled.")
@@ -356,16 +353,18 @@ func installMise(dryRun bool, planJson bool) error {
 	}
 	fmt.Println()
 
+	return performMiseInstallation()
+}
+
+func performMiseInstallation() error {
 	fmt.Println("Installing mise...")
 	fmt.Println()
 
-	// Install mise using the official installation script
 	cmd := exec.Command("sh", "-c", "curl https://mise.run | sh")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		fmt.Println()
 		fmt.Println("Error: Failed to download and install mise")
 		fmt.Println()
@@ -380,14 +379,12 @@ func installMise(dryRun bool, planJson bool) error {
 	fmt.Println("✓ mise installed successfully")
 	fmt.Println()
 
-	// Check if we need to add activation to shell config
 	if !isMiseActivated() {
 		configFile := getShellConfigFile()
 		shellName := getShellName()
 
 		fmt.Printf("Adding mise activation to %s...\n", configFile)
 
-		// Add the activation line to the shell config
 		activationLine := fmt.Sprintf("\n# Added by want - enables mise\neval \"$(mise activate %s)\"\n", shellName)
 
 		file, err := os.OpenFile(configFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
@@ -403,8 +400,7 @@ func installMise(dryRun bool, planJson bool) error {
 		}
 		defer file.Close()
 
-		_, err = file.WriteString(activationLine)
-		if err != nil {
+		if _, err = file.WriteString(activationLine); err != nil {
 			fmt.Printf("⚠ Could not write to %s: %v\n", configFile, err)
 			fmt.Println()
 			fmt.Println("Please add this line manually:")
@@ -417,6 +413,7 @@ func installMise(dryRun bool, planJson bool) error {
 		fmt.Println("Summary:")
 		fmt.Println("  ✓ mise installed")
 		fmt.Println("  ✓ Shell configuration updated")
+		fmt.Println()
 		fmt.Println()
 		fmt.Println("Manual step required:")
 		fmt.Println("  To activate mise in your current shell, run:")
@@ -486,6 +483,9 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 
 	commandStr := strings.Join(args, " ")
 
+	// Check if we need to install jc
+	needsJcInstall := !isToolAvailable("jc")
+
 	// Build the plan
 	plan := FulfillmentPlan{
 		Requirement: fmt.Sprintf("json %s", commandStr),
@@ -493,7 +493,7 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 	}
 
 	// Check if jc is available
-	if !isToolAvailable("jc") {
+	if needsJcInstall {
 		// Check if mise is available - if not, add mise installation steps first
 		if !isMiseAvailable() {
 			plan.Steps = append(plan.Steps, buildMiseInstallationSteps()...)
@@ -544,14 +544,41 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 	fmt.Println()
 
 	// Install jc if needed
-	if !isToolAvailable("jc") {
-		fmt.Println("Installing jc...")
-		installToolViaMise("jc", false, false)
+	if needsJcInstall {
+		if !isMiseAvailable() {
+			if err := performMiseInstallation(); err != nil {
+				fmt.Printf("\nError: %v\n", err)
+				os.Exit(1)
+			}
+
+			if !isMiseAvailable() {
+				fmt.Println("Error: mise installed but not yet available in this shell.")
+				fmt.Println("Please ensure mise is on your PATH or run:")
+				shellName := getShellName()
+				fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
+				fmt.Println("Then rerun:")
+				fmt.Printf("  want json %s\n", commandStr)
+				os.Exit(1)
+			}
+		}
+
+		fmt.Println("Installing jc via mise...")
+		cmd := exec.Command("mise", "use", "-g", "jc")
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Println()
+			fmt.Println("Error: Failed to install jc via mise")
+			fmt.Println("Command failed: mise use -g jc")
+			os.Exit(1)
+		}
 		fmt.Println()
 
-		// Check if installation succeeded
 		if !isToolAvailable("jc") {
-			fmt.Println("Error: jc installation failed")
+			fmt.Println("Error: jc installation succeeded but jc is still not in PATH")
+			fmt.Println("You may need to restart your shell or run:")
+			shellName := getShellName()
+			fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
 			os.Exit(1)
 		}
 	}

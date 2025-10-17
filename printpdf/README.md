@@ -89,6 +89,8 @@ printpdf -orientation landscape document.md
 printpdf -margin 1cm document.md
 printpdf -margin 1in document.md
 printpdf -margin 20mm document.md
+printpdf -margin 2cm -margin-top 3cm document.md
+printpdf -margin-top 3cm -margin-right 1.5cm -margin-bottom 2.5cm -margin-left 2cm document.md
 
 # Adjust zoom (scales all font sizes proportionally)
 printpdf -zoom 80 document.md   # 80% of default size
@@ -127,7 +129,7 @@ The implementation:
 
 #### Page Margins
 
-The `-margin` flag allows you to customize the page margins:
+The `-margin` flag sets the default margin for all sides of the page:
 
 - Default: `2cm` (2 centimeters on all sides)
 - Supports various units: `cm`, `mm`, `in`, `pt`, etc.
@@ -136,7 +138,14 @@ The `-margin` flag allows you to customize the page margins:
   - `-margin 1in`: 1 inch margins
   - `-margin 20mm`: 20 millimeter margins
 
-The margin value is applied to all sides of the page. For asymmetric margins, you may need to use converter-specific options.
+Use the side-specific flags to override individual edges while keeping a default for the rest:
+
+- `-margin-top`
+- `-margin-right`
+- `-margin-bottom`
+- `-margin-left`
+
+For example, `printpdf -margin 2cm -margin-top 3cm document.md` increases only the top margin, and `printpdf -margin-top 3cm -margin-right 1.5cm -margin-bottom 2.5cm -margin-left 2cm` sets each side explicitly.
 
 #### Zoom (Font Size Scaling)
 

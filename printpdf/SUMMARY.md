@@ -24,6 +24,7 @@ A complete Go-based tool for converting various content sources (Markdown files,
 - ✅ Tool caching in ~/.cache/printpdf
 - ✅ Multiple converter support for quality comparison
 - ✅ Clean CLI interface
+- ✅ Per-edge page margin overrides (top/right/bottom/left)
 
 ### ✅ Documentation & Samples
 - ✅ Comprehensive README
