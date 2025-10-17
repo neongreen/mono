@@ -657,6 +657,8 @@ var githubCmd = &cobra.Command{
 }
 
 func init() {
+	fsCmd.Flags().Bool("respect-gitignore", true, "respect .gitignore patterns when walking the filesystem")
+
 	rootCmd.AddCommand(gitCmd)
 	rootCmd.AddCommand(fsCmd)
 	rootCmd.AddCommand(cmdCmd)

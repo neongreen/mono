@@ -279,6 +279,9 @@ Processing entry 523/523...
 Processed 523 entries with 400 blobs
 Ingestion completed successfully!
 
+# Disable .gitignore filtering while ingesting (enabled by default)
+$ ingest fs --respect-gitignore=false ~/Documents
+
 # Run a command and capture its output
 $ ingest cmd "ls -la /tmp | wc -l"
 Running command: ls -la /tmp | wc -l

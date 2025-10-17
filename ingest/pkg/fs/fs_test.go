@@ -123,3 +123,76 @@ func TestWalkFilesystemMissingPath(t *testing.T) {
 		t.Fatalf("expected error to mention missing path, got %v", err)
 	}
 }
+
+func TestWalkFilesystemHonorsGitignore(t *testing.T) {
+	tempDir := t.TempDir()
+
+	gitignoreContent := "# sample ignore\nignored.txt\nsecret/\n!important.txt\n"
+	if err := os.WriteFile(filepath.Join(tempDir, ".gitignore"), []byte(gitignoreContent), 0o644); err != nil {
+		t.Fatalf("failed to write .gitignore: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(tempDir, "ignored.txt"), []byte("should be ignored"), 0o644); err != nil {
+		t.Fatalf("failed to create ignored file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "important.txt"), []byte("keep me"), 0o644); err != nil {
+		t.Fatalf("failed to create important file: %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(tempDir, "secret"), 0o755); err != nil {
+		t.Fatalf("failed to create secret directory: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "secret", "note.txt"), []byte("top secret"), 0o600); err != nil {
+		t.Fatalf("failed to create secret file: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "keep.log"), []byte("log"), 0o644); err != nil {
+		t.Fatalf("failed to create keep file: %v", err)
+	}
+
+	entries, err := WalkFilesystem(tempDir, nil)
+	if err != nil {
+		t.Fatalf("WalkFilesystem returned error: %v", err)
+	}
+
+	paths := make(map[string]bool, len(entries))
+	for _, entry := range entries {
+		paths[entry.Path] = true
+	}
+
+	if paths["ignored.txt"] {
+		t.Fatalf("expected ignored.txt to be excluded by gitignore")
+	}
+	if paths["secret"] {
+		t.Fatalf("expected secret directory to be excluded by gitignore")
+	}
+	if paths["secret/note.txt"] {
+		t.Fatalf("expected secret/note.txt to be excluded by gitignore")
+	}
+	if !paths["important.txt"] {
+		t.Fatalf("expected important.txt to be present due to negation pattern")
+	}
+	if !paths["keep.log"] {
+		t.Fatalf("expected keep.log to be present")
+	}
+}
+
+func TestWalkFilesystemCanBypassGitignore(t *testing.T) {
+	tempDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(tempDir, ".gitignore"), []byte("ignored.txt\n"), 0o644); err != nil {
+		t.Fatalf("failed to write .gitignore: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, "ignored.txt"), []byte("still here"), 0o644); err != nil {
+		t.Fatalf("failed to create ignored file: %v", err)
+	}
+
+	entries, err := WalkFilesystemWithOptions(tempDir, nil, WalkOptions{RespectGitignore: false})
+	if err != nil {
+		t.Fatalf("WalkFilesystemWithOptions returned error: %v", err)
+	}
+	paths := make(map[string]bool, len(entries))
+	for _, entry := range entries {
+		paths[entry.Path] = true
+	}
+	if !paths["ignored.txt"] {
+		t.Fatalf("expected ignored.txt to be present when gitignore filtering disabled")
+	}
+}
