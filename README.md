@@ -8,6 +8,7 @@ This repository contains multiple independent projects.
 - **[markdown-format](markdown-format/)** - Go tool for markdown formatting
 - **[prrun](prrun/)** - Go tool to run binaries from GitHub PR releases (for easy testing)
 - **[printpdf](printpdf/)** - Go tool for converting Markdown and web content to PDF
+- **[ingest](ingest/)** - Go tool for ingesting git, filesystem, command, and GitHub data into SQLite (work in progress)
 - **[diagram-dsl](diagram-dsl/)** - TypeScript DSL for creating diagrams
 - **[want](want/)** - Work in progress
 - **[claude-trace](claude-trace/)** - Terminal UI for reviewing Claude Code conversation logs

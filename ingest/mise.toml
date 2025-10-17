@@ -6,6 +6,10 @@ run = "go run ./cmd/ingest"
 description = "Run all ingest tests"
 run = "go test ./..."
 
+[tasks."test:integration"]
+description = "Run ingest CLI and integration suites"
+run = "go test ./cmd ./pkg/integration"
+
 [tasks.fmt]
 description = "Format Go code"
 run = "go fmt ./..."

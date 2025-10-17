@@ -2,12 +2,9 @@ package main
 
 import (
 	"bytes"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
 
-	"ingest/pkg/database"
+	"ingest/pkg/testutil"
 )
 
 func runCLI(t *testing.T, args ...string) (string, string) {
@@ -26,78 +23,17 @@ func runCLI(t *testing.T, args ...string) (string, string) {
 	return stdout.String(), stderr.String()
 }
 
-func createGitRepo(t *testing.T, repoPath string) {
-	t.Helper()
-
-	if err := os.MkdirAll(repoPath, 0o755); err != nil {
-		t.Fatalf("mkdir repo: %v", err)
-	}
-
-	cmd := exec.Command("git", "init")
-	cmd.Dir = repoPath
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git init: %v", err)
-	}
-
-	for _, cfg := range [][2]string{
-		{"user.email", "test@example.com"},
-		{"user.name", "Test User"},
-	} {
-		cmd = exec.Command("git", "config", cfg[0], cfg[1])
-		cmd.Dir = repoPath
-		if err := cmd.Run(); err != nil {
-			t.Fatalf("git config %s: %v", cfg[0], err)
-		}
-	}
-
-	if err := os.WriteFile(filepath.Join(repoPath, "a.txt"), []byte("first"), 0o644); err != nil {
-		t.Fatalf("write a.txt: %v", err)
-	}
-
-	cmd = exec.Command("git", "add", "a.txt")
-	cmd.Dir = repoPath
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git add: %v", err)
-	}
-
-	cmd = exec.Command("git", "commit", "-m", "first")
-	cmd.Dir = repoPath
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git commit first: %v", err)
-	}
-
-	if err := os.WriteFile(filepath.Join(repoPath, "b.txt"), []byte("second"), 0o644); err != nil {
-		t.Fatalf("write b.txt: %v", err)
-	}
-
-	cmd = exec.Command("git", "add", "b.txt")
-	cmd.Dir = repoPath
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git add second: %v", err)
-	}
-
-	cmd = exec.Command("git", "commit", "-m", "second")
-	cmd.Dir = repoPath
-	if err := cmd.Run(); err != nil {
-		t.Fatalf("git commit second: %v", err)
-	}
-}
-
 func TestCLI_GitIngestion(t *testing.T) {
-	tempDir := t.TempDir()
-	homeDir := filepath.Join(tempDir, "home")
-	t.Setenv("HOME", homeDir)
+	testutil.WithTempHome(t)
 
-	repoPath := filepath.Join(tempDir, "repo")
-	createGitRepo(t, repoPath)
+	repoPath := testutil.NewTempGitRepo(t, []testutil.GitCommit{
+		{Message: "first", Files: map[string]string{"a.txt": "first"}},
+		{Message: "second", Files: map[string]string{"b.txt": "second"}},
+	})
 
 	runCLI(t, "git", repoPath)
 
-	db, err := database.Open()
-	if err != nil {
-		t.Fatalf("open database: %v", err)
-	}
-	defer db.Close()
+	db := testutil.OpenDatabase(t)
 
 	runs, err := db.GetAllRuns()
 	if err != nil {
@@ -130,32 +66,18 @@ func TestCLI_GitIngestion(t *testing.T) {
 }
 
 func TestCLI_FSRespectGitignoreFlag(t *testing.T) {
-	tempDir := t.TempDir()
-	homeDir := filepath.Join(tempDir, "home")
-	t.Setenv("HOME", homeDir)
+	testutil.WithTempHome(t)
 
-	workdir := filepath.Join(tempDir, "workspace")
-	if err := os.MkdirAll(workdir, 0o755); err != nil {
-		t.Fatalf("mkdir workspace: %v", err)
-	}
-
-	if err := os.WriteFile(filepath.Join(workdir, ".gitignore"), []byte("ignored.txt\n"), 0o644); err != nil {
-		t.Fatalf("write .gitignore: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(workdir, "included.txt"), []byte("hello"), 0o644); err != nil {
-		t.Fatalf("write included.txt: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(workdir, "ignored.txt"), []byte("skip"), 0o644); err != nil {
-		t.Fatalf("write ignored.txt: %v", err)
-	}
+	workdir := t.TempDir()
+	testutil.WriteFiles(t, workdir, map[string]string{
+		".gitignore":   "ignored.txt\n",
+		"included.txt": "hello",
+		"ignored.txt":  "skip",
+	})
 
 	runCLI(t, "fs", workdir)
 
-	db, err := database.Open()
-	if err != nil {
-		t.Fatalf("open database: %v", err)
-	}
-	defer db.Close()
+	db := testutil.OpenDatabase(t)
 
 	runs, err := db.GetAllRuns()
 	if err != nil {
@@ -191,29 +113,17 @@ func TestCLI_FSRespectGitignoreFlag(t *testing.T) {
 }
 
 func TestCLI_FSCanDisableGitignoreFiltering(t *testing.T) {
-	tempDir := t.TempDir()
-	homeDir := filepath.Join(tempDir, "home")
-	t.Setenv("HOME", homeDir)
+	testutil.WithTempHome(t)
 
-	workdir := filepath.Join(tempDir, "workspace")
-	if err := os.MkdirAll(workdir, 0o755); err != nil {
-		t.Fatalf("mkdir workspace: %v", err)
-	}
-
-	if err := os.WriteFile(filepath.Join(workdir, ".gitignore"), []byte("ignored.txt\n"), 0o644); err != nil {
-		t.Fatalf("write .gitignore: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(workdir, "ignored.txt"), []byte("skip"), 0o644); err != nil {
-		t.Fatalf("write ignored.txt: %v", err)
-	}
+	workdir := t.TempDir()
+	testutil.WriteFiles(t, workdir, map[string]string{
+		".gitignore":  "ignored.txt\n",
+		"ignored.txt": "skip",
+	})
 
 	runCLI(t, "fs", "--respect-gitignore=false", workdir)
 
-	db, err := database.Open()
-	if err != nil {
-		t.Fatalf("open database: %v", err)
-	}
-	defer db.Close()
+	db := testutil.OpenDatabase(t)
 
 	results, err := db.Query("SELECT path FROM fs_entries WHERE path = 'ignored.txt'")
 	if err != nil {
@@ -225,17 +135,11 @@ func TestCLI_FSCanDisableGitignoreFiltering(t *testing.T) {
 }
 
 func TestCLI_CommandIngestionCountsOutputLines(t *testing.T) {
-	tempDir := t.TempDir()
-	homeDir := filepath.Join(tempDir, "home")
-	t.Setenv("HOME", homeDir)
+	testutil.WithTempHome(t)
 
 	runCLI(t, "cmd", "printf 'line1\\nline2\\n'")
 
-	db, err := database.Open()
-	if err != nil {
-		t.Fatalf("open database: %v", err)
-	}
-	defer db.Close()
+	db := testutil.OpenDatabase(t)
 
 	runs, err := db.GetAllRuns()
 	if err != nil {
