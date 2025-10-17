@@ -1,0 +1,11 @@
+[tasks.run]
+description = "Build and run the ingest CLI"
+run = "go run ./cmd/ingest"
+
+[tasks.test]
+description = "Run all ingest tests"
+run = "go test ./..."
+
+[tasks.fmt]
+description = "Format Go code"
+run = "go fmt ./..."
