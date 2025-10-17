@@ -355,16 +355,11 @@ func countOutputLines(output string) int {
 		return 0
 	}
 
-	count := 1
-	for _, r := range output {
-		if r == '\n' {
-			count++
-		}
+	lines := strings.Count(output, "\n")
+	if !strings.HasSuffix(output, "\n") {
+		lines++
 	}
-	if strings.HasSuffix(output, "\n") {
-		count--
-	}
-	return count
+	return lines
 }
 
 // UpdateRunCounts is deprecated, use UpdateRunItemCount instead
