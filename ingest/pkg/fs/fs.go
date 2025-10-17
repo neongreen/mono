@@ -26,6 +26,13 @@ func WalkFilesystem(rootPath string, progressCallback func(int)) ([]FSEntry, err
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
+	if _, err := os.Stat(absPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("path does not exist: %s", absPath)
+		}
+		return nil, fmt.Errorf("failed to stat %s: %w", absPath, err)
+	}
+
 	var entries []FSEntry
 	count := 0
 

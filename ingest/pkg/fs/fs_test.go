@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -112,10 +113,13 @@ func TestWalkFilesystemCapturesEntries(t *testing.T) {
 func TestWalkFilesystemMissingPath(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "nope")
 	entries, err := WalkFilesystem(missing, nil)
-	if err != nil {
-		t.Fatalf("expected no error for missing path, got %v", err)
+	if err == nil {
+		t.Fatal("expected error for missing path, got nil")
 	}
-	if len(entries) != 0 {
-		t.Fatalf("expected no entries for missing path, got %d", len(entries))
+	if entries != nil {
+		t.Fatalf("expected nil entries on error, got %d entries", len(entries))
+	}
+	if !strings.Contains(err.Error(), "does not exist") {
+		t.Fatalf("expected error to mention missing path, got %v", err)
 	}
 }
