@@ -1,0 +1,12 @@
+go 1.24.7
+
+use (
+	./claude-trace
+	./dissect
+	./ingest
+	./lib/ghrelease
+	./markdown-format
+	./printpdf
+	./prrun
+	./want
+)
