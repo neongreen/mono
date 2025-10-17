@@ -2,6 +2,7 @@ experimental_monorepo_root = true
 
 [tools]
 go = "1.24.7"
+"go:github.com/steveyegge/beads/cmd/bd" = "latest"
 
 [tasks.cloc]
 description = "Count lines of Go code by file"

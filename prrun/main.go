@@ -14,16 +14,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Check for --help or -h flag
-	for _, arg := range os.Args[1:] {
-		if arg == "--help" || arg == "-h" {
-			printUsage()
-			os.Exit(0)
-		}
-		if arg == "--version" || arg == "-v" {
-			printVersion()
-			os.Exit(0)
-		}
+	// Check for --help or -h flag (only as first argument)
+	if os.Args[1] == "--help" || os.Args[1] == "-h" {
+		printUsage()
+		os.Exit(0)
+	}
+	if os.Args[1] == "--version" || os.Args[1] == "-v" {
+		printVersion()
+		os.Exit(0)
 	}
 
 	// Parse arguments
@@ -45,6 +43,9 @@ func main() {
 			projectName = os.Args[i+1]
 			explicitProject = true
 			i += 2
+		} else if arg == "--debug" {
+			debugMode = true
+			i++
 		} else if arg == "--" {
 			// Everything after -- goes to binary
 			binaryArgs = os.Args[i+1:]

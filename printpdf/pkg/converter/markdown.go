@@ -11,7 +11,7 @@ import (
 )
 
 // convertMarkdownToHTML converts markdown content to HTML
-func convertMarkdownToHTML(markdown []byte) ([]byte, error) {
+func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error) {
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM,   // GitHub Flavored Markdown
@@ -33,20 +33,45 @@ func convertMarkdownToHTML(markdown []byte) ([]byte, error) {
 		return nil, fmt.Errorf("failed to convert markdown to HTML: %w", err)
 	}
 
+	// Build page CSS with orientation, margin, and zoom
+	margin := options.Margin
+	if margin == "" {
+		margin = "2cm"
+	}
+	var pageCSS string
+	if options.Orientation == "landscape" {
+		pageCSS = fmt.Sprintf("@page { size: A4 landscape; margin: %s; }\n", margin)
+	} else {
+		pageCSS = fmt.Sprintf("@page { size: A4 portrait; margin: %s; }\n", margin)
+	}
+
+	// Calculate zoom factor for font sizes
+	zoom := options.Zoom
+	if zoom == 0 {
+		zoom = 100
+	}
+	zoomFactor := float64(zoom) / 100.0
+
+	// Build body CSS - don't add max-width or auto margins when using page margins
+	// because it conflicts with the user's margin settings
+	bodyCSS := `body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    color: #24292e;
+}`
+
 	// Wrap in a complete HTML document with nice styling
 	html := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <style>
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    max-width: 800px;
-    margin: 40px auto;
-    padding: 0 20px;
-    line-height: 1.6;
-    color: #24292e;
+%s
+html {
+    font-size: %.0f%%;
 }
+
+%s
 
 h1, h2, h3, h4, h5, h6 {
     margin-top: 24px;
@@ -161,7 +186,25 @@ hr {
 <body>
 %s
 </body>
-</html>`, buf.String())
+</html>`, pageCSS, zoomFactor*100, bodyCSS, buf.String())
+
+	// If columns are requested, wrap the content in a container with column CSS
+	if options.Columns > 1 {
+		// Add column support via CSS
+		columnCSS := fmt.Sprintf(`<style>
+body {
+    column-count: %d;
+    column-gap: 2em;
+    column-rule: 1px solid #dfe2e5;
+}
+h1, h2, h3 {
+    column-span: all;
+}
+</style>`, options.Columns)
+		// Insert the column CSS before </head>
+		htmlBytes := bytes.Replace([]byte(html), []byte("</head>"), []byte(columnCSS+"\n</head>"), 1)
+		return htmlBytes, nil
+	}
 
 	return []byte(html), nil
 }

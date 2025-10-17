@@ -1,0 +1,52 @@
+# Agent Guidelines for prrun
+
+## Code Formatting
+
+**All Go code must be formatted with `go fmt` before work is considered complete.**
+
+Before submitting any changes:
+- Run `go fmt ./...` in the prrun directory
+- Ensure all Go files are properly formatted
+- This applies to both new and modified Go code
+
+--------------------------------------
+
+## Postmortems
+
+### Postmortem: Missing Releases Due to API Pagination (2025-01-13)
+
+**Timeline:**
+1. Initial implementation: `findPRRelease()` and `findAllPRReleases()` fetched releases from `/repos/:owner/:repo/releases` endpoint without pagination
+2. The code worked correctly when the repository had fewer than 30 releases
+3. As the repository grew beyond 30 releases, older PR releases stopped being found
+4. User reported: "Error: no releases found for PR #89" despite a prerelease existing for that PR
+5. Investigation revealed that the GitHub API returns 30 releases per page by default
+6. The release `printpdf--pr-89.1` existed but was beyond the first page of results
+
+**Root Cause:**
+- GitHub's releases API endpoint (`/repos/:owner/:repo/releases`) returns paginated results
+- By default, only 30 releases are returned per page
+- The code only fetched the first page, never checking for additional pages
+- As the repository accumulated more releases, older releases became invisible to prrun
+
+**What Could Have Caught This Earlier:**
+1. Integration tests with a repository containing more than 30 releases
+2. Warning comments in code noting the pagination limitation
+3. Debug logging to show how many releases were fetched (now implemented with --debug flag)
+4. Checking GitHub API documentation for pagination during initial implementation
+
+**Lessons Learned:**
+- Always check GitHub API documentation for pagination behavior
+- When fetching lists from GitHub API, always implement pagination support
+- Add debug flags early to help diagnose issues in production
+- Test with repositories at scale, not just small test cases
+
+**Prevention Measures Added:**
+1. Implemented `fetchAllReleases()` helper that handles pagination automatically
+2. Added `--debug` flag to show exactly what's happening during execution
+3. This postmortem serves as documentation for future developers
+
+**Future Considerations:**
+- Consider adding integration tests that work with actual GitHub repositories
+- Consider adding telemetry or logging to track how many releases are being fetched
+- Document pagination behavior in code comments

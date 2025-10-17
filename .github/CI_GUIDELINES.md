@@ -132,6 +132,14 @@ When adding a new project to the monorepo:
 
 ## Special Cases
 
+### Repository-Wide Tools
+
+Some workflows are repository-wide and should run on all PRs:
+
+- **bd Setup** (`.github/workflows/bd-setup.yml`): Installs and configures the bd issue tracker, which is used across all projects
+
+These workflows should document why they don't use path filtering.
+
 ### Shared Dependencies
 
 If multiple projects share common code in a shared directory:

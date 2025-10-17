@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 )
 
 func getCacheDir() (string, error) {
@@ -18,41 +16,8 @@ func getCacheDir() (string, error) {
 	return cacheDir, nil
 }
 
-func getGitHubToken() string {
-
-	// getCacheDir returns the cache directory path
-	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
-		return token
-	}
-	if token := os.Getenv("MISE_GITHUB_TOKEN"); token != "" {
-		return token
-	}
-	cmd := exec.Command("gh", "auth", "token")
-	output, err := cmd.Output()
-	if err == nil && len(output) > 0 {
-		return strings.TrimSpace(string(output))
-	}
-	return ""
-}
-
-func createAuthenticatedRequest(method,
-	url string) (*http.Request, error) {
-	req, err := http.NewRequest(method,
-		url, nil)
-	if err !=
-
-		nil {
-		return nil, err
-	}
-
-	if token := getGitHubToken(); token != "" {
-		req.Header.Set("Authorization",
-
-			"Bearer "+
-				token)
-	}
-	return req, nil
-}
+// getGitHubToken is now provided by ghrelease library
+// createAuthenticatedRequest is now provided by ghrelease library
 
 func runBinary(binaryPath string, args []string) error {
 	cmd := exec.
@@ -77,6 +42,7 @@ func printUsage() {
 	fmt.Println("Arguments:")
 	fmt.Println("  <github-pr-url>  GitHub PR URL (e.g., github.com/owner/repo/pull/123)")
 	fmt.Println("  --project, -p    Specify project name (required if multiple projects in PR)")
+	fmt.Println("  --debug          Show detailed debug information during execution")
 	fmt.Println("  --version, -v    Show version information and check for updates")
 	fmt.Println("  [args...]        Arguments to pass to the binary (no -- separator needed)")
 	fmt.Println()
@@ -95,6 +61,9 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("  # Old syntax still works (with -- separator)")
 	fmt.Println("  prrun github.com/neongreen/mono/pull/123 -p dissect -- --help")
+	fmt.Println()
+	fmt.Println("  # Debug mode to see what's happening")
+	fmt.Println("  prrun github.com/neongreen/mono/pull/123 --debug")
 	fmt.Println()
 	fmt.Println("The tool will:")
 	fmt.Println("  1. Detect the project from PR releases (or use --project flag)")

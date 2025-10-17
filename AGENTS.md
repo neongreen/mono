@@ -7,6 +7,7 @@ This document contains guidelines for AI agents and automated tools working on p
 - All tools are written in Go unless stated otherwise. 
 - All new projects are created as top-level folders in the repository unless stated otherwise.
 - All projects must contain a `mise.toml`. Check existing `mise.toml` files to see what is expected from you.
+- All new Go projects must have CI workflows in `.github/workflows/<project-name>.yml`. Check existing workflow files to see what is expected from you.
 - In all prose that you write, don't be excited, don't use emojis unless necessary, and don't use pervasive bold text.
 - All temporary files (like summaries of fixes you did, one-off scripts you wrote during PR development, etc) must have names prefixed with `ai-temp-`.
 - Do not create temporary files in the repository root.
@@ -71,6 +72,79 @@ All projects should define standard tasks in their `mise.toml` where applicable:
 - **`test`** - Run all tests
 
 These tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
+
+------------------------------------------------------------
+
+## Code Formatting
+
+**All Go code must be formatted with `go fmt` before work is considered complete.**
+
+Before submitting any changes to Go projects:
+- Run `go fmt ./...` in the project directory
+- Ensure all Go files are properly formatted
+- This applies to both new and modified Go code
+
+The `go fmt` tool ensures consistent formatting across all Go code in the monorepo and is a standard requirement for Go development.
+
+------------------------------------------------------------
+
+## Error Handling Guidelines
+
+**All Go code must follow consistent error handling patterns.**
+
+### Error Wrapping
+
+- **ALWAYS** use `%w` verb when wrapping errors to preserve the error chain
+- **NEVER** use `%v` or `%s` for error wrapping as it breaks error unwrapping
+- Add context to errors to make debugging easier
+
+**Good examples:**
+```go
+return fmt.Errorf("failed to fetch release %s/%s tag %s: %w", owner, repo, tag, err)
+return fmt.Errorf("failed to create cache directory %s: %w", dirPath, err)
+```
+
+**Bad examples:**
+```go
+return fmt.Errorf("failed to fetch release: %v", err)  // Loses error chain
+return fmt.Errorf("error: %s", err)                    // Loses error chain
+return fmt.Errorf("GitHub API returned status %d", statusCode)  // No context about what failed
+```
+
+### Error Context
+
+Always include relevant context in error messages:
+- File paths for file operations
+- URLs for HTTP requests
+- Resource identifiers (project names, tag names, etc.)
+- What operation was being performed
+
+### HTTP Operations
+
+For HTTP operations:
+- Use `context.Context` for timeout and cancellation support
+- Set reasonable timeouts (30s for API calls, 5min for downloads)
+- Include the URL in error messages for debugging
+- Include status codes and relevant details
+
+**Example:**
+```go
+client := &http.Client{Timeout: 30 * time.Second}
+resp, err := client.Do(req)
+if err != nil {
+    return fmt.Errorf("failed to fetch release %s/%s from %s: %w", owner, repo, apiURL, err)
+}
+if resp.StatusCode != http.StatusOK {
+    return fmt.Errorf("GitHub API returned status %d for %s/%s (URL: %s)", resp.StatusCode, owner, repo, apiURL)
+}
+```
+
+### Context Propagation
+
+- Add context parameters to long-running functions
+- Prefer functions with context variants (e.g., `http.NewRequestWithContext`)
+- Provide both context and non-context versions for backward compatibility
+- Default to `context.Background()` in non-context wrapper functions
 
 ------------------------------------------------------------
 
@@ -210,6 +284,52 @@ The owner will explicitly request backwards compatibility when needed. Until the
 
 ------------------------------------------------------------
 
+## Go CI Workflow Configuration
+
+All Go projects in this monorepo must have a `go.sum` file to enable dependency caching in CI workflows.
+
+### Required: go.sum for All Go Projects
+
+**Every Go project must have a `go.sum` file, even if it only has local dependencies.**
+
+- Run `go mod tidy` in each Go project directory to ensure `go.sum` is up-to-date
+- If a project has no external dependencies, an empty `go.sum` file is acceptable
+- The `go.sum` file must be committed to the repository
+
+### CI Workflow Setup
+
+All CI workflows must specify the `cache-dependency-path` to point to the project's `go.sum` file:
+
+```yaml
+- name: Set up Go
+  uses: actions/setup-go@v5
+  with:
+    go-version: '1.24.7'
+    cache-dependency-path: <project-name>/go.sum
+```
+
+For example:
+- `cache-dependency-path: prrun/go.sum` for the prrun project
+- `cache-dependency-path: dissect/go.sum` for the dissect project
+- `cache-dependency-path: ${{ matrix.project }}/go.sum` for matrix builds
+
+The action will:
+- Look for `go.sum` at the specified path
+- Cache Go module dependencies and build cache
+- Restore cache on subsequent runs
+
+### Keeping go.sum Up-to-Date
+
+Run `go mod tidy` whenever:
+- Adding new dependencies
+- Removing dependencies
+- Updating Go version
+- Changing module requirements
+
+This ensures the `go.sum` file stays synchronized with `go.mod`.
+
+------------------------------------------------------------
+
 ## Postmortem Requirements
 
 When a bug or issue is discovered after implementation (especially during code review), agents must create a postmortem analysis documenting:
@@ -259,3 +379,161 @@ When a bug or issue is discovered after implementation (especially during code r
 - When reviewer finds bugs that should have been caught
 
 The goal is continuous improvement: learn from mistakes and build better practices for future work.
+
+------------------------------------------------------------
+
+## bd (Beads) Issue Tracker
+
+This repository uses **bd (beads)** for issue tracking instead of Markdown TODO files or external issue trackers.
+
+### What is bd?
+
+bd is a lightweight, git-based issue tracker designed specifically for AI coding agents. It stores issues in `.beads/issues.jsonl` (committed to git) and maintains a local SQLite database for fast queries.
+
+### Installation
+
+bd is installed globally via:
+
+```bash
+# Quick install (recommended)
+curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/install.sh | bash
+
+# Or via Homebrew
+brew tap steveyegge/beads
+brew install bd
+
+# Or via go install
+go install github.com/steveyegge/beads/cmd/bd@latest
+```
+
+### Basic Usage
+
+**Check for ready work:**
+```bash
+bd ready --json
+```
+
+**Create a new issue:**
+```bash
+bd create "Issue title" -t bug|feature|task -p 0-4 -d "Description" --json
+```
+
+**Update issue status:**
+```bash
+bd update <id> --status in_progress --json
+```
+
+**Close an issue:**
+```bash
+bd close <id> --reason "Done" --json
+```
+
+**Show issue details:**
+```bash
+bd show <id> --json
+```
+
+**List all issues:**
+```bash
+bd list --json
+```
+
+**Add dependencies:**
+```bash
+bd dep add <issue-id> <blocks-id> --type blocks
+```
+
+**Show dependency tree:**
+```bash
+bd dep tree <id>
+```
+
+### Issue Types
+
+- `bug` - Something broken that needs fixing
+- `feature` - New functionality
+- `task` - Work item (tests, docs, refactoring)
+- `epic` - Large feature composed of multiple issues
+- `chore` - Maintenance work (dependencies, tooling)
+
+### Priorities
+
+- `0` - Critical (security, data loss, broken builds)
+- `1` - High (major features, important bugs)
+- `2` - Medium (nice-to-have features, minor bugs)
+- `3` - Low (polish, optimization)
+- `4` - Backlog (future ideas)
+
+### Dependency Types
+
+- `blocks` - Hard dependency (issue X blocks issue Y)
+- `related` - Soft relationship (issues are connected)
+- `parent-child` - Epic/subtask relationship
+- `discovered-from` - Track issues discovered during work
+
+Only `blocks` dependencies affect the ready work queue.
+
+### Workflow
+
+1. **At session start**: Run `bd ready` to see what's unblocked
+2. **Claim a task**: `bd update <id> --status in_progress`
+3. **Work on it**: Implement, test, document
+4. **Discover new work**: Create issues for bugs/TODOs found during work
+5. **Complete**: `bd close <id> --reason "Implemented"`
+6. **Auto-sync**: Changes automatically export to `.beads/issues.jsonl` after 5 seconds
+
+### Agent Guidelines
+
+- **Always use `--json` flag** for programmatic use
+- **Use bd instead of Markdown** for all new work tracking
+- **Link discovered issues** using `discovered-from` dependency type
+- **Check `bd ready`** before asking "what should I work on next?"
+- **Auto-sync is enabled**: JSONL is automatically updated after CRUD operations
+- **Issues are git-versioned**: The `.beads/issues.jsonl` file is the source of truth
+- **SQLite DB is local**: The `*.db` files are in `.gitignore` and regenerated from JSONL
+
+### Git Workflow
+
+bd automatically handles git synchronization:
+
+- **Export**: After any CRUD operation, changes are exported to `.beads/issues.jsonl` (5-second debounce)
+- **Import**: When JSONL is newer than DB (e.g., after `git pull`), it's automatically imported
+
+```bash
+# Make changes
+bd create "Fix bug" -p 1
+bd update mono-42 --status in_progress
+
+# Wait 5 seconds for auto-export, or run manually
+bd export
+
+# Commit
+git add .beads/issues.jsonl
+git commit -m "Your message"
+
+# After pull, BD auto-imports the updated JSONL
+git pull
+bd ready  # Fresh data from git
+```
+
+### Repository Setup
+
+This repository has been initialized with:
+- Database at `.beads/mono.db` (not committed)
+- Issue prefix: `mono` (issues are named `mono-1`, `mono-2`, etc.)
+- JSONL export at `.beads/issues.jsonl` (committed to git)
+- GitHub Copilot coding agent setup at `.github/workflows/copilot-setup-steps.yml` that automatically installs bd
+
+### GitHub Copilot Integration
+
+The `.github/workflows/copilot-setup-steps.yml` workflow ensures bd is available when GitHub Copilot's remote coding agent starts:
+- Installs bd using `go install github.com/steveyegge/beads/cmd/bd@latest`
+- Imports issues from `.beads/issues.jsonl`
+- Copilot can immediately use `bd ready`, `bd create`, `bd update`, etc.
+
+### Resources
+
+- [bd GitHub Repository](https://github.com/steveyegge/beads)
+- [bd Documentation](https://github.com/steveyegge/beads/blob/main/README.md)
+- [bd Workflow Guide](https://github.com/steveyegge/beads/blob/main/WORKFLOW.md)
+- [bd for Agents](https://github.com/steveyegge/beads/blob/main/AGENTS.md)

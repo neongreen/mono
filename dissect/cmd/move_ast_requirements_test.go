@@ -154,17 +154,17 @@ func main() {
 	if err != nil {
 		t.Fatalf("Failed to read target file: %v", err)
 	}
-	
+
 	targetStr := string(targetContent)
 	if !strings.Contains(targetStr, "func linuxSpecificFunc") {
 		t.Errorf("Function not found in target file")
 	}
-	
+
 	// Verify doc comments were preserved
 	if !strings.Contains(targetStr, "linuxSpecificFunc is only compiled on Linux") {
 		t.Errorf("Doc comment not preserved in target file")
 	}
-	
+
 	// Note: Build tags at file level are NOT moved with the function
 	// They apply to the entire file, not individual functions
 }
@@ -228,12 +228,12 @@ func main() {
 	if err != nil {
 		t.Fatalf("Failed to read target file: %v", err)
 	}
-	
+
 	targetStr := string(targetContent)
 	if !strings.Contains(targetStr, "func unicodeFunc") {
 		t.Errorf("Function not found in target file")
 	}
-	
+
 	// Verify all Unicode characters were preserved
 	unicodeTests := []string{
 		"你好世界",
@@ -243,7 +243,7 @@ func main() {
 		"שלום עולם",
 		"✓ ✗ → ⇒ ∞",
 	}
-	
+
 	for _, unicode := range unicodeTests {
 		if !strings.Contains(targetStr, unicode) {
 			t.Errorf("Unicode string %q not preserved in target file", unicode)
@@ -331,12 +331,12 @@ func main() {
 	if err != nil {
 		t.Fatalf("Failed to read target file: %v", err)
 	}
-	
+
 	targetStr := string(targetContent)
 	if !strings.Contains(targetStr, "func complexFunc") {
 		t.Errorf("Function not found in target file")
 	}
-	
+
 	// Verify all parts of the doc comment are preserved
 	commentParts := []string{
 		"complexFunc demonstrates various comment styles",
@@ -347,7 +347,7 @@ func main() {
 		"Returns:",
 		"- The sum of x and y",
 	}
-	
+
 	for _, part := range commentParts {
 		if !strings.Contains(targetStr, part) {
 			t.Errorf("Comment part %q not preserved in target file", part)

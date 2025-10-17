@@ -7,10 +7,18 @@ import (
 	"github.com/neongreen/mono/printpdf/pkg/fetcher"
 )
 
+// PageOptions contains page layout options for PDF conversion
+type PageOptions struct {
+	Columns     int    // Number of columns (1 = no columns)
+	Orientation string // "portrait" or "landscape"
+	Margin      string // Page margin (e.g., "2cm", "1in")
+	Zoom        int    // Zoom percentage (e.g., 80 for 80%, 100 is default)
+}
+
 // Converter interface for PDF conversion
 type Converter interface {
 	Name() string
-	Convert(content []byte, contentType string, outputPath string) error
+	Convert(content []byte, contentType string, outputPath string, options PageOptions) error
 }
 
 // ParseConverterList parses a comma-separated list of converter names

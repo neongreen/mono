@@ -11,6 +11,7 @@ This repository contains multiple independent projects.
 - **[diagram-dsl](diagram-dsl/)** - TypeScript DSL for creating diagrams
 - **[want](want/)** - Work in progress
 - **[claude-trace](claude-trace/)** - Terminal UI for reviewing Claude Code conversation logs
+- **[ghrelease](lib/ghrelease/)** - Go library for downloading GitHub release assets
 
 ## Installing Tools
 
@@ -93,10 +94,33 @@ The tool automatically:
 
 Each project has its own development workflow and documentation. See the individual project directories for details.
 
+### Issue Tracking with bd
+
+This repository uses **bd (beads)** for issue tracking. bd is a lightweight, git-based issue tracker designed for AI coding agents.
+
+**Quick Reference:**
+
+```bash
+# Check for ready work
+bd ready
+
+# Create an issue
+bd create "Issue title" -t bug|feature|task -p 0-4
+
+# Update status
+bd update <id> --status in_progress
+
+# Close an issue
+bd close <id> --reason "Done"
+```
+
+Issues are stored in `.beads/issues.jsonl` and tracked in a local SQLite database. See [AGENTS.md](AGENTS.md#bd-beads-issue-tracker) for complete documentation.
+
 ### CI/CD
 
 - Each project has its own test workflow
 - All Go projects are automatically released via `.github/workflows/release.yml`
+- GitHub Copilot coding agent environment is configured via `.github/workflows/copilot-setup-steps.yml`
 - See [CI Guidelines](.github/CI_GUIDELINES.md) for workflow structure
 
 ## Contributing

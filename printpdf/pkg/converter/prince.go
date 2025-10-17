@@ -22,7 +22,7 @@ func (p *PrinceConverter) Name() string {
 	return "prince"
 }
 
-func (p *PrinceConverter) Convert(content []byte, contentType string, outputPath string) error {
+func (p *PrinceConverter) Convert(content []byte, contentType string, outputPath string, options PageOptions) error {
 	// Get or download Prince
 	princePath, err := p.getPrince()
 	if err != nil {
@@ -30,7 +30,7 @@ func (p *PrinceConverter) Convert(content []byte, contentType string, outputPath
 	}
 
 	// Prepare input file
-	inputFile, err := p.prepareInput(content, contentType)
+	inputFile, err := p.prepareInput(content, contentType, options)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (p *PrinceConverter) getPrince() (string, error) {
 	return "", fmt.Errorf("prince not found in PATH. Please install Prince XML from https://www.princexml.com/")
 }
 
-func (p *PrinceConverter) prepareInput(content []byte, contentType string) (string, error) {
+func (p *PrinceConverter) prepareInput(content []byte, contentType string, options PageOptions) (string, error) {
 	var ext string
 	var htmlContent []byte
 	var err error
@@ -66,7 +66,7 @@ func (p *PrinceConverter) prepareInput(content []byte, contentType string) (stri
 	case fetcher.ContentTypeMarkdown:
 		// Convert markdown to HTML for Prince
 		ext = ".html"
-		htmlContent, err = convertMarkdownToHTML(content)
+		htmlContent, err = convertMarkdownToHTML(content, options)
 		if err != nil {
 			return "", fmt.Errorf("failed to convert markdown to HTML: %w", err)
 		}

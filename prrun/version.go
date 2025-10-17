@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 // These variables are set at build time using -ldflags
@@ -34,7 +36,7 @@ func checkForNewerVersion() {
 
 	// Get commits from main branch
 	apiURL := "https://api.github.com/repos/neongreen/mono/commits?sha=main&per_page=1"
-	req, err := createAuthenticatedRequest("GET", apiURL)
+	req, err := ghrelease.CreateAuthenticatedRequest("GET", apiURL)
 	if err != nil {
 		// Silently fail - this is just informational
 		return
