@@ -2,6 +2,10 @@ package mcp
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -52,4 +56,120 @@ func (r RetryConfig) withDefaults() RetryConfig {
 		r.MaxBackoff = 5 * time.Second
 	}
 	return r
+}
+
+// ResolveConfig merges overrides with environment variables.
+func ResolveConfig(provider string, overrides Config) (Config, error) {
+	cfg := overrides
+
+	upperProvider := strings.ToUpper(provider)
+
+	if cfg.Endpoint == "" {
+		if upperProvider != "" {
+			cfg.Endpoint = os.Getenv(fmt.Sprintf("INGEST_%s_MCP_ENDPOINT", upperProvider))
+		}
+		if cfg.Endpoint == "" {
+			cfg.Endpoint = os.Getenv("INGEST_MCP_ENDPOINT")
+		}
+	}
+
+	if cfg.AuthToken == "" {
+		if upperProvider != "" {
+			cfg.AuthToken = os.Getenv(fmt.Sprintf("INGEST_%s_MCP_TOKEN", upperProvider))
+		}
+		if cfg.AuthToken == "" {
+			cfg.AuthToken = os.Getenv("INGEST_MCP_TOKEN")
+		}
+	}
+
+	cfg.Headers = mergeHeaders(cfg.Headers, loadHeadersFromEnv(upperProvider))
+
+	if cfg.Timeout == 0 {
+		if v := readDurationEnv("INGEST_MCP_TIMEOUT"); v != 0 {
+			cfg.Timeout = v
+		}
+	}
+
+	if cfg.Retry.MaxAttempts == 0 {
+		if v := readIntEnv("INGEST_MCP_RETRY_MAX_ATTEMPTS"); v > 0 {
+			cfg.Retry.MaxAttempts = v
+		}
+	}
+	if cfg.Retry.InitialBackoff == 0 {
+		if d := readDurationEnv("INGEST_MCP_RETRY_INITIAL_BACKOFF"); d > 0 {
+			cfg.Retry.InitialBackoff = d
+		}
+	}
+	if cfg.Retry.MaxBackoff == 0 {
+		if d := readDurationEnv("INGEST_MCP_RETRY_MAX_BACKOFF"); d > 0 {
+			cfg.Retry.MaxBackoff = d
+		}
+	}
+
+	cfg = cfg.withDefaults()
+	if err := cfg.validate(); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
+}
+
+func mergeHeaders(dst map[string]string, src map[string]string) map[string]string {
+	if dst == nil {
+		dst = make(map[string]string, len(src))
+	}
+	for k, v := range src {
+		if _, exists := dst[k]; !exists {
+			dst[k] = v
+		}
+	}
+	return dst
+}
+
+func loadHeadersFromEnv(provider string) map[string]string {
+	headers := map[string]string{}
+
+	parseHeader := func(value string) {
+		for _, segment := range strings.Split(value, ",") {
+			segment = strings.TrimSpace(segment)
+			if segment == "" {
+				continue
+			}
+			parts := strings.SplitN(segment, "=", 2)
+			if len(parts) != 2 {
+				continue
+			}
+			headers[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+		}
+	}
+
+	if provider != "" {
+		parseHeader(os.Getenv(fmt.Sprintf("INGEST_%s_MCP_HEADERS", provider)))
+	}
+	parseHeader(os.Getenv("INGEST_MCP_HEADERS"))
+
+	return headers
+}
+
+func readDurationEnv(name string) time.Duration {
+	value := os.Getenv(name)
+	if value == "" {
+		return 0
+	}
+	dur, err := time.ParseDuration(value)
+	if err != nil {
+		return 0
+	}
+	return dur
+}
+
+func readIntEnv(name string) int {
+	value := os.Getenv(name)
+	if value == "" {
+		return 0
+	}
+	n, err := strconv.Atoi(value)
+	if err != nil {
+		return 0
+	}
+	return n
 }

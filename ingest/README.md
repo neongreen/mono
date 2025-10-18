@@ -94,6 +94,31 @@ This displays:
 ingest query "SELECT * FROM runs"
 ```
 
+### Connect to an MCP server
+
+```bash
+# list available tools from a remote MCP server
+INGEST_LINEAR_MCP_ENDPOINT=https://linear.example/mcp/sse \
+INGEST_LINEAR_MCP_TOKEN=your-token \
+ingest mcp --provider linear list-tools
+```
+
+Flags can override the environment variables:
+
+```bash
+ingest mcp list-tools \
+  --endpoint https://linear.example/mcp/sse \
+  --token $LINEAR_TOKEN \
+  --header "X-Custom=value"
+```
+
+Environment variables checked (provider-specific values override the generic ones):
+
+- `INGEST_MCP_ENDPOINT`, `INGEST_<PROVIDER>_MCP_ENDPOINT`
+- `INGEST_MCP_TOKEN`, `INGEST_<PROVIDER>_MCP_TOKEN`
+- `INGEST_MCP_HEADERS`, `INGEST_<PROVIDER>_MCP_HEADERS`
+- `INGEST_MCP_TIMEOUT`, `INGEST_MCP_RETRY_MAX_ATTEMPTS`, `INGEST_MCP_RETRY_INITIAL_BACKOFF`, `INGEST_MCP_RETRY_MAX_BACKOFF`
+
 This allows you to run arbitrary SQL queries against the ingest database and outputs results as JSON. Examples:
 
 ```bash

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"ingest/pkg/command"
@@ -8,10 +9,12 @@ import (
 	"ingest/pkg/fs"
 	"ingest/pkg/git"
 	"ingest/pkg/github"
+	mcppkg "ingest/pkg/mcp"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -31,6 +34,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newGitHubCmd())
 	cmd.AddCommand(newListRunsCmd())
 	cmd.AddCommand(newQueryCmd())
+	cmd.AddCommand(newMCPCmd())
 
 	return cmd
 }
@@ -693,6 +697,129 @@ func newGitHubCmd() *cobra.Command {
 			fmt.Printf("Ingestion completed successfully!\n")
 		},
 	}
+}
+
+func newMCPCmd() *cobra.Command {
+	var provider string
+	var endpoint string
+	var token string
+	var headers []string
+	timeout := 30 * time.Second
+	maxAttempts := 3
+	initialBackoff := 500 * time.Millisecond
+	maxBackoff := 5 * time.Second
+
+	cmd := &cobra.Command{
+		Use:   "mcp",
+		Short: "Interact with Model Context Protocol servers",
+		Long: `Connect to an MCP server over SSE. Flags override environment variables.
+
+Environment variables:
+  INGEST_MCP_ENDPOINT, INGEST_<PROVIDER>_MCP_ENDPOINT
+  INGEST_MCP_TOKEN,    INGEST_<PROVIDER>_MCP_TOKEN
+  INGEST_MCP_HEADERS,  INGEST_<PROVIDER>_MCP_HEADERS (comma-separated key=value pairs)
+  INGEST_MCP_TIMEOUT, INGEST_MCP_RETRY_MAX_ATTEMPTS, INGEST_MCP_RETRY_INITIAL_BACKOFF, INGEST_MCP_RETRY_MAX_BACKOFF`,
+	}
+
+	cmd.PersistentFlags().StringVar(&provider, "provider", "", "provider preset name (e.g. linear, github)")
+	cmd.PersistentFlags().StringVar(&endpoint, "endpoint", "", "MCP SSE endpoint URL")
+	cmd.PersistentFlags().StringVar(&token, "token", "", "Bearer token for MCP server")
+	cmd.PersistentFlags().StringSliceVar(&headers, "header", nil, "Additional HTTP header key=value (repeatable)")
+	cmd.PersistentFlags().DurationVar(&timeout, "timeout", timeout, "HTTP timeout (supports Go duration syntax)")
+	cmd.PersistentFlags().IntVar(&maxAttempts, "retry-max-attempts", maxAttempts, "Maximum connection attempts before failing")
+	cmd.PersistentFlags().DurationVar(&initialBackoff, "retry-initial-backoff", initialBackoff, "Initial retry backoff duration")
+	cmd.PersistentFlags().DurationVar(&maxBackoff, "retry-max-backoff", maxBackoff, "Maximum retry backoff duration")
+
+	cmd.AddCommand(newMCPListToolsCmd(func() (mcppkg.Config, error) {
+		headerMap, err := parseHeaderPairs(headers)
+		if err != nil {
+			return mcppkg.Config{}, err
+		}
+
+		cfgOverrides := mcppkg.Config{
+			Endpoint:  endpoint,
+			AuthToken: token,
+			Headers:   headerMap,
+			Timeout:   timeout,
+			Retry: mcppkg.RetryConfig{
+				MaxAttempts:    maxAttempts,
+				InitialBackoff: initialBackoff,
+				MaxBackoff:     maxBackoff,
+			},
+		}
+
+		return mcppkg.ResolveConfig(provider, cfgOverrides)
+	}))
+
+	return cmd
+}
+
+func newMCPListToolsCmd(resolveConfig func() (mcppkg.Config, error)) *cobra.Command {
+	return &cobra.Command{
+		Use:   "list-tools",
+		Short: "List tools exposed by the MCP server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := resolveConfig()
+			if err != nil {
+				return err
+			}
+
+			client, err := mcppkg.NewClient(cfg)
+			if err != nil {
+				return err
+			}
+
+			ctx, cancel := context.WithTimeout(cmd.Context(), cfg.Timeout)
+			defer cancel()
+
+			session, err := client.Connect(ctx)
+			if err != nil {
+				return err
+			}
+			defer session.Close()
+
+			tools, err := session.ListTools(ctx)
+			if err != nil {
+				return err
+			}
+
+			if len(tools) == 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), "No tools reported by the MCP server.")
+				return nil
+			}
+
+			fmt.Fprintln(cmd.OutOrStdout(), "Available tools:")
+			for _, tool := range tools {
+				desc := strings.TrimSpace(tool.Description)
+				if desc == "" {
+					fmt.Fprintf(cmd.OutOrStdout(), "- %s\n", tool.Name)
+				} else {
+					fmt.Fprintf(cmd.OutOrStdout(), "- %s: %s\n", tool.Name, desc)
+				}
+			}
+			return nil
+		},
+	}
+}
+
+func parseHeaderPairs(pairs []string) (map[string]string, error) {
+	if len(pairs) == 0 {
+		return nil, nil
+	}
+	headers := make(map[string]string)
+	for _, pair := range pairs {
+		parts := strings.SplitN(pair, "=", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid header %q (expected key=value)", pair)
+		}
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		if key == "" {
+			return nil, fmt.Errorf("invalid header %q (empty key)", pair)
+		}
+		headers[key] = value
+	}
+	return headers, nil
 }
 
 func main() {

@@ -144,6 +144,15 @@ func (s *Session) CallTool(ctx context.Context, name string, args map[string]any
 	return s.session.CallTool(ctx, params)
 }
 
+// ListTools returns metadata about tools exposed by the server.
+func (s *Session) ListTools(ctx context.Context) ([]*sdkmcp.Tool, error) {
+	resp, err := s.session.ListTools(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Tools, nil
+}
+
 // Internal client session access for advanced use cases.
 func (s *Session) raw() *sdkmcp.ClientSession {
 	return s.session
