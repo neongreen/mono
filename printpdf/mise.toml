@@ -14,6 +14,14 @@ run = "go test -run=^$ ./..."
 description = "Run tests"
 run = "go test ./..."
 
+[tasks.test-golden]
+description = "Run golden tests (requires pdftoppm and imagemagick)"
+run = "go test ./pkg/golden -v -timeout=10m"
+
+[tasks.update-goldens]
+description = "Update golden reference images (review before committing!)"
+run = "UPDATE_GOLDENS=1 go test ./pkg/golden -v -timeout=10m"
+
 [tasks.build]
 description = "Build the project into _build/printpdf"
 run = "go build -trimpath -o _build/printpdf ./cmd"
