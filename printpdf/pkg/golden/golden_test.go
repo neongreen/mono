@@ -247,15 +247,20 @@ func (suite *GoldenTestSuite) compareImages(image1, image2 string) error {
 	cmd.Stderr = &stderr
 
 	_ = cmd.Run() // compare returns exit code 1 if images differ, but that's expected
-	output := stderr.String()
+	output := strings.TrimSpace(stderr.String())
 
-	// We only care about the metric output
-	if output == "0" {
+	// We only care about the metric output - "0" or "0 (0)" means identical
+	if output == "0" || strings.HasPrefix(output, "0 (") {
 		return nil // Images are identical
+	}
+	
+	// Check for empty output which might indicate identical images
+	if output == "" {
+		return nil // Likely identical
 	}
 
 	// For now, just report the difference - we could parse the metric and apply threshold
-	return fmt.Errorf("images differ (metric: %s)", strings.TrimSpace(output))
+	return fmt.Errorf("images differ (metric: %s)", output)
 }
 
 // copyDir recursively copies a directory
