@@ -10,6 +10,10 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 // Option modifies client construction.
 type Option func(*clientOptions)
 
