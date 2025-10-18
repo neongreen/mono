@@ -12,11 +12,16 @@ A CLI tool to ingest various data sources into an SQLite database.
 
 All data is stored in an SQLite database located at `~/.ingest/ingest.db`. Each run is treated as separate, allowing you to track multiple ingestion runs.
 
-## Installation
+## Running the CLI
+
+All commands are exposed via [`mise`](https://mise.jdx.dev). From the repository root:
 
 ```bash
-cd ingest
-go build -o ingest ./cmd
+# Run the CLI with any arguments after --
+mise run //ingest:run -- --help
+
+# Execute the test suite
+mise run //ingest:test
 ```
 
 ## Usage
@@ -72,6 +77,63 @@ This will:
 Authentication is handled automatically via:
 - `GITHUB_TOKEN` environment variable (recommended for CI/CD)
 - `gh` CLI authentication (run `gh auth login` first)
+
+### Run multiple jobs from a TOML configuration
+
+Use the config runner to orchestrate several ingestion jobs in a single command. Jobs run in parallel (up to the configured limit) and the runner continues even when a job fails.
+
+Example `ingest.config.toml`:
+
+```toml
+parallelism = 3
+
+[[job]]
+name = "mono git"
+type = "git"
+path = "~/code/mono"
+
+[[job]]
+name = "documents"
+type = "fs"
+path = "~/Documents"
+respect_gitignore = true
+
+[[job]]
+type = "github_mcp"
+owner = "neongreen"
+repo = "mono"
+
+  [job.mcp]
+  provider = "github"
+  token = "$INGEST_GITHUB_MCP_TOKEN"
+```
+
+Supported job types:
+
+- `git`: ingest a local repository (`path` required)
+- `fs`: crawl a filesystem (`path`, optional `respect_gitignore`)
+- `command`: capture shell output (`command`)
+- `github`: call the REST API (`owner`, `repo`)
+- `github_mcp`: use the GitHub MCP integration (`owner`, `repo`, optional `[job.mcp]` overrides)
+- `linear_mcp`: use the Linear MCP integration (optional `[job.mcp]` overrides)
+
+Run the configuration (defaults to `ingest.config.toml` in the working directory):
+
+```bash
+ingest run-config --config ingest.config.toml
+```
+
+Override concurrency with `--parallelism`. The command prints a per-job summary plus aggregated success/failure counts.
+
+### Validate a TOML configuration
+
+Validate a configuration file before running it:
+
+```bash
+ingest config validate --config ingest.config.toml
+```
+
+The validator reports parse errors, unknown fields, or missing required options and echoes each recognised job when the file is valid.
 
 ### List all ingestion runs
 
