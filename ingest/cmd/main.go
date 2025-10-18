@@ -35,6 +35,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newLinearCmd())
 	cmd.AddCommand(newMCPCmd())
 	cmd.AddCommand(newRunConfigCmd())
+	cmd.AddCommand(newConfigCmd())
 
 	return cmd
 }
@@ -403,6 +404,54 @@ func newRunConfigCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&configPath, "config", "ingest.config.toml", "Path to run configuration file")
 	cmd.Flags().IntVar(&parallelism, "parallelism", 0, "Maximum number of jobs to run concurrently (0 = auto)")
+
+	return cmd
+}
+
+func newConfigCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "config",
+		Short: "Inspect ingest configuration files",
+	}
+
+	cmd.AddCommand(newConfigValidateCmd())
+	return cmd
+}
+
+func newConfigValidateCmd() *cobra.Command {
+	var configPath string
+
+	cmd := &cobra.Command{
+		Use:   "validate",
+		Short: "Validate an ingest TOML configuration file",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := runconfig.LoadFile(configPath)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintf(
+				cmd.OutOrStdout(),
+				"Configuration %s is valid (%d job(s)).\n",
+				configPath,
+				len(cfg.Jobs),
+			)
+
+			for idx, job := range cfg.Jobs {
+				fmt.Fprintf(
+					cmd.OutOrStdout(),
+					"- job %d: %s (%s)\n",
+					idx+1,
+					job.DisplayName(),
+					job.Type,
+				)
+			}
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&configPath, "config", "ingest.config.toml", "Path to run configuration file")
 
 	return cmd
 }

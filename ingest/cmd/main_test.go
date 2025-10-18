@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"ingest/pkg/testutil"
@@ -21,6 +24,19 @@ func runCLI(t *testing.T, args ...string) (string, string) {
 	}
 
 	return stdout.String(), stderr.String()
+}
+
+func runCLIExpectError(t *testing.T, args ...string) (string, string, error) {
+	t.Helper()
+
+	cmd := newRootCmd()
+	var stdout, stderr bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.SetArgs(args)
+
+	err := cmd.Execute()
+	return stdout.String(), stderr.String(), err
 }
 
 func TestCLI_GitIngestion(t *testing.T) {
@@ -165,5 +181,52 @@ func TestCLI_CommandIngestionCountsOutputLines(t *testing.T) {
 	}
 	if stdout != "line1\nline2\n" {
 		t.Fatalf("unexpected stdout stored: %q", stdout)
+	}
+}
+
+func TestCLI_ConfigValidateSuccess(t *testing.T) {
+	testutil.WithTempHome(t)
+
+	tmp := t.TempDir()
+	configPath := filepath.Join(tmp, "ingest.config.toml")
+	config := `
+[[job]]
+type = "command"
+command = "printf 'hi'"
+`
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	stdout, _ := runCLI(t, "config", "validate", "--config", configPath)
+
+	if !strings.Contains(stdout, "is valid") {
+		t.Fatalf("expected success message, got %q", stdout)
+	}
+	if !strings.Contains(stdout, "job 1") {
+		t.Fatalf("expected job listing in output, got %q", stdout)
+	}
+}
+
+func TestCLI_ConfigValidateFailure(t *testing.T) {
+	testutil.WithTempHome(t)
+
+	tmp := t.TempDir()
+	configPath := filepath.Join(tmp, "bad-config.toml")
+	config := `
+[[job]]
+type = "github"
+owner = "octo"
+`
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	_, _, err := runCLIExpectError(t, "config", "validate", "--config", configPath)
+	if err == nil {
+		t.Fatal("expected validation error, got nil")
+	}
+	if !strings.Contains(err.Error(), "owner") {
+		t.Fatalf("expected error about missing repo, got %v", err)
 	}
 }
