@@ -215,3 +215,103 @@ h1, h2, h3 {
 
 	return []byte(html), nil
 }
+
+// wrapHTMLWithPageOptions wraps raw HTML content with proper page styling and options
+func wrapHTMLWithPageOptions(htmlContent []byte, options PageOptions) ([]byte, error) {
+	// Build page CSS with orientation, margin, and zoom
+	margin := options.cssMarginValue()
+	var pageCSS strings.Builder
+	if options.Orientation == "landscape" {
+		fmt.Fprintf(&pageCSS, "@page { size: A4 landscape; margin: %s; }\n", margin)
+	} else {
+		fmt.Fprintf(&pageCSS, "@page { size: A4 portrait; margin: %s; }\n", margin)
+	}
+
+	if guide := strings.TrimSpace(options.FirstPageGuide); guide != "" {
+		fmt.Fprintf(&pageCSS, "@page:first {\n")
+		fmt.Fprintf(&pageCSS, "    background-image: linear-gradient(90deg, #d0d7de, #d0d7de);\n")
+		fmt.Fprintf(&pageCSS, "    background-size: 0.4pt 100%%;\n")
+		fmt.Fprintf(&pageCSS, "    background-repeat: no-repeat;\n")
+		fmt.Fprintf(&pageCSS, "    background-position: %s 0;\n", guide)
+		fmt.Fprintf(&pageCSS, "}\n")
+	}
+
+	// Calculate zoom factor for font sizes
+	zoom := options.Zoom
+	if zoom == 0 {
+		zoom = 100
+	}
+	zoomFactor := float64(zoom) / 100.0
+
+	// Check if the HTML already has <html>, <head>, or <body> tags
+	htmlStr := string(htmlContent)
+	hasHTML := strings.Contains(strings.ToLower(htmlStr), "<html")
+	hasHead := strings.Contains(strings.ToLower(htmlStr), "<head")
+	hasBody := strings.Contains(strings.ToLower(htmlStr), "<body")
+
+	var result []byte
+
+	if hasHTML && hasHead {
+		// HTML is already a complete document, inject our styles into <head>
+		// Insert our page CSS before the closing </head> tag
+		styleBlock := fmt.Sprintf(`<style>
+%s
+html {
+    font-size: %.0f%%;
+}
+</style>`, pageCSS.String(), zoomFactor*100)
+
+		if hasHead {
+			// Insert before </head>
+			result = bytes.Replace(htmlContent, []byte("</head>"), []byte(styleBlock+"\n</head>"), 1)
+		} else {
+			// Insert after <html> tag
+			htmlTag := "<html"
+			insertPos := strings.Index(strings.ToLower(htmlStr), htmlTag)
+			if insertPos != -1 {
+				// Find the end of the <html> tag
+				endPos := strings.Index(htmlStr[insertPos:], ">") + insertPos + 1
+				result = []byte(htmlStr[:endPos] + "\n<head>\n" + styleBlock + "\n</head>\n" + htmlStr[endPos:])
+			} else {
+				result = htmlContent
+			}
+		}
+	} else {
+		// HTML is a fragment, wrap it in a complete document
+		wrappedHTML := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+%s
+html {
+    font-size: %.0f%%;
+}
+</style>
+</head>
+<body>
+%s
+</body>
+</html>`, pageCSS.String(), zoomFactor*100, htmlStr)
+		result = []byte(wrappedHTML)
+	}
+
+	// Handle columns if requested
+	if options.Columns > 1 {
+		columnCSS := fmt.Sprintf(`<style>
+body {
+    column-count: %d;
+    column-gap: 2em;
+    column-rule: 1px solid #dfe2e5;
+}
+h1, h2, h3 {
+    column-span: all;
+}
+</style>`, options.Columns)
+		
+		// Insert the column CSS before </head>
+		result = bytes.Replace(result, []byte("</head>"), []byte(columnCSS+"\n</head>"), 1)
+	}
+
+	return result, nil
+}

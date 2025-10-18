@@ -1,0 +1,18 @@
+[tools]
+go = "1.24.7"
+
+[tasks.run]
+description = "Build and run conf"
+run = "go run ./cmd/main.go"
+
+[tasks.test]
+description = "Run all tests"
+run = "go test -v ./..."
+
+[tasks.build]
+description = "Build conf binary"
+run = "go build -o conf ./cmd/main.go"
+
+[tasks.fmt]
+description = "Format Go code"
+run = "go fmt ./..."

@@ -2,6 +2,7 @@ go 1.24.7
 
 use (
 	./claude-trace
+	./conf
 	./dissect
 	./ingest
 	./lib/ghclient

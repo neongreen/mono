@@ -12,6 +12,7 @@ This repository contains multiple independent projects.
 - **[diagram-dsl](diagram-dsl/)** - TypeScript DSL for creating diagrams
 - **[want](want/)** - Work in progress
 - **[claude-trace](claude-trace/)** - Terminal UI for reviewing Claude Code conversation logs
+- **[conf](conf/)** - Smart configuration manager with autocompletion for command-line tools (work in progress)
 - **[ghrelease](lib/ghrelease/)** - Go library for downloading GitHub release assets
 
 ## Installing Tools
