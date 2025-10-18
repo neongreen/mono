@@ -86,6 +86,14 @@ func ResolveConfig(provider string, overrides Config) (Config, error) {
 		if cfg.AuthToken == "" {
 			cfg.AuthToken = os.Getenv("INGEST_MCP_TOKEN")
 		}
+		if cfg.AuthToken == "" && lowerProvider == "github" {
+			if token := os.Getenv("MISE_GITHUB_TOKEN"); token != "" {
+				cfg.AuthToken = token
+			}
+			if cfg.AuthToken == "" {
+				cfg.AuthToken = os.Getenv("GITHUB_TOKEN")
+			}
+		}
 	}
 
 	cfg.Headers = mergeHeaders(cfg.Headers, loadHeadersFromEnv(upperProvider))

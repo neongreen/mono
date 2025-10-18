@@ -251,6 +251,8 @@ repo = "mono"
 
 	t.Setenv("INGEST_GITHUB_MCP_TOKEN", "")
 	t.Setenv("INGEST_MCP_TOKEN", "")
+	t.Setenv("MISE_GITHUB_TOKEN", "")
+	t.Setenv("GITHUB_TOKEN", "")
 
 	stdout, _ := runCLI(t, "config", "validate", "--config", configPath)
 
@@ -259,5 +261,8 @@ repo = "mono"
 	}
 	if !strings.Contains(stdout, "no MCP token resolved") {
 		t.Fatalf("expected token warning, got %q", stdout)
+	}
+	if !strings.Contains(stdout, "MISE_GITHUB_TOKEN") {
+		t.Fatalf("expected hint mentioning MISE_GITHUB_TOKEN, got %q", stdout)
 	}
 }

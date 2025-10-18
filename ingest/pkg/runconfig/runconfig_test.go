@@ -109,6 +109,8 @@ func TestExecuteFailsWhenMCPTokensMissing(t *testing.T) {
 	t.Setenv("INGEST_GITHUB_MCP_ENDPOINT", "https://example.com/mcp")
 	t.Setenv("INGEST_GITHUB_MCP_TOKEN", "")
 	t.Setenv("INGEST_MCP_TOKEN", "")
+	t.Setenv("MISE_GITHUB_TOKEN", "")
+	t.Setenv("GITHUB_TOKEN", "")
 
 	cfg := Config{
 		Jobs: []JobConfig{

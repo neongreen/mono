@@ -83,6 +83,31 @@ func TestResolveConfigUsesProviderDefaults(t *testing.T) {
 	}
 }
 
+func TestResolveConfigUsesGitHubTokenFallbacks(t *testing.T) {
+	t.Setenv("INGEST_GITHUB_MCP_ENDPOINT", "https://api.githubcopilot.com/mcp/")
+	t.Setenv("INGEST_GITHUB_MCP_TOKEN", "")
+	t.Setenv("INGEST_MCP_TOKEN", "")
+	t.Setenv("MISE_GITHUB_TOKEN", "mise-token")
+	t.Setenv("GITHUB_TOKEN", "gh-token")
+
+	cfg, err := ResolveConfig("github", Config{})
+	if err != nil {
+		t.Fatalf("ResolveConfig: %v", err)
+	}
+	if cfg.AuthToken != "mise-token" {
+		t.Fatalf("expected token from MISE_GITHUB_TOKEN, got %q", cfg.AuthToken)
+	}
+
+	t.Setenv("MISE_GITHUB_TOKEN", "")
+	cfg, err = ResolveConfig("github", Config{})
+	if err != nil {
+		t.Fatalf("ResolveConfig: %v", err)
+	}
+	if cfg.AuthToken != "gh-token" {
+		t.Fatalf("expected token from GITHUB_TOKEN, got %q", cfg.AuthToken)
+	}
+}
+
 func TestResolveConfigUnknownProviderRequiresEndpoint(t *testing.T) {
 	t.Setenv("INGEST_UNKNOWN_MCP_ENDPOINT", "")
 	if _, err := ResolveConfig("unknown", Config{}); err == nil {

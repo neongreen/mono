@@ -295,6 +295,9 @@ func tokenEnvHint(provider string) string {
 		hints = append(hints, fmt.Sprintf("INGEST_%s_MCP_TOKEN", providerEnv))
 	}
 	hints = append(hints, "INGEST_MCP_TOKEN")
+	if providerEnv == "GITHUB" {
+		hints = append(hints, "MISE_GITHUB_TOKEN", "GITHUB_TOKEN")
+	}
 	return strings.Join(hints, " or ")
 }
 
