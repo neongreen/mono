@@ -135,6 +135,7 @@ Before running MCP-backed jobs make sure credentials are available. The runner c
   3. `INGEST_MCP_TOKEN`
   4. `MISE_GITHUB_TOKEN`
   5. `GITHUB_TOKEN`
+  6. `gh auth token` (via the GitHub CLI)
 - **Linear MCP:**
   1. `job.mcp.token`
   2. `INGEST_LINEAR_MCP_TOKEN`
