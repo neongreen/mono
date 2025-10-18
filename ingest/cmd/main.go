@@ -430,6 +430,8 @@ func newConfigValidateCmd() *cobra.Command {
 				return err
 			}
 
+			warnings := runconfig.ConfigWarnings(cfg)
+
 			fmt.Fprintf(
 				cmd.OutOrStdout(),
 				"Configuration %s is valid (%d job(s)).\n",
@@ -445,6 +447,13 @@ func newConfigValidateCmd() *cobra.Command {
 					job.DisplayName(),
 					job.Type,
 				)
+			}
+
+			if len(warnings) > 0 {
+				fmt.Fprintln(cmd.OutOrStdout(), "\nWarnings:")
+				for _, warning := range warnings {
+					fmt.Fprintf(cmd.OutOrStdout(), "- %s\n", warning)
+				}
 			}
 
 			return nil

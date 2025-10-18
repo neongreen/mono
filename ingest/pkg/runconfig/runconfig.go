@@ -278,14 +278,7 @@ func ensureMCPAuth(job JobConfig, cfg mcppkg.Config, idx int) error {
 	if cfg.AuthToken != "" {
 		return nil
 	}
-	providerEnv := strings.ToUpper(providerForHints(job))
-	var hints []string
-	if providerEnv != "" {
-		hints = append(hints, fmt.Sprintf("INGEST_%s_MCP_TOKEN", providerEnv))
-	}
-	hints = append(hints, "INGEST_MCP_TOKEN")
-	hint := strings.Join(hints, " or ")
-	return fmt.Errorf("job %d (%s): no MCP token resolved; set job.mcp.token or %s", idx+1, jobDisplayName(job), hint)
+	return fmt.Errorf("job %d (%s): no MCP token resolved; set job.mcp.token or %s", idx+1, jobDisplayName(job), tokenEnvHint(providerForHints(job)))
 }
 
 func providerForHints(job JobConfig) string {
@@ -293,6 +286,45 @@ func providerForHints(job JobConfig) string {
 		return strings.TrimSpace(job.MCP.Provider)
 	}
 	return jobTypeDefaultProvider(job.Type)
+}
+
+func tokenEnvHint(provider string) string {
+	providerEnv := strings.ToUpper(strings.TrimSpace(provider))
+	var hints []string
+	if providerEnv != "" {
+		hints = append(hints, fmt.Sprintf("INGEST_%s_MCP_TOKEN", providerEnv))
+	}
+	hints = append(hints, "INGEST_MCP_TOKEN")
+	return strings.Join(hints, " or ")
+}
+
+func endpointEnvHint(provider string) string {
+	providerEnv := strings.ToUpper(strings.TrimSpace(provider))
+	var hints []string
+	if providerEnv != "" {
+		hints = append(hints, fmt.Sprintf("INGEST_%s_MCP_ENDPOINT", providerEnv))
+	}
+	hints = append(hints, "INGEST_MCP_ENDPOINT")
+	return strings.Join(hints, " or ")
+}
+
+// ConfigWarnings returns advisory messages for potential MCP misconfiguration.
+func ConfigWarnings(cfg Config) []string {
+	var warnings []string
+	for idx, job := range cfg.Jobs {
+		switch job.Type {
+		case "github_mcp", "linear_mcp":
+			resolved, err := resolveMCPConfig(job, jobTypeDefaultProvider(job.Type))
+			if err != nil {
+				warnings = append(warnings, fmt.Sprintf("job %d (%s): %v (set job.mcp.endpoint or %s)", idx+1, jobDisplayName(job), err, endpointEnvHint(providerForHints(job))))
+				continue
+			}
+			if resolved.AuthToken == "" {
+				warnings = append(warnings, fmt.Sprintf("job %d (%s): no MCP token resolved; set job.mcp.token or %s", idx+1, jobDisplayName(job), tokenEnvHint(providerForHints(job))))
+			}
+		}
+	}
+	return warnings
 }
 
 func jobTypeDefaultProvider(jobType string) string {

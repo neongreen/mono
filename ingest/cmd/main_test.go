@@ -230,3 +230,34 @@ owner = "octo"
 		t.Fatalf("expected error about missing repo, got %v", err)
 	}
 }
+
+func TestCLI_ConfigValidateWarnsForMissingMCPToken(t *testing.T) {
+	testutil.WithTempHome(t)
+
+	tmp := t.TempDir()
+	configPath := filepath.Join(tmp, "warn-config.toml")
+	config := `
+[[job]]
+type = "github_mcp"
+owner = "octo"
+repo = "mono"
+
+  [job.mcp]
+  endpoint = "https://example.com/mcp"
+`
+	if err := os.WriteFile(configPath, []byte(config), 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	t.Setenv("INGEST_GITHUB_MCP_TOKEN", "")
+	t.Setenv("INGEST_MCP_TOKEN", "")
+
+	stdout, _ := runCLI(t, "config", "validate", "--config", configPath)
+
+	if !strings.Contains(stdout, "Warnings:") {
+		t.Fatalf("expected warnings section, got %q", stdout)
+	}
+	if !strings.Contains(stdout, "no MCP token resolved") {
+		t.Fatalf("expected token warning, got %q", stdout)
+	}
+}
