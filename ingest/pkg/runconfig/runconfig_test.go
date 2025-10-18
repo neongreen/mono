@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"ingest/pkg/testutil"
 )
 
 func TestParseConfig(t *testing.T) {
@@ -96,5 +98,37 @@ func TestExecuteContinuesOnError(t *testing.T) {
 	// Ensure database writes ended up under the temp HOME directory.
 	if _, statErr := os.Stat(filepath.Join(tempDir, ".ingest")); statErr != nil {
 		t.Fatalf("expected .ingest directory in temp home: %v", statErr)
+	}
+}
+
+func TestExecuteFailsWhenMCPTokensMissing(t *testing.T) {
+	ctx := context.Background()
+	testutil.WithTempHome(t)
+
+	// Ensure endpoint resolves while token does not.
+	t.Setenv("INGEST_GITHUB_MCP_ENDPOINT", "https://example.com/mcp")
+	t.Setenv("INGEST_GITHUB_MCP_TOKEN", "")
+	t.Setenv("INGEST_MCP_TOKEN", "")
+
+	cfg := Config{
+		Jobs: []JobConfig{
+			{
+				Name:  "gh-mcp",
+				Type:  "github_mcp",
+				Owner: "octo",
+				Repo:  "mono",
+			},
+		},
+	}
+
+	results, err := Execute(ctx, io.Discard, cfg)
+	if err == nil {
+		t.Fatal("expected preflight error when MCP token missing")
+	}
+	if results != nil {
+		t.Fatalf("expected nil results on preflight failure, got %#v", results)
+	}
+	if !strings.Contains(err.Error(), "no MCP token") {
+		t.Fatalf("unexpected error message: %v", err)
 	}
 }

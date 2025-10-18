@@ -144,6 +144,10 @@ func Execute(ctx context.Context, out io.Writer, cfg Config) ([]ExecutionResult,
 		return nil, errors.New("run-config: no jobs to execute")
 	}
 
+	if err := preflightJobs(cfg); err != nil {
+		return nil, err
+	}
+
 	parallelism := cfg.Parallelism
 	if parallelism <= 0 || parallelism > count {
 		parallelism = count
@@ -252,6 +256,54 @@ func resolveMCPConfig(job JobConfig, defaultProvider string) (mcppkg.Config, err
 	}
 
 	return mcppkg.ResolveConfig(provider, overrides)
+}
+
+func preflightJobs(cfg Config) error {
+	for idx, job := range cfg.Jobs {
+		switch job.Type {
+		case "github_mcp", "linear_mcp":
+			resolved, err := resolveMCPConfig(job, jobTypeDefaultProvider(job.Type))
+			if err != nil {
+				return fmt.Errorf("job %d (%s): %w", idx+1, jobDisplayName(job), err)
+			}
+			if err := ensureMCPAuth(job, resolved, idx); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func ensureMCPAuth(job JobConfig, cfg mcppkg.Config, idx int) error {
+	if cfg.AuthToken != "" {
+		return nil
+	}
+	providerEnv := strings.ToUpper(providerForHints(job))
+	var hints []string
+	if providerEnv != "" {
+		hints = append(hints, fmt.Sprintf("INGEST_%s_MCP_TOKEN", providerEnv))
+	}
+	hints = append(hints, "INGEST_MCP_TOKEN")
+	hint := strings.Join(hints, " or ")
+	return fmt.Errorf("job %d (%s): no MCP token resolved; set job.mcp.token or %s", idx+1, jobDisplayName(job), hint)
+}
+
+func providerForHints(job JobConfig) string {
+	if job.MCP != nil && strings.TrimSpace(job.MCP.Provider) != "" {
+		return strings.TrimSpace(job.MCP.Provider)
+	}
+	return jobTypeDefaultProvider(job.Type)
+}
+
+func jobTypeDefaultProvider(jobType string) string {
+	switch jobType {
+	case "github_mcp":
+		return "github"
+	case "linear_mcp":
+		return "linear"
+	default:
+		return ""
+	}
 }
 
 // DisplayName returns a human-friendly identifier for the job.
