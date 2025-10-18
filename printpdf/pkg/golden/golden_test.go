@@ -118,19 +118,19 @@ func (suite *GoldenTestSuite) runTestCase(t *testing.T, testCase GoldenTestCase)
 				t.Fatalf("Failed to convert with %s: %v", converterName, err)
 			}
 
-			// Convert PDF to images
-			imagesDir := filepath.Join(suite.config.OutputDir, fmt.Sprintf("%s-%s-images", testCase.Name, converterName))
-			if err := suite.pdfToImages(pdfPath, imagesDir); err != nil {
+			// Convert PDF to images - put them in the same output directory as PDFs
+			if err := suite.pdfToImages(pdfPath, suite.config.OutputDir, fmt.Sprintf("%s-%s", testCase.Name, converterName)); err != nil {
 				t.Fatalf("Failed to convert PDF to images: %v", err)
 			}
 
 			// Compare with golden images or update goldens
 			goldenImagesDir := filepath.Join(suite.config.GoldenDir, fmt.Sprintf("%s-%s-images", testCase.Name, converterName))
+			imagePrefix := fmt.Sprintf("%s-%s", testCase.Name, converterName)
 
 			if suite.config.UpdateGoldens {
-				suite.updateGoldenImages(t, imagesDir, goldenImagesDir)
+				suite.updateGoldenImages(t, suite.config.OutputDir, goldenImagesDir, imagePrefix)
 			} else {
-				suite.compareWithGoldens(t, imagesDir, goldenImagesDir)
+				suite.compareWithGoldens(t, suite.config.OutputDir, goldenImagesDir, imagePrefix)
 			}
 		})
 	}
@@ -170,15 +170,11 @@ func (suite *GoldenTestSuite) getConverter(name string) converter.Converter {
 	}
 }
 
-// pdfToImages converts a PDF file to a series of PNG images
-func (suite *GoldenTestSuite) pdfToImages(pdfPath, outputDir string) error {
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create images directory: %w", err)
-	}
-
+// pdfToImages converts a PDF file to a series of PNG images in the same directory as the PDF
+func (suite *GoldenTestSuite) pdfToImages(pdfPath, outputDir, prefix string) error {
 	// Use pdftoppm to convert PDF to images
 	// pdftoppm -png -r 150 input.pdf output_prefix
-	outputPrefix := filepath.Join(outputDir, "page")
+	outputPrefix := filepath.Join(outputDir, prefix+"-page")
 	cmd := exec.Command(suite.config.PDFToImageTool, "-png", "-r", "150", pdfPath, outputPrefix)
 
 	var stderr bytes.Buffer
@@ -192,33 +188,55 @@ func (suite *GoldenTestSuite) pdfToImages(pdfPath, outputDir string) error {
 }
 
 // updateGoldenImages replaces golden reference images with current output
-func (suite *GoldenTestSuite) updateGoldenImages(t *testing.T, currentDir, goldenDir string) {
+func (suite *GoldenTestSuite) updateGoldenImages(t *testing.T, outputDir, goldenDir, imagePrefix string) {
 	// Remove existing golden images
 	os.RemoveAll(goldenDir)
 
-	// Copy current images to golden directory
-	if err := suite.copyDir(currentDir, goldenDir); err != nil {
-		t.Fatalf("Failed to update golden images: %v", err)
+	// Find current images with the given prefix
+	pattern := filepath.Join(outputDir, imagePrefix+"-page-*.png")
+	currentImages, err := filepath.Glob(pattern)
+	if err != nil {
+		t.Fatalf("Failed to find current images: %v", err)
 	}
 
-	t.Logf("Updated golden images in %s", goldenDir)
+	if len(currentImages) == 0 {
+		t.Fatalf("No current images found with pattern: %s", pattern)
+	}
+
+	// Create golden directory
+	if err := os.MkdirAll(goldenDir, 0755); err != nil {
+		t.Fatalf("Failed to create golden directory: %v", err)
+	}
+
+	// Copy current images to golden directory
+	for _, currentImage := range currentImages {
+		imageName := filepath.Base(currentImage)
+		goldenImage := filepath.Join(goldenDir, imageName)
+
+		if err := suite.copyFile(currentImage, goldenImage); err != nil {
+			t.Fatalf("Failed to copy golden image: %v", err)
+		}
+	}
+
+	t.Logf("Updated golden images in %s (%d images)", goldenDir, len(currentImages))
 }
 
 // compareWithGoldens compares current images with golden reference images
-func (suite *GoldenTestSuite) compareWithGoldens(t *testing.T, currentDir, goldenDir string) {
+func (suite *GoldenTestSuite) compareWithGoldens(t *testing.T, outputDir, goldenDir, imagePrefix string) {
 	// Check if golden directory exists
 	if _, err := os.Stat(goldenDir); os.IsNotExist(err) {
 		t.Fatalf("Golden directory does not exist: %s\nRun tests with UPDATE_GOLDENS=1 to create initial goldens", goldenDir)
 	}
 
-	// Get list of current images
-	currentImages, err := filepath.Glob(filepath.Join(currentDir, "*.png"))
+	// Get list of current images with the given prefix
+	pattern := filepath.Join(outputDir, imagePrefix+"-page-*.png")
+	currentImages, err := filepath.Glob(pattern)
 	if err != nil {
 		t.Fatalf("Failed to list current images: %v", err)
 	}
 
 	if len(currentImages) == 0 {
-		t.Fatalf("No images generated in %s", currentDir)
+		t.Fatalf("No images generated with pattern: %s", pattern)
 	}
 
 	// Compare each image
@@ -261,6 +279,24 @@ func (suite *GoldenTestSuite) compareImages(image1, image2 string) error {
 
 	// For now, just report the difference - we could parse the metric and apply threshold
 	return fmt.Errorf("images differ (metric: %s)", output)
+}
+
+// copyFile copies a single file
+func (suite *GoldenTestSuite) copyFile(src, dst string) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	_, err = srcFile.WriteTo(dstFile)
+	return err
 }
 
 // copyDir recursively copies a directory
