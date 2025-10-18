@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/neongreen/mono/lib/ghclient"
 )
 
 // Config controls how the MCP client connects to a remote server.
@@ -92,6 +94,9 @@ func ResolveConfig(provider string, overrides Config) (Config, error) {
 			}
 			if cfg.AuthToken == "" {
 				cfg.AuthToken = os.Getenv("GITHUB_TOKEN")
+			}
+			if cfg.AuthToken == "" {
+				cfg.AuthToken = ghclient.GetToken()
 			}
 		}
 	}
