@@ -9,6 +9,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/modelcontextprotocol/go-sdk v1.0.0
 	github.com/neongreen/mono/lib/ghclient v0.0.0
+	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/spf13/cobra v1.10.1
 )
 

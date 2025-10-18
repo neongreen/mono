@@ -7,6 +7,7 @@ import (
 	"ingest/pkg/database"
 	"ingest/pkg/jobs"
 	mcppkg "ingest/pkg/mcp"
+	"ingest/pkg/runconfig"
 	"log"
 	"os"
 	"strings"
@@ -33,6 +34,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newQueryCmd())
 	cmd.AddCommand(newLinearCmd())
 	cmd.AddCommand(newMCPCmd())
+	cmd.AddCommand(newRunConfigCmd())
 
 	return cmd
 }
@@ -350,6 +352,57 @@ func newLinearCmd() *cobra.Command {
 	cmd.Flags().IntVar(&maxAttempts, "retry-max-attempts", maxAttempts, "Maximum connection attempts before failing")
 	cmd.Flags().DurationVar(&initialBackoff, "retry-initial-backoff", initialBackoff, "Initial retry backoff duration")
 	cmd.Flags().DurationVar(&maxBackoff, "retry-max-backoff", maxBackoff, "Maximum retry backoff duration")
+
+	return cmd
+}
+
+func newRunConfigCmd() *cobra.Command {
+	var configPath string
+	var parallelism int
+
+	cmd := &cobra.Command{
+		Use:   "run-config",
+		Short: "Run jobs defined in ingest.config.toml",
+		Long:  "Execute ingestion jobs described in a TOML configuration file. Jobs run in parallel and execution continues even if some jobs fail.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := runconfig.LoadFile(configPath)
+			if err != nil {
+				return err
+			}
+			if parallelism > 0 {
+				cfg.Parallelism = parallelism
+			}
+
+			results, execErr := runconfig.Execute(cmd.Context(), cmd.OutOrStdout(), cfg)
+
+			fmt.Fprintln(cmd.OutOrStdout(), "\nRun summary:")
+			successes := 0
+			failures := 0
+			for _, res := range results {
+				status := "ok"
+				if res.Err != nil {
+					status = fmt.Sprintf("error: %v", res.Err)
+					failures++
+				} else {
+					successes++
+				}
+				fmt.Fprintf(
+					cmd.OutOrStdout(),
+					"- %s (%s) -> %s in %s\n",
+					res.Job.DisplayName(),
+					res.Job.Type,
+					status,
+					res.Duration.Round(10*time.Millisecond),
+				)
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "\nCompleted %d jobs (%d ok, %d failed)\n", len(results), successes, failures)
+
+			return execErr
+		},
+	}
+
+	cmd.Flags().StringVar(&configPath, "config", "ingest.config.toml", "Path to run configuration file")
+	cmd.Flags().IntVar(&parallelism, "parallelism", 0, "Maximum number of jobs to run concurrently (0 = auto)")
 
 	return cmd
 }
