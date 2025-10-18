@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"errors"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -73,32 +75,41 @@ func NewClient(cfg Config, opts ...Option) (*Client, error) {
 // Connect establishes a session to the configured server.
 func (c *Client) Connect(ctx context.Context) (*Session, error) {
 	backoff := c.retry.InitialBackoff
+	if backoff <= 0 {
+		backoff = time.Second
+	}
+	maxBackoff := c.retry.MaxBackoff
+	if maxBackoff <= 0 {
+		maxBackoff = 5 * time.Second
+	}
+	maxAttempts := c.retry.MaxAttempts
+	if maxAttempts <= 0 {
+		maxAttempts = 3
+	}
 	var lastErr error
 
-	for attempt := 1; attempt <= c.retry.MaxAttempts; attempt++ {
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		session, err := c.connectOnce(ctx)
 		if err == nil {
+			session.SessionRetry = c.retry
 			return session, nil
 		}
 		lastErr = err
 
-		// If we've exhausted attempts or the context is done, stop.
-		if attempt == c.retry.MaxAttempts || ctx.Err() != nil {
+		if !shouldRetry(err) {
 			break
 		}
 
-		timer := time.NewTimer(backoff)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return nil, ctx.Err()
-		case <-timer.C:
+		if attempt == maxAttempts || ctx.Err() != nil {
+			break
 		}
 
-		backoff *= 2
-		if backoff > c.retry.MaxBackoff {
-			backoff = c.retry.MaxBackoff
+		sleep := jitter(backoff)
+		if err := sleepContext(ctx, sleep); err != nil {
+			return nil, err
 		}
+
+		backoff = nextBackoff(backoff, maxBackoff)
 	}
 
 	return nil, lastErr
@@ -127,7 +138,8 @@ func (c *Client) connectOnce(ctx context.Context) (*Session, error) {
 
 // Session represents an active MCP session.
 type Session struct {
-	session *sdkmcp.ClientSession
+	SessionRetry RetryConfig
+	session      *sdkmcp.ClientSession
 }
 
 // Close terminates the session.
@@ -137,35 +149,160 @@ func (s *Session) Close() error {
 
 // CallTool invokes a tool exposed by the MCP server.
 func (s *Session) CallTool(ctx context.Context, name string, args map[string]any) (*sdkmcp.CallToolResult, error) {
-	params := &sdkmcp.CallToolParams{
-		Name:      name,
-		Arguments: args,
+	var res *sdkmcp.CallToolResult
+	op := func() error {
+		params := &sdkmcp.CallToolParams{
+			Name:      name,
+			Arguments: args,
+		}
+		resp, err := s.session.CallTool(ctx, params)
+		if err != nil {
+			return err
+		}
+		res = resp
+		return nil
 	}
-	return s.session.CallTool(ctx, params)
+	if err := s.retryOperation(ctx, op); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // ListTools returns metadata about tools exposed by the server.
 func (s *Session) ListTools(ctx context.Context) ([]*sdkmcp.Tool, error) {
-	resp, err := s.session.ListTools(ctx, nil)
-	if err != nil {
+	var tools []*sdkmcp.Tool
+	op := func() error {
+		resp, err := s.session.ListTools(ctx, nil)
+		if err != nil {
+			return err
+		}
+		tools = resp.Tools
+		return nil
+	}
+	if err := s.retryOperation(ctx, op); err != nil {
 		return nil, err
 	}
-	return resp.Tools, nil
+	return tools, nil
 }
 
 // ListResources returns resources exposed by the server.
 func (s *Session) ListResources(ctx context.Context, params *sdkmcp.ListResourcesParams) (*sdkmcp.ListResourcesResult, error) {
-	return s.session.ListResources(ctx, params)
+	var result *sdkmcp.ListResourcesResult
+	op := func() error {
+		resp, err := s.session.ListResources(ctx, params)
+		if err != nil {
+			return err
+		}
+		result = resp
+		return nil
+	}
+	if err := s.retryOperation(ctx, op); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // ReadResource fetches the contents of a specific resource URI.
 func (s *Session) ReadResource(ctx context.Context, params *sdkmcp.ReadResourceParams) (*sdkmcp.ReadResourceResult, error) {
-	return s.session.ReadResource(ctx, params)
+	var result *sdkmcp.ReadResourceResult
+	op := func() error {
+		resp, err := s.session.ReadResource(ctx, params)
+		if err != nil {
+			return err
+		}
+		result = resp
+		return nil
+	}
+	if err := s.retryOperation(ctx, op); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // Internal client session access for advanced use cases.
 func (s *Session) raw() *sdkmcp.ClientSession {
 	return s.session
+}
+
+func (s *Session) retryOperation(ctx context.Context, op func() error) error {
+	backoff := s.SessionRetry.InitialBackoff
+	if backoff <= 0 {
+		backoff = time.Second
+	}
+	maxBackoff := s.SessionRetry.MaxBackoff
+	if maxBackoff <= 0 {
+		maxBackoff = 5 * time.Second
+	}
+	maxAttempts := s.SessionRetry.MaxAttempts
+	if maxAttempts <= 0 {
+		maxAttempts = 3
+	}
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if err := op(); err == nil {
+			return nil
+		} else {
+			lastErr = err
+		}
+		if !shouldRetry(lastErr) {
+			break
+		}
+		if attempt == maxAttempts || ctx.Err() != nil {
+			break
+		}
+		sleep := jitter(backoff)
+		if err := sleepContext(ctx, sleep); err != nil {
+			return err
+		}
+		backoff = nextBackoff(backoff, maxBackoff)
+	}
+	return lastErr
+}
+
+func jitter(base time.Duration) time.Duration {
+	if base <= 0 {
+		return base
+	}
+	factor := 0.6 + rand.Float64()*0.8 // [0.6,1.4)
+	return time.Duration(float64(base) * factor)
+}
+
+func nextBackoff(current, max time.Duration) time.Duration {
+	if current <= 0 {
+		current = time.Second
+	}
+	if max <= 0 {
+		max = 5 * time.Second
+	}
+	current *= 2
+	if current > max {
+		return max
+	}
+	return current
+}
+
+func sleepContext(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
+	}
+}
+
+func shouldRetry(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	if temp, ok := err.(interface{ Temporary() bool }); ok {
+		return temp.Temporary()
+	}
+	return true
 }
 
 func newHeaderRoundTripper(base http.RoundTripper, cfg Config) http.RoundTripper {
