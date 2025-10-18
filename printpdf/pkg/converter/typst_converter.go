@@ -50,7 +50,7 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 		zoom = 100
 	}
 	baseFontSize := 11.0 * float64(zoom) / 100.0
-	buf.WriteString(fmt.Sprintf("#set text(font: \"Linux Libertine\", size: %.2fpt)\n", baseFontSize))
+	buf.WriteString(fmt.Sprintf("#set text(size: %.2fpt)\n", baseFontSize))
 	buf.WriteString("#set par(justify: false, leading: 0.65em)\n")
 	buf.WriteString("#set heading(numbering: none)\n")
 
@@ -208,8 +208,17 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
 		return nil
 
 	case *ast.Image:
+		destination := string(n.Destination)
+		// Skip remote images as Typst can't fetch them directly
+		if strings.HasPrefix(destination, "http://") || strings.HasPrefix(destination, "https://") {
+			buf.WriteString("// Image skipped (remote URL): ")
+			buf.WriteString(destination)
+			buf.WriteString("\n\n")
+			return nil
+		}
+
 		buf.WriteString("#image(\"")
-		buf.WriteString(escapeTypst(string(n.Destination)))
+		buf.WriteString(escapeTypst(destination))
 		buf.WriteString("\"")
 		if n.Title != nil {
 			buf.WriteString(", alt: \"")
