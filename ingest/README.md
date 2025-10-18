@@ -94,30 +94,52 @@ This displays:
 ingest query "SELECT * FROM runs"
 ```
 
-### Connect to an MCP server
+### MCP integration
+
+Ingest ships with MCP presets so you can connect to hosted servers without memorising URLs:
+
+| Provider | Command | Default endpoint | Typical credentials |
+| --- | --- | --- | --- |
+| `linear` | `ingest linear` | `https://mcp.linear.app/sse` | `INGEST_LINEAR_MCP_TOKEN` (Linear API key) |
+| `github` | `ingest github-mcp` | `https://api.githubcopilot.com/mcp/` | `INGEST_GITHUB_MCP_TOKEN` (GitHub PAT or OAuth via host) |
+
+Each preset also works with the generic `ingest mcp` command:
 
 ```bash
-# list available tools from a remote MCP server
-INGEST_LINEAR_MCP_ENDPOINT=https://linear.example/mcp/sse \
-INGEST_LINEAR_MCP_TOKEN=your-token \
+# Discover tools for a provider using the shared CLI
 ingest mcp --provider linear list-tools
-```
 
-Flags can override the environment variables:
-
-```bash
-ingest mcp list-tools \
-  --endpoint https://linear.example/mcp/sse \
-  --token $LINEAR_TOKEN \
+# Override defaults explicitly
+ingest mcp --provider github \
+  --endpoint https://api.githubcopilot.com/mcp/ \
+  --token $GITHUB_TOKEN \
   --header "X-Custom=value"
 ```
 
-Environment variables checked (provider-specific values override the generic ones):
+Environment variables resolve in priority order (`INGEST_<PROVIDER>_MCP_*` → `INGEST_MCP_*` → preset defaults). Common overrides:
 
-- `INGEST_MCP_ENDPOINT`, `INGEST_<PROVIDER>_MCP_ENDPOINT`
-- `INGEST_MCP_TOKEN`, `INGEST_<PROVIDER>_MCP_TOKEN`
-- `INGEST_MCP_HEADERS`, `INGEST_<PROVIDER>_MCP_HEADERS`
-- `INGEST_MCP_TIMEOUT`, `INGEST_MCP_RETRY_MAX_ATTEMPTS`, `INGEST_MCP_RETRY_INITIAL_BACKOFF`, `INGEST_MCP_RETRY_MAX_BACKOFF`
+- Endpoint: `INGEST_MCP_ENDPOINT`, `INGEST_<PROVIDER>_MCP_ENDPOINT`
+- Token: `INGEST_MCP_TOKEN`, `INGEST_<PROVIDER>_MCP_TOKEN`
+- Headers: `INGEST_MCP_HEADERS`, `INGEST_<PROVIDER>_MCP_HEADERS`
+- Timeouts/retries: `INGEST_MCP_TIMEOUT`, `INGEST_MCP_RETRY_MAX_ATTEMPTS`, `INGEST_MCP_RETRY_INITIAL_BACKOFF`, `INGEST_MCP_RETRY_MAX_BACKOFF`
+
+#### Linear quick-start
+
+```bash
+# Endpoint falls back to https://mcp.linear.app/sse if not supplied
+INGEST_LINEAR_MCP_TOKEN=your-token \
+ingest linear --timeout 45s
+```
+
+#### GitHub quick-start
+
+```bash
+# Repo spec is required (owner/name); endpoint defaults to the hosted GitHub server
+INGEST_GITHUB_MCP_TOKEN=ghp_example \
+ingest github-mcp neongreen/mono
+```
+
+Both dedicated commands print the resolved endpoint so you can verify which host you are contacting. Use the generic `ingest mcp` command to explore tool metadata before running the concrete ingestors.
 
 This allows you to run arbitrary SQL queries against the ingest database and outputs results as JSON. Examples:
 

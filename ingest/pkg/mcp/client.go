@@ -153,6 +153,16 @@ func (s *Session) ListTools(ctx context.Context) ([]*sdkmcp.Tool, error) {
 	return resp.Tools, nil
 }
 
+// ListResources returns resources exposed by the server.
+func (s *Session) ListResources(ctx context.Context, params *sdkmcp.ListResourcesParams) (*sdkmcp.ListResourcesResult, error) {
+	return s.session.ListResources(ctx, params)
+}
+
+// ReadResource fetches the contents of a specific resource URI.
+func (s *Session) ReadResource(ctx context.Context, params *sdkmcp.ReadResourceParams) (*sdkmcp.ReadResourceResult, error) {
+	return s.session.ReadResource(ctx, params)
+}
+
 // Internal client session access for advanced use cases.
 func (s *Session) raw() *sdkmcp.ClientSession {
 	return s.session

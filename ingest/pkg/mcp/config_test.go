@@ -61,3 +61,39 @@ func TestResolveConfigMissingEndpointFails(t *testing.T) {
 		t.Fatal("expected validation error")
 	}
 }
+
+func TestResolveConfigUsesProviderDefaults(t *testing.T) {
+	t.Setenv("INGEST_MCP_ENDPOINT", "")
+	t.Setenv("INGEST_LINEAR_MCP_ENDPOINT", "")
+	cfg, err := ResolveConfig("linear", Config{})
+	if err != nil {
+		t.Fatalf("ResolveConfig: %v", err)
+	}
+	if cfg.Endpoint != "https://mcp.linear.app/sse" {
+		t.Fatalf("expected linear default endpoint, got %q", cfg.Endpoint)
+	}
+
+	t.Setenv("INGEST_GITHUB_MCP_ENDPOINT", "")
+	cfg, err = ResolveConfig("github", Config{})
+	if err != nil {
+		t.Fatalf("ResolveConfig: %v", err)
+	}
+	if cfg.Endpoint != "https://api.githubcopilot.com/mcp/" {
+		t.Fatalf("expected github default endpoint, got %q", cfg.Endpoint)
+	}
+}
+
+func TestResolveConfigUnknownProviderRequiresEndpoint(t *testing.T) {
+	t.Setenv("INGEST_UNKNOWN_MCP_ENDPOINT", "")
+	if _, err := ResolveConfig("unknown", Config{}); err == nil {
+		t.Fatal("expected error for unknown provider without endpoint")
+	}
+
+	cfg, err := ResolveConfig("unknown", Config{Endpoint: "https://example.com"})
+	if err != nil {
+		t.Fatalf("unexpected error when endpoint provided: %v", err)
+	}
+	if cfg.Endpoint != "https://example.com" {
+		t.Fatalf("expected override endpoint, got %q", cfg.Endpoint)
+	}
+}

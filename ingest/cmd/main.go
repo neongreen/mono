@@ -9,6 +9,8 @@ import (
 	"ingest/pkg/fs"
 	"ingest/pkg/git"
 	"ingest/pkg/github"
+	"ingest/pkg/githubmcp"
+	"ingest/pkg/linear"
 	mcppkg "ingest/pkg/mcp"
 	"log"
 	"os"
@@ -32,8 +34,10 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newFSCmd())
 	cmd.AddCommand(newCmdCmd())
 	cmd.AddCommand(newGitHubCmd())
+	cmd.AddCommand(newGitHubMCPCmd())
 	cmd.AddCommand(newListRunsCmd())
 	cmd.AddCommand(newQueryCmd())
+	cmd.AddCommand(newLinearCmd())
 	cmd.AddCommand(newMCPCmd())
 
 	return cmd
@@ -699,6 +703,210 @@ func newGitHubCmd() *cobra.Command {
 	}
 }
 
+func newGitHubMCPCmd() *cobra.Command {
+	var endpoint string
+	var token string
+	var headers []string
+	timeout := 30 * time.Second
+	maxAttempts := 3
+	initialBackoff := 500 * time.Millisecond
+	maxBackoff := 5 * time.Second
+
+	cmd := &cobra.Command{
+		Use:   "github-mcp [owner/repo]",
+		Short: "Ingest a GitHub repository via the MCP server",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			repoSpec := args[0]
+			parts := strings.Split(repoSpec, "/")
+			if len(parts) != 2 {
+				return fmt.Errorf("invalid repository specification %q (expected owner/repo)", repoSpec)
+			}
+			owner, repo := parts[0], parts[1]
+
+			headerMap, err := parseHeaderPairs(headers)
+			if err != nil {
+				return err
+			}
+
+			overrides := mcppkg.Config{
+				Endpoint:  endpoint,
+				AuthToken: token,
+				Headers:   headerMap,
+				Timeout:   timeout,
+				Retry: mcppkg.RetryConfig{
+					MaxAttempts:    maxAttempts,
+					InitialBackoff: initialBackoff,
+					MaxBackoff:     maxBackoff,
+				},
+			}
+			cfg, err := mcppkg.ResolveConfig("github", overrides)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Using GitHub MCP endpoint %s\n", cfg.Endpoint)
+
+			db, err := database.Open()
+			if err != nil {
+				return fmt.Errorf("failed to open database: %w", err)
+			}
+			defer db.Close()
+
+			runID, err := db.CreateRun(repoSpec, "github")
+			if err != nil {
+				return fmt.Errorf("failed to create run: %w", err)
+			}
+
+			runStatus := "failed"
+			defer func() {
+				if err := db.FinishRun(runID, runStatus); err != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "failed to finalize run: %v\n", err)
+				}
+			}()
+
+			client, err := mcppkg.NewClient(cfg)
+			if err != nil {
+				return fmt.Errorf("failed to create MCP client: %w", err)
+			}
+
+			ctx, cancel := context.WithTimeout(cmd.Context(), cfg.Timeout)
+			defer cancel()
+
+			session, err := client.Connect(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to connect to MCP server: %w", err)
+			}
+			defer session.Close()
+
+			summary, err := githubmcp.IngestRepository(cmd.Context(), db, runID, session, owner, repo)
+			if err != nil {
+				return err
+			}
+
+			runStatus = "completed"
+
+			fmt.Fprintf(cmd.OutOrStdout(), "Ingested %d issues (%d comments) and %d pull requests (%d comments)\n",
+				summary.Issues,
+				summary.IssueComments,
+				summary.PullRequests,
+				summary.PullRequestComments,
+			)
+
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&endpoint, "endpoint", "", "MCP SSE endpoint URL")
+	cmd.Flags().StringVar(&token, "token", "", "Bearer token for MCP server")
+	cmd.Flags().StringSliceVar(&headers, "header", nil, "Additional HTTP header key=value (repeatable)")
+	cmd.Flags().DurationVar(&timeout, "timeout", timeout, "HTTP timeout (supports Go duration syntax)")
+	cmd.Flags().IntVar(&maxAttempts, "retry-max-attempts", maxAttempts, "Maximum connection attempts before failing")
+	cmd.Flags().DurationVar(&initialBackoff, "retry-initial-backoff", initialBackoff, "Initial retry backoff duration")
+	cmd.Flags().DurationVar(&maxBackoff, "retry-max-backoff", maxBackoff, "Maximum retry backoff duration")
+
+	return cmd
+}
+
+func newLinearCmd() *cobra.Command {
+	var endpoint string
+	var token string
+	var headers []string
+	timeout := 30 * time.Second
+	maxAttempts := 3
+	initialBackoff := 500 * time.Millisecond
+	maxBackoff := 5 * time.Second
+
+	cmd := &cobra.Command{
+		Use:   "linear",
+		Short: "Ingest Linear issues via MCP",
+		Long:  `Connects to the Linear MCP server over SSE and stores issues in the ingest database.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			headerMap, err := parseHeaderPairs(headers)
+			if err != nil {
+				return err
+			}
+
+			overrides := mcppkg.Config{
+				Endpoint:  endpoint,
+				AuthToken: token,
+				Headers:   headerMap,
+				Timeout:   timeout,
+				Retry: mcppkg.RetryConfig{
+					MaxAttempts:    maxAttempts,
+					InitialBackoff: initialBackoff,
+					MaxBackoff:     maxBackoff,
+				},
+			}
+			cfg, err := mcppkg.ResolveConfig("linear", overrides)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Using Linear MCP endpoint %s\n", cfg.Endpoint)
+
+			db, err := database.Open()
+			if err != nil {
+				return fmt.Errorf("failed to open database: %w", err)
+			}
+			defer db.Close()
+
+			repoPath := "linear"
+			if cfg.Endpoint != "" {
+				repoPath = fmt.Sprintf("linear:%s", cfg.Endpoint)
+			}
+
+			runID, err := db.CreateRun(repoPath, "linear")
+			if err != nil {
+				return fmt.Errorf("failed to create run: %w", err)
+			}
+
+			runStatus := "failed"
+			defer func() {
+				if err := db.FinishRun(runID, runStatus); err != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "failed to finalize run: %v\n", err)
+				}
+			}()
+
+			client, err := mcppkg.NewClient(cfg)
+			if err != nil {
+				return fmt.Errorf("failed to create MCP client: %w", err)
+			}
+
+			connectCtx, cancel := context.WithTimeout(cmd.Context(), cfg.Timeout)
+			defer cancel()
+
+			session, err := client.Connect(connectCtx)
+			if err != nil {
+				return fmt.Errorf("failed to connect to MCP server: %w", err)
+			}
+			defer session.Close()
+
+			count, err := linear.IngestIssues(cmd.Context(), db, runID, session)
+			if err != nil {
+				return fmt.Errorf("failed to ingest Linear issues: %w", err)
+			}
+
+			if err := db.UpdateRunItemCount(runID); err != nil {
+				return fmt.Errorf("failed to update run item count: %w", err)
+			}
+
+			runStatus = "completed"
+
+			fmt.Fprintf(cmd.OutOrStdout(), "Ingested %d Linear issues\n", count)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVar(&endpoint, "endpoint", "", "MCP SSE endpoint URL")
+	cmd.Flags().StringVar(&token, "token", "", "Bearer token for MCP server")
+	cmd.Flags().StringSliceVar(&headers, "header", nil, "Additional HTTP header key=value (repeatable)")
+	cmd.Flags().DurationVar(&timeout, "timeout", timeout, "HTTP timeout (supports Go duration syntax)")
+	cmd.Flags().IntVar(&maxAttempts, "retry-max-attempts", maxAttempts, "Maximum connection attempts before failing")
+	cmd.Flags().DurationVar(&initialBackoff, "retry-initial-backoff", initialBackoff, "Initial retry backoff duration")
+	cmd.Flags().DurationVar(&maxBackoff, "retry-max-backoff", maxBackoff, "Maximum retry backoff duration")
+
+	return cmd
+}
+
 func newMCPCmd() *cobra.Command {
 	var provider string
 	var endpoint string
@@ -709,16 +917,21 @@ func newMCPCmd() *cobra.Command {
 	initialBackoff := 500 * time.Millisecond
 	maxBackoff := 5 * time.Second
 
-	cmd := &cobra.Command{
-		Use:   "mcp",
-		Short: "Interact with Model Context Protocol servers",
-		Long: `Connect to an MCP server over SSE. Flags override environment variables.
+	helpText := fmt.Sprintf(`Connect to an MCP server over SSE. Flags override environment variables.
 
 Environment variables:
   INGEST_MCP_ENDPOINT, INGEST_<PROVIDER>_MCP_ENDPOINT
   INGEST_MCP_TOKEN,    INGEST_<PROVIDER>_MCP_TOKEN
   INGEST_MCP_HEADERS,  INGEST_<PROVIDER>_MCP_HEADERS (comma-separated key=value pairs)
-  INGEST_MCP_TIMEOUT, INGEST_MCP_RETRY_MAX_ATTEMPTS, INGEST_MCP_RETRY_INITIAL_BACKOFF, INGEST_MCP_RETRY_MAX_BACKOFF`,
+  INGEST_MCP_TIMEOUT, INGEST_MCP_RETRY_MAX_ATTEMPTS, INGEST_MCP_RETRY_INITIAL_BACKOFF, INGEST_MCP_RETRY_MAX_BACKOFF
+
+Built-in providers:
+%s`, mcppkg.ProviderHelp())
+
+	cmd := &cobra.Command{
+		Use:   "mcp",
+		Short: "Interact with Model Context Protocol servers",
+		Long:  helpText,
 	}
 
 	cmd.PersistentFlags().StringVar(&provider, "provider", "", "provider preset name (e.g. linear, github)")

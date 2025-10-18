@@ -62,7 +62,8 @@ func (r RetryConfig) withDefaults() RetryConfig {
 func ResolveConfig(provider string, overrides Config) (Config, error) {
 	cfg := overrides
 
-	upperProvider := strings.ToUpper(provider)
+	lowerProvider := strings.ToLower(strings.TrimSpace(provider))
+	upperProvider := strings.ToUpper(lowerProvider)
 
 	if cfg.Endpoint == "" {
 		if upperProvider != "" {
@@ -70,6 +71,11 @@ func ResolveConfig(provider string, overrides Config) (Config, error) {
 		}
 		if cfg.Endpoint == "" {
 			cfg.Endpoint = os.Getenv("INGEST_MCP_ENDPOINT")
+		}
+		if cfg.Endpoint == "" && lowerProvider != "" {
+			if endpoint, ok := providerDefaultEndpoint(lowerProvider); ok {
+				cfg.Endpoint = endpoint
+			}
 		}
 	}
 
@@ -83,6 +89,12 @@ func ResolveConfig(provider string, overrides Config) (Config, error) {
 	}
 
 	cfg.Headers = mergeHeaders(cfg.Headers, loadHeadersFromEnv(upperProvider))
+
+	if lowerProvider != "" {
+		if _, known := providerPresets[lowerProvider]; !known && cfg.Endpoint == "" {
+			return Config{}, fmt.Errorf("unknown provider %q and no endpoint configured", lowerProvider)
+		}
+	}
 
 	if cfg.Timeout == 0 {
 		if v := readDurationEnv("INGEST_MCP_TIMEOUT"); v != 0 {

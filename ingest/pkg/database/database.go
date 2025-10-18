@@ -43,6 +43,20 @@ type File struct {
 	Mode     string
 }
 
+// LinearIssue represents a Linear issue record stored in the database.
+type LinearIssue struct {
+	IssueID     string
+	Identifier  string
+	Title       string
+	Description *string
+	Priority    *int
+	Status      *string
+	Assignee    *string
+	Team        *string
+	URL         *string
+	RawData     *string
+}
+
 // Open opens or creates the SQLite database in ~/.ingest/ingest.db
 func Open() (*Database, error) {
 	homeDir, err := os.UserHomeDir()
@@ -220,6 +234,23 @@ func (d *Database) createTables() error {
 		FOREIGN KEY (run_id) REFERENCES runs(id)
 	);
 
+	CREATE TABLE IF NOT EXISTS linear_issues (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		issue_id TEXT NOT NULL,
+		identifier TEXT NOT NULL,
+		title TEXT NOT NULL,
+		description TEXT,
+		priority INTEGER,
+		status TEXT,
+		assignee TEXT,
+		team TEXT,
+		url TEXT,
+		raw_data TEXT,
+		FOREIGN KEY (run_id) REFERENCES runs(id),
+		UNIQUE(run_id, issue_id)
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_blobs_sha256 ON blobs(sha256);
 	CREATE INDEX IF NOT EXISTS idx_commits_run_id ON commits(run_id);
 	CREATE INDEX IF NOT EXISTS idx_commits_hash ON commits(hash);
@@ -237,6 +268,8 @@ func (d *Database) createTables() error {
 	CREATE INDEX IF NOT EXISTS idx_github_prs_number ON github_prs(run_id, number);
 	CREATE INDEX IF NOT EXISTS idx_github_comments_run_id ON github_comments(run_id);
 	CREATE INDEX IF NOT EXISTS idx_github_comments_item ON github_comments(run_id, item_type, item_number);
+	CREATE INDEX IF NOT EXISTS idx_linear_issues_run_id ON linear_issues(run_id);
+	CREATE INDEX IF NOT EXISTS idx_linear_issues_identifier ON linear_issues(run_id, identifier);
 	`
 
 	_, err := d.db.Exec(schema)
@@ -309,6 +342,9 @@ func (d *Database) UpdateRunItemCount(runID int64) error {
 	case "github":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM github_issues WHERE run_id = ?) + (SELECT COUNT(*) FROM github_prs WHERE run_id = ?) WHERE id = ?"
 		args = []interface{}{runID, runID, runID}
+	case "linear":
+		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM linear_issues WHERE run_id = ?) WHERE id = ?"
+		args = []interface{}{runID, runID}
 	default:
 		query = "UPDATE runs SET item_count = 0 WHERE id = ?"
 		args = []interface{}{runID}
@@ -360,6 +396,20 @@ func countOutputLines(output string) int {
 		lines++
 	}
 	return lines
+}
+
+func nullableString(value *string) any {
+	if value == nil {
+		return nil
+	}
+	return *value
+}
+
+func nullableInt(value *int) any {
+	if value == nil {
+		return nil
+	}
+	return *value
 }
 
 // UpdateRunCounts is deprecated, use UpdateRunItemCount instead
@@ -683,5 +733,39 @@ func (d *Database) CreateGitHubComment(runID int64, itemType string, itemNumber 
 		return fmt.Errorf("failed to create github comment: %w", err)
 	}
 
+	return nil
+}
+
+// CreateLinearIssue stores a Linear issue for the given run.
+func (d *Database) CreateLinearIssue(runID int64, issue LinearIssue) error {
+	_, err := d.db.Exec(
+		`INSERT INTO linear_issues (
+			run_id,
+			issue_id,
+			identifier,
+			title,
+			description,
+			priority,
+			status,
+			assignee,
+			team,
+			url,
+			raw_data
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		runID,
+		issue.IssueID,
+		issue.Identifier,
+		issue.Title,
+		nullableString(issue.Description),
+		nullableInt(issue.Priority),
+		nullableString(issue.Status),
+		nullableString(issue.Assignee),
+		nullableString(issue.Team),
+		nullableString(issue.URL),
+		nullableString(issue.RawData),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create linear issue %s: %w", issue.Identifier, err)
+	}
 	return nil
 }

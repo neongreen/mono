@@ -245,6 +245,85 @@ func TestQuery(t *testing.T) {
 	}
 }
 
+func TestCreateLinearIssue(t *testing.T) {
+	tempDir := t.TempDir()
+
+	originalHomeDir := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHomeDir)
+
+	db, err := Open()
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	runID, err := db.CreateRun("linear", "linear")
+	if err != nil {
+		t.Fatalf("Failed to create linear run: %v", err)
+	}
+
+	description := "Example description"
+	priority := 2
+	status := "In Progress"
+	team := "Platform"
+	url := "https://linear.app/example/issue/LIN-1"
+	raw := `{"id":"abc123"}`
+
+	issue := LinearIssue{
+		IssueID:     "abc123",
+		Identifier:  "LIN-1",
+		Title:       "Implement feature toggle",
+		Description: &description,
+		Priority:    &priority,
+		Status:      &status,
+		Team:        &team,
+		URL:         &url,
+		RawData:     &raw,
+	}
+
+	if err := db.CreateLinearIssue(runID, issue); err != nil {
+		t.Fatalf("Failed to insert Linear issue: %v", err)
+	}
+
+	if err := db.UpdateRunItemCount(runID); err != nil {
+		t.Fatalf("Failed to update run item count: %v", err)
+	}
+
+	runs, err := db.GetAllRuns()
+	if err != nil {
+		t.Fatalf("Failed to load runs: %v", err)
+	}
+	if len(runs) != 1 {
+		t.Fatalf("Expected 1 run, got %d", len(runs))
+	}
+	if runs[0].ItemCount != 1 {
+		t.Fatalf("Expected item count 1, got %d", runs[0].ItemCount)
+	}
+
+	results, err := db.Query("SELECT issue_id, identifier, title, description, priority, status, assignee, team, url, raw_data FROM linear_issues")
+	if err != nil {
+		t.Fatalf("Failed to query linear issues: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("Expected 1 stored issue, got %d", len(results))
+	}
+
+	row := results[0]
+	if got := row["issue_id"]; got != "abc123" {
+		t.Errorf("issue_id mismatch, want abc123 got %v", got)
+	}
+	if got := row["priority"]; got != int64(2) {
+		t.Errorf("priority mismatch, want 2 got %v", got)
+	}
+	if row["assignee"] != nil {
+		t.Errorf("expected assignee NULL, got %v", row["assignee"])
+	}
+	if got := row["raw_data"]; got != raw {
+		t.Errorf("raw_data mismatch, want %s got %v", raw, got)
+	}
+}
+
 func TestUpdateRunItemCountForCommandRun(t *testing.T) {
 	tempDir := t.TempDir()
 	originalHome := os.Getenv("HOME")
