@@ -125,6 +125,23 @@ ingest run-config --config ingest.config.toml
 
 Override concurrency with `--parallelism`. The command prints a per-job summary plus aggregated success/failure counts.
 
+#### MCP prerequisites
+
+Before running MCP-backed jobs make sure credentials are available. The runner checks the following sources, in order:
+
+- **GitHub MCP:**
+  1. `job.mcp.token` in the TOML file
+  2. `INGEST_GITHUB_MCP_TOKEN`
+  3. `INGEST_MCP_TOKEN`
+  4. `MISE_GITHUB_TOKEN`
+  5. `GITHUB_TOKEN`
+- **Linear MCP:**
+  1. `job.mcp.token`
+  2. `INGEST_LINEAR_MCP_TOKEN`
+  3. `INGEST_MCP_TOKEN`
+
+Missing endpoint or token information fails fast before any jobs start. Run `ingest config validate` to preview the resolved configuration and see warnings for incomplete MCP settings.
+
 ### Validate a TOML configuration
 
 Validate a configuration file before running it:
@@ -133,7 +150,7 @@ Validate a configuration file before running it:
 ingest config validate --config ingest.config.toml
 ```
 
-The validator reports parse errors, unknown fields, or missing required options and echoes each recognised job when the file is valid.
+The validator reports parse errors, unknown fields, or missing required options and echoes each recognised job when the file is valid. Any MCP jobs without resolved credentials or endpoints are listed under “Warnings” with suggestions for the relevant environment variables.
 
 ### List all ingestion runs
 
