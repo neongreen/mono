@@ -3,6 +3,7 @@ package converter
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
@@ -35,11 +36,20 @@ func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error)
 
 	// Build page CSS with orientation, margin, and zoom
 	margin := options.cssMarginValue()
-	var pageCSS string
+	var pageCSS strings.Builder
 	if options.Orientation == "landscape" {
-		pageCSS = fmt.Sprintf("@page { size: A4 landscape; margin: %s; }\n", margin)
+		fmt.Fprintf(&pageCSS, "@page { size: A4 landscape; margin: %s; }\n", margin)
 	} else {
-		pageCSS = fmt.Sprintf("@page { size: A4 portrait; margin: %s; }\n", margin)
+		fmt.Fprintf(&pageCSS, "@page { size: A4 portrait; margin: %s; }\n", margin)
+	}
+
+	if guide := strings.TrimSpace(options.FirstPageGuide); guide != "" {
+		fmt.Fprintf(&pageCSS, "@page:first {\n")
+		fmt.Fprintf(&pageCSS, "    background-image: linear-gradient(90deg, #d0d7de, #d0d7de);\n")
+		fmt.Fprintf(&pageCSS, "    background-size: 0.4pt 100%%;\n")
+		fmt.Fprintf(&pageCSS, "    background-repeat: no-repeat;\n")
+		fmt.Fprintf(&pageCSS, "    background-position: %s 0;\n", guide)
+		fmt.Fprintf(&pageCSS, "}\n")
 	}
 
 	// Calculate zoom factor for font sizes
@@ -183,7 +193,7 @@ hr {
 <body>
 %s
 </body>
-</html>`, pageCSS, zoomFactor*100, bodyCSS, buf.String())
+</html>`, pageCSS.String(), zoomFactor*100, bodyCSS, buf.String())
 
 	// If columns are requested, wrap the content in a container with column CSS
 	if options.Columns > 1 {

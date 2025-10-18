@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/neongreen/mono/printpdf/pkg/converter"
 	"github.com/neongreen/mono/printpdf/pkg/fetcher"
@@ -21,6 +22,7 @@ func main() {
 	marginBottom := flag.String("margin-bottom", "", "bottom page margin (overrides the value from -margin when set)")
 	marginLeft := flag.String("margin-left", "", "left page margin (overrides the value from -margin when set)")
 	zoom := flag.Int("zoom", 100, "zoom percentage for all font sizes (e.g., 80 for 80%, 120 for 120%)")
+	firstPageGuide := flag.String("first-page-guide", "", "draw a thin vertical guide on the first page at the given distance from the left edge (e.g., '3cm')")
 	flag.Parse()
 
 	args := flag.Args()
@@ -62,14 +64,15 @@ func main() {
 	}
 
 	pageOptions := converter.PageOptions{
-		Columns:      *columns,
-		Orientation:  *orientation,
-		Margin:       *margin,
-		MarginTop:    *marginTop,
-		MarginRight:  *marginRight,
-		MarginBottom: *marginBottom,
-		MarginLeft:   *marginLeft,
-		Zoom:         *zoom,
+		Columns:        *columns,
+		Orientation:    *orientation,
+		Margin:         *margin,
+		MarginTop:      *marginTop,
+		MarginRight:    *marginRight,
+		MarginBottom:   *marginBottom,
+		MarginLeft:     *marginLeft,
+		Zoom:           *zoom,
+		FirstPageGuide: strings.TrimSpace(*firstPageGuide),
 	}
 
 	// Determine which converters to use

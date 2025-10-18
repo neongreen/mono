@@ -59,6 +59,17 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 		buf.WriteString(fmt.Sprintf("#show: columns.with(%d, gutter: 1em)\n", options.Columns))
 	}
 
+	if guide := strings.TrimSpace(options.FirstPageGuide); guide != "" {
+		buf.WriteString("#let printpdf_first_page_guide(page, distance) = {\n")
+		buf.WriteString("  place(line(length: page.height - page.margin.top - page.margin.bottom, angle: 90deg, stroke: 0.4pt + rgb(\"d0d7de\")), dx: distance, dy: page.margin.top)\n")
+		buf.WriteString("}\n")
+		buf.WriteString("#context page => {\n")
+		buf.WriteString("  if page.number == 1 {\n")
+		buf.WriteString(fmt.Sprintf("    printpdf_first_page_guide(page, %s)\n", guide))
+		buf.WriteString("  }\n")
+		buf.WriteString("}\n")
+	}
+
 	buf.WriteString("\n")
 
 	// Convert the document

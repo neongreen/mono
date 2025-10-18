@@ -25,6 +25,7 @@ A complete Go-based tool for converting various content sources (Markdown files,
 - ✅ Multiple converter support for quality comparison
 - ✅ Clean CLI interface
 - ✅ Per-edge page margin overrides (top/right/bottom/left)
+- ✅ Optional first-page vertical guide line
 
 ### ✅ Documentation & Samples
 - ✅ Comprehensive README

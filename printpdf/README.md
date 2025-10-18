@@ -96,6 +96,9 @@ printpdf -margin-top 3cm -margin-right 1.5cm -margin-bottom 2.5cm -margin-left 2
 printpdf -zoom 80 document.md   # 80% of default size
 printpdf -zoom 120 document.md  # 120% of default size
 
+# Draw a vertical guide line 3cm from the left edge of the first page
+printpdf -first-page-guide 3cm document.md
+
 # Combine options
 printpdf -columns 2 -margin 1.5cm -zoom 90 document.md
 printpdf -orientation landscape -margin 2cm -zoom 110 document.md
@@ -166,6 +169,10 @@ The zoom affects:
 - **All text elements**: headings, body text, code blocks, lists, etc.
 - **Typst**: Adjusts the base font size (11pt by default becomes 8.8pt at 80%, 13.2pt at 120%)
 - **HTML/CSS**: Uses `font-size` percentage on the root element, so all relative sizes scale proportionally
+
+#### First Page Guide
+
+Use the `-first-page-guide` flag to draw a thin vertical line on the first page. Provide the distance from the left edge using any supported CSS/Typst length (for example `3cm`, `1in`, `25mm`). The line starts at the top margin, extends to the bottom margin, and is omitted when the flag is not supplied.
 
 ### GitHub Authentication
 
