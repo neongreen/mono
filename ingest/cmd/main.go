@@ -4,17 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"ingest/pkg/command"
 	"ingest/pkg/database"
-	"ingest/pkg/fs"
-	"ingest/pkg/git"
-	"ingest/pkg/github"
-	"ingest/pkg/githubmcp"
-	"ingest/pkg/linear"
+	"ingest/pkg/jobs"
 	mcppkg "ingest/pkg/mcp"
 	"log"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -51,135 +45,10 @@ func newGitCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			repoPath := args[0]
-
-			// Convert to absolute path
-			absPath, err := filepath.Abs(repoPath)
+			_, err := jobs.RunGit(cmd.Context(), cmd.OutOrStdout(), jobs.GitOptions{Path: repoPath})
 			if err != nil {
-				log.Fatalf("Failed to get absolute path: %v", err)
+				log.Fatalf("Git ingestion failed: %v", err)
 			}
-
-			// Verify it's a git repository
-			if _, err := os.Stat(filepath.Join(absPath, ".git")); os.IsNotExist(err) {
-				log.Fatalf("Not a git repository: %s", absPath)
-			}
-
-			fmt.Printf("Ingesting repository: %s\n", absPath)
-
-			// Open database
-			db, err := database.Open()
-			if err != nil {
-				log.Fatalf("Failed to open database: %v", err)
-			}
-			defer db.Close()
-
-			// Create a new run
-			runID, err := db.CreateRun(absPath, "git")
-			if err != nil {
-				log.Fatalf("Failed to create run: %v", err)
-			}
-
-			fmt.Printf("Started ingestion run #%d\n", runID)
-
-			// Get repository metadata
-			fmt.Println("Collecting repository metadata...")
-			metadata, err := git.GetRepoMetadata(absPath)
-			if err != nil {
-				db.FinishRun(runID, "failed")
-				log.Fatalf("Failed to get repository metadata: %v", err)
-			}
-
-			// Store remotes
-			for _, remote := range metadata.Remotes {
-				err := db.CreateGitRemote(runID, remote.Name, remote.URL)
-				if err != nil {
-					db.FinishRun(runID, "failed")
-					log.Fatalf("Failed to create remote: %v", err)
-				}
-			}
-
-			// Store refs (branches and tags)
-			for _, ref := range metadata.Refs {
-				err := db.CreateGitRef(runID, ref.Type, ref.Name, ref.TargetHash)
-				if err != nil {
-					db.FinishRun(runID, "failed")
-					log.Fatalf("Failed to create ref: %v", err)
-				}
-			}
-
-			fmt.Printf("Found %d remotes and %d refs\n", len(metadata.Remotes), len(metadata.Refs))
-
-			fmt.Println("Looking for commits...")
-
-			// Walk the repository with progress callback
-			commits, err := git.WalkRepository(absPath, func(count int) {
-				fmt.Printf("Found %d commits so far...\r", count)
-			})
-			if err != nil {
-				db.FinishRun(runID, "failed")
-				log.Fatalf("Failed to walk repository: %v", err)
-			}
-
-			fmt.Printf("\nFound %d commits total\n", len(commits))
-
-			// Store commits and files
-			totalFiles := 0
-			totalBlobs := 0
-			for i, commit := range commits {
-				if (i+1)%100 == 0 || (i+1) == len(commits) {
-					fmt.Printf("Processing commit %d/%d...\r", i+1, len(commits))
-				}
-
-				commitID, err := db.CreateCommit(
-					runID,
-					commit.Hash,
-					commit.Author,
-					commit.AuthorEmail,
-					commit.Committer,
-					commit.CommitterEmail,
-					commit.Date,
-					commit.Message,
-					commit.ParentHashes,
-				)
-				if err != nil {
-					db.FinishRun(runID, "failed")
-					log.Fatalf("Failed to create commit: %v", err)
-				}
-
-				for _, file := range commit.Files {
-					var blobID *int64
-
-					// Store file content as blob if available
-					if len(file.Content) > 0 {
-						id, err := db.GetOrCreateBlob(file.Content, file.SHA256Hash)
-						if err != nil {
-							db.FinishRun(runID, "failed")
-							log.Fatalf("Failed to create blob: %v", err)
-						}
-						blobID = &id
-						totalBlobs++
-					}
-
-					err := db.CreateFile(commitID, file.Path, file.Size, file.Mode, blobID)
-					if err != nil {
-						db.FinishRun(runID, "failed")
-						log.Fatalf("Failed to create file: %v", err)
-					}
-					totalFiles++
-				}
-			}
-
-			fmt.Printf("\nProcessed %d commits with %d files and %d blobs\n", len(commits), totalFiles, totalBlobs)
-
-			// Update counts and finish run
-			if err := db.UpdateRunItemCount(runID); err != nil {
-				log.Fatalf("Failed to update run counts: %v", err)
-			}
-
-			if err := db.FinishRun(runID, "completed"); err != nil {
-				log.Fatalf("Failed to finish run: %v", err)
-			}
-
-			fmt.Printf("Ingestion completed successfully!\n")
 		},
 	}
 }
@@ -192,100 +61,14 @@ func newFSCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			fsPath := args[0]
-
-			// Convert to absolute path
-			absPath, err := filepath.Abs(fsPath)
-			if err != nil {
-				log.Fatalf("Failed to get absolute path: %v", err)
-			}
-
-			// Verify path exists
-			if _, err := os.Stat(absPath); os.IsNotExist(err) {
-				log.Fatalf("Path does not exist: %s", absPath)
-			}
-
-			fmt.Printf("Ingesting filesystem: %s\n", absPath)
-
-			// Open database
-			db, err := database.Open()
-			if err != nil {
-				log.Fatalf("Failed to open database: %v", err)
-			}
-			defer db.Close()
-
-			// Create a new run
-			runID, err := db.CreateRun(absPath, "fs")
-			if err != nil {
-				log.Fatalf("Failed to create run: %v", err)
-			}
-
-			fmt.Printf("Started ingestion run #%d\n", runID)
-			fmt.Println("Walking filesystem...")
-
 			respectGitignore, err := cmd.Flags().GetBool("respect-gitignore")
 			if err != nil {
-				db.FinishRun(runID, "failed")
 				log.Fatalf("Failed to read respect-gitignore flag: %v", err)
 			}
-
-			// Walk the filesystem with progress callback
-			entries, err := fs.WalkFilesystemWithOptions(absPath, func(count int) {
-				fmt.Printf("Found %d entries so far...\r", count)
-			}, fs.WalkOptions{RespectGitignore: respectGitignore})
+			_, err = jobs.RunFS(cmd.Context(), cmd.OutOrStdout(), jobs.FSOptions{Path: fsPath, RespectGitignore: respectGitignore})
 			if err != nil {
-				db.FinishRun(runID, "failed")
-				log.Fatalf("Failed to walk filesystem: %v", err)
+				log.Fatalf("Filesystem ingestion failed: %v", err)
 			}
-
-			fmt.Printf("\nFound %d entries total\n", len(entries))
-
-			// Store entries
-			totalBlobs := 0
-			for i, entry := range entries {
-				if (i+1)%100 == 0 || (i+1) == len(entries) {
-					fmt.Printf("Processing entry %d/%d...\r", i+1, len(entries))
-				}
-
-				var blobID *int64
-
-				// Store file content as blob if available
-				if len(entry.Content) > 0 {
-					id, err := db.GetOrCreateBlob(entry.Content, entry.SHA256Hash)
-					if err != nil {
-						db.FinishRun(runID, "failed")
-						log.Fatalf("Failed to create blob: %v", err)
-					}
-					blobID = &id
-					totalBlobs++
-				}
-
-				err := db.CreateFSEntry(
-					runID,
-					entry.Path,
-					entry.IsDir,
-					entry.Size,
-					entry.Mode,
-					entry.ModTime,
-					blobID,
-				)
-				if err != nil {
-					db.FinishRun(runID, "failed")
-					log.Fatalf("Failed to create fs entry: %v", err)
-				}
-			}
-
-			fmt.Printf("\nProcessed %d entries with %d blobs\n", len(entries), totalBlobs)
-
-			// Update counts and finish run
-			if err := db.UpdateRunItemCount(runID); err != nil {
-				log.Fatalf("Failed to update run counts: %v", err)
-			}
-
-			if err := db.FinishRun(runID, "completed"); err != nil {
-				log.Fatalf("Failed to finish run: %v", err)
-			}
-
-			fmt.Printf("Ingestion completed successfully!\n")
 		},
 	}
 
@@ -300,75 +83,10 @@ func newCmdCmd() *cobra.Command {
 		Long:  `Run a shell command and store its output (stdout/stderr), exit code, and execution time in the database.`,
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			shellCmd := args[0]
-			if len(args) > 1 {
-				// Join all args as a single command
-				shellCmd = ""
-				for i, arg := range args {
-					if i > 0 {
-						shellCmd += " "
-					}
-					shellCmd += arg
-				}
+			shellCmd := strings.Join(args, " ")
+			if _, err := jobs.RunCommand(cmd.Context(), cmd.OutOrStdout(), jobs.CommandOptions{Command: shellCmd}); err != nil {
+				log.Fatalf("Command ingestion failed: %v", err)
 			}
-
-			fmt.Printf("Running command: %s\n", shellCmd)
-
-			// Open database
-			db, err := database.Open()
-			if err != nil {
-				log.Fatalf("Failed to open database: %v", err)
-			}
-			defer db.Close()
-
-			// Create a new run
-			runID, err := db.CreateRun(shellCmd, "cmd")
-			if err != nil {
-				log.Fatalf("Failed to create run: %v", err)
-			}
-
-			fmt.Printf("Started ingestion run #%d\n", runID)
-
-			// Run the command
-			result, err := command.RunCommand(shellCmd)
-			if err != nil {
-				db.FinishRun(runID, "failed")
-				log.Fatalf("Failed to run command: %v", err)
-			}
-
-			fmt.Printf("Command completed with exit code: %d (took %dms)\n", result.ExitCode, result.DurationMs)
-			if len(result.Stdout) > 0 {
-				fmt.Printf("Stdout length: %d bytes\n", len(result.Stdout))
-			}
-			if len(result.Stderr) > 0 {
-				fmt.Printf("Stderr length: %d bytes\n", len(result.Stderr))
-			}
-
-			// Store command result
-			err = db.CreateCmdRun(
-				runID,
-				result.Command,
-				result.ExitCode,
-				result.Stdout,
-				result.Stderr,
-				result.DurationMs,
-			)
-			if err != nil {
-				db.FinishRun(runID, "failed")
-				log.Fatalf("Failed to create cmd run: %v", err)
-			}
-
-			if err := db.UpdateRunItemCount(runID); err != nil {
-				db.FinishRun(runID, "failed")
-				log.Fatalf("Failed to update run counts: %v", err)
-			}
-
-			// Finish run
-			if err := db.FinishRun(runID, "completed"); err != nil {
-				log.Fatalf("Failed to finish run: %v", err)
-			}
-
-			fmt.Printf("Ingestion completed successfully!\n")
 		},
 	}
 }
@@ -490,215 +208,12 @@ func newGitHubCmd() *cobra.Command {
 			owner := parts[0]
 			repo := parts[1]
 
-			fmt.Printf("Ingesting GitHub repository: %s/%s\n", owner, repo)
-
-			// Open database
-			db, err := database.Open()
-			if err != nil {
-				log.Fatalf("Failed to open database: %v", err)
+			if _, err := jobs.RunGitHub(cmd.Context(), cmd.OutOrStdout(), jobs.GitHubOptions{
+				Owner: owner,
+				Repo:  repo,
+			}); err != nil {
+				log.Fatalf("GitHub ingestion failed: %v", err)
 			}
-			defer db.Close()
-
-			// Create a new run
-			runID, err := db.CreateRun(repoSpec, "github")
-			if err != nil {
-				log.Fatalf("Failed to create run: %v", err)
-			}
-
-			fmt.Printf("Started ingestion run #%d\n", runID)
-
-			// Create GitHub client
-			client := github.NewClient()
-
-			// Fetch issues
-			fmt.Println("Fetching issues...")
-			issues, err := client.FetchIssues(owner, repo, "all", func(count int) {
-				fmt.Printf("Found %d issues so far...\r", count)
-			})
-			if err != nil {
-				db.FinishRun(runID, "failed")
-				log.Fatalf("Failed to fetch issues: %v", err)
-			}
-			fmt.Printf("\nFound %d issues total\n", len(issues))
-
-			// Store issues with comments
-			for i, issue := range issues {
-				if (i+1)%10 == 0 || (i+1) == len(issues) {
-					fmt.Printf("Processing issue %d/%d...\r", i+1, len(issues))
-				}
-
-				// Convert labels to comma-separated string
-				var labelNames []string
-				for _, label := range issue.Labels {
-					labelNames = append(labelNames, label.Name)
-				}
-				labels := strings.Join(labelNames, ",")
-
-				// Convert assignees to comma-separated string
-				var assigneeNames []string
-				for _, assignee := range issue.Assignees {
-					assigneeNames = append(assigneeNames, assignee.Login)
-				}
-				assignees := strings.Join(assigneeNames, ",")
-
-				// Get milestone title
-				milestone := ""
-				if issue.Milestone != nil {
-					milestone = issue.Milestone.Title
-				}
-
-				err := db.CreateGitHubIssue(
-					runID,
-					issue.Number,
-					issue.Title,
-					issue.Body,
-					issue.State,
-					issue.User.Login,
-					issue.CreatedAt,
-					issue.UpdatedAt,
-					issue.ClosedAt,
-					labels,
-					assignees,
-					milestone,
-				)
-				if err != nil {
-					db.FinishRun(runID, "failed")
-					log.Fatalf("Failed to create issue: %v", err)
-				}
-
-				// Fetch and store comments
-				comments, err := client.FetchIssueComments(owner, repo, issue.Number)
-				if err != nil {
-					db.FinishRun(runID, "failed")
-					log.Fatalf("Failed to fetch comments for issue #%d: %v", issue.Number, err)
-				}
-
-				for _, comment := range comments {
-					err := db.CreateGitHubComment(
-						runID,
-						"issue",
-						issue.Number,
-						comment.ID,
-						comment.User.Login,
-						comment.Body,
-						comment.CreatedAt,
-						comment.UpdatedAt,
-					)
-					if err != nil {
-						db.FinishRun(runID, "failed")
-						log.Fatalf("Failed to create comment: %v", err)
-					}
-				}
-			}
-
-			fmt.Printf("\nProcessed %d issues with their comments\n", len(issues))
-
-			// Fetch pull requests
-			fmt.Println("Fetching pull requests...")
-			prs, err := client.FetchPullRequests(owner, repo, "all", func(count int) {
-				fmt.Printf("Found %d pull requests so far...\r", count)
-			})
-			if err != nil {
-				db.FinishRun(runID, "failed")
-				log.Fatalf("Failed to fetch pull requests: %v", err)
-			}
-			fmt.Printf("\nFound %d pull requests total\n", len(prs))
-
-			// Store PRs with comments
-			for i, pr := range prs {
-				if (i+1)%10 == 0 || (i+1) == len(prs) {
-					fmt.Printf("Processing PR %d/%d...\r", i+1, len(prs))
-				}
-
-				// Convert labels to comma-separated string
-				var labelNames []string
-				for _, label := range pr.Labels {
-					labelNames = append(labelNames, label.Name)
-				}
-				labels := strings.Join(labelNames, ",")
-
-				// Convert assignees to comma-separated string
-				var assigneeNames []string
-				for _, assignee := range pr.Assignees {
-					assigneeNames = append(assigneeNames, assignee.Login)
-				}
-				assignees := strings.Join(assigneeNames, ",")
-
-				// Convert reviewers to comma-separated string
-				var reviewerNames []string
-				for _, reviewer := range pr.RequestedReviewers {
-					reviewerNames = append(reviewerNames, reviewer.Login)
-				}
-				reviewers := strings.Join(reviewerNames, ",")
-
-				// Get milestone title
-				milestone := ""
-				if pr.Milestone != nil {
-					milestone = pr.Milestone.Title
-				}
-
-				err := db.CreateGitHubPR(
-					runID,
-					pr.Number,
-					pr.Title,
-					pr.Body,
-					pr.State,
-					pr.User.Login,
-					pr.CreatedAt,
-					pr.UpdatedAt,
-					pr.ClosedAt,
-					pr.MergedAt,
-					pr.Merged,
-					pr.Draft,
-					pr.Base.Ref,
-					pr.Head.Ref,
-					labels,
-					assignees,
-					reviewers,
-					milestone,
-				)
-				if err != nil {
-					db.FinishRun(runID, "failed")
-					log.Fatalf("Failed to create pull request: %v", err)
-				}
-
-				// Fetch and store comments (including review comments)
-				comments, err := client.FetchPRComments(owner, repo, pr.Number)
-				if err != nil {
-					db.FinishRun(runID, "failed")
-					log.Fatalf("Failed to fetch comments for PR #%d: %v", pr.Number, err)
-				}
-
-				for _, comment := range comments {
-					err := db.CreateGitHubComment(
-						runID,
-						"pr",
-						pr.Number,
-						comment.ID,
-						comment.User.Login,
-						comment.Body,
-						comment.CreatedAt,
-						comment.UpdatedAt,
-					)
-					if err != nil {
-						db.FinishRun(runID, "failed")
-						log.Fatalf("Failed to create comment: %v", err)
-					}
-				}
-			}
-
-			fmt.Printf("\nProcessed %d pull requests with their comments\n", len(prs))
-
-			// Update counts and finish run
-			if err := db.UpdateRunItemCount(runID); err != nil {
-				log.Fatalf("Failed to update run counts: %v", err)
-			}
-
-			if err := db.FinishRun(runID, "completed"); err != nil {
-				log.Fatalf("Failed to finish run: %v", err)
-			}
-
-			fmt.Printf("Ingestion completed successfully!\n")
 		},
 	}
 }
@@ -746,50 +261,26 @@ func newGitHubMCPCmd() *cobra.Command {
 			}
 			fmt.Fprintf(cmd.OutOrStdout(), "Using GitHub MCP endpoint %s\n", cfg.Endpoint)
 
-			db, err := database.Open()
+			result, err := jobs.RunGitHubMCP(cmd.Context(), cmd.OutOrStdout(), cfg, jobs.GitHubOptions{
+				Owner: owner,
+				Repo:  repo,
+			})
 			if err != nil {
-				return fmt.Errorf("failed to open database: %w", err)
-			}
-			defer db.Close()
-
-			runID, err := db.CreateRun(repoSpec, "github")
-			if err != nil {
-				return fmt.Errorf("failed to create run: %w", err)
+				return fmt.Errorf("failed to ingest GitHub repository: %w", err)
 			}
 
-			runStatus := "failed"
-			defer func() {
-				if err := db.FinishRun(runID, runStatus); err != nil {
-					fmt.Fprintf(cmd.ErrOrStderr(), "failed to finalize run: %v\n", err)
-				}
-			}()
+			issues := result.Details["issues"]
+			issueComments := result.Details["issueComments"]
+			prs := result.Details["pullRequests"]
+			prComments := result.Details["prComments"]
 
-			client, err := mcppkg.NewClient(cfg)
-			if err != nil {
-				return fmt.Errorf("failed to create MCP client: %w", err)
-			}
-
-			ctx, cancel := context.WithTimeout(cmd.Context(), cfg.Timeout)
-			defer cancel()
-
-			session, err := client.Connect(ctx)
-			if err != nil {
-				return fmt.Errorf("failed to connect to MCP server: %w", err)
-			}
-			defer session.Close()
-
-			summary, err := githubmcp.IngestRepository(cmd.Context(), db, runID, session, owner, repo)
-			if err != nil {
-				return err
-			}
-
-			runStatus = "completed"
-
-			fmt.Fprintf(cmd.OutOrStdout(), "Ingested %d issues (%d comments) and %d pull requests (%d comments)\n",
-				summary.Issues,
-				summary.IssueComments,
-				summary.PullRequests,
-				summary.PullRequestComments,
+			fmt.Fprintf(
+				cmd.OutOrStdout(),
+				"Ingested %d issues (%d comments) and %d pull requests (%d comments)\n",
+				issues,
+				issueComments,
+				prs,
+				prComments,
 			)
 
 			return nil
@@ -841,57 +332,13 @@ func newLinearCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
 			fmt.Fprintf(cmd.OutOrStdout(), "Using Linear MCP endpoint %s\n", cfg.Endpoint)
-
-			db, err := database.Open()
-			if err != nil {
-				return fmt.Errorf("failed to open database: %w", err)
-			}
-			defer db.Close()
-
-			repoPath := "linear"
-			if cfg.Endpoint != "" {
-				repoPath = fmt.Sprintf("linear:%s", cfg.Endpoint)
-			}
-
-			runID, err := db.CreateRun(repoPath, "linear")
-			if err != nil {
-				return fmt.Errorf("failed to create run: %w", err)
-			}
-
-			runStatus := "failed"
-			defer func() {
-				if err := db.FinishRun(runID, runStatus); err != nil {
-					fmt.Fprintf(cmd.ErrOrStderr(), "failed to finalize run: %v\n", err)
-				}
-			}()
-
-			client, err := mcppkg.NewClient(cfg)
-			if err != nil {
-				return fmt.Errorf("failed to create MCP client: %w", err)
-			}
-
-			connectCtx, cancel := context.WithTimeout(cmd.Context(), cfg.Timeout)
-			defer cancel()
-
-			session, err := client.Connect(connectCtx)
-			if err != nil {
-				return fmt.Errorf("failed to connect to MCP server: %w", err)
-			}
-			defer session.Close()
-
-			count, err := linear.IngestIssues(cmd.Context(), db, runID, session)
+			result, err := jobs.RunLinearMCP(cmd.Context(), cmd.OutOrStdout(), cfg)
 			if err != nil {
 				return fmt.Errorf("failed to ingest Linear issues: %w", err)
 			}
-
-			if err := db.UpdateRunItemCount(runID); err != nil {
-				return fmt.Errorf("failed to update run item count: %w", err)
-			}
-
-			runStatus = "completed"
-
-			fmt.Fprintf(cmd.OutOrStdout(), "Ingested %d Linear issues\n", count)
+			fmt.Fprintf(cmd.OutOrStdout(), "Ingested %d Linear issues\n", result.ItemCount)
 			return nil
 		},
 	}
