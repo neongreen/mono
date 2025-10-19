@@ -41,73 +41,14 @@ jobs:
 
       - name: Find Go projects
         id: find-projects
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          BEFORE_SHA: ${{ github.event.before }}
-          PR_BASE: ${{ github.event.pull_request.base.ref }}
-          MANUAL_PROJECTS: ${{ github.event.inputs.projects }}
         run: |
-          set -euo pipefail
-
-          # Discover all Go projects with a main entrypoint
-          declare -a all_projects=()
-          for dir in */; do
-            dir=${dir%/}
-            if [ -f "$dir/go.mod" ] && find "$dir" -name "main.go" | grep -q .; then
-              all_projects+=("$dir")
-            fi
-          done
-          echo "All Go projects: ${all_projects[*]}"
-
-          manual_input="${MANUAL_PROJECTS:-}"
-          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -n "$manual_input" ]; then
-            echo "Manual project input detected: $manual_input"
-            IFS=$'\n, ' read -r -a requested <<< "$manual_input"
-            declare -a projects=()
-            for project in "${requested[@]}"; do
-              project_trimmed=$(echo "$project" | xargs)
-              [ -z "$project_trimmed" ] && continue
-              if [[ " ${all_projects[*]} " == *" $project_trimmed "* ]]; then
-                projects+=("$project_trimmed")
-              else
-                echo "::warning::Requested project '$project_trimmed' not found or not a Go project with a main.go"
-              fi
-            done
-          else
-            # Determine changed files for automatic detection
-            if [ "$EVENT_NAME" = "pull_request" ]; then
-              CHANGED_FILES=$(git diff --name-only origin/${PR_BASE}...HEAD)
-            else
-              before_sha=${BEFORE_SHA:-}
-              if [ -z "$before_sha" ] || [ "$before_sha" = "0000000000000000000000000000000000000000" ]; then
-                CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r ${{ github.sha }})
-              else
-                CHANGED_FILES=$(git diff --name-only "$before_sha"...${{ github.sha }})
-              fi
-            fi
-
-            echo "Changed files:"
-            echo "$CHANGED_FILES"
-
-            declare -a projects=()
-            for project in "${all_projects[@]}"; do
-              if echo "$CHANGED_FILES" | grep -q "^$project/"; then
-                projects+=("$project")
-                echo "Project $project has changes"
-              fi
-            done
-          fi
-
-          if [ ${#projects[@]} -eq 0 ]; then
-            echo "has_projects=false" >> "$GITHUB_OUTPUT"
-            echo "projects=[]" >> "$GITHUB_OUTPUT"
-            echo "No projects selected for release"
-          else
-            projects_json=$(printf '%s\n' "${projects[@]}" | jq -R . | jq -s -c .)
-            echo "has_projects=true" >> "$GITHUB_OUTPUT"
-            echo "projects=$projects_json" >> "$GITHUB_OUTPUT"
-            echo "Selected projects: ${projects[*]}"
-          fi
+          python3 scripts/detect_go_projects.py \
+            --event "${{ github.event_name }}" \
+            --before-sha "${{ github.event.before }}" \
+            --pr-base "${{ github.event.pull_request.base.ref }}" \
+            --ref-sha "${{ github.sha }}" \
+            --manual-projects "${{ github.event.inputs.projects }}" \
+            --output "$GITHUB_OUTPUT"
       - name: Load release mirror config
         id: mirror-config
         run: |
