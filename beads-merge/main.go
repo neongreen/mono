@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 // Issue represents a beads issue with all possible fields
@@ -361,9 +363,10 @@ func hasConflict(base, left, right, merged Issue) bool {
 }
 
 func issuesEqual(a, b Issue) bool {
-	aJSON, _ := json.Marshal(a)
-	bJSON, _ := json.Marshal(b)
-	return string(aJSON) == string(bJSON)
+	// Use go-cmp for deep equality comparison, ignoring RawLine field
+	return cmp.Equal(a, b, cmp.FilterPath(func(p cmp.Path) bool {
+		return p.String() == "RawLine"
+	}, cmp.Ignore()))
 }
 
 func makeConflict(left, right string) string {
