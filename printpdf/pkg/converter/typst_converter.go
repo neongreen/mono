@@ -140,13 +140,13 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
 		}
 
 	case *ast.Link:
-		buf.WriteString("#link(\"")
+		buf.WriteString("#underline[#link(\"")
 		buf.WriteString(escapeTypst(string(n.Destination)))
 		buf.WriteString("\")[")
 		if err := renderChildren(buf, n, source); err != nil {
 			return err
 		}
-		buf.WriteString("]")
+		buf.WriteString("]]")
 
 	case *ast.CodeSpan:
 		buf.WriteString("`")
