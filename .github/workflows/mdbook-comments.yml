@@ -16,15 +16,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
 
       - name: Set up Rust
-        uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336d9b35a # v1.83.0
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
         with:
           toolchain: 1.90
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890697e6cf56d9684ba # v2.7.3
+        uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1 # v2.8.1
 
       - name: Check formatting
         working-directory: mdbook-comments
@@ -34,10 +36,48 @@ jobs:
         working-directory: mdbook-comments
         run: cargo clippy -- -D warnings
 
-      - name: Run tests
+      - name: Run Rust tests
         working-directory: mdbook-comments
         run: cargo test
 
       - name: Build release
         working-directory: mdbook-comments
         run: cargo build --release
+
+      - name: Install mdbook
+        run: cargo install mdbook --version 0.4.52
+
+      - name: Build example book
+        working-directory: mdbook-comments/example-book
+        run: |
+          rm -rf book
+          PATH="../target/release:$PATH" mdbook build
+
+      - name: Set up Node.js
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: mdbook-comments/package-lock.json
+
+      - name: Install npm dependencies
+        working-directory: mdbook-comments
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: mdbook-comments
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: mdbook-comments
+        run: npm test
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: playwright-results
+          path: |
+            mdbook-comments/test-results/
+            mdbook-comments/playwright-report/
+          retention-days: 7

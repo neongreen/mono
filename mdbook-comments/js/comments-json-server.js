@@ -175,13 +175,13 @@
     function matchComments() {
         // This is the same logic as the Supabase version
         // Find all commentable elements
-        const commentableElements = document.querySelectorAll('[data-mdbook-comments-id]');
+        const commentableElements = document.querySelectorAll('[data-comment-id]');
 
         currentPageComments = [];
         orphanedComments = [];
 
         commentableElements.forEach(element => {
-            const paragraphId = element.getAttribute('data-mdbook-comments-id');
+            const paragraphId = element.getAttribute('data-comment-id');
             const paragraphText = element.textContent.trim();
 
             // Find matching comments
@@ -360,7 +360,7 @@
         // Comment link clicked
         if (target.classList.contains('comment-link')) {
             event.preventDefault();
-            const paragraphElement = target.closest('[data-mdbook-comments-id]');
+            const paragraphElement = target.closest('[data-comment-id]');
             if (paragraphElement) {
                 toggleCommentSection(paragraphElement);
             }
@@ -398,7 +398,7 @@
      * Toggle comment section visibility
      */
     function toggleCommentSection(paragraphElement) {
-        const paragraphId = paragraphElement.getAttribute('data-mdbook-comments-id');
+        const paragraphId = paragraphElement.getAttribute('data-comment-id');
         let commentSection = paragraphElement.querySelector('.comment-section');
 
         if (commentSection) {
@@ -407,16 +407,25 @@
         } else {
             // Create new comment section
             commentSection = document.createElement('div');
+            commentSection.id = `comments-${paragraphId}`;
             commentSection.className = 'comment-section';
+            commentSection.setAttribute('data-paragraph-id', paragraphId); // Store for reply forms
+
+            // Create comment list container
+            const commentList = document.createElement('div');
+            commentList.className = 'comment-list';
 
             // Find matching comments
             const pageComment = currentPageComments.find(pc => pc.paragraphId === paragraphId);
             if (pageComment) {
                 pageComment.comments.forEach(comment => {
                     const commentElement = createCommentElement(comment);
-                    commentSection.appendChild(commentElement);
+                    commentList.appendChild(commentElement);
                 });
             }
+
+            // Append comment list to section
+            commentSection.appendChild(commentList);
 
             // Add new comment form
             const newCommentForm = createCommentForm(paragraphId, null);
@@ -469,19 +478,25 @@
         const form = document.createElement('form');
         form.className = 'comment-form';
 
+        // Determine if this is a reply or a new comment
+        const isReply = !!parentCommentId;
+        const textareaName = isReply ? 'reply-text' : 'comment-text';
+        const placeholder = isReply ? 'Write a reply...' : 'Write a comment...';
+        const submitText = isReply ? 'Post Reply' : 'Submit';
+
         // Author field (only show if not set)
         let authorField = '';
         if (!currentAuthor) {
             authorField = `
-                <input type="text" class="author-input" placeholder="Your name" required>
+                <input type="text" name="author" class="author-input" placeholder="Your name" required>
             `;
         }
 
         form.innerHTML = `
             ${authorField}
-            <textarea class="comment-textarea" placeholder="Write a comment..." required></textarea>
+            <textarea name="${textareaName}" class="comment-textarea" placeholder="${placeholder}" required></textarea>
             <div class="comment-buttons">
-                <button type="submit" class="submit-comment">Submit</button>
+                <button type="submit" class="submit-comment">${submitText}</button>
                 <button type="button" class="cancel-comment">Cancel</button>
             </div>
         `;
@@ -492,6 +507,20 @@
             form.setAttribute('data-parent-id', parentCommentId);
         }
 
+        // Add event listener for author input to save to localStorage immediately
+        if (!currentAuthor) {
+            const authorInput = form.querySelector('.author-input');
+            if (authorInput) {
+                authorInput.addEventListener('input', (e) => {
+                    const value = e.target.value.trim();
+                    if (value) {
+                        currentAuthor = value;
+                        localStorage.setItem('mdbook-comments-author', value);
+                    }
+                });
+            }
+        }
+
         return form;
     }
 
@@ -500,18 +529,25 @@
      */
     function showReplyForm(commentElement) {
         const commentId = commentElement.getAttribute('data-comment-id');
+        console.log('[showReplyForm] commentId:', commentId);
 
         // Check if reply form already exists
         if (commentElement.querySelector('.comment-form')) {
+            console.log('[showReplyForm] Reply form already exists');
             return;
         }
 
-        // Get paragraph ID from parent element
-        const paragraphElement = commentElement.closest('[data-mdbook-comments-id]');
-        const paragraphId = paragraphElement ? paragraphElement.getAttribute('data-mdbook-comments-id') : null;
+        // Get paragraph ID from the comment section
+        // We can't reliably use closest() because the comment section div
+        // might be moved out of the inline span by the browser's HTML parser
+        const commentSection = commentElement.closest('.comment-section');
+        console.log('[showReplyForm] commentSection:', commentSection);
+        const paragraphId = commentSection ? commentSection.getAttribute('data-paragraph-id') : null;
+        console.log('[showReplyForm] paragraphId:', paragraphId);
 
         const replyForm = createCommentForm(paragraphId, commentId);
         commentElement.appendChild(replyForm);
+        console.log('[showReplyForm] Reply form appended');
     }
 
     /**
@@ -555,7 +591,7 @@
             form.remove();
 
             // Re-render the comment section
-            const paragraphElement = document.querySelector(`[data-mdbook-comments-id="${paragraphId}"]`);
+            const paragraphElement = document.querySelector(`[data-comment-id="${paragraphId}"]`);
             if (paragraphElement) {
                 const commentSection = paragraphElement.querySelector('.comment-section');
                 if (commentSection) {

@@ -40,20 +40,22 @@ impl CommentsProcessor {
             asset_html.push_str(&format!("<style>\n{}\n</style>\n\n", css_content));
         }
 
-        // Inject JavaScript files
-        let js_files = [
-            "comments.js",
-            "comments-googlesheets.js",
-            "comments-json-server.js",
-            "comments-neon.js",
-            "comments-supabase.js",
-        ];
-
-        for js_file in &js_files {
-            if let Some(js_asset) = JsAsset::get(js_file) {
-                let js_content = std::str::from_utf8(js_asset.data.as_ref())?;
-                asset_html.push_str(&format!("<script>\n{}\n</script>\n\n", js_content));
+        // Inject JavaScript file based on backend type
+        let js_filename = match self.config.backend_type.as_str() {
+            "json-server" => "comments-json-server.js",
+            "supabase" => "comments-supabase.js",
+            "neon" => "comments-neon.js",
+            "google-sheets" => "comments-googlesheets.js",
+            "custom" => "comments.js",
+            _ => {
+                eprintln!("Warning: Unknown backend type '{}', defaulting to json-server", self.config.backend_type);
+                "comments-json-server.js"
             }
+        };
+
+        if let Some(js_asset) = JsAsset::get(js_filename) {
+            let js_content = std::str::from_utf8(js_asset.data.as_ref())?;
+            asset_html.push_str(&format!("<script>\n{}\n</script>\n\n", js_content));
         }
 
         // Prepend assets to chapter content

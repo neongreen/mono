@@ -11,9 +11,10 @@
 (function() {
     'use strict';
 
-    // Configuration (injected by preprocessor)
+    // Configuration (injected by preprocessor or JSON server config)
+    const jsonServerConfig = window.JSON_SERVER_CONFIG || null;
     const CONFIG = window.MDBOOK_COMMENTS_CONFIG || {
-        apiUrl: 'http://localhost:3000/api',
+        apiUrl: jsonServerConfig ? jsonServerConfig.url : 'http://localhost:3000/api',
         similarityThreshold: 0.85,
         orphanedLocation: 'end-of-chapter'
     };

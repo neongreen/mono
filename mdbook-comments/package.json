@@ -1,7 +1,7 @@
 {
   "name": "mdbook-comments-tests",
   "version": "1.0.0",
-  "description": "Playwright tests for mdbook-comments Docker demo",
+  "description": "Playwright tests for mdbook-comments with json-server backend",
   "private": true,
   "scripts": {
     "test": "playwright test",
@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "json-server": "^0.17.4"
   }
 }
