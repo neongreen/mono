@@ -38,6 +38,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Find Go projects
         id: find-projects
@@ -45,10 +46,13 @@ jobs:
           python3 scripts/detect_go_projects.py \
             --event "${{ github.event_name }}" \
             --before-sha "${{ github.event.before }}" \
-            --pr-base "${{ github.event.pull_request.base.ref }}" \
+            --pr-base "${GITHUB_EVENT_PULL_REQUEST_BASE_REF}" \
             --ref-sha "${{ github.sha }}" \
-            --manual-projects "${{ github.event.inputs.projects }}" \
+            --manual-projects "${GITHUB_EVENT_INPUTS_PROJECTS}" \
             --output "$GITHUB_OUTPUT"
+        env:
+          GITHUB_EVENT_PULL_REQUEST_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          GITHUB_EVENT_INPUTS_PROJECTS: ${{ github.event.inputs.projects }}
       - name: Load release mirror config
         id: mirror-config
         run: |
@@ -94,6 +98,7 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Go
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
@@ -104,7 +109,7 @@ jobs:
       - name: Determine version and branch
         id: version
         run: |
-          PROJECT="${{ matrix.project }}"
+          PROJECT="${MATRIX_PROJECT}"
 
           # Determine branch/ref name
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -146,13 +151,15 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
           echo "Building ${PROJECT} version ${VERSION} (tag: ${TAG})"
+        env:
+          MATRIX_PROJECT: ${{ matrix.project }}
 
       - name: Build binaries
         id: build
         run: |
           set -euo pipefail
-          PROJECT="${{ matrix.project }}"
-          VERSION="${{ steps.version.outputs.version }}"
+          PROJECT="${MATRIX_PROJECT}"
+          VERSION="${STEPS_VERSION_OUTPUTS_VERSION}"
 
           if [ -f "$PROJECT/cmd/main.go" ]; then
             BUILD_TARGET="./cmd"
@@ -188,13 +195,16 @@ jobs:
           done
 
           ls -lh dist/
+        env:
+          MATRIX_PROJECT: ${{ matrix.project }}
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Package Homebrew archives
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         run: |
           set -euo pipefail
-          PROJECT="${{ matrix.project }}"
-          VERSION="${{ steps.version.outputs.version }}"
+          PROJECT="${MATRIX_PROJECT}"
+          VERSION="${STEPS_VERSION_OUTPUTS_VERSION}"
 
           for binary in dist/"${PROJECT}-${VERSION}-"*; do
             if [[ ! -f "$binary" ]]; then
@@ -215,6 +225,9 @@ jobs:
             rm -rf "$tmpdir"
             echo "Created $tarball"
           done
+        env:
+          MATRIX_PROJECT: ${{ matrix.project }}
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Create Release
         uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
@@ -260,6 +273,7 @@ jobs:
           repository: ${{ needs.detect.outputs.mirror_repo }}
           token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
           path: tap
+          persist-credentials: false
 
       - name: Update Homebrew formula
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
@@ -387,13 +401,14 @@ jobs:
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"
+          MATRIX_PROJECT: ${{ matrix.project }}
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
           brew tap-new --no-git neongreen/mono || true
           TAP_DIR="$(brew --repository)/Library/Taps/neongreen/homebrew-mono"
           rm -rf "$TAP_DIR"
           ln -s "${GITHUB_WORKSPACE}/tap" "$TAP_DIR"
-          brew audit --formula "neongreen/mono/${{ matrix.project }}"
+          brew audit --formula "neongreen/mono/${MATRIX_PROJECT}"
 
       - name: Commit Homebrew tap update
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
