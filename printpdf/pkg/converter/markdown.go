@@ -243,11 +243,10 @@ func wrapHTMLWithPageOptions(htmlContent []byte, options PageOptions) ([]byte, e
 	}
 	zoomFactor := float64(zoom) / 100.0
 
-	// Check if the HTML already has <html>, <head>, or <body> tags
+	// Check if the HTML already has <html>, <head> tags
 	htmlStr := string(htmlContent)
 	hasHTML := strings.Contains(strings.ToLower(htmlStr), "<html")
 	hasHead := strings.Contains(strings.ToLower(htmlStr), "<head")
-	hasBody := strings.Contains(strings.ToLower(htmlStr), "<body")
 
 	var result []byte
 
@@ -308,7 +307,7 @@ h1, h2, h3 {
     column-span: all;
 }
 </style>`, options.Columns)
-		
+
 		// Insert the column CSS before </head>
 		result = bytes.Replace(result, []byte("</head>"), []byte(columnCSS+"\n</head>"), 1)
 	}

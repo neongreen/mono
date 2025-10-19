@@ -271,7 +271,7 @@ func (suite *GoldenTestSuite) compareImages(image1, image2 string) error {
 	if output == "0" || strings.HasPrefix(output, "0 (") {
 		return nil // Images are identical
 	}
-	
+
 	// Check for empty output which might indicate identical images
 	if output == "" {
 		return nil // Likely identical
