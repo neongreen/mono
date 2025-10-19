@@ -2,6 +2,20 @@
 
 This document contains guidelines for AI agents and automated tools working on projects in this monorepo.
 
+## Multi-Agent Environment
+
+**IMPORTANT: Multiple agents may be working on this repository simultaneously.** When making commits, always specify the specific files and subdirectories you're changing to avoid conflicts and provide clear change boundaries.
+
+**Examples:**
+- `jj commit conf/ -m "conf: Add schema parsing"` (changes only in conf directory)
+- `jj commit lib/ghrelease/ -m "ghrelease: Fix error handling"` (changes only in lib/ghrelease)
+- `jj commit .github/workflows/conf.yml -m "conf: Update CI workflow"` (specific file)
+- `jj commit README.md AGENTS.md -m "docs: Update project guidelines"` (specific files)
+
+**Do NOT use:**
+- `jj commit -m "..."` (commits everything, may include other agents' work)
+- `jj commit . -m "..."` (commits current directory, may be too broad)
+
 ## Basic rules
 
 - All tools are written in Go unless stated otherwise. 
