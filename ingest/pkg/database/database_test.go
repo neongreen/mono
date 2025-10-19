@@ -411,24 +411,29 @@ func TestGitHubOperations(t *testing.T) {
 	now := time.Now()
 	closedAt := now.Add(24 * time.Hour)
 	err = db.CreateGitHubIssue(GitHubIssueRecord{
-		RunID:       runID,
-		Number:      1,
-		Title:       "Test Issue",
-		Body:        "Issue body",
-		State:       "closed",
-		Author:      "testuser",
-		CreatedAt:   now,
-		UpdatedAt:   now.Add(1 * time.Hour),
-		ClosedAt:    &closedAt,
-		Labels:      "bug,enhancement",
-		Assignees:   "assignee1,assignee2",
-		Milestone:   "v1.0",
-		NodeID:      "MDU6SXNzdWUx",
-		IssueID:     12345,
-		HTMLURL:     "https://github.com/neongreen/mono/issues/1",
-		APIURL:      "https://api.github.com/repos/neongreen/mono/issues/1",
-		CommentsURL: "https://api.github.com/repos/neongreen/mono/issues/1/comments",
-		EventsURL:   "https://api.github.com/repos/neongreen/mono/issues/1/events",
+		RunID:            runID,
+		Number:           1,
+		Title:            "Test Issue",
+		Body:             "Issue body",
+		State:            "closed",
+		Author:           "testuser",
+		CreatedAt:        now,
+		UpdatedAt:        now.Add(1 * time.Hour),
+		ClosedAt:         &closedAt,
+		Labels:           "bug,enhancement",
+		Assignees:        "assignee1,assignee2",
+		Milestone:        "v1.0",
+		NodeID:           "MDU6SXNzdWUx",
+		IssueID:          12345,
+		HTMLURL:          "https://github.com/neongreen/mono/issues/1",
+		APIURL:           "https://api.github.com/repos/neongreen/mono/issues/1",
+		CommentsURL:      "https://api.github.com/repos/neongreen/mono/issues/1/comments",
+		EventsURL:        "https://api.github.com/repos/neongreen/mono/issues/1/events",
+		StateReason:      "completed",
+		Locked:           true,
+		ActiveLockReason: "resolved",
+		Draft:            true,
+		ClosedBy:         "maintainer",
 	})
 	if err != nil {
 		t.Fatalf("Failed to create GitHub issue: %v", err)
@@ -511,7 +516,7 @@ func TestGitHubOperations(t *testing.T) {
 	}
 
 	// Test querying GitHub issues
-	results, err := db.Query("SELECT number, title, state, labels, node_id, html_url, issue_id FROM github_issues")
+	results, err := db.Query("SELECT number, title, state, labels, node_id, html_url, issue_id, state_reason, locked, active_lock_reason, draft, closed_by FROM github_issues")
 	if err != nil {
 		t.Fatalf("Failed to query GitHub issues: %v", err)
 	}
@@ -538,6 +543,22 @@ func TestGitHubOperations(t *testing.T) {
 	}
 	if issueID != 12345 {
 		t.Errorf("Expected issue_id 12345, got %v", issueID)
+	}
+
+	if results[0]["state_reason"] != "completed" {
+		t.Errorf("Expected state_reason 'completed', got %v", results[0]["state_reason"])
+	}
+	if locked, ok := results[0]["locked"].(int64); !ok || locked != 1 {
+		t.Errorf("Expected locked=1, got %v", results[0]["locked"])
+	}
+	if results[0]["active_lock_reason"] != "resolved" {
+		t.Errorf("Expected active_lock_reason 'resolved', got %v", results[0]["active_lock_reason"])
+	}
+	if draft, ok := results[0]["draft"].(int64); !ok || draft != 1 {
+		t.Errorf("Expected draft=1, got %v", results[0]["draft"])
+	}
+	if results[0]["closed_by"] != "maintainer" {
+		t.Errorf("Expected closed_by 'maintainer', got %v", results[0]["closed_by"])
 	}
 
 	labels := results[0]["labels"].(string)

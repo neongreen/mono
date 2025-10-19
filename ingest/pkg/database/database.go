@@ -45,24 +45,29 @@ type File struct {
 
 // GitHubIssueRecord represents a row in github_issues.
 type GitHubIssueRecord struct {
-	RunID       int64
-	Number      int
-	Title       string
-	Body        string
-	State       string
-	Author      string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	ClosedAt    *time.Time
-	Labels      string
-	Assignees   string
-	Milestone   string
-	NodeID      string
-	IssueID     int64
-	HTMLURL     string
-	APIURL      string
-	CommentsURL string
-	EventsURL   string
+	RunID            int64
+	Number           int
+	Title            string
+	Body             string
+	State            string
+	Author           string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	ClosedAt         *time.Time
+	Labels           string
+	Assignees        string
+	Milestone        string
+	NodeID           string
+	IssueID          int64
+	HTMLURL          string
+	APIURL           string
+	CommentsURL      string
+	EventsURL        string
+	StateReason      string
+	Locked           bool
+	ActiveLockReason string
+	Draft            bool
+	ClosedBy         string
 }
 
 // LinearIssue represents a Linear issue record stored in the database.
@@ -214,17 +219,22 @@ func (d *Database) createTables() error {
 		created_at DATETIME NOT NULL,
 		updated_at DATETIME NOT NULL,
 		closed_at DATETIME,
-		labels TEXT,
-		assignees TEXT,
-		milestone TEXT,
-		node_id TEXT,
-		issue_id INTEGER,
-		html_url TEXT,
-		api_url TEXT,
-		comments_url TEXT,
-		events_url TEXT,
-		FOREIGN KEY (run_id) REFERENCES runs(id)
-	);
+	labels TEXT,
+	assignees TEXT,
+	milestone TEXT,
+	node_id TEXT,
+	issue_id INTEGER,
+	html_url TEXT,
+	api_url TEXT,
+	comments_url TEXT,
+	events_url TEXT,
+	state_reason TEXT,
+	locked INTEGER NOT NULL DEFAULT 0,
+	active_lock_reason TEXT,
+	draft INTEGER NOT NULL DEFAULT 0,
+	closed_by TEXT,
+	FOREIGN KEY (run_id) REFERENCES runs(id)
+);
 
 	CREATE TABLE IF NOT EXISTS github_prs (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -324,6 +334,11 @@ func (d *Database) ensureSchemaUpgrades() error {
 		{"github_issues", "api_url", "TEXT"},
 		{"github_issues", "comments_url", "TEXT"},
 		{"github_issues", "events_url", "TEXT"},
+		{"github_issues", "state_reason", "TEXT"},
+		{"github_issues", "locked", "INTEGER NOT NULL DEFAULT 0"},
+		{"github_issues", "active_lock_reason", "TEXT"},
+		{"github_issues", "draft", "INTEGER NOT NULL DEFAULT 0"},
+		{"github_issues", "closed_by", "TEXT"},
 	}
 
 	for _, col := range columns {
@@ -768,8 +783,13 @@ func (d *Database) CreateGitHubIssue(record GitHubIssueRecord) error {
 			html_url,
 			api_url,
 			comments_url,
-			events_url
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			events_url,
+			state_reason,
+			locked,
+			active_lock_reason,
+			draft,
+			closed_by
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		record.RunID,
 		record.Number,
 		record.Title,
@@ -788,6 +808,11 @@ func (d *Database) CreateGitHubIssue(record GitHubIssueRecord) error {
 		record.APIURL,
 		record.CommentsURL,
 		record.EventsURL,
+		record.StateReason,
+		record.Locked,
+		record.ActiveLockReason,
+		record.Draft,
+		record.ClosedBy,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create github issue: %w", err)
