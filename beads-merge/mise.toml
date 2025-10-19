@@ -1,0 +1,22 @@
+[tools]
+go = "1.24.7"
+
+[tasks.run]
+description = "Build and run the merge tool"
+run = "go run . $@"
+
+[tasks.test]
+description = "Run tests"
+run = "go test ./..."
+
+[tasks.fmt]
+description = "Format Go code"
+run = "go fmt ./..."
+
+[tasks.check]
+description = "Check that Go code and tests compile and type check"
+run = "go test -run=^$ ./..."
+
+[tasks.build]
+description = "Build the beads-merge binary"
+run = "go build -o beads-merge ."
