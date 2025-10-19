@@ -69,7 +69,7 @@ Go projects in this repository are automatically released:
 
 Main channel releases are considered unstable snapshots unless explicitly tagged. Stable channels are being defined (see bd-313).
 
-Selected public binaries (`ingest`, `want`, `printpdf`) are mirrored to [neongreen/mono-public](https://github.com/neongreen/mono-public) for Homebrew tap automation.
+Homebrew formulas for `ingest`, `want`, and `printpdf` are published to [neongreen/homebrew-mono](https://github.com/neongreen/homebrew-mono). Tap it with `brew tap neongreen/mono` to install directly from the public releases of this repository.
 
 See [Release Workflow Documentation](.github/workflows/RELEASE_WORKFLOW.md) for more details.
 
