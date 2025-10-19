@@ -17,3 +17,7 @@ jj git fetch && jj b t "glob:*@origin"
 [tasks."lint:actions"]
 description = "Lint GitHub Actions workflows with actionlint"
 run = "go run github.com/rhysd/actionlint/cmd/actionlint@latest"
+
+[tasks."lint:actions-pinned"]
+description = "Verify GitHub Actions are pinned to commit SHAs"
+run = "go run github.com/suzuki-shunsuke/pinact/v3/cmd/pinact@latest run --check"

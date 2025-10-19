@@ -3,32 +3,32 @@ name: dissect
 on:
   push:
     paths:
-      - 'dissect/**'
-      - '.github/workflows/dissect.yml'
+      - "dissect/**"
+      - ".github/workflows/dissect.yml"
   pull_request:
     paths:
-      - 'dissect/**'
-      - '.github/workflows/dissect.yml'
+      - "dissect/**"
+      - ".github/workflows/dissect.yml"
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
-          go-version: '1.24.7'
+          go-version: "1.24.7"
           cache-dependency-path: dissect/go.sum
-      
+
       - name: Install dependencies
         run: |
           go install golang.org/x/tools/gopls@latest
           go install golang.org/x/tools/cmd/goimports@latest
-      
+
       - name: Run tests
         working-directory: dissect
         run: go test ./... -v

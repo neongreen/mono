@@ -3,70 +3,70 @@ name: diagram-dsl
 on:
   push:
     paths:
-      - 'diagram-dsl/**'
-      - '.github/workflows/diagram-dsl.yml'
+      - "diagram-dsl/**"
+      - ".github/workflows/diagram-dsl.yml"
   pull_request:
     paths:
-      - 'diagram-dsl/**'
-      - '.github/workflows/diagram-dsl.yml'
+      - "diagram-dsl/**"
+      - ".github/workflows/diagram-dsl.yml"
 
 jobs:
   lint:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Install dependencies
         working-directory: diagram-dsl
         run: npm ci
-      
+
       - name: Run linter
         working-directory: diagram-dsl
         run: npm run lint
-  
+
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Install dependencies
         working-directory: diagram-dsl
         run: npm ci
-      
+
       - name: Run tests
         working-directory: diagram-dsl
         run: npm run test:lint
-  
+
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@0a44ba7841725637a19e28fa30b79a866c81b0a6 # v4.0.4
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Install dependencies
         working-directory: diagram-dsl
         run: npm ci
-      
+
       - name: Build
         working-directory: diagram-dsl
         run: npm run build

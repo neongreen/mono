@@ -3,39 +3,39 @@ name: conf
 on:
   push:
     paths:
-      - 'conf/**'
-      - '.github/workflows/conf.yml'
+      - "conf/**"
+      - ".github/workflows/conf.yml"
   pull_request:
     paths:
-      - 'conf/**'
-      - '.github/workflows/conf.yml'
+      - "conf/**"
+      - ".github/workflows/conf.yml"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.24.7'
-        cache-dependency-path: conf/go.sum
-    
-    - name: Download dependencies
-      working-directory: conf
-      run: go mod download
-    
-    - name: Format check
-      working-directory: conf
-      run: |
-        go fmt ./...
-        git diff --exit-code
-    
-    - name: Run tests
-      working-directory: conf
-      run: go test -v -race ./...
-    
-    - name: Build
-      working-directory: conf
-      run: go build -v ./cmd/main.go
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: "1.24.7"
+          cache-dependency-path: conf/go.sum
+
+      - name: Download dependencies
+        working-directory: conf
+        run: go mod download
+
+      - name: Format check
+        working-directory: conf
+        run: |
+          go fmt ./...
+          git diff --exit-code
+
+      - name: Run tests
+        working-directory: conf
+        run: go test -v -race ./...
+
+      - name: Build
+        working-directory: conf
+        run: go build -v ./cmd/main.go

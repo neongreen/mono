@@ -33,6 +33,8 @@ This document contains guidelines for AI agents and automated tools working on p
 - The release workflow requires the `PUBLIC_RELEASE_TOKEN` secret with permissions to publish to `neongreen/mono-public`.
 - Homebrew tap updates are automated via the release workflow; adjust formula metadata only through `release-mirror.toml`.
 - To run releases manually, use the `workflow_dispatch` trigger on `release.yml` and supply a comma/newline separated project list (matches directories like `ingest`).
+- Use the provided `mise` tasks instead of `go install`; for example, run `mise run //:lint:actions` and `mise run //:lint:actions-pinned` when touching workflows to ensure lint and pin checks stay green.
+- Investigate GitHub Actions failures yourself with available tooling (e.g. `gh run list`, `gh run view --log`); do not defer to the user for log gathering or diagnosis.
 
 ------------------------------------------------------------
 
