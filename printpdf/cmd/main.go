@@ -1,43 +1,75 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/neongreen/mono/printpdf/pkg/converter"
 	"github.com/neongreen/mono/printpdf/pkg/fetcher"
 )
 
-func main() {
-	outputDir := flag.String("o", ".", "output directory for generated PDFs")
-	converters := flag.String("converters", "all", "comma-separated list of converters to use (typst,prince,weasyprint) or 'all'")
-	columns := flag.Int("columns", 1, "number of columns for text layout (e.g., 2 or 3 for newspaper-style layout)")
-	orientation := flag.String("orientation", "portrait", "page orientation (portrait or landscape)")
-	margin := flag.String("margin", "2cm", "page margin (e.g., '2cm', '1in', '20mm')")
-	marginTop := flag.String("margin-top", "", "top page margin (overrides the value from -margin when set)")
-	marginRight := flag.String("margin-right", "", "right page margin (overrides the value from -margin when set)")
-	marginBottom := flag.String("margin-bottom", "", "bottom page margin (overrides the value from -margin when set)")
-	marginLeft := flag.String("margin-left", "", "left page margin (overrides the value from -margin when set)")
-	zoom := flag.Int("zoom", 100, "zoom percentage for all font sizes (e.g., 80 for 80%, 120 for 120%)")
-	firstPageGuide := flag.String("first-page-guide", "", "draw a thin vertical guide on the first page at the given distance from the left edge (e.g., '3cm')")
-	flag.Parse()
+var (
+	outputDir      string
+	converters     string
+	columns        int
+	orientation    string
+	margin         string
+	marginTop      string
+	marginRight    string
+	marginBottom   string
+	marginLeft     string
+	zoom           int
+	firstPageGuide string
+)
 
-	args := flag.Args()
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: printpdf [options] <input>\n\n")
-		fmt.Fprintf(os.Stderr, "Options:\n")
-		flag.PrintDefaults()
-		fmt.Fprintf(os.Stderr, "\nInput can be:\n")
-		fmt.Fprintf(os.Stderr, "  - Path to a Markdown file\n")
-		fmt.Fprintf(os.Stderr, "  - URL to a Markdown file\n")
-		fmt.Fprintf(os.Stderr, "  - GitHub file URL (works with private repos if GITHUB_TOKEN is set)\n")
-		fmt.Fprintf(os.Stderr, "  - Web page URL (will be processed with Mozilla Readability)\n")
+var rootCmd = &cobra.Command{
+	Use:   "printpdf <input>",
+	Short: "Convert Markdown and HTML to PDF using various rendering engines",
+	Long: `printpdf converts Markdown files, HTML files, and web pages to PDF format
+using various rendering engines (Typst, Prince XML, WeasyPrint).
+
+Input can be:
+  - Path to a Markdown file
+  - Path to an HTML file
+  - URL to a Markdown file
+  - GitHub file URL (works with private repos if GITHUB_TOKEN is set)
+  - Web page URL (will be processed with Mozilla Readability)
+
+Examples:
+  printpdf README.md
+  printpdf --converters weasyprint --zoom 120 README.md
+  printpdf --margin-top 3cm --margin-left 4cm document.html
+  printpdf https://github.com/user/repo/blob/main/README.md`,
+	Args: cobra.ExactArgs(1),
+	Run:  runConvert,
+}
+
+func init() {
+	rootCmd.Flags().StringVarP(&outputDir, "output", "o", ".", "output directory for generated PDFs")
+	rootCmd.Flags().StringVar(&converters, "converters", "all", "comma-separated list of converters to use (typst,prince,weasyprint) or 'all'")
+	rootCmd.Flags().IntVar(&columns, "columns", 1, "number of columns for text layout (e.g., 2 or 3 for newspaper-style layout)")
+	rootCmd.Flags().StringVar(&orientation, "orientation", "portrait", "page orientation (portrait or landscape)")
+	rootCmd.Flags().StringVar(&margin, "margin", "2cm", "page margin (e.g., '2cm', '1in', '20mm')")
+	rootCmd.Flags().StringVar(&marginTop, "margin-top", "", "top page margin (overrides the value from --margin when set)")
+	rootCmd.Flags().StringVar(&marginRight, "margin-right", "", "right page margin (overrides the value from --margin when set)")
+	rootCmd.Flags().StringVar(&marginBottom, "margin-bottom", "", "bottom page margin (overrides the value from --margin when set)")
+	rootCmd.Flags().StringVar(&marginLeft, "margin-left", "", "left page margin (overrides the value from --margin when set)")
+	rootCmd.Flags().IntVar(&zoom, "zoom", 100, "zoom percentage for all font sizes (e.g., 80 for 80%, 120 for 120%)")
+	rootCmd.Flags().StringVar(&firstPageGuide, "first-page-guide", "", "draw a thin vertical guide on the first page at the given distance from the left edge (e.g., '3cm')")
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
+}
 
+func runConvert(cmd *cobra.Command, args []string) {
 	input := args[0]
 
 	// Fetch the content
@@ -50,40 +82,40 @@ func main() {
 	fmt.Printf("Content type: %s (%d bytes)\n", contentType, len(content))
 
 	// Validate and prepare page options
-	if *columns < 1 {
+	if columns < 1 {
 		fmt.Fprintf(os.Stderr, "Error: columns must be at least 1\n")
 		os.Exit(1)
 	}
-	if *orientation != "portrait" && *orientation != "landscape" {
+	if orientation != "portrait" && orientation != "landscape" {
 		fmt.Fprintf(os.Stderr, "Error: orientation must be 'portrait' or 'landscape'\n")
 		os.Exit(1)
 	}
-	if *zoom < 1 || *zoom > 500 {
+	if zoom < 1 || zoom > 500 {
 		fmt.Fprintf(os.Stderr, "Error: zoom must be between 1 and 500\n")
 		os.Exit(1)
 	}
 
 	pageOptions := converter.PageOptions{
-		Columns:        *columns,
-		Orientation:    *orientation,
-		Margin:         *margin,
-		MarginTop:      *marginTop,
-		MarginRight:    *marginRight,
-		MarginBottom:   *marginBottom,
-		MarginLeft:     *marginLeft,
-		Zoom:           *zoom,
-		FirstPageGuide: strings.TrimSpace(*firstPageGuide),
+		Columns:        columns,
+		Orientation:    orientation,
+		Margin:         margin,
+		MarginTop:      marginTop,
+		MarginRight:    marginRight,
+		MarginBottom:   marginBottom,
+		MarginLeft:     marginLeft,
+		Zoom:           zoom,
+		FirstPageGuide: strings.TrimSpace(firstPageGuide),
 	}
 
 	// Determine which converters to use
-	converterList := converter.ParseConverterList(*converters)
+	converterList := converter.ParseConverterList(converters)
 	if len(converterList) == 0 {
 		fmt.Fprintf(os.Stderr, "No valid converters specified\n")
 		os.Exit(1)
 	}
 
 	// Ensure output directory exists
-	if err := os.MkdirAll(*outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating output directory: %v\n", err)
 		os.Exit(1)
 	}
@@ -93,7 +125,7 @@ func main() {
 	for _, conv := range converterList {
 		fmt.Printf("\n--- Converting with %s ---\n", conv.Name())
 
-		outputPath := filepath.Join(*outputDir, fmt.Sprintf("output-%s.pdf", conv.Name()))
+		outputPath := filepath.Join(outputDir, fmt.Sprintf("output-%s.pdf", conv.Name()))
 
 		err := conv.Convert(content, contentType, outputPath, pageOptions)
 		if err != nil {
