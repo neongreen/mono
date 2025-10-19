@@ -77,6 +77,10 @@ api-url = "http://localhost:3000/api"
 # Authentication type (cookie, bearer-token, oauth)
 auth-type = "cookie"
 
+# Backend type (json-server, supabase, neon, google-sheets, custom)
+# This determines which JavaScript implementation to use
+backend-type = "json-server"
+
 # Similarity threshold for fuzzy matching (0.0 - 1.0)
 similarity-threshold = 0.85
 

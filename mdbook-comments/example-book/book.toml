@@ -9,6 +9,7 @@ title = "Example Book with Comments"
 command = "mdbook-comments"
 api-url = "http://localhost:3000/api"
 auth-type = "cookie"
+backend-type = "json-server"
 similarity-threshold = 0.85
 orphaned-comments-location = "end-of-chapter"
 

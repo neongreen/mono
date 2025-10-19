@@ -40,9 +40,20 @@ impl CommentsProcessor {
             asset_html.push_str(&format!("<style>\n{}\n</style>\n\n", css_content));
         }
 
-        // Inject JavaScript file (json-server backend for now)
-        // TODO: Make this configurable based on backend type
-        if let Some(js_asset) = JsAsset::get("comments-json-server.js") {
+        // Inject JavaScript file based on backend type
+        let js_filename = match self.config.backend_type.as_str() {
+            "json-server" => "comments-json-server.js",
+            "supabase" => "comments-supabase.js",
+            "neon" => "comments-neon.js",
+            "google-sheets" => "comments-googlesheets.js",
+            "custom" => "comments.js",
+            _ => {
+                eprintln!("Warning: Unknown backend type '{}', defaulting to json-server", self.config.backend_type);
+                "comments-json-server.js"
+            }
+        };
+
+        if let Some(js_asset) = JsAsset::get(js_filename) {
             let js_content = std::str::from_utf8(js_asset.data.as_ref())?;
             asset_html.push_str(&format!("<script>\n{}\n</script>\n\n", js_content));
         }

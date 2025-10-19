@@ -26,6 +26,8 @@ pub struct CommentsConfig {
     pub api_url: String,
     /// Authentication type (cookie, bearer-token, oauth)
     pub auth_type: String,
+    /// Backend type (json-server, supabase, neon, google-sheets, custom)
+    pub backend_type: String,
     /// Similarity threshold for fuzzy matching (0.0 - 1.0)
     pub similarity_threshold: f64,
     /// Where to show orphaned comments (end-of-chapter, end-of-page)
@@ -61,6 +63,7 @@ impl Default for CommentsConfig {
         Self {
             api_url: String::from("http://localhost:3000/api"),
             auth_type: String::from("cookie"),
+            backend_type: String::from("json-server"),
             similarity_threshold: 0.85,
             orphaned_comments_location: String::from("end-of-chapter"),
             elements: ElementsConfig::default(),
