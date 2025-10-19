@@ -44,15 +44,16 @@ type IssueKey struct {
 }
 
 func main() {
-	if len(os.Args) != 4 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <base> <left> <right>\n", os.Args[0])
+	if len(os.Args) != 5 {
+		fmt.Fprintf(os.Stderr, "Usage: %s <output> <base> <left> <right>\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "A 3-way merge tool for beads .jsonl files\n")
 		os.Exit(1)
 	}
 
-	basePath := os.Args[1]
-	leftPath := os.Args[2]
-	rightPath := os.Args[3]
+	outputPath := os.Args[1]
+	basePath := os.Args[2]
+	leftPath := os.Args[3]
+	rightPath := os.Args[4]
 
 	// Read all three files
 	baseIssues, err := readIssues(basePath)
@@ -76,22 +77,30 @@ func main() {
 	// Perform 3-way merge
 	result, conflicts := merge3Way(baseIssues, leftIssues, rightIssues)
 
-	// Output merged result
+	// Open output file for writing
+	outFile, err := os.Create(outputPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error creating output file: %v\n", err)
+		os.Exit(1)
+	}
+	defer outFile.Close()
+
+	// Write merged result to output file
 	for _, issue := range result {
 		line, err := json.Marshal(issue)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error marshaling issue %s: %v\n", issue.ID, err)
 			os.Exit(1)
 		}
-		fmt.Println(string(line))
+		fmt.Fprintln(outFile, string(line))
 	}
 
-	// Output conflicts
+	// Write conflicts to output file
 	for _, conflict := range conflicts {
-		fmt.Println(conflict)
+		fmt.Fprintln(outFile, conflict)
 	}
 
-	// Exit with non-zero if there were conflicts
+	// Exit with 1 if there were conflicts (jj will interpret this as conflict markers present)
 	if len(conflicts) > 0 {
 		os.Exit(1)
 	}

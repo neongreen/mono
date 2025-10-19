@@ -572,7 +572,8 @@ This repository includes `beads-merge`, a custom 3-way merge tool for `.beads/is
 ```toml
 [merge-tools.beads-merge]
 program = "/absolute/path/to/mono/beads-merge/beads-merge"
-merge-args = ["$base", "$left", "$right"]
+merge-args = ["$output", "$base", "$left", "$right"]
+merge-conflict-exit-codes = [1]
 
 [merge-tools.beads-merge.diff-args]
 # Optional: configure for 2-way diff if needed
@@ -589,10 +590,12 @@ tool-edits = [
 ]
 ```
 
+The `merge-conflict-exit-codes = [1]` setting tells jj that exit code 1 indicates conflict markers are present in the output file, not that the merge should be aborted.
+
 The merge tool will:
 - Match issues by id, created_at, and created_by
 - Intelligently merge field changes
 - Combine dependency arrays
-- Output conflict markers for unresolvable conflicts
+- Write conflict markers to the output file for unresolvable conflicts
 
 See [beads-merge/README.md](./beads-merge/README.md) for details on the merge algorithm.

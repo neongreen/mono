@@ -14,10 +14,10 @@ A 3-way merge tool for beads `.jsonl` issue tracker files, designed to work with
 ## Usage
 
 ```bash
-beads-merge <base-file> <left-file> <right-file>
+beads-merge <output-file> <base-file> <left-file> <right-file>
 ```
 
-The tool reads three versions of a `.jsonl` file and outputs the merged result to stdout.
+The tool reads three versions of a `.jsonl` file, performs a 3-way merge, and writes the result to the output file. If there are conflicts, they are written as conflict markers in the output file and the tool exits with code 1.
 
 ### As a jj Merge Tool
 
@@ -26,8 +26,11 @@ Configure in your jj config (e.g., `~/.jjconfig.toml`):
 ```toml
 [merge-tools.beads-merge]
 program = "beads-merge"
-merge-args = ["$base", "$left", "$right"]
+merge-args = ["$output", "$base", "$left", "$right"]
+merge-conflict-exit-codes = [1]
 ```
+
+The `merge-conflict-exit-codes = [1]` setting tells jj that exit code 1 indicates conflict markers are present in the output file, not that the merge should be aborted.
 
 Then use it with:
 
@@ -127,4 +130,5 @@ Result combines both dependencies without duplicates.
 ## Exit Codes
 
 - `0` - Successful merge with no conflicts
-- `1` - Conflicts present (conflict markers in output) or error occurred
+- `1` - Conflicts present (conflict markers written to output file)
+- Non-zero (other than 1) - Error occurred during processing
