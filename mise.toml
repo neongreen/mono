@@ -24,10 +24,6 @@ run = "actionlint"
 description = "Check that GitHub Actions are pinned to specific SHAs"
 run = "pinact run --check"
 
-[tasks."lint:actions-pinned"]
-description = "Check that GitHub Actions are pinned to specific SHAs"
-run = "pinact run --check"
-
 [tasks."lint:actions"]
 description = "Lint GitHub Actions workflows"
 depends = ["//:lint:actions:*"]
