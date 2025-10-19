@@ -190,7 +190,7 @@ jobs:
           ls -lh dist/
 
       - name: Package Homebrew archives
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         run: |
           set -euo pipefail
           PROJECT="${{ matrix.project }}"
@@ -254,7 +254,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Mirror release to public repository
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2
         with:
           repository: ${{ needs.detect.outputs.mirror_repo }}
@@ -294,7 +294,7 @@ jobs:
           token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
 
       - name: Checkout Homebrew tap repository
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           repository: ${{ needs.detect.outputs.mirror_repo }}
@@ -302,7 +302,7 @@ jobs:
           path: tap
 
       - name: Update Homebrew formula
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         working-directory: tap
         env:
           PROJECT: ${{ matrix.project }}
@@ -422,7 +422,7 @@ jobs:
           PY
 
       - name: Run brew audit
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         env:
           HOMEBREW_NO_AUTO_UPDATE: "1"
         run: |
@@ -434,7 +434,7 @@ jobs:
           brew audit --formula "neongreen/mono-public/${{ matrix.project }}"
 
       - name: Commit Homebrew tap update
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         working-directory: tap
         env:
           PROJECT: ${{ matrix.project }}
