@@ -49,37 +49,28 @@ func IngestRepository(ctx context.Context, db *database.Database, runID int64, s
 			milestone = issue.Milestone.GetTitle()
 		}
 
-		if err := db.CreateGitHubIssue(database.GitHubIssueRecord{
-			RunID:            runID,
-			Number:           issue.GetNumber(),
-			Title:            issue.GetTitle(),
-			Body:             issue.GetBody(),
-			State:            issue.GetState(),
-			Author:           userLogin(issue.User),
-			CreatedAt:        toTime(issue.GetCreatedAt()),
-			UpdatedAt:        toTime(issue.GetUpdatedAt()),
-			ClosedAt:         toTimePtr(issue.ClosedAt),
-			Labels:           labels,
-			Assignees:        assignees,
-			Milestone:        milestone,
-			NodeID:           issue.GetNodeID(),
-			IssueID:          issue.GetID(),
-			HTMLURL:          issue.GetHTMLURL(),
-			APIURL:           issue.GetURL(),
-			CommentsURL:      issue.GetCommentsURL(),
-			EventsURL:        issue.GetEventsURL(),
-			StateReason:      issue.GetStateReason(),
-			Locked:           issue.GetLocked(),
-			ActiveLockReason: issue.GetActiveLockReason(),
-			Draft:            issue.GetDraft(),
-			ClosedBy:         userLogin(issue.GetClosedBy()),
-		}); err != nil {
-			return Summary{}, fmt.Errorf("failed to store issue #%d: %w", issue.GetNumber(), err)
-		}
-
 		comments, err := fetchIssueComments(ctx, session, owner, repo, issue.GetNumber())
 		if err != nil {
 			return Summary{}, fmt.Errorf("failed to fetch comments for issue #%d: %w", issue.GetNumber(), err)
+		}
+
+		reactionsTotal := 0
+		if reactions := issue.GetReactions(); reactions != nil {
+			reactionsTotal += reactions.GetTotalCount()
+		}
+
+		participants := make(map[string]struct{})
+		addParticipant := func(login string) {
+			login = strings.TrimSpace(login)
+			if login == "" {
+				return
+			}
+			participants[login] = struct{}{}
+		}
+		addParticipant(userLogin(issue.User))
+		addParticipant(userLogin(issue.GetClosedBy()))
+		for _, user := range issue.Assignees {
+			addParticipant(userLogin(user))
 		}
 
 		for _, comment := range comments {
@@ -98,8 +89,43 @@ func IngestRepository(ctx context.Context, db *database.Database, runID int64, s
 			); err != nil {
 				return Summary{}, fmt.Errorf("failed to store comment %d for issue #%d: %w", comment.GetID(), issue.GetNumber(), err)
 			}
+			addParticipant(userLogin(comment.User))
+			if comment.GetReactions() != nil {
+				reactionsTotal += comment.GetReactions().GetTotalCount()
+			}
 		}
 		summary.IssueComments += len(comments)
+
+		if err := db.CreateGitHubIssue(database.GitHubIssueRecord{
+			RunID:             runID,
+			Number:            issue.GetNumber(),
+			Title:             issue.GetTitle(),
+			Body:              issue.GetBody(),
+			State:             issue.GetState(),
+			Author:            userLogin(issue.User),
+			CreatedAt:         toTime(issue.GetCreatedAt()),
+			UpdatedAt:         toTime(issue.GetUpdatedAt()),
+			ClosedAt:          toTimePtr(issue.ClosedAt),
+			Labels:            labels,
+			Assignees:         assignees,
+			Milestone:         milestone,
+			NodeID:            issue.GetNodeID(),
+			IssueID:           issue.GetID(),
+			HTMLURL:           issue.GetHTMLURL(),
+			APIURL:            issue.GetURL(),
+			CommentsURL:       issue.GetCommentsURL(),
+			EventsURL:         issue.GetEventsURL(),
+			StateReason:       issue.GetStateReason(),
+			Locked:            issue.GetLocked(),
+			ActiveLockReason:  issue.GetActiveLockReason(),
+			Draft:             issue.GetDraft(),
+			ClosedBy:          userLogin(issue.GetClosedBy()),
+			CommentCount:      len(comments),
+			ReactionsTotal:    reactionsTotal,
+			ParticipantsCount: len(participants),
+		}); err != nil {
+			return Summary{}, fmt.Errorf("failed to store issue #%d: %w", issue.GetNumber(), err)
+		}
 	}
 
 	prs, err := fetchPullRequests(ctx, session, owner, repo)

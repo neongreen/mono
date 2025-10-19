@@ -67,6 +67,13 @@ type Comment struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Reaction represents a GitHub reaction.
+type Reaction struct {
+	ID      int64  `json:"id"`
+	Content string `json:"content"`
+	User    User   `json:"user"`
+}
+
 // User represents a GitHub user
 type User struct {
 	Login string `json:"login"`
@@ -213,6 +220,66 @@ func (c *Client) FetchIssueComments(owner, repo string, issueNumber int) ([]Comm
 	return allComments, nil
 }
 
+// FetchIssueReactions returns all reactions attached to the issue itself.
+func (c *Client) FetchIssueReactions(owner, repo string, issueNumber int) ([]Reaction, error) {
+	var all []Reaction
+	opts := &api.ListOptions{PerPage: defaultPerPage}
+	for {
+		reactions, resp, err := c.gh.Reactions.ListIssueReactions(c.ctx, owner, repo, issueNumber, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list reactions for issue %s/%s#%d: %w", owner, repo, issueNumber, err)
+		}
+		for _, reaction := range reactions {
+			all = append(all, convertReaction(reaction))
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+	return all, nil
+}
+
+// FetchIssueCommentReactions returns reactions for a specific issue comment.
+func (c *Client) FetchIssueCommentReactions(owner, repo string, commentID int64) ([]Reaction, error) {
+	var all []Reaction
+	opts := &api.ListOptions{PerPage: defaultPerPage}
+	for {
+		reactions, resp, err := c.gh.Reactions.ListIssueCommentReactions(c.ctx, owner, repo, commentID, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list reactions for comment %d: %w", commentID, err)
+		}
+		for _, reaction := range reactions {
+			all = append(all, convertReaction(reaction))
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+	return all, nil
+}
+
+// FetchReviewCommentReactions returns reactions for a pull request review comment.
+func (c *Client) FetchReviewCommentReactions(owner, repo string, commentID int64) ([]Reaction, error) {
+	var all []Reaction
+	opts := &api.ListOptions{PerPage: defaultPerPage}
+	for {
+		reactions, resp, err := c.gh.Reactions.ListPullRequestCommentReactions(c.ctx, owner, repo, commentID, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list reactions for review comment %d: %w", commentID, err)
+		}
+		for _, reaction := range reactions {
+			all = append(all, convertReaction(reaction))
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+	return all, nil
+}
+
 // FetchPRComments fetches all comments for a pull request (includes review comments).
 func (c *Client) FetchPRComments(owner, repo string, prNumber int) ([]Comment, error) {
 	issueComments, err := c.FetchIssueComments(owner, repo, prNumber)
@@ -329,6 +396,17 @@ func convertReviewComment(src *api.PullRequestComment) Comment {
 		User:      convertUser(src.User),
 		CreatedAt: convertTimestamp(src.GetCreatedAt()),
 		UpdatedAt: convertTimestamp(src.GetUpdatedAt()),
+	}
+}
+
+func convertReaction(src *api.Reaction) Reaction {
+	if src == nil {
+		return Reaction{}
+	}
+	return Reaction{
+		ID:      src.GetID(),
+		Content: src.GetContent(),
+		User:    convertUser(src.User),
 	}
 }
 

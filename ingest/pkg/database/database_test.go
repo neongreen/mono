@@ -411,29 +411,32 @@ func TestGitHubOperations(t *testing.T) {
 	now := time.Now()
 	closedAt := now.Add(24 * time.Hour)
 	err = db.CreateGitHubIssue(GitHubIssueRecord{
-		RunID:            runID,
-		Number:           1,
-		Title:            "Test Issue",
-		Body:             "Issue body",
-		State:            "closed",
-		Author:           "testuser",
-		CreatedAt:        now,
-		UpdatedAt:        now.Add(1 * time.Hour),
-		ClosedAt:         &closedAt,
-		Labels:           "bug,enhancement",
-		Assignees:        "assignee1,assignee2",
-		Milestone:        "v1.0",
-		NodeID:           "MDU6SXNzdWUx",
-		IssueID:          12345,
-		HTMLURL:          "https://github.com/neongreen/mono/issues/1",
-		APIURL:           "https://api.github.com/repos/neongreen/mono/issues/1",
-		CommentsURL:      "https://api.github.com/repos/neongreen/mono/issues/1/comments",
-		EventsURL:        "https://api.github.com/repos/neongreen/mono/issues/1/events",
-		StateReason:      "completed",
-		Locked:           true,
-		ActiveLockReason: "resolved",
-		Draft:            true,
-		ClosedBy:         "maintainer",
+		RunID:             runID,
+		Number:            1,
+		Title:             "Test Issue",
+		Body:              "Issue body",
+		State:             "closed",
+		Author:            "testuser",
+		CreatedAt:         now,
+		UpdatedAt:         now.Add(1 * time.Hour),
+		ClosedAt:          &closedAt,
+		Labels:            "bug,enhancement",
+		Assignees:         "assignee1,assignee2",
+		Milestone:         "v1.0",
+		NodeID:            "MDU6SXNzdWUx",
+		IssueID:           12345,
+		HTMLURL:           "https://github.com/neongreen/mono/issues/1",
+		APIURL:            "https://api.github.com/repos/neongreen/mono/issues/1",
+		CommentsURL:       "https://api.github.com/repos/neongreen/mono/issues/1/comments",
+		EventsURL:         "https://api.github.com/repos/neongreen/mono/issues/1/events",
+		StateReason:       "completed",
+		Locked:            true,
+		ActiveLockReason:  "resolved",
+		Draft:             true,
+		ClosedBy:          "maintainer",
+		CommentCount:      2,
+		ReactionsTotal:    3,
+		ParticipantsCount: 4,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create GitHub issue: %v", err)
@@ -495,6 +498,17 @@ func TestGitHubOperations(t *testing.T) {
 		t.Fatalf("Failed to create GitHub PR comment: %v", err)
 	}
 
+	if err := db.CreateGitHubCommentReaction(GitHubCommentReaction{
+		RunID:      runID,
+		ItemType:   "issue",
+		ItemNumber: 1,
+		CommentID:  12345,
+		Reactor:    "reactor",
+		Content:    "+1",
+	}); err != nil {
+		t.Fatalf("Failed to create comment reaction: %v", err)
+	}
+
 	// Test UpdateRunItemCount for github type
 	err = db.UpdateRunItemCount(runID)
 	if err != nil {
@@ -516,7 +530,7 @@ func TestGitHubOperations(t *testing.T) {
 	}
 
 	// Test querying GitHub issues
-	results, err := db.Query("SELECT number, title, state, labels, node_id, html_url, issue_id, state_reason, locked, active_lock_reason, draft, closed_by FROM github_issues")
+	results, err := db.Query("SELECT number, title, state, labels, node_id, html_url, issue_id, state_reason, locked, active_lock_reason, draft, closed_by, comment_count, reaction_total, participants_count FROM github_issues")
 	if err != nil {
 		t.Fatalf("Failed to query GitHub issues: %v", err)
 	}
@@ -560,6 +574,15 @@ func TestGitHubOperations(t *testing.T) {
 	if results[0]["closed_by"] != "maintainer" {
 		t.Errorf("Expected closed_by 'maintainer', got %v", results[0]["closed_by"])
 	}
+	if count, ok := results[0]["comment_count"].(int64); !ok || count != 2 {
+		t.Errorf("Expected comment_count 2, got %v", results[0]["comment_count"])
+	}
+	if total, ok := results[0]["reaction_total"].(int64); !ok || total != 3 {
+		t.Errorf("Expected reaction_total 3, got %v", results[0]["reaction_total"])
+	}
+	if participants, ok := results[0]["participants_count"].(int64); !ok || participants != 4 {
+		t.Errorf("Expected participants_count 4, got %v", results[0]["participants_count"])
+	}
 
 	labels := results[0]["labels"].(string)
 	if !strings.Contains(labels, "bug") || !strings.Contains(labels, "enhancement") {
@@ -600,5 +623,16 @@ func TestGitHubOperations(t *testing.T) {
 
 	if results[1]["item_type"] != "pr" {
 		t.Errorf("Expected item_type 'pr', got '%v'", results[1]["item_type"])
+	}
+
+	results, err = db.Query("SELECT reactor, content FROM github_comment_reactions")
+	if err != nil {
+		t.Fatalf("Failed to query GitHub comment reactions: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("Expected 1 comment reaction, got %d", len(results))
+	}
+	if results[0]["reactor"] != "reactor" || results[0]["content"] != "+1" {
+		t.Errorf("Unexpected reaction row: %+v", results[0])
 	}
 }

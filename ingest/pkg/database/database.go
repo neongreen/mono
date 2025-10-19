@@ -45,29 +45,42 @@ type File struct {
 
 // GitHubIssueRecord represents a row in github_issues.
 type GitHubIssueRecord struct {
-	RunID            int64
-	Number           int
-	Title            string
-	Body             string
-	State            string
-	Author           string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	ClosedAt         *time.Time
-	Labels           string
-	Assignees        string
-	Milestone        string
-	NodeID           string
-	IssueID          int64
-	HTMLURL          string
-	APIURL           string
-	CommentsURL      string
-	EventsURL        string
-	StateReason      string
-	Locked           bool
-	ActiveLockReason string
-	Draft            bool
-	ClosedBy         string
+	RunID             int64
+	Number            int
+	Title             string
+	Body              string
+	State             string
+	Author            string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	ClosedAt          *time.Time
+	Labels            string
+	Assignees         string
+	Milestone         string
+	NodeID            string
+	IssueID           int64
+	HTMLURL           string
+	APIURL            string
+	CommentsURL       string
+	EventsURL         string
+	StateReason       string
+	Locked            bool
+	ActiveLockReason  string
+	Draft             bool
+	ClosedBy          string
+	CommentCount      int
+	ReactionsTotal    int
+	ParticipantsCount int
+}
+
+// GitHubCommentReaction represents a reaction on a GitHub comment.
+type GitHubCommentReaction struct {
+	RunID      int64
+	ItemType   string
+	ItemNumber int
+	CommentID  int64
+	Reactor    string
+	Content    string
 }
 
 // LinearIssue represents a Linear issue record stored in the database.
@@ -272,6 +285,17 @@ func (d *Database) createTables() error {
 		FOREIGN KEY (run_id) REFERENCES runs(id)
 	);
 
+	CREATE TABLE IF NOT EXISTS github_comment_reactions (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		item_type TEXT NOT NULL,
+		item_number INTEGER NOT NULL,
+		comment_id INTEGER NOT NULL,
+		reactor TEXT NOT NULL,
+		content TEXT NOT NULL,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
 	CREATE TABLE IF NOT EXISTS linear_issues (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		run_id INTEGER NOT NULL,
@@ -306,6 +330,8 @@ func (d *Database) createTables() error {
 	CREATE INDEX IF NOT EXISTS idx_github_prs_number ON github_prs(run_id, number);
 	CREATE INDEX IF NOT EXISTS idx_github_comments_run_id ON github_comments(run_id);
 	CREATE INDEX IF NOT EXISTS idx_github_comments_item ON github_comments(run_id, item_type, item_number);
+	CREATE INDEX IF NOT EXISTS idx_github_comment_reactions_run_id ON github_comment_reactions(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_comment_reactions_comment ON github_comment_reactions(comment_id);
 	CREATE INDEX IF NOT EXISTS idx_linear_issues_run_id ON linear_issues(run_id);
 	CREATE INDEX IF NOT EXISTS idx_linear_issues_identifier ON linear_issues(run_id, identifier);
 	`
@@ -339,6 +365,9 @@ func (d *Database) ensureSchemaUpgrades() error {
 		{"github_issues", "active_lock_reason", "TEXT"},
 		{"github_issues", "draft", "INTEGER NOT NULL DEFAULT 0"},
 		{"github_issues", "closed_by", "TEXT"},
+		{"github_issues", "comment_count", "INTEGER"},
+		{"github_issues", "reaction_total", "INTEGER"},
+		{"github_issues", "participants_count", "INTEGER"},
 	}
 
 	for _, col := range columns {
@@ -788,8 +817,11 @@ func (d *Database) CreateGitHubIssue(record GitHubIssueRecord) error {
 			locked,
 			active_lock_reason,
 			draft,
-			closed_by
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			closed_by,
+			comment_count,
+			reaction_total,
+			participants_count
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		record.RunID,
 		record.Number,
 		record.Title,
@@ -813,11 +845,38 @@ func (d *Database) CreateGitHubIssue(record GitHubIssueRecord) error {
 		record.ActiveLockReason,
 		record.Draft,
 		record.ClosedBy,
+		record.CommentCount,
+		record.ReactionsTotal,
+		record.ParticipantsCount,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create github issue: %w", err)
 	}
 
+	return nil
+}
+
+// CreateGitHubCommentReaction stores a reaction for a GitHub comment.
+func (d *Database) CreateGitHubCommentReaction(record GitHubCommentReaction) error {
+	_, err := d.db.Exec(
+		`INSERT INTO github_comment_reactions (
+			run_id,
+			item_type,
+			item_number,
+			comment_id,
+			reactor,
+			content
+		) VALUES (?, ?, ?, ?, ?, ?)`,
+		record.RunID,
+		record.ItemType,
+		record.ItemNumber,
+		record.CommentID,
+		record.Reactor,
+		record.Content,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create github comment reaction: %w", err)
+	}
 	return nil
 }
 

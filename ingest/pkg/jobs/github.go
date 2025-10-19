@@ -75,32 +75,27 @@ func RunGitHub(ctx context.Context, out io.Writer, opts GitHubOptions) (Result, 
 			milestone = issue.Milestone.Title
 		}
 
-		if err := db.CreateGitHubIssue(database.GitHubIssueRecord{
-			RunID:            runID,
-			Number:           issue.Number,
-			Title:            issue.Title,
-			Body:             issue.Body,
-			State:            issue.State,
-			Author:           issue.User.Login,
-			CreatedAt:        issue.CreatedAt,
-			UpdatedAt:        issue.UpdatedAt,
-			ClosedAt:         issue.ClosedAt,
-			Labels:           strings.Join(labelNames, ","),
-			Assignees:        strings.Join(assigneeNames, ","),
-			Milestone:        milestone,
-			NodeID:           issue.NodeID,
-			IssueID:          issue.ID,
-			HTMLURL:          issue.HTMLURL,
-			APIURL:           issue.APIURL,
-			CommentsURL:      issue.CommentsURL,
-			EventsURL:        issue.EventsURL,
-			StateReason:      issue.StateReason,
-			Locked:           issue.Locked,
-			ActiveLockReason: issue.ActiveLockReason,
-			Draft:            issue.Draft,
-			ClosedBy:         issue.ClosedBy,
-		}); err != nil {
-			return Result{}, fmt.Errorf("failed to create issue #%d: %w", issue.Number, err)
+		participants := make(map[string]struct{})
+		addParticipant := func(login string) {
+			login = strings.TrimSpace(login)
+			if login == "" {
+				return
+			}
+			participants[login] = struct{}{}
+		}
+		addParticipant(issue.User.Login)
+		addParticipant(issue.ClosedBy)
+		for _, assignee := range issue.Assignees {
+			addParticipant(assignee.Login)
+		}
+
+		issueReactions, err := client.FetchIssueReactions(opts.Owner, opts.Repo, issue.Number)
+		if err != nil {
+			return Result{}, fmt.Errorf("failed to fetch reactions for issue #%d: %w", issue.Number, err)
+		}
+		reactionsTotal := len(issueReactions)
+		for _, reaction := range issueReactions {
+			addParticipant(reaction.User.Login)
 		}
 
 		comments, err := client.FetchIssueComments(opts.Owner, opts.Repo, issue.Number)
@@ -110,6 +105,7 @@ func RunGitHub(ctx context.Context, out io.Writer, opts GitHubOptions) (Result, 
 		issueCommentsCount += len(comments)
 
 		for _, comment := range comments {
+			addParticipant(comment.User.Login)
 			if err := db.CreateGitHubComment(
 				runID,
 				"issue",
@@ -122,6 +118,56 @@ func RunGitHub(ctx context.Context, out io.Writer, opts GitHubOptions) (Result, 
 			); err != nil {
 				return Result{}, fmt.Errorf("failed to create comment %d for issue #%d: %w", comment.ID, issue.Number, err)
 			}
+
+			reactions, err := client.FetchIssueCommentReactions(opts.Owner, opts.Repo, comment.ID)
+			if err != nil {
+				return Result{}, fmt.Errorf("failed to fetch reactions for issue comment %d: %w", comment.ID, err)
+			}
+			reactionsTotal += len(reactions)
+			for _, reaction := range reactions {
+				addParticipant(reaction.User.Login)
+				if err := db.CreateGitHubCommentReaction(database.GitHubCommentReaction{
+					RunID:      runID,
+					ItemType:   "issue",
+					ItemNumber: issue.Number,
+					CommentID:  comment.ID,
+					Reactor:    reaction.User.Login,
+					Content:    reaction.Content,
+				}); err != nil {
+					return Result{}, fmt.Errorf("failed to store reaction for issue comment %d: %w", comment.ID, err)
+				}
+			}
+		}
+
+		if err := db.CreateGitHubIssue(database.GitHubIssueRecord{
+			RunID:             runID,
+			Number:            issue.Number,
+			Title:             issue.Title,
+			Body:              issue.Body,
+			State:             issue.State,
+			Author:            issue.User.Login,
+			CreatedAt:         issue.CreatedAt,
+			UpdatedAt:         issue.UpdatedAt,
+			ClosedAt:          issue.ClosedAt,
+			Labels:            strings.Join(labelNames, ","),
+			Assignees:         strings.Join(assigneeNames, ","),
+			Milestone:         milestone,
+			NodeID:            issue.NodeID,
+			IssueID:           issue.ID,
+			HTMLURL:           issue.HTMLURL,
+			APIURL:            issue.APIURL,
+			CommentsURL:       issue.CommentsURL,
+			EventsURL:         issue.EventsURL,
+			StateReason:       issue.StateReason,
+			Locked:            issue.Locked,
+			ActiveLockReason:  issue.ActiveLockReason,
+			Draft:             issue.Draft,
+			ClosedBy:          issue.ClosedBy,
+			CommentCount:      len(comments),
+			ReactionsTotal:    reactionsTotal,
+			ParticipantsCount: len(participants),
+		}); err != nil {
+			return Result{}, fmt.Errorf("failed to create issue #%d: %w", issue.Number, err)
 		}
 	}
 	if len(issues) > 0 {
@@ -204,6 +250,23 @@ func RunGitHub(ctx context.Context, out io.Writer, opts GitHubOptions) (Result, 
 				comment.UpdatedAt,
 			); err != nil {
 				return Result{}, fmt.Errorf("failed to create comment %d for PR #%d: %w", comment.ID, pr.Number, err)
+			}
+
+			reactions, err := client.FetchIssueCommentReactions(opts.Owner, opts.Repo, comment.ID)
+			if err != nil {
+				return Result{}, fmt.Errorf("failed to fetch reactions for PR issue comment %d: %w", comment.ID, err)
+			}
+			for _, reaction := range reactions {
+				if err := db.CreateGitHubCommentReaction(database.GitHubCommentReaction{
+					RunID:      runID,
+					ItemType:   "pr",
+					ItemNumber: pr.Number,
+					CommentID:  comment.ID,
+					Reactor:    reaction.User.Login,
+					Content:    reaction.Content,
+				}); err != nil {
+					return Result{}, fmt.Errorf("failed to store reaction for PR issue comment %d: %w", comment.ID, err)
+				}
 			}
 		}
 	}
