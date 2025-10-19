@@ -409,6 +409,7 @@
             commentSection = document.createElement('div');
             commentSection.id = `comments-${paragraphId}`;
             commentSection.className = 'comment-section';
+            commentSection.setAttribute('data-paragraph-id', paragraphId); // Store for reply forms
 
             // Create comment list container
             const commentList = document.createElement('div');
@@ -528,18 +529,25 @@
      */
     function showReplyForm(commentElement) {
         const commentId = commentElement.getAttribute('data-comment-id');
+        console.log('[showReplyForm] commentId:', commentId);
 
         // Check if reply form already exists
         if (commentElement.querySelector('.comment-form')) {
+            console.log('[showReplyForm] Reply form already exists');
             return;
         }
 
-        // Get paragraph ID from parent element
-        const paragraphElement = commentElement.closest('[data-comment-id]');
-        const paragraphId = paragraphElement ? paragraphElement.getAttribute('data-comment-id') : null;
+        // Get paragraph ID from the comment section
+        // We can't reliably use closest() because the comment section div
+        // might be moved out of the inline span by the browser's HTML parser
+        const commentSection = commentElement.closest('.comment-section');
+        console.log('[showReplyForm] commentSection:', commentSection);
+        const paragraphId = commentSection ? commentSection.getAttribute('data-paragraph-id') : null;
+        console.log('[showReplyForm] paragraphId:', paragraphId);
 
         const replyForm = createCommentForm(paragraphId, commentId);
         commentElement.appendChild(replyForm);
+        console.log('[showReplyForm] Reply form appended');
     }
 
     /**
