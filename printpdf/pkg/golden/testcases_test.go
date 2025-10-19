@@ -18,11 +18,16 @@ func TestGoldenSuite(t *testing.T) {
 	suite.AddTestCase(htmlTestCase())
 	suite.AddTestCase(marginTestCase())
 	suite.AddTestCase(zoomTestCase())
-	suite.AddTestCase(columnsTestCase())
+	suite.AddTestCase(twoColumnsTestCase())
+	suite.AddTestCase(threeColumnsTestCase())
 	suite.AddTestCase(landscapeTestCase())
 	suite.AddTestCase(firstPageGuideTestCase())
 	suite.AddTestCase(codeBlockTestCase())
+	suite.AddTestCase(ligatureTestCase())
 	suite.AddTestCase(tableTestCase())
+	suite.AddTestCase(zoom80TestCase())
+	suite.AddTestCase(zoom120TestCase())
+	suite.AddTestCase(zoom200TestCase())
 
 	suite.Run(t)
 }
@@ -383,8 +388,49 @@ The zoom should affect all text consistently.
 	}
 }
 
-// columnsTestCase tests multi-column layout
-func columnsTestCase() GoldenTestCase {
+// twoColumnsTestCase tests two-column newspaper layout
+func twoColumnsTestCase() GoldenTestCase {
+	return GoldenTestCase{
+		Name:        "two-columns",
+		ContentType: fetcher.ContentTypeMarkdown,
+		Input: `# Two Column Layout Test
+
+This document tests the two-column newspaper layout feature.
+
+## Column Layout
+
+This content should be laid out in two columns, similar to a traditional newspaper or magazine layout. Two columns provide a good balance between readability and space efficiency.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+## Section 1: Reading Flow
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+
+Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
+
+## Section 2: Content Distribution
+
+Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.
+
+At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.
+
+The text should flow naturally from the left column to the right column, creating an easy reading experience typical of newspapers and magazines.
+`,
+		Options: converter.PageOptions{
+			Columns:     2,
+			Orientation: "portrait",
+			Margin:      "2cm",
+			Zoom:        100,
+		},
+		Converters: []string{"typst", "prince", "weasyprint"},
+	}
+}
+
+// threeColumnsTestCase tests three-column layout
+func threeColumnsTestCase() GoldenTestCase {
 	return GoldenTestCase{
 		Name:        "three-columns",
 		ContentType: fetcher.ContentTypeMarkdown,
@@ -609,6 +655,95 @@ Code blocks should have consistent formatting and be easily distinguishable from
 	}
 }
 
+// ligatureTestCase tests ligature handling in code blocks
+func ligatureTestCase() GoldenTestCase {
+	return GoldenTestCase{
+		Name:        "ligatures-in-code",
+		ContentType: fetcher.ContentTypeMarkdown,
+		Input: `# Ligature Test in Code Blocks
+
+This document tests that ligatures (like fi, fl, ffi) are properly disabled in code blocks.
+
+## Regular Text (Ligatures OK)
+
+In regular text, ligatures should work fine: official,ffle, office, difficult.
+
+## Code Blocks (Ligatures Should Be Disabled)
+
+### Test Cases with Common Ligatures
+
+` + "```javascript" + `
+// These should NOT have ligatures - each letter should be separate
+function official() {
+    // fi ligature should be disabled
+    const config = {
+        filter: true,
+        offline: false
+    };
+    
+    // fl ligature should be disabled  
+    const flags = ["--flag", "--profile"];
+    
+    // ffi ligature should be disabled
+    const difficult = "coefficient";
+    
+    return config;
+}
+` + "```" + `
+
+### More Ligature Test Cases
+
+` + "```go" + `
+// fi combinations
+if filter != nil {
+    profile := "default"
+    config := GetConfig()
+}
+
+// fl combinations  
+flag := "--profile"
+float64Value := 3.14
+
+// ffi combinations
+coefficient := 1.23
+office := "main"
+` + "```" + `
+
+### Python Ligature Test
+
+` + "```python" + `
+# fi combinations
+def filter_files(profile):
+    config = load_config()
+    
+# fl combinations
+flags = ["--profile", "--filter"]
+floating_point = 3.14159
+
+# ffi combinations  
+coefficient = 2.5
+office_hours = "9-5"
+` + "```" + `
+
+## Expected Behavior
+
+In code blocks above, you should see:
+- **fi** rendered as separate f + i (not as ligature)
+- **fl** rendered as separate f + l (not as ligature)  
+- **ffi** rendered as separate f + f + i (not as ligature)
+
+This ensures code readability and prevents confusion between similar-looking characters.
+`,
+		Options: converter.PageOptions{
+			Columns:     1,
+			Orientation: "portrait",
+			Margin:      "2cm",
+			Zoom:        100,
+		},
+		Converters: []string{"typst", "prince", "weasyprint"},
+	}
+}
+
 // tableTestCase tests table rendering
 func tableTestCase() GoldenTestCase {
 	return GoldenTestCase{
@@ -658,6 +793,140 @@ Tables should render consistently across all converters with proper borders, ali
 			Orientation: "portrait",
 			Margin:      "2cm",
 			Zoom:        100,
+		},
+		Converters: []string{"typst", "prince", "weasyprint"},
+	}
+}
+
+// zoom80TestCase tests 80% zoom (smaller text for dense content)
+func zoom80TestCase() GoldenTestCase {
+	return GoldenTestCase{
+		Name:        "zoom-80",
+		ContentType: fetcher.ContentTypeMarkdown,
+		Input: `# Zoom Test Document (80%)
+
+This document tests the zoom functionality at 80% - useful for dense content or fitting more text per page.
+
+## Text Sizes
+
+All text in this document should be rendered at 80% of the normal size, making it smaller and more compact.
+
+### Use Cases for 80% Zoom
+
+- Dense technical documentation
+- Reference materials
+- Fitting more content per page
+- Reducing paper usage
+
+### Sample Content
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+### Code at 80%
+
+` + "```javascript" + `
+function smallerCode() {
+    // This code should be 80% of normal size
+    const config = { compact: true };
+    return config;
+}
+` + "```" + `
+
+The 80% zoom should make all text consistently smaller while maintaining readability.
+`,
+		Options: converter.PageOptions{
+			Columns:     1,
+			Orientation: "portrait",
+			Margin:      "2cm",
+			Zoom:        80,
+		},
+		Converters: []string{"typst", "prince", "weasyprint"},
+	}
+}
+
+// zoom120TestCase tests 120% zoom (larger text for accessibility)
+func zoom120TestCase() GoldenTestCase {
+	return GoldenTestCase{
+		Name:        "zoom-120",
+		ContentType: fetcher.ContentTypeMarkdown,
+		Input: `# Zoom Test Document (120%)
+
+This document tests the zoom functionality at 120% - useful for improved readability and accessibility.
+
+## Text Sizes
+
+All text in this document should be rendered at 120% of the normal size, making it larger and easier to read.
+
+### Use Cases for 120% Zoom
+
+- Improved accessibility for visually impaired users
+- Better readability for older adults
+- Presentations or display materials
+- Reducing eye strain
+
+### Sample Content
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+### Code at 120%
+
+` + "```python" + `
+def larger_code():
+    # This code should be 120% of normal size
+    return {"readable": True}
+` + "```" + `
+
+The 120% zoom should make all text consistently larger while maintaining good layout.
+`,
+		Options: converter.PageOptions{
+			Columns:     1,
+			Orientation: "portrait",
+			Margin:      "2cm",
+			Zoom:        120,
+		},
+		Converters: []string{"typst", "prince", "weasyprint"},
+	}
+}
+
+// zoom200TestCase tests 200% zoom (very large text)
+func zoom200TestCase() GoldenTestCase {
+	return GoldenTestCase{
+		Name:        "zoom-200",
+		ContentType: fetcher.ContentTypeMarkdown,
+		Input: `# Zoom Test Document (200%)
+
+This document tests the zoom functionality at 200% - very large text for special accessibility needs.
+
+## Text Sizes
+
+All text in this document should be rendered at 200% of the normal size, making it significantly larger.
+
+### Use Cases for 200% Zoom
+
+- High accessibility requirements
+- Large format displays
+- Vision assistance
+- Presentation materials
+
+### Sample Content
+
+This text should be very large and clearly visible.
+
+### Code at 200%
+
+` + "```go" + `
+func veryLargeCode() {
+    fmt.Println("Big text!")
+}
+` + "```" + `
+
+The 200% zoom should make all text very large while maintaining layout integrity.
+`,
+		Options: converter.PageOptions{
+			Columns:     1,
+			Orientation: "portrait",
+			Margin:      "2cm",
+			Zoom:        200,
 		},
 		Converters: []string{"typst", "prince", "weasyprint"},
 	}
