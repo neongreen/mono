@@ -1,0 +1,84 @@
+# Mise Configuration Schema Definition
+# Based on mise documentation: https://mise.jdx.dev/configuration.html
+
+[schema]
+name = "mise"
+description = "Mise configuration schema for ~/.config/mise/config.toml"
+version = "1.0"
+
+[fields]
+
+[fields."tasks"]
+type = "object"
+description = "Task definitions for mise"
+properties = [
+  { name = "run", type = "string", description = "Command to run for this task" },
+  { name = "description", type = "string", description = "Description of the task" },
+  { name = "depends", type = "array", description = "Tasks this task depends on" },
+  { name = "env", type = "object", description = "Environment variables for this task" },
+  { name = "dir", type = "string", description = "Directory to run the task in" },
+]
+
+[fields."env"]
+type = "object"
+description = "Global environment variables"
+
+[fields."tools"]
+type = "object"
+description = "Tool version specifications"
+
+[fields."plugins"]
+type = "object"
+description = "Plugin configurations"
+
+[fields."settings"]
+type = "object"
+description = "Mise settings"
+properties = [
+  { name = "experimental", type = "boolean", description = "Enable experimental features" },
+  { name = "verbose", type = "boolean", description = "Enable verbose output" },
+  { name = "quiet", type = "boolean", description = "Suppress output" },
+  { name = "jobs", type = "integer", description = "Number of parallel jobs" },
+  { name = "plugin_autoupdate_last_check_duration", type = "string", description = "Plugin auto-update check interval" },
+  { name = "trusted_config_paths", type = "array", description = "Trusted configuration file paths" },
+  { name = "legacy_version_file", type = "boolean", description = "Enable legacy version file support" },
+  { name = "always_keep_download", type = "boolean", description = "Always keep downloaded files" },
+  { name = "always_keep_install", type = "boolean", description = "Always keep installed tools" },
+  { name = "plugin_repository_last_check_duration", type = "string", description = "Plugin repository check interval" },
+  { name = "paranoid", type = "boolean", description = "Enable paranoid mode for security" },
+]
+
+[fields."alias"]
+type = "object"
+description = "Command aliases"
+
+[fields."env_file"]
+type = "string"
+description = "Path to environment file"
+
+[fields."python"]
+type = "object"
+description = "Python-specific configuration"
+properties = [
+  { name = "default_packages_file", type = "string", description = "Default packages file for Python" },
+  { name = "pyenv_repo", type = "string", description = "PyEnv repository URL" },
+  { name = "venv_auto_create", type = "boolean", description = "Automatically create virtual environments" },
+]
+
+[fields."ruby"]
+type = "object"
+description = "Ruby-specific configuration"
+properties = [
+  { name = "default_packages_file", type = "string", description = "Default packages file for Ruby" },
+  { name = "ruby_build_repo", type = "string", description = "Ruby-build repository URL" },
+  { name = "ruby_install", type = "boolean", description = "Use ruby-install instead of ruby-build" },
+]
+
+[fields."node"]
+type = "object"
+description = "Node.js-specific configuration"
+properties = [
+  { name = "default_packages_file", type = "string", description = "Default packages file for Node.js" },
+  { name = "node_build_repo", type = "string", description = "Node-build repository URL" },
+  { name = "corepack", type = "boolean", description = "Enable Node.js Corepack" },
+]
