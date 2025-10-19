@@ -2,6 +2,7 @@
 mdbook = "latest"
 rust = "1.90"
 "npm:json-server" = "latest"
+pnpm = "latest"
 # "go:github.com/supabase/cli" = "latest"  # This doesn't work, just use brew
 
 [tasks.build]
@@ -11,6 +12,10 @@ run = "cargo build --release"
 [tasks.test]
 description = "Run tests"
 run = "cargo test && mise run //mdbook-comments:test_render"
+
+[tasks."test:e2e"]
+description = "Run end-to-end tests with Playwright"
+run = "mise run //mdbook-comments:test_render && SKIP_WEBSERVER=1 pnpm playwright test"
 
 [tasks.test_render]
 description = "Test that the sample book renders correctly with embedded assets"
