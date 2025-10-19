@@ -107,7 +107,7 @@ jobs:
           PROJECT="${{ matrix.project }}"
 
           # Determine branch/ref name
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
             # For PRs, use pr-NUMBER format
             REF="pr-${{ github.event.pull_request.number }}"
           else
@@ -116,7 +116,7 @@ jobs:
           fi
 
           # Sanitize ref name (replace / with -)
-          REF_SAFE=$(echo "$REF" | tr '/' '-')
+          REF_SAFE="${REF//\//-}"
 
           # Find existing tags for this project+ref combination
           TAG_PREFIX="${PROJECT}--${REF_SAFE}."
@@ -127,36 +127,34 @@ jobs:
             VERSION_NUM=1
           else
             # Get the highest version number
-            LAST_TAG=$(echo "$EXISTING_TAGS" | tail -1)
-            LAST_NUM=$(echo "$LAST_TAG" | sed "s|${TAG_PREFIX}||")
+            LAST_TAG=$(printf '%s\n' "$EXISTING_TAGS" | tail -n 1)
+            prefix="$TAG_PREFIX"
+            LAST_NUM="${LAST_TAG#"$prefix"}"
             VERSION_NUM=$((LAST_NUM + 1))
           fi
 
           TAG="${PROJECT}--${REF_SAFE}.${VERSION_NUM}"
           VERSION="${REF_SAFE}.${VERSION_NUM}"
 
-          echo "project=$PROJECT" >> $GITHUB_OUTPUT
-          echo "ref=$REF" >> $GITHUB_OUTPUT
-          echo "ref_safe=$REF_SAFE" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "version_num=$VERSION_NUM" >> $GITHUB_OUTPUT
+          {
+            echo "project=$PROJECT"
+            echo "ref=$REF"
+            echo "ref_safe=$REF_SAFE"
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "version_num=$VERSION_NUM"
+          } >> "$GITHUB_OUTPUT"
 
           echo "Building ${PROJECT} version ${VERSION} (tag: ${TAG})"
 
       - name: Build binaries
         id: build
         run: |
+          set -euo pipefail
           PROJECT="${{ matrix.project }}"
           VERSION="${{ steps.version.outputs.version }}"
 
-          # Find main.go location(s)
-          MAIN_FILES=$(find "$PROJECT" -name "main.go")
-
-          # Determine build targets
-          # If there's cmd/main.go, build from cmd
-          # Otherwise build the main.go in root
-          if echo "$MAIN_FILES" | grep -q "cmd/main.go"; then
+          if [ -f "$PROJECT/cmd/main.go" ]; then
             BUILD_TARGET="./cmd"
           else
             BUILD_TARGET="."
@@ -165,7 +163,6 @@ jobs:
           mkdir -p dist
           DIST_DIR="$(pwd)/dist"
 
-          # Build for multiple platforms
           PLATFORMS=(
             "linux/amd64"
             "linux/arm64"
@@ -175,19 +172,15 @@ jobs:
 
           for platform in "${PLATFORMS[@]}"; do
             IFS='/' read -r GOOS GOARCH <<< "$platform"
-
             OUTPUT_NAME="${PROJECT}-${VERSION}-${GOOS}-${GOARCH}"
 
             echo "Building for $GOOS/$GOARCH..."
 
-            # Set ldflags for version information
-            BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             LDFLAGS="-X main.Version=${VERSION} -X main.GitCommit=${{ github.sha }} -X main.BuildTime=${BUILD_TIME}"
 
-            (cd "$PROJECT" && GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="$LDFLAGS" -o "$DIST_DIR/$OUTPUT_NAME" $BUILD_TARGET)
-
-            if [ $? -ne 0 ]; then
-              echo "Failed to build for $GOOS/$GOARCH"
+            if ! (cd "$PROJECT" && GOOS="$GOOS" GOARCH="$GOARCH" go build -ldflags="$LDFLAGS" -o "$DIST_DIR/$OUTPUT_NAME" "$BUILD_TARGET"); then
+              echo "Failed to build for $GOOS/$GOARCH" >&2
               exit 1
             fi
 
@@ -203,16 +196,16 @@ jobs:
           PROJECT="${{ matrix.project }}"
           VERSION="${{ steps.version.outputs.version }}"
 
-          for binary in dist/${PROJECT}-${VERSION}-*; do
+          for binary in dist/"${PROJECT}-${VERSION}-"*; do
             if [[ ! -f "$binary" ]]; then
               continue
             fi
             if [[ "$binary" == *.tar.gz ]]; then
               continue
             fi
-
-            platform=${binary#dist/${PROJECT}-${VERSION}-}
-            tmpdir=$(mktemp -d)
+            prefix="dist/${PROJECT}-${VERSION}-"
+            platform="${binary#"$prefix"}"
+            tmpdir="$(mktemp -d)"
             cp "$binary" "$tmpdir/${PROJECT}"
             tarball="dist/${PROJECT}-${VERSION}-${platform}.tar.gz"
             (
@@ -296,9 +289,8 @@ jobs:
           files: dist/*
           draft: false
           prerelease: false
-          allow_updates: true
           fail_on_unmatched_files: true
-          overwrite: true
+          overwrite_files: true
           token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
 
       - name: Checkout Homebrew tap repository
@@ -439,7 +431,7 @@ jobs:
           TAP_DIR="$(brew --repository)/Library/Taps/neongreen/homebrew-mono-public"
           rm -rf "$TAP_DIR"
           ln -s "${GITHUB_WORKSPACE}/tap" "$TAP_DIR"
-          brew audit --formula neongreen/mono-public/${{ matrix.project }}
+          brew audit --formula "neongreen/mono-public/${{ matrix.project }}"
 
       - name: Commit Homebrew tap update
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
@@ -448,13 +440,13 @@ jobs:
           PROJECT: ${{ matrix.project }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          set -e
+          set -euo pipefail
           git config user.name "mono-release-bot"
           git config user.email "mono-release-bot@example.com"
           git fetch origin
           git checkout main
           git pull --rebase origin main
-          git add Formula/${PROJECT}.rb
+          git add "Formula/${PROJECT}.rb"
           if git diff --staged --quiet; then
             echo "No Homebrew changes to commit"
             exit 0
