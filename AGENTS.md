@@ -32,6 +32,7 @@ This document contains guidelines for AI agents and automated tools working on p
 - Release mirroring configuration lives in `release-mirror.toml`. Do not introduce alternative configs for this workflow.
 - The release workflow requires the `PUBLIC_RELEASE_TOKEN` secret with permissions to publish to `neongreen/mono-public`.
 - Homebrew tap updates are automated via the release workflow; adjust formula metadata only through `release-mirror.toml`.
+- To run releases manually, use the `workflow_dispatch` trigger on `release.yml` and supply a comma/newline separated project list (matches directories like `ingest`).
 
 ------------------------------------------------------------
 
