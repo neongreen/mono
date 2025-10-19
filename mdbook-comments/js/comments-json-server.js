@@ -410,14 +410,21 @@
             commentSection.id = `comments-${paragraphId}`;
             commentSection.className = 'comment-section';
 
+            // Create comment list container
+            const commentList = document.createElement('div');
+            commentList.className = 'comment-list';
+
             // Find matching comments
             const pageComment = currentPageComments.find(pc => pc.paragraphId === paragraphId);
             if (pageComment) {
                 pageComment.comments.forEach(comment => {
                     const commentElement = createCommentElement(comment);
-                    commentSection.appendChild(commentElement);
+                    commentList.appendChild(commentElement);
                 });
             }
+
+            // Append comment list to section
+            commentSection.appendChild(commentList);
 
             // Add new comment form
             const newCommentForm = createCommentForm(paragraphId, null);
@@ -497,6 +504,20 @@
         form.setAttribute('data-paragraph-id', paragraphId);
         if (parentCommentId) {
             form.setAttribute('data-parent-id', parentCommentId);
+        }
+
+        // Add event listener for author input to save to localStorage immediately
+        if (!currentAuthor) {
+            const authorInput = form.querySelector('.author-input');
+            if (authorInput) {
+                authorInput.addEventListener('input', (e) => {
+                    const value = e.target.value.trim();
+                    if (value) {
+                        currentAuthor = value;
+                        localStorage.setItem('mdbook-comments-author', value);
+                    }
+                });
+            }
         }
 
         return form;
