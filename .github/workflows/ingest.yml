@@ -10,6 +10,9 @@ on:
       - "ingest/**"
       - ".github/workflows/ingest.yml"
 
+env:
+  MISE_EXPERIMENTAL: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
