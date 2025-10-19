@@ -13,7 +13,10 @@
         "context": {
           "prev": null,
           "next": "This is the next paragraph that follows.",
-          "heading-path": ["Chapter 1", "Getting Started"]
+          "heading-path": [
+            "Chapter 1",
+            "Getting Started"
+          ]
         },
         "commit": "abc123def"
       },
@@ -22,6 +25,20 @@
       "created": "2024-01-01T12:00:00Z",
       "parent-id": null,
       "replies": []
+    },
+    {
+      "paragraph-id": "chapter-1-md-block-0-e9f5a4bf",
+      "metadata": {
+        "id": "chapter-1-md-block-0-e9f5a4bf",
+        "position": {
+          "file": "chapter-1.md",
+          "block-index": 0
+        }
+      },
+      "author": "Test User",
+      "text": "This is a test comment from curl!",
+      "parent-id": null,
+      "id": "rgSSXav"
     }
   ]
 }
