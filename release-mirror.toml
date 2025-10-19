@@ -56,3 +56,12 @@ desc = "Terminal UI for browsing Claude Code conversation logs."
 homepage = "https://github.com/neongreen/mono/tree/main/claude-trace"
 binary = "claude-trace"
 test_args = ["--help"]
+
+# idk if this works for non-Go projects right now, see bd-341
+#
+# [[mirror.projects]]
+# name = "mdbook-comments"
+# desc = "mdbook preprocessor for adding paragraph-level commenting with Supabase backend."
+# homepage = "https://github.com/neongreen/mono/tree/main/mdbook-comments"
+# binary = "mdbook-comments"
+# test_args = ["--help"]
