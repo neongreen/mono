@@ -4,16 +4,18 @@ This repository contains multiple independent projects.
 
 ## Projects
 
-- **[dissect](dissect/)** - Go tool for code refactoring
-- **[markdown-format](markdown-format/)** - Go tool for markdown formatting
-- **[prrun](prrun/)** - Go tool to run binaries from GitHub PR releases (for easy testing)
-- **[printpdf](printpdf/)** - Go tool for converting Markdown and web content to PDF
-- **[ingest](ingest/)** - Go tool for ingesting git, filesystem, command, GitHub, and Linear data into SQLite, including config-driven job orchestration (work in progress)
-- **[diagram-dsl](diagram-dsl/)** - TypeScript DSL for creating diagrams
-- **[want](want/)** - Work in progress
-- **[claude-trace](claude-trace/)** - Terminal UI for reviewing Claude Code conversation logs
-- **[conf](conf/)** - Smart configuration manager with autocompletion for command-line tools (work in progress)
-- **[ghrelease](lib/ghrelease/)** - Go library for downloading GitHub release assets
+| Project | Status | Notes |
+| --- | --- | --- |
+| [dissect](dissect/) | beta (actively used internally) | Go tool for structural code refactoring; feature set continues to grow. |
+| [markdown-format](markdown-format/) | alpha | Markdown formatter; command surface and formatting rules are still evolving. |
+| [prrun](prrun/) | beta | Runs binaries from PR releases to speed up verification workflows. |
+| [printpdf](printpdf/) | alpha | Markdown/web-to-PDF tool; rendering pipeline has known gaps documented in project issues. |
+| [ingest](ingest/) | pre-alpha | Data ingestion orchestrator; schema and connectors change frequently. |
+| [diagram-dsl](diagram-dsl/) | experimental | TypeScript DSL for diagrams; layout system under active refactor. |
+| [want](want/) | pre-alpha | Planning/fulfilment assistant; core design still in flux. |
+| [claude-trace](claude-trace/) | alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
+| [conf](conf/) | pre-alpha | Smart configuration manager; command coverage incomplete. |
+| [ghrelease](lib/ghrelease/) | internal library | Shared helper for fetching release assets; API may change without notice. |
 
 ## Installing Tools
 
@@ -64,6 +66,10 @@ Go projects in this repository are automatically released:
 
 - **Main branch releases**: Created on every push to main (e.g., `dissect--main.1`, `dissect--main.2`)
 - **PR releases**: Created for pull requests (e.g., `dissect--pr-42.1`) - useful for testing changes before merge
+
+Main channel releases are considered unstable snapshots unless explicitly tagged. Stable channels are being defined (see bd-313).
+
+Selected public binaries (`ingest`, `want`, `printpdf`) are mirrored to [neongreen/mono-public](https://github.com/neongreen/mono-public) for Homebrew tap automation.
 
 See [Release Workflow Documentation](.github/workflows/RELEASE_WORKFLOW.md) for more details.
 
