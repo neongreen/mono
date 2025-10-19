@@ -25,8 +25,8 @@ func TestDefaultConfig(t *testing.T) {
 	if jjTool.Name != "jj" {
 		t.Errorf("jj tool name should be 'jj', got '%s'", jjTool.Name)
 	}
-	if !strings.Contains(jjTool.ConfigPath, ".jjconfig.toml") {
-		t.Errorf("jj config path should contain '.jjconfig.toml', got '%s'", jjTool.ConfigPath)
+	if !strings.Contains(jjTool.ConfigPath, ".config/jj/config.toml") {
+		t.Errorf("jj config path should contain '.config/jj/config.toml', got '%s'", jjTool.ConfigPath)
 	}
 
 	// Check mise tool config

@@ -23,7 +23,7 @@ tool schemas and provides surgical TOML editing while preserving formatting.`,
 var jjCmd = &cobra.Command{
 	Use:   "jj [config.path] [value]",
 	Short: "Configure jj (Jujutsu) settings",
-	Long:  `Set configuration values in ~/.jjconfig.toml using dotted path notation.`,
+	Long:  `Set configuration values in ~/.config/jj/config.toml using dotted path notation.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]

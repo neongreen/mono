@@ -31,7 +31,7 @@ func DefaultConfig() *Config {
 		Tools: map[string]ToolConfig{
 			"jj": {
 				Name:       "jj",
-				ConfigPath: filepath.Join(homeDir, ".jjconfig.toml"),
+				ConfigPath: filepath.Join(homeDir, ".config/jj/config.toml"),
 				SchemaPath: "embedded://jj.json",
 			},
 			"mise": {
