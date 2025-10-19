@@ -27,7 +27,8 @@ export default defineConfig({
   // Start json-server and mdbook serve before tests
   webServer: [
     {
-      command: 'npx json-server db.json --port 54322 --middlewares json-server-middleware.js --routes routes.json',
+      // Use a temporary copy of db.json so the checked-in file stays clean
+      command: 'cp db.json /tmp/test-db.json && pnpm exec json-server /tmp/test-db.json --port 54322 --middlewares ./json-server-middleware.js --routes ./routes.json',
       port: 54322,
       timeout: 30000,
       reuseExistingServer: !process.env.CI,
