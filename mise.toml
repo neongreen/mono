@@ -20,3 +20,7 @@ run = """
 go run github.com/rhysd/actionlint/cmd/actionlint@latest
 go run github.com/suzuki-shunsuke/pinact/v3/cmd/pinact@latest run --check
 """
+
+[tasks."lint:actions-pinned"]
+description = "Check that GitHub Actions are pinned to specific SHAs"
+run = "go run github.com/suzuki-shunsuke/pinact/v3/cmd/pinact@latest run --check"

@@ -30,7 +30,7 @@ This document contains guidelines for AI agents and automated tools working on p
 - Record project status in README.md. If the project is incomplete, has known bugs, exploration, etc, it must be stated.
 - Always manage work through bd: create issues when needed, set them to `in_progress` while working, close them as soon as the task is done, and make a Jujutsu commit after closing.
 - Release mirroring configuration lives in `release-mirror.toml`. Do not introduce alternative configs for this workflow.
-- The release workflow requires the `PUBLIC_RELEASE_TOKEN` secret with permissions to publish to `neongreen/mono-public`.
+- The release workflow requires the `PUBLIC_RELEASE_TOKEN` secret with permissions to update `neongreen/homebrew-mono`.
 - Homebrew tap updates are automated via the release workflow; adjust formula metadata only through `release-mirror.toml`.
 - To run releases manually, use the `workflow_dispatch` trigger on `release.yml` and supply a comma/newline separated project list (matches directories like `ingest`).
 - Use the provided `mise` tasks instead of `go install`; for example, run `mise run //:lint:actions` and `mise run //:lint:actions-pinned` when touching workflows to ensure lint and pin checks stay green.

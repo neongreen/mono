@@ -1,23 +1,23 @@
 [mirror]
-public_repo = "neongreen/mono-public"
+public_repo = "neongreen/homebrew-mono"
 
 [[mirror.projects]]
 name = "ingest"
 desc = "Flexible ingestion CLI that captures repos, filesystems, and GitHub data into SQLite."
-homepage = "https://github.com/neongreen/mono-public"
+homepage = "https://github.com/neongreen/mono/tree/main/ingest"
 binary = "ingest"
 test_args = ["--help"]
 
 [[mirror.projects]]
 name = "want"
 desc = "Interactive fulfillment assistant for installing tools and releases."
-homepage = "https://github.com/neongreen/mono-public"
+homepage = "https://github.com/neongreen/mono/tree/main/want"
 binary = "want"
 test_args = ["--help"]
 
 [[mirror.projects]]
 name = "printpdf"
 desc = "Convert Markdown, URLs, and GitHub files to PDF using multiple renderers."
-homepage = "https://github.com/neongreen/mono-public"
+homepage = "https://github.com/neongreen/mono/tree/main/printpdf"
 binary = "printpdf"
 test_args = ["--help"]

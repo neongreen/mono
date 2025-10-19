@@ -253,46 +253,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Mirror release to public repository
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
-        uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2
-        with:
-          repository: ${{ needs.detect.outputs.mirror_repo }}
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: "${{ matrix.project }} ${{ steps.version.outputs.version }}"
-          body: |
-            Release of **${{ matrix.project }}** version `${{ steps.version.outputs.version }}`
-
-            Built from: ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || 'main branch' }}
-            Commit: ${{ github.sha }}
-
-            ## Installation
-
-            Download the appropriate binary for your platform, make it executable, and move it to your PATH:
-
-            ```bash
-            # Linux AMD64
-            wget https://github.com/${{ needs.detect.outputs.mirror_repo }}/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64
-            chmod +x ${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64
-            sudo mv ${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64 /usr/local/bin/${{ matrix.project }}
-
-            # macOS ARM64 (M1/M2)
-            wget https://github.com/${{ needs.detect.outputs.mirror_repo }}/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64
-            chmod +x ${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64
-            sudo mv ${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64 /usr/local/bin/${{ matrix.project }}
-            ```
-
-            ## Available Binaries
-
-            - Linux: amd64, arm64
-            - macOS: amd64 (Intel), arm64 (Apple Silicon)
-          files: dist/*
-          draft: false
-          prerelease: false
-          fail_on_unmatched_files: true
-          overwrite_files: true
-          token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
-
       - name: Checkout Homebrew tap repository
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
@@ -310,6 +270,7 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
           MIRROR_REPO: ${{ needs.detect.outputs.mirror_repo }}
           MIRROR_METADATA: ${{ needs.detect.outputs.mirror_metadata }}
+          SOURCE_REPO: ${{ github.repository }}
         run: |
           python3 - <<'PY'
           import hashlib
@@ -321,6 +282,7 @@ jobs:
           version = os.environ["VERSION"]
           tag = os.environ["TAG"]
           mirror_repo = os.environ["MIRROR_REPO"]
+          source_repo = os.environ["SOURCE_REPO"]
           metadata = json.loads(os.environ["MIRROR_METADATA"])
 
           project_meta = metadata.get(project, {})
@@ -330,7 +292,7 @@ jobs:
               return value.replace("\\", "\\\\").replace("\"", "\\\"")
 
           desc = escape(project_meta.get("desc", f"{project} CLI"))
-          homepage = escape(project_meta.get("homepage", f"https://github.com/{mirror_repo}"))
+          homepage = escape(project_meta.get("homepage", f"https://github.com/{source_repo}"))
           test_args = project_meta.get("test_args", ["--help"])
 
           class_name = project_meta.get("formula_class")
@@ -353,7 +315,7 @@ jobs:
               raise SystemExit(f"No packaged Homebrew archives found for {project}")
 
           def url_for(filename: str) -> str:
-              return f"https://github.com/{mirror_repo}/releases/download/{tag}/{filename}"
+              return f"https://github.com/{source_repo}/releases/download/{tag}/{filename}"
 
           def block_lines(os_name: str, arch: str):
               entry = artifacts.get(f"{os_name}-{arch}")
@@ -427,11 +389,11 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
         run: |
           eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-          brew tap-new --no-git neongreen/mono-public || true
-          TAP_DIR="$(brew --repository)/Library/Taps/neongreen/homebrew-mono-public"
+          brew tap-new --no-git neongreen/mono || true
+          TAP_DIR="$(brew --repository)/Library/Taps/neongreen/homebrew-mono"
           rm -rf "$TAP_DIR"
           ln -s "${GITHUB_WORKSPACE}/tap" "$TAP_DIR"
-          brew audit --formula "neongreen/mono-public/${{ matrix.project }}"
+          brew audit --formula "neongreen/mono/${{ matrix.project }}"
 
       - name: Commit Homebrew tap update
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
