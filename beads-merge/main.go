@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/spf13/cobra"
 )
 
 // Issue represents a beads issue with all possible fields
@@ -43,65 +44,78 @@ type IssueKey struct {
 	CreatedBy string
 }
 
-func main() {
-	if len(os.Args) != 5 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <output> <base> <left> <right>\n", os.Args[0])
-		fmt.Fprintf(os.Stderr, "A 3-way merge tool for beads .jsonl files\n")
-		os.Exit(1)
-	}
+var rootCmd = &cobra.Command{
+	Use:   "beads-merge <output> <base> <left> <right>",
+	Short: "3-way merge tool for beads .jsonl issue files",
+	Long: `beads-merge is a 3-way merge tool for beads issue tracker .jsonl files.
 
-	outputPath := os.Args[1]
-	basePath := os.Args[2]
-	leftPath := os.Args[3]
-	rightPath := os.Args[4]
+It intelligently merges issues based on identity (id + created_at + created_by),
+applies field-specific merge rules, combines dependencies, and outputs conflict
+markers for unresolvable conflicts.
 
-	// Read all three files
-	baseIssues, err := readIssues(basePath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading base file: %v\n", err)
-		os.Exit(1)
-	}
+Designed to work with jj (Jujutsu) version control as a merge driver.`,
+	Args: cobra.ExactArgs(4),
+	Run: func(cmd *cobra.Command, args []string) {
+		outputPath := args[0]
+		basePath := args[1]
+		leftPath := args[2]
+		rightPath := args[3]
 
-	leftIssues, err := readIssues(leftPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading left file: %v\n", err)
-		os.Exit(1)
-	}
-
-	rightIssues, err := readIssues(rightPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading right file: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Perform 3-way merge
-	result, conflicts := merge3Way(baseIssues, leftIssues, rightIssues)
-
-	// Open output file for writing
-	outFile, err := os.Create(outputPath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error creating output file: %v\n", err)
-		os.Exit(1)
-	}
-	defer outFile.Close()
-
-	// Write merged result to output file
-	for _, issue := range result {
-		line, err := json.Marshal(issue)
+		// Read all three files
+		baseIssues, err := readIssues(basePath)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error marshaling issue %s: %v\n", issue.ID, err)
+			fmt.Fprintf(os.Stderr, "Error reading base file: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Fprintln(outFile, string(line))
-	}
 
-	// Write conflicts to output file
-	for _, conflict := range conflicts {
-		fmt.Fprintln(outFile, conflict)
-	}
+		leftIssues, err := readIssues(leftPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading left file: %v\n", err)
+			os.Exit(1)
+		}
 
-	// Exit with 1 if there were conflicts (jj will interpret this as conflict markers present)
-	if len(conflicts) > 0 {
+		rightIssues, err := readIssues(rightPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading right file: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Perform 3-way merge
+		result, conflicts := merge3Way(baseIssues, leftIssues, rightIssues)
+
+		// Open output file for writing
+		outFile, err := os.Create(outputPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating output file: %v\n", err)
+			os.Exit(1)
+		}
+		defer outFile.Close()
+
+		// Write merged result to output file
+		for _, issue := range result {
+			line, err := json.Marshal(issue)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error marshaling issue %s: %v\n", issue.ID, err)
+				os.Exit(1)
+			}
+			fmt.Fprintln(outFile, string(line))
+		}
+
+		// Write conflicts to output file
+		for _, conflict := range conflicts {
+			fmt.Fprintln(outFile, conflict)
+		}
+
+		// Exit with 1 if there were conflicts (jj will interpret this as conflict markers present)
+		if len(conflicts) > 0 {
+			os.Exit(1)
+		}
+	},
+}
+
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
