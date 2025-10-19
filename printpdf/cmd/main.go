@@ -10,6 +10,7 @@ import (
 
 	"github.com/neongreen/mono/printpdf/pkg/converter"
 	"github.com/neongreen/mono/printpdf/pkg/fetcher"
+	"github.com/neongreen/mono/printpdf/pkg/pdfutil"
 )
 
 var (
@@ -133,9 +134,14 @@ func runConvert(cmd *cobra.Command, args []string) {
 			continue
 		}
 
-		// Check file was created
+		// Check file was created and get page count
 		if info, err := os.Stat(outputPath); err == nil {
-			fmt.Printf("✓ Generated %s (%d bytes)\n", outputPath, info.Size())
+			pageCount, pageErr := pdfutil.CountPages(outputPath)
+			if pageErr == nil {
+				fmt.Printf("✓ Generated %s (%d bytes, %d pages)\n", outputPath, info.Size(), pageCount)
+			} else {
+				fmt.Printf("✓ Generated %s (%d bytes)\n", outputPath, info.Size())
+			}
 			success = true
 		} else {
 			fmt.Fprintf(os.Stderr, "✗ Failed to create %s\n", outputPath)
