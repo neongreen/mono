@@ -29,6 +29,8 @@ This document contains guidelines for AI agents and automated tools working on p
 - Keep the list of projects in [README.md](./README.md) up to date.
 - Record project status in README.md. If the project is incomplete, has known bugs, exploration, etc, it must be stated.
 - Always manage work through bd: create issues when needed, set them to `in_progress` while working, close them as soon as the task is done, and make a Jujutsu commit after closing.
+- Release mirroring configuration lives in `release-mirror.toml`. Do not introduce alternative configs for this workflow.
+- The release workflow requires the `PUBLIC_RELEASE_TOKEN` secret with permissions to publish to `neongreen/mono-public`.
 
 ------------------------------------------------------------
 

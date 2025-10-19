@@ -1,0 +1,7 @@
+[mirror]
+public_repo = "neongreen/mono-public"
+projects = [
+  "ingest",
+  "want",
+  "printpdf",
+]
