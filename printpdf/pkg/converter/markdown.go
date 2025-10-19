@@ -36,8 +36,8 @@ span.printpdf-footnote::footnote-marker {
 }
 `
 
-// convertMarkdownToHTML converts markdown content to HTML
-func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error) {
+// markdownToHTMLBody converts markdown content to HTML body content (without wrapping in full document)
+func markdownToHTMLBody(markdown []byte) ([]byte, error) {
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM, // GitHub Flavored Markdown
@@ -65,7 +65,11 @@ func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error)
 		return nil, fmt.Errorf("failed to enhance footnotes: %w", err)
 	}
 
-	// Build page CSS with orientation, margin, and zoom
+	return content, nil
+}
+
+// generatePageCSS generates the @page CSS rules based on page options
+func generatePageCSS(options PageOptions) string {
 	margin := options.cssMarginValue()
 	var pageCSS strings.Builder
 	if options.Orientation == "landscape" {
@@ -83,36 +87,21 @@ func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error)
 		fmt.Fprintf(&pageCSS, "}\n")
 	}
 
-	// Calculate zoom factor for font sizes
-	zoom := options.Zoom
-	if zoom == 0 {
-		zoom = 100
-	}
-	zoomFactor := float64(zoom) / 100.0
+	return pageCSS.String()
+}
 
-	// Build body CSS - don't add max-width or auto margins when using page margins
-	// because it conflicts with the user's margin settings
-	bodyCSS := `body {
+// generateBodyCSS generates the body CSS rules
+func generateBodyCSS() string {
+	return `body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     line-height: 1.6;
     color: #24292e;
 }`
-
-	// Wrap in a complete HTML document with nice styling
-	html := fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-%s
-html {
-    font-size: %.0f%%;
 }
 
-%s
-%s
-
-h1, h2, h3, h4, h5, h6 {
+// generateContentCSS generates the CSS rules for content styling (headings, code, tables, etc.)
+func generateContentCSS() string {
+	return `h1, h2, h3, h4, h5, h6 {
     margin-top: 24px;
     margin-bottom: 16px;
     font-weight: 600;
@@ -131,7 +120,7 @@ code {
     border: 1px solid #d0d7de;
     border-radius: 3px;
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-    font-size: 85%%;
+    font-size: 85%;
     margin: 0;
     padding: 0.2em 0.4em;
     font-feature-settings: "liga" 0, "kern" 0;
@@ -142,7 +131,7 @@ pre {
     background-color: transparent;
     border: 1px solid #d0d7de;
     border-radius: 3px;
-    font-size: 85%%;
+    font-size: 85%;
     line-height: 1.45;
     overflow: auto;
     padding: 16px;
@@ -216,7 +205,7 @@ a:hover {
 }
 
 img {
-    max-width: 100%%;
+    max-width: 100%;
     box-sizing: content-box;
 }
 
@@ -226,55 +215,78 @@ hr {
     margin: 24px 0;
     background-color: #e1e4e8;
     border: 0;
+}`
 }
-</style>
-</head>
-<body>
-%s
-</body>
-</html>`, pageCSS.String(), zoomFactor*100, bodyCSS, htmlFootnoteCSS, string(content))
 
-	// If columns are requested, wrap the content in a container with column CSS
-	if options.Columns > 1 {
-		// Add column support via CSS
-		columnCSS := fmt.Sprintf(`<style>
-body {
+// generateColumnCSS generates CSS for multi-column layout
+func generateColumnCSS(columns int) string {
+	return fmt.Sprintf(`body {
     column-count: %d;
     column-gap: 2em;
     column-rule: 1px solid #dfe2e5;
 }
 h1, h2, h3 {
     column-span: all;
+}`, columns)
 }
-</style>`, options.Columns)
-		// Insert the column CSS before </head>
+
+// wrapHTMLBodyWithDocument wraps HTML body content in a complete HTML document with CSS
+func wrapHTMLBodyWithDocument(bodyContent []byte, options PageOptions) []byte {
+	// Calculate zoom factor for font sizes
+	zoom := options.Zoom
+	if zoom == 0 {
+		zoom = 100
+	}
+	zoomFactor := float64(zoom) / 100.0
+
+	pageCSS := generatePageCSS(options)
+	bodyCSS := generateBodyCSS()
+	contentCSS := generateContentCSS()
+
+	// Build the complete HTML document
+	html := fmt.Sprintf(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+%s
+html {
+    font-size: %.0f%%;
+}
+
+%s
+%s
+
+%s
+</style>
+</head>
+<body>
+%s
+</body>
+</html>`, pageCSS, zoomFactor*100, bodyCSS, htmlFootnoteCSS, contentCSS, string(bodyContent))
+
+	// If columns are requested, add column CSS
+	if options.Columns > 1 {
+		columnCSS := fmt.Sprintf("<style>\n%s\n</style>", generateColumnCSS(options.Columns))
 		htmlBytes := bytes.Replace([]byte(html), []byte("</head>"), []byte(columnCSS+"\n</head>"), 1)
-		return htmlBytes, nil
+		return htmlBytes
 	}
 
-	return []byte(html), nil
+	return []byte(html)
+}
+
+// convertMarkdownToHTML converts markdown content to HTML
+func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error) {
+	bodyContent, err := markdownToHTMLBody(markdown)
+	if err != nil {
+		return nil, err
+	}
+
+	return wrapHTMLBodyWithDocument(bodyContent, options), nil
 }
 
 // wrapHTMLWithPageOptions wraps raw HTML content with proper page styling and options
 func wrapHTMLWithPageOptions(htmlContent []byte, options PageOptions) ([]byte, error) {
-	// Build page CSS with orientation, margin, and zoom
-	margin := options.cssMarginValue()
-	var pageCSS strings.Builder
-	if options.Orientation == "landscape" {
-		fmt.Fprintf(&pageCSS, "@page { size: A4 landscape; margin: %s; }\n", margin)
-	} else {
-		fmt.Fprintf(&pageCSS, "@page { size: A4 portrait; margin: %s; }\n", margin)
-	}
-
-	if guide := strings.TrimSpace(options.FirstPageGuide); guide != "" {
-		fmt.Fprintf(&pageCSS, "@page:first {\n")
-		fmt.Fprintf(&pageCSS, "    background-image: linear-gradient(90deg, #d0d7de, #d0d7de);\n")
-		fmt.Fprintf(&pageCSS, "    background-size: 0.4pt 100%%;\n")
-		fmt.Fprintf(&pageCSS, "    background-repeat: no-repeat;\n")
-		fmt.Fprintf(&pageCSS, "    background-position: %s 0;\n", guide)
-		fmt.Fprintf(&pageCSS, "}\n")
-	}
-
 	// Calculate zoom factor for font sizes
 	zoom := options.Zoom
 	if zoom == 0 {
@@ -291,6 +303,8 @@ func wrapHTMLWithPageOptions(htmlContent []byte, options PageOptions) ([]byte, e
 	var result []byte
 
 	if hasHTML && hasHead {
+		// HTML already has structure, just inject CSS
+		pageCSS := generatePageCSS(options)
 		styleBlock := fmt.Sprintf(`<style>
 %s
 html {
@@ -299,7 +313,7 @@ html {
 
 %s
 </style>
-`, pageCSS.String(), zoomFactor*100, htmlFootnoteCSS)
+`, pageCSS, zoomFactor*100, htmlFootnoteCSS)
 
 		lower := strings.ToLower(htmlStr)
 		closingIdx := strings.Index(lower, "</head>")
@@ -315,6 +329,8 @@ html {
 			result = append(result, []byte(styleBlock)...)
 		}
 	} else {
+		// HTML is just body content, wrap in full document
+		pageCSS := generatePageCSS(options)
 		wrapped := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -331,21 +347,12 @@ html {
 <body>
 %s
 </body>
-</html>`, pageCSS.String(), zoomFactor*100, htmlFootnoteCSS, htmlStr)
+</html>`, pageCSS, zoomFactor*100, htmlFootnoteCSS, htmlStr)
 		result = []byte(wrapped)
 	}
 
 	if options.Columns > 1 {
-		columnCSS := fmt.Sprintf(`<style>
-body {
-    column-count: %d;
-    column-gap: 2em;
-    column-rule: 1px solid #dfe2e5;
-}
-h1, h2, h3 {
-    column-span: all;
-}
-</style>`, options.Columns)
+		columnCSS := fmt.Sprintf("<style>\n%s\n</style>", generateColumnCSS(options.Columns))
 		result = bytes.Replace(result, []byte("</head>"), []byte(columnCSS+"\n</head>"), 1)
 	}
 
