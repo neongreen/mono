@@ -175,13 +175,13 @@
     function matchComments() {
         // This is the same logic as the Supabase version
         // Find all commentable elements
-        const commentableElements = document.querySelectorAll('[data-mdbook-comments-id]');
+        const commentableElements = document.querySelectorAll('[data-comment-id]');
 
         currentPageComments = [];
         orphanedComments = [];
 
         commentableElements.forEach(element => {
-            const paragraphId = element.getAttribute('data-mdbook-comments-id');
+            const paragraphId = element.getAttribute('data-comment-id');
             const paragraphText = element.textContent.trim();
 
             // Find matching comments
@@ -360,7 +360,7 @@
         // Comment link clicked
         if (target.classList.contains('comment-link')) {
             event.preventDefault();
-            const paragraphElement = target.closest('[data-mdbook-comments-id]');
+            const paragraphElement = target.closest('[data-comment-id]');
             if (paragraphElement) {
                 toggleCommentSection(paragraphElement);
             }
@@ -398,7 +398,7 @@
      * Toggle comment section visibility
      */
     function toggleCommentSection(paragraphElement) {
-        const paragraphId = paragraphElement.getAttribute('data-mdbook-comments-id');
+        const paragraphId = paragraphElement.getAttribute('data-comment-id');
         let commentSection = paragraphElement.querySelector('.comment-section');
 
         if (commentSection) {
@@ -407,6 +407,7 @@
         } else {
             // Create new comment section
             commentSection = document.createElement('div');
+            commentSection.id = `comments-${paragraphId}`;
             commentSection.className = 'comment-section';
 
             // Find matching comments
@@ -469,19 +470,25 @@
         const form = document.createElement('form');
         form.className = 'comment-form';
 
+        // Determine if this is a reply or a new comment
+        const isReply = !!parentCommentId;
+        const textareaName = isReply ? 'reply-text' : 'comment-text';
+        const placeholder = isReply ? 'Write a reply...' : 'Write a comment...';
+        const submitText = isReply ? 'Post Reply' : 'Submit';
+
         // Author field (only show if not set)
         let authorField = '';
         if (!currentAuthor) {
             authorField = `
-                <input type="text" class="author-input" placeholder="Your name" required>
+                <input type="text" name="author" class="author-input" placeholder="Your name" required>
             `;
         }
 
         form.innerHTML = `
             ${authorField}
-            <textarea class="comment-textarea" placeholder="Write a comment..." required></textarea>
+            <textarea name="${textareaName}" class="comment-textarea" placeholder="${placeholder}" required></textarea>
             <div class="comment-buttons">
-                <button type="submit" class="submit-comment">Submit</button>
+                <button type="submit" class="submit-comment">${submitText}</button>
                 <button type="button" class="cancel-comment">Cancel</button>
             </div>
         `;
@@ -507,8 +514,8 @@
         }
 
         // Get paragraph ID from parent element
-        const paragraphElement = commentElement.closest('[data-mdbook-comments-id]');
-        const paragraphId = paragraphElement ? paragraphElement.getAttribute('data-mdbook-comments-id') : null;
+        const paragraphElement = commentElement.closest('[data-comment-id]');
+        const paragraphId = paragraphElement ? paragraphElement.getAttribute('data-comment-id') : null;
 
         const replyForm = createCommentForm(paragraphId, commentId);
         commentElement.appendChild(replyForm);
@@ -555,7 +562,7 @@
             form.remove();
 
             // Re-render the comment section
-            const paragraphElement = document.querySelector(`[data-mdbook-comments-id="${paragraphId}"]`);
+            const paragraphElement = document.querySelector(`[data-comment-id="${paragraphId}"]`);
             if (paragraphElement) {
                 const commentSection = paragraphElement.querySelector('.comment-section');
                 if (commentSection) {

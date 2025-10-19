@@ -40,20 +40,11 @@ impl CommentsProcessor {
             asset_html.push_str(&format!("<style>\n{}\n</style>\n\n", css_content));
         }
 
-        // Inject JavaScript files
-        let js_files = [
-            "comments.js",
-            "comments-googlesheets.js",
-            "comments-json-server.js",
-            "comments-neon.js",
-            "comments-supabase.js",
-        ];
-
-        for js_file in &js_files {
-            if let Some(js_asset) = JsAsset::get(js_file) {
-                let js_content = std::str::from_utf8(js_asset.data.as_ref())?;
-                asset_html.push_str(&format!("<script>\n{}\n</script>\n\n", js_content));
-            }
+        // Inject JavaScript file (json-server backend for now)
+        // TODO: Make this configurable based on backend type
+        if let Some(js_asset) = JsAsset::get("comments-json-server.js") {
+            let js_content = std::str::from_utf8(js_asset.data.as_ref())?;
+            asset_html.push_str(&format!("<script>\n{}\n</script>\n\n", js_content));
         }
 
         // Prepend assets to chapter content
