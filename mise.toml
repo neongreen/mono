@@ -13,3 +13,7 @@ description = "Track all remote bookmarks"
 run = """
 jj git fetch && jj b t "glob:*@origin"
 """
+
+[tasks."lint:actions"]
+description = "Lint GitHub Actions workflows with actionlint"
+run = "go run github.com/rhysd/actionlint/cmd/actionlint@latest .github/workflows"
