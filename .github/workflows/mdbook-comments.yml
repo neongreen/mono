@@ -24,7 +24,7 @@ jobs:
           toolchain: 1.90
 
       - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890697e6cf56d9684ba # v2.7.3
+        uses: Swatinem/rust-cache@6f13f31f798a93a6b08d3be0727120e9af35851f # v2.7.3
 
       - name: Check formatting
         working-directory: mdbook-comments

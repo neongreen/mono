@@ -129,13 +129,34 @@ fi
 # Add preprocessor to PATH for this session
 export PATH="$PWD/target/release:$PATH"
 
+# Function to cleanup on exit
+cleanup() {
+  echo ""
+  echo "Stopping servers..."
+  # Kill json-server if it's running
+  pkill -f "json-server.*54322" || true
+  # Kill mdbook serve if it's running
+  pkill -f "mdbook serve.*3300" || true
+}
+
+# Set up cleanup on exit and interrupts
+trap cleanup EXIT INT TERM
+
 # Start JSON Server in background
 echo "Starting JSON Server..."
-json-server db.json --port 54322 &  # todo: this doesn't work, it doesn't exit anyway
+json-server db.json --port 54322 --middlewares json-server-middleware.js --routes routes.json &
 JSON_SERVER_PID=$!
 
 # Wait a moment for JSON Server to start
 sleep 2
+
+# Check if JSON Server started successfully
+if ! kill -0 $JSON_SERVER_PID 2>/dev/null; then
+  echo "❌ Failed to start JSON Server"
+  exit 1
+fi
+
+echo "✅ JSON Server running on port 54322"
 
 # Configure the book with JSON Server config
 echo ""
@@ -146,24 +167,15 @@ echo "Configuring book for JSON Server..."
 echo ""
 echo "Starting mdbook..."
 echo ""
-  echo "📚 Book will be available at: http://localhost:3300"
-  echo "🔧 JSON Server API at: http://localhost:54322"
-  echo ""
+echo "📚 Book will be available at: http://localhost:3300"
+echo "🔧 JSON Server API at: http://localhost:54322"
+echo ""
+echo "Press Ctrl+C to stop both servers"
+echo ""
 
-  # Function to cleanup on exit
-  cleanup() {
-    echo ""
-    echo "Stopping JSON Server..."
-    kill $JSON_SERVER_PID 2>/dev/null || true
-  }
+cd example-book && PATH="$PWD/../target/release:$PATH" mdbook serve --port 3300
 
-  # Set up cleanup on exit
-  trap cleanup EXIT
-
-  cd example-book && PATH=\"$PWD/../target/release:$PATH\" mdbook serve --port 3300
-
-  # This will run after mdbook exits
-  cleanup
+# Cleanup will be called automatically via trap
 """
 
 [tasks."dev:stop"]
