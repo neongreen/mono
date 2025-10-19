@@ -171,30 +171,15 @@ link-text = "comment"
 show-comment-count = true
 
 [output.html]
-# Add JavaScript and CSS for comments
+# Add Google Sign-In client (comments JS/CSS are now embedded)
 additional-js = [
-    "https://accounts.google.com/gsi/client",
-    "js/comments-googlesheets.js"
+    "https://accounts.google.com/gsi/client"
 ]
-additional-css = ["css/comments.css"]
+# JavaScript and CSS are now embedded in the preprocessor binary
+# No additional-css configuration needed
 ```
 
-### Step 9: Copy Comment Assets
-
-Copy the JavaScript and CSS files to your book directory:
-
-```bash
-# Create directories if they don't exist
-mkdir -p js css
-
-# Copy the Google Sheets JavaScript
-cp /path/to/mono/mdbook-comments/js/comments-googlesheets.js js/
-
-# Copy the comment CSS
-cp /path/to/mono/mdbook-comments/css/comments.css css/
-```
-
-### Step 10: Configure Google Sheets in JavaScript
+### Step 9: Configure Google Sheets in JavaScript
 
 Edit `js/comments-googlesheets.js` and update the configuration at the top:
 

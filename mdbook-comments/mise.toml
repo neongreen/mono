@@ -1,6 +1,7 @@
 [tools]
 mdbook = "latest"
 rust = "1.90"
+"npm:json-server" = "latest"
 # "go:github.com/supabase/cli" = "latest"  # This doesn't work, just use brew
 
 [tasks.build]
@@ -9,7 +10,52 @@ run = "cargo build --release"
 
 [tasks.test]
 description = "Run tests"
-run = "cargo test"
+run = "cargo test && mise run //mdbook-comments:test_render"
+
+[tasks.test_render]
+description = "Test that the sample book renders correctly with embedded assets"
+run = """
+set -e
+
+echo "Testing sample book rendering with embedded assets..."
+echo ""
+
+# Build the preprocessor
+echo "Building mdbook-comments preprocessor..."
+cargo build --release
+echo ""
+
+# Clean and build the example book
+echo "Building example book..."
+cd example-book
+rm -rf book
+PATH="../target/release:$PATH" mdbook build
+echo ""
+
+# Verify embedded assets are present
+echo "Verifying embedded assets..."
+if ! grep -q "mdbook-comments assets" book/index.html; then
+    echo "❌ Embedded assets marker not found"
+    exit 1
+fi
+
+if ! grep -q "<style>" book/index.html; then
+    echo "❌ Embedded CSS not found"
+    exit 1
+fi
+
+if [ $(grep -c "<script>" book/index.html) -lt 2 ]; then
+    echo "❌ Expected multiple script tags (embedded JS) not found"
+    exit 1
+fi
+
+if ! grep -q "comment-link" book/index.html; then
+    echo "❌ Comment links not found"
+    exit 1
+fi
+
+echo "✅ Sample book renders correctly with embedded assets"
+"""
 
 [tasks.fmt]
 description = "Format Rust code"
@@ -20,113 +66,159 @@ description = "Check that code compiles and passes clippy"
 run = "cargo clippy -- -D warnings"
 
 [tasks."dev:setup"]
-description = "Set up local Supabase for development (one-time setup)"
+description = "Set up local JSON Server for development (one-time setup)"
 run = """
-  echo "Setting up local development environment..."
+echo "Setting up local development environment..."
+echo ""
+
+# Check for Node.js and npm
+if ! command -v node &> /dev/null; then
+echo "❌ Node.js not found."
+echo ""
+echo "Please install Node.js from: https://nodejs.org/"
+exit 1
+fi
+
+echo "✓ Node.js found"
+
+  # Check if json-server is available (should be installed via mise)
+if ! command -v json-server &> /dev/null; then
+    echo "❌ json-server not found."
   echo ""
-  
-  # Check for Supabase CLI
-  if ! command -v supabase &> /dev/null; then
-    echo "❌ Supabase CLI not found."
-    echo ""
-    echo "Please install it from: https://supabase.com/docs/guides/cli"
-    echo ""
-    echo "macOS:   brew install supabase/tap/supabase"
-    echo "Linux:   See https://supabase.com/docs/guides/cli/getting-started"
-    exit 1
-  fi
-  
-  echo "✓ Supabase CLI found"
-  
-  # Initialize Supabase (if not already initialized)
-  if [ ! -f "supabase/config.toml" ]; then
-    echo "Initializing Supabase project..."
-    supabase init
-  else
-    echo "✓ Supabase already initialized"
-  fi
-  
+  echo "It should be installed automatically via mise. Try running 'mise install' first."
+exit 1
+fi
+
+echo "✓ JSON Server found"
+
   echo ""
-  echo "✅ Setup complete!"
-  echo ""
-  echo "Next steps:"
-  echo "  1. Run 'mise run :dev' to start local development"
-  echo "  2. Open http://localhost:3000 in your browser"
-  echo "  3. Open http://localhost:54323 for Supabase Studio"
+echo "✅ Setup complete!"
+echo ""
+echo "Next steps:"
+echo "  1. Run 'mise run dev' to start local development"
+echo "  2. Open http://localhost:3300 in your browser"
+echo "  3. Open http://localhost:54322 for JSON Server API"
 """
 
 [tasks.dev]
 description = "Start local development environment"
 run = """
-  set -e
-  
-  echo "Starting local development environment..."
+set -e
+
+echo "Starting local development environment..."
+echo ""
+
+# Check if json-server is available
+if ! command -v json-server &> /dev/null; then
+echo "❌ JSON Server not found. Run 'mise run dev:setup' first."
+exit 1
+fi
+
+# Build the preprocessor if needed
+if [ ! -f "target/release/mdbook-comments" ]; then
+echo "Building mdbook-comments preprocessor..."
+cargo build --release
+echo ""
+fi
+
+# Add preprocessor to PATH for this session
+export PATH="$PWD/target/release:$PATH"
+
+# Start JSON Server in background
+echo "Starting JSON Server..."
+json-server db.json --port 54322 &  # todo: this doesn't work, it doesn't exit anyway
+JSON_SERVER_PID=$!
+
+# Wait a moment for JSON Server to start
+sleep 2
+
+# Configure the book with JSON Server config
+echo ""
+echo "Configuring book for JSON Server..."
+./scripts/configure-json-server.sh
+
+# Start mdbook serve
+echo ""
+echo "Starting mdbook..."
+echo ""
+  echo "📚 Book will be available at: http://localhost:3300"
+  echo "🔧 JSON Server API at: http://localhost:54322"
   echo ""
-  
-  # Check if supabase is installed
-  if ! command -v supabase &> /dev/null; then
-    echo "❌ Supabase CLI not found. Run 'mise run dev:setup' first."
-    exit 1
-  fi
-  
-  # Build the preprocessor if needed
-  if [ ! -f "target/release/mdbook-comments" ]; then
-    echo "Building mdbook-comments preprocessor..."
-    cargo build --release
+
+  # Function to cleanup on exit
+  cleanup() {
     echo ""
-  fi
-  
-  # Add preprocessor to PATH for this session
-  export PATH="$PWD/target/release:$PATH"
-  
-  # Start Supabase if not running
-  echo "Starting Supabase..."
-  supabase start
-  
-  # Configure the book with Supabase credentials
-  echo ""
-  echo "Configuring book..."
-  ./scripts/configure-supabase.sh
-  
-  # Start mdbook serve
-  echo ""
-  echo "Starting mdbook..."
-  echo ""
-  echo "📚 Book will be available at: http://localhost:3000"
-  echo "🔧 Supabase Studio at: http://localhost:54323"
-  echo ""
-  cd example-book && mise x mdbook -- mdbook serve
+    echo "Stopping JSON Server..."
+    kill $JSON_SERVER_PID 2>/dev/null || true
+  }
+
+  # Set up cleanup on exit
+  trap cleanup EXIT
+
+  cd example-book && PATH=\"$PWD/../target/release:$PATH\" mdbook serve --port 3300
+
+  # This will run after mdbook exits
+  cleanup
 """
 
 [tasks."dev:stop"]
-description = "Stop local Supabase"
-run = "supabase stop"
+description = "Stop local JSON Server"
+run = "pkill -f json-server || echo 'JSON Server not running'"
 
 [tasks."dev:reset"]
-description = "Reset local database (deletes all data)"
+description = "Reset local comments data (deletes all comments)"
 run = """
-  echo "⚠️  This will delete all local comments data."
-  read -p "Are you sure? (y/N) " -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    supabase db reset
-    echo "✅ Database reset complete"
+echo "⚠️  This will delete all local comments data."
+read -p "Are you sure? (y/N) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+# Reset to initial state with just the sample comment
+cat > db.json << 'EOF'
+{
+"comments": [
+  {
+      "id": "sample-comment-1",
+      "paragraph-id": "chapter-1-block-0-sample",
+      "metadata": {
+        "id": "chapter-1-block-0-sample",
+        "position": {
+          "file": "chapter1.md",
+          "block-index": 0
+        },
+        "content": "This is a sample paragraph for testing the commenting system.",
+        "context": {
+          "prev": null,
+          "next": "This is the next paragraph that follows.",
+          "heading-path": ["Chapter 1", "Getting Started"]
+        },
+        "commit": "abc123def"
+      },
+      "author": "Test User",
+      "text": "This is a sample comment to test the commenting functionality!",
+      "created": "2024-01-01T12:00:00Z",
+      "parent-id": null,
+      "replies": []
+    }
+  ]
+}
+EOF
+    echo "✅ Comments data reset complete"
   else
     echo "Cancelled"
   fi
 """
 
-[tasks."dev:studio"]
-description = "Open Supabase Studio in browser"
-run = "open http://localhost:54323 || xdg-open http://localhost:54323 || echo 'Open http://localhost:54323 in your browser'"
+[tasks."dev:api"]
+description = "Open JSON Server API in browser"
+run = "open http://localhost:54322 || xdg-open http://localhost:54322 || echo 'Open http://localhost:54322 in your browser'"
 
 [tasks."dev:logs"]
-description = "View Supabase logs"
-run = "supabase logs"
+description = "View JSON Server status (check if running)"
+run = "ps aux | grep json-server | grep -v grep || echo 'JSON Server not running'"
 
 [tasks."dev:status"]
-description = "Show Supabase status"
-run = "supabase status"
+description = "Show JSON Server status"
+run = "curl -s http://localhost:54322/comments | head -c 200 || echo 'JSON Server not responding'"
 
 [tasks."docker:build"]
 description = "Build Docker image locally"

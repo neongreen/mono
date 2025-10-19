@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "id": "sample-comment-1",
+      "paragraph-id": "chapter-1-block-0-sample",
+      "metadata": {
+        "id": "chapter-1-block-0-sample",
+        "position": {
+          "file": "chapter1.md",
+          "block-index": 0
+        },
+        "content": "This is a sample paragraph for testing the commenting system.",
+        "context": {
+          "prev": null,
+          "next": "This is the next paragraph that follows.",
+          "heading-path": ["Chapter 1", "Getting Started"]
+        },
+        "commit": "abc123def"
+      },
+      "author": "Test User",
+      "text": "This is a sample comment to test the commenting functionality!",
+      "created": "2024-01-01T12:00:00Z",
+      "parent-id": null,
+      "replies": []
+    }
+  ]
+}

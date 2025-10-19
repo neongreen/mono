@@ -1,4 +1,4 @@
-use crate::CommentsConfig;
+use crate::{CommentsConfig, CssAsset, JsAsset};
 use anyhow::Result;
 use mdbook::book::Chapter;
 use sha2::{Digest, Sha256};
@@ -6,6 +6,17 @@ use std::collections::HashMap;
 
 pub struct CommentsProcessor {
     config: CommentsConfig,
+}
+
+#[derive(Debug)]
+struct MetadataParams<'a> {
+    content: &'a str,
+    block_index: usize,
+    section_index: usize,
+    heading_stack: &'a [String],
+    path: &'a Option<std::path::PathBuf>,
+    prev_content: &'a Option<String>,
+    next_content: &'a Option<String>,
 }
 
 impl CommentsProcessor {
@@ -17,6 +28,38 @@ impl CommentsProcessor {
         // Parse markdown and inject comment metadata
         let processed = self.process_markdown(&chapter.content, &chapter.path)?;
         chapter.content = processed;
+        Ok(())
+    }
+
+    pub fn inject_assets(&self, chapter: &mut Chapter) -> Result<()> {
+        let mut asset_html = String::new();
+
+        // Inject CSS
+        if let Some(css_file) = CssAsset::get("comments.css") {
+            let css_content = std::str::from_utf8(css_file.data.as_ref())?;
+            asset_html.push_str(&format!("<style>\n{}\n</style>\n\n", css_content));
+        }
+
+        // Inject JavaScript files
+        let js_files = [
+            "comments.js",
+            "comments-googlesheets.js",
+            "comments-json-server.js",
+            "comments-neon.js",
+            "comments-supabase.js",
+        ];
+
+        for js_file in &js_files {
+            if let Some(js_asset) = JsAsset::get(js_file) {
+                let js_content = std::str::from_utf8(js_asset.data.as_ref())?;
+                asset_html.push_str(&format!("<script>\n{}\n</script>\n\n", js_content));
+            }
+        }
+
+        // Prepend assets to chapter content
+        // Use HTML comment to prevent markdown processing of the injected content
+        chapter.content = format!("<!-- mdbook-comments assets -->\n{}\n<!-- end mdbook-comments assets -->\n\n{}", asset_html, chapter.content);
+
         Ok(())
     }
 
@@ -70,15 +113,16 @@ impl CommentsProcessor {
                 let next_content = self.get_next_block_content(&lines, i + block_lines);
 
                 // Generate metadata
-                let metadata = self.generate_metadata(
-                    &block_content,
+                let params = MetadataParams {
+                    content: &block_content,
                     block_index,
-                    current_section_index,
-                    &heading_stack,
+                    section_index: current_section_index,
+                    heading_stack: &heading_stack,
                     path,
-                    &prev_content,
-                    &next_content,
-                );
+                    prev_content: &prev_content,
+                    next_content: &next_content,
+                };
+                let metadata = self.generate_metadata(&params);
 
                 // Add the block with comment link
                 result.push_str(&self.add_comment_link(&block_content, &metadata));
@@ -156,12 +200,12 @@ impl CommentsProcessor {
             content.push('\n');
             count += 1;
 
-            for i in (start + 1)..lines.len() {
-                content.push_str(lines[i]);
+            for line in &lines[(start + 1)..] {
+                content.push_str(line);
                 content.push('\n');
                 count += 1;
 
-                if lines[i].trim().starts_with(fence_char) && lines[i].trim().len() >= 3 {
+                if line.trim().starts_with(fence_char) && line.trim().len() >= 3 {
                     break;
                 }
             }
@@ -169,8 +213,7 @@ impl CommentsProcessor {
         }
 
         // Handle regular blocks (paragraphs, list items, etc.)
-        for i in start..lines.len() {
-            let line = lines[i];
+        for line in &lines[start..] {
             let trimmed = line.trim();
 
             // Stop at empty line (end of block)
@@ -219,7 +262,7 @@ impl CommentsProcessor {
             start -= 1;
         }
 
-        let content: Vec<&str> = lines[start..=i].iter().copied().collect();
+        let content: Vec<&str> = lines[start..=i].to_vec();
         Some(content.join("\n"))
     }
 
@@ -244,34 +287,25 @@ impl CommentsProcessor {
             i += 1;
         }
 
-        let content: Vec<&str> = lines[start..i].iter().copied().collect();
+        let content: Vec<&str> = lines[start..i].to_vec();
         Some(content.join("\n"))
     }
 
-    fn generate_metadata(
-        &self,
-        content: &str,
-        block_index: usize,
-        section_index: usize,
-        heading_stack: &[String],
-        path: &Option<std::path::PathBuf>,
-        prev_content: &Option<String>,
-        next_content: &Option<String>,
-    ) -> HashMap<String, serde_json::Value> {
+    fn generate_metadata(&self, params: &MetadataParams) -> HashMap<String, serde_json::Value> {
         use serde_json::json;
 
         // Generate content hash
         let mut hasher = Sha256::new();
-        hasher.update(content.as_bytes());
+        hasher.update(params.content.as_bytes());
         let hash = hex::encode(hasher.finalize());
         let short_hash = &hash[..8];
 
         // Generate ID
-        let path_str = path.as_ref().and_then(|p| p.to_str()).unwrap_or("unknown");
+        let path_str = params.path.as_ref().and_then(|p| p.to_str()).unwrap_or("unknown");
         let id = format!(
             "{}-block-{}-{}",
             path_str.replace(['/', '\\', '.'], "-"),
-            block_index,
+            params.block_index,
             short_hash
         );
 
@@ -281,20 +315,20 @@ impl CommentsProcessor {
             "position".to_string(),
             json!({
                 "file": path_str,
-                "block-index": block_index,
-                "section-index": section_index,
+                "block-index": params.block_index,
+                "section-index": params.section_index,
             }),
         );
-        metadata.insert("content".to_string(), json!(content));
+        metadata.insert("content".to_string(), json!(params.content));
 
         let mut context = serde_json::Map::new();
-        if let Some(prev) = prev_content {
+        if let Some(prev) = params.prev_content {
             context.insert("prev".to_string(), json!(prev));
         }
-        if let Some(next) = next_content {
+        if let Some(next) = params.next_content {
             context.insert("next".to_string(), json!(next));
         }
-        context.insert("heading-path".to_string(), json!(heading_stack));
+        context.insert("heading-path".to_string(), json!(params.heading_stack));
         metadata.insert("context".to_string(), json!(context));
 
         // Get git commit hash (if available)

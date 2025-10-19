@@ -1,11 +1,20 @@
 use anyhow::Result;
 use mdbook::book::{Book, BookItem};
 use mdbook::preprocess::{CmdPreprocessor, Preprocessor, PreprocessorContext};
+use rust_embed::RustEmbed;
 use serde::{Deserialize, Serialize};
 use std::io;
 use std::process;
 
 mod processor;
+
+#[derive(RustEmbed)]
+#[folder = "css/"]
+struct CssAsset;
+
+#[derive(RustEmbed)]
+#[folder = "js/"]
+struct JsAsset;
 
 use processor::CommentsProcessor;
 
@@ -90,6 +99,12 @@ impl CommentsPreprocessor {
     }
 }
 
+impl Default for CommentsPreprocessor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Preprocessor for CommentsPreprocessor {
     fn name(&self) -> &str {
         "comments"
@@ -104,10 +119,25 @@ impl Preprocessor for CommentsPreprocessor {
 
         let processor = CommentsProcessor::new(config);
 
+        // First, process all chapters to add comment links
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
                 if let Err(e) = processor.process_chapter(chapter) {
                     eprintln!("Error processing chapter {}: {}", chapter.name, e);
+                }
+            }
+        });
+
+        // Then inject embedded assets into the first chapter
+        let mut assets_injected = false;
+        book.for_each_mut(|item| {
+            if let BookItem::Chapter(chapter) = item {
+                if !assets_injected {
+                    // Inject CSS and JS assets at the beginning of the first chapter
+                    if let Err(e) = processor.inject_assets(chapter) {
+                        eprintln!("Error injecting assets into chapter {}: {}", chapter.name, e);
+                    }
+                    assets_injected = true;
                 }
             }
         });

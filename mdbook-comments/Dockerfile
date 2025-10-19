@@ -30,8 +30,7 @@ COPY --from=builder /build/target/release/mdbook-comments /usr/local/bin/
 # Set up the example book
 WORKDIR /book
 COPY example-book/src ./src
-COPY css ./css
-COPY js/comments-neon.js ./js/comments-neon.js
+# CSS and JS assets are now embedded in the preprocessor binary
 
 # Create book.toml configured for Neon
 RUN echo '[book]' > book.toml && \
@@ -60,9 +59,7 @@ RUN echo '[book]' > book.toml && \
     echo 'link-text = "comment"' >> book.toml && \
     echo 'show-comment-count = true' >> book.toml && \
     echo '' >> book.toml && \
-    echo '[output.html]' >> book.toml && \
-    echo 'additional-js = ["js/comments-neon.js"]' >> book.toml && \
-    echo 'additional-css = ["css/comments.css"]' >> book.toml
+    echo '[output.html]' >> book.toml
 
 # Create a startup script that configures Neon credentials from env vars
 COPY <<'STARTSCRIPT' /usr/local/bin/start-mdbook.sh

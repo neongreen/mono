@@ -25,7 +25,6 @@ show-comment-count = true
 
 [output.html]
 additional-js = [
-    "supabase-config.js",
-    "js/comments-supabase.js"
+    "json-server-config.js"
 ]
-additional-css = ["css/comments.css"]
+input = "src"

@@ -233,29 +233,13 @@ link-text = "comment"
 show-comment-count = true
 
 [output.html]
-# Add JavaScript and CSS for comments
-additional-js = ["js/comments-neon.js"]
-additional-css = ["css/comments.css"]
+# JavaScript and CSS are now embedded in the preprocessor binary
+# No additional-js or additional-css configuration needed
 ```
 
 **Important**: Replace `[endpoint]` with your actual Neon endpoint (e.g., `ep-cool-darkness-123456.us-east-2.aws.neon.tech`).
 
-### Step 10: Copy Comment Assets
-
-Copy the JavaScript and CSS files to your book directory:
-
-```bash
-# Create directories if they don't exist
-mkdir -p js css
-
-# Copy the Neon JavaScript client
-cp /path/to/mono/mdbook-comments/js/comments-neon.js js/
-
-# Copy the comment CSS
-cp /path/to/mono/mdbook-comments/css/comments.css css/
-```
-
-### Step 11: Configure Neon in JavaScript
+### Step 10: Configure Neon in JavaScript
 
 Edit `js/comments-neon.js` and update the configuration at the top:
 

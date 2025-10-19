@@ -1,0 +1,43 @@
+name: mdbook-comments
+
+on:
+  push:
+    paths:
+      - "mdbook-comments/**"
+      - ".github/workflows/mdbook-comments.yml"
+  pull_request:
+    paths:
+      - "mdbook-comments/**"
+      - ".github/workflows/mdbook-comments.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@7b1c307e0dcbda6122208f10795a713336d9b35a # v1.83.0
+        with:
+          toolchain: 1.90
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890697e6cf56d9684ba # v2.7.3
+
+      - name: Check formatting
+        working-directory: mdbook-comments
+        run: cargo fmt --check
+
+      - name: Run clippy
+        working-directory: mdbook-comments
+        run: cargo clippy -- -D warnings
+
+      - name: Run tests
+        working-directory: mdbook-comments
+        run: cargo test
+
+      - name: Build release
+        working-directory: mdbook-comments
+        run: cargo build --release

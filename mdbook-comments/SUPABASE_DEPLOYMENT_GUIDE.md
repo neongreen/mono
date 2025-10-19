@@ -210,29 +210,13 @@ link-text = "comment"
 show-comment-count = true
 
 [output.html]
-# Add JavaScript and CSS for comments
-additional-js = ["js/comments.js"]
-additional-css = ["css/comments.css"]
+# JavaScript and CSS are now embedded in the preprocessor binary
+# No additional-js or additional-css configuration needed
 ```
 
 **Important**: Replace `https://xxxxxxxxxxxxx.supabase.co` with your actual Supabase Project URL from Step 2.
 
-### Step 9: Copy Comment Assets
-
-Copy the JavaScript and CSS files to your book directory:
-
-```bash
-# Create directories if they don't exist
-mkdir -p js css
-
-# Copy the comment JavaScript
-cp /path/to/mono/mdbook-comments/js/comments.js js/
-
-# Copy the comment CSS
-cp /path/to/mono/mdbook-comments/css/comments.css css/
-```
-
-### Step 10: Configure Supabase in JavaScript
+### Step 9: Configure Supabase in JavaScript
 
 Edit `js/comments.js` and update the configuration at the top:
 
@@ -270,10 +254,10 @@ Edit your `book.toml` to include the Supabase SDK:
 ```toml
 [output.html]
 additional-js = [
-    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
-    "js/comments.js"
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
 ]
-additional-css = ["css/comments.css"]
+# JavaScript and CSS are now embedded in the preprocessor binary
+# No additional-css configuration needed
 ```
 
 ## Part 3: Adapt JavaScript for Supabase
