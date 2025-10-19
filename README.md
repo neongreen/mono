@@ -69,7 +69,19 @@ Go projects in this repository are automatically released:
 
 Main channel releases are considered unstable snapshots unless explicitly tagged. Stable channels are being defined (see bd-313).
 
-Homebrew formulas for `ingest`, `want`, and `printpdf` are published to [neongreen/homebrew-mono](https://github.com/neongreen/homebrew-mono). Tap it with `brew tap neongreen/mono` to install directly from the public releases of this repository.
+Homebrew formulas for the Go CLIs (`ingest`, `want`, `printpdf`, `conf`, `dissect`, `markdown-format`, `prrun`, `claude-trace`) are published to [neongreen/homebrew-mono](https://github.com/neongreen/homebrew-mono). Tap it with `brew tap neongreen/mono` and install what you need:
+
+```bash
+brew tap neongreen/mono
+brew install ingest
+brew install want
+brew install printpdf
+brew install conf
+brew install dissect
+brew install markdown-format
+brew install prrun
+brew install claude-trace
+```
 
 See [Release Workflow Documentation](.github/workflows/RELEASE_WORKFLOW.md) for more details.
 

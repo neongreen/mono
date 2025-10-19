@@ -9,6 +9,20 @@ binary = "ingest"
 test_args = ["--help"]
 
 [[mirror.projects]]
+name = "conf"
+desc = "Smart configuration manager with autocompletion for command-line tools."
+homepage = "https://github.com/neongreen/mono/tree/main/conf"
+binary = "conf"
+test_args = ["--help"]
+
+[[mirror.projects]]
+name = "dissect"
+desc = "Go refactoring assistant for structural code transformations."
+homepage = "https://github.com/neongreen/mono/tree/main/dissect"
+binary = "dissect"
+test_args = ["--help"]
+
+[[mirror.projects]]
 name = "want"
 desc = "Interactive fulfillment assistant for installing tools and releases."
 homepage = "https://github.com/neongreen/mono/tree/main/want"
@@ -20,4 +34,25 @@ name = "printpdf"
 desc = "Convert Markdown, URLs, and GitHub files to PDF using multiple renderers."
 homepage = "https://github.com/neongreen/mono/tree/main/printpdf"
 binary = "printpdf"
+test_args = ["--help"]
+
+[[mirror.projects]]
+name = "markdown-format"
+desc = "Markdown formatter CLI with opinionated defaults."
+homepage = "https://github.com/neongreen/mono/tree/main/markdown-format"
+binary = "markdown-format"
+test_args = ["--help"]
+
+[[mirror.projects]]
+name = "prrun"
+desc = "Run binaries from GitHub PR releases for quick verification."
+homepage = "https://github.com/neongreen/mono/tree/main/prrun"
+binary = "prrun"
+test_args = ["--help"]
+
+[[mirror.projects]]
+name = "claude-trace"
+desc = "Terminal UI for browsing Claude Code conversation logs."
+homepage = "https://github.com/neongreen/mono/tree/main/claude-trace"
+binary = "claude-trace"
 test_args = ["--help"]
