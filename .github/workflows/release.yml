@@ -369,7 +369,6 @@ jobs:
           import json
           import os
           from pathlib import Path
-          import textwrap
 
           project = os.environ["PROJECT"]
           version = os.environ["VERSION"]
@@ -395,10 +394,11 @@ jobs:
           artifacts = {}
 
           for archive in dist_dir.glob(f"{project}-{version}-*.tar.gz"):
-              platform = archive.stem.split(f"{project}-{version}-", 1)[1]
+              name = archive.name
+              platform = name.split(f"{project}-{version}-", 1)[1].removesuffix(".tar.gz")
               digest = hashlib.sha256(archive.read_bytes()).hexdigest()
               artifacts[platform] = {
-                  "filename": archive.name,
+                  "filename": name,
                   "sha256": digest,
               }
 
@@ -408,100 +408,70 @@ jobs:
           def url_for(filename: str) -> str:
               return f"https://github.com/{mirror_repo}/releases/download/{tag}/{filename}"
 
-          def block_for(os_name: str, arch: str) -> str:
-              key = f"{os_name}-{arch}"
-              entry = artifacts.get(key)
+          def block_lines(os_name: str, arch: str):
+              entry = artifacts.get(f"{os_name}-{arch}")
               if not entry:
-                  return ""
-              return textwrap.dedent(
-                  f"""
-                    url "{url_for(entry['filename'])}"
-                    sha256 "{entry['sha256']}"
-                  """
-              ).strip()
+                  return None
+              return [
+                  f'url "{url_for(entry["filename"])}"',
+                  f'sha256 "{entry["sha256"]}"',
+              ]
 
           mac_blocks = {
-              "arm64": block_for("darwin", "arm64"),
-              "amd64": block_for("darwin", "amd64"),
+              "arm64": block_lines("darwin", "arm64"),
+              "amd64": block_lines("darwin", "amd64"),
           }
           linux_blocks = {
-              "arm64": block_for("linux", "arm64"),
-              "amd64": block_for("linux", "amd64"),
+              "arm64": block_lines("linux", "arm64"),
+              "amd64": block_lines("linux", "amd64"),
           }
 
-          def arch_if(block: str, arch_name: str) -> str:
-              if not block:
-                  return ""
-              cpu_method = "arm?" if arch_name == "arm64" else "intel?"
-              indented = block.replace("\n", "\n      ")
-              return textwrap.dedent(
-                  f"""
-                  if Hardware::CPU.{cpu_method}
-                    {indented}
-                  end
-                  """
-              ).strip()
+          lines = [
+              f"class {class_name} < Formula",
+              f"  desc \"{desc}\"",
+              f"  homepage \"{homepage}\"",
+              f"  version \"{version}\"",
+          ]
 
-          def os_block(os_name: str, blocks: dict) -> str:
-              parts = []
-              for arch_name, block in blocks.items():
+          def append_os_section(buffer, os_name: str, blocks: dict):
+              order = ["arm64", "amd64"]
+              entries = []
+              for arch_name in order:
+                  block = blocks.get(arch_name)
                   if not block:
                       continue
-                  stanza = arch_if(block, arch_name)
-                  if stanza:
-                      parts.append(textwrap.indent(stanza, "  "))
-              if not parts:
-                  return ""
-              joined = "\n".join(parts)
-              return textwrap.dedent(
-                  f"""
-                on_{os_name} do
-              {joined}
-                end
-              """
-              ).rstrip()
+                  cpu_method = "arm?" if arch_name == "arm64" else "intel?"
+                  entries.append((cpu_method, block))
+              if not entries:
+                  return
+              buffer.append(f"  on_{os_name} do")
+              for cpu_method, block in entries:
+                  buffer.append(f"    if Hardware::CPU.{cpu_method}")
+                  for line in block:
+                      buffer.append(f"      {line}")
+                  buffer.append("    end")
+              buffer.append("  end")
+
+          append_os_section(lines, "macos", mac_blocks)
+          append_os_section(lines, "linux", linux_blocks)
 
           test_args_ruby = ", ".join([f'"{arg}"' for arg in test_args]) if test_args else '"--help"'
 
-          formula_body = textwrap.dedent(
-              f"""
-              class {class_name} < Formula
-                desc "{desc}"
-                homepage "{homepage}"
-                version "{version}"
-              """
-          ).rstrip()
-
-          os_sections = []
-          mac_section = os_block("macos", mac_blocks)
-          if mac_section:
-              os_sections.append(mac_section)
-          linux_section = os_block("linux", linux_blocks)
-          if linux_section:
-              os_sections.append(linux_section)
-
-          if os_sections:
-              formula_body += "\n" + "\n".join(os_sections)
-
-          install_block = textwrap.dedent(
-              f"""
-                def install
-                  bin.install "{binary_name}"
-                end
-
-                test do
-                  system "#{{bin}}/{binary_name}", {test_args_ruby}
-                end
-          end
-              """
-          )
-
-          formula_body += "\n" + install_block
+          lines.extend([
+              "  def install",
+              f"    bin.install \"{binary_name}\"",
+              "  end",
+              "",
+              "  test do",
+              f"    system \"#{{bin}}/{binary_name}\", {test_args_ruby}",
+              "  end",
+              "end",
+          ])
 
           formula_dir = Path("Formula")
           formula_dir.mkdir(parents=True, exist_ok=True)
           formula_path = formula_dir / f"{project}.rb"
-          formula_path.write_text(formula_body, encoding="utf-8")
+          formula_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
       - name: Run brew audit
