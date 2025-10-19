@@ -5,8 +5,8 @@ import (
 	"os"
 	"strconv"
 
+	jjtool "conf/pkg/tools/jj"
 	"github.com/spf13/cobra"
-	jjtool "github.com/neongreen/monorepo/conf/pkg/tools/jj"
 )
 
 var rootCmd = &cobra.Command{
@@ -28,17 +28,17 @@ var jjCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
 		value := args[1]
-		
+
 		// Create jj tool
 		jjTool, err := jjtool.NewJJTool()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize jj tool: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		// Try to parse value as different types
 		var parsedValue interface{}
-		
+
 		// Try boolean first
 		if value == "true" || value == "false" {
 			parsedValue = value == "true"
@@ -52,14 +52,14 @@ var jjCmd = &cobra.Command{
 			// Default to string
 			parsedValue = value
 		}
-		
+
 		// Set the configuration
 		err = jjTool.SetConfig(configPath, parsedValue)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		fmt.Printf("✓ Set jj config: %s = %v\n", configPath, parsedValue)
 		fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
 	},
@@ -75,12 +75,12 @@ var jjListCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize jj tool: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		settings := jjTool.ListCommonSettings()
-		
+
 		fmt.Println("Common jj configuration settings:")
 		fmt.Println()
-		
+
 		for _, setting := range settings {
 			fmt.Printf("  %s\n", setting.Path)
 			fmt.Printf("    Type: %s\n", setting.Type)
@@ -88,7 +88,7 @@ var jjListCmd = &cobra.Command{
 			fmt.Printf("    Example: %s\n", setting.Example)
 			fmt.Println()
 		}
-		
+
 		fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
 	},
 }
