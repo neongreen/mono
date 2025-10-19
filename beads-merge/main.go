@@ -301,7 +301,7 @@ func merge3Way(base, left, right []Issue) ([]Issue, []string) {
 				continue
 			} else {
 				// Modified in left, deleted in right - conflict
-				conflicts = append(conflicts, makeConflict(leftIssue.RawLine, ""))
+				conflicts = append(conflicts, makeConflictWithBase(baseIssue.RawLine, leftIssue.RawLine, ""))
 			}
 		} else if inBase && !inLeft && inRight {
 			// Deleted in left, maybe modified in right
@@ -310,7 +310,7 @@ func merge3Way(base, left, right []Issue) ([]Issue, []string) {
 				continue
 			} else {
 				// Modified in right, deleted in left - conflict
-				conflicts = append(conflicts, makeConflict("", rightIssue.RawLine))
+				conflicts = append(conflicts, makeConflictWithBase(baseIssue.RawLine, "", rightIssue.RawLine))
 			}
 		} else if !inBase && inLeft && !inRight {
 			// Added only in left
@@ -369,7 +369,7 @@ func mergeIssue(base, left, right Issue) (Issue, string) {
 
 	// Check if we have a real conflict
 	if hasConflict(base, left, right, result) {
-		return result, makeConflict(left.RawLine, right.RawLine)
+		return result, makeConflictWithBase(base.RawLine, left.RawLine, right.RawLine)
 	}
 
 	return result, ""
@@ -489,6 +489,23 @@ func makeConflict(left, right string) string {
 	if right != "" {
 		conflict += right + "\n"
 	}
-	conflict += ">>>>>>> right"
+	conflict += ">>>>>>> right\n"
+	return conflict
+}
+
+func makeConflictWithBase(base, left, right string) string {
+	conflict := "<<<<<<< left\n"
+	if left != "" {
+		conflict += left + "\n"
+	}
+	conflict += "||||||| base\n"
+	if base != "" {
+		conflict += base + "\n"
+	}
+	conflict += "=======\n"
+	if right != "" {
+		conflict += right + "\n"
+	}
+	conflict += ">>>>>>> right\n"
 	return conflict
 }
