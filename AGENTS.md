@@ -18,7 +18,7 @@ This document contains guidelines for AI agents and automated tools working on p
 
 ## Basic rules
 
-- All tools are written in Go unless stated otherwise. 
+- All tools are written in Go unless stated otherwise.
 - All new projects are created as top-level folders in the repository unless stated otherwise.
 - All projects must contain a `mise.toml`. Check existing `mise.toml` files to see what is expected from you.
 - All new Go projects must have CI workflows in `.github/workflows/<project-name>.yml`. Check existing workflow files to see what is expected from you.
@@ -33,7 +33,7 @@ This document contains guidelines for AI agents and automated tools working on p
 - The release workflow requires the `PUBLIC_RELEASE_TOKEN` secret with permissions to update `neongreen/homebrew-mono`.
 - Homebrew tap updates are automated via the release workflow; adjust formula metadata only through `release-mirror.toml`.
 - To run releases manually, use the `workflow_dispatch` trigger on `release.yml` and supply a comma/newline separated project list (matches directories like `ingest`).
-- Use the provided `mise` tasks instead of `go install`; for example, run `mise run //:lint:actions` and `mise run //:lint:actions-pinned` when touching workflows to ensure lint and pin checks stay green.
+- Use the provided `mise` tasks instead of `go install`; for example, run `mise run //:lint:actions` when touching workflows to ensure lint and pin checks stay green.
 - Never run `npm install -g`; rely on `mise` tasks or `npx` for node tooling.
 - Use `yq` for ad-hoc TOML manipulation instead of writing custom scripts or installing global tooling.
 - Investigate GitHub Actions failures yourself with available tooling (e.g. `gh run list`, `gh run view --log`); do not defer to the user for log gathering or diagnosis.
@@ -195,7 +195,7 @@ Here are concrete examples from previous pull requests showing what **NOT** to d
 
 #### ❌ Example 1: Unnecessary Migration Guide (PR #6)
 
-**Project:** diagram-dsl  
+**Project:** diagram-dsl
 **File:** `diagram-dsl/IMPROVEMENTS.md`
 
 **What was wrong:**
@@ -223,7 +223,7 @@ To use new features:
 
 #### ❌ Example 2: Backwards Compatibility Claims (PR #6)
 
-**Project:** diagram-dsl  
+**Project:** diagram-dsl
 **File:** `diagram-dsl/IMPROVEMENTS.md`
 
 **What was wrong:**
@@ -247,7 +247,7 @@ All existing APIs remain unchanged:
 
 #### ❌ Example 3: Backwards Compatible Claims (PR #8)
 
-**Project:** diagram-dsl  
+**Project:** diagram-dsl
 **File:** `diagram-dsl/SEMANTIC_COMPONENTS_SUMMARY.md`
 
 **What was wrong:**
@@ -272,7 +272,7 @@ No breaking changes - backwards compatible.
 
 #### ❌ Example 4: Defensive Statements About Backwards Compatibility (PR #6)
 
-**Project:** diagram-dsl  
+**Project:** diagram-dsl
 **File:** `diagram-dsl/AUDIT.md`
 
 **What was wrong:**
@@ -367,7 +367,7 @@ When a bug or issue is discovered after implementation (especially during code r
 
 3. **Prevention Measures**: At least one concrete way this could have been caught earlier
 
-4. **Location**: 
+4. **Location**:
    - For project-specific issues: Add to `<project>/AGENTS.md`
    - For cross-cutting concerns: Add to this global `AGENTS.md`
 

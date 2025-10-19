@@ -3,6 +3,8 @@ experimental_monorepo_root = true
 [tools]
 go = "1.24.7"
 "go:github.com/steveyegge/beads/cmd/bd" = "latest"
+"go:github.com/rhysd/actionlint/cmd/actionlint" = "latest"
+"go:github.com/suzuki-shunsuke/pinact/v3/cmd/pinact" = "latest"
 
 [tasks.cloc]
 description = "Count lines of Go code by file"
@@ -14,13 +16,14 @@ run = """
 jj git fetch && jj b t "glob:*@origin"
 """
 
-[tasks."lint:actions"]
-description = "Lint GitHub Actions workflows and ensure actions are pinned"
-run = """
-go run github.com/rhysd/actionlint/cmd/actionlint@latest
-go run github.com/suzuki-shunsuke/pinact/v3/cmd/pinact@latest run --check
-"""
+[tasks."lint:actions:actionlint"]
+description = "Lint GitHub Actions workflows with actionlint"
+run = "actionlint"
 
-[tasks."lint:actions-pinned"]
+[tasks."lint:actions:pinact"]
 description = "Check that GitHub Actions are pinned to specific SHAs"
-run = "go run github.com/suzuki-shunsuke/pinact/v3/cmd/pinact@latest run --check"
+run = "pinact run --check"
+
+[tasks."lint:actions"]
+description = "Lint GitHub Actions workflows"
+depends = ["//:lint:actions:*"]
