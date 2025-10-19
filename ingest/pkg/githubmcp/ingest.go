@@ -49,20 +49,26 @@ func IngestRepository(ctx context.Context, db *database.Database, runID int64, s
 			milestone = issue.Milestone.GetTitle()
 		}
 
-		if err := db.CreateGitHubIssue(
-			runID,
-			issue.GetNumber(),
-			issue.GetTitle(),
-			issue.GetBody(),
-			issue.GetState(),
-			userLogin(issue.User),
-			toTime(issue.GetCreatedAt()),
-			toTime(issue.GetUpdatedAt()),
-			toTimePtr(issue.ClosedAt),
-			labels,
-			assignees,
-			milestone,
-		); err != nil {
+		if err := db.CreateGitHubIssue(database.GitHubIssueRecord{
+			RunID:       runID,
+			Number:      issue.GetNumber(),
+			Title:       issue.GetTitle(),
+			Body:        issue.GetBody(),
+			State:       issue.GetState(),
+			Author:      userLogin(issue.User),
+			CreatedAt:   toTime(issue.GetCreatedAt()),
+			UpdatedAt:   toTime(issue.GetUpdatedAt()),
+			ClosedAt:    toTimePtr(issue.ClosedAt),
+			Labels:      labels,
+			Assignees:   assignees,
+			Milestone:   milestone,
+			NodeID:      issue.GetNodeID(),
+			IssueID:     issue.GetID(),
+			HTMLURL:     issue.GetHTMLURL(),
+			APIURL:      issue.GetURL(),
+			CommentsURL: issue.GetCommentsURL(),
+			EventsURL:   issue.GetEventsURL(),
+		}); err != nil {
 			return Summary{}, fmt.Errorf("failed to store issue #%d: %w", issue.GetNumber(), err)
 		}
 

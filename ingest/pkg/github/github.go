@@ -13,17 +13,23 @@ const defaultPerPage = 100
 
 // Issue represents a GitHub issue
 type Issue struct {
-	Number    int        `json:"number"`
-	Title     string     `json:"title"`
-	Body      string     `json:"body"`
-	State     string     `json:"state"`
-	User      User       `json:"user"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	ClosedAt  *time.Time `json:"closed_at"`
-	Labels    []Label    `json:"labels"`
-	Assignees []User     `json:"assignees"`
-	Milestone *Milestone `json:"milestone"`
+	Number      int        `json:"number"`
+	Title       string     `json:"title"`
+	Body        string     `json:"body"`
+	State       string     `json:"state"`
+	User        User       `json:"user"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	ClosedAt    *time.Time `json:"closed_at"`
+	Labels      []Label    `json:"labels"`
+	Assignees   []User     `json:"assignees"`
+	Milestone   *Milestone `json:"milestone"`
+	NodeID      string     `json:"node_id"`
+	ID          int64      `json:"id"`
+	HTMLURL     string     `json:"html_url"`
+	APIURL      string     `json:"api_url"`
+	CommentsURL string     `json:"comments_url"`
+	EventsURL   string     `json:"events_url"`
 }
 
 // PullRequest represents a GitHub pull request
@@ -249,17 +255,23 @@ func (c *Client) fetchPRReviewComments(owner, repo string, prNumber int) ([]Comm
 
 func convertIssue(src *api.Issue) Issue {
 	return Issue{
-		Number:    src.GetNumber(),
-		Title:     src.GetTitle(),
-		Body:      src.GetBody(),
-		State:     src.GetState(),
-		User:      convertUser(src.User),
-		CreatedAt: convertTimestamp(src.GetCreatedAt()),
-		UpdatedAt: convertTimestamp(src.GetUpdatedAt()),
-		ClosedAt:  cloneTimestampPtr(src.ClosedAt),
-		Labels:    convertLabels(src.Labels),
-		Assignees: convertUsers(src.Assignees),
-		Milestone: convertMilestone(src.Milestone),
+		Number:      src.GetNumber(),
+		Title:       src.GetTitle(),
+		Body:        src.GetBody(),
+		State:       src.GetState(),
+		User:        convertUser(src.User),
+		CreatedAt:   convertTimestamp(src.GetCreatedAt()),
+		UpdatedAt:   convertTimestamp(src.GetUpdatedAt()),
+		ClosedAt:    cloneTimestampPtr(src.ClosedAt),
+		Labels:      convertLabels(src.Labels),
+		Assignees:   convertUsers(src.Assignees),
+		Milestone:   convertMilestone(src.Milestone),
+		NodeID:      src.GetNodeID(),
+		ID:          src.GetID(),
+		HTMLURL:     src.GetHTMLURL(),
+		APIURL:      src.GetURL(),
+		CommentsURL: src.GetCommentsURL(),
+		EventsURL:   src.GetEventsURL(),
 	}
 }
 

@@ -75,20 +75,26 @@ func RunGitHub(ctx context.Context, out io.Writer, opts GitHubOptions) (Result, 
 			milestone = issue.Milestone.Title
 		}
 
-		if err := db.CreateGitHubIssue(
-			runID,
-			issue.Number,
-			issue.Title,
-			issue.Body,
-			issue.State,
-			issue.User.Login,
-			issue.CreatedAt,
-			issue.UpdatedAt,
-			issue.ClosedAt,
-			strings.Join(labelNames, ","),
-			strings.Join(assigneeNames, ","),
-			milestone,
-		); err != nil {
+		if err := db.CreateGitHubIssue(database.GitHubIssueRecord{
+			RunID:       runID,
+			Number:      issue.Number,
+			Title:       issue.Title,
+			Body:        issue.Body,
+			State:       issue.State,
+			Author:      issue.User.Login,
+			CreatedAt:   issue.CreatedAt,
+			UpdatedAt:   issue.UpdatedAt,
+			ClosedAt:    issue.ClosedAt,
+			Labels:      strings.Join(labelNames, ","),
+			Assignees:   strings.Join(assigneeNames, ","),
+			Milestone:   milestone,
+			NodeID:      issue.NodeID,
+			IssueID:     issue.ID,
+			HTMLURL:     issue.HTMLURL,
+			APIURL:      issue.APIURL,
+			CommentsURL: issue.CommentsURL,
+			EventsURL:   issue.EventsURL,
+		}); err != nil {
 			return Result{}, fmt.Errorf("failed to create issue #%d: %w", issue.Number, err)
 		}
 

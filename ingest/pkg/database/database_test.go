@@ -410,20 +410,26 @@ func TestGitHubOperations(t *testing.T) {
 	// Test creating a GitHub issue
 	now := time.Now()
 	closedAt := now.Add(24 * time.Hour)
-	err = db.CreateGitHubIssue(
-		runID,
-		1,
-		"Test Issue",
-		"Issue body",
-		"closed",
-		"testuser",
-		now,
-		now.Add(1*time.Hour),
-		&closedAt,
-		"bug,enhancement",
-		"assignee1,assignee2",
-		"v1.0",
-	)
+	err = db.CreateGitHubIssue(GitHubIssueRecord{
+		RunID:       runID,
+		Number:      1,
+		Title:       "Test Issue",
+		Body:        "Issue body",
+		State:       "closed",
+		Author:      "testuser",
+		CreatedAt:   now,
+		UpdatedAt:   now.Add(1 * time.Hour),
+		ClosedAt:    &closedAt,
+		Labels:      "bug,enhancement",
+		Assignees:   "assignee1,assignee2",
+		Milestone:   "v1.0",
+		NodeID:      "MDU6SXNzdWUx",
+		IssueID:     12345,
+		HTMLURL:     "https://github.com/neongreen/mono/issues/1",
+		APIURL:      "https://api.github.com/repos/neongreen/mono/issues/1",
+		CommentsURL: "https://api.github.com/repos/neongreen/mono/issues/1/comments",
+		EventsURL:   "https://api.github.com/repos/neongreen/mono/issues/1/events",
+	})
 	if err != nil {
 		t.Fatalf("Failed to create GitHub issue: %v", err)
 	}
@@ -505,7 +511,7 @@ func TestGitHubOperations(t *testing.T) {
 	}
 
 	// Test querying GitHub issues
-	results, err := db.Query("SELECT number, title, state, labels FROM github_issues")
+	results, err := db.Query("SELECT number, title, state, labels, node_id, html_url, issue_id FROM github_issues")
 	if err != nil {
 		t.Fatalf("Failed to query GitHub issues: %v", err)
 	}
@@ -516,6 +522,22 @@ func TestGitHubOperations(t *testing.T) {
 
 	if results[0]["title"] != "Test Issue" {
 		t.Errorf("Expected title 'Test Issue', got '%v'", results[0]["title"])
+	}
+
+	if results[0]["node_id"] != "MDU6SXNzdWUx" {
+		t.Errorf("Expected node_id 'MDU6SXNzdWUx', got '%v'", results[0]["node_id"])
+	}
+
+	if results[0]["html_url"] != "https://github.com/neongreen/mono/issues/1" {
+		t.Errorf("Unexpected html_url '%v'", results[0]["html_url"])
+	}
+
+	issueID, ok := results[0]["issue_id"].(int64)
+	if !ok {
+		t.Fatalf("Expected issue_id to be int64, got %T", results[0]["issue_id"])
+	}
+	if issueID != 12345 {
+		t.Errorf("Expected issue_id 12345, got %v", issueID)
 	}
 
 	labels := results[0]["labels"].(string)

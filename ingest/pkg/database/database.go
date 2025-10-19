@@ -43,6 +43,28 @@ type File struct {
 	Mode     string
 }
 
+// GitHubIssueRecord represents a row in github_issues.
+type GitHubIssueRecord struct {
+	RunID       int64
+	Number      int
+	Title       string
+	Body        string
+	State       string
+	Author      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	ClosedAt    *time.Time
+	Labels      string
+	Assignees   string
+	Milestone   string
+	NodeID      string
+	IssueID     int64
+	HTMLURL     string
+	APIURL      string
+	CommentsURL string
+	EventsURL   string
+}
+
 // LinearIssue represents a Linear issue record stored in the database.
 type LinearIssue struct {
 	IssueID     string
@@ -195,6 +217,12 @@ func (d *Database) createTables() error {
 		labels TEXT,
 		assignees TEXT,
 		milestone TEXT,
+		node_id TEXT,
+		issue_id INTEGER,
+		html_url TEXT,
+		api_url TEXT,
+		comments_url TEXT,
+		events_url TEXT,
 		FOREIGN KEY (run_id) REFERENCES runs(id)
 	);
 
@@ -277,6 +305,63 @@ func (d *Database) createTables() error {
 		return fmt.Errorf("failed to create tables: %w", err)
 	}
 
+	if err := d.ensureSchemaUpgrades(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Database) ensureSchemaUpgrades() error {
+	columns := []struct {
+		table string
+		name  string
+		typ   string
+	}{
+		{"github_issues", "node_id", "TEXT"},
+		{"github_issues", "issue_id", "INTEGER"},
+		{"github_issues", "html_url", "TEXT"},
+		{"github_issues", "api_url", "TEXT"},
+		{"github_issues", "comments_url", "TEXT"},
+		{"github_issues", "events_url", "TEXT"},
+	}
+
+	for _, col := range columns {
+		if err := d.ensureColumn(col.table, col.name, col.typ); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (d *Database) ensureColumn(table, column, columnType string) error {
+	rows, err := d.db.Query(fmt.Sprintf("PRAGMA table_info(%s)", table))
+	if err != nil {
+		return fmt.Errorf("failed to inspect %s: %w", table, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			cid      int
+			name     string
+			typ      string
+			notnull  int
+			defaultV any
+			pk       int
+		)
+		if err := rows.Scan(&cid, &name, &typ, &notnull, &defaultV, &pk); err != nil {
+			return fmt.Errorf("failed to scan table info for %s: %w", table, err)
+		}
+		if name == column {
+			return nil
+		}
+	}
+
+	if _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, columnType)); err != nil {
+		return fmt.Errorf("failed to add column %s.%s: %w", table, column, err)
+	}
 	return nil
 }
 
@@ -663,21 +748,46 @@ func (d *Database) Query(query string) ([]map[string]interface{}, error) {
 }
 
 // CreateGitHubIssue creates a new GitHub issue record
-func (d *Database) CreateGitHubIssue(runID int64, number int, title, body, state, author string, createdAt, updatedAt time.Time, closedAt *time.Time, labels, assignees, milestone string) error {
+func (d *Database) CreateGitHubIssue(record GitHubIssueRecord) error {
 	_, err := d.db.Exec(
-		"INSERT INTO github_issues (run_id, number, title, body, state, author, created_at, updated_at, closed_at, labels, assignees, milestone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		runID,
-		number,
-		title,
-		body,
-		state,
-		author,
-		createdAt,
-		updatedAt,
-		closedAt,
-		labels,
-		assignees,
-		milestone,
+		`INSERT INTO github_issues (
+			run_id,
+			number,
+			title,
+			body,
+			state,
+			author,
+			created_at,
+			updated_at,
+			closed_at,
+			labels,
+			assignees,
+			milestone,
+			node_id,
+			issue_id,
+			html_url,
+			api_url,
+			comments_url,
+			events_url
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		record.RunID,
+		record.Number,
+		record.Title,
+		record.Body,
+		record.State,
+		record.Author,
+		record.CreatedAt,
+		record.UpdatedAt,
+		record.ClosedAt,
+		record.Labels,
+		record.Assignees,
+		record.Milestone,
+		record.NodeID,
+		record.IssueID,
+		record.HTMLURL,
+		record.APIURL,
+		record.CommentsURL,
+		record.EventsURL,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create github issue: %w", err)
