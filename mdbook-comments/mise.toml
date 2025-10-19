@@ -5,17 +5,19 @@ rust = "1.90"
 pnpm = "latest"
 # "go:github.com/supabase/cli" = "latest"  # This doesn't work, just use brew
 
+# mise //mdbook-comments:build
 [tasks.build]
 description = "Build the mdbook-comments preprocessor"
 run = "cargo build --release"
 
+# mise //mdbook-comments:test
 [tasks.test]
 description = "Run tests"
-run = "cargo test && mise run //mdbook-comments:test_render"
+run = "cargo test && mise run :test_render ::: :test:e2e"
 
 [tasks."test:e2e"]
 description = "Run end-to-end tests with Playwright"
-run = "mise run //mdbook-comments:test_render && SKIP_WEBSERVER=1 pnpm playwright test"
+run = "SKIP_WEBSERVER=1 pnpm playwright test"
 
 [tasks.test_render]
 description = "Test that the sample book renders correctly with embedded assets"
