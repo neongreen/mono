@@ -128,16 +128,12 @@ impl Preprocessor for CommentsPreprocessor {
             }
         });
 
-        // Then inject embedded assets into the first chapter
-        let mut assets_injected = false;
+        // Then inject embedded assets into every chapter
         book.for_each_mut(|item| {
             if let BookItem::Chapter(chapter) = item {
-                if !assets_injected {
-                    // Inject CSS and JS assets at the beginning of the first chapter
-                    if let Err(e) = processor.inject_assets(chapter) {
-                        eprintln!("Error injecting assets into chapter {}: {}", chapter.name, e);
-                    }
-                    assets_injected = true;
+                // Inject CSS and JS assets at the beginning of every chapter
+                if let Err(e) = processor.inject_assets(chapter) {
+                    eprintln!("Error injecting assets into chapter {}: {}", chapter.name, e);
                 }
             }
         });
