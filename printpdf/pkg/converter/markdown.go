@@ -95,7 +95,8 @@ h5 { font-size: 0.875em; }
 h6 { font-size: 0.85em; color: #6a737d; }
 
 code {
-    background-color: rgba(27,31,35,0.05);
+    background-color: transparent;
+    border: 1px solid #d0d7de;
     border-radius: 3px;
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     font-size: 85%%;
@@ -106,7 +107,8 @@ code {
 }
 
 pre {
-    background-color: #f6f8fa;
+    background-color: transparent;
+    border: 1px solid #d0d7de;
     border-radius: 3px;
     font-size: 85%%;
     line-height: 1.45;
@@ -155,10 +157,11 @@ table tr:nth-child(2n) {
 }
 
 blockquote {
-    border-left: 0.25em solid #dfe2e5;
-    color: #6a737d;
+    border-left: 0.25em solid #000;
+    color: inherit;
     padding: 0 1em;
     margin-left: 0;
+    font-style: italic;
 }
 
 ul, ol {
@@ -172,8 +175,8 @@ li + li {
 }
 
 a {
-    color: #0366d6;
-    text-decoration: none;
+    color: inherit;
+    text-decoration: underline;
 }
 
 a:hover {
