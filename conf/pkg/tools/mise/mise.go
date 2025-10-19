@@ -1,0 +1,211 @@
+package mise
+
+import (
+	"fmt"
+	"strings"
+
+	"conf/pkg/config"
+	"conf/pkg/editors"
+	"conf/pkg/schemas"
+)
+
+// MiseTool implements mise configuration management
+type MiseTool struct {
+	configPath string
+	editor     *editors.TOMLEditor
+	schema     *schemas.MiseSchema
+}
+
+// NewMiseTool creates a new mise tool instance
+func NewMiseTool() (*MiseTool, error) {
+	// Load conf configuration to get mise config path
+	conf, err := config.Load()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load conf configuration: %w", err)
+	}
+
+	miseConfig, exists := conf.GetTool("mise")
+	if !exists {
+		return nil, fmt.Errorf("mise tool not configured in conf")
+	}
+
+	// Create TOML editor for mise config file
+	editor := editors.NewTOMLEditor(miseConfig.ConfigPath)
+
+	// Create mise schema parser
+	schema, err := schemas.LoadMiseSchema()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load mise schema: %w", err)
+	}
+
+	return &MiseTool{
+		configPath: miseConfig.ConfigPath,
+		editor:     editor,
+		schema:     schema,
+	}, nil
+}
+
+// SetConfig sets a configuration value using dotted path notation
+func (m *MiseTool) SetConfig(path string, value interface{}) error {
+	// Validate the path exists in schema
+	if !m.ValidatePath(path) {
+		return fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	// Set the value using the TOML editor
+	if err := m.editor.SetValue(path, value); err != nil {
+		return fmt.Errorf("failed to set mise config %s: %w", path, err)
+	}
+
+	return nil
+}
+
+// GetConfig retrieves a configuration value using dotted path notation
+func (m *MiseTool) GetConfig(path string) (interface{}, error) {
+	// Validate the path exists in schema
+	if !m.ValidatePath(path) {
+		return nil, fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	// Get the value using the TOML editor
+	value, err := m.editor.GetValue(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get mise config %s: %w", path, err)
+	}
+
+	return value, nil
+}
+
+// UnsetConfig removes a configuration value using dotted path notation
+func (m *MiseTool) UnsetConfig(path string) error {
+	// Validate the path exists in schema
+	if !m.ValidatePath(path) {
+		return fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	// Unset the value using the TOML editor
+	if err := m.editor.UnsetValue(path); err != nil {
+		return fmt.Errorf("failed to unset mise config %s: %w", path, err)
+	}
+
+	return nil
+}
+
+// GetCompletionOptions returns completion options for a given path
+func (m *MiseTool) GetCompletionOptions(path string) []schemas.CompletionOption {
+	return m.schema.GetCompletionOptions(path)
+}
+
+// ValidatePath checks if a configuration path is valid
+func (m *MiseTool) ValidatePath(path string) bool {
+	// For mise, we'll be more permissive since the schema is custom
+	// Check if it's in our known schema fields, or allow any path for flexibility
+	options := m.schema.GetCompletionOptions("")
+	if path == "" {
+		return true
+	}
+
+	// Check top-level paths
+	parts := splitPath(path)
+	if len(parts) == 0 {
+		return true
+	}
+
+	topLevel := parts[0]
+	for _, option := range options {
+		if option.Name == topLevel {
+			return true
+		}
+	}
+
+	// Allow common mise patterns even if not in schema
+	commonPrefixes := []string{"tools", "env", "tasks", "settings", "alias", "python", "ruby", "node"}
+	for _, prefix := range commonPrefixes {
+		if topLevel == prefix {
+			return true
+		}
+	}
+
+	return false
+}
+
+// GetConfigPath returns the path to the mise configuration file
+func (m *MiseTool) GetConfigPath() string {
+	return m.configPath
+}
+
+// ListCommonSettings returns a list of commonly used mise settings with descriptions
+func (m *MiseTool) ListCommonSettings() []CommonSetting {
+	return []CommonSetting{
+		{
+			Path:        "settings.experimental",
+			Description: "Enable experimental features in mise",
+			Type:        "boolean",
+			Example:     "true",
+		},
+		{
+			Path:        "settings.verbose",
+			Description: "Enable verbose output",
+			Type:        "boolean",
+			Example:     "false",
+		},
+		{
+			Path:        "settings.jobs",
+			Description: "Number of parallel jobs for installation",
+			Type:        "integer",
+			Example:     "4",
+		},
+		{
+			Path:        "settings.legacy_version_file",
+			Description: "Enable support for legacy version files",
+			Type:        "boolean",
+			Example:     "true",
+		},
+		{
+			Path:        "env.NODE_ENV",
+			Description: "Set Node.js environment",
+			Type:        "string",
+			Example:     "development",
+		},
+		{
+			Path:        "tools.node",
+			Description: "Node.js version to use",
+			Type:        "string",
+			Example:     "20",
+		},
+		{
+			Path:        "tools.python",
+			Description: "Python version to use",
+			Type:        "string",
+			Example:     "3.11",
+		},
+		{
+			Path:        "tasks.dev.run",
+			Description: "Development task command",
+			Type:        "string",
+			Example:     "npm run dev",
+		},
+		{
+			Path:        "python.venv_auto_create",
+			Description: "Automatically create Python virtual environments",
+			Type:        "boolean",
+			Example:     "true",
+		},
+	}
+}
+
+// CommonSetting represents a commonly used configuration setting
+type CommonSetting struct {
+	Path        string
+	Description string
+	Type        string
+	Example     string
+}
+
+// Helper function to split dotted path
+func splitPath(path string) []string {
+	if path == "" {
+		return []string{}
+	}
+	return strings.Split(path, ".")
+}
