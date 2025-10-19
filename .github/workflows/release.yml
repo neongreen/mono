@@ -25,6 +25,7 @@ jobs:
       projects: ${{ steps.find-projects.outputs.projects }}
       has_projects: ${{ steps.find-projects.outputs.has_projects }}
       mirror_projects: ${{ steps.mirror-config.outputs.projects }}
+      mirror_metadata: ${{ steps.mirror-config.outputs.metadata }}
       mirror_repo: ${{ steps.mirror-config.outputs.repo }}
     steps:
       - name: Checkout code
@@ -99,13 +100,22 @@ jobs:
           import tomllib
 
           data = tomllib.loads(Path("release-mirror.toml").read_text())
-          projects = data.get("mirror", {}).get("projects", [])
-          repo = data.get("mirror", {}).get("public_repo", "")
+          mirror = data.get("mirror", {})
+          projects = []
+          metadata = {}
+
+          for entry in mirror.get("projects", []):
+              name = entry.get("name")
+              if not name:
+                  continue
+              projects.append(name)
+              metadata[name] = entry
 
           output = os.environ["GITHUB_OUTPUT"]
           with open(output, "a", encoding="utf-8") as fh:
               fh.write(f"projects={json.dumps(projects)}\n")
-              fh.write(f"repo={repo}\n")
+              fh.write(f"metadata={json.dumps(metadata)}\n")
+              fh.write(f"repo={mirror.get('public_repo', '')}\n")
           PY
 
   # Second job: build and release each project
@@ -227,6 +237,33 @@ jobs:
 
           ls -lh dist/
 
+      - name: Package Homebrew archives
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        run: |
+          set -euo pipefail
+          PROJECT="${{ matrix.project }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          for binary in dist/${PROJECT}-${VERSION}-*; do
+            if [[ ! -f "$binary" ]]; then
+              continue
+            fi
+            if [[ "$binary" == *.tar.gz ]]; then
+              continue
+            fi
+
+            platform=${binary#dist/${PROJECT}-${VERSION}-}
+            tmpdir=$(mktemp -d)
+            cp "$binary" "$tmpdir/${PROJECT}"
+            tarball="dist/${PROJECT}-${VERSION}-${platform}.tar.gz"
+            (
+              cd "$tmpdir"
+              tar -czf "$OLDPWD/$tarball" "${PROJECT}"
+            )
+            rm -rf "$tmpdir"
+            echo "Created $tarball"
+          done
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -304,3 +341,198 @@ jobs:
           fail_on_unmatched_files: true
           overwrite: true
           token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
+
+      - name: Checkout Homebrew tap repository
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.detect.outputs.mirror_repo }}
+          token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
+          path: tap
+
+      - name: Set up Homebrew
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        uses: Homebrew/actions/setup-homebrew@v4
+
+      - name: Update Homebrew formula
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        working-directory: tap
+        env:
+          PROJECT: ${{ matrix.project }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          MIRROR_REPO: ${{ needs.detect.outputs.mirror_repo }}
+          MIRROR_METADATA: ${{ needs.detect.outputs.mirror_metadata }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import textwrap
+
+          project = os.environ["PROJECT"]
+          version = os.environ["VERSION"]
+          tag = os.environ["TAG"]
+          mirror_repo = os.environ["MIRROR_REPO"]
+          metadata = json.loads(os.environ["MIRROR_METADATA"])
+
+          project_meta = metadata.get(project, {})
+          binary_name = project_meta.get("binary", project)
+
+          def escape(value: str) -> str:
+              return value.replace("\\", "\\\\").replace("\"", "\\\"")
+
+          desc = escape(project_meta.get("desc", f"{project} CLI"))
+          homepage = escape(project_meta.get("homepage", f"https://github.com/{mirror_repo}"))
+          test_args = project_meta.get("test_args", ["--help"])
+
+          class_name = project_meta.get("formula_class")
+          if not class_name:
+              class_name = "".join(part.capitalize() for part in project.split("-"))
+
+          dist_dir = Path(os.getcwd()).parent / "dist"
+          artifacts = {}
+
+          for archive in dist_dir.glob(f"{project}-{version}-*.tar.gz"):
+              platform = archive.stem.split(f"{project}-{version}-", 1)[1]
+              digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+              artifacts[platform] = {
+                  "filename": archive.name,
+                  "sha256": digest,
+              }
+
+          if not artifacts:
+              raise SystemExit(f"No packaged Homebrew archives found for {project}")
+
+          def url_for(filename: str) -> str:
+              return f"https://github.com/{mirror_repo}/releases/download/{tag}/{filename}"
+
+          def block_for(os_name: str, arch: str) -> str:
+              key = f"{os_name}-{arch}"
+              entry = artifacts.get(key)
+              if not entry:
+                  return ""
+              return textwrap.dedent(
+                  f"""
+                    url "{url_for(entry['filename'])}"
+                    sha256 "{entry['sha256']}"
+                  """
+              ).strip()
+
+          mac_blocks = {
+              "arm64": block_for("darwin", "arm64"),
+              "amd64": block_for("darwin", "amd64"),
+          }
+          linux_blocks = {
+              "arm64": block_for("linux", "arm64"),
+              "amd64": block_for("linux", "amd64"),
+          }
+
+          def arch_if(block: str, arch_name: str) -> str:
+              if not block:
+                  return ""
+              cpu_method = "arm?" if arch_name == "arm64" else "intel?"
+              indented = block.replace("\n", "\n      ")
+              return textwrap.dedent(
+                  f"""
+                  if Hardware::CPU.{cpu_method}
+                    {indented}
+                  end
+                  """
+              ).strip()
+
+          def os_block(os_name: str, blocks: dict) -> str:
+              parts = []
+              for arch_name, block in blocks.items():
+                  if not block:
+                      continue
+                  stanza = arch_if(block, arch_name)
+                  if stanza:
+                      parts.append(textwrap.indent(stanza, "  "))
+              if not parts:
+                  return ""
+              joined = "\n".join(parts)
+              return textwrap.dedent(
+                  f"""
+                on_{os_name} do
+              {joined}
+                end
+              """
+              ).rstrip()
+
+          test_args_ruby = ", ".join([f'"{arg}"' for arg in test_args]) if test_args else '"--help"'
+
+          formula_body = textwrap.dedent(
+              f"""
+              class {class_name} < Formula
+                desc "{desc}"
+                homepage "{homepage}"
+                version "{version}"
+              """
+          ).rstrip()
+
+          os_sections = []
+          mac_section = os_block("macos", mac_blocks)
+          if mac_section:
+              os_sections.append(mac_section)
+          linux_section = os_block("linux", linux_blocks)
+          if linux_section:
+              os_sections.append(linux_section)
+
+          if os_sections:
+              formula_body += "\n" + "\n".join(os_sections)
+
+          install_block = textwrap.dedent(
+              f"""
+                def install
+                  bin.install "{binary_name}"
+                end
+
+                test do
+                  system "#{{bin}}/{binary_name}", {test_args_ruby}
+                end
+          end
+              """
+          )
+
+          formula_body += "\n" + install_block
+
+          formula_dir = Path("Formula")
+          formula_dir.mkdir(parents=True, exist_ok=True)
+          formula_path = formula_dir / f"{project}.rb"
+          formula_path.write_text(formula_body, encoding="utf-8")
+          PY
+
+      - name: Run brew audit
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          brew tap-new --no-git neongreen/mono-public || true
+          TAP_DIR="$(brew --repository)/Library/Taps/neongreen/homebrew-mono-public"
+          rm -rf "$TAP_DIR"
+          ln -s "${GITHUB_WORKSPACE}/tap" "$TAP_DIR"
+          brew audit --formula neongreen/mono-public/${{ matrix.project }}
+
+      - name: Commit Homebrew tap update
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        working-directory: tap
+        env:
+          PROJECT: ${{ matrix.project }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -e
+          git config user.name "mono-release-bot"
+          git config user.email "mono-release-bot@example.com"
+          git fetch origin
+          git checkout main
+          git pull --rebase origin main
+          git add Formula/${PROJECT}.rb
+          if git diff --staged --quiet; then
+            echo "No Homebrew changes to commit"
+            exit 0
+          fi
+          git commit -m "brew: update ${PROJECT} to ${VERSION}"
+          git push origin HEAD:main
