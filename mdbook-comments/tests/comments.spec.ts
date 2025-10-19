@@ -78,12 +78,12 @@ test.describe('mdbook-comments functionality', () => {
     await expect(commentSection).toBeVisible();
     
     // Verify comment form is present
-    const commentForm = commentSection.locator('form');
+    const commentForm = commentSection.locator('.comment-form');
     await expect(commentForm).toBeVisible();
     
-    // Click again to collapse
+    // Click again to toggle
     await firstLink.click();
-    await expect(commentSection).not.toBeVisible();
+    await expect(commentSection).toBeHidden();
   });
 
   test('should post a new comment', async ({ page }) => {

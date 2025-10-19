@@ -6,6 +6,7 @@ src = "src"
 title = "Example Book with Comments"
 
 [preprocessor.comments]
+command = "mdbook-comments"
 api-url = "http://localhost:3000/api"
 auth-type = "cookie"
 similarity-threshold = 0.85
