@@ -10,9 +10,9 @@ import (
 // Test markdown-to-HTML body conversion (without CSS wrapping)
 func TestMarkdownToHTMLBody(t *testing.T) {
 	tests := []struct {
-		name     string
-		input    string
-		contains []string
+		name        string
+		input       string
+		contains    []string
 		notContains []string
 	}{
 		{
@@ -39,7 +39,7 @@ func TestMarkdownToHTMLBody(t *testing.T) {
 			},
 		},
 		{
-			name: "code block",
+			name:  "code block",
 			input: "```go\nfunc main() {}\n```",
 			contains: []string{
 				"<pre>",
@@ -59,7 +59,7 @@ func TestMarkdownToHTMLBody(t *testing.T) {
 			},
 		},
 		{
-			name: "table",
+			name:  "table",
 			input: "| Name | Age |\n|------|-----|\n| John | 30  |",
 			contains: []string{
 				"<table>",
@@ -77,7 +77,7 @@ func TestMarkdownToHTMLBody(t *testing.T) {
 			},
 		},
 		{
-			name: "unordered list",
+			name:  "unordered list",
 			input: "- Item 1\n- Item 2\n- Item 3",
 			contains: []string{
 				"<ul>",
@@ -90,7 +90,7 @@ func TestMarkdownToHTMLBody(t *testing.T) {
 			},
 		},
 		{
-			name: "ordered list",
+			name:  "ordered list",
 			input: "1. First\n2. Second\n3. Third",
 			contains: []string{
 				"<ol>",
@@ -103,7 +103,7 @@ func TestMarkdownToHTMLBody(t *testing.T) {
 			},
 		},
 		{
-			name: "blockquote",
+			name:  "blockquote",
 			input: "> This is a quote",
 			contains: []string{
 				"<blockquote>",
@@ -112,7 +112,7 @@ func TestMarkdownToHTMLBody(t *testing.T) {
 			},
 		},
 		{
-			name: "link",
+			name:  "link",
 			input: "[GitHub](https://github.com)",
 			contains: []string{
 				"<a",
@@ -122,7 +122,7 @@ func TestMarkdownToHTMLBody(t *testing.T) {
 			},
 		},
 		{
-			name: "strikethrough (GFM)",
+			name:  "strikethrough (GFM)",
 			input: "~~strikethrough~~",
 			contains: []string{
 				"<del>",
@@ -131,7 +131,7 @@ func TestMarkdownToHTMLBody(t *testing.T) {
 			},
 		},
 		{
-			name: "task list (GFM)",
+			name:  "task list (GFM)",
 			input: "- [x] Done\n- [ ] Todo",
 			contains: []string{
 				"<input",
@@ -313,8 +313,8 @@ func TestGenerateContentCSS(t *testing.T) {
 
 func TestGenerateColumnCSS(t *testing.T) {
 	tests := []struct {
-		name    string
-		columns int
+		name     string
+		columns  int
 		contains []string
 	}{
 		{
@@ -682,6 +682,125 @@ func TestMarkdownToHTMLBodyEdgeCases(t *testing.T) {
 		resultStr := string(result)
 		if !strings.Contains(resultStr, "First note") || !strings.Contains(resultStr, "Second note") {
 			t.Error("Expected both footnotes to be present")
+		}
+	})
+}
+
+// Test wrapping raw HTML with page options
+func TestWrapHTMLWithPageOptions(t *testing.T) {
+	t.Run("wrap simple HTML fragment", func(t *testing.T) {
+		htmlContent := []byte("<h1>Title</h1><p>Content</p>")
+		options := PageOptions{
+			Orientation: "portrait",
+			Margin:      "2cm",
+			Zoom:        100,
+		}
+
+		result, err := wrapHTMLWithPageOptions(htmlContent, options)
+		if err != nil {
+			t.Fatalf("wrapHTMLWithPageOptions failed: %v", err)
+		}
+
+		resultStr := string(result)
+		contains := []string{
+			"<!DOCTYPE html>",
+			"<html>",
+			"<head>",
+			"@page",
+			"size: A4 portrait",
+			"margin: 2cm",
+			"<h1>Title</h1>",
+			"<p>Content</p>",
+		}
+
+		for _, expected := range contains {
+			if !strings.Contains(resultStr, expected) {
+				t.Errorf("Expected wrapped HTML to contain %q", expected)
+			}
+		}
+	})
+
+	t.Run("inject CSS into complete HTML document", func(t *testing.T) {
+		htmlContent := []byte(`<!DOCTYPE html>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+<h1>Title</h1>
+</body>
+</html>`)
+		options := PageOptions{
+			Orientation: "landscape",
+			Margin:      "1in",
+			Zoom:        120,
+		}
+
+		result, err := wrapHTMLWithPageOptions(htmlContent, options)
+		if err != nil {
+			t.Fatalf("wrapHTMLWithPageOptions failed: %v", err)
+		}
+
+		resultStr := string(result)
+		contains := []string{
+			"<title>Test</title>", // Original content preserved
+			"@page",
+			"size: A4 landscape",
+			"margin: 1in",
+			"font-size: 120%",
+		}
+
+		for _, expected := range contains {
+			if !strings.Contains(resultStr, expected) {
+				t.Errorf("Expected injected HTML to contain %q", expected)
+			}
+		}
+	})
+
+	t.Run("with columns", func(t *testing.T) {
+		htmlContent := []byte("<h1>Title</h1><p>Content</p>")
+		options := PageOptions{
+			Orientation: "portrait",
+			Margin:      "2cm",
+			Zoom:        100,
+			Columns:     3,
+		}
+
+		result, err := wrapHTMLWithPageOptions(htmlContent, options)
+		if err != nil {
+			t.Fatalf("wrapHTMLWithPageOptions failed: %v", err)
+		}
+
+		resultStr := string(result)
+		if !strings.Contains(resultStr, "column-count: 3") {
+			t.Error("Expected column CSS to be added")
+		}
+	})
+
+	t.Run("with first page guide", func(t *testing.T) {
+		htmlContent := []byte("<h1>Title</h1>")
+		options := PageOptions{
+			Orientation:    "portrait",
+			Margin:         "2cm",
+			Zoom:           100,
+			FirstPageGuide: "5cm",
+		}
+
+		result, err := wrapHTMLWithPageOptions(htmlContent, options)
+		if err != nil {
+			t.Fatalf("wrapHTMLWithPageOptions failed: %v", err)
+		}
+
+		resultStr := string(result)
+		contains := []string{
+			"@page:first",
+			"background-position: 5cm 0",
+		}
+
+		for _, expected := range contains {
+			if !strings.Contains(resultStr, expected) {
+				t.Errorf("Expected wrapped HTML to contain %q", expected)
+			}
 		}
 	})
 }

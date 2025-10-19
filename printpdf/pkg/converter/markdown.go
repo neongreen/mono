@@ -287,24 +287,6 @@ func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error)
 
 // wrapHTMLWithPageOptions wraps raw HTML content with proper page styling and options
 func wrapHTMLWithPageOptions(htmlContent []byte, options PageOptions) ([]byte, error) {
-	// Build page CSS with orientation, margin, and zoom
-	margin := options.cssMarginValue()
-	var pageCSS strings.Builder
-	if options.Orientation == "landscape" {
-		fmt.Fprintf(&pageCSS, "@page { size: A4 landscape; margin: %s; }\n", margin)
-	} else {
-		fmt.Fprintf(&pageCSS, "@page { size: A4 portrait; margin: %s; }\n", margin)
-	}
-
-	if guide := strings.TrimSpace(options.FirstPageGuide); guide != "" {
-		fmt.Fprintf(&pageCSS, "@page:first {\n")
-		fmt.Fprintf(&pageCSS, "    background-image: linear-gradient(90deg, #d0d7de, #d0d7de);\n")
-		fmt.Fprintf(&pageCSS, "    background-size: 0.4pt 100%%;\n")
-		fmt.Fprintf(&pageCSS, "    background-repeat: no-repeat;\n")
-		fmt.Fprintf(&pageCSS, "    background-position: %s 0;\n", guide)
-		fmt.Fprintf(&pageCSS, "}\n")
-	}
-
 	// Calculate zoom factor for font sizes
 	zoom := options.Zoom
 	if zoom == 0 {
@@ -321,6 +303,8 @@ func wrapHTMLWithPageOptions(htmlContent []byte, options PageOptions) ([]byte, e
 	var result []byte
 
 	if hasHTML && hasHead {
+		// HTML already has structure, just inject CSS
+		pageCSS := generatePageCSS(options)
 		styleBlock := fmt.Sprintf(`<style>
 %s
 html {
@@ -329,7 +313,7 @@ html {
 
 %s
 </style>
-`, pageCSS.String(), zoomFactor*100, htmlFootnoteCSS)
+`, pageCSS, zoomFactor*100, htmlFootnoteCSS)
 
 		lower := strings.ToLower(htmlStr)
 		closingIdx := strings.Index(lower, "</head>")
@@ -345,6 +329,8 @@ html {
 			result = append(result, []byte(styleBlock)...)
 		}
 	} else {
+		// HTML is just body content, wrap in full document
+		pageCSS := generatePageCSS(options)
 		wrapped := fmt.Sprintf(`<!DOCTYPE html>
 <html>
 <head>
@@ -361,21 +347,12 @@ html {
 <body>
 %s
 </body>
-</html>`, pageCSS.String(), zoomFactor*100, htmlFootnoteCSS, htmlStr)
+</html>`, pageCSS, zoomFactor*100, htmlFootnoteCSS, htmlStr)
 		result = []byte(wrapped)
 	}
 
 	if options.Columns > 1 {
-		columnCSS := fmt.Sprintf(`<style>
-body {
-    column-count: %d;
-    column-gap: 2em;
-    column-rule: 1px solid #dfe2e5;
-}
-h1, h2, h3 {
-    column-span: all;
-}
-</style>`, options.Columns)
+		columnCSS := fmt.Sprintf("<style>\n%s\n</style>", generateColumnCSS(options.Columns))
 		result = bytes.Replace(result, []byte("</head>"), []byte(columnCSS+"\n</head>"), 1)
 	}
 
