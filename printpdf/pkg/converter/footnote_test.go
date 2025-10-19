@@ -14,9 +14,6 @@ func TestHTMLFootnoteRendering(t *testing.T) {
 	}
 
 	result := string(html)
-	if !strings.Contains(result, "class=\"footnote-ref\"") {
-		t.Fatalf("expected footnote reference anchor, got: %s", result)
-	}
 	if !strings.Contains(result, "<span class=\"printpdf-footnote\"") {
 		t.Fatalf("expected inline footnote span, got: %s", result)
 	}
@@ -25,5 +22,20 @@ func TestHTMLFootnoteRendering(t *testing.T) {
 	}
 	if strings.Contains(result, "footnote-backref") {
 		t.Fatalf("unexpected footnote backref found in output: %s", result)
+	}
+	if !strings.Contains(result, "sup id=\"fnref:1\"") {
+		t.Fatalf("expected footnote superscript, got: %s", result)
+	}
+	if !strings.Contains(result, "data-footnote-id=\"fn:1\"") {
+		t.Fatalf("expected data-footnote-id on superscript, got: %s", result)
+	}
+	if !strings.Contains(result, ">1</sup>") {
+		t.Fatalf("expected numeric marker inside superscript, got: %s", result)
+	}
+	if strings.Contains(result, "class=\"footnote-ref\"") {
+		t.Fatalf("unexpected footnote anchor found in output: %s", result)
+	}
+	if !strings.Contains(result, "span.printpdf-footnote::footnote-marker") {
+		t.Fatalf("expected inline footnote marker override in CSS, got: %s", result)
 	}
 }

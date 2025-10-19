@@ -18,11 +18,6 @@ const htmlFootnoteCSS = `sup[id^="fnref:"] {
     vertical-align: super;
 }
 
-a.footnote-ref {
-    text-decoration: none;
-    color: inherit;
-}
-
 .printpdf-footnote {
     float: footnote;
     font-size: 0.75em;
@@ -33,6 +28,11 @@ a.footnote-ref {
 
 .printpdf-footnote::footnote-marker {
     font-weight: 600;
+}
+
+span.printpdf-footnote::footnote-marker {
+    /* Inline footnote spans already follow a superscript call; hide duplicate markers. */
+    content: "";
 }
 `
 
@@ -368,8 +368,8 @@ func attachHTMLFootnotes(root *stdhtml.Node, footnotes map[string][]*stdhtml.Nod
 			} else if content, ok := footnotes[target]; ok && len(content) > 0 {
 				sup := node.Parent
 				if sup != nil {
-					removeAttr(node, "href")
 					setDataAttribute(sup, "data-footnote-id", target)
+					normalizeFootnoteCall(sup, node, target)
 
 					inlineContent, inline := buildInlineFootnoteContent(content)
 
@@ -653,6 +653,49 @@ func removeAttr(node *stdhtml.Node, key string) {
 		}
 	}
 	node.Attr = out
+}
+
+func normalizeFootnoteCall(sup, anchor *stdhtml.Node, target string) {
+	if sup == nil || anchor == nil {
+		return
+	}
+
+	marker := strings.TrimSpace(extractTextContent(anchor))
+	if marker == "" {
+		marker = strings.TrimSpace(strings.TrimPrefix(target, "fn:"))
+		if marker == "" {
+			marker = target
+		}
+	}
+
+	removeHTMLNode(anchor)
+	if marker != "" {
+		sup.AppendChild(&stdhtml.Node{Type: stdhtml.TextNode, Data: marker})
+	}
+}
+
+func extractTextContent(node *stdhtml.Node) string {
+	if node == nil {
+		return ""
+	}
+
+	var buf strings.Builder
+
+	var walk func(*stdhtml.Node)
+	walk = func(n *stdhtml.Node) {
+		if n == nil {
+			return
+		}
+		if n.Type == stdhtml.TextNode {
+			buf.WriteString(n.Data)
+		}
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(node)
+
+	return buf.String()
 }
 
 func setDataAttribute(node *stdhtml.Node, key, value string) {
