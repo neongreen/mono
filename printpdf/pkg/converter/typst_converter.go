@@ -19,6 +19,7 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM,
+			extension.Footnote,
 			extension.Table,
 			extension.Strikethrough,
 			extension.Linkify,
@@ -31,6 +32,11 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 
 	reader := text.NewReader(markdown)
 	doc := md.Parser().Parse(reader)
+
+	footnotes, err := collectTypstFootnotes(doc, markdown)
+	if err != nil {
+		return "", fmt.Errorf("failed to collect footnotes: %w", err)
+	}
 
 	// Convert AST to Typst
 	var buf bytes.Buffer
@@ -73,7 +79,7 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 	buf.WriteString("\n")
 
 	// Convert the document
-	if err := renderNodeToTypst(&buf, doc, markdown); err != nil {
+	if err := renderNodeToTypst(&buf, doc, markdown, footnotes); err != nil {
 		return "", err
 	}
 
@@ -81,22 +87,22 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 }
 
 // renderNodeToTypst recursively renders AST nodes to Typst markup
-func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
+func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte, footnotes map[int]string) error {
 	switch n := node.(type) {
 	case *ast.Document:
-		return renderChildren(buf, n, source)
+		return renderChildren(buf, n, source, footnotes)
 
 	case *ast.Heading:
 		level := n.Level
 		buf.WriteString(strings.Repeat("=", level))
 		buf.WriteString(" ")
-		if err := renderChildren(buf, n, source); err != nil {
+		if err := renderChildren(buf, n, source, footnotes); err != nil {
 			return err
 		}
 		buf.WriteString("\n\n")
 
 	case *ast.Paragraph:
-		if err := renderChildren(buf, n, source); err != nil {
+		if err := renderChildren(buf, n, source, footnotes); err != nil {
 			return err
 		}
 		buf.WriteString("\n\n")
@@ -122,19 +128,19 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
 		// Level 1 = italic (_text_), Level 2 = bold (*text*)
 		if n.Level == 1 {
 			buf.WriteString("_")
-			if err := renderChildren(buf, n, source); err != nil {
+			if err := renderChildren(buf, n, source, footnotes); err != nil {
 				return err
 			}
 			buf.WriteString("_")
 		} else if n.Level == 2 {
 			buf.WriteString("*")
-			if err := renderChildren(buf, n, source); err != nil {
+			if err := renderChildren(buf, n, source, footnotes); err != nil {
 				return err
 			}
 			buf.WriteString("*")
 		} else {
 			// Fallback for other levels
-			if err := renderChildren(buf, n, source); err != nil {
+			if err := renderChildren(buf, n, source, footnotes); err != nil {
 				return err
 			}
 		}
@@ -143,7 +149,7 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
 		buf.WriteString("#underline[#link(\"")
 		buf.WriteString(escapeTypst(string(n.Destination)))
 		buf.WriteString("\")[")
-		if err := renderChildren(buf, n, source); err != nil {
+		if err := renderChildren(buf, n, source, footnotes); err != nil {
 			return err
 		}
 		buf.WriteString("]]")
@@ -179,19 +185,19 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
 		buf.WriteString("```\n\n")
 
 	case *ast.List:
-		if err := renderList(buf, n, source, 0); err != nil {
+		if err := renderList(buf, n, source, 0, footnotes); err != nil {
 			return err
 		}
 		buf.WriteString("\n")
 
 	case *ast.ListItem:
 		// Handled by renderList
-		return renderChildren(buf, n, source)
+		return renderChildren(buf, n, source, footnotes)
 
 	case *ast.Blockquote:
 		// Typst doesn't have native blockquotes, use a styled block
 		buf.WriteString("#block(inset: (left: 1em), stroke: (left: 2pt + gray))[\n")
-		if err := renderChildren(buf, n, source); err != nil {
+		if err := renderChildren(buf, n, source, footnotes); err != nil {
 			return err
 		}
 		buf.WriteString("]\n\n")
@@ -228,7 +234,7 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
 		buf.WriteString(")\n\n")
 
 	case *extast.Table:
-		if err := renderTable(buf, n, source); err != nil {
+		if err := renderTable(buf, n, source, footnotes); err != nil {
 			return err
 		}
 
@@ -246,23 +252,45 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
 
 	case *extast.Strikethrough:
 		buf.WriteString("#strike[")
-		if err := renderChildren(buf, n, source); err != nil {
+		if err := renderChildren(buf, n, source, footnotes); err != nil {
 			return err
 		}
 		buf.WriteString("]")
 
+	case *extast.FootnoteLink:
+		content, ok := footnotes[n.Index]
+		if !ok {
+			buf.WriteString(fmt.Sprintf("#footnote[missing footnote %d]", n.Index))
+			return nil
+		}
+		buf.WriteString("#footnote[")
+		buf.WriteString(content)
+		buf.WriteString("]")
+
+	case *extast.FootnoteList:
+		// Footnote content is emitted inline via #footnote
+		return nil
+
+	case *extast.Footnote:
+		// Footnotes handled separately
+		return nil
+
+	case *extast.FootnoteBacklink:
+		// Not needed for Typst output
+		return nil
+
 	default:
 		// For unknown nodes, try to render children
-		return renderChildren(buf, n, source)
+		return renderChildren(buf, n, source, footnotes)
 	}
 
 	return nil
 }
 
 // renderChildren renders all children of a node
-func renderChildren(buf *bytes.Buffer, node ast.Node, source []byte) error {
+func renderChildren(buf *bytes.Buffer, node ast.Node, source []byte, footnotes map[int]string) error {
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
-		if err := renderNodeToTypst(buf, child, source); err != nil {
+		if err := renderNodeToTypst(buf, child, source, footnotes); err != nil {
 			return err
 		}
 	}
@@ -270,7 +298,7 @@ func renderChildren(buf *bytes.Buffer, node ast.Node, source []byte) error {
 }
 
 // renderList renders a list (ordered or unordered)
-func renderList(buf *bytes.Buffer, list *ast.List, source []byte, depth int) error {
+func renderList(buf *bytes.Buffer, list *ast.List, source []byte, depth int, footnotes map[int]string) error {
 	indent := strings.Repeat("  ", depth)
 
 	for item := list.FirstChild(); item != nil; item = item.NextSibling() {
@@ -292,18 +320,18 @@ func renderList(buf *bytes.Buffer, list *ast.List, source []byte, depth int) err
 			if childList, ok := child.(*ast.List); ok {
 				// Nested list
 				itemBuf.WriteString("\n")
-				if err := renderList(&itemBuf, childList, source, depth+1); err != nil {
+				if err := renderList(&itemBuf, childList, source, depth+1, footnotes); err != nil {
 					return err
 				}
 			} else if para, ok := child.(*ast.Paragraph); ok {
 				// Paragraph content - render inline
 				for pChild := para.FirstChild(); pChild != nil; pChild = pChild.NextSibling() {
-					if err := renderNodeToTypst(&itemBuf, pChild, source); err != nil {
+					if err := renderNodeToTypst(&itemBuf, pChild, source, footnotes); err != nil {
 						return err
 					}
 				}
 			} else {
-				if err := renderNodeToTypst(&itemBuf, child, source); err != nil {
+				if err := renderNodeToTypst(&itemBuf, child, source, footnotes); err != nil {
 					return err
 				}
 			}
@@ -319,7 +347,7 @@ func renderList(buf *bytes.Buffer, list *ast.List, source []byte, depth int) err
 }
 
 // renderTable renders a GFM table to Typst
-func renderTable(buf *bytes.Buffer, table *extast.Table, source []byte) error {
+func renderTable(buf *bytes.Buffer, table *extast.Table, source []byte, footnotes map[int]string) error {
 	// Count columns
 	var colCount int
 	if table.FirstChild() != nil {
@@ -351,7 +379,7 @@ func renderTable(buf *bytes.Buffer, table *extast.Table, source []byte) error {
 				for cell := row.FirstChild(); cell != nil; cell = cell.NextSibling() {
 					buf.WriteString("  [*")
 					var cellBuf bytes.Buffer
-					if err := renderChildren(&cellBuf, cell, source); err != nil {
+					if err := renderChildren(&cellBuf, cell, source, footnotes); err != nil {
 						return err
 					}
 					buf.WriteString(strings.TrimSpace(cellBuf.String()))
@@ -367,7 +395,7 @@ func renderTable(buf *bytes.Buffer, table *extast.Table, source []byte) error {
 			for cell := row.FirstChild(); cell != nil; cell = cell.NextSibling() {
 				buf.WriteString("  [")
 				var cellBuf bytes.Buffer
-				if err := renderChildren(&cellBuf, cell, source); err != nil {
+				if err := renderChildren(&cellBuf, cell, source, footnotes); err != nil {
 					return err
 				}
 				buf.WriteString(strings.TrimSpace(cellBuf.String()))
@@ -394,4 +422,55 @@ func escapeTypst(s string) string {
 		"@", "\\@",
 	)
 	return replacer.Replace(s)
+}
+
+func collectTypstFootnotes(doc ast.Node, source []byte) (map[int]string, error) {
+	footnotes := make(map[int]string)
+
+	var fnList *extast.FootnoteList
+	for child := doc.FirstChild(); child != nil; child = child.NextSibling() {
+		if list, ok := child.(*extast.FootnoteList); ok {
+			fnList = list
+			break
+		}
+	}
+
+	if fnList == nil {
+		return footnotes, nil
+	}
+
+	for foot := fnList.FirstChild(); foot != nil; foot = foot.NextSibling() {
+		if fnNode, ok := foot.(*extast.Footnote); ok {
+			footnotes[fnNode.Index] = ""
+		}
+	}
+
+	for foot := fnList.FirstChild(); foot != nil; foot = foot.NextSibling() {
+		fnNode, ok := foot.(*extast.Footnote)
+		if !ok {
+			continue
+		}
+
+		var buf bytes.Buffer
+		if err := renderFootnoteContent(&buf, fnNode, source, footnotes); err != nil {
+			return nil, err
+		}
+		footnotes[fnNode.Index] = strings.TrimSpace(buf.String())
+	}
+
+	return footnotes, nil
+}
+
+func renderFootnoteContent(buf *bytes.Buffer, node ast.Node, source []byte, footnotes map[int]string) error {
+	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
+		switch child.(type) {
+		case *extast.FootnoteList, *extast.Footnote, *extast.FootnoteBacklink:
+			continue
+		default:
+			if err := renderNodeToTypst(buf, child, source, footnotes); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

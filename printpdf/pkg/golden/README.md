@@ -97,6 +97,7 @@ The suite includes comprehensive test cases:
 - **zoom-150**: 150% font size scaling
 - **code-blocks**: Various programming language code blocks
 - **tables**: Table rendering and alignment
+- **footnotes**: Footnote references and inline footnote bodies across converters
 
 ## Workflow
 

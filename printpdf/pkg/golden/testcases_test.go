@@ -25,6 +25,7 @@ func TestGoldenSuite(t *testing.T) {
 	suite.AddTestCase(codeBlockTestCase())
 	suite.AddTestCase(ligatureTestCase())
 	suite.AddTestCase(tableTestCase())
+	suite.AddTestCase(footnoteTestCase())
 	suite.AddTestCase(zoom80TestCase())
 	suite.AddTestCase(zoom120TestCase())
 	suite.AddTestCase(zoom200TestCase())
@@ -223,33 +224,33 @@ func htmlTestCase() GoldenTestCase {
     <main>
         <article>
             <h2 id="section1">Section 1: Basic HTML</h2>
-            
-            <p>This is a paragraph with <strong>bold text</strong>, <em>italic text</em>, 
+
+            <p>This is a paragraph with <strong>bold text</strong>, <em>italic text</em>,
             and <span class="highlight">highlighted text</span>.</p>
-            
-            <p>Here's some <span class="code">inline code</span> and a 
+
+            <p>Here's some <span class="code">inline code</span> and a
             <a href="https://example.com">link to example.com</a>.</p>
-            
+
             <h3>Lists</h3>
             <ul>
                 <li>Unordered item 1</li>
                 <li>Unordered item 2</li>
                 <li>Unordered item 3</li>
             </ul>
-            
+
             <ol>
                 <li>Ordered item 1</li>
                 <li>Ordered item 2</li>
                 <li>Ordered item 3</li>
             </ol>
-            
+
             <h2 id="section2">Section 2: Advanced HTML</h2>
-            
+
             <blockquote>
                 <p>This is a blockquote. It should be styled differently from regular paragraphs.</p>
                 <footer>— Citation source</footer>
             </blockquote>
-            
+
             <h3>Table</h3>
             <table border="1">
                 <thead>
@@ -272,21 +273,21 @@ func htmlTestCase() GoldenTestCase {
                     </tr>
                 </tbody>
             </table>
-            
+
             <h3>Code Block</h3>
             <pre><code>function hello() {
     console.log("Hello, World!");
 }
 
 hello();</code></pre>
-            
+
             <h3>Images</h3>
             <p>An image should appear below:</p>
             <img src="https://via.placeholder.com/400x200?text=HTML+Test+Image" alt="Test image" />
-            
+
         </article>
     </main>
-    
+
     <footer>
         <p>This is the footer content.</p>
     </footer>
@@ -315,7 +316,7 @@ This document tests custom margin settings.
 
 This page should have:
 - Top margin: 1cm
-- Right margin: 3cm  
+- Right margin: 3cm
 - Bottom margin: 2cm
 - Left margin: 4cm
 
@@ -588,7 +589,7 @@ import (
 
 func main() {
     fmt.Println("Hello, World!")
-    
+
     if len(os.Args) > 1 {
         fmt.Printf("Arguments: %v\n", os.Args[1:])
     }
@@ -616,13 +617,13 @@ class Calculator {
     constructor() {
         this.history = [];
     }
-    
+
     add(a, b) {
         const result = a + b;
         this.history.push({operation: 'add', a, b, result});
         return result;
     }
-    
+
     getHistory() {
         return this.history;
     }
@@ -680,13 +681,13 @@ function official() {
         filter: true,
         offline: false
     };
-    
-    // fl ligature should be disabled  
+
+    // fl ligature should be disabled
     const flags = ["--flag", "--profile"];
-    
+
     // ffi ligature should be disabled
     const difficult = "coefficient";
-    
+
     return config;
 }
 ` + "```" + `
@@ -700,7 +701,7 @@ if filter != nil {
     config := GetConfig()
 }
 
-// fl combinations  
+// fl combinations
 flag := "--profile"
 float64Value := 3.14
 
@@ -715,12 +716,12 @@ office := "main"
 # fi combinations
 def filter_files(profile):
     config = load_config()
-    
+
 # fl combinations
 flags = ["--profile", "--filter"]
 floating_point = 3.14159
 
-# ffi combinations  
+# ffi combinations
 coefficient = 2.5
 office_hours = "9-5"
 ` + "```" + `
@@ -729,7 +730,7 @@ office_hours = "9-5"
 
 In code blocks above, you should see:
 - **fi** rendered as separate f + i (not as ligature)
-- **fl** rendered as separate f + l (not as ligature)  
+- **fl** rendered as separate f + l (not as ligature)
 - **ffi** rendered as separate f + f + i (not as ligature)
 
 This ensures code readability and prevents confusion between similar-looking characters.
@@ -788,6 +789,32 @@ This document tests table rendering capabilities.
 
 Tables should render consistently across all converters with proper borders, alignment, and text wrapping.
 `,
+		Options: converter.PageOptions{
+			Columns:     1,
+			Orientation: "portrait",
+			Margin:      "2cm",
+			Zoom:        100,
+		},
+		Converters: []string{"typst", "prince", "weasyprint"},
+	}
+}
+
+// footnoteTestCase verifies footnote rendering across converters
+func footnoteTestCase() GoldenTestCase {
+	return GoldenTestCase{
+		Name:        "footnotes",
+		ContentType: fetcher.ContentTypeMarkdown,
+		Input: `# Footnote Rendering
+
+This paragraph references a standard footnote marker[^intro] to ensure placement.
+
+Another sentence introduces a second footnote[^second] that contains formatted text.
+
+Sometimes a footnote needs multiple sentences[^long] to explain a concept thoroughly.
+
+[^intro]: First footnote with **bold emphasis** and inline code ` + "`print(\"footnote\")`" + `.
+[^second]: Second footnote with a [link](https://example.com) and *italic text* for variety.
+[^long]: This longer footnote spans two sentences. It ensures our layout handles extended explanations without breaking the page flow.`,
 		Options: converter.PageOptions{
 			Columns:     1,
 			Orientation: "portrait",
