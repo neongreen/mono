@@ -5,10 +5,12 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/spf13/cobra"
 	jjtool "conf/pkg/tools/jj"
 	misetool "conf/pkg/tools/mise"
+	"github.com/spf13/cobra"
 )
+
+var dryRun bool
 
 var rootCmd = &cobra.Command{
 	Use:   "conf",
@@ -29,25 +31,36 @@ var jjCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
 		value := args[1]
-		
-		// Create jj tool
-		jjTool, err := jjtool.NewJJTool()
+
+		// Create jj tool with dry-run mode
+		jjTool, err := jjtool.NewJJToolWithDryRun(dryRun)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize jj tool: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		// Parse value with type detection
 		parsedValue := parseValue(value)
-		
-		// Set the configuration
-		err = jjTool.SetConfig(configPath, parsedValue)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+
+		if dryRun {
+			// Show preview of what would happen
+			preview, err := jjTool.PreviewSetConfig(configPath, parsedValue)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Print(preview)
+		} else {
+			// Set the configuration
+			err = jjTool.SetConfig(configPath, parsedValue)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("✓ Set jj config: %s = %v\n", configPath, parsedValue)
 		}
-		
-		fmt.Printf("✓ Set jj config: %s = %v\n", configPath, parsedValue)
+
 		fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
 	},
 }
@@ -62,12 +75,12 @@ var jjListCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize jj tool: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		settings := jjTool.ListCommonSettings()
-		
+
 		fmt.Println("Common jj configuration settings:")
 		fmt.Println()
-		
+
 		for _, setting := range settings {
 			fmt.Printf("  %s\n", setting.Path)
 			fmt.Printf("    Type: %s\n", setting.Type)
@@ -75,38 +88,49 @@ var jjListCmd = &cobra.Command{
 			fmt.Printf("    Example: %s\n", setting.Example)
 			fmt.Println()
 		}
-		
+
 		fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
 	},
 }
 
 var miseCmd = &cobra.Command{
 	Use:   "mise [config.path] [value]",
-	Short: "Configure mise settings", 
+	Short: "Configure mise settings",
 	Long:  `Set configuration values in ~/.config/mise/config.toml using dotted path notation.`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
 		value := args[1]
-		
-		// Create mise tool
-		miseTool, err := misetool.NewMiseTool()
+
+		// Create mise tool with dry-run mode
+		miseTool, err := misetool.NewMiseToolWithDryRun(dryRun)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize mise tool: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		// Parse value with type detection
 		parsedValue := parseValue(value)
-		
-		// Set the configuration
-		err = miseTool.SetConfig(configPath, parsedValue)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-			os.Exit(1)
+
+		if dryRun {
+			// Show preview of what would happen
+			preview, err := miseTool.PreviewSetConfig(configPath, parsedValue)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Print(preview)
+		} else {
+			// Set the configuration
+			err = miseTool.SetConfig(configPath, parsedValue)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("✓ Set mise config: %s = %v\n", configPath, parsedValue)
 		}
-		
-		fmt.Printf("✓ Set mise config: %s = %v\n", configPath, parsedValue)
+
 		fmt.Printf("Config file: %s\n", miseTool.GetConfigPath())
 	},
 }
@@ -121,12 +145,12 @@ var miseListCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize mise tool: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		settings := miseTool.ListCommonSettings()
-		
+
 		fmt.Println("Common mise configuration settings:")
 		fmt.Println()
-		
+
 		for _, setting := range settings {
 			fmt.Printf("  %s\n", setting.Path)
 			fmt.Printf("    Type: %s\n", setting.Type)
@@ -134,7 +158,7 @@ var miseListCmd = &cobra.Command{
 			fmt.Printf("    Example: %s\n", setting.Example)
 			fmt.Println()
 		}
-		
+
 		fmt.Printf("Config file: %s\n", miseTool.GetConfigPath())
 	},
 }
@@ -165,25 +189,28 @@ func parseValue(value string) interface{} {
 	if value == "true" || value == "false" {
 		return value == "true"
 	}
-	
+
 	// Try integer
 	if intVal, err := strconv.Atoi(value); err == nil {
 		return intVal
 	}
-	
+
 	// Try float
 	if floatVal, err := strconv.ParseFloat(value, 64); err == nil {
 		return floatVal
 	}
-	
+
 	// Default to string
 	return value
 }
 
 func init() {
+	// Add dry-run flag to root command
+	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would be changed without making any modifications")
+
 	jjCmd.AddCommand(jjListCmd)
 	miseCmd.AddCommand(miseListCmd)
-	
+
 	rootCmd.AddCommand(jjCmd)
 	rootCmd.AddCommand(miseCmd)
 	rootCmd.AddCommand(completionCmd)

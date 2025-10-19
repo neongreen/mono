@@ -13,10 +13,16 @@ type JJTool struct {
 	configPath string
 	editor     *editors.TOMLEditor
 	parser     *schemas.JJSchemaParser
+	dryRun     bool
 }
 
 // NewJJTool creates a new jj tool instance
 func NewJJTool() (*JJTool, error) {
+	return NewJJToolWithDryRun(false)
+}
+
+// NewJJToolWithDryRun creates a new jj tool instance with dry-run mode
+func NewJJToolWithDryRun(dryRun bool) (*JJTool, error) {
 	// Load conf configuration to get jj config path
 	conf, err := config.Load()
 	if err != nil {
@@ -29,7 +35,7 @@ func NewJJTool() (*JJTool, error) {
 	}
 
 	// Create TOML editor for jj config file
-	editor := editors.NewTOMLEditor(jjConfig.ConfigPath)
+	editor := editors.NewTOMLEditorWithDryRun(jjConfig.ConfigPath, dryRun)
 
 	// Create jj schema parser
 	parser, err := schemas.NewJJSchemaParser()
@@ -41,7 +47,14 @@ func NewJJTool() (*JJTool, error) {
 		configPath: jjConfig.ConfigPath,
 		editor:     editor,
 		parser:     parser,
+		dryRun:     dryRun,
 	}, nil
+}
+
+// SetDryRun enables or disables dry-run mode
+func (j *JJTool) SetDryRun(dryRun bool) {
+	j.dryRun = dryRun
+	j.editor.SetDryRun(dryRun)
 }
 
 // SetConfig sets a configuration value using dotted path notation
@@ -75,9 +88,49 @@ func (j *JJTool) GetConfig(path string) (interface{}, error) {
 	return value, nil
 }
 
+// UnsetConfig removes a configuration value using dotted path notation
+func (j *JJTool) UnsetConfig(path string) error {
+	// Validate the path exists in schema
+	if !j.parser.ValidatePath(path) {
+		return fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	// Unset the value using the TOML editor
+	if err := j.editor.UnsetValue(path); err != nil {
+		return fmt.Errorf("failed to unset jj config %s: %w", path, err)
+	}
+
+	return nil
+}
+
+// PreviewSetConfig shows what setting a config value would do without doing it
+func (j *JJTool) PreviewSetConfig(path string, value interface{}) (string, error) {
+	// Validate the path exists in schema
+	if !j.parser.ValidatePath(path) {
+		return "", fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	return j.editor.PreviewSetValue(path, value)
+}
+
+// PreviewUnsetConfig shows what unsetting a config value would do without doing it
+func (j *JJTool) PreviewUnsetConfig(path string) (string, error) {
+	// Validate the path exists in schema
+	if !j.parser.ValidatePath(path) {
+		return "", fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	return j.editor.PreviewUnsetValue(path)
+}
+
 // GetConfigPath returns the path to the jj configuration file
 func (j *JJTool) GetConfigPath() string {
 	return j.configPath
+}
+
+// IsDryRun returns whether dry-run mode is enabled
+func (j *JJTool) IsDryRun() bool {
+	return j.dryRun
 }
 
 // ListCommonSettings returns a list of commonly used jj settings with descriptions

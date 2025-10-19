@@ -14,10 +14,16 @@ type MiseTool struct {
 	configPath string
 	editor     *editors.TOMLEditor
 	schema     *schemas.MiseSchema
+	dryRun     bool
 }
 
 // NewMiseTool creates a new mise tool instance
 func NewMiseTool() (*MiseTool, error) {
+	return NewMiseToolWithDryRun(false)
+}
+
+// NewMiseToolWithDryRun creates a new mise tool instance with dry-run mode
+func NewMiseToolWithDryRun(dryRun bool) (*MiseTool, error) {
 	// Load conf configuration to get mise config path
 	conf, err := config.Load()
 	if err != nil {
@@ -30,7 +36,7 @@ func NewMiseTool() (*MiseTool, error) {
 	}
 
 	// Create TOML editor for mise config file
-	editor := editors.NewTOMLEditor(miseConfig.ConfigPath)
+	editor := editors.NewTOMLEditorWithDryRun(miseConfig.ConfigPath, dryRun)
 
 	// Create mise schema parser
 	schema, err := schemas.LoadMiseSchema()
@@ -42,7 +48,14 @@ func NewMiseTool() (*MiseTool, error) {
 		configPath: miseConfig.ConfigPath,
 		editor:     editor,
 		schema:     schema,
+		dryRun:     dryRun,
 	}, nil
+}
+
+// SetDryRun enables or disables dry-run mode
+func (m *MiseTool) SetDryRun(dryRun bool) {
+	m.dryRun = dryRun
+	m.editor.SetDryRun(dryRun)
 }
 
 // SetConfig sets a configuration value using dotted path notation
@@ -91,6 +104,26 @@ func (m *MiseTool) UnsetConfig(path string) error {
 	return nil
 }
 
+// PreviewSetConfig shows what setting a config value would do without doing it
+func (m *MiseTool) PreviewSetConfig(path string, value interface{}) (string, error) {
+	// Validate the path exists in schema
+	if !m.ValidatePath(path) {
+		return "", fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	return m.editor.PreviewSetValue(path, value)
+}
+
+// PreviewUnsetConfig shows what unsetting a config value would do without doing it
+func (m *MiseTool) PreviewUnsetConfig(path string) (string, error) {
+	// Validate the path exists in schema
+	if !m.ValidatePath(path) {
+		return "", fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	return m.editor.PreviewUnsetValue(path)
+}
+
 // GetCompletionOptions returns completion options for a given path
 func (m *MiseTool) GetCompletionOptions(path string) []schemas.CompletionOption {
 	return m.schema.GetCompletionOptions(path)
@@ -132,6 +165,11 @@ func (m *MiseTool) ValidatePath(path string) bool {
 // GetConfigPath returns the path to the mise configuration file
 func (m *MiseTool) GetConfigPath() string {
 	return m.configPath
+}
+
+// IsDryRun returns whether dry-run mode is enabled
+func (m *MiseTool) IsDryRun() bool {
+	return m.dryRun
 }
 
 // ListCommonSettings returns a list of commonly used mise settings with descriptions

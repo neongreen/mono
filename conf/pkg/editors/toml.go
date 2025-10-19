@@ -11,17 +11,37 @@ import (
 // TOMLEditor provides surgical editing of TOML files while preserving formatting
 type TOMLEditor struct {
 	filePath string
+	dryRun   bool
 }
 
 // NewTOMLEditor creates a new TOML editor for the specified file
 func NewTOMLEditor(filePath string) *TOMLEditor {
 	return &TOMLEditor{
 		filePath: filePath,
+		dryRun:   false,
 	}
+}
+
+// NewTOMLEditorWithDryRun creates a new TOML editor with dry-run mode
+func NewTOMLEditorWithDryRun(filePath string, dryRun bool) *TOMLEditor {
+	return &TOMLEditor{
+		filePath: filePath,
+		dryRun:   dryRun,
+	}
+}
+
+// SetDryRun enables or disables dry-run mode
+func (e *TOMLEditor) SetDryRun(dryRun bool) {
+	e.dryRun = dryRun
 }
 
 // SetValue sets a value at the specified dotted path, preserving existing formatting
 func (e *TOMLEditor) SetValue(path string, value interface{}) error {
+	if e.dryRun {
+		fmt.Printf("DRY RUN: Would set %s = %v in %s\n", path, value, e.filePath)
+		return nil
+	}
+
 	// Read existing file content if it exists
 	var content []byte
 	var err error
@@ -72,6 +92,9 @@ func (e *TOMLEditor) GetValue(path string) (interface{}, error) {
 	content, err := os.ReadFile(e.filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
+			if e.dryRun {
+				fmt.Printf("DRY RUN: File %s does not exist\n", e.filePath)
+			}
 			return nil, fmt.Errorf("file does not exist: %s", e.filePath)
 		}
 		return nil, fmt.Errorf("failed to read file: %w", err)
@@ -87,6 +110,11 @@ func (e *TOMLEditor) GetValue(path string) (interface{}, error) {
 
 // UnsetValue removes a value at the specified dotted path
 func (e *TOMLEditor) UnsetValue(path string) error {
+	if e.dryRun {
+		fmt.Printf("DRY RUN: Would unset %s in %s\n", path, e.filePath)
+		return nil
+	}
+
 	content, err := os.ReadFile(e.filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -116,6 +144,52 @@ func (e *TOMLEditor) UnsetValue(path string) error {
 	}
 
 	return nil
+}
+
+// PreviewSetValue shows what setting a value would do without actually doing it
+func (e *TOMLEditor) PreviewSetValue(path string, value interface{}) (string, error) {
+	var preview strings.Builder
+
+	// Check if file exists
+	_, err := os.Stat(e.filePath)
+	if os.IsNotExist(err) {
+		preview.WriteString(fmt.Sprintf("Would create new file: %s\n", e.filePath))
+	} else {
+		preview.WriteString(fmt.Sprintf("Would modify existing file: %s\n", e.filePath))
+	}
+
+	preview.WriteString(fmt.Sprintf("Operation: SET\n"))
+	preview.WriteString(fmt.Sprintf("Path: %s\n", path))
+	preview.WriteString(fmt.Sprintf("Value: %v (%T)\n", value, value))
+
+	return preview.String(), nil
+}
+
+// PreviewUnsetValue shows what unsetting a value would do without actually doing it
+func (e *TOMLEditor) PreviewUnsetValue(path string) (string, error) {
+	var preview strings.Builder
+
+	// Check if file exists
+	_, err := os.Stat(e.filePath)
+	if os.IsNotExist(err) {
+		preview.WriteString(fmt.Sprintf("File does not exist: %s\n", e.filePath))
+		preview.WriteString("Operation: No change needed\n")
+		return preview.String(), nil
+	}
+
+	// Check if the path currently exists
+	_, err = e.GetValue(path)
+	if err != nil {
+		preview.WriteString(fmt.Sprintf("Path does not exist in %s\n", e.filePath))
+		preview.WriteString("Operation: No change needed\n")
+		return preview.String(), nil
+	}
+
+	preview.WriteString(fmt.Sprintf("Would modify existing file: %s\n", e.filePath))
+	preview.WriteString(fmt.Sprintf("Operation: UNSET\n"))
+	preview.WriteString(fmt.Sprintf("Path: %s\n", path))
+
+	return preview.String(), nil
 }
 
 // setNestedValue sets a value in a nested map structure using a dotted path
