@@ -5,6 +5,7 @@ go = "1.24.7"
 "go:github.com/steveyegge/beads/cmd/bd" = "latest"
 "go:github.com/rhysd/actionlint/cmd/actionlint" = "latest"
 "go:github.com/suzuki-shunsuke/pinact/v3/cmd/pinact" = "latest"
+zizmor = "latest"
 
 [tasks.cloc]
 description = "Count lines of Go code by file"
@@ -22,7 +23,7 @@ run = "actionlint"
 
 [tasks."lint:actions:pinact"]
 description = "Check that GitHub Actions are pinned to specific SHAs"
-run = "pinact run --check"
+run = "GITHUB_TOKEN=$(gh auth token) pinact run --check --diff --verify"
 
 [tasks."lint:actions"]
 description = "Lint GitHub Actions workflows"
