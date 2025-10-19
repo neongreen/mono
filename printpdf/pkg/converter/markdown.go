@@ -371,19 +371,44 @@ func attachHTMLFootnotes(root *stdhtml.Node, footnotes map[string][]*stdhtml.Nod
 					removeAttr(node, "href")
 					setDataAttribute(sup, "data-footnote-id", target)
 
-					container := &stdhtml.Node{Type: stdhtml.ElementNode, DataAtom: htmlatom.Div, Data: "div"}
-					container.Attr = append(container.Attr, stdhtml.Attribute{Key: "class", Val: "printpdf-footnote"})
-					container.Attr = append(container.Attr, stdhtml.Attribute{Key: "data-footnote-id", Val: target})
+					inlineContent, inline := buildInlineFootnoteContent(content)
 
-					for _, child := range content {
-						container.AppendChild(cloneNode(child))
-					}
+					if inline && len(inlineContent) > 0 {
+						container := &stdhtml.Node{Type: stdhtml.ElementNode, DataAtom: htmlatom.Span, Data: "span"}
+						container.Attr = append(container.Attr, stdhtml.Attribute{Key: "class", Val: "printpdf-footnote"})
+						container.Attr = append(container.Attr, stdhtml.Attribute{Key: "data-footnote-id", Val: target})
 
-					stripFootnoteBackrefs(container)
+						for _, inlineNode := range inlineContent {
+							container.AppendChild(inlineNode)
+						}
 
-					if sup.Parent != nil {
-						insertAfter(sup.Parent, container, sup)
-						attached++
+						stripFootnoteBackrefs(container)
+
+						if sup.Parent != nil {
+							insertAfter(sup.Parent, container, sup)
+							attached++
+						}
+					} else {
+						container := &stdhtml.Node{Type: stdhtml.ElementNode, DataAtom: htmlatom.Div, Data: "div"}
+						container.Attr = append(container.Attr, stdhtml.Attribute{Key: "class", Val: "printpdf-footnote"})
+						container.Attr = append(container.Attr, stdhtml.Attribute{Key: "data-footnote-id", Val: target})
+
+						for _, child := range content {
+							container.AppendChild(cloneNode(child))
+						}
+
+						stripFootnoteBackrefs(container)
+
+						if sup.Parent != nil {
+							parent := sup.Parent
+							insertionParent := parent.Parent
+							if insertionParent != nil {
+								insertAfter(insertionParent, container, parent)
+							} else {
+								insertAfter(parent, container, sup)
+							}
+							attached++
+						}
 					}
 				}
 			}
@@ -676,4 +701,85 @@ func removeHTMLNode(node *stdhtml.Node) {
 	node.Parent = nil
 	node.PrevSibling = nil
 	node.NextSibling = nil
+}
+
+func buildInlineFootnoteContent(nodes []*stdhtml.Node) ([]*stdhtml.Node, bool) {
+	if len(nodes) == 0 {
+		return nil, true
+	}
+
+	var result []*stdhtml.Node
+	inline := true
+
+	for _, node := range nodes {
+		if node == nil {
+			continue
+		}
+
+		if node.Type == stdhtml.ElementNode && node.Data == "p" {
+			children := collectClonedChildren(node)
+			childContent, childInline := buildInlineFootnoteContent(children)
+			if len(childContent) == 0 {
+				continue
+			}
+
+			if len(result) > 0 {
+				result = append(result, newLineBreak())
+			}
+
+			result = append(result, childContent...)
+			inline = inline && childInline
+			continue
+		}
+
+		cloned := cloneNode(node)
+		if node.Type == stdhtml.ElementNode && isBlockLevelElement(node.Data) {
+			inline = false
+		}
+
+		result = append(result, cloned)
+
+		if node.Type == stdhtml.TextNode && strings.Contains(node.Data, "\n") {
+			inline = false
+		}
+	}
+
+	return trimWhitespaceNodes(result), inline && !containsBlockLevelNode(result)
+}
+
+func collectClonedChildren(node *stdhtml.Node) []*stdhtml.Node {
+	var children []*stdhtml.Node
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		children = append(children, cloneNode(child))
+	}
+	return children
+}
+
+func containsBlockLevelNode(nodes []*stdhtml.Node) bool {
+	for _, node := range nodes {
+		if node != nil && node.Type == stdhtml.ElementNode && isBlockLevelElement(node.Data) {
+			return true
+		}
+	}
+	return false
+}
+
+func newLineBreak() *stdhtml.Node {
+	return &stdhtml.Node{
+		Type:     stdhtml.ElementNode,
+		DataAtom: htmlatom.Br,
+		Data:     "br",
+	}
+}
+
+func isBlockLevelElement(name string) bool {
+	switch strings.ToLower(name) {
+	case "address", "article", "aside", "blockquote", "canvas", "dd", "div", "dl", "dt",
+		"fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6",
+		"header", "hr", "li", "main", "nav", "noscript", "ol", "output", "p", "pre", "section",
+		"table", "tfoot", "ul", "video":
+		return true
+	default:
+		return false
+	}
 }

@@ -12,6 +12,7 @@ This repository contains multiple independent projects.
 | [printpdf](printpdf/) | alpha | Markdown/web-to-PDF tool; rendering pipeline has known gaps documented in project issues. |
 | [ingest](ingest/) | pre-alpha | Data ingestion orchestrator; schema and connectors change frequently. |
 | [diagram-dsl](diagram-dsl/) | experimental | TypeScript DSL for diagrams; layout system under active refactor. |
+| [mdbook-comments](mdbook-comments/) | alpha | mdbook preprocessor for paragraph-level commenting with Supabase backend. |
 | [want](want/) | pre-alpha | Planning/fulfilment assistant; core design still in flux. |
 | [claude-trace](claude-trace/) | alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
 | [conf](conf/) | pre-alpha | Smart configuration manager; command coverage incomplete. |

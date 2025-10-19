@@ -17,8 +17,11 @@ func TestHTMLFootnoteRendering(t *testing.T) {
 	if !strings.Contains(result, "class=\"footnote-ref\"") {
 		t.Fatalf("expected footnote reference anchor, got: %s", result)
 	}
-	if !strings.Contains(result, "printpdf-footnote") {
+	if !strings.Contains(result, "<span class=\"printpdf-footnote\"") {
 		t.Fatalf("expected inline footnote span, got: %s", result)
+	}
+	if strings.Contains(result, "<div class=\"printpdf-footnote\"") {
+		t.Fatalf("unexpected block-level footnote container in output: %s", result)
 	}
 	if strings.Contains(result, "footnote-backref") {
 		t.Fatalf("unexpected footnote backref found in output: %s", result)
