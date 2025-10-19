@@ -101,6 +101,8 @@ code {
     font-size: 85%%;
     margin: 0;
     padding: 0.2em 0.4em;
+    font-feature-settings: "liga" 0, "kern" 0;
+    font-variant-ligatures: none;
 }
 
 pre {
@@ -121,6 +123,8 @@ pre code {
     overflow: visible;
     padding: 0;
     word-wrap: normal;
+    font-feature-settings: "liga" 0, "kern" 0;
+    font-variant-ligatures: none;
 }
 
 table {
