@@ -19,6 +19,21 @@ beads-merge <output-file> <base-file> <left-file> <right-file>
 
 The tool reads three versions of a `.jsonl` file, performs a 3-way merge, and writes the result to the output file. If there are conflicts, they are written as conflict markers in the output file and the tool exits with code 1.
 
+### Debug Mode
+
+For troubleshooting, use the `--debug` flag to see detailed information about the merge process:
+
+```bash
+beads-merge --debug <output-file> <base-file> <left-file> <right-file>
+```
+
+This will output to stderr:
+- File paths being processed
+- Number of issues read from each file
+- Merge results (merged issues and conflicts)
+- Preview of the output file
+- Exit status
+
 ### As a jj Merge Tool
 
 Configure in your jj config (e.g., `~/.jjconfig.toml`):

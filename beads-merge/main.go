@@ -44,6 +44,8 @@ type IssueKey struct {
 	CreatedBy string
 }
 
+var debugMode bool
+
 var rootCmd = &cobra.Command{
 	Use:   "beads-merge <output> <base> <left> <right>",
 	Short: "3-way merge tool for beads .jsonl issue files",
@@ -61,11 +63,23 @@ Designed to work with jj (Jujutsu) version control as a merge driver.`,
 		leftPath := args[2]
 		rightPath := args[3]
 
+		if debugMode {
+			fmt.Fprintf(os.Stderr, "=== DEBUG MODE ===\n")
+			fmt.Fprintf(os.Stderr, "Output path: %s\n", outputPath)
+			fmt.Fprintf(os.Stderr, "Base path:   %s\n", basePath)
+			fmt.Fprintf(os.Stderr, "Left path:   %s\n", leftPath)
+			fmt.Fprintf(os.Stderr, "Right path:  %s\n", rightPath)
+			fmt.Fprintf(os.Stderr, "\n")
+		}
+
 		// Read all three files
 		baseIssues, err := readIssues(basePath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading base file: %v\n", err)
 			os.Exit(1)
+		}
+		if debugMode {
+			fmt.Fprintf(os.Stderr, "Base issues read: %d\n", len(baseIssues))
 		}
 
 		leftIssues, err := readIssues(leftPath)
@@ -73,15 +87,29 @@ Designed to work with jj (Jujutsu) version control as a merge driver.`,
 			fmt.Fprintf(os.Stderr, "Error reading left file: %v\n", err)
 			os.Exit(1)
 		}
+		if debugMode {
+			fmt.Fprintf(os.Stderr, "Left issues read: %d\n", len(leftIssues))
+		}
 
 		rightIssues, err := readIssues(rightPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error reading right file: %v\n", err)
 			os.Exit(1)
 		}
+		if debugMode {
+			fmt.Fprintf(os.Stderr, "Right issues read: %d\n", len(rightIssues))
+			fmt.Fprintf(os.Stderr, "\n")
+		}
 
 		// Perform 3-way merge
 		result, conflicts := merge3Way(baseIssues, leftIssues, rightIssues)
+
+		if debugMode {
+			fmt.Fprintf(os.Stderr, "Merge complete:\n")
+			fmt.Fprintf(os.Stderr, "  Merged issues: %d\n", len(result))
+			fmt.Fprintf(os.Stderr, "  Conflicts: %d\n", len(conflicts))
+			fmt.Fprintf(os.Stderr, "\n")
+		}
 
 		// Open output file for writing
 		outFile, err := os.Create(outputPath)
@@ -106,11 +134,57 @@ Designed to work with jj (Jujutsu) version control as a merge driver.`,
 			fmt.Fprintln(outFile, conflict)
 		}
 
+		if debugMode {
+			fmt.Fprintf(os.Stderr, "Output written to: %s\n", outputPath)
+			fmt.Fprintf(os.Stderr, "\n")
+
+			// Show first few lines of output for debugging
+			outFile.Sync()
+			if content, err := os.ReadFile(outputPath); err == nil {
+				lines := 0
+				fmt.Fprintf(os.Stderr, "Output file preview (first 10 lines):\n")
+				for _, line := range splitLines(string(content)) {
+					if lines >= 10 {
+						fmt.Fprintf(os.Stderr, "... (%d more lines)\n", len(splitLines(string(content)))-10)
+						break
+					}
+					fmt.Fprintf(os.Stderr, "  %s\n", line)
+					lines++
+				}
+			}
+			fmt.Fprintf(os.Stderr, "\n")
+		}
+
 		// Exit with 1 if there were conflicts (jj will interpret this as conflict markers present)
 		if len(conflicts) > 0 {
+			if debugMode {
+				fmt.Fprintf(os.Stderr, "Exiting with status 1 (conflicts present)\n")
+			}
 			os.Exit(1)
 		}
+		if debugMode {
+			fmt.Fprintf(os.Stderr, "Exiting with status 0 (no conflicts)\n")
+		}
 	},
+}
+
+func splitLines(s string) []string {
+	var lines []string
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\n' {
+			lines = append(lines, s[start:i])
+			start = i + 1
+		}
+	}
+	if start < len(s) {
+		lines = append(lines, s[start:])
+	}
+	return lines
+}
+
+func init() {
+	rootCmd.Flags().BoolVar(&debugMode, "debug", false, "Enable debug output to stderr")
 }
 
 func main() {
