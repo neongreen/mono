@@ -34,10 +34,48 @@ jobs:
         working-directory: mdbook-comments
         run: cargo clippy -- -D warnings
 
-      - name: Run tests
+      - name: Run Rust tests
         working-directory: mdbook-comments
         run: cargo test
 
       - name: Build release
         working-directory: mdbook-comments
         run: cargo build --release
+
+      - name: Install mdbook
+        run: cargo install mdbook --version 0.4.52
+
+      - name: Build example book
+        working-directory: mdbook-comments/example-book
+        run: |
+          rm -rf book
+          PATH="../target/release:$PATH" mdbook build
+
+      - name: Set up Node.js
+        uses: actions/setup-node@3796a29107c9370c35c1b5e6ca4cc6a0ff25ac1d # v4.2.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: mdbook-comments/package-lock.json
+
+      - name: Install npm dependencies
+        working-directory: mdbook-comments
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: mdbook-comments
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: mdbook-comments
+        run: npm test
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@5604c14e7ad6bb49b77f2549c19af15935ba78cf # v4.6.0
+        with:
+          name: playwright-results
+          path: |
+            mdbook-comments/test-results/
+            mdbook-comments/playwright-report/
+          retention-days: 7

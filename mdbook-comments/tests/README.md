@@ -1,12 +1,12 @@
-# Playwright Tests for mdbook-comments Docker Demo
+# Playwright Tests for mdbook-comments
 
-This directory contains end-to-end tests for the mdbook-comments Docker demo using Playwright.
+This directory contains end-to-end tests for mdbook-comments using Playwright with a json-server backend.
 
 ## Prerequisites
 
 - Node.js 20 or higher
-- Docker
-- npm
+- Cargo (Rust toolchain)
+- mdbook installed (`cargo install mdbook`)
 
 ## Setup
 
@@ -22,15 +22,23 @@ Install Playwright browsers:
 npx playwright install chromium
 ```
 
-## Running Tests
-
-### Build the Docker image
-
-Before running tests, build the Docker image:
+Build the mdbook-comments preprocessor:
 
 ```bash
-docker build -t mdbook-comments-demo:test ..
+cargo build --release
 ```
+
+Build the example book:
+
+```bash
+cd example-book && PATH="../target/release:$PATH" mdbook build && cd ..
+```
+
+## Running Tests
+
+The test suite automatically starts:
+1. json-server on port 54322 with test database
+2. mdbook serve on port 3300
 
 ### Run all tests
 
@@ -58,72 +66,108 @@ npm run test:debug
 
 ## What the Tests Cover
 
-The test suite verifies:
+The test suite exercises full commenting functionality:
 
-1. **Page Loading** - Example book loads correctly
-2. **Navigation** - Chapter navigation works
-3. **Content** - Markdown content is rendered properly
-4. **Comment System** - Comment links and JavaScript are loaded
-5. **Responsive Design** - Layout works on different viewport sizes
-6. **Asset Loading** - CSS and JavaScript files are properly loaded
-7. **No Console Errors** - No unexpected JavaScript errors
+1. **Comment Links** - Verifies comment links are present on paragraphs
+2. **Comment Metadata** - Checks that paragraphs have proper metadata attributes
+3. **Toggle Comments** - Tests expanding/collapsing comment sections
+4. **Post Comments** - Tests posting new comments via the UI
+5. **Load Comments** - Verifies comments are loaded from json-server
+6. **Reply to Comments** - Tests the reply functionality
+7. **Comment Counts** - Verifies comment counts are shown on links
+8. **Multiple Paragraphs** - Tests independent comment sections
+9. **Author Persistence** - Tests localStorage for author names
+10. **Error Handling** - Tests graceful degradation when API is unavailable
+
+## Architecture
+
+The tests use:
+
+- **json-server**: Simple REST API for testing comment CRUD operations
+- **mdbook serve**: Local HTTP server for the book
+- **Playwright**: Browser automation for E2E testing
+
+This setup allows testing the full comment workflow without external dependencies like Supabase or Neon.
+
+## Test Database
+
+Tests use json-server with `db.json` as the database. Each test:
+1. Clears all comments before running (via DELETE API calls)
+2. Sets up test data via POST API calls
+3. Exercises the UI functionality
+4. Verifies both UI state and database state
 
 ## CI/CD
 
-These tests run automatically in GitHub Actions on every push and pull request. The workflow:
+These tests run automatically in GitHub Actions. The workflow:
 
-1. Builds the Docker image
-2. Installs Node.js and Playwright
-3. Runs the test suite
-4. Uploads test reports as artifacts
+1. Builds the mdbook-comments preprocessor
+2. Builds the example book
+3. Installs Node.js and Playwright
+4. Runs the test suite with json-server and mdbook serve
+5. Uploads test reports as artifacts on failure
 
 ## Test Configuration
 
 The tests are configured in `playwright.config.ts`. Key settings:
 
-- **Base URL**: `http://localhost:3000`
-- **Web Server**: Automatically starts Docker container for testing
+- **Base URL**: `http://localhost:3300`
+- **Web Servers**: json-server (54322) and mdbook serve (3300)
 - **Browser**: Chromium (headless)
+- **Workers**: 1 (to avoid database conflicts)
 - **Retries**: 2 retries on CI, 0 locally
 - **Screenshots**: Captured on failure
 - **Trace**: Captured on first retry
 
 ## Writing New Tests
 
-Add new test files in this directory with the pattern `*.spec.ts`. Example:
+Add new tests to `tests/comments.spec.ts` or create new spec files. Example:
 
 ```typescript
 import { test, expect } from '@playwright/test';
 
 test('my new test', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/chapter-1.html');
+  
+  // Test comment functionality
+  const commentLink = page.locator('.comment-link').first();
+  await commentLink.click();
+  
   // Your test code here
 });
 ```
 
 ## Troubleshooting
 
-### Port 3000 already in use
+### Port conflicts
 
-If port 3000 is already in use, stop the Docker container:
+If ports 3300 or 54322 are in use:
 
 ```bash
-docker ps | grep mdbook-comments-demo
-docker stop <container-id>
+# Find and kill processes
+lsof -i :3300
+lsof -i :54322
+kill <pid>
 ```
 
 ### Tests timeout
 
-Increase the timeout in `playwright.config.ts`:
+Increase timeout in `playwright.config.ts`:
 
 ```typescript
-timeout: 60 * 1000, // 60 seconds
+timeout: 60000, // 60 seconds
 ```
 
-### Docker image not found
+### Build failures
 
-Make sure you've built the Docker image with the correct tag:
+Ensure preprocessor is built:
 
 ```bash
-docker build -t mdbook-comments-demo:test ..
+cargo build --release
+```
+
+Ensure example book is built:
+
+```bash
+cd example-book && PATH="../target/release:$PATH" mdbook build
 ```
