@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/neongreen/mono/lib/ghclient"
 )
 
 // Asset represents a GitHub release asset
@@ -58,34 +58,9 @@ func GetCurrentPlatform() Platform {
 	return Platform{OS: osName, Arch: archName}
 }
 
-// GetGitHubToken retrieves GitHub token from environment or gh CLI
+// GetGitHubToken retrieves a GitHub token using the shared client utilities.
 func GetGitHubToken() string {
-	// Check GITHUB_TOKEN first
-	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
-		slog.Debug("GitHub token resolved", "source", "GITHUB_TOKEN")
-		return token
-	}
-	// Check MISE_GITHUB_TOKEN
-	if token := os.Getenv("MISE_GITHUB_TOKEN"); token != "" {
-		slog.Debug("GitHub token resolved", "source", "MISE_GITHUB_TOKEN")
-		return token
-	}
-	// Try gh CLI
-	cmd := exec.Command("gh", "auth", "token")
-	output, err := cmd.Output()
-	if err != nil {
-		slog.Debug("Failed to retrieve GitHub token via gh CLI", "source", "gh_cli", "error", err)
-		slog.Debug("GitHub token unavailable after checking all sources")
-		return ""
-	}
-	token := strings.TrimSpace(string(output))
-	if token == "" {
-		slog.Debug("gh CLI returned empty GitHub token output", "source", "gh_cli")
-		slog.Debug("GitHub token unavailable after checking all sources")
-		return ""
-	}
-	slog.Debug("GitHub token resolved", "source", "gh_cli")
-	return token
+	return ghclient.GetToken()
 }
 
 // CreateAuthenticatedRequest creates an HTTP request with GitHub authentication
@@ -100,7 +75,7 @@ func CreateAuthenticatedRequestWithContext(ctx context.Context, method, url stri
 		return nil, err
 	}
 
-	if token := GetGitHubToken(); token != "" {
+	if token := ghclient.GetToken(); token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
 	return req, nil
@@ -119,9 +94,8 @@ func GetReleaseByTagWithContext(ctx context.Context, owner, repo, tag string) (*
 		return nil, fmt.Errorf("failed to create request for %s/%s tag %s: %w", owner, repo, tag, err)
 	}
 
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
+	client := ghclient.NewHTTPClient(ctx)
+	client.Timeout = 30 * time.Second
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch release %s/%s tag %s: %w", owner, repo, tag, err)
@@ -210,9 +184,8 @@ func DownloadAssetWithContext(ctx context.Context, asset *Asset, destPath string
 	}
 
 	req.Header.Set("Accept", "application/octet-stream")
-	client := &http.Client{
-		Timeout: 5 * time.Minute, // Longer timeout for downloading binaries
-	}
+	client := ghclient.NewHTTPClient(ctx)
+	client.Timeout = 5 * time.Minute // Longer timeout for downloading binaries
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to download binary %s from %s: %w", asset.Name, downloadURL, err)

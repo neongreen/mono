@@ -1,0 +1,18 @@
+go 1.24.7
+
+use (
+	./claude-trace
+	./conf
+	./dissect
+	./ingest
+	./lib/ghclient
+	./lib/ghrelease
+	./markdown-format
+	./printpdf
+	./prrun
+	./want
+)
+
+replace github.com/neongreen/mono/lib/ghrelease v0.0.0 => ./lib/ghrelease
+
+replace github.com/neongreen/mono/lib/ghclient v0.0.0 => ./lib/ghclient

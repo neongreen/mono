@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -40,6 +41,60 @@ type File struct {
 	Path     string
 	Size     int64
 	Mode     string
+}
+
+// GitHubIssueRecord represents a row in github_issues.
+type GitHubIssueRecord struct {
+	RunID             int64
+	Number            int
+	Title             string
+	Body              string
+	State             string
+	Author            string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	ClosedAt          *time.Time
+	Labels            string
+	Assignees         string
+	Milestone         string
+	NodeID            string
+	IssueID           int64
+	HTMLURL           string
+	APIURL            string
+	CommentsURL       string
+	EventsURL         string
+	StateReason       string
+	Locked            bool
+	ActiveLockReason  string
+	Draft             bool
+	ClosedBy          string
+	CommentCount      int
+	ReactionsTotal    int
+	ParticipantsCount int
+}
+
+// GitHubCommentReaction represents a reaction on a GitHub comment.
+type GitHubCommentReaction struct {
+	RunID      int64
+	ItemType   string
+	ItemNumber int
+	CommentID  int64
+	Reactor    string
+	Content    string
+}
+
+// LinearIssue represents a Linear issue record stored in the database.
+type LinearIssue struct {
+	IssueID     string
+	Identifier  string
+	Title       string
+	Description *string
+	Priority    *int
+	Status      *string
+	Assignee    *string
+	Team        *string
+	URL         *string
+	RawData     *string
 }
 
 // Open opens or creates the SQLite database in ~/.ingest/ingest.db
@@ -166,6 +221,98 @@ func (d *Database) createTables() error {
 		FOREIGN KEY (run_id) REFERENCES runs(id)
 	);
 
+	CREATE TABLE IF NOT EXISTS github_issues (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		number INTEGER NOT NULL,
+		title TEXT NOT NULL,
+		body TEXT,
+		state TEXT NOT NULL,
+		author TEXT NOT NULL,
+		created_at DATETIME NOT NULL,
+		updated_at DATETIME NOT NULL,
+		closed_at DATETIME,
+	labels TEXT,
+	assignees TEXT,
+	milestone TEXT,
+	node_id TEXT,
+	issue_id INTEGER,
+	html_url TEXT,
+	api_url TEXT,
+	comments_url TEXT,
+	events_url TEXT,
+	state_reason TEXT,
+	locked INTEGER NOT NULL DEFAULT 0,
+	active_lock_reason TEXT,
+	draft INTEGER NOT NULL DEFAULT 0,
+	closed_by TEXT,
+	FOREIGN KEY (run_id) REFERENCES runs(id)
+);
+
+	CREATE TABLE IF NOT EXISTS github_prs (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		number INTEGER NOT NULL,
+		title TEXT NOT NULL,
+		body TEXT,
+		state TEXT NOT NULL,
+		author TEXT NOT NULL,
+		created_at DATETIME NOT NULL,
+		updated_at DATETIME NOT NULL,
+		closed_at DATETIME,
+		merged_at DATETIME,
+		merged INTEGER NOT NULL DEFAULT 0,
+		draft INTEGER NOT NULL DEFAULT 0,
+		base_branch TEXT NOT NULL,
+		head_branch TEXT NOT NULL,
+		labels TEXT,
+		assignees TEXT,
+		reviewers TEXT,
+		milestone TEXT,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS github_comments (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		item_type TEXT NOT NULL,
+		item_number INTEGER NOT NULL,
+		comment_id INTEGER NOT NULL,
+		author TEXT NOT NULL,
+		body TEXT NOT NULL,
+		created_at DATETIME NOT NULL,
+		updated_at DATETIME NOT NULL,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS github_comment_reactions (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		item_type TEXT NOT NULL,
+		item_number INTEGER NOT NULL,
+		comment_id INTEGER NOT NULL,
+		reactor TEXT NOT NULL,
+		content TEXT NOT NULL,
+		FOREIGN KEY (run_id) REFERENCES runs(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS linear_issues (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		run_id INTEGER NOT NULL,
+		issue_id TEXT NOT NULL,
+		identifier TEXT NOT NULL,
+		title TEXT NOT NULL,
+		description TEXT,
+		priority INTEGER,
+		status TEXT,
+		assignee TEXT,
+		team TEXT,
+		url TEXT,
+		raw_data TEXT,
+		FOREIGN KEY (run_id) REFERENCES runs(id),
+		UNIQUE(run_id, issue_id)
+	);
+
 	CREATE INDEX IF NOT EXISTS idx_blobs_sha256 ON blobs(sha256);
 	CREATE INDEX IF NOT EXISTS idx_commits_run_id ON commits(run_id);
 	CREATE INDEX IF NOT EXISTS idx_commits_hash ON commits(hash);
@@ -177,6 +324,16 @@ func (d *Database) createTables() error {
 	CREATE INDEX IF NOT EXISTS idx_fs_entries_run_id ON fs_entries(run_id);
 	CREATE INDEX IF NOT EXISTS idx_fs_entries_blob_id ON fs_entries(blob_id);
 	CREATE INDEX IF NOT EXISTS idx_cmd_runs_run_id ON cmd_runs(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_issues_run_id ON github_issues(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_issues_number ON github_issues(run_id, number);
+	CREATE INDEX IF NOT EXISTS idx_github_prs_run_id ON github_prs(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_prs_number ON github_prs(run_id, number);
+	CREATE INDEX IF NOT EXISTS idx_github_comments_run_id ON github_comments(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_comments_item ON github_comments(run_id, item_type, item_number);
+	CREATE INDEX IF NOT EXISTS idx_github_comment_reactions_run_id ON github_comment_reactions(run_id);
+	CREATE INDEX IF NOT EXISTS idx_github_comment_reactions_comment ON github_comment_reactions(comment_id);
+	CREATE INDEX IF NOT EXISTS idx_linear_issues_run_id ON linear_issues(run_id);
+	CREATE INDEX IF NOT EXISTS idx_linear_issues_identifier ON linear_issues(run_id, identifier);
 	`
 
 	_, err := d.db.Exec(schema)
@@ -184,6 +341,71 @@ func (d *Database) createTables() error {
 		return fmt.Errorf("failed to create tables: %w", err)
 	}
 
+	if err := d.ensureSchemaUpgrades(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Database) ensureSchemaUpgrades() error {
+	columns := []struct {
+		table string
+		name  string
+		typ   string
+	}{
+		{"github_issues", "node_id", "TEXT"},
+		{"github_issues", "issue_id", "INTEGER"},
+		{"github_issues", "html_url", "TEXT"},
+		{"github_issues", "api_url", "TEXT"},
+		{"github_issues", "comments_url", "TEXT"},
+		{"github_issues", "events_url", "TEXT"},
+		{"github_issues", "state_reason", "TEXT"},
+		{"github_issues", "locked", "INTEGER NOT NULL DEFAULT 0"},
+		{"github_issues", "active_lock_reason", "TEXT"},
+		{"github_issues", "draft", "INTEGER NOT NULL DEFAULT 0"},
+		{"github_issues", "closed_by", "TEXT"},
+		{"github_issues", "comment_count", "INTEGER"},
+		{"github_issues", "reaction_total", "INTEGER"},
+		{"github_issues", "participants_count", "INTEGER"},
+	}
+
+	for _, col := range columns {
+		if err := d.ensureColumn(col.table, col.name, col.typ); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (d *Database) ensureColumn(table, column, columnType string) error {
+	rows, err := d.db.Query(fmt.Sprintf("PRAGMA table_info(%s)", table))
+	if err != nil {
+		return fmt.Errorf("failed to inspect %s: %w", table, err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			cid      int
+			name     string
+			typ      string
+			notnull  int
+			defaultV any
+			pk       int
+		)
+		if err := rows.Scan(&cid, &name, &typ, &notnull, &defaultV, &pk); err != nil {
+			return fmt.Errorf("failed to scan table info for %s: %w", table, err)
+		}
+		if name == column {
+			return nil
+		}
+	}
+
+	if _, err := d.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, columnType)); err != nil {
+		return fmt.Errorf("failed to add column %s.%s: %w", table, column, err)
+	}
 	return nil
 }
 
@@ -228,23 +450,95 @@ func (d *Database) UpdateRunItemCount(runID int64) error {
 	}
 
 	var query string
+	var args []interface{}
 	switch runType {
 	case "git":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM commits WHERE run_id = ?) WHERE id = ?"
+		args = []interface{}{runID, runID}
 	case "fs":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM fs_entries WHERE run_id = ?) WHERE id = ?"
+		args = []interface{}{runID, runID}
 	case "cmd":
-		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM cmd_runs WHERE run_id = ?) WHERE id = ?"
+		lineCount, err := d.totalCommandOutputLines(runID)
+		if err != nil {
+			return fmt.Errorf("failed to calculate command output lines: %w", err)
+		}
+		_, err = d.db.Exec("UPDATE runs SET item_count = ? WHERE id = ?", lineCount, runID)
+		if err != nil {
+			return fmt.Errorf("failed to update run item count: %w", err)
+		}
+		return nil
+	case "github":
+		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM github_issues WHERE run_id = ?) + (SELECT COUNT(*) FROM github_prs WHERE run_id = ?) WHERE id = ?"
+		args = []interface{}{runID, runID, runID}
+	case "linear":
+		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM linear_issues WHERE run_id = ?) WHERE id = ?"
+		args = []interface{}{runID, runID}
 	default:
 		query = "UPDATE runs SET item_count = 0 WHERE id = ?"
+		args = []interface{}{runID}
 	}
 
-	_, err = d.db.Exec(query, runID, runID)
+	_, err = d.db.Exec(query, args...)
 	if err != nil {
 		return fmt.Errorf("failed to update run item count: %w", err)
 	}
 
 	return nil
+}
+
+func (d *Database) totalCommandOutputLines(runID int64) (int, error) {
+	rows, err := d.db.Query("SELECT stdout, stderr FROM cmd_runs WHERE run_id = ?", runID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to select command outputs: %w", err)
+	}
+	defer rows.Close()
+
+	total := 0
+	for rows.Next() {
+		var stdout, stderr sql.NullString
+		if err := rows.Scan(&stdout, &stderr); err != nil {
+			return 0, fmt.Errorf("failed to scan command outputs: %w", err)
+		}
+		if stdout.Valid {
+			total += countOutputLines(stdout.String)
+		}
+		if stderr.Valid {
+			total += countOutputLines(stderr.String)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("error iterating command outputs: %w", err)
+	}
+
+	return total, nil
+}
+
+func countOutputLines(output string) int {
+	if output == "" {
+		return 0
+	}
+
+	lines := strings.Count(output, "\n")
+	if !strings.HasSuffix(output, "\n") {
+		lines++
+	}
+	return lines
+}
+
+func nullableString(value *string) any {
+	if value == nil {
+		return nil
+	}
+	return *value
+}
+
+func nullableInt(value *int) any {
+	if value == nil {
+		return nil
+	}
+	return *value
 }
 
 // UpdateRunCounts is deprecated, use UpdateRunItemCount instead
@@ -495,4 +789,177 @@ func (d *Database) Query(query string) ([]map[string]interface{}, error) {
 	}
 
 	return results, nil
+}
+
+// CreateGitHubIssue creates a new GitHub issue record
+func (d *Database) CreateGitHubIssue(record GitHubIssueRecord) error {
+	_, err := d.db.Exec(
+		`INSERT INTO github_issues (
+			run_id,
+			number,
+			title,
+			body,
+			state,
+			author,
+			created_at,
+			updated_at,
+			closed_at,
+			labels,
+			assignees,
+			milestone,
+			node_id,
+			issue_id,
+			html_url,
+			api_url,
+			comments_url,
+			events_url,
+			state_reason,
+			locked,
+			active_lock_reason,
+			draft,
+			closed_by,
+			comment_count,
+			reaction_total,
+			participants_count
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		record.RunID,
+		record.Number,
+		record.Title,
+		record.Body,
+		record.State,
+		record.Author,
+		record.CreatedAt,
+		record.UpdatedAt,
+		record.ClosedAt,
+		record.Labels,
+		record.Assignees,
+		record.Milestone,
+		record.NodeID,
+		record.IssueID,
+		record.HTMLURL,
+		record.APIURL,
+		record.CommentsURL,
+		record.EventsURL,
+		record.StateReason,
+		record.Locked,
+		record.ActiveLockReason,
+		record.Draft,
+		record.ClosedBy,
+		record.CommentCount,
+		record.ReactionsTotal,
+		record.ParticipantsCount,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create github issue: %w", err)
+	}
+
+	return nil
+}
+
+// CreateGitHubCommentReaction stores a reaction for a GitHub comment.
+func (d *Database) CreateGitHubCommentReaction(record GitHubCommentReaction) error {
+	_, err := d.db.Exec(
+		`INSERT INTO github_comment_reactions (
+			run_id,
+			item_type,
+			item_number,
+			comment_id,
+			reactor,
+			content
+		) VALUES (?, ?, ?, ?, ?, ?)`,
+		record.RunID,
+		record.ItemType,
+		record.ItemNumber,
+		record.CommentID,
+		record.Reactor,
+		record.Content,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create github comment reaction: %w", err)
+	}
+	return nil
+}
+
+// CreateGitHubPR creates a new GitHub pull request record
+func (d *Database) CreateGitHubPR(runID int64, number int, title, body, state, author string, createdAt, updatedAt time.Time, closedAt, mergedAt *time.Time, merged, draft bool, baseBranch, headBranch, labels, assignees, reviewers, milestone string) error {
+	_, err := d.db.Exec(
+		"INSERT INTO github_prs (run_id, number, title, body, state, author, created_at, updated_at, closed_at, merged_at, merged, draft, base_branch, head_branch, labels, assignees, reviewers, milestone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		runID,
+		number,
+		title,
+		body,
+		state,
+		author,
+		createdAt,
+		updatedAt,
+		closedAt,
+		mergedAt,
+		merged,
+		draft,
+		baseBranch,
+		headBranch,
+		labels,
+		assignees,
+		reviewers,
+		milestone,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create github pull request: %w", err)
+	}
+
+	return nil
+}
+
+// CreateGitHubComment creates a new GitHub comment record
+func (d *Database) CreateGitHubComment(runID int64, itemType string, itemNumber int, commentID int64, author, body string, createdAt, updatedAt time.Time) error {
+	_, err := d.db.Exec(
+		"INSERT INTO github_comments (run_id, item_type, item_number, comment_id, author, body, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		runID,
+		itemType,
+		itemNumber,
+		commentID,
+		author,
+		body,
+		createdAt,
+		updatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create github comment: %w", err)
+	}
+
+	return nil
+}
+
+// CreateLinearIssue stores a Linear issue for the given run.
+func (d *Database) CreateLinearIssue(runID int64, issue LinearIssue) error {
+	_, err := d.db.Exec(
+		`INSERT INTO linear_issues (
+			run_id,
+			issue_id,
+			identifier,
+			title,
+			description,
+			priority,
+			status,
+			assignee,
+			team,
+			url,
+			raw_data
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		runID,
+		issue.IssueID,
+		issue.Identifier,
+		issue.Title,
+		nullableString(issue.Description),
+		nullableInt(issue.Priority),
+		nullableString(issue.Status),
+		nullableString(issue.Assignee),
+		nullableString(issue.Team),
+		nullableString(issue.URL),
+		nullableString(issue.RawData),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create linear issue %s: %w", issue.Identifier, err)
+	}
+	return nil
 }

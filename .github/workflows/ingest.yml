@@ -1,0 +1,34 @@
+name: ingest
+
+on:
+  push:
+    paths:
+      - "ingest/**"
+      - ".github/workflows/ingest.yml"
+  pull_request:
+    paths:
+      - "ingest/**"
+      - ".github/workflows/ingest.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.7"
+          cache-dependency-path: ingest/go.sum
+
+      - name: Install mise
+        uses: jdx/mise-action@v2
+
+      - name: Run unit tests
+        run: mise run //ingest:test
+
+      - name: Run integration suites
+        run: mise run //ingest:test:integration

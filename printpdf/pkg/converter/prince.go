@@ -72,7 +72,10 @@ func (p *PrinceConverter) prepareInput(content []byte, contentType string, optio
 		}
 	case fetcher.ContentTypeHTML:
 		ext = ".html"
-		htmlContent = content
+		htmlContent, err = wrapHTMLWithPageOptions(content, options)
+		if err != nil {
+			return "", fmt.Errorf("failed to wrap HTML with page options: %w", err)
+		}
 	default:
 		return "", fmt.Errorf("unsupported content type: %s", contentType)
 	}

@@ -2,10 +2,15 @@ package fs
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/go-git/go-billy/v5/osfs"
+	gitignore "github.com/go-git/go-git/v5/plumbing/format/gitignore"
 )
 
 type FSEntry struct {
@@ -18,12 +23,37 @@ type FSEntry struct {
 	SHA256Hash string
 }
 
+type WalkOptions struct {
+	RespectGitignore bool
+}
+
 // WalkFilesystem walks through a filesystem path recursively
 // The progressCallback is called periodically with the number of entries found so far
 func WalkFilesystem(rootPath string, progressCallback func(int)) ([]FSEntry, error) {
+	return WalkFilesystemWithOptions(rootPath, progressCallback, WalkOptions{RespectGitignore: true})
+}
+
+// WalkFilesystemWithOptions walks a filesystem with configurable behavior.
+func WalkFilesystemWithOptions(rootPath string, progressCallback func(int), opts WalkOptions) ([]FSEntry, error) {
 	absPath, err := filepath.Abs(rootPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	if _, err := os.Stat(absPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("path does not exist: %s", absPath)
+		}
+		return nil, fmt.Errorf("failed to stat %s: %w", absPath, err)
+	}
+
+	var matcher gitignore.Matcher
+	if opts.RespectGitignore {
+		var err error
+		matcher, err = loadGitIgnoreMatcher(absPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var entries []FSEntry
@@ -41,6 +71,13 @@ func WalkFilesystem(rootPath string, progressCallback func(int)) ([]FSEntry, err
 		}
 		if relPath == "." {
 			relPath = "/"
+		}
+
+		if matcher != nil && shouldIgnore(relPath, info.IsDir(), matcher) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 
 		entry := FSEntry{
@@ -78,4 +115,38 @@ func WalkFilesystem(rootPath string, progressCallback func(int)) ([]FSEntry, err
 	}
 
 	return entries, nil
+}
+
+func loadGitIgnoreMatcher(root string) (gitignore.Matcher, error) {
+	fs := osfs.New(root)
+	patterns, err := gitignore.ReadPatterns(fs, nil)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			// No .gitignore present; nothing to match
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read gitignore patterns from %s: %w", root, err)
+	}
+	if len(patterns) == 0 {
+		return nil, nil
+	}
+	return gitignore.NewMatcher(patterns), nil
+}
+
+func shouldIgnore(relPath string, isDir bool, matcher gitignore.Matcher) bool {
+	if matcher == nil {
+		return false
+	}
+	if relPath == "/" || relPath == "" {
+		return false
+	}
+
+	path := strings.TrimPrefix(relPath, string(os.PathSeparator))
+	path = strings.TrimPrefix(path, "./")
+	if path == "" {
+		return false
+	}
+
+	segments := strings.Split(filepath.ToSlash(path), "/")
+	return matcher.Match(segments, isDir)
 }

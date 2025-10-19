@@ -1,0 +1,2 @@
+# Test output directory - don't commit generated test files
+testdata/output/

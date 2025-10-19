@@ -2,17 +2,35 @@
 
 This document contains guidelines for AI agents and automated tools working on projects in this monorepo.
 
+## Multi-Agent Environment
+
+**IMPORTANT: Multiple agents may be working on this repository simultaneously.** When making commits, always specify the specific files and subdirectories you're changing to avoid conflicts and provide clear change boundaries.
+
+**Examples:**
+- `jj commit conf/ -m "conf: Add schema parsing"` (changes only in conf directory)
+- `jj commit lib/ghrelease/ -m "ghrelease: Fix error handling"` (changes only in lib/ghrelease)
+- `jj commit .github/workflows/conf.yml -m "conf: Update CI workflow"` (specific file)
+- `jj commit README.md AGENTS.md -m "docs: Update project guidelines"` (specific files)
+
+**Do NOT use:**
+- `jj commit -m "..."` (commits everything, may include other agents' work)
+- `jj commit . -m "..."` (commits current directory, may be too broad)
+
 ## Basic rules
 
 - All tools are written in Go unless stated otherwise. 
 - All new projects are created as top-level folders in the repository unless stated otherwise.
 - All projects must contain a `mise.toml`. Check existing `mise.toml` files to see what is expected from you.
 - All new Go projects must have CI workflows in `.github/workflows/<project-name>.yml`. Check existing workflow files to see what is expected from you.
+- Always create commits with `jj commit -m "commit message"` (use the `-m` flag explicitly).
 - In all prose that you write, don't be excited, don't use emojis unless necessary, and don't use pervasive bold text.
 - All temporary files (like summaries of fixes you did, one-off scripts you wrote during PR development, etc) must have names prefixed with `ai-temp-`.
 - Do not create temporary files in the repository root.
 - Keep the list of projects in [README.md](./README.md) up to date.
 - Record project status in README.md. If the project is incomplete, has known bugs, exploration, etc, it must be stated.
+- Always manage work through bd: create issues when needed, set them to `in_progress` while working, close them as soon as the task is done, and make a Jujutsu commit after closing.
+- Release mirroring configuration lives in `release-mirror.toml`. Do not introduce alternative configs for this workflow.
+- The release workflow requires the `PUBLIC_RELEASE_TOKEN` secret with permissions to publish to `neongreen/mono-public`.
 
 ------------------------------------------------------------
 

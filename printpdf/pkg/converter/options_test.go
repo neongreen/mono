@@ -127,6 +127,31 @@ func TestTypstConverterWithCustomZoom(t *testing.T) {
 	}
 }
 
+func TestTypstConverterFirstPageGuide(t *testing.T) {
+	markdown := []byte("# Test\n\nSome text")
+
+	options := PageOptions{
+		Columns:        1,
+		Orientation:    "portrait",
+		Margin:         "2cm",
+		Zoom:           100,
+		FirstPageGuide: "3cm",
+	}
+
+	result, err := convertMarkdownToTypst(markdown, options)
+	if err != nil {
+		t.Fatalf("convertMarkdownToTypst failed: %v", err)
+	}
+
+	if !strings.Contains(result, "printpdf_first_page_guide") {
+		t.Errorf("Expected helper function for first page guide to be emitted. Output:\n%s", result)
+	}
+
+	if !strings.Contains(result, "3cm") {
+		t.Errorf("Expected guide distance '3cm' to be referenced. Output:\n%s", result)
+	}
+}
+
 func TestHTMLConverterWithCustomMargin(t *testing.T) {
 	markdown := []byte("# Test\n\nSome text")
 
@@ -183,6 +208,31 @@ func TestHTMLConverterWithCustomMargin(t *testing.T) {
 				t.Errorf("Expected margin '%s' not found in output", tt.expectedMargin)
 			}
 		})
+	}
+}
+
+func TestHTMLConverterFirstPageGuide(t *testing.T) {
+	markdown := []byte("# Test\n\nSome text")
+
+	options := PageOptions{
+		Columns:        1,
+		Orientation:    "portrait",
+		Margin:         "2cm",
+		Zoom:           100,
+		FirstPageGuide: "2.5cm",
+	}
+
+	result, err := convertMarkdownToHTML(markdown, options)
+	if err != nil {
+		t.Fatalf("convertMarkdownToHTML failed: %v", err)
+	}
+
+	resultStr := string(result)
+	if !strings.Contains(resultStr, "@page:first") {
+		t.Fatalf("Expected @page:first rule to be present. Output:\n%s", resultStr)
+	}
+	if !strings.Contains(resultStr, "background-position: 2.5cm 0;") {
+		t.Fatalf("Expected guide background position to reference the requested distance. Output:\n%s", resultStr)
 	}
 }
 

@@ -8,14 +8,20 @@ A CLI tool to ingest various data sources into an SQLite database.
 - **Git repositories**: All commits, files, and metadata
 - **Filesystems**: Files, directories, and their contents
 - **Shell commands**: Command output, exit codes, and execution time
+- **GitHub repositories**: Issues, pull requests, comments, and all metadata
 
 All data is stored in an SQLite database located at `~/.ingest/ingest.db`. Each run is treated as separate, allowing you to track multiple ingestion runs.
 
-## Installation
+## Running the CLI
+
+All commands are exposed via [`mise`](https://mise.jdx.dev). From the repository root:
 
 ```bash
-cd ingest
-go build -o ingest ./cmd
+# Run the CLI with any arguments after --
+mise run //ingest:run -- --help
+
+# Execute the test suite
+mise run //ingest:test
 ```
 
 ## Usage
@@ -55,6 +61,98 @@ This will:
 2. Execute the command
 3. Store the command text, exit code, stdout, stderr, and execution time
 
+### Ingest GitHub issues and pull requests
+
+```bash
+ingest github owner/repo
+```
+
+This will:
+1. Create a new ingestion run in the database
+2. Fetch all issues from the repository (with progress indication)
+3. Fetch all pull requests from the repository (with progress indication)
+4. Store issue/PR metadata (number, title, body, state, author, dates, labels, assignees, etc.)
+5. Store all comments for each issue and pull request
+
+Authentication is handled automatically via:
+- `GITHUB_TOKEN` environment variable (recommended for CI/CD)
+- `gh` CLI authentication (run `gh auth login` first)
+
+### Run multiple jobs from a TOML configuration
+
+Use the config runner to orchestrate several ingestion jobs in a single command. Jobs run in parallel (up to the configured limit) and the runner continues even when a job fails.
+
+Example `ingest.config.toml`:
+
+```toml
+parallelism = 3
+
+[[job]]
+name = "mono git"
+type = "git"
+path = "~/code/mono"
+
+[[job]]
+name = "documents"
+type = "fs"
+path = "~/Documents"
+respect_gitignore = true
+
+[[job]]
+type = "github_mcp"
+owner = "neongreen"
+repo = "mono"
+
+  [job.mcp]
+  provider = "github"
+  token = "$INGEST_GITHUB_MCP_TOKEN"
+```
+
+Supported job types:
+
+- `git`: ingest a local repository (`path` required)
+- `fs`: crawl a filesystem (`path`, optional `respect_gitignore`)
+- `command`: capture shell output (`command`)
+- `github`: call the REST API (`owner`, `repo`)
+- `github_mcp`: use the GitHub MCP integration (`owner`, `repo`, optional `[job.mcp]` overrides)
+- `linear_mcp`: use the Linear MCP integration (optional `[job.mcp]` overrides)
+
+Run the configuration (defaults to `ingest.config.toml` in the working directory):
+
+```bash
+ingest run-config --config ingest.config.toml
+```
+
+Override concurrency with `--parallelism`. The command prints a per-job summary plus aggregated success/failure counts.
+
+#### MCP prerequisites
+
+Before running MCP-backed jobs make sure credentials are available. The runner checks the following sources, in order:
+
+- **GitHub MCP:**
+  1. `job.mcp.token` in the TOML file
+  2. `INGEST_GITHUB_MCP_TOKEN`
+  3. `INGEST_MCP_TOKEN`
+  4. `MISE_GITHUB_TOKEN`
+  5. `GITHUB_TOKEN`
+  6. `gh auth token` (via the GitHub CLI)
+- **Linear MCP:**
+  1. `job.mcp.token`
+  2. `INGEST_LINEAR_MCP_TOKEN`
+  3. `INGEST_MCP_TOKEN`
+
+Missing endpoint or token information fails fast before any jobs start. Run `ingest config validate` to preview the resolved configuration and see warnings for incomplete MCP settings.
+
+### Validate a TOML configuration
+
+Validate a configuration file before running it:
+
+```bash
+ingest config validate --config ingest.config.toml
+```
+
+The validator reports parse errors, unknown fields, or missing required options and echoes each recognised job when the file is valid. Any MCP jobs without resolved credentials or endpoints are listed under “Warnings” with suggestions for the relevant environment variables.
+
 ### List all ingestion runs
 
 ```bash
@@ -63,11 +161,11 @@ ingest list-runs
 
 This displays:
 - Run ID
-- Run type (git/fs/cmd)
+- Run type (git/fs/cmd/github)
 - Start time
 - Path or command
 - Status (completed/failed/in_progress)
-- Number of items ingested (context-dependent: commits for git, entries for fs, commands for cmd)
+- Number of items ingested (context-dependent: commits for git, entries for fs, commands for cmd, issues+PRs for github)
 - Duration (for completed runs)
 
 ### Query the database with SQL
@@ -75,6 +173,53 @@ This displays:
 ```bash
 ingest query "SELECT * FROM runs"
 ```
+
+### MCP integration
+
+Ingest ships with MCP presets so you can connect to hosted servers without memorising URLs:
+
+| Provider | Command | Default endpoint | Typical credentials |
+| --- | --- | --- | --- |
+| `linear` | `ingest linear` | `https://mcp.linear.app/sse` | `INGEST_LINEAR_MCP_TOKEN` (Linear API key) |
+| `github` | `ingest github-mcp` | `https://api.githubcopilot.com/mcp/` | `INGEST_GITHUB_MCP_TOKEN` (GitHub PAT or OAuth via host) |
+
+Each preset also works with the generic `ingest mcp` command:
+
+```bash
+# Discover tools for a provider using the shared CLI
+ingest mcp --provider linear list-tools
+
+# Override defaults explicitly
+ingest mcp --provider github \
+  --endpoint https://api.githubcopilot.com/mcp/ \
+  --token $GITHUB_TOKEN \
+  --header "X-Custom=value"
+```
+
+Environment variables resolve in priority order (`INGEST_<PROVIDER>_MCP_*` → `INGEST_MCP_*` → preset defaults). Common overrides:
+
+- Endpoint: `INGEST_MCP_ENDPOINT`, `INGEST_<PROVIDER>_MCP_ENDPOINT`
+- Token: `INGEST_MCP_TOKEN`, `INGEST_<PROVIDER>_MCP_TOKEN`
+- Headers: `INGEST_MCP_HEADERS`, `INGEST_<PROVIDER>_MCP_HEADERS`
+- Timeouts/retries: `INGEST_MCP_TIMEOUT`, `INGEST_MCP_RETRY_MAX_ATTEMPTS`, `INGEST_MCP_RETRY_INITIAL_BACKOFF`, `INGEST_MCP_RETRY_MAX_BACKOFF`
+
+#### Linear quick-start
+
+```bash
+# Endpoint falls back to https://mcp.linear.app/sse if not supplied
+INGEST_LINEAR_MCP_TOKEN=your-token \
+ingest linear --timeout 45s
+```
+
+#### GitHub quick-start
+
+```bash
+# Repo spec is required (owner/name); endpoint defaults to the hosted GitHub server
+INGEST_GITHUB_MCP_TOKEN=ghp_example \
+ingest github-mcp neongreen/mono
+```
+
+Both dedicated commands print the resolved endpoint so you can verify which host you are contacting. Use the generic `ingest mcp` command to explore tool metadata before running the concrete ingestors.
 
 This allows you to run arbitrary SQL queries against the ingest database and outputs results as JSON. Examples:
 
@@ -90,16 +235,25 @@ ingest query "SELECT path, size FROM files WHERE size > 1000000 ORDER BY size DE
 
 # Get filesystem entries
 ingest query "SELECT path, size FROM fs_entries WHERE is_dir = 0 ORDER BY size DESC LIMIT 5"
+
+# Get all GitHub issues with their comment counts
+ingest query "SELECT i.number, i.title, i.state, COUNT(c.id) as comment_count FROM github_issues i LEFT JOIN github_comments c ON c.item_type = 'issue' AND c.item_number = i.number GROUP BY i.id"
+
+# Get all GitHub pull requests with labels
+ingest query "SELECT number, title, state, merged, labels FROM github_prs WHERE labels != ''"
+
+# Find most active GitHub issue/PR participants
+ingest query "SELECT author, COUNT(*) as comment_count FROM github_comments GROUP BY author ORDER BY comment_count DESC LIMIT 10"
 ```
 
 ## Database Schema
 
-The database consists of eight tables with efficient blob storage and deduplication:
+The database consists of eleven tables with efficient blob storage and deduplication:
 
 ### runs
 - `id`: Unique run identifier
-- `repo_path`: Path to the repository/directory or command
-- `run_type`: Type of ingestion (git/fs/cmd)
+- `repo_path`: Path to the repository/directory, command, or GitHub repository
+- `run_type`: Type of ingestion (git/fs/cmd/github)
 - `start_time`: When the ingestion started
 - `end_time`: When the ingestion finished (NULL if in progress)
 - `item_count`: Number of items ingested (commits/entries/commands depending on type)
@@ -169,6 +323,54 @@ The database consists of eight tables with efficient blob storage and deduplicat
 - `stdout`: Standard output
 - `stderr`: Standard error
 - `duration_ms`: Execution time in milliseconds
+- `item_count`: For `cmd` runs, counts total stdout and stderr lines captured
+
+### github_issues
+- `id`: Unique issue identifier
+- `run_id`: Foreign key to runs table
+- `number`: Issue number
+- `title`: Issue title
+- `body`: Issue body/description
+- `state`: Issue state (open/closed)
+- `author`: Issue author username
+- `created_at`: When the issue was created
+- `updated_at`: When the issue was last updated
+- `closed_at`: When the issue was closed (NULL if open)
+- `labels`: Comma-separated list of label names
+- `assignees`: Comma-separated list of assignee usernames
+- `milestone`: Milestone title (NULL if no milestone)
+
+### github_prs
+- `id`: Unique pull request identifier
+- `run_id`: Foreign key to runs table
+- `number`: Pull request number
+- `title`: Pull request title
+- `body`: Pull request body/description
+- `state`: Pull request state (open/closed)
+- `author`: Pull request author username
+- `created_at`: When the PR was created
+- `updated_at`: When the PR was last updated
+- `closed_at`: When the PR was closed (NULL if open)
+- `merged_at`: When the PR was merged (NULL if not merged)
+- `merged`: Whether the PR was merged (0/1)
+- `draft`: Whether the PR is a draft (0/1)
+- `base_branch`: Base branch name
+- `head_branch`: Head branch name
+- `labels`: Comma-separated list of label names
+- `assignees`: Comma-separated list of assignee usernames
+- `reviewers`: Comma-separated list of requested reviewer usernames
+- `milestone`: Milestone title (NULL if no milestone)
+
+### github_comments
+- `id`: Unique comment identifier
+- `run_id`: Foreign key to runs table
+- `item_type`: Type of item (issue/pr)
+- `item_number`: Issue or PR number
+- `comment_id`: GitHub comment ID
+- `author`: Comment author username
+- `body`: Comment body
+- `created_at`: When the comment was created
+- `updated_at`: When the comment was last updated
 
 ## Features
 
@@ -204,6 +406,9 @@ Processing entry 523/523...
 Processed 523 entries with 400 blobs
 Ingestion completed successfully!
 
+# Disable .gitignore filtering while ingesting (enabled by default)
+$ ingest fs --respect-gitignore=false ~/Documents
+
 # Run a command and capture its output
 $ ingest cmd "ls -la /tmp | wc -l"
 Running command: ls -la /tmp | wc -l
@@ -212,16 +417,33 @@ Command completed with exit code: 0 (took 5ms)
 Stdout length: 4 bytes
 Ingestion completed successfully!
 
+# Ingest GitHub issues and pull requests
+$ ingest github neongreen/mono
+Ingesting GitHub repository: neongreen/mono
+Started ingestion run #4
+Fetching issues...
+Found 5 issues so far...
+Found 5 issues total
+Processing issue 5/5...
+Processed 5 issues with their comments
+Fetching pull requests...
+Found 10 pull requests so far...
+Found 42 pull requests total
+Processing PR 42/42...
+Processed 42 pull requests with their comments
+Ingestion completed successfully!
+
 # View all runs
 $ ingest list-runs
 
 ID    Type   Start Time          Path/Command                                       Status   Items     
 -----------------------------------------------------------------------------------------------------------------------------
+4     github 2025-01-06 14:40:30 neongreen/mono                                     completed 47         (15.2s)
 3     cmd    2025-01-06 14:35:20 ls -la /tmp | wc -l                                completed 0          (0.0s)
 2     fs     2025-01-06 14:32:15 /home/user/Documents                               completed 523        (0.8s)
 1     git    2025-01-06 14:25:00 /home/user/projects/myrepo                         completed 150        (2.1s)
 
-Summary: 3 total runs (3 completed), 673 items
+Summary: 4 total runs (4 completed), 720 items
 ```
 
 ## Dependencies

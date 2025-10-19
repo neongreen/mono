@@ -5,17 +5,17 @@ on:
     branches:
       - main
     paths:
-      - '**/*.go'
-      - '**/go.mod'
-      - '**/go.sum'
-      - '.github/workflows/release.yml'
+      - "**/*.go"
+      - "**/go.mod"
+      - "**/go.sum"
+      - ".github/workflows/release.yml"
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - '**/*.go'
-      - '**/go.mod'
-      - '**/go.sum'
-      - '.github/workflows/release.yml'
+      - "**/*.go"
+      - "**/go.mod"
+      - "**/go.sum"
+      - ".github/workflows/release.yml"
 
 jobs:
   # First job: detect which Go projects need releases
@@ -24,6 +24,8 @@ jobs:
     outputs:
       projects: ${{ steps.find-projects.outputs.projects }}
       has_projects: ${{ steps.find-projects.outputs.has_projects }}
+      mirror_projects: ${{ steps.mirror-config.outputs.projects }}
+      mirror_repo: ${{ steps.mirror-config.outputs.repo }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,10 +50,10 @@ jobs:
               CHANGED_FILES=$(git diff --name-only $BEFORE_SHA...${{ github.sha }})
             fi
           fi
-          
+
           echo "Changed files:"
           echo "$CHANGED_FILES"
-          
+
           # Find all directories with go.mod at root level
           all_projects=()
           for dir in */; do
@@ -63,9 +65,9 @@ jobs:
               fi
             fi
           done
-          
+
           echo "All Go projects: ${all_projects[*]}"
-          
+
           # Filter projects to only those with changed files
           projects=()
           for project in "${all_projects[@]}"; do
@@ -75,7 +77,7 @@ jobs:
               echo "Project $project has changes"
             fi
           done
-          
+
           # Convert to JSON array
           if [ ${#projects[@]} -eq 0 ]; then
             echo "has_projects=false" >> $GITHUB_OUTPUT
@@ -87,6 +89,24 @@ jobs:
             echo "projects=$projects_json" >> $GITHUB_OUTPUT
             echo "Projects with changes: ${projects[*]}"
           fi
+      - name: Load release mirror config
+        id: mirror-config
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import tomllib
+
+          data = tomllib.loads(Path("release-mirror.toml").read_text())
+          projects = data.get("mirror", {}).get("projects", [])
+          repo = data.get("mirror", {}).get("public_repo", "")
+
+          output = os.environ["GITHUB_OUTPUT"]
+          with open(output, "a", encoding="utf-8") as fh:
+              fh.write(f"projects={json.dumps(projects)}\n")
+              fh.write(f"repo={repo}\n")
+          PY
 
   # Second job: build and release each project
   release:
@@ -99,7 +119,7 @@ jobs:
 
     permissions:
       contents: write
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -109,14 +129,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.7'
+          go-version: "1.24.7"
           cache-dependency-path: ${{ matrix.project }}/go.sum
 
       - name: Determine version and branch
         id: version
         run: |
           PROJECT="${{ matrix.project }}"
-          
+
           # Determine branch/ref name
           if [ "${{ github.event_name }}" == "pull_request" ]; then
             # For PRs, use pr-NUMBER format
@@ -125,14 +145,14 @@ jobs:
             # For push to main
             REF="main"
           fi
-          
+
           # Sanitize ref name (replace / with -)
           REF_SAFE=$(echo "$REF" | tr '/' '-')
-          
+
           # Find existing tags for this project+ref combination
           TAG_PREFIX="${PROJECT}--${REF_SAFE}."
           EXISTING_TAGS=$(git tag -l "${TAG_PREFIX}*" | sort -V)
-          
+
           if [ -z "$EXISTING_TAGS" ]; then
             # No existing tags, start with .1
             VERSION_NUM=1
@@ -142,17 +162,17 @@ jobs:
             LAST_NUM=$(echo "$LAST_TAG" | sed "s|${TAG_PREFIX}||")
             VERSION_NUM=$((LAST_NUM + 1))
           fi
-          
+
           TAG="${PROJECT}--${REF_SAFE}.${VERSION_NUM}"
           VERSION="${REF_SAFE}.${VERSION_NUM}"
-          
+
           echo "project=$PROJECT" >> $GITHUB_OUTPUT
           echo "ref=$REF" >> $GITHUB_OUTPUT
           echo "ref_safe=$REF_SAFE" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "version_num=$VERSION_NUM" >> $GITHUB_OUTPUT
-          
+
           echo "Building ${PROJECT} version ${VERSION} (tag: ${TAG})"
 
       - name: Build binaries
@@ -160,10 +180,10 @@ jobs:
         run: |
           PROJECT="${{ matrix.project }}"
           VERSION="${{ steps.version.outputs.version }}"
-          
+
           # Find main.go location(s)
           MAIN_FILES=$(find "$PROJECT" -name "main.go")
-          
+
           # Determine build targets
           # If there's cmd/main.go, build from cmd
           # Otherwise build the main.go in root
@@ -172,10 +192,10 @@ jobs:
           else
             BUILD_TARGET="."
           fi
-          
+
           mkdir -p dist
           DIST_DIR="$(pwd)/dist"
-          
+
           # Build for multiple platforms
           PLATFORMS=(
             "linux/amd64"
@@ -183,28 +203,28 @@ jobs:
             "darwin/amd64"
             "darwin/arm64"
           )
-          
+
           for platform in "${PLATFORMS[@]}"; do
             IFS='/' read -r GOOS GOARCH <<< "$platform"
-            
+
             OUTPUT_NAME="${PROJECT}-${VERSION}-${GOOS}-${GOARCH}"
-            
+
             echo "Building for $GOOS/$GOARCH..."
-            
+
             # Set ldflags for version information
             BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
             LDFLAGS="-X main.Version=${VERSION} -X main.GitCommit=${{ github.sha }} -X main.BuildTime=${BUILD_TIME}"
-            
+
             (cd "$PROJECT" && GOOS=$GOOS GOARCH=$GOARCH go build -ldflags="$LDFLAGS" -o "$DIST_DIR/$OUTPUT_NAME" $BUILD_TARGET)
-            
+
             if [ $? -ne 0 ]; then
               echo "Failed to build for $GOOS/$GOARCH"
               exit 1
             fi
-            
+
             echo "Built: dist/$OUTPUT_NAME"
           done
-          
+
           ls -lh dist/
 
       - name: Create Release
@@ -214,28 +234,28 @@ jobs:
           name: "${{ matrix.project }} ${{ steps.version.outputs.version }}"
           body: |
             Release of **${{ matrix.project }}** version `${{ steps.version.outputs.version }}`
-            
+
             Built from: ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || 'main branch' }}
             Commit: ${{ github.sha }}
-            
+
             ## Installation
-            
+
             Download the appropriate binary for your platform, make it executable, and move it to your PATH:
-            
+
             ```bash
             # Linux AMD64
             wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64
             chmod +x ${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64
             sudo mv ${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64 /usr/local/bin/${{ matrix.project }}
-            
+
             # macOS ARM64 (M1/M2)
             wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64
             chmod +x ${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64
             sudo mv ${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64 /usr/local/bin/${{ matrix.project }}
             ```
-            
+
             ## Available Binaries
-            
+
             - Linux: amd64, arm64
             - macOS: amd64 (Intel), arm64 (Apple Silicon)
           files: dist/*
@@ -243,3 +263,44 @@ jobs:
           prerelease: ${{ github.event_name == 'pull_request' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mirror release to public repository
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        uses: softprops/action-gh-release@v2
+        with:
+          repository: ${{ needs.detect.outputs.mirror_repo }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "${{ matrix.project }} ${{ steps.version.outputs.version }}"
+          body: |
+            Release of **${{ matrix.project }}** version `${{ steps.version.outputs.version }}`
+
+            Built from: ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || 'main branch' }}
+            Commit: ${{ github.sha }}
+
+            ## Installation
+
+            Download the appropriate binary for your platform, make it executable, and move it to your PATH:
+
+            ```bash
+            # Linux AMD64
+            wget https://github.com/${{ needs.detect.outputs.mirror_repo }}/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64
+            chmod +x ${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64
+            sudo mv ${{ matrix.project }}-${{ steps.version.outputs.version }}-linux-amd64 /usr/local/bin/${{ matrix.project }}
+
+            # macOS ARM64 (M1/M2)
+            wget https://github.com/${{ needs.detect.outputs.mirror_repo }}/releases/download/${{ steps.version.outputs.tag }}/${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64
+            chmod +x ${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64
+            sudo mv ${{ matrix.project }}-${{ steps.version.outputs.version }}-darwin-arm64 /usr/local/bin/${{ matrix.project }}
+            ```
+
+            ## Available Binaries
+
+            - Linux: amd64, arm64
+            - macOS: amd64 (Intel), arm64 (Apple Silicon)
+          files: dist/*
+          draft: false
+          prerelease: false
+          allow_updates: true
+          fail_on_unmatched_files: true
+          overwrite: true
+          token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}

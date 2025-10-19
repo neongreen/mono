@@ -93,6 +93,7 @@ curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | ba
 3. **Select Binary**: Finds the binary matching your OS and architecture
 4. **Cache**: Downloads to `~/.cache/prrun/<release-tag>/<binary-name>`
 5. **Execute**: Runs the cached binary with your arguments
+6. **Notify**: Warns when a newer release replaces a cached version for the PR
 
 ## Authentication
 
@@ -137,6 +138,8 @@ Binaries are cached at `~/.cache/prrun/` organized by release tag:
 ```
 
 Once downloaded, subsequent runs use the cached binary instantly.
+
+When a newer `pr-N.X` release appears for a cached PR, prrun prints a notice with the old tag and the new tag so you know the binary changed before it runs.
 
 ## Supported Platforms
 

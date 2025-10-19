@@ -50,13 +50,24 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 		zoom = 100
 	}
 	baseFontSize := 11.0 * float64(zoom) / 100.0
-	buf.WriteString(fmt.Sprintf("#set text(font: \"Linux Libertine\", size: %.2fpt)\n", baseFontSize))
+	buf.WriteString(fmt.Sprintf("#set text(size: %.2fpt)\n", baseFontSize))
 	buf.WriteString("#set par(justify: false, leading: 0.65em)\n")
 	buf.WriteString("#set heading(numbering: none)\n")
 
 	// Add column layout if more than 1 column
 	if options.Columns > 1 {
 		buf.WriteString(fmt.Sprintf("#show: columns.with(%d, gutter: 1em)\n", options.Columns))
+	}
+
+	if guide := strings.TrimSpace(options.FirstPageGuide); guide != "" {
+		buf.WriteString("#let printpdf_first_page_guide(page, distance) = {\n")
+		buf.WriteString("  place(line(length: page.height - page.margin.top - page.margin.bottom, angle: 90deg, stroke: 0.4pt + rgb(\"d0d7de\")), dx: distance, dy: page.margin.top)\n")
+		buf.WriteString("}\n")
+		buf.WriteString("#context page => {\n")
+		buf.WriteString("  if page.number == 1 {\n")
+		buf.WriteString(fmt.Sprintf("    printpdf_first_page_guide(page, %s)\n", guide))
+		buf.WriteString("  }\n")
+		buf.WriteString("}\n")
 	}
 
 	buf.WriteString("\n")
@@ -129,13 +140,13 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
 		}
 
 	case *ast.Link:
-		buf.WriteString("#link(\"")
+		buf.WriteString("#underline[#link(\"")
 		buf.WriteString(escapeTypst(string(n.Destination)))
 		buf.WriteString("\")[")
 		if err := renderChildren(buf, n, source); err != nil {
 			return err
 		}
-		buf.WriteString("]")
+		buf.WriteString("]]")
 
 	case *ast.CodeSpan:
 		buf.WriteString("`")
@@ -197,8 +208,17 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte) error {
 		return nil
 
 	case *ast.Image:
+		destination := string(n.Destination)
+		// Skip remote images as Typst can't fetch them directly
+		if strings.HasPrefix(destination, "http://") || strings.HasPrefix(destination, "https://") {
+			buf.WriteString("// Image skipped (remote URL): ")
+			buf.WriteString(destination)
+			buf.WriteString("\n\n")
+			return nil
+		}
+
 		buf.WriteString("#image(\"")
-		buf.WriteString(escapeTypst(string(n.Destination)))
+		buf.WriteString(escapeTypst(destination))
 		buf.WriteString("\"")
 		if n.Title != nil {
 			buf.WriteString(", alt: \"")
