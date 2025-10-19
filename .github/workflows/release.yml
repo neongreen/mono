@@ -368,10 +368,6 @@ jobs:
           token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
           path: tap
 
-      - name: Set up Homebrew
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
-        uses: Homebrew/actions/setup-homebrew@v4
-
       - name: Update Homebrew formula
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         working-directory: tap
