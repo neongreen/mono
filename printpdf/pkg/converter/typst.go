@@ -30,10 +30,13 @@ func (t *TypstConverter) Convert(content []byte, contentType string, outputPath 
 	}
 
 	// Prepare input file
-	var inputFile string
+	var (
+		inputFile string
+		cleanup   bool
+	)
 	if contentType == fetcher.ContentTypeMarkdown {
 		// Convert markdown to Typst format
-		inputFile, err = t.prepareMarkdownInput(content, options)
+		inputFile, cleanup, err = t.prepareMarkdownInput(content, options)
 	} else {
 		// For HTML, we need to convert to markdown first
 		return fmt.Errorf("HTML conversion not yet supported for Typst")
@@ -41,7 +44,9 @@ func (t *TypstConverter) Convert(content []byte, contentType string, outputPath 
 	if err != nil {
 		return err
 	}
-	defer os.Remove(inputFile)
+	if cleanup {
+		defer os.Remove(inputFile)
+	}
 
 	// Run Typst
 	cmd := exec.Command(typstPath, "compile", inputFile, outputPath)
@@ -85,24 +90,43 @@ func (t *TypstConverter) getDownloadURL(version string) string {
 	}
 }
 
-func (t *TypstConverter) prepareMarkdownInput(content []byte, options PageOptions) (string, error) {
+func (t *TypstConverter) prepareMarkdownInput(content []byte, options PageOptions) (string, bool, error) {
 	// Convert Markdown to Typst format
 	typstContent, err := convertMarkdownToTypst(content, options)
 	if err != nil {
-		return "", fmt.Errorf("failed to convert markdown to typst: %w", err)
+		return "", false, fmt.Errorf("failed to convert markdown to typst: %w", err)
+	}
+
+	if options.KeepIntermediates && options.IntermediateDir != "" {
+		if err := os.MkdirAll(options.IntermediateDir, 0755); err != nil {
+			return "", false, fmt.Errorf("failed to create intermediate directory %s: %w", options.IntermediateDir, err)
+		}
+		file, err := os.CreateTemp(options.IntermediateDir, "stage-*.typ")
+		if err != nil {
+			return "", false, fmt.Errorf("failed to create intermediate Typst file: %w", err)
+		}
+		if _, err := file.WriteString(typstContent); err != nil {
+			file.Close()
+			return "", false, fmt.Errorf("failed to write intermediate Typst content: %w", err)
+		}
+		if err := file.Close(); err != nil {
+			return "", false, fmt.Errorf("failed to close intermediate Typst file: %w", err)
+		}
+		return file.Name(), false, nil
 	}
 
 	// Create a temporary Typst file
 	tmpFile, err := os.CreateTemp("", "printpdf-*.typ")
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	defer tmpFile.Close()
-
-	// Write the converted Typst content
 	if _, err := tmpFile.WriteString(typstContent); err != nil {
-		return "", err
+		tmpFile.Close()
+		return "", false, err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return "", false, err
 	}
 
-	return tmpFile.Name(), nil
+	return tmpFile.Name(), true, nil
 }

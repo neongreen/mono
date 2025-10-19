@@ -20,4 +20,7 @@ func TestHTMLFootnoteRendering(t *testing.T) {
 	if !strings.Contains(result, "printpdf-footnote") {
 		t.Fatalf("expected inline footnote span, got: %s", result)
 	}
+	if strings.Contains(result, "footnote-backref") {
+		t.Fatalf("unexpected footnote backref found in output: %s", result)
+	}
 }

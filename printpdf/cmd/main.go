@@ -25,6 +25,7 @@ var (
 	marginLeft     string
 	zoom           int
 	firstPageGuide string
+	keepArtifacts  bool
 )
 
 var rootCmd = &cobra.Command{
@@ -61,6 +62,7 @@ func init() {
 	rootCmd.Flags().StringVar(&marginLeft, "margin-left", "", "left page margin (overrides the value from --margin when set)")
 	rootCmd.Flags().IntVar(&zoom, "zoom", 100, "zoom percentage for all font sizes (e.g., 80 for 80%, 120 for 120%)")
 	rootCmd.Flags().StringVar(&firstPageGuide, "first-page-guide", "", "draw a thin vertical guide on the first page at the given distance from the left edge (e.g., '3cm')")
+	rootCmd.Flags().BoolVar(&keepArtifacts, "keep-artifacts", false, "keep intermediate artifacts such as HTML and Typst sources next to the output")
 }
 
 func main() {
@@ -108,6 +110,15 @@ func runConvert(cmd *cobra.Command, args []string) {
 		FirstPageGuide: strings.TrimSpace(firstPageGuide),
 	}
 
+	var artifactBase string
+	if keepArtifacts {
+		artifactBase = filepath.Join(outputDir, "printpdf-artifacts")
+		if err := os.MkdirAll(artifactBase, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating artifact directory: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
 	// Determine which converters to use
 	converterList := converter.ParseConverterList(converters)
 	if len(converterList) == 0 {
@@ -128,7 +139,17 @@ func runConvert(cmd *cobra.Command, args []string) {
 
 		outputPath := filepath.Join(outputDir, fmt.Sprintf("output-%s.pdf", conv.Name()))
 
-		err := conv.Convert(content, contentType, outputPath, pageOptions)
+		convOptions := pageOptions
+		if keepArtifacts {
+			convOptions.KeepIntermediates = true
+			convOptions.IntermediateDir = filepath.Join(artifactBase, conv.Name())
+			if err := os.MkdirAll(convOptions.IntermediateDir, 0755); err != nil {
+				fmt.Fprintf(os.Stderr, "Error preparing artifact directory for %s: %v\n", conv.Name(), err)
+				os.Exit(1)
+			}
+		}
+
+		err := conv.Convert(content, contentType, outputPath, convOptions)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error with %s: %v\n", conv.Name(), err)
 			continue

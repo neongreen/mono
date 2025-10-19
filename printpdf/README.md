@@ -99,6 +99,9 @@ printpdf -zoom 120 document.md  # 120% of default size
 # Draw a vertical guide line 3cm from the left edge of the first page
 printpdf -first-page-guide 3cm document.md
 
+# Keep intermediate HTML/Typst files for inspection
+printpdf --keep-artifacts document.md
+
 # Combine options
 printpdf -columns 2 -margin 1.5cm -zoom 90 document.md
 printpdf -orientation landscape -margin 2cm -zoom 110 document.md
@@ -159,6 +162,10 @@ The `-zoom` flag scales all font sizes proportionally:
 - Examples:
   - `-zoom 80`: All fonts at 80% of their normal size
   - `-zoom 120`: All fonts at 120% of their normal size
+
+#### Intermediate Artifacts
+
+Use the `--keep-artifacts` flag when you need to inspect what each converter received. When enabled, printpdf saves the generated HTML and Typst sources in `OUTPUT/printpdf-artifacts/<converter>/` instead of deleting temporary files. Each run creates uniquely named files so you can diff or open them in another tool without re-running the conversion.
 
 This is useful when you want to:
 - Make the document more compact without manually adjusting individual font sizes

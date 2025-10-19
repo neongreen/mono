@@ -9,15 +9,17 @@ import (
 
 // PageOptions contains page layout options for PDF conversion
 type PageOptions struct {
-	Columns        int    // Number of columns (1 = no columns)
-	Orientation    string // "portrait" or "landscape"
-	Margin         string // Default page margin (e.g., "2cm", "1in")
-	MarginTop      string // Optional top margin override
-	MarginRight    string // Optional right margin override
-	MarginBottom   string // Optional bottom margin override
-	MarginLeft     string // Optional left margin override
-	Zoom           int    // Zoom percentage (e.g., 80 for 80%, 100 is default)
-	FirstPageGuide string // Optional distance for a vertical guide on the first page (e.g., "3cm")
+	Columns           int    // Number of columns (1 = no columns)
+	Orientation       string // "portrait" or "landscape"
+	Margin            string // Default page margin (e.g., "2cm", "1in")
+	MarginTop         string // Optional top margin override
+	MarginRight       string // Optional right margin override
+	MarginBottom      string // Optional bottom margin override
+	MarginLeft        string // Optional left margin override
+	Zoom              int    // Zoom percentage (e.g., 80 for 80%, 100 is default)
+	FirstPageGuide    string // Optional distance for a vertical guide on the first page (e.g., "3cm")
+	KeepIntermediates bool   // When true, intermediate artifacts (HTML, Typst, etc.) are preserved on disk
+	IntermediateDir   string // Directory where intermediate artifacts should be stored
 }
 
 // resolveMargins returns each side's margin along with the default value that was applied.

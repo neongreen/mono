@@ -30,11 +30,13 @@ func (w *WeasyPrintConverter) Convert(content []byte, contentType string, output
 	}
 
 	// Prepare input file
-	inputFile, err := w.prepareInput(content, contentType, options)
+	inputFile, cleanup, err := w.prepareInput(content, contentType, options)
 	if err != nil {
 		return err
 	}
-	defer os.Remove(inputFile)
+	if cleanup {
+		defer os.Remove(inputFile)
+	}
 
 	// Run WeasyPrint
 	cmd := exec.Command(weasyPath, inputFile, outputPath)
@@ -80,7 +82,7 @@ exec %s -m weasyprint "$@"
 	return wrapperPath, nil
 }
 
-func (w *WeasyPrintConverter) prepareInput(content []byte, contentType string, options PageOptions) (string, error) {
+func (w *WeasyPrintConverter) prepareInput(content []byte, contentType string, options PageOptions) (string, bool, error) {
 	var ext string
 	var htmlContent []byte
 	var err error
@@ -91,28 +93,48 @@ func (w *WeasyPrintConverter) prepareInput(content []byte, contentType string, o
 		ext = ".html"
 		htmlContent, err = convertMarkdownToHTML(content, options)
 		if err != nil {
-			return "", fmt.Errorf("failed to convert markdown to HTML: %w", err)
+			return "", false, fmt.Errorf("failed to convert markdown to HTML: %w", err)
 		}
 	case fetcher.ContentTypeHTML:
 		ext = ".html"
 		htmlContent, err = wrapHTMLWithPageOptions(content, options)
 		if err != nil {
-			return "", fmt.Errorf("failed to wrap HTML with page options: %w", err)
+			return "", false, fmt.Errorf("failed to wrap HTML with page options: %w", err)
 		}
 	default:
-		return "", fmt.Errorf("unsupported content type: %s", contentType)
+		return "", false, fmt.Errorf("unsupported content type: %s", contentType)
+	}
+
+	if options.KeepIntermediates && options.IntermediateDir != "" {
+		if err := os.MkdirAll(options.IntermediateDir, 0755); err != nil {
+			return "", false, fmt.Errorf("failed to create intermediate directory %s: %w", options.IntermediateDir, err)
+		}
+		file, err := os.CreateTemp(options.IntermediateDir, "stage-*.html")
+		if err != nil {
+			return "", false, fmt.Errorf("failed to create intermediate HTML file: %w", err)
+		}
+		if _, err := file.Write(htmlContent); err != nil {
+			file.Close()
+			return "", false, fmt.Errorf("failed to write intermediate HTML: %w", err)
+		}
+		if err := file.Close(); err != nil {
+			return "", false, fmt.Errorf("failed to close intermediate HTML file: %w", err)
+		}
+		return file.Name(), false, nil
 	}
 
 	// Create temp file
 	tmpFile, err := os.CreateTemp("", "printpdf-*"+ext)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
-	defer tmpFile.Close()
-
 	if _, err := tmpFile.Write(htmlContent); err != nil {
-		return "", err
+		tmpFile.Close()
+		return "", false, err
+	}
+	if err := tmpFile.Close(); err != nil {
+		return "", false, err
 	}
 
-	return tmpFile.Name(), nil
+	return tmpFile.Name(), true, nil
 }

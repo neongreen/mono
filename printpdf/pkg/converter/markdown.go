@@ -371,16 +371,18 @@ func attachHTMLFootnotes(root *stdhtml.Node, footnotes map[string][]*stdhtml.Nod
 					removeAttr(node, "href")
 					setDataAttribute(sup, "data-footnote-id", target)
 
-					span := &stdhtml.Node{Type: stdhtml.ElementNode, DataAtom: htmlatom.Span, Data: "span"}
-					span.Attr = append(span.Attr, stdhtml.Attribute{Key: "class", Val: "printpdf-footnote"})
-					span.Attr = append(span.Attr, stdhtml.Attribute{Key: "data-footnote-id", Val: target})
+					container := &stdhtml.Node{Type: stdhtml.ElementNode, DataAtom: htmlatom.Div, Data: "div"}
+					container.Attr = append(container.Attr, stdhtml.Attribute{Key: "class", Val: "printpdf-footnote"})
+					container.Attr = append(container.Attr, stdhtml.Attribute{Key: "data-footnote-id", Val: target})
 
 					for _, child := range content {
-						span.AppendChild(cloneNode(child))
+						container.AppendChild(cloneNode(child))
 					}
 
+					stripFootnoteBackrefs(container)
+
 					if sup.Parent != nil {
-						insertAfter(sup.Parent, span, sup)
+						insertAfter(sup.Parent, container, sup)
 						attached++
 					}
 				}
