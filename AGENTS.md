@@ -34,6 +34,8 @@ This document contains guidelines for AI agents and automated tools working on p
 - Homebrew tap updates are automated via the release workflow; adjust formula metadata only through `release-mirror.toml`.
 - To run releases manually, use the `workflow_dispatch` trigger on `release.yml` and supply a comma/newline separated project list (matches directories like `ingest`).
 - Use the provided `mise` tasks instead of `go install`; for example, run `mise run //:lint:actions` and `mise run //:lint:actions-pinned` when touching workflows to ensure lint and pin checks stay green.
+- Never run `npm install -g`; rely on `mise` tasks or `npx` for node tooling.
+- Use `yq` for ad-hoc TOML manipulation instead of writing custom scripts or installing global tooling.
 - Investigate GitHub Actions failures yourself with available tooling (e.g. `gh run list`, `gh run view --log`); do not defer to the user for log gathering or diagnosis.
 
 ------------------------------------------------------------
