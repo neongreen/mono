@@ -300,12 +300,26 @@ func maxTime(t1, t2 string) string {
 		return t1
 	}
 
-	time1, err1 := time.Parse(time.RFC3339, t1)
-	time2, err2 := time.Parse(time.RFC3339, t2)
+	// Try RFC3339Nano first (supports fractional seconds), fall back to RFC3339
+	time1, err1 := time.Parse(time.RFC3339Nano, t1)
+	if err1 != nil {
+		time1, err1 = time.Parse(time.RFC3339, t1)
+	}
 
+	time2, err2 := time.Parse(time.RFC3339Nano, t2)
+	if err2 != nil {
+		time2, err2 = time.Parse(time.RFC3339, t2)
+	}
+
+	// If both fail to parse, return t2 as fallback
+	if err1 != nil && err2 != nil {
+		return t2
+	}
+	// If only t1 failed to parse, return t2
 	if err1 != nil {
 		return t2
 	}
+	// If only t2 failed to parse, return t1
 	if err2 != nil {
 		return t1
 	}

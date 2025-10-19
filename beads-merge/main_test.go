@@ -146,16 +146,46 @@ func TestMaxTime(t *testing.T) {
 			want: "2025-10-16T20:51:29.646949+02:00",
 		},
 		{
-			name: "t1 later",
+			name: "t1 later with fractional seconds",
 			t1:   "2025-10-17T20:51:29.646949+02:00",
 			t2:   "2025-10-16T20:51:29.646949+02:00",
 			want: "2025-10-17T20:51:29.646949+02:00",
 		},
 		{
-			name: "t2 later",
+			name: "t2 later with fractional seconds",
 			t1:   "2025-10-16T20:51:29.646949+02:00",
 			t2:   "2025-10-17T20:51:29.646949+02:00",
 			want: "2025-10-17T20:51:29.646949+02:00",
+		},
+		{
+			name: "t1 later without fractional seconds (RFC3339)",
+			t1:   "2025-10-17T20:51:29+02:00",
+			t2:   "2025-10-16T20:51:29+02:00",
+			want: "2025-10-17T20:51:29+02:00",
+		},
+		{
+			name: "t2 later without fractional seconds (RFC3339)",
+			t1:   "2025-10-16T20:51:29+02:00",
+			t2:   "2025-10-17T20:51:29+02:00",
+			want: "2025-10-17T20:51:29+02:00",
+		},
+		{
+			name: "mixed formats - t1 with fractions, t2 without",
+			t1:   "2025-10-17T20:51:29.646949+02:00",
+			t2:   "2025-10-16T20:51:29+02:00",
+			want: "2025-10-17T20:51:29.646949+02:00",
+		},
+		{
+			name: "mixed formats - t1 without fractions, t2 with",
+			t1:   "2025-10-16T20:51:29+02:00",
+			t2:   "2025-10-17T20:51:29.646949+02:00",
+			want: "2025-10-17T20:51:29.646949+02:00",
+		},
+		{
+			name: "very close timestamps differing only in microseconds",
+			t1:   "2025-10-16T20:51:29.646949+02:00",
+			t2:   "2025-10-16T20:51:29.646950+02:00",
+			want: "2025-10-16T20:51:29.646950+02:00",
 		},
 	}
 
