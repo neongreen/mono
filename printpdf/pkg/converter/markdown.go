@@ -18,6 +18,11 @@ const htmlFootnoteCSS = `sup[id^="fnref:"] {
     vertical-align: super;
 }
 
+sup[id^="fnref:"]::footnote-call {
+    /* Prince generates the footnote number automatically */
+    font-size: inherit;
+}
+
 .printpdf-footnote {
     float: footnote;
     font-size: 0.75em;
@@ -667,18 +672,9 @@ func normalizeFootnoteCall(sup, anchor *stdhtml.Node, target string) {
 		return
 	}
 
-	marker := strings.TrimSpace(extractTextContent(anchor))
-	if marker == "" {
-		marker = strings.TrimSpace(strings.TrimPrefix(target, "fn:"))
-		if marker == "" {
-			marker = target
-		}
-	}
-
+	// Remove the anchor element but don't add any text content.
+	// Prince will generate the footnote number automatically via ::footnote-call pseudo-element.
 	removeHTMLNode(anchor)
-	if marker != "" {
-		sup.AppendChild(&stdhtml.Node{Type: stdhtml.TextNode, Data: marker})
-	}
 }
 
 func extractTextContent(node *stdhtml.Node) string {
