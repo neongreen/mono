@@ -4,6 +4,11 @@
   "description": "Playwright tests for mdbook-comments with json-server backend",
   "private": true,
   "scripts": {
+    "build": "pnpm run build:base && pnpm run build:adapters",
+    "build:base": "esbuild src/index.ts --bundle --minify --sourcemap --outfile=js/comments-base.js --target=es2020",
+    "build:adapters": "esbuild src/adapters/json-server.ts --bundle --minify --sourcemap --outfile=js/comments-json-server-adapter.js --target=es2020 && esbuild src/adapters/supabase.ts --bundle --minify --sourcemap --outfile=js/comments-supabase-adapter.js --target=es2020 && esbuild src/adapters/googlesheets.ts --bundle --minify --sourcemap --outfile=js/comments-googlesheets-adapter.js --target=es2020 && esbuild src/adapters/custom.ts --bundle --minify --sourcemap --outfile=js/comments-custom-adapter.js --target=es2020",
+    "build:watch": "pnpm run build:base --watch",
+    "typecheck": "tsc --noEmit",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
@@ -12,6 +17,8 @@
   "devDependencies": {
     "@playwright/test": "^1.49.0",
     "@types/node": "^22.0.0",
-    "json-server": "^0.17.4"
+    "esbuild": "^0.25.11",
+    "json-server": "^0.17.4",
+    "typescript": "^5.9.3"
   }
 }

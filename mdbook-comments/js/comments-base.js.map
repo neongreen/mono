@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../src/index.ts"],
+  "sourcesContent": ["/**\n * mdbook-comments - TypeScript entry point\n *\n * This is a placeholder entry point for the TypeScript build.\n * Will be populated with actual implementation in subsequent tasks.\n */\n\nconsole.log('mdbook-comments TypeScript build initialized');\n\nexport {};\n"],
+  "mappings": "mBAOA,QAAQ,IAAI,8CAA8C",
+  "names": []
+}
