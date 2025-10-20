@@ -51,6 +51,7 @@ export function ReplyForm({
       <form onSubmit={handleSubmit}>
         <textarea
           class="reply-input"
+          name="reply-text"
           placeholder="Write a reply..."
           rows={2}
           value={text}

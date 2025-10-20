@@ -115,11 +115,10 @@ async function loadComments(): Promise<void> {
 function buildReplyStructure(): void {
   const commentsById: Record<string, Comment> = {};
 
-  // First pass: index all comments and initialize replies array
+  // First pass: index all comments and reset replies arrays
   state.allComments.forEach((comment) => {
-    if (!comment.replies) {
-      comment.replies = [];
-    }
+    // Always create fresh array to ensure Preact detects changes
+    comment.replies = [];
     commentsById[comment.id] = comment;
   });
 
@@ -378,22 +377,43 @@ function createCommentSection(paragraphId: string): HTMLElement {
     (c) => c.paragraphId === paragraphId
   );
 
-  // Create container
-  const container = document.createElement('div');
+  // Create wrapper div that will be inserted into DOM and kept as render target
+  const wrapperDiv = document.createElement('div');
+  wrapperDiv.style.display = 'contents'; // Make wrapper transparent in layout
 
-  // Render Preact component
+  // Render Preact component with update callback that reloads and re-renders
+  const handleUpdate = async () => {
+    await loadComments();
+    // Re-render this section with updated comments
+    const updatedComments = state.currentPageComments.filter(
+      (c) => c.paragraphId === paragraphId
+    );
+    // Re-render into the same wrapper (which is now in the DOM)
+    render(
+      <CommentSection
+        paragraphId={paragraphId}
+        metadata={metadata}
+        comments={updatedComments}
+        backend={state.backend}
+        onUpdate={handleUpdate}
+      />,
+      wrapperDiv
+    );
+  };
+
   render(
     <CommentSection
       paragraphId={paragraphId}
       metadata={metadata}
       comments={comments}
       backend={state.backend}
-      onUpdate={() => loadComments()}
+      onUpdate={handleUpdate}
     />,
-    container
+    wrapperDiv
   );
 
-  return container.firstElementChild as HTMLElement;
+  // Return the wrapper itself (not firstElementChild), so we can re-render into it
+  return wrapperDiv;
 }
 
 /**

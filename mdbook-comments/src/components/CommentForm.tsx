@@ -72,6 +72,7 @@ export function CommentForm({
           <input
             type="text"
             class="author-input"
+            name="author"
             placeholder="Your name"
             value={author}
             onInput={(e) => {
@@ -87,6 +88,7 @@ export function CommentForm({
         )}
         <textarea
           class="comment-input"
+          name="comment-text"
           placeholder="Add a comment..."
           rows={3}
           value={text}
