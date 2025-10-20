@@ -108,6 +108,13 @@ export interface BackendAdapter {
    * Used by backends with authentication
    */
   signOut?(): void;
+
+  /**
+   * Optional: Register callback for authentication state changes
+   *
+   * @param callback - Function to call when auth state changes
+   */
+  onAuthChange?(callback: (user: unknown) => void): void;
 }
 
 /**

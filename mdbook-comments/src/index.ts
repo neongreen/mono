@@ -1,10 +1,13 @@
 /**
  * mdbook-comments - TypeScript entry point
  *
- * This is a placeholder entry point for the TypeScript build.
- * Will be populated with actual implementation in subsequent tasks.
+ * This is the main entry point that exports the base module functionality.
+ * The base module provides all shared functionality for comment rendering
+ * and management across different backend implementations.
  */
 
-console.log('mdbook-comments TypeScript build initialized');
+// Re-export everything from base module
+export * from './base';
 
-export {};
+// Re-export types for external use
+export type * from './types';
