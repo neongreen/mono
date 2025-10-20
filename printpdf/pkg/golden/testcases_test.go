@@ -26,6 +26,7 @@ func TestGoldenSuite(t *testing.T) {
 	suite.AddTestCase(ligatureTestCase())
 	suite.AddTestCase(tableTestCase())
 	suite.AddTestCase(footnoteTestCase())
+	suite.AddTestCase(footnoteMultiPageTestCase())
 	suite.AddTestCase(zoom80TestCase())
 	suite.AddTestCase(zoom120TestCase())
 	suite.AddTestCase(zoom200TestCase())
@@ -815,6 +816,75 @@ Sometimes a footnote needs multiple sentences[^long] to explain a concept thorou
 [^intro]: First footnote with **bold emphasis** and inline code ` + "`print(\"footnote\")`" + `.
 [^second]: Second footnote with a [link](https://example.com) and *italic text* for variety.
 [^long]: This longer footnote spans two sentences. It ensures our layout handles extended explanations without breaking the page flow.`,
+		Options: converter.PageOptions{
+			Columns:     1,
+			Orientation: "portrait",
+			Margin:      "2cm",
+			Zoom:        100,
+		},
+		Converters: []string{"typst", "prince", "weasyprint"},
+	}
+}
+
+// footnoteMultiPageTestCase tests footnote rendering across multiple pages
+func footnoteMultiPageTestCase() GoldenTestCase {
+	return GoldenTestCase{
+		Name:        "footnotes-multipage",
+		ContentType: fetcher.ContentTypeMarkdown,
+		Input: `# Multi-Page Footnote Test
+
+This document tests footnote rendering when content and footnotes span multiple pages.
+
+## Section 1: Introduction
+
+The first section introduces several concepts with extensive footnotes[^1] that may cause page breaks.
+
+Additional content with another reference[^2] to test layout continuity.
+
+More text to ensure we have enough content[^3] to span multiple pages in the PDF output.
+
+## Section 2: Detailed Analysis
+
+This section continues with more footnotes[^4] and additional explanatory text[^5] to verify proper rendering.
+
+We need to ensure that footnote markers[^6] remain correctly positioned throughout the document.
+
+## Section 3: Additional Content
+
+Lorem ipsum dolor sit amet[^7], consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore[^8] et dolore magna aliqua.
+
+Ut enim ad minim veniam[^9], quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat[^10].
+
+## Section 4: More References
+
+Duis aute irure dolor[^11] in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur[^12].
+
+Excepteur sint occaecat cupidatat non proident[^13], sunt in culpa qui officia deserunt mollit anim id est laborum[^14].
+
+## Section 5: Extended Discussion
+
+This section provides even more content[^15] with detailed footnotes to ensure multi-page layout works correctly[^16].
+
+Final paragraph with concluding references[^17] to verify all footnotes render properly[^18].
+
+[^1]: First footnote with substantial content. This footnote contains multiple sentences to test how longer footnotes are rendered. It includes **bold text** and *italic text* as well as inline code ` + "`example()`" + ` to verify formatting is preserved.
+[^2]: Second footnote with a [link to example](https://example.com) and additional explanatory text.
+[^3]: Third footnote demonstrating that footnotes can contain lists: 1) First item, 2) Second item, 3) Third item.
+[^4]: Fourth footnote with technical details about implementation and rendering behavior.
+[^5]: Fifth footnote explaining concepts in depth with extended prose that may wrap across lines.
+[^6]: Sixth footnote testing marker positioning and alignment with the main text flow.
+[^7]: Seventh footnote with Latin text: Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+[^8]: Eighth footnote containing code snippets: ` + "`function test() { return true; }`" + `.
+[^9]: Ninth footnote with a longer explanation that spans multiple sentences. This tests whether footnotes that extend beyond a single line maintain proper formatting and readability.
+[^10]: Tenth footnote providing context and background information for the referenced statement.
+[^11]: Eleventh footnote with comparative analysis and detailed examination of the topic.
+[^12]: Twelfth footnote containing a blockquote-style note about related concepts and considerations.
+[^13]: Thirteenth footnote with methodological notes about the approach and rationale.
+[^14]: Fourteenth footnote discussing implications and consequences of the referenced statement.
+[^15]: Fifteenth footnote with extended commentary and supplementary information for interested readers.
+[^16]: Sixteenth footnote verifying that page breaks don't disrupt the footnote rendering flow.
+[^17]: Seventeenth footnote with concluding remarks and final observations about the topic.
+[^18]: Eighteenth and final footnote ensuring complete coverage of multi-page footnote scenarios.`,
 		Options: converter.PageOptions{
 			Columns:     1,
 			Orientation: "portrait",
