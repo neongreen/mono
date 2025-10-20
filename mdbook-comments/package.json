@@ -20,5 +20,9 @@
     "esbuild": "^0.25.11",
     "json-server": "^0.17.4",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.3.2",
+    "preact": "^10.27.2"
   }
 }
