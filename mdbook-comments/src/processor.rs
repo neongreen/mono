@@ -49,9 +49,9 @@ impl CommentsProcessor {
         // Inject backend adapter based on backend type
         let adapter_filename = match self.config.backend_type.as_str() {
             "json-server" => "comments-json-server-adapter.js",
-            "supabase" => "comments-supabase.js",
-            "google-sheets" => "comments-googlesheets.js",
-            "custom" => "comments.js",
+            "supabase" => "comments-supabase-adapter.js",
+            "google-sheets" => "comments-googlesheets-adapter.js",
+            "custom" => "comments-custom-adapter.js",
             _ => {
                 eprintln!("Warning: Unknown backend type '{}', defaulting to json-server", self.config.backend_type);
                 "comments-json-server-adapter.js"
