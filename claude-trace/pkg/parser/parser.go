@@ -8,26 +8,26 @@ import (
 
 // ParsedTrace represents the internal representation of a trace
 type ParsedTrace struct {
-	SessionID string
-	Summary   string
-	StartTime time.Time
-	Items     []ConversationItem
+	SessionID string             `json:"session_id"`
+	Summary   string             `json:"summary"`
+	StartTime time.Time          `json:"start_time"`
+	Items     []ConversationItem `json:"items"`
 }
 
 // ConversationItem represents a single item in the conversation
 type ConversationItem struct {
-	Type      ItemType
-	Timestamp time.Time
-	UUID      string
+	Type      ItemType  `json:"type"`
+	Timestamp time.Time `json:"timestamp"`
+	UUID      string    `json:"uuid,omitempty"`
 
 	// User message fields
-	UserMessage *UserMessage
+	UserMessage *UserMessage `json:"user_message,omitempty"`
 
 	// Assistant message fields
-	AssistantMessage *AssistantMessage
+	AssistantMessage *AssistantMessage `json:"assistant_message,omitempty"`
 
 	// Tool result fields
-	ToolResult *ToolResult
+	ToolResult *ToolResult `json:"tool_result,omitempty"`
 }
 
 type ItemType string
@@ -41,20 +41,20 @@ const (
 )
 
 type UserMessage struct {
-	Content string
-	CWD     string
+	Content string `json:"content"`
+	CWD     string `json:"cwd,omitempty"`
 }
 
 type AssistantMessage struct {
-	Model   string
-	Content []ContentBlock
+	Model   string         `json:"model,omitempty"`
+	Content []ContentBlock `json:"content"`
 }
 
 type ContentBlock struct {
-	Type     ContentType
-	Text     string
-	Thinking string
-	ToolUse  *ToolUse
+	Type     ContentType `json:"type"`
+	Text     string      `json:"text,omitempty"`
+	Thinking string      `json:"thinking,omitempty"`
+	ToolUse  *ToolUse    `json:"tool_use,omitempty"`
 }
 
 type ContentType string
@@ -66,15 +66,15 @@ const (
 )
 
 type ToolUse struct {
-	ID    string
-	Name  string
-	Input map[string]interface{}
+	ID    string                 `json:"id"`
+	Name  string                 `json:"name"`
+	Input map[string]interface{} `json:"input,omitempty"`
 }
 
 type ToolResult struct {
-	ToolUseID string
-	Content   string
-	IsError   bool
+	ToolUseID string `json:"tool_use_id"`
+	Content   string `json:"content"`
+	IsError   bool   `json:"is_error"`
 }
 
 // ParseTrace parses raw trace content into internal representation

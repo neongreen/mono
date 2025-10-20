@@ -54,6 +54,26 @@ To see where traces are located and how many exist in each location:
 ./claude-trace list
 ```
 
+### View Trace in Browser
+
+To open a trace in a web-based viewer:
+
+```bash
+./claude-trace view path/to/trace.log
+```
+
+This starts a local web server and opens the trace in your default browser. The web viewer provides:
+- Structured view of conversation items
+- Syntax highlighting for tool uses
+- Display of metadata, tags, and annotations
+- Responsive design for easy reading
+
+You can specify a custom port:
+
+```bash
+./claude-trace view --port 9090 path/to/trace.log
+```
+
 ### Extract Traces
 
 To extract all found traces as structured JSON and rendered Markdown files:

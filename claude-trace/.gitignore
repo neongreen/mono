@@ -20,3 +20,7 @@ go.work
 
 # Output
 extracted-traces/
+
+# Web viewer
+web/node_modules/
+web/dist/
