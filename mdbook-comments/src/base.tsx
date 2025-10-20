@@ -11,6 +11,8 @@
  * Backend adapters must implement the BackendAdapter interface.
  */
 
+import { render } from 'preact';
+import { CommentSection, OrphanedComments } from './components';
 import type {
   Comment,
   BackendAdapter,
@@ -326,76 +328,13 @@ function displayOrphanedComments(): void {
     document.querySelector('#content') ||
     document.body;
 
-  const section = document.createElement('div');
-  section.className = 'orphaned-comments-section';
-  section.innerHTML = `
-            <h2>Unmapped Comments</h2>
-            <p class="orphaned-comments-note">
-                The following comments could not be matched to any current paragraph.
-                They may refer to content that has been removed or significantly changed.
-            </p>
-            <div class="orphaned-comments-list"></div>
-        `;
+  const container = document.createElement('div');
+  main.appendChild(container);
 
-  const list = section.querySelector('.orphaned-comments-list');
-  if (!list) return;
-
-  state.orphanedComments.forEach((comment) => {
-    const item = createOrphanedCommentElement(comment);
-    list.appendChild(item);
-  });
-
-  main.appendChild(section);
-}
-
-/**
- * Create element for orphaned comment
- */
-function createOrphanedCommentElement(comment: Comment): HTMLElement {
-  const div = document.createElement('div');
-  div.className = 'orphaned-comment';
-
-  const meta = comment.metadata || ({} as ParagraphMetadata);
-  const context = meta.context || { 'heading-path': [] };
-  const content = meta.content || '[Content not available]';
-
-  div.innerHTML = `
-            <div class="orphaned-comment-context">
-                <strong>Original paragraph:</strong>
-                <blockquote>${escapeHtml(content)}</blockquote>
-                ${
-                  context['heading-path'] && context['heading-path'].length > 0
-                    ? `
-                    <div class="orphaned-comment-location">
-                        Section: ${context['heading-path'].join(' > ')}
-                    </div>
-                `
-                    : ''
-                }
-            </div>
-            <div class="comment-item">
-                <div class="comment-header">
-                    <span class="comment-author">${escapeHtml(
-                      comment.author || 'Anonymous'
-                    )}</span>
-                    <span class="comment-date">${formatDate(
-                      comment.created
-                    )}</span>
-                </div>
-                <div class="comment-text">${escapeHtml(comment.text)}</div>
-                ${
-                  comment.replies && comment.replies.length > 0
-                    ? `
-                    <div class="comment-replies">
-                        ${comment.replies.map((r) => createReplyHtml(r)).join('')}
-                    </div>
-                `
-                    : ''
-                }
-            </div>
-        `;
-
-  return div;
+  render(
+    <OrphanedComments comments={state.orphanedComments} />,
+    container
+  );
 }
 
 /**
@@ -420,163 +359,41 @@ export function toggleComments(paragraphId: string): void {
 }
 
 /**
- * Create comment section HTML
+ * Create comment section using Preact
  */
 function createCommentSection(paragraphId: string): HTMLElement {
-  const section = document.createElement('div');
-  section.id = `comments-${paragraphId}`;
-  section.className = 'comment-section';
-  section.setAttribute('data-paragraph-id', paragraphId);
-
-  const comments = state.currentPageComments
-    .filter((c) => c.paragraphId === paragraphId)
-    .map((c) => c.comment);
-
-  const commentList = document.createElement('div');
-  commentList.className = 'comment-list';
-
-  if (comments.length > 0) {
-    comments.forEach((comment) => {
-      const commentElement = createCommentElement(comment);
-      commentList.appendChild(commentElement);
-    });
-  } else {
-    commentList.innerHTML =
-      '<p class="no-comments">No comments yet. Be the first to comment!</p>';
-  }
-
-  section.appendChild(commentList);
-
-  // Create comment form
-  const form = createCommentForm(paragraphId);
-  section.appendChild(form);
-
-  return section;
-}
-
-/**
- * Create comment form
- */
-function createCommentForm(
-  paragraphId: string | null,
-  parentCommentId: string | null = null
-): HTMLElement {
   if (!state.backend) {
     throw new Error('Backend not initialized');
   }
 
-  const form = document.createElement('div');
-  form.className = parentCommentId ? 'reply-form' : 'comment-form';
+  // Get metadata for this paragraph
+  const wrapper = document.querySelector(
+    `[data-comment-id="${paragraphId}"]`
+  );
+  const metaStr = wrapper?.getAttribute('data-comment-meta') || '{}';
+  const metadata: ParagraphMetadata = JSON.parse(metaStr);
 
-  const isReply = !!parentCommentId;
-  const currentAuthor = state.backend.getCurrentAuthor
-    ? state.backend.getCurrentAuthor()
-    : '';
+  // Get comments for this paragraph
+  const comments = state.currentPageComments.filter(
+    (c) => c.paragraphId === paragraphId
+  );
 
-  // Show author input if backend requires it
-  if (state.backend.showAuthorInput && !currentAuthor) {
-    const authorInput = document.createElement('input');
-    authorInput.type = 'text';
-    authorInput.className = 'author-input';
-    authorInput.name = 'author';
-    authorInput.placeholder = 'Your name';
-    authorInput.value = currentAuthor || '';
+  // Create container
+  const container = document.createElement('div');
 
-    // Save author to backend on input (for localStorage-based backends)
-    authorInput.addEventListener('input', (e) => {
-      const target = e.target as HTMLInputElement;
-      const value = target.value.trim();
-      if (value && state.backend && state.backend.setCurrentAuthor) {
-        state.backend.setCurrentAuthor(value);
-      }
-    });
+  // Render Preact component
+  render(
+    <CommentSection
+      paragraphId={paragraphId}
+      metadata={metadata}
+      comments={comments}
+      backend={state.backend}
+      onUpdate={() => loadComments()}
+    />,
+    container
+  );
 
-    form.appendChild(authorInput);
-  }
-
-  const textarea = document.createElement('textarea');
-  textarea.className = isReply ? 'reply-input' : 'comment-input';
-  textarea.name = isReply ? 'reply-text' : 'comment-text';
-  textarea.placeholder = isReply ? 'Write a reply...' : 'Add a comment...';
-  textarea.rows = isReply ? 2 : 3;
-  form.appendChild(textarea);
-
-  const submitButton = document.createElement('button');
-  submitButton.type = 'submit';
-  submitButton.className = isReply ? 'reply-submit' : 'comment-submit';
-  submitButton.textContent = isReply ? 'Post Reply' : 'Submit';
-  submitButton.onclick = (e) => {
-    e.preventDefault();
-    if (isReply && parentCommentId) {
-      submitReply(parentCommentId);
-    } else if (paragraphId) {
-      submitComment(paragraphId);
-    }
-  };
-  form.appendChild(submitButton);
-
-  return form;
-}
-
-/**
- * Create DOM element for a single comment
- */
-function createCommentElement(comment: Comment): HTMLElement {
-  const div = document.createElement('div');
-  div.className = 'comment-item';
-  div.setAttribute('data-comment-id', comment.id);
-
-  div.innerHTML = `
-            <div class="comment-header">
-                <span class="comment-author">${escapeHtml(
-                  comment.author || 'Anonymous'
-                )}</span>
-                <span class="comment-date">${formatDate(comment.created)}</span>
-            </div>
-            <div class="comment-text">${escapeHtml(comment.text)}</div>
-        `;
-
-  // Add replies if present
-  if (comment.replies && comment.replies.length > 0) {
-    const repliesDiv = document.createElement('div');
-    repliesDiv.className = 'comment-replies';
-    comment.replies.forEach((reply) => {
-      repliesDiv.innerHTML += createReplyHtml(reply);
-    });
-    div.appendChild(repliesDiv);
-  }
-
-  // Add reply button
-  const replyBtn = document.createElement('button');
-  replyBtn.className = 'comment-reply-btn';
-  replyBtn.textContent = 'Reply';
-  replyBtn.onclick = () => showReplyForm(comment.id);
-  div.appendChild(replyBtn);
-
-  // Add hidden reply form
-  const replyForm = createCommentForm(null, comment.id);
-  replyForm.id = `reply-form-${comment.id}`;
-  replyForm.style.display = 'none';
-  div.appendChild(replyForm);
-
-  return div;
-}
-
-/**
- * Create HTML for a reply
- */
-function createReplyHtml(reply: Comment): string {
-  return `
-            <div class="reply-item">
-                <div class="reply-header">
-                    <span class="reply-author">${escapeHtml(
-                      reply.author || 'Anonymous'
-                    )}</span>
-                    <span class="reply-date">${formatDate(reply.created)}</span>
-                </div>
-                <div class="reply-text">${escapeHtml(reply.text)}</div>
-            </div>
-        `;
+  return container.firstElementChild as HTMLElement;
 }
 
 /**
@@ -591,6 +408,8 @@ export function showReplyForm(commentId: string): void {
 
 /**
  * Submit a new comment
+ * NOTE: This function is kept for backward compatibility.
+ * The CommentForm component handles submission internally.
  */
 export async function submitComment(paragraphId: string): Promise<void> {
   if (!state.backend) {
@@ -660,9 +479,8 @@ export async function submitComment(paragraphId: string): Promise<void> {
     // Clear textarea
     textarea.value = '';
 
-    // Reload comments display
-    section.remove();
-    toggleComments(paragraphId);
+    // Reload comments and re-render section
+    await loadComments();
   } catch (error) {
     console.error('Error posting comment:', error);
     alert('Failed to post comment. Please try again.');
@@ -671,6 +489,8 @@ export async function submitComment(paragraphId: string): Promise<void> {
 
 /**
  * Submit a reply to a comment
+ * NOTE: This function is kept for backward compatibility.
+ * The ReplyForm component handles submission internally.
  */
 export async function submitReply(commentId: string): Promise<void> {
   if (!state.backend) {
@@ -695,12 +515,6 @@ export async function submitReply(commentId: string): Promise<void> {
     return;
   }
 
-  // Find comment section to get paragraph ID
-  const commentSection = form.closest('.comment-section') as HTMLElement | null;
-  const paragraphId = commentSection
-    ? commentSection.getAttribute('data-paragraph-id')
-    : null;
-
   try {
     const newReply = await state.backend.saveReply(
       commentId,
@@ -722,11 +536,8 @@ export async function submitReply(commentId: string): Promise<void> {
     textarea.value = '';
     form.style.display = 'none';
 
-    // Reload comments
-    if (commentSection && paragraphId) {
-      commentSection.remove();
-      toggleComments(paragraphId);
-    }
+    // Reload comments and re-render
+    await loadComments();
   } catch (error) {
     console.error('Error posting reply:', error);
     alert('Failed to post reply. Please try again.');
@@ -736,21 +547,49 @@ export async function submitReply(commentId: string): Promise<void> {
 /**
  * Refresh all open comment sections (e.g., after auth change)
  */
-function refreshAllCommentSections(): void {
+async function refreshAllCommentSections(): Promise<void> {
+  // Reload comments first
+  await loadComments();
+
+  // Re-render all visible comment sections
   document.querySelectorAll('.comment-section').forEach((section) => {
     const paragraphId = section.getAttribute('data-paragraph-id');
     const htmlSection = section as HTMLElement;
     if (paragraphId && htmlSection.style.display !== 'none') {
-      section.remove();
-      toggleComments(paragraphId);
+      // Get the parent container and re-render
+      const parent = section.parentElement;
+      if (parent && state.backend) {
+        const wrapper = document.querySelector(
+          `[data-comment-id="${paragraphId}"]`
+        );
+        const metaStr = wrapper?.getAttribute('data-comment-meta') || '{}';
+        const metadata: ParagraphMetadata = JSON.parse(metaStr);
+
+        const comments = state.currentPageComments.filter(
+          (c) => c.paragraphId === paragraphId
+        );
+
+        render(
+          <CommentSection
+            paragraphId={paragraphId}
+            metadata={metadata}
+            comments={comments}
+            backend={state.backend}
+            onUpdate={() => loadComments()}
+          />,
+          parent,
+          section as Element
+        );
+      }
     }
   });
 }
 
 /**
  * Escape HTML to prevent XSS
+ * Exported for use by components and utilities
  */
-function escapeHtml(text: string): string {
+export function escapeHtml(text: string): string {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
@@ -758,8 +597,9 @@ function escapeHtml(text: string): string {
 
 /**
  * Format date for display
+ * Exported for use by components and utilities
  */
-function formatDate(dateStr: string): string {
+export function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   const date = new Date(dateStr);
   return date.toLocaleString();

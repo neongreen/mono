@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "build": "pnpm run build:base && pnpm run build:adapters",
-    "build:base": "esbuild src/index.ts --bundle --minify --sourcemap --outfile=js/comments-base.js --target=es2020",
-    "build:adapters": "esbuild src/adapters/json-server.ts --bundle --minify --sourcemap --outfile=js/comments-json-server-adapter.js --target=es2020 && esbuild src/adapters/supabase.ts --bundle --minify --sourcemap --outfile=js/comments-supabase-adapter.js --target=es2020 && esbuild src/adapters/googlesheets.ts --bundle --minify --sourcemap --outfile=js/comments-googlesheets-adapter.js --target=es2020 && esbuild src/adapters/custom.ts --bundle --minify --sourcemap --outfile=js/comments-custom-adapter.js --target=es2020",
+    "build:base": "esbuild src/index.ts --bundle --minify --sourcemap --outfile=js/comments-base.js --target=es2020 --jsx=automatic --jsx-import-source=preact --loader:.ts=tsx",
+    "build:adapters": "esbuild src/adapters/json-server.ts --bundle --minify --sourcemap --outfile=js/comments-json-server-adapter.js --target=es2020 --jsx=automatic --jsx-import-source=preact --loader:.ts=tsx && esbuild src/adapters/supabase.ts --bundle --minify --sourcemap --outfile=js/comments-supabase-adapter.js --target=es2020 --jsx=automatic --jsx-import-source=preact --loader:.ts=tsx && esbuild src/adapters/googlesheets.ts --bundle --minify --sourcemap --outfile=js/comments-googlesheets-adapter.js --target=es2020 --jsx=automatic --jsx-import-source=preact --loader:.ts=tsx && esbuild src/adapters/custom.ts --bundle --minify --sourcemap --outfile=js/comments-custom-adapter.js --target=es2020 --jsx=automatic --jsx-import-source=preact --loader:.ts=tsx",
     "build:watch": "pnpm run build:base --watch",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
