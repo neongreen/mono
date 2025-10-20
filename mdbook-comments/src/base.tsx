@@ -113,24 +113,27 @@ async function loadComments(): Promise<void> {
  * Build reply structure from flat comment list
  */
 function buildReplyStructure(): void {
-  const commentsById: Record<string, Comment> = {};
+  // Create a map to collect replies for each parent
+  const repliesByParent: Record<string, Comment[]> = {};
 
-  // First pass: index all comments and reset replies arrays
-  state.allComments.forEach((comment) => {
-    // Always create fresh array to ensure Preact detects changes
-    comment.replies = [];
-    commentsById[comment.id] = comment;
-  });
+  // First, create new comment objects (immutable)
+  const newComments = state.allComments.map((c) => ({ ...c, replies: [] }));
 
-  // Second pass: build reply tree
-  state.allComments.forEach((comment) => {
-    if (comment.parent_id && commentsById[comment.parent_id]) {
-      const parent = commentsById[comment.parent_id];
-      if (parent && parent.replies) {
-        parent.replies.push(comment);
+  // Collect replies for each parent ID (using new objects)
+  newComments.forEach((comment) => {
+    if (comment.parent_id) {
+      if (!repliesByParent[comment.parent_id]) {
+        repliesByParent[comment.parent_id] = [];
       }
+      repliesByParent[comment.parent_id].push(comment);
     }
   });
+
+  // Update the new comments with their replies
+  state.allComments = newComments.map((comment) => ({
+    ...comment,
+    replies: repliesByParent[comment.id] || [],
+  }));
 }
 
 /**
