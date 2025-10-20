@@ -50,7 +50,6 @@ impl CommentsProcessor {
         let adapter_filename = match self.config.backend_type.as_str() {
             "json-server" => "comments-json-server-adapter.js",
             "supabase" => "comments-supabase.js",
-            "neon" => "comments-neon.js",
             "google-sheets" => "comments-googlesheets.js",
             "custom" => "comments.js",
             _ => {

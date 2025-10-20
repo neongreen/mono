@@ -31,16 +31,14 @@ See [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md) for complete guide.
 
 ## Quick Start with Docker
 
-Try mdbook-comments with Neon backend instantly using Docker:
+Try mdbook-comments instantly using Docker:
 
 ```bash
 docker run -p 3000:3000 \
-  -e NEON_API_URL="https://ep-xxx-xxx.us-east-2.aws.neon.tech/v2/query" \
-  -e NEON_API_KEY="neon_api_key_xxxxxxxxxxxxxxxxxxxxx" \
   ghcr.io/neongreen/mono/mdbook-comments-demo:latest
 ```
 
-See [DOCKER_DEMO.md](DOCKER_DEMO.md) for complete setup instructions including Neon database configuration.
+See [DOCKER_DEMO.md](DOCKER_DEMO.md) for complete setup instructions.
 
 ## Installation
 
@@ -77,7 +75,7 @@ api-url = "http://localhost:3000/api"
 # Authentication type (cookie, bearer-token, oauth)
 auth-type = "cookie"
 
-# Backend type (json-server, supabase, neon, google-sheets, custom)
+# Backend type (json-server, supabase, google-sheets, custom)
 # This determines which JavaScript implementation to use
 backend-type = "json-server"
 
@@ -112,20 +110,13 @@ The plugin supports multiple backend options:
 - Built-in authentication
 - See `SUPABASE_DEPLOYMENT_GUIDE.md` for setup instructions
 
-### Option 2: Neon (Serverless PostgreSQL)
-- Serverless PostgreSQL with generous free tier
-- Fast performance with auto-scaling
-- Database branching for development
-- HTTP Data API for direct queries
-- See `NEON_DEPLOYMENT_GUIDE.md` for setup instructions
-
-### Option 3: Google Sheets (Simple alternative)
+### Option 2: Google Sheets (Simple alternative)
 - Uses Google Sheets as database
 - No server setup required
 - Easy comment management in spreadsheet
 - See `GOOGLE_SHEETS_DEPLOYMENT_GUIDE.md` for setup instructions
 
-### Option 4: Custom Backend API
+### Option 3: Custom Backend API
 
 The plugin requires a backend API with the following endpoints:
 
@@ -189,7 +180,6 @@ Response: The created reply object.
 Choose one of the following backends:
 
 - **Supabase**: Managed Postgres with built-in API (see `SUPABASE_DEPLOYMENT_GUIDE.md`)
-- **Neon**: Serverless PostgreSQL with Data API (see `NEON_DEPLOYMENT_GUIDE.md`)
 - **Google Sheets**: Use spreadsheet as database (see `GOOGLE_SHEETS_DEPLOYMENT_GUIDE.md`)
 - **PocketBase**: Lightweight Go backend with SQLite
 - **Custom**: Any database with a simple REST API
@@ -204,13 +194,6 @@ See `MDBOOK_COMMENT_PLUGIN_DESIGN.md` for more details on backend requirements.
 - Want real-time features
 - Need advanced features (webhooks, edge functions)
 - Prefer integrated solution
-
-**Use Neon if:**
-- Want serverless PostgreSQL with generous free tier
-- Prefer pure PostgreSQL without abstractions
-- Need database branching for dev/test
-- Want fast cold starts with auto-suspend
-- Value simplicity and PostgreSQL compatibility
 
 **Use Google Sheets if:**
 - Building internal documentation
