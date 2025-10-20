@@ -17,6 +17,7 @@ dist/
 prrun/prrun
 dissect/dissect
 markdown-format/markdown-format
+beads-merge/beads-merge
 
 # BD (beads) - SQLite databases are not committed, only JSONL
 *.db

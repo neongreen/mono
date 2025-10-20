@@ -561,3 +561,41 @@ The `.github/workflows/copilot-setup-steps.yml` workflow ensures bd is available
 - [bd Documentation](https://github.com/steveyegge/beads/blob/main/README.md)
 - [bd Workflow Guide](https://github.com/steveyegge/beads/blob/main/WORKFLOW.md)
 - [bd for Agents](https://github.com/steveyegge/beads/blob/main/AGENTS.md)
+
+### Merge Tool Configuration
+
+This repository includes `beads-merge`, a custom 3-way merge tool for `.beads/issues.jsonl` files. To use it with jj:
+
+1. Build the tool: `cd beads-merge && go build -o beads-merge .`
+2. Add to your jj config (`~/.jjconfig.toml`):
+
+```toml
+[merge-tools.beads-merge]
+program = "/absolute/path/to/mono/beads-merge/beads-merge"
+merge-args = ["$output", "$base", "$left", "$right"]
+merge-conflict-exit-codes = [1]
+
+[merge-tools.beads-merge.diff-args]
+# Optional: configure for 2-way diff if needed
+program = "diff"
+```
+
+3. Configure automatic merge for .jsonl files in `.beads/`:
+
+```toml
+[merge]
+# Use beads-merge for .beads/issues.jsonl
+tool-edits = [
+  { pattern = ".beads/issues.jsonl", tool = "beads-merge" }
+]
+```
+
+The `merge-conflict-exit-codes = [1]` setting tells jj that exit code 1 indicates conflict markers are present in the output file, not that the merge should be aborted.
+
+The merge tool will:
+- Match issues by id, created_at, and created_by
+- Intelligently merge field changes
+- Combine dependency arrays
+- Write conflict markers to the output file for unresolvable conflicts
+
+See [beads-merge/README.md](./beads-merge/README.md) for details on the merge algorithm.
