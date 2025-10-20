@@ -40,22 +40,28 @@ impl CommentsProcessor {
             asset_html.push_str(&format!("<style>\n{}\n</style>\n\n", css_content));
         }
 
-        // Inject JavaScript file based on backend type
-        let js_filename = match self.config.backend_type.as_str() {
-            "json-server" => "comments-json-server.js",
+        // Inject shared base module (always required)
+        if let Some(base_js) = JsAsset::get("comments-base.js") {
+            let base_content = std::str::from_utf8(base_js.data.as_ref())?;
+            asset_html.push_str(&format!("<script>\n{}\n</script>\n\n", base_content));
+        }
+
+        // Inject backend adapter based on backend type
+        let adapter_filename = match self.config.backend_type.as_str() {
+            "json-server" => "comments-json-server-adapter.js",
             "supabase" => "comments-supabase.js",
             "neon" => "comments-neon.js",
             "google-sheets" => "comments-googlesheets.js",
             "custom" => "comments.js",
             _ => {
                 eprintln!("Warning: Unknown backend type '{}', defaulting to json-server", self.config.backend_type);
-                "comments-json-server.js"
+                "comments-json-server-adapter.js"
             }
         };
 
-        if let Some(js_asset) = JsAsset::get(js_filename) {
-            let js_content = std::str::from_utf8(js_asset.data.as_ref())?;
-            asset_html.push_str(&format!("<script>\n{}\n</script>\n\n", js_content));
+        if let Some(adapter_js) = JsAsset::get(adapter_filename) {
+            let adapter_content = std::str::from_utf8(adapter_js.data.as_ref())?;
+            asset_html.push_str(&format!("<script>\n{}\n</script>\n\n", adapter_content));
         }
 
         // Prepend assets to chapter content
