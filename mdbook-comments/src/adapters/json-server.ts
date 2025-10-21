@@ -27,6 +27,10 @@ interface JsonServerComment {
   created: string;
   edited_at?: string | null;
   deleted_at?: string | null;
+  reactions?: {
+    thumbs_up: number;
+    thumbs_down: number;
+  };
   'parent-id': string | null;
   replies?: JsonServerComment[];
 }
@@ -88,6 +92,7 @@ const jsonServerBackend: BackendAdapter = {
         author: comment.author,
         text: comment.text,
         created: comment.created,
+        reactions: comment.reactions,
         parent_id: comment['parent-id'],
         replies: comment.replies?.map(reply => ({
           id: reply.id,
@@ -98,6 +103,7 @@ const jsonServerBackend: BackendAdapter = {
           created: reply.created,
           edited_at: reply.edited_at,
           deleted_at: reply.deleted_at,
+          reactions: reply.reactions,
           parent_id: reply['parent-id'],
         })),
       };
@@ -209,6 +215,7 @@ const jsonServerBackend: BackendAdapter = {
       author: reply.author,
       text: reply.text,
       created: reply.created,
+      reactions: reply.reactions,
       parent_id: reply['parent-id'],
       replies: reply.replies?.map(r => ({
         id: r.id,
@@ -254,6 +261,7 @@ const jsonServerBackend: BackendAdapter = {
       created: comment.created,
       edited_at: comment.edited_at,
       deleted_at: comment.deleted_at,
+      reactions: comment.reactions,
       parent_id: comment['parent-id'],
       replies: comment.replies?.map(r => ({
         id: r.id,
@@ -264,6 +272,7 @@ const jsonServerBackend: BackendAdapter = {
         created: r.created,
         edited_at: r.edited_at,
         deleted_at: r.deleted_at,
+        reactions: r.reactions,
         parent_id: r['parent-id'],
       })),
     };
@@ -300,6 +309,7 @@ const jsonServerBackend: BackendAdapter = {
       created: comment.created,
       edited_at: comment.edited_at,
       deleted_at: comment.deleted_at,
+      reactions: comment.reactions,
       parent_id: comment['parent-id'],
       replies: comment.replies?.map(r => ({
         id: r.id,
@@ -310,6 +320,159 @@ const jsonServerBackend: BackendAdapter = {
         created: r.created,
         edited_at: r.edited_at,
         deleted_at: r.deleted_at,
+        reactions: r.reactions,
+        parent_id: r['parent-id'],
+      })),
+    };
+  },
+
+  /**
+   * Add or update a reaction to a comment
+   */
+  async addReaction(commentId: string, reactionType: 'thumbs_up' | 'thumbs_down'): Promise<Comment> {
+    // First, get the current comment to read current reactions
+    const getCurrentResponse = await fetch(`${API_URL}/comments/${commentId}`, {
+      credentials: 'include',
+    });
+
+    if (!getCurrentResponse.ok) {
+      throw new Error('Failed to get current comment');
+    }
+
+    const currentComment = (await getCurrentResponse.json()) as JsonServerComment;
+    const currentReactions = currentComment.reactions || { thumbs_up: 0, thumbs_down: 0 };
+
+    // Get user's current reaction from localStorage to prevent double-voting
+    const userReactionsKey = `comment-reactions-${commentId}`;
+    const existingReaction = localStorage.getItem(userReactionsKey);
+
+    let newReactions = { ...currentReactions };
+
+    // If user already has this reaction, remove it (toggle off)
+    if (existingReaction === reactionType) {
+      newReactions[reactionType] = Math.max(0, newReactions[reactionType] - 1);
+      localStorage.removeItem(userReactionsKey);
+    } else {
+      // If user has a different reaction, remove old and add new
+      if (existingReaction && existingReaction !== reactionType) {
+        const oldType = existingReaction as 'thumbs_up' | 'thumbs_down';
+        newReactions[oldType] = Math.max(0, newReactions[oldType] - 1);
+      }
+      
+      // Add new reaction
+      newReactions[reactionType] = newReactions[reactionType] + 1;
+      localStorage.setItem(userReactionsKey, reactionType);
+    }
+
+    // Update the comment with new reaction counts
+    const response = await fetch(`${API_URL}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        reactions: newReactions,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update reaction');
+    }
+
+    const comment = (await response.json()) as JsonServerComment;
+    
+    // Normalize the response to internal Comment format
+    return {
+      id: comment.id,
+      paragraph_id: comment['paragraph-id'],
+      metadata: comment.metadata,
+      author: comment.author,
+      text: comment.text,
+      created: comment.created,
+      edited_at: comment.edited_at,
+      deleted_at: comment.deleted_at,
+      reactions: comment.reactions,
+      parent_id: comment['parent-id'],
+      replies: comment.replies?.map(r => ({
+        id: r.id,
+        paragraph_id: r['paragraph-id'],
+        metadata: r.metadata,
+        author: r.author,
+        text: r.text,
+        created: r.created,
+        edited_at: r.edited_at,
+        deleted_at: r.deleted_at,
+        reactions: r.reactions,
+        parent_id: r['parent-id'],
+      })),
+    };
+  },
+
+  /**
+   * Remove a reaction from a comment
+   */
+  async removeReaction(commentId: string, reactionType: 'thumbs_up' | 'thumbs_down'): Promise<Comment> {
+    // This is handled by addReaction when toggling off, but we'll implement it for completeness
+    const getCurrentResponse = await fetch(`${API_URL}/comments/${commentId}`, {
+      credentials: 'include',
+    });
+
+    if (!getCurrentResponse.ok) {
+      throw new Error('Failed to get current comment');
+    }
+
+    const currentComment = (await getCurrentResponse.json()) as JsonServerComment;
+    const currentReactions = currentComment.reactions || { thumbs_up: 0, thumbs_down: 0 };
+
+    // Remove reaction
+    const newReactions = { ...currentReactions };
+    newReactions[reactionType] = Math.max(0, newReactions[reactionType] - 1);
+
+    // Remove from localStorage
+    const userReactionsKey = `comment-reactions-${commentId}`;
+    if (localStorage.getItem(userReactionsKey) === reactionType) {
+      localStorage.removeItem(userReactionsKey);
+    }
+
+    const response = await fetch(`${API_URL}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        reactions: newReactions,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to remove reaction');
+    }
+
+    const comment = (await response.json()) as JsonServerComment;
+    
+    return {
+      id: comment.id,
+      paragraph_id: comment['paragraph-id'],
+      metadata: comment.metadata,
+      author: comment.author,
+      text: comment.text,
+      created: comment.created,
+      edited_at: comment.edited_at,
+      deleted_at: comment.deleted_at,
+      reactions: comment.reactions,
+      parent_id: comment['parent-id'],
+      replies: comment.replies?.map(r => ({
+        id: r.id,
+        paragraph_id: r['paragraph-id'],
+        metadata: r.metadata,
+        author: r.author,
+        text: r.text,
+        created: r.created,
+        edited_at: r.edited_at,
+        deleted_at: r.deleted_at,
+        reactions: r.reactions,
         parent_id: r['parent-id'],
       })),
     };

@@ -62,6 +62,11 @@ export interface Comment {
   edited_at?: string | null;
   /** ISO 8601 timestamp of deletion (null if not deleted) */
   deleted_at?: string | null;
+  /** Reaction counts for this comment */
+  reactions?: {
+    thumbs_up: number;
+    thumbs_down: number;
+  };
   /** Parent comment ID (null for top-level comments) */
   parent_id: string | null;
   /** Nested replies to this comment */

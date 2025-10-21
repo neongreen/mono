@@ -31,6 +31,10 @@ interface CustomBackendComment {
   editedAt?: string | null;
   deleted_at?: string | null;
   deletedAt?: string | null;
+  reactions?: {
+    thumbs_up: number;
+    thumbs_down: number;
+  };
   'parent-id'?: string | null;
   parent_id?: string | null;
   parentId?: string | null;
@@ -98,6 +102,7 @@ const customBackend: BackendAdapter = {
         created: c.created,
         edited_at: c.edited_at || c.editedAt,
         deleted_at: c.deleted_at || c.deletedAt,
+        reactions: c.reactions,
         parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
         replies: c.replies?.map(normalizeComment),
       });
@@ -267,6 +272,137 @@ const customBackend: BackendAdapter = {
       created: c.created,
       edited_at: c.edited_at || c.editedAt,
       deleted_at: c.deleted_at || c.deletedAt,
+      parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
+      replies: c.replies?.map(normalizeComment),
+    });
+    
+    return normalizeComment(comment);
+  },
+
+  /**
+   * Add or update a reaction to a comment
+   */
+  async addReaction(commentId: string, reactionType: 'thumbs_up' | 'thumbs_down'): Promise<Comment> {
+    // Get current comment first
+    const getCurrentResponse = await fetch(`${config.url}/comments/${commentId}`, {
+      credentials: 'include',
+    });
+
+    if (!getCurrentResponse.ok) {
+      throw new Error('Failed to get current comment');
+    }
+
+    const currentComment = (await getCurrentResponse.json()) as CustomBackendComment;
+    const currentReactions = currentComment.reactions || { thumbs_up: 0, thumbs_down: 0 };
+
+    // Handle user reaction tracking
+    const userReactionsKey = `comment-reactions-${commentId}`;
+    const existingReaction = localStorage.getItem(userReactionsKey);
+
+    let newReactions = { ...currentReactions };
+
+    if (existingReaction === reactionType) {
+      // Toggle off
+      newReactions[reactionType] = Math.max(0, newReactions[reactionType] - 1);
+      localStorage.removeItem(userReactionsKey);
+    } else {
+      // Remove old reaction if exists
+      if (existingReaction && existingReaction !== reactionType) {
+        const oldType = existingReaction as 'thumbs_up' | 'thumbs_down';
+        newReactions[oldType] = Math.max(0, newReactions[oldType] - 1);
+      }
+      
+      // Add new reaction
+      newReactions[reactionType] = newReactions[reactionType] + 1;
+      localStorage.setItem(userReactionsKey, reactionType);
+    }
+
+    const response = await fetch(`${config.url}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        reactions: newReactions,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update reaction');
+    }
+
+    const comment = (await response.json()) as CustomBackendComment;
+
+    const normalizeComment = (c: CustomBackendComment): Comment => ({
+      id: c.id,
+      paragraph_id: c['paragraph-id'] || c.paragraph_id || c.paragraphId || '',
+      metadata: c.metadata,
+      author: c.author,
+      text: c.text,
+      created: c.created,
+      edited_at: c.edited_at || c.editedAt,
+      deleted_at: c.deleted_at || c.deletedAt,
+      reactions: c.reactions,
+      parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
+      replies: c.replies?.map(normalizeComment),
+    });
+    
+    return normalizeComment(comment);
+  },
+
+  /**
+   * Remove a reaction from a comment
+   */
+  async removeReaction(commentId: string, reactionType: 'thumbs_up' | 'thumbs_down'): Promise<Comment> {
+    // Get current comment first
+    const getCurrentResponse = await fetch(`${config.url}/comments/${commentId}`, {
+      credentials: 'include',
+    });
+
+    if (!getCurrentResponse.ok) {
+      throw new Error('Failed to get current comment');
+    }
+
+    const currentComment = (await getCurrentResponse.json()) as CustomBackendComment;
+    const currentReactions = currentComment.reactions || { thumbs_up: 0, thumbs_down: 0 };
+
+    const newReactions = { ...currentReactions };
+    newReactions[reactionType] = Math.max(0, newReactions[reactionType] - 1);
+
+    // Remove from localStorage
+    const userReactionsKey = `comment-reactions-${commentId}`;
+    if (localStorage.getItem(userReactionsKey) === reactionType) {
+      localStorage.removeItem(userReactionsKey);
+    }
+
+    const response = await fetch(`${config.url}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        reactions: newReactions,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to remove reaction');
+    }
+
+    const comment = (await response.json()) as CustomBackendComment;
+
+    const normalizeComment = (c: CustomBackendComment): Comment => ({
+      id: c.id,
+      paragraph_id: c['paragraph-id'] || c.paragraph_id || c.paragraphId || '',
+      metadata: c.metadata,
+      author: c.author,
+      text: c.text,
+      created: c.created,
+      edited_at: c.edited_at || c.editedAt,
+      deleted_at: c.deleted_at || c.deletedAt,
+      reactions: c.reactions,
       parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
       replies: c.replies?.map(normalizeComment),
     });

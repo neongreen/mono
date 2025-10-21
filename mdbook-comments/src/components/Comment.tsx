@@ -99,6 +99,20 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
     }
   };
 
+  const handleReaction = async (reactionType: 'thumbs_up' | 'thumbs_down') => {
+    try {
+      await backend.addReaction(comment.id, reactionType);
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to add reaction:', error);
+      alert('Failed to add reaction. Please try again.');
+    }
+  };
+
+  const getUserReaction = (): string | null => {
+    return localStorage.getItem(`comment-reactions-${comment.id}`);
+  };
+
   return (
     <div class="comment-item" data-comment-id={comment.id}>
       <div class="comment-header">
@@ -174,6 +188,26 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Reaction buttons */}
+      {!comment.deleted_at && (
+        <div class="comment-reactions">
+          <button
+            class={`reaction-btn ${getUserReaction() === 'thumbs_up' ? 'active' : ''}`}
+            onClick={() => handleReaction('thumbs_up')}
+            title="Like this comment"
+          >
+            👍 {comment.reactions?.thumbs_up || 0}
+          </button>
+          <button
+            class={`reaction-btn ${getUserReaction() === 'thumbs_down' ? 'active' : ''}`}
+            onClick={() => handleReaction('thumbs_down')}
+            title="Dislike this comment"
+          >
+            👎 {comment.reactions?.thumbs_down || 0}
+          </button>
         </div>
       )}
 

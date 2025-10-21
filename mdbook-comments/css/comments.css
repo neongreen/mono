@@ -303,3 +303,42 @@
     background: #dc3545;
     color: white;
 }
+
+/* Reaction buttons */
+.comment-reactions {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.reaction-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    background: #f8f9fa;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #666;
+}
+
+.reaction-btn:hover {
+    background: #e9ecef;
+    border-color: #0066cc;
+    transform: translateY(-1px);
+}
+
+.reaction-btn.active {
+    background: #0066cc;
+    color: white;
+    border-color: #0066cc;
+    box-shadow: 0 2px 4px rgba(0, 102, 204, 0.2);
+}
+
+.reaction-btn.active:hover {
+    background: #0052a3;
+    border-color: #0052a3;
+}
