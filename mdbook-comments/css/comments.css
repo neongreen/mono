@@ -342,3 +342,63 @@
     background: #0052a3;
     border-color: #0052a3;
 }
+
+/* Comment resolution styling */
+.comment-resolved {
+    opacity: 0.7;
+    border-left: 3px solid #28a745;
+    padding-left: 12px;
+    background-color: #f8fff9;
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
+.resolution-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #28a745;
+    font-weight: 500;
+}
+
+.resolution-checkmark {
+    font-size: 14px;
+}
+
+.resolution-text {
+    font-style: italic;
+}
+
+.comment-text.resolved {
+    color: #666;
+    opacity: 0.8;
+}
+
+.comment-resolve-btn {
+    padding: 4px 8px;
+    border: 1px solid #28a745;
+    border-radius: 3px;
+    background: #fff;
+    color: #28a745;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.comment-resolve-btn:hover {
+    background: #28a745;
+    color: white;
+}
+
+.comment-resolve-btn.resolved {
+    background: #28a745;
+    color: white;
+    border-color: #1e7e34;
+}
+
+.comment-resolve-btn.resolved:hover {
+    background: #1e7e34;
+    border-color: #1e7e34;
+}

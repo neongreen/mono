@@ -67,6 +67,10 @@ export interface Comment {
     thumbs_up: number;
     thumbs_down: number;
   };
+  /** ISO 8601 timestamp of resolution (null if not resolved) */
+  resolved_at?: string | null;
+  /** Who resolved this comment */
+  resolved_by?: string | null;
   /** Parent comment ID (null for top-level comments) */
   parent_id: string | null;
   /** Nested replies to this comment */

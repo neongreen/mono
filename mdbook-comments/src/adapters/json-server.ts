@@ -31,6 +31,8 @@ interface JsonServerComment {
     thumbs_up: number;
     thumbs_down: number;
   };
+  resolved_at?: string | null;
+  resolved_by?: string | null;
   'parent-id': string | null;
   replies?: JsonServerComment[];
 }
@@ -93,6 +95,8 @@ const jsonServerBackend: BackendAdapter = {
         text: comment.text,
         created: comment.created,
         reactions: comment.reactions,
+        resolved_at: comment.resolved_at,
+        resolved_by: comment.resolved_by,
         parent_id: comment['parent-id'],
         replies: comment.replies?.map(reply => ({
           id: reply.id,
@@ -104,6 +108,8 @@ const jsonServerBackend: BackendAdapter = {
           edited_at: reply.edited_at,
           deleted_at: reply.deleted_at,
           reactions: reply.reactions,
+          resolved_at: reply.resolved_at,
+          resolved_by: reply.resolved_by,
           parent_id: reply['parent-id'],
         })),
       };
@@ -216,6 +222,8 @@ const jsonServerBackend: BackendAdapter = {
       text: reply.text,
       created: reply.created,
       reactions: reply.reactions,
+      resolved_at: reply.resolved_at,
+      resolved_by: reply.resolved_by,
       parent_id: reply['parent-id'],
       replies: reply.replies?.map(r => ({
         id: r.id,
@@ -473,6 +481,113 @@ const jsonServerBackend: BackendAdapter = {
         edited_at: r.edited_at,
         deleted_at: r.deleted_at,
         reactions: r.reactions,
+        parent_id: r['parent-id'],
+      })),
+    };
+  },
+
+  /**
+   * Mark a comment as resolved
+   */
+  async resolveComment(commentId: string): Promise<Comment> {
+    const currentAuthor = this.getCurrentAuthor() || 'Anonymous';
+    
+    const response = await fetch(`${API_URL}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        resolved_at: new Date().toISOString(),
+        resolved_by: currentAuthor,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to resolve comment');
+    }
+
+    const comment = (await response.json()) as JsonServerComment;
+    
+    // Normalize the response to internal Comment format
+    return {
+      id: comment.id,
+      paragraph_id: comment['paragraph-id'],
+      metadata: comment.metadata,
+      author: comment.author,
+      text: comment.text,
+      created: comment.created,
+      edited_at: comment.edited_at,
+      deleted_at: comment.deleted_at,
+      reactions: comment.reactions,
+      resolved_at: comment.resolved_at,
+      resolved_by: comment.resolved_by,
+      parent_id: comment['parent-id'],
+      replies: comment.replies?.map(r => ({
+        id: r.id,
+        paragraph_id: r['paragraph-id'],
+        metadata: r.metadata,
+        author: r.author,
+        text: r.text,
+        created: r.created,
+        edited_at: r.edited_at,
+        deleted_at: r.deleted_at,
+        reactions: r.reactions,
+        resolved_at: r.resolved_at,
+        resolved_by: r.resolved_by,
+        parent_id: r['parent-id'],
+      })),
+    };
+  },
+
+  /**
+   * Mark a comment as unresolved
+   */
+  async unresolveComment(commentId: string): Promise<Comment> {
+    const response = await fetch(`${API_URL}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        resolved_at: null,
+        resolved_by: null,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to unresolve comment');
+    }
+
+    const comment = (await response.json()) as JsonServerComment;
+    
+    return {
+      id: comment.id,
+      paragraph_id: comment['paragraph-id'],
+      metadata: comment.metadata,
+      author: comment.author,
+      text: comment.text,
+      created: comment.created,
+      edited_at: comment.edited_at,
+      deleted_at: comment.deleted_at,
+      reactions: comment.reactions,
+      resolved_at: comment.resolved_at,
+      resolved_by: comment.resolved_by,
+      parent_id: comment['parent-id'],
+      replies: comment.replies?.map(r => ({
+        id: r.id,
+        paragraph_id: r['paragraph-id'],
+        metadata: r.metadata,
+        author: r.author,
+        text: r.text,
+        created: r.created,
+        edited_at: r.edited_at,
+        deleted_at: r.deleted_at,
+        reactions: r.reactions,
+        resolved_at: r.resolved_at,
+        resolved_by: r.resolved_by,
         parent_id: r['parent-id'],
       })),
     };

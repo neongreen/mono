@@ -84,6 +84,16 @@ export interface BackendAdapter {
   removeReaction(commentId: string, reactionType: 'thumbs_up' | 'thumbs_down'): Promise<Comment>;
 
   /**
+   * Mark a comment as resolved
+   */
+  resolveComment(commentId: string): Promise<Comment>;
+
+  /**
+   * Mark a comment as unresolved
+   */
+  unresolveComment(commentId: string): Promise<Comment>;
+
+  /**
    * Get the current author name
    *
    * This is used to pre-fill the author field in forms.

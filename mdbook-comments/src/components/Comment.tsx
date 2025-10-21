@@ -113,6 +113,20 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
     return localStorage.getItem(`comment-reactions-${comment.id}`);
   };
 
+  const handleResolve = async () => {
+    try {
+      if (comment.resolved_at) {
+        await backend.unresolveComment(comment.id);
+      } else {
+        await backend.resolveComment(comment.id);
+      }
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to toggle resolution:', error);
+      alert('Failed to toggle resolution. Please try again.');
+    }
+  };
+
   return (
     <div class="comment-item" data-comment-id={comment.id}>
       <div class="comment-header">
@@ -135,6 +149,19 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
       {comment.deleted_at ? (
         <div class="comment-deleted">
           <em>Comment deleted by author</em>
+        </div>
+      ) : comment.resolved_at ? (
+        <div class="comment-resolved">
+          <div class="resolution-info">
+            <span class="resolution-checkmark">✅</span>
+            <span class="resolution-text">
+              Resolved by {comment.resolved_by} on {formatAbsoluteDate(comment.resolved_at)}
+            </span>
+          </div>
+          <div
+            class="comment-text resolved"
+            dangerouslySetInnerHTML={{ __html: parseMarkdown(comment.text) }}
+          />
         </div>
       ) : isEditing ? (
         <div class="comment-edit-form">
@@ -234,6 +261,12 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
                 onClick={handleDelete}
               >
                 Delete
+              </button>
+              <button
+                class={`comment-resolve-btn ${comment.resolved_at ? 'resolved' : ''}`}
+                onClick={handleResolve}
+              >
+                {comment.resolved_at ? '↶ Unresolve' : '✓ Resolve'}
               </button>
             </>
           )}
