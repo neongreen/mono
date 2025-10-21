@@ -551,3 +551,364 @@ describe('calculateSimilarity() core matching algorithm', () => {
     expect(similarity).toBe(0.0);
   });
 });
+
+// Mock types for matchComments tests
+interface Comment {
+  id: string;
+  metadata?: ParagraphMetadata;
+  parent_id?: string | null;
+  text: string;
+  author: string;
+  created: string;
+  replies?: Comment[];
+}
+
+interface MatchedComment {
+  paragraphId: string;
+  comment: Comment;
+  confidence: number;
+}
+
+// Mock DOM element for testing
+class MockElement {
+  attributes: Record<string, string> = {};
+  
+  getAttribute(name: string): string | null {
+    return this.attributes[name] || null;
+  }
+  
+  setAttribute(name: string, value: string): void {
+    this.attributes[name] = value;
+  }
+}
+
+/**
+ * Simplified matchComments implementation for testing
+ * (based on base.tsx lines 141-208)
+ */
+function matchCommentsCore(
+  allComments: Comment[],
+  paragraphElements: Array<{ id: string; metadata: ParagraphMetadata }>,
+  similarityThreshold: number = 0.85
+): { matched: MatchedComment[]; orphaned: Comment[] } {
+  const matched: MatchedComment[] = [];
+  const orphaned: Comment[] = [];
+  const usedComments = new Set<string>();
+
+  // First pass: exact ID matching
+  paragraphElements.forEach((paragraph) => {
+    const exactMatches = allComments.filter(
+      (c) =>
+        c.metadata &&
+        c.metadata.id === paragraph.id &&
+        !usedComments.has(c.id) &&
+        !c.parent_id // Only top-level comments
+    );
+
+    exactMatches.forEach((comment) => {
+      matched.push({
+        paragraphId: paragraph.id,
+        comment,
+        confidence: 1.0,
+      });
+      usedComments.add(comment.id);
+    });
+  });
+
+  // Second pass: fuzzy matching for comments without exact match
+  allComments.forEach((comment) => {
+    if (usedComments.has(comment.id)) return;
+    if (!comment.metadata) return;
+    if (comment.parent_id) return; // Skip replies
+
+    let bestMatch: { paragraphId: string; similarity: number } | null = null;
+
+    paragraphElements.forEach((paragraph) => {
+      const similarity = calculateSimilarity(paragraph.metadata, comment.metadata);
+
+      if (similarity >= similarityThreshold) {
+        if (!bestMatch || similarity > bestMatch.similarity) {
+          bestMatch = { paragraphId: paragraph.id, similarity };
+        }
+      }
+    });
+
+    if (bestMatch) {
+      matched.push({
+        paragraphId: bestMatch.paragraphId,
+        comment,
+        confidence: bestMatch.similarity,
+      });
+      usedComments.add(comment.id);
+    }
+  });
+
+  // Remaining comments are orphaned
+  allComments.forEach((comment) => {
+    if (!usedComments.has(comment.id) && !comment.parent_id) {
+      orphaned.push(comment);
+    }
+  });
+
+  return { matched, orphaned };
+}
+
+describe('matchComments() two-pass matching algorithm', () => {
+  test('should handle perfect exact ID matches', () => {
+    const comments: Comment[] = [
+      {
+        id: 'comment-1',
+        metadata: { id: 'para-1', content: 'First paragraph content' },
+        text: 'Great point!',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'comment-2',
+        metadata: { id: 'para-2', content: 'Second paragraph content' },
+        text: 'I agree!',
+        author: 'User2',
+        created: '2024-01-02',
+      }
+    ];
+
+    const paragraphs = [
+      { id: 'para-1', metadata: { id: 'para-1', content: 'First paragraph content' } },
+      { id: 'para-2', metadata: { id: 'para-2', content: 'Second paragraph content' } }
+    ];
+
+    const result = matchCommentsCore(comments, paragraphs);
+
+    expect(result.matched).toHaveLength(2);
+    expect(result.orphaned).toHaveLength(0);
+    expect(result.matched[0].confidence).toBe(1.0);
+    expect(result.matched[1].confidence).toBe(1.0);
+  });
+
+  test('should handle mixed exact and fuzzy matching', () => {
+    const comments: Comment[] = [
+      {
+        id: 'comment-1',
+        metadata: { id: 'para-1', content: 'Exact match paragraph' },
+        text: 'Exact match comment',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'comment-2',
+        metadata: { id: 'old-para-id', content: 'This paragraph was moved and content changed slightly' },
+        text: 'Fuzzy match comment',
+        author: 'User2',
+        created: '2024-01-02',
+      }
+    ];
+
+    const paragraphs = [
+      { id: 'para-1', metadata: { id: 'para-1', content: 'Exact match paragraph' } },
+      { id: 'para-2', metadata: { id: 'para-2', content: 'This paragraph was moved and content modified slightly' } }
+    ];
+
+    const result = matchCommentsCore(comments, paragraphs, 0.5); // Lower threshold for fuzzy match
+
+    expect(result.matched).toHaveLength(2);
+    expect(result.orphaned).toHaveLength(0);
+    expect(result.matched[0].confidence).toBe(1.0); // Exact match
+    expect(result.matched[1].confidence).toBeGreaterThan(0.5); // Fuzzy match
+    expect(result.matched[1].confidence).toBeLessThan(1.0);
+  });
+
+  test('should create orphaned comments when no match found', () => {
+    const comments: Comment[] = [
+      {
+        id: 'comment-1',
+        metadata: { id: 'deleted-para', content: 'This paragraph was removed from the document' },
+        text: 'Comment on deleted content',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'comment-2',
+        metadata: { id: 'para-1', content: 'This paragraph exists' },
+        text: 'Comment on existing content',
+        author: 'User2',
+        created: '2024-01-02',
+      }
+    ];
+
+    const paragraphs = [
+      { id: 'para-1', metadata: { id: 'para-1', content: 'This paragraph exists' } }
+    ];
+
+    const result = matchCommentsCore(comments, paragraphs);
+
+    expect(result.matched).toHaveLength(1);
+    expect(result.orphaned).toHaveLength(1);
+    expect(result.orphaned[0].id).toBe('comment-1');
+  });
+
+  test('should skip reply comments in matching', () => {
+    const comments: Comment[] = [
+      {
+        id: 'parent-comment',
+        metadata: { id: 'para-1', content: 'Parent comment paragraph' },
+        text: 'Parent comment',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'reply-comment',
+        metadata: { id: 'para-1', content: 'Parent comment paragraph' },
+        parent_id: 'parent-comment',
+        text: 'Reply to parent',
+        author: 'User2',
+        created: '2024-01-02',
+      }
+    ];
+
+    const paragraphs = [
+      { id: 'para-1', metadata: { id: 'para-1', content: 'Parent comment paragraph' } }
+    ];
+
+    const result = matchCommentsCore(comments, paragraphs);
+
+    expect(result.matched).toHaveLength(1);
+    expect(result.matched[0].comment.id).toBe('parent-comment');
+    expect(result.orphaned).toHaveLength(0); // Reply is not orphaned, just not matched independently
+  });
+
+  test('should respect similarity threshold', () => {
+    const comments: Comment[] = [
+      {
+        id: 'comment-1',
+        metadata: { id: 'old-id', content: 'Original content that was heavily modified' },
+        text: 'Comment on original',
+        author: 'User1',
+        created: '2024-01-01',
+      }
+    ];
+
+    const paragraphs = [
+      { id: 'new-id', metadata: { id: 'new-id', content: 'Completely different content with no overlap' } }
+    ];
+
+    // High threshold - should create orphan
+    const highThresholdResult = matchCommentsCore(comments, paragraphs, 0.85);
+    expect(highThresholdResult.matched).toHaveLength(0);
+    expect(highThresholdResult.orphaned).toHaveLength(1);
+
+    // Low threshold - might find a match
+    const lowThresholdResult = matchCommentsCore(comments, paragraphs, 0.01);
+    expect(lowThresholdResult.matched).toHaveLength(1);
+    expect(lowThresholdResult.orphaned).toHaveLength(0);
+  });
+
+  test('should handle multiple candidates and pick highest similarity', () => {
+    const comments: Comment[] = [
+      {
+        id: 'comment-1',
+        metadata: { id: 'old-id', content: 'A paragraph about fuzzy matching algorithms' },
+        text: 'Comment about algorithms',
+        author: 'User1',
+        created: '2024-01-01',
+      }
+    ];
+
+    const paragraphs = [
+      { 
+        id: 'para-1', 
+        metadata: { id: 'para-1', content: 'A paragraph about string algorithms' } // Medium similarity
+      },
+      { 
+        id: 'para-2', 
+        metadata: { id: 'para-2', content: 'A paragraph about fuzzy matching techniques' } // High similarity
+      },
+      { 
+        id: 'para-3', 
+        metadata: { id: 'para-3', content: 'Completely unrelated content' } // Low similarity
+      }
+    ];
+
+    const result = matchCommentsCore(comments, paragraphs, 0.3);
+
+    // Should match to the most similar paragraph (para-2)
+    expect(result.matched).toHaveLength(1);
+    expect(result.matched[0].paragraphId).toBe('para-2');
+    expect(result.matched[0].confidence).toBeGreaterThan(0.3);
+  });
+
+  test('should handle empty inputs gracefully', () => {
+    // No comments, no paragraphs
+    expect(matchCommentsCore([], [])).toEqual({ matched: [], orphaned: [] });
+
+    // Comments but no paragraphs
+    const comments: Comment[] = [{
+      id: 'comment-1',
+      metadata: { id: 'para-1', content: 'Some content' },
+      text: 'Comment',
+      author: 'User1',
+      created: '2024-01-01',
+    }];
+    
+    const result1 = matchCommentsCore(comments, []);
+    expect(result1.matched).toHaveLength(0);
+    expect(result1.orphaned).toHaveLength(1);
+
+    // Paragraphs but no comments
+    const paragraphs = [{ id: 'para-1', metadata: { id: 'para-1', content: 'Content' } }];
+    const result2 = matchCommentsCore([], paragraphs);
+    expect(result2.matched).toHaveLength(0);
+    expect(result2.orphaned).toHaveLength(0);
+  });
+
+  test('should handle comments without metadata', () => {
+    const comments: Comment[] = [
+      {
+        id: 'comment-1',
+        text: 'Comment without metadata',
+        author: 'User1',
+        created: '2024-01-01',
+      }
+    ];
+
+    const paragraphs = [
+      { id: 'para-1', metadata: { id: 'para-1', content: 'Some content' } }
+    ];
+
+    const result = matchCommentsCore(comments, paragraphs);
+
+    // Comment without metadata should be orphaned
+    expect(result.matched).toHaveLength(0);
+    expect(result.orphaned).toHaveLength(1);
+  });
+
+  test('should track used comments correctly to prevent double-matching', () => {
+    const comments: Comment[] = [
+      {
+        id: 'comment-1',
+        metadata: { id: 'para-1', content: 'Shared content' },
+        text: 'First comment',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'comment-2',
+        metadata: { id: 'para-1', content: 'Shared content' }, // Same metadata
+        text: 'Second comment',
+        author: 'User2',
+        created: '2024-01-02',
+      }
+    ];
+
+    const paragraphs = [
+      { id: 'para-1', metadata: { id: 'para-1', content: 'Shared content' } }
+    ];
+
+    const result = matchCommentsCore(comments, paragraphs);
+
+    // Both comments should match in this case since they have exact ID matches
+    // The original algorithm allows multiple comments per paragraph
+    expect(result.matched).toHaveLength(2);
+    expect(result.orphaned).toHaveLength(0);
+    expect(result.matched.every(m => m.confidence === 1.0)).toBe(true); // Both exact matches
+  });
+});
