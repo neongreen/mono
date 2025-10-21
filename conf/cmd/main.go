@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 
+	"conf/pkg/config"
 	jjtool "conf/pkg/tools/jj"
 	misetool "conf/pkg/tools/mise"
 	shimstool "conf/pkg/tools/shims"
@@ -47,15 +48,43 @@ Examples:
 
 		// GET operation: only config path provided
 		if len(args) == 1 {
-			value, err := jjTool.GetConfig(configPath)
+			// Load conf's state config to show desired state
+			conf, err := config.Load()
 			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to load conf config: %v\n", err)
+				os.Exit(1)
+			}
+
+			// Get actual value from target file
+			actualValue, err := jjTool.GetConfig(configPath)
+			if err != nil && !os.IsNotExist(err) {
 				fmt.Fprintf(os.Stderr, "Error reading config: %v\n", err)
 				os.Exit(1)
 			}
-			if value == nil {
-				fmt.Printf("%s = (not set)\n", configPath)
+
+			// Get desired value from conf state
+			desiredValue, hasDesired := conf.GetToolValue("jj", configPath)
+
+			// Show state comparison
+			if hasDesired {
+				fmt.Printf("Desired: %s = %v\n", configPath, desiredValue)
+				if actualValue == nil {
+					fmt.Printf("Actual:  %s = (not set)\n", configPath)
+					fmt.Printf("Status:  DRIFT - value not applied\n")
+				} else if fmt.Sprintf("%v", actualValue) == fmt.Sprintf("%v", desiredValue) {
+					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Status:  IN SYNC\n")
+				} else {
+					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Status:  DRIFT - values differ\n")
+				}
 			} else {
-				fmt.Printf("%s = %v\n", configPath, value)
+				if actualValue == nil {
+					fmt.Printf("%s = (not set)\n", configPath)
+				} else {
+					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Status:  UNMANAGED - not in conf state\n")
+				}
 			}
 			return
 		}
@@ -63,6 +92,13 @@ Examples:
 		// SET operation: config path and value provided
 		value := args[1]
 		parsedValue := parseValue(value)
+
+		// Load conf's state config
+		conf, err := config.Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to load conf config: %v\n", err)
+			os.Exit(1)
+		}
 
 		if dryRun {
 			// Show preview of what would happen
@@ -72,8 +108,16 @@ Examples:
 				os.Exit(1)
 			}
 			fmt.Print(preview)
+			fmt.Printf("Would also record in conf state: jj.%s = %v\n", configPath, parsedValue)
 		} else {
-			// Set the configuration
+			// 1. Record desired state in conf config
+			conf.SetToolValue("jj", configPath, parsedValue)
+			if err := conf.Save(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to save conf state: %v\n", err)
+				os.Exit(1)
+			}
+
+			// 2. Apply to target file
 			err = jjTool.SetConfig(configPath, parsedValue)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -81,6 +125,7 @@ Examples:
 			}
 
 			fmt.Printf("✓ Set jj config: %s = %v\n", configPath, parsedValue)
+			fmt.Printf("✓ Recorded in conf state\n")
 		}
 
 		fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
@@ -324,6 +369,8 @@ func init() {
 	rootCmd.AddCommand(miseCmd)
 	rootCmd.AddCommand(starshipCmd)
 	rootCmd.AddCommand(shimsCmd)
+	rootCmd.AddCommand(applyCmd)
+	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(completionCmd)
 }
 
@@ -419,3 +466,195 @@ var shimsRemoveCmd = &cobra.Command{
 	},
 }
 
+
+var applyCmd = &cobra.Command{
+	Use:   "apply [tool]",
+	Short: "Apply desired state to target configuration files",
+	Long:  `Sync the desired state from conf config to target files.
+
+Examples:
+  conf apply          # Apply all tools
+  conf apply jj       # Apply only jj config
+  conf apply --dry-run jj  # Preview what would be applied`,
+	Args: cobra.MaximumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		conf, err := config.Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to load conf config: %v\n", err)
+			os.Exit(1)
+		}
+
+		var toolsToApply []string
+		if len(args) == 1 {
+			toolsToApply = []string{args[0]}
+		} else {
+			// Apply all tools
+			for toolName := range conf.Tools {
+				toolsToApply = append(toolsToApply, toolName)
+			}
+		}
+
+		for _, toolName := range toolsToApply {
+			if err := applyTool(conf, toolName, dryRun); err != nil {
+				fmt.Fprintf(os.Stderr, "Error applying %s: %v\n", toolName, err)
+				os.Exit(1)
+			}
+		}
+	},
+}
+
+var statusCmd = &cobra.Command{
+	Use:   "status [tool]",
+	Short: "Show drift between desired and actual state",
+	Long:  `Compare desired state in conf config with actual values in target files.
+
+Examples:
+  conf status         # Show status for all tools
+  conf status jj      # Show status for jj only`,
+	Args: cobra.MaximumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		conf, err := config.Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to load conf config: %v\n", err)
+			os.Exit(1)
+		}
+
+		var toolsToCheck []string
+		if len(args) == 1 {
+			toolsToCheck = []string{args[0]}
+		} else {
+			// Check all tools
+			for toolName := range conf.Tools {
+				toolsToCheck = append(toolsToCheck, toolName)
+			}
+		}
+
+		for _, toolName := range toolsToCheck {
+			if err := showToolStatus(conf, toolName); err != nil {
+				fmt.Fprintf(os.Stderr, "Error checking %s status: %v\n", toolName, err)
+				os.Exit(1)
+			}
+		}
+	},
+}
+
+// applyTool applies desired state for a specific tool
+func applyTool(conf *config.Config, toolName string, dryRun bool) error {
+	tool, exists := conf.GetTool(toolName)
+	if !exists {
+		return fmt.Errorf("tool %s not configured", toolName)
+	}
+
+	if tool.Values == nil || len(tool.Values) == 0 {
+		fmt.Printf("%s: No values to apply\n", toolName)
+		return nil
+	}
+
+	fmt.Printf("Applying %s configuration...\n", toolName)
+	
+	for path, value := range tool.Values {
+		if dryRun {
+			fmt.Printf("  Would set %s.%s = %v\n", toolName, path, value)
+		} else {
+			if err := applyToolValue(toolName, path, value); err != nil {
+				return fmt.Errorf("failed to apply %s.%s: %w", toolName, path, err)
+			}
+			fmt.Printf("  ✓ Set %s.%s = %v\n", toolName, path, value)
+		}
+	}
+	
+	return nil
+}
+
+// applyToolValue applies a single configuration value to a tool
+func applyToolValue(toolName, path string, value interface{}) error {
+	switch toolName {
+	case "jj":
+		jjTool, err := jjtool.NewJJTool()
+		if err != nil {
+			return err
+		}
+		return jjTool.SetConfig(path, value)
+	case "mise":
+		miseTool, err := misetool.NewMiseTool()
+		if err != nil {
+			return err
+		}
+		return miseTool.SetConfig(path, value)
+	case "starship":
+		starshipTool, err := starshiptool.NewStarshipTool()
+		if err != nil {
+			return err
+		}
+		return starshipTool.SetConfig(path, value)
+	default:
+		return fmt.Errorf("unknown tool: %s", toolName)
+	}
+}
+
+// showToolStatus shows drift status for a specific tool
+func showToolStatus(conf *config.Config, toolName string) error {
+	tool, exists := conf.GetTool(toolName)
+	if !exists {
+		return fmt.Errorf("tool %s not configured", toolName)
+	}
+
+	fmt.Printf("%s status:\n", toolName)
+	
+	if tool.Values == nil || len(tool.Values) == 0 {
+		fmt.Printf("  No managed values\n")
+		return nil
+	}
+
+	hasChanges := false
+	for path, desiredValue := range tool.Values {
+		actualValue, err := getActualValue(toolName, path)
+		if err != nil {
+			fmt.Printf("  %s: ERROR - %v\n", path, err)
+			hasChanges = true
+			continue
+		}
+
+		if actualValue == nil {
+			fmt.Printf("  %s: MISSING (desired: %v)\n", path, desiredValue)
+			hasChanges = true
+		} else if fmt.Sprintf("%v", actualValue) != fmt.Sprintf("%v", desiredValue) {
+			fmt.Printf("  %s: DRIFT (desired: %v, actual: %v)\n", path, desiredValue, actualValue)
+			hasChanges = true
+		} else {
+			fmt.Printf("  %s: IN SYNC (%v)\n", path, actualValue)
+		}
+	}
+
+	if !hasChanges {
+		fmt.Printf("  All values in sync\n")
+	}
+	
+	return nil
+}
+
+// getActualValue gets the actual value from a tool config file
+func getActualValue(toolName, path string) (interface{}, error) {
+	switch toolName {
+	case "jj":
+		jjTool, err := jjtool.NewJJTool()
+		if err != nil {
+			return nil, err
+		}
+		return jjTool.GetConfig(path)
+	case "mise":
+		miseTool, err := misetool.NewMiseTool()
+		if err != nil {
+			return nil, err
+		}
+		return miseTool.GetConfig(path)
+	case "starship":
+		starshipTool, err := starshiptool.NewStarshipTool()
+		if err != nil {
+			return nil, err
+		}
+		return starshipTool.GetConfig(path)
+	default:
+		return nil, fmt.Errorf("unknown tool: %s", toolName)
+	}
+}
