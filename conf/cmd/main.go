@@ -7,6 +7,7 @@ import (
 
 	jjtool "conf/pkg/tools/jj"
 	misetool "conf/pkg/tools/mise"
+	starshiptool "conf/pkg/tools/starship"
 	"github.com/spf13/cobra"
 )
 
@@ -203,6 +204,68 @@ var miseListCmd = &cobra.Command{
 	},
 }
 
+var starshipCmd = &cobra.Command{
+	Use:   "starship [config.path] [value]",
+	Short: "Configure starship settings",
+	Long:  `Get or set configuration values in ~/.config/starship.toml using dotted path notation.
+
+Examples:
+  conf starship add_newline              # Get current value
+  conf starship add_newline true         # Set boolean value
+  conf starship command_timeout 500      # Set timeout value`,
+	Args:  cobra.RangeArgs(1, 2),
+	Run: func(cmd *cobra.Command, args []string) {
+		configPath := args[0]
+
+		// Create starship tool with dry-run mode
+		starshipTool, err := starshiptool.NewStarshipToolWithDryRun(dryRun)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to initialize starship tool: %v\n", err)
+			os.Exit(1)
+		}
+
+		// GET operation: only config path provided
+		if len(args) == 1 {
+			value, err := starshipTool.GetConfig(configPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading config: %v\n", err)
+				os.Exit(1)
+			}
+			if value == nil {
+				fmt.Printf("%s = (not set)\n", configPath)
+			} else {
+				fmt.Printf("%s = %v\n", configPath, value)
+			}
+			return
+		}
+
+		// SET operation: config path and value provided
+		value := args[1]
+		parsedValue := parseValue(value)
+
+		if dryRun {
+			// Show preview of what would happen
+			preview, err := starshipTool.PreviewSetConfig(configPath, parsedValue)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Print(preview)
+		} else {
+			// Set the configuration
+			err = starshipTool.SetConfig(configPath, parsedValue)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("✓ Set starship config: %s = %v\n", configPath, parsedValue)
+		}
+
+		fmt.Printf("Config file: %s\n", starshipTool.GetConfigPath())
+	},
+}
+
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish]",
 	Short: "Generate shell completion scripts",
@@ -253,6 +316,7 @@ func init() {
 
 	rootCmd.AddCommand(jjCmd)
 	rootCmd.AddCommand(miseCmd)
+	rootCmd.AddCommand(starshipCmd)
 	rootCmd.AddCommand(completionCmd)
 }
 
