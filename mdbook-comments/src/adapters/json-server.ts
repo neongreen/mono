@@ -49,8 +49,11 @@ const jsonServerBackend: BackendAdapter = {
    * Load all comments from the server
    */
   async loadComments(): Promise<Comment[]> {
-    const response = await fetch(`${API_URL}/comments`, {
+    // Add cache-busting parameter to ensure fresh data
+    const timestamp = new Date().getTime();
+    const response = await fetch(`${API_URL}/comments?_=${timestamp}`, {
       credentials: 'include', // Include cookies for authentication
+      cache: 'no-store', // Prevent caching
     });
 
     if (!response.ok) {
@@ -108,20 +111,37 @@ const jsonServerBackend: BackendAdapter = {
     text: string,
     author: string
   ): Promise<Comment> {
-    const response = await fetch(
-      `${API_URL}/comments/${parentCommentId}/reply`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          text: text,
-          author: author || 'Anonymous',
-        }),
-      }
-    );
+    // Fetch the parent comment to get its paragraph-id and metadata
+    const parentResponse = await fetch(`${API_URL}/comments?id=${parentCommentId}`, {
+      credentials: 'include',
+    });
+
+    if (!parentResponse.ok) {
+      throw new Error('Failed to fetch parent comment');
+    }
+
+    const parents = await parentResponse.json();
+    const parent = parents[0];
+
+    if (!parent) {
+      throw new Error('Parent comment not found');
+    }
+
+    // Post reply as a regular comment with parent-id set
+    const response = await fetch(`${API_URL}/comments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        'paragraph-id': parent['paragraph-id'],
+        metadata: parent.metadata || {},
+        text: text,
+        author: author || 'Anonymous',
+        'parent-id': parentCommentId,
+      }),
+    });
 
     if (!response.ok) {
       throw new Error('Failed to post reply');

@@ -386,12 +386,22 @@ function createCommentSection(paragraphId: string): HTMLElement {
 
   // Render Preact component with update callback that reloads and re-renders
   const handleUpdate = async () => {
+    console.log('[handleUpdate] Reloading comments...');
     await loadComments();
     // Re-render this section with updated comments
     const updatedComments = state.currentPageComments.filter(
       (c) => c.paragraphId === paragraphId
     );
+    console.log('[handleUpdate] Updated comments for', paragraphId, ':', updatedComments);
+    updatedComments.forEach(mc => {
+      console.log('  Comment:', mc.comment.id, 'has', mc.comment.replies?.length || 0, 'replies');
+      if (mc.comment.replies) {
+        mc.comment.replies.forEach(r => console.log('    Reply:', r.id, r.text));
+      }
+    });
     // Re-render into the same wrapper (which is now in the DOM)
+    // Force re-render by clearing first, then rendering with fresh data
+    render(null, wrapperDiv);
     render(
       <CommentSection
         paragraphId={paragraphId}
@@ -402,6 +412,7 @@ function createCommentSection(paragraphId: string): HTMLElement {
       />,
       wrapperDiv
     );
+    console.log('[handleUpdate] Re-render complete');
   };
 
   render(

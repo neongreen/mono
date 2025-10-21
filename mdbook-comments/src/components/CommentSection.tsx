@@ -40,7 +40,7 @@ export function CommentSection({
         {topLevelComments.length > 0 ? (
           topLevelComments.map((comment) => (
             <Comment
-              key={comment.id}
+              key={`${comment.id}-replies-${comment.replies?.length || 0}`}
               comment={comment}
               backend={backend}
               onUpdate={onUpdate}
