@@ -272,3 +272,282 @@ describe('arraySimilarity() heading path matching', () => {
     expect(similarity).toBe(0.5);
   });
 });
+
+// Mock ParagraphMetadata type for calculateSimilarity tests
+interface ParagraphMetadata {
+  id: string;
+  content?: string;
+  context?: {
+    prev?: string;
+    next?: string;
+    'heading-path'?: string[];
+  };
+  position?: {
+    file?: string;
+    'block-index'?: number;
+    'section-index'?: number;
+  };
+}
+
+/**
+ * Calculate similarity between two paragraph metadata objects
+ * (copied from base.tsx line 213)
+ */
+function calculateSimilarity(
+  meta1: ParagraphMetadata,
+  meta2: ParagraphMetadata
+): number {
+  let score = 0.0;
+  let weights = 0.0;
+
+  // Content similarity (most important)
+  if (meta1.content && meta2.content) {
+    const contentSim = textSimilarity(meta1.content, meta2.content);
+    score += contentSim * 0.5;
+    weights += 0.5;
+  }
+
+  // Context similarity (prev/next paragraphs)
+  if (meta1.context && meta2.context) {
+    if (meta1.context.prev && meta2.context.prev) {
+      const prevSim = textSimilarity(meta1.context.prev, meta2.context.prev);
+      score += prevSim * 0.2;
+      weights += 0.2;
+    }
+
+    if (meta1.context.next && meta2.context.next) {
+      const nextSim = textSimilarity(meta1.context.next, meta2.context.next);
+      score += nextSim * 0.2;
+      weights += 0.2;
+    }
+
+    // Heading path similarity
+    if (meta1.context['heading-path'] && meta2.context['heading-path']) {
+      const headingSim = arraySimilarity(
+        meta1.context['heading-path'],
+        meta2.context['heading-path']
+      );
+      score += headingSim * 0.1;
+      weights += 0.1;
+    }
+  }
+
+  return weights > 0 ? score / weights : 0.0;
+}
+
+describe('calculateSimilarity() core matching algorithm', () => {
+  test('should return 1.0 for perfect matches', () => {
+    const meta1: ParagraphMetadata = {
+      id: 'test-1',
+      content: 'This is test content.',
+      context: {
+        prev: 'Previous paragraph content.',
+        next: 'Next paragraph content.',
+        'heading-path': ['Chapter 1', 'Section A']
+      }
+    };
+    
+    const meta2: ParagraphMetadata = { ...meta1, id: 'test-2' };
+    
+    const similarity = calculateSimilarity(meta1, meta2);
+    expect(similarity).toBe(1.0);
+  });
+
+  test('should handle content-only matches', () => {
+    const meta1: ParagraphMetadata = {
+      id: 'test-1',
+      content: 'This is test content.'
+    };
+    
+    const meta2: ParagraphMetadata = {
+      id: 'test-2', 
+      content: 'This is test content.'
+    };
+    
+    // Only content similarity, weight = 0.5, score = 1.0 * 0.5
+    // result = 0.5 / 0.5 = 1.0
+    const similarity = calculateSimilarity(meta1, meta2);
+    expect(similarity).toBe(1.0);
+  });
+
+  test('should weight content similarity heavily', () => {
+    const meta1: ParagraphMetadata = {
+      id: 'test-1',
+      content: 'Identical content here.',
+      context: {
+        'heading-path': ['Chapter 1']
+      }
+    };
+    
+    const meta2: ParagraphMetadata = {
+      id: 'test-2',
+      content: 'Identical content here.',
+      context: {
+        'heading-path': ['Chapter 999'] // Different heading
+      }
+    };
+    
+    // Content: 1.0 * 0.5 = 0.5, Heading: 0.0 * 0.1 = 0.0
+    // Total weights: 0.5 + 0.1 = 0.6
+    // Similarity = 0.5 / 0.6 ≈ 0.833
+    const similarity = calculateSimilarity(meta1, meta2);
+    expect(similarity).toBeCloseTo(0.833, 3);
+  });
+
+  test('should handle partial content matches', () => {
+    const meta1: ParagraphMetadata = {
+      id: 'test-1',
+      content: 'This is the original paragraph content.'
+    };
+    
+    const meta2: ParagraphMetadata = {
+      id: 'test-2',
+      content: 'This is the modified paragraph text.' // Some words changed
+    };
+    
+    // Should have decent similarity but not perfect
+    const similarity = calculateSimilarity(meta1, meta2);
+    expect(similarity).toBeGreaterThan(0.4); // Some overlap
+    expect(similarity).toBeLessThan(1.0); // Not identical
+  });
+
+  test('should use context similarity when available', () => {
+    const meta1: ParagraphMetadata = {
+      id: 'test-1',
+      content: 'Some content.',
+      context: {
+        prev: 'Previous context is identical.',
+        next: 'Next context is identical.'
+      }
+    };
+    
+    const meta2: ParagraphMetadata = {
+      id: 'test-2',
+      content: 'Some content.',
+      context: {
+        prev: 'Previous context is identical.',
+        next: 'Next context is identical.'
+      }
+    };
+    
+    // Content: 1.0 * 0.5, Prev: 1.0 * 0.2, Next: 1.0 * 0.2
+    // Total weights: 0.5 + 0.2 + 0.2 = 0.9
+    // Score: 0.5 + 0.2 + 0.2 = 0.9
+    // Similarity = 0.9 / 0.9 = 1.0
+    const similarity = calculateSimilarity(meta1, meta2);
+    expect(similarity).toBe(1.0);
+  });
+
+  test('should handle moved paragraphs with same content different headings', () => {
+    const meta1: ParagraphMetadata = {
+      id: 'test-1',
+      content: 'This paragraph was moved between chapters.',
+      context: {
+        'heading-path': ['Chapter 1', 'Section A']
+      }
+    };
+    
+    const meta2: ParagraphMetadata = {
+      id: 'test-2',
+      content: 'This paragraph was moved between chapters.',
+      context: {
+        'heading-path': ['Chapter 2', 'Section B'] // Moved location
+      }
+    };
+    
+    // Content: 1.0 * 0.5 = 0.5, Heading: 0.0 * 0.1 = 0.0
+    // Total weights: 0.6, Score: 0.5
+    // Similarity = 0.5 / 0.6 ≈ 0.833
+    const similarity = calculateSimilarity(meta1, meta2);
+    expect(similarity).toBeCloseTo(0.833, 3);
+    expect(similarity).toBeGreaterThan(0.8); // Should be above default threshold
+  });
+
+  test('should handle no content match different headings', () => {
+    const meta1: ParagraphMetadata = {
+      id: 'test-1',
+      content: 'Completely different content here.',
+      context: {
+        'heading-path': ['Chapter 1']
+      }
+    };
+    
+    const meta2: ParagraphMetadata = {
+      id: 'test-2',
+      content: 'Totally unrelated paragraph text.',
+      context: {
+        'heading-path': ['Chapter 2']
+      }
+    };
+    
+    // Should have very low similarity
+    const similarity = calculateSimilarity(meta1, meta2);
+    expect(similarity).toBeLessThan(0.1);
+  });
+
+  test('should handle missing context gracefully', () => {
+    const meta1: ParagraphMetadata = {
+      id: 'test-1',
+      content: 'Some content.'
+    };
+    
+    const meta2: ParagraphMetadata = {
+      id: 'test-2',
+      content: 'Some content.',
+      context: {
+        prev: 'Previous context.',
+        'heading-path': ['Chapter 1']
+      }
+    };
+    
+    // Only content similarity available
+    // Should still work correctly with just content
+    const similarity = calculateSimilarity(meta1, meta2);
+    expect(similarity).toBe(1.0);
+  });
+
+  test('should handle boundary cases around similarity threshold', () => {
+    // Test cases around the default 0.85 threshold
+    const meta1: ParagraphMetadata = {
+      id: 'test-1',
+      content: 'The quick brown fox jumps over the lazy dog.',
+      context: {
+        'heading-path': ['Chapter 1']
+      }
+    };
+    
+    // High similarity case - should be above threshold
+    const meta2High: ParagraphMetadata = {
+      id: 'test-2',
+      content: 'The quick brown fox jumps over the sleeping dog.', // Minor change
+      context: {
+        'heading-path': ['Chapter 1'] // Same heading
+      }
+    };
+    
+    const highSim = calculateSimilarity(meta1, meta2High);
+    expect(highSim).toBeGreaterThan(0.8); // Actual: ~0.815, which is high but below 0.85 threshold
+    expect(highSim).toBeLessThan(0.85); // This demonstrates why fuzzy matching sometimes fails
+    
+    // Low similarity case - should be below threshold
+    const meta2Low: ParagraphMetadata = {
+      id: 'test-3',
+      content: 'A completely different sentence with no overlap.',
+      context: {
+        'heading-path': ['Different Chapter']
+      }
+    };
+    
+    const lowSim = calculateSimilarity(meta1, meta2Low);
+    expect(lowSim).toBeLessThan(0.2);
+  });
+
+  test('should return 0.0 when no comparable data available', () => {
+    const meta1: ParagraphMetadata = { id: 'test-1' };
+    const meta2: ParagraphMetadata = { id: 'test-2' };
+    
+    // No content, no context - should return 0.0
+    const similarity = calculateSimilarity(meta1, meta2);
+    expect(similarity).toBe(0.0);
+  });
+});
