@@ -912,3 +912,343 @@ describe('matchComments() two-pass matching algorithm', () => {
     expect(result.matched.every(m => m.confidence === 1.0)).toBe(true); // Both exact matches
   });
 });
+
+/**
+ * Build reply structure from flat comment list
+ * (based on base.tsx lines 114-136)
+ */
+function buildReplyStructureCore(allComments: Comment[]): Comment[] {
+  // Create a map to collect replies for each parent
+  const repliesByParent: Record<string, Comment[]> = {};
+
+  // First, create new comment objects (immutable)
+  const newComments = allComments.map((c) => ({ ...c, replies: [] }));
+
+  // Collect replies for each parent ID (using new objects)
+  newComments.forEach((comment) => {
+    if (comment.parent_id) {
+      if (!repliesByParent[comment.parent_id]) {
+        repliesByParent[comment.parent_id] = [];
+      }
+      repliesByParent[comment.parent_id].push(comment);
+    }
+  });
+
+  // Update the new comments with their replies
+  return newComments.map((comment) => ({
+    ...comment,
+    replies: repliesByParent[comment.id] || [],
+  }));
+}
+
+describe('buildReplyStructure() nested comment tree builder', () => {
+  test('should handle simple parent-child replies', () => {
+    const flatComments: Comment[] = [
+      {
+        id: 'parent-1',
+        text: 'Parent comment',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'reply-1',
+        parent_id: 'parent-1',
+        text: 'Reply to parent',
+        author: 'User2',
+        created: '2024-01-02',
+      }
+    ];
+
+    const structured = buildReplyStructureCore(flatComments);
+
+    expect(structured).toHaveLength(2);
+    
+    const parent = structured.find(c => c.id === 'parent-1');
+    const reply = structured.find(c => c.id === 'reply-1');
+    
+    expect(parent?.replies).toHaveLength(1);
+    expect(parent?.replies?.[0].id).toBe('reply-1');
+    expect(reply?.replies).toHaveLength(0);
+  });
+
+  test('should handle nested replies (replies to replies)', () => {
+    const flatComments: Comment[] = [
+      {
+        id: 'parent-1',
+        text: 'Original comment',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'reply-1',
+        parent_id: 'parent-1',
+        text: 'First reply',
+        author: 'User2',
+        created: '2024-01-02',
+      },
+      {
+        id: 'reply-2',
+        parent_id: 'reply-1', // Reply to reply
+        text: 'Reply to first reply',
+        author: 'User3',
+        created: '2024-01-03',
+      }
+    ];
+
+    const structured = buildReplyStructureCore(flatComments);
+
+    const parent = structured.find(c => c.id === 'parent-1');
+    const firstReply = structured.find(c => c.id === 'reply-1');
+    const secondReply = structured.find(c => c.id === 'reply-2');
+
+    expect(parent?.replies).toHaveLength(1);
+    expect(parent?.replies?.[0].id).toBe('reply-1');
+    
+    expect(firstReply?.replies).toHaveLength(1);
+    expect(firstReply?.replies?.[0].id).toBe('reply-2');
+    
+    expect(secondReply?.replies).toHaveLength(0);
+  });
+
+  test('should handle multiple independent reply threads', () => {
+    const flatComments: Comment[] = [
+      {
+        id: 'parent-1',
+        text: 'First parent comment',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'parent-2',
+        text: 'Second parent comment',
+        author: 'User2',
+        created: '2024-01-02',
+      },
+      {
+        id: 'reply-1-1',
+        parent_id: 'parent-1',
+        text: 'Reply to first parent',
+        author: 'User3',
+        created: '2024-01-03',
+      },
+      {
+        id: 'reply-2-1',
+        parent_id: 'parent-2',
+        text: 'Reply to second parent',
+        author: 'User4',
+        created: '2024-01-04',
+      }
+    ];
+
+    const structured = buildReplyStructureCore(flatComments);
+
+    const parent1 = structured.find(c => c.id === 'parent-1');
+    const parent2 = structured.find(c => c.id === 'parent-2');
+
+    expect(parent1?.replies).toHaveLength(1);
+    expect(parent1?.replies?.[0].id).toBe('reply-1-1');
+    
+    expect(parent2?.replies).toHaveLength(1);
+    expect(parent2?.replies?.[0].id).toBe('reply-2-1');
+  });
+
+  test('should handle orphaned replies with invalid parent_id', () => {
+    const flatComments: Comment[] = [
+      {
+        id: 'parent-1',
+        text: 'Parent comment',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'orphaned-reply',
+        parent_id: 'non-existent-parent',
+        text: 'Reply to non-existent parent',
+        author: 'User2',
+        created: '2024-01-02',
+      }
+    ];
+
+    const structured = buildReplyStructureCore(flatComments);
+
+    const parent = structured.find(c => c.id === 'parent-1');
+    const orphaned = structured.find(c => c.id === 'orphaned-reply');
+
+    expect(parent?.replies).toHaveLength(0);
+    expect(orphaned?.replies).toHaveLength(0);
+    // Orphaned reply still exists in the structure but isn't attached anywhere
+    expect(structured).toHaveLength(2);
+  });
+
+  test('should handle out-of-order comments (child before parent)', () => {
+    const flatComments: Comment[] = [
+      {
+        id: 'reply-1',
+        parent_id: 'parent-1',
+        text: 'Reply comes first in array',
+        author: 'User2',
+        created: '2024-01-02',
+      },
+      {
+        id: 'parent-1',
+        text: 'Parent comes second in array',
+        author: 'User1',
+        created: '2024-01-01',
+      }
+    ];
+
+    const structured = buildReplyStructureCore(flatComments);
+
+    const parent = structured.find(c => c.id === 'parent-1');
+    
+    expect(parent?.replies).toHaveLength(1);
+    expect(parent?.replies?.[0].id).toBe('reply-1');
+  });
+
+  test('should handle multiple replies to same parent', () => {
+    const flatComments: Comment[] = [
+      {
+        id: 'parent-1',
+        text: 'Parent comment',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'reply-1',
+        parent_id: 'parent-1',
+        text: 'First reply',
+        author: 'User2',
+        created: '2024-01-02',
+      },
+      {
+        id: 'reply-2',
+        parent_id: 'parent-1',
+        text: 'Second reply',
+        author: 'User3',
+        created: '2024-01-03',
+      },
+      {
+        id: 'reply-3',
+        parent_id: 'parent-1',
+        text: 'Third reply',
+        author: 'User4',
+        created: '2024-01-04',
+      }
+    ];
+
+    const structured = buildReplyStructureCore(flatComments);
+
+    const parent = structured.find(c => c.id === 'parent-1');
+    
+    expect(parent?.replies).toHaveLength(3);
+    expect(parent?.replies?.map(r => r.id)).toEqual(['reply-1', 'reply-2', 'reply-3']);
+  });
+
+  test('should handle deep nesting (multiple levels)', () => {
+    const flatComments: Comment[] = [
+      {
+        id: 'level-0',
+        text: 'Root comment',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'level-1',
+        parent_id: 'level-0',
+        text: 'Level 1 reply',
+        author: 'User2',
+        created: '2024-01-02',
+      },
+      {
+        id: 'level-2',
+        parent_id: 'level-1',
+        text: 'Level 2 reply',
+        author: 'User3',
+        created: '2024-01-03',
+      },
+      {
+        id: 'level-3',
+        parent_id: 'level-2',
+        text: 'Level 3 reply',
+        author: 'User4',
+        created: '2024-01-04',
+      }
+    ];
+
+    const structured = buildReplyStructureCore(flatComments);
+
+    const level0 = structured.find(c => c.id === 'level-0');
+    const level1 = structured.find(c => c.id === 'level-1');
+    const level2 = structured.find(c => c.id === 'level-2');
+    const level3 = structured.find(c => c.id === 'level-3');
+
+    expect(level0?.replies).toHaveLength(1);
+    expect(level0?.replies?.[0].id).toBe('level-1');
+    
+    expect(level1?.replies).toHaveLength(1);
+    expect(level1?.replies?.[0].id).toBe('level-2');
+    
+    expect(level2?.replies).toHaveLength(1);
+    expect(level2?.replies?.[0].id).toBe('level-3');
+    
+    expect(level3?.replies).toHaveLength(0);
+  });
+
+  test('should handle empty input', () => {
+    const structured = buildReplyStructureCore([]);
+    expect(structured).toEqual([]);
+  });
+
+  test('should handle comments with no replies', () => {
+    const flatComments: Comment[] = [
+      {
+        id: 'standalone-1',
+        text: 'Standalone comment 1',
+        author: 'User1',
+        created: '2024-01-01',
+      },
+      {
+        id: 'standalone-2',
+        text: 'Standalone comment 2',
+        author: 'User2',
+        created: '2024-01-02',
+      }
+    ];
+
+    const structured = buildReplyStructureCore(flatComments);
+
+    expect(structured).toHaveLength(2);
+    expect(structured[0].replies).toHaveLength(0);
+    expect(structured[1].replies).toHaveLength(0);
+  });
+
+  test('should preserve original comment properties', () => {
+    const flatComments: Comment[] = [
+      {
+        id: 'parent-1',
+        text: 'Parent comment text',
+        author: 'Author Name',
+        created: '2024-01-01T10:00:00Z',
+        metadata: { id: 'meta-1', content: 'metadata content' },
+      },
+      {
+        id: 'reply-1',
+        parent_id: 'parent-1',
+        text: 'Reply text',
+        author: 'Reply Author',
+        created: '2024-01-02T11:00:00Z',
+      }
+    ];
+
+    const structured = buildReplyStructureCore(flatComments);
+
+    const parent = structured.find(c => c.id === 'parent-1');
+    
+    expect(parent?.text).toBe('Parent comment text');
+    expect(parent?.author).toBe('Author Name');
+    expect(parent?.created).toBe('2024-01-01T10:00:00Z');
+    expect(parent?.metadata?.id).toBe('meta-1');
+    expect(parent?.replies?.[0].text).toBe('Reply text');
+    expect(parent?.replies?.[0].author).toBe('Reply Author');
+  });
+});
