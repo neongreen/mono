@@ -26,20 +26,40 @@ tool schemas and provides surgical TOML editing while preserving formatting.`,
 var jjCmd = &cobra.Command{
 	Use:   "jj [config.path] [value]",
 	Short: "Configure jj (Jujutsu) settings",
-	Long:  `Set configuration values in ~/.config/jj/config.toml using dotted path notation.`,
-	Args:  cobra.ExactArgs(2),
+	Long:  `Get or set configuration values in ~/.config/jj/config.toml using dotted path notation.
+
+Examples:
+  conf jj user.name                    # Get current value
+  conf jj user.name "John Doe"         # Set value
+  conf jj user.email john@example.com  # Set email`,
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
-		value := args[1]
 
-		// Create jj tool with dry-run mode
+		// Create jj tool
 		jjTool, err := jjtool.NewJJToolWithDryRun(dryRun)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize jj tool: %v\n", err)
 			os.Exit(1)
 		}
 
-		// Parse value with type detection
+		// GET operation: only config path provided
+		if len(args) == 1 {
+			value, err := jjTool.GetConfig(configPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading config: %v\n", err)
+				os.Exit(1)
+			}
+			if value == nil {
+				fmt.Printf("%s = (not set)\n", configPath)
+			} else {
+				fmt.Printf("%s = %v\n", configPath, value)
+			}
+			return
+		}
+
+		// SET operation: config path and value provided
+		value := args[1]
 		parsedValue := parseValue(value)
 
 		if dryRun {
@@ -96,11 +116,15 @@ var jjListCmd = &cobra.Command{
 var miseCmd = &cobra.Command{
 	Use:   "mise [config.path] [value]",
 	Short: "Configure mise settings",
-	Long:  `Set configuration values in ~/.config/mise/config.toml using dotted path notation.`,
-	Args:  cobra.ExactArgs(2),
+	Long:  `Get or set configuration values in ~/.config/mise/config.toml using dotted path notation.
+
+Examples:
+  conf mise settings.experimental         # Get current value
+  conf mise settings.experimental true    # Set boolean value
+  conf mise settings.jobs 4               # Set numeric value`,
+	Args:  cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
-		value := args[1]
 
 		// Create mise tool with dry-run mode
 		miseTool, err := misetool.NewMiseToolWithDryRun(dryRun)
@@ -109,7 +133,23 @@ var miseCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Parse value with type detection
+		// GET operation: only config path provided
+		if len(args) == 1 {
+			value, err := miseTool.GetConfig(configPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading config: %v\n", err)
+				os.Exit(1)
+			}
+			if value == nil {
+				fmt.Printf("%s = (not set)\n", configPath)
+			} else {
+				fmt.Printf("%s = %v\n", configPath, value)
+			}
+			return
+		}
+
+		// SET operation: config path and value provided
+		value := args[1]
 		parsedValue := parseValue(value)
 
 		if dryRun {

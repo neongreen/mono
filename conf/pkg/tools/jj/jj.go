@@ -61,7 +61,7 @@ func (j *JJTool) SetDryRun(dryRun bool) {
 func (j *JJTool) SetConfig(path string, value interface{}) error {
 	// Validate the path exists in schema
 	if !j.parser.ValidatePath(path) {
-		return fmt.Errorf("invalid configuration path: %s", path)
+		return j.createInvalidPathError(path)
 	}
 
 	// Set the value using the TOML editor
@@ -76,7 +76,7 @@ func (j *JJTool) SetConfig(path string, value interface{}) error {
 func (j *JJTool) GetConfig(path string) (interface{}, error) {
 	// Validate the path exists in schema
 	if !j.parser.ValidatePath(path) {
-		return nil, fmt.Errorf("invalid configuration path: %s", path)
+		return nil, j.createInvalidPathError(path)
 	}
 
 	// Get the value using the TOML editor
@@ -161,6 +161,47 @@ func (j *JJTool) ListCommonSettings() []CommonSetting {
 			Example:     "1048576",
 		},
 	}
+}
+
+// createInvalidPathError creates a helpful error message for invalid configuration paths
+func (j *JJTool) createInvalidPathError(path string) error {
+	// Get all valid paths from schema
+	allPaths := j.parser.GetAllPaths()
+	
+	// Find similar paths (simple string matching for now)
+	var suggestions []string
+	for _, validPath := range allPaths {
+		if containsSubstring(validPath, path) || containsSubstring(path, validPath) {
+			suggestions = append(suggestions, validPath)
+			if len(suggestions) >= 3 { // Limit suggestions
+				break
+			}
+		}
+	}
+	
+	errorMsg := fmt.Sprintf("invalid configuration path: %s", path)
+	
+	if len(suggestions) > 0 {
+		errorMsg += "\n\nDid you mean one of these?"
+		for _, suggestion := range suggestions {
+			errorMsg += fmt.Sprintf("\n  - %s", suggestion)
+		}
+	} else {
+		errorMsg += "\n\nUse 'conf jj list' to see available configuration options"
+	}
+	
+	return fmt.Errorf("%s", errorMsg)
+}
+
+// containsSubstring checks if s contains substr (case-insensitive)
+func containsSubstring(s, substr string) bool {
+	if len(substr) < 3 { // Avoid too short matches
+		return false
+	}
+	return len(s) >= len(substr) && 
+		   (s == substr || 
+		    (len(s) > len(substr) && s[:len(substr)] == substr) ||
+		    (len(s) > len(substr) && s[len(s)-len(substr):] == substr))
 }
 
 // CommonSetting represents a commonly used configuration setting
