@@ -1,4 +1,3 @@
 {
-  "/api/comments": "/comments",
-  "/api/comments/:id/reply": "/comments"
+  "/api/comments": "/comments"
 }
