@@ -381,3 +381,351 @@ impl CommentsProcessor {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{CommentsConfig, ElementsConfig, UiConfig};
+    use std::path::PathBuf;
+
+    fn create_test_config() -> CommentsConfig {
+        CommentsConfig {
+            api_url: "http://localhost:3000".to_string(),
+            auth_type: "cookie".to_string(),
+            backend_type: "json-server".to_string(),
+            similarity_threshold: 0.85,
+            orphaned_comments_location: "end-of-chapter".to_string(),
+            elements: ElementsConfig {
+                paragraphs: true,
+                lists: true,
+                blockquotes: true,
+                code_blocks: true,
+                tables: true,
+                headings: false,
+            },
+            ui: UiConfig {
+                link_text: "comment".to_string(),
+                show_comment_count: true,
+            },
+        }
+    }
+
+    #[test]
+    fn test_is_commentable_line_paragraph() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec!["This is a paragraph."];
+        
+        assert!(processor.is_commentable_line("This is a paragraph.", &lines, 0));
+        assert!(!processor.is_commentable_line("", &lines, 0));
+        assert!(!processor.is_commentable_line("   ", &lines, 0));
+    }
+
+    #[test]
+    fn test_is_commentable_line_headings() {
+        let mut config = create_test_config();
+        config.elements.headings = true;
+        let processor = CommentsProcessor::new(config);
+        let lines = vec!["# Heading"];
+        
+        assert!(processor.is_commentable_line("# Heading", &lines, 0));
+        assert!(processor.is_commentable_line("## Sub heading", &lines, 0));
+        assert!(processor.is_commentable_line("### Deep heading", &lines, 0));
+        
+        // Test with headings disabled
+        let mut config = create_test_config();
+        config.elements.headings = false;
+        let processor = CommentsProcessor::new(config);
+        assert!(!processor.is_commentable_line("# Heading", &lines, 0));
+    }
+
+    #[test]
+    fn test_is_commentable_line_lists() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec!["- List item"];
+        
+        assert!(processor.is_commentable_line("- List item", &lines, 0));
+        assert!(processor.is_commentable_line("* Another list item", &lines, 0));
+        assert!(processor.is_commentable_line("+ Plus list item", &lines, 0));
+        assert!(processor.is_commentable_line("1. Ordered list item", &lines, 0));
+        assert!(processor.is_commentable_line("42. Numbered item", &lines, 0));
+        
+        // Test with lists disabled
+        let mut config = create_test_config();
+        config.elements.lists = false;
+        let processor = CommentsProcessor::new(config);
+        assert!(!processor.is_commentable_line("- List item", &lines, 0));
+    }
+
+    #[test]
+    fn test_is_commentable_line_blockquotes() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec!["> Quote"];
+        
+        assert!(processor.is_commentable_line("> Quote", &lines, 0));
+        assert!(processor.is_commentable_line("> Another quote", &lines, 0));
+        
+        // Test with blockquotes disabled
+        let mut config = create_test_config();
+        config.elements.blockquotes = false;
+        let processor = CommentsProcessor::new(config);
+        assert!(!processor.is_commentable_line("> Quote", &lines, 0));
+    }
+
+    #[test]
+    fn test_is_commentable_line_code_blocks() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec!["```rust"];
+        
+        assert!(processor.is_commentable_line("```rust", &lines, 0));
+        assert!(processor.is_commentable_line("~~~python", &lines, 0));
+        
+        // Test with code blocks disabled
+        let mut config = create_test_config();
+        config.elements.code_blocks = false;
+        let processor = CommentsProcessor::new(config);
+        assert!(!processor.is_commentable_line("```rust", &lines, 0));
+    }
+
+    #[test]
+    fn test_is_commentable_line_tables() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec!["| Header | Header |"];
+        
+        assert!(processor.is_commentable_line("| Header | Header |", &lines, 0));
+        assert!(processor.is_commentable_line("| Data | Data |", &lines, 0));
+        
+        // Test with tables disabled
+        let mut config = create_test_config();
+        config.elements.tables = false;
+        let processor = CommentsProcessor::new(config);
+        assert!(!processor.is_commentable_line("| Header | Header |", &lines, 0));
+    }
+
+    #[test]
+    fn test_extract_block_paragraph() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec![
+            "This is a paragraph.",
+            "It spans multiple lines.",
+            "",
+            "This is the next paragraph."
+        ];
+        
+        let (content, count) = processor.extract_block(&lines, 0);
+        assert_eq!(content, "This is a paragraph.\nIt spans multiple lines.");
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn test_extract_block_code_block() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec![
+            "```rust",
+            "fn main() {",
+            "    println!(\"Hello\");",
+            "}",
+            "```",
+            "",
+            "Next paragraph."
+        ];
+        
+        let (content, count) = processor.extract_block(&lines, 0);
+        assert_eq!(content, "```rust\nfn main() {\n    println!(\"Hello\");\n}\n```\n");
+        assert_eq!(count, 5);
+    }
+
+    #[test]
+    fn test_extract_block_single_line() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec![
+            "Single line paragraph.",
+            "",
+            "Next paragraph."
+        ];
+        
+        let (content, count) = processor.extract_block(&lines, 0);
+        assert_eq!(content, "Single line paragraph.");
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_get_prev_block_content() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec![
+            "Previous paragraph.",
+            "",
+            "Current paragraph.",
+            "",
+            "Next paragraph."
+        ];
+        
+        let prev = processor.get_prev_block_content(&lines, 2);
+        assert_eq!(prev, Some("Previous paragraph.".to_string()));
+        
+        let no_prev = processor.get_prev_block_content(&lines, 0);
+        assert_eq!(no_prev, None);
+    }
+
+    #[test]
+    fn test_get_next_block_content() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let lines = vec![
+            "Previous paragraph.",
+            "",
+            "Current paragraph.",
+            "",
+            "Next paragraph."
+        ];
+        
+        let next = processor.get_next_block_content(&lines, 3);
+        assert_eq!(next, Some("Next paragraph.".to_string()));
+        
+        let no_next = processor.get_next_block_content(&lines, 5);
+        assert_eq!(no_next, None);
+    }
+
+    #[test]
+    fn test_generate_metadata() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let path = Some(PathBuf::from("chapter1.md"));
+        let heading_stack = vec!["Chapter 1".to_string(), "Section 1".to_string()];
+        
+        let params = MetadataParams {
+            content: "Test content for metadata",
+            block_index: 0,
+            section_index: 2,
+            heading_stack: &heading_stack,
+            path: &path,
+            prev_content: &Some("Previous content".to_string()),
+            next_content: &Some("Next content".to_string()),
+        };
+        
+        let metadata = processor.generate_metadata(&params);
+        
+        // Test ID generation
+        let id = metadata.get("id").unwrap().as_str().unwrap();
+        assert!(id.starts_with("chapter1-md-block-0-"));
+        assert_eq!(id.len(), "chapter1-md-block-0-".len() + 8); // 8 char hash
+        
+        // Test position
+        let position = metadata.get("position").unwrap().as_object().unwrap();
+        assert_eq!(position.get("file").unwrap().as_str().unwrap(), "chapter1.md");
+        assert_eq!(position.get("block-index").unwrap().as_u64().unwrap(), 0);
+        assert_eq!(position.get("section-index").unwrap().as_u64().unwrap(), 2);
+        
+        // Test content
+        assert_eq!(metadata.get("content").unwrap().as_str().unwrap(), "Test content for metadata");
+        
+        // Test context
+        let context = metadata.get("context").unwrap().as_object().unwrap();
+        assert_eq!(context.get("prev").unwrap().as_str().unwrap(), "Previous content");
+        assert_eq!(context.get("next").unwrap().as_str().unwrap(), "Next content");
+        let heading_path = context.get("heading-path").unwrap().as_array().unwrap();
+        assert_eq!(heading_path.len(), 2);
+        assert_eq!(heading_path[0].as_str().unwrap(), "Chapter 1");
+        assert_eq!(heading_path[1].as_str().unwrap(), "Section 1");
+    }
+
+    #[test]
+    fn test_add_comment_link() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let mut metadata = HashMap::new();
+        metadata.insert("id".to_string(), serde_json::json!("test-id-12345678"));
+        
+        let result = processor.add_comment_link("Test paragraph content.", &metadata);
+        
+        assert!(result.contains("Test paragraph content."));
+        assert!(result.contains("data-comment-id=\"test-id-12345678\""));
+        assert!(result.contains("onclick=\"toggleComments('test-id-12345678')"));
+        assert!(result.contains("comment")); // link text
+        assert!(result.contains("comment-link-wrapper"));
+        assert!(result.contains("comment-link"));
+    }
+
+    #[test]
+    fn test_add_comment_link_escapes_metadata() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let mut metadata = HashMap::new();
+        metadata.insert("id".to_string(), serde_json::json!("test-id"));
+        metadata.insert("content".to_string(), serde_json::json!("Content with \"quotes\" & <tags>"));
+        
+        let result = processor.add_comment_link("Test content.", &metadata);
+        
+        // Check that special characters are escaped in the data attribute
+        // The metadata is JSON-encoded then HTML-escaped
+        assert!(result.contains("\\\"quotes\\\"") || result.contains("&quot;quotes&quot;"));
+        assert!(result.contains("&amp;"));
+        assert!(result.contains("&lt;tags&gt;"));
+    }
+
+    #[test]
+    fn test_process_markdown_simple_paragraph() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let content = "This is a simple paragraph.\n\nThis is another paragraph.";
+        let path = Some(PathBuf::from("test.md"));
+        
+        let result = processor.process_markdown(content, &path).unwrap();
+        
+        // Should contain both paragraphs with comment links
+        assert!(result.contains("This is a simple paragraph."));
+        assert!(result.contains("This is another paragraph."));
+        assert_eq!(result.matches("comment-link-wrapper").count(), 2);
+        assert_eq!(result.matches("data-comment-id=").count(), 2);
+    }
+
+    #[test]
+    fn test_process_markdown_with_heading() {
+        let mut config = create_test_config();
+        config.elements.headings = true;
+        let processor = CommentsProcessor::new(config);
+        
+        let content = "# Chapter Title\n\nThis is a paragraph under the heading.";
+        let path = Some(PathBuf::from("test.md"));
+        
+        let result = processor.process_markdown(content, &path).unwrap();
+        
+        // Should have comment links for both heading and paragraph
+        assert_eq!(result.matches("comment-link-wrapper").count(), 2);
+        assert!(result.contains("Chapter Title"));
+        assert!(result.contains("This is a paragraph"));
+    }
+
+    #[test]
+    fn test_process_markdown_code_block_handling() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let content = "Before code.\n\n```rust\nfn main() {\n    // This should not be processed\n}\n```\n\nAfter code.";
+        let path = Some(PathBuf::from("test.md"));
+        
+        let result = processor.process_markdown(content, &path).unwrap();
+        
+        // Should have comment links for commentable blocks
+        // Note: The exact count depends on how the markdown is parsed
+        assert!(result.matches("comment-link-wrapper").count() >= 2);
+        assert!(result.contains("Before code."));
+        assert!(result.contains("After code."));
+        assert!(result.contains("```rust"));
+    }
+
+    #[test]
+    fn test_hash_consistency() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let path = Some(PathBuf::from("test.md"));
+        let heading_stack = vec![];
+        
+        let params = MetadataParams {
+            content: "Same content",
+            block_index: 0,
+            section_index: 0,
+            heading_stack: &heading_stack,
+            path: &path,
+            prev_content: &None,
+            next_content: &None,
+        };
+        
+        let metadata1 = processor.generate_metadata(&params);
+        let metadata2 = processor.generate_metadata(&params);
+        
+        // Same content should generate same ID
+        assert_eq!(metadata1.get("id"), metadata2.get("id"));
+    }
+}
