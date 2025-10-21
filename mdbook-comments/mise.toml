@@ -65,6 +65,10 @@ echo ""
 echo "✨ Full build complete!"
 """
 
+[tasks."test:unit"]
+description = "Run unit tests with Vitest"
+run = "pnpm run test:unit"
+
 [tasks."test:e2e"]
 description = "Run end-to-end tests with Playwright"
 run = """
