@@ -60,6 +60,8 @@ export interface Comment {
   created: string;
   /** ISO 8601 timestamp of last edit (null if never edited) */
   edited_at?: string | null;
+  /** ISO 8601 timestamp of deletion (null if not deleted) */
+  deleted_at?: string | null;
   /** Parent comment ID (null for top-level comments) */
   parent_id: string | null;
   /** Nested replies to this comment */

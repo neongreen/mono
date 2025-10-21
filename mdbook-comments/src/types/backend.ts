@@ -69,6 +69,11 @@ export interface BackendAdapter {
   updateComment(commentId: string, newText: string): Promise<Comment>;
 
   /**
+   * Delete a comment (soft deletion)
+   */
+  deleteComment(commentId: string): Promise<Comment>;
+
+  /**
    * Get the current author name
    *
    * This is used to pre-fill the author field in forms.

@@ -83,6 +83,22 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
     setIsEditing(false);
   };
 
+  const handleDelete = async () => {
+    const confirmDelete = confirm('Are you sure you want to delete this comment? This action cannot be undone.');
+    
+    if (!confirmDelete) {
+      return;
+    }
+
+    try {
+      await backend.deleteComment(comment.id);
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+      alert('Failed to delete comment. Please try again.');
+    }
+  };
+
   return (
     <div class="comment-item" data-comment-id={comment.id}>
       <div class="comment-header">
@@ -102,7 +118,11 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
         </span>
       </div>
       
-      {isEditing ? (
+      {comment.deleted_at ? (
+        <div class="comment-deleted">
+          <em>Comment deleted by author</em>
+        </div>
+      ) : isEditing ? (
         <div class="comment-edit-form">
           <textarea
             class="comment-edit-textarea"
@@ -142,33 +162,49 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
                   {formatRelativeDate(reply.created)}
                 </span>
               </div>
-              <div
-                class="reply-text"
-                dangerouslySetInnerHTML={{ __html: parseMarkdown(reply.text) }}
-              />
+              {reply.deleted_at ? (
+                <div class="reply-deleted">
+                  <em>Reply deleted by author</em>
+                </div>
+              ) : (
+                <div
+                  class="reply-text"
+                  dangerouslySetInnerHTML={{ __html: parseMarkdown(reply.text) }}
+                />
+              )}
             </div>
           ))}
         </div>
       )}
 
       {/* Action buttons */}
-      <div class="comment-actions">
-        <button
-          class="comment-reply-btn"
-          onClick={() => setShowReplyForm(!showReplyForm)}
-        >
-          {showReplyForm ? 'Cancel' : 'Reply'}
-        </button>
-        
-        {!isEditing && (
+      {!comment.deleted_at && (
+        <div class="comment-actions">
           <button
-            class="comment-edit-btn"
-            onClick={() => setIsEditing(true)}
+            class="comment-reply-btn"
+            onClick={() => setShowReplyForm(!showReplyForm)}
           >
-            Edit
+            {showReplyForm ? 'Cancel' : 'Reply'}
           </button>
-        )}
-      </div>
+          
+          {!isEditing && (
+            <>
+              <button
+                class="comment-edit-btn"
+                onClick={() => setIsEditing(true)}
+              >
+                Edit
+              </button>
+              <button
+                class="comment-delete-btn"
+                onClick={handleDelete}
+              >
+                Delete
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Reply form */}
       {showReplyForm && (

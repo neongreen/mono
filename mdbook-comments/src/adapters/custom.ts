@@ -29,6 +29,8 @@ interface CustomBackendComment {
   created: string;
   edited_at?: string | null;
   editedAt?: string | null;
+  deleted_at?: string | null;
+  deletedAt?: string | null;
   'parent-id'?: string | null;
   parent_id?: string | null;
   parentId?: string | null;
@@ -95,6 +97,7 @@ const customBackend: BackendAdapter = {
         text: c.text,
         created: c.created,
         edited_at: c.edited_at || c.editedAt,
+        deleted_at: c.deleted_at || c.deletedAt,
         parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
         replies: c.replies?.map(normalizeComment),
       });
@@ -139,6 +142,8 @@ const customBackend: BackendAdapter = {
       author: c.author,
       text: c.text,
       created: c.created,
+      edited_at: c.edited_at || c.editedAt,
+      deleted_at: c.deleted_at || c.deletedAt,
       parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
       replies: c.replies?.map(normalizeComment),
     });
@@ -184,6 +189,7 @@ const customBackend: BackendAdapter = {
       text: c.text,
       created: c.created,
       edited_at: c.edited_at || c.editedAt,
+      deleted_at: c.deleted_at || c.deletedAt,
       parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
       replies: c.replies?.map(normalizeComment),
     });
@@ -222,6 +228,45 @@ const customBackend: BackendAdapter = {
       text: c.text,
       created: c.created,
       edited_at: c.edited_at || c.editedAt,
+      deleted_at: c.deleted_at || c.deletedAt,
+      parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
+      replies: c.replies?.map(normalizeComment),
+    });
+    
+    return normalizeComment(comment);
+  },
+
+  /**
+   * Delete a comment (soft deletion)
+   */
+  async deleteComment(commentId: string): Promise<Comment> {
+    const response = await fetch(`${config.url}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        deleted_at: new Date().toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete comment');
+    }
+
+    const comment = (await response.json()) as CustomBackendComment;
+
+    // Normalize response
+    const normalizeComment = (c: CustomBackendComment): Comment => ({
+      id: c.id,
+      paragraph_id: c['paragraph-id'] || c.paragraph_id || c.paragraphId || '',
+      metadata: c.metadata,
+      author: c.author,
+      text: c.text,
+      created: c.created,
+      edited_at: c.edited_at || c.editedAt,
+      deleted_at: c.deleted_at || c.deletedAt,
       parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
       replies: c.replies?.map(normalizeComment),
     });
