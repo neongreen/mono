@@ -15,9 +15,86 @@ run = "cargo build --release"
 description = "Run tests"
 run = "cargo test && mise run :test_render ::: :test:e2e"
 
+[tasks."build:all"]
+description = "Build everything: TypeScript, preprocessor, and example book"
+run = """
+set -e
+
+echo "🔨 Building mdbook-comments (full build)..."
+echo ""
+
+# 1. Build TypeScript/JS assets
+echo "📦 Building TypeScript/JS assets..."
+pnpm install
+pnpm build
+echo "✅ JS/TS assets built"
+echo ""
+
+# 2. Build Rust preprocessor
+echo "🦀 Building mdbook-comments preprocessor..."
+cargo build --release
+echo "✅ Preprocessor built"
+echo ""
+
+# 3. Verify preprocessor binary exists
+if [ ! -f "target/release/mdbook-comments" ]; then
+    echo "❌ ERROR: Preprocessor binary not found at target/release/mdbook-comments"
+    exit 1
+fi
+echo "✅ Preprocessor binary verified"
+echo ""
+
+# 4. Build example book with preprocessor in PATH
+echo "📚 Building example book..."
+cd example-book
+rm -rf book
+PATH="../target/release:$PATH" mdbook build
+cd ..
+echo "✅ Example book built"
+echo ""
+
+# 5. Verify the book has embedded assets from preprocessor
+echo "🔍 Verifying embedded assets in book..."
+if ! grep -q "mdbook-comments assets" example-book/book/index.html; then
+    echo "❌ ERROR: Embedded assets marker not found - preprocessor may not have run"
+    exit 1
+fi
+echo "✅ Embedded assets verified"
+echo ""
+
+echo "✨ Full build complete!"
+"""
+
 [tasks."test:e2e"]
 description = "Run end-to-end tests with Playwright"
-run = "SKIP_WEBSERVER=1 pnpm playwright test"
+run = """
+set -e
+
+echo "🧹 Cleaning up test environment..."
+
+# Kill any existing servers on the ports we use
+pkill -f "json-server.*54322" || true
+pkill -f "mdbook serve.*3300" || true
+
+# Also kill any other json-server or mdbook processes that might interfere
+pkill -f "json-server" || true
+pkill -f "mdbook serve" || true
+
+# Clean up test database
+rm -f /tmp/test-db.json
+
+# Wait a moment for processes to fully terminate
+sleep 1
+
+echo "✅ Cleanup complete"
+echo ""
+
+# Build everything fresh
+mise run //mdbook-comments:build:all
+
+# Run tests
+pnpm playwright test
+"""
 
 [tasks.test_render]
 description = "Test that the sample book renders correctly with embedded assets"
