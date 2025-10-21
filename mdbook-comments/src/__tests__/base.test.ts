@@ -76,3 +76,97 @@ describe('tokenize() function', () => {
     expect(result).toEqual(['function', 'calculatesum', 'return']);
   });
 });
+
+/**
+ * Calculate text similarity using simple token-based approach (Jaccard similarity)
+ * (copied from base.tsx line 258)
+ */
+function textSimilarity(text1: string, text2: string): number {
+  const tokens1 = new Set(tokenize(text1));
+  const tokens2 = new Set(tokenize(text2));
+
+  const intersection = new Set(
+    Array.from(tokens1).filter((x) => tokens2.has(x))
+  );
+  const union = new Set([...Array.from(tokens1), ...Array.from(tokens2)]);
+
+  return union.size > 0 ? intersection.size / union.size : 0.0;
+}
+
+describe('textSimilarity() Jaccard similarity function', () => {
+  test('should return 1.0 for identical texts', () => {
+    const similarity = textSimilarity('Hello world', 'Hello world');
+    expect(similarity).toBe(1.0);
+  });
+
+  test('should return 0.0 for completely different texts', () => {
+    const similarity = textSimilarity('hello world', 'foo bar baz');
+    expect(similarity).toBe(0.0);
+  });
+
+  test('should calculate partial overlap correctly', () => {
+    // 'hello world' vs 'hello universe'
+    // tokens1: ['hello', 'world'], tokens2: ['hello', 'universe']
+    // intersection: ['hello'] (size=1), union: ['hello', 'world', 'universe'] (size=3)
+    // similarity = 1/3 ≈ 0.333
+    const similarity = textSimilarity('hello world', 'hello universe');
+    expect(similarity).toBeCloseTo(0.333, 3);
+  });
+
+  test('should handle subset relationship', () => {
+    // 'hello' vs 'hello world'
+    // tokens1: ['hello'], tokens2: ['hello', 'world']
+    // intersection: ['hello'] (size=1), union: ['hello', 'world'] (size=2)
+    // similarity = 1/2 = 0.5
+    const similarity = textSimilarity('hello', 'hello world');
+    expect(similarity).toBe(0.5);
+  });
+
+  test('should be order-independent', () => {
+    const sim1 = textSimilarity('hello world', 'world hello');
+    const sim2 = textSimilarity('world hello', 'hello world');
+    expect(sim1).toBe(1.0);
+    expect(sim2).toBe(1.0);
+    expect(sim1).toBe(sim2);
+  });
+
+  test('should be case-insensitive', () => {
+    const similarity = textSimilarity('Hello World', 'hello world');
+    expect(similarity).toBe(1.0);
+  });
+
+  test('should handle empty strings gracefully', () => {
+    expect(textSimilarity('', 'text')).toBe(0.0);
+    expect(textSimilarity('text', '')).toBe(0.0);
+    expect(textSimilarity('', '')).toBe(0.0);
+  });
+
+  test('should ignore punctuation differences', () => {
+    const similarity = textSimilarity('Hello, world!', 'Hello world');
+    expect(similarity).toBe(1.0);
+  });
+
+  test('should work with real paragraph examples', () => {
+    const original = 'This is a simple introduction to the topic we will discuss.';
+    const modified = 'This is a basic introduction to the subject we will explore.';
+    
+    // Should have high similarity due to shared words: 'this', 'introduction', 'the', 'will'
+    const similarity = textSimilarity(original, modified);
+    expect(similarity).toBeGreaterThan(0.3); // Should have decent overlap
+    expect(similarity).toBeLessThan(1.0); // But not identical
+  });
+
+  test('should handle similarity threshold scenarios', () => {
+    // Test around the 0.85 default threshold used in the app
+    const base = 'The quick brown fox jumps over the lazy dog';
+    
+    // High similarity - actual similarity is ~0.778 (7/9 tokens match)
+    const highSim = textSimilarity(base, 'The quick brown fox jumps over the sleeping dog');
+    expect(highSim).toBeGreaterThan(0.7);
+    expect(highSim).toBeLessThan(0.85); // Just below app threshold as expected
+    
+    // Low similarity - should be below threshold  
+    const lowSim = textSimilarity(base, 'A completely different sentence with no shared words');
+    expect(lowSim).toBeLessThan(0.2);
+  });
+});
