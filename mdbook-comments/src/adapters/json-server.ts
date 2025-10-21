@@ -14,6 +14,21 @@ interface JsonServerConfig {
   url: string;
 }
 
+/**
+ * Raw comment data as received from JSON Server API
+ * Uses kebab-case field names as stored in json-server
+ */
+interface JsonServerComment {
+  id: string;
+  'paragraph-id': string;
+  metadata: ParagraphMetadata;
+  author: string;
+  text: string;
+  created: string;
+  'parent-id': string | null;
+  replies?: JsonServerComment[];
+}
+
 // Configuration (injected via window or use defaults)
 declare global {
   interface Window {
@@ -60,17 +75,30 @@ const jsonServerBackend: BackendAdapter = {
       throw new Error(`Failed to load comments: ${response.statusText}`);
     }
 
-    const comments = (await response.json()) as unknown[];
+    const comments = (await response.json()) as JsonServerComment[];
 
     // Normalize kebab-case to snake_case for internal consistency
-    return comments.map((comment: any) => ({
-      ...comment,
-      paragraph_id: comment['paragraph-id'] || comment.paragraph_id,
-      parent_id: comment['parent-id'] || comment.parent_id,
-      // Keep both formats for compatibility
-      'paragraph-id': comment['paragraph-id'],
-      'parent-id': comment['parent-id'],
-    })) as Comment[];
+    return comments.map((comment: JsonServerComment): Comment => {
+      const normalized: Comment = {
+        id: comment.id,
+        paragraph_id: comment['paragraph-id'],
+        metadata: comment.metadata,
+        author: comment.author,
+        text: comment.text,
+        created: comment.created,
+        parent_id: comment['parent-id'],
+        replies: comment.replies?.map(reply => ({
+          id: reply.id,
+          paragraph_id: reply['paragraph-id'],
+          metadata: reply.metadata,
+          author: reply.author,
+          text: reply.text,
+          created: reply.created,
+          parent_id: reply['parent-id'],
+        })),
+      };
+      return normalized;
+    });
   },
 
   /**
@@ -100,7 +128,27 @@ const jsonServerBackend: BackendAdapter = {
       throw new Error('Failed to post comment');
     }
 
-    return (await response.json()) as Comment;
+    const comment = (await response.json()) as JsonServerComment;
+    
+    // Normalize the response to internal Comment format
+    return {
+      id: comment.id,
+      paragraph_id: comment['paragraph-id'],
+      metadata: comment.metadata,
+      author: comment.author,
+      text: comment.text,
+      created: comment.created,
+      parent_id: comment['parent-id'],
+      replies: comment.replies?.map(reply => ({
+        id: reply.id,
+        paragraph_id: reply['paragraph-id'],
+        metadata: reply.metadata,
+        author: reply.author,
+        text: reply.text,
+        created: reply.created,
+        parent_id: reply['parent-id'],
+      })),
+    };
   },
 
   /**
@@ -120,7 +168,7 @@ const jsonServerBackend: BackendAdapter = {
       throw new Error('Failed to fetch parent comment');
     }
 
-    const parents = await parentResponse.json();
+    const parents = (await parentResponse.json()) as JsonServerComment[];
     const parent = parents[0];
 
     if (!parent) {
@@ -147,7 +195,27 @@ const jsonServerBackend: BackendAdapter = {
       throw new Error('Failed to post reply');
     }
 
-    return (await response.json()) as Comment;
+    const reply = (await response.json()) as JsonServerComment;
+    
+    // Normalize the response to internal Comment format
+    return {
+      id: reply.id,
+      paragraph_id: reply['paragraph-id'],
+      metadata: reply.metadata,
+      author: reply.author,
+      text: reply.text,
+      created: reply.created,
+      parent_id: reply['parent-id'],
+      replies: reply.replies?.map(r => ({
+        id: r.id,
+        paragraph_id: r['paragraph-id'],
+        metadata: r.metadata,
+        author: r.author,
+        text: r.text,
+        created: r.created,
+        parent_id: r['parent-id'],
+      })),
+    };
   },
 
   /**

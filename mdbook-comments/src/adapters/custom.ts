@@ -15,6 +15,25 @@
 import type { BackendAdapter, Comment, ParagraphMetadata } from '../types';
 
 /**
+ * Raw comment data as received from custom backend API
+ * Flexible format that normalizes various naming conventions
+ */
+interface CustomBackendComment {
+  id: string;
+  'paragraph-id'?: string;
+  paragraph_id?: string;
+  paragraphId?: string;
+  metadata: ParagraphMetadata;
+  author: string;
+  text: string;
+  created: string;
+  'parent-id'?: string | null;
+  parent_id?: string | null;
+  parentId?: string | null;
+  replies?: CustomBackendComment[];
+}
+
+/**
  * Custom backend configuration
  */
 interface CustomBackendConfig {
@@ -62,14 +81,22 @@ const customBackend: BackendAdapter = {
       throw new Error(`Failed to load comments: ${response.statusText}`);
     }
 
-    const comments = (await response.json()) as unknown[];
+    const comments = (await response.json()) as CustomBackendComment[];
 
     // Normalize any naming variations to internal format
-    return comments.map((comment: any) => ({
-      ...comment,
-      paragraph_id: comment['paragraph-id'] || comment.paragraph_id,
-      parent_id: comment['parent-id'] || comment.parent_id,
-    })) as Comment[];
+    return comments.map((comment: CustomBackendComment): Comment => {
+      const normalizeComment = (c: CustomBackendComment): Comment => ({
+        id: c.id,
+        paragraph_id: c['paragraph-id'] || c.paragraph_id || c.paragraphId || '',
+        metadata: c.metadata,
+        author: c.author,
+        text: c.text,
+        created: c.created,
+        parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
+        replies: c.replies?.map(normalizeComment),
+      });
+      return normalizeComment(comment);
+    });
   },
 
   /**
@@ -99,14 +126,21 @@ const customBackend: BackendAdapter = {
       throw new Error('Failed to post comment');
     }
 
-    const comment = (await response.json()) as any;
+    const comment = (await response.json()) as CustomBackendComment;
 
     // Normalize response
-    return {
-      ...comment,
-      paragraph_id: comment['paragraph-id'] || comment.paragraph_id,
-      parent_id: comment['parent-id'] || comment.parent_id,
-    } as Comment;
+    const normalizeComment = (c: CustomBackendComment): Comment => ({
+      id: c.id,
+      paragraph_id: c['paragraph-id'] || c.paragraph_id || c.paragraphId || '',
+      metadata: c.metadata,
+      author: c.author,
+      text: c.text,
+      created: c.created,
+      parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
+      replies: c.replies?.map(normalizeComment),
+    });
+    
+    return normalizeComment(comment);
   },
 
   /**
@@ -136,14 +170,21 @@ const customBackend: BackendAdapter = {
       throw new Error('Failed to post reply');
     }
 
-    const reply = (await response.json()) as any;
+    const reply = (await response.json()) as CustomBackendComment;
 
     // Normalize response
-    return {
-      ...reply,
-      paragraph_id: reply['paragraph-id'] || reply.paragraph_id,
-      parent_id: reply['parent-id'] || reply.parent_id,
-    } as Comment;
+    const normalizeComment = (c: CustomBackendComment): Comment => ({
+      id: c.id,
+      paragraph_id: c['paragraph-id'] || c.paragraph_id || c.paragraphId || '',
+      metadata: c.metadata,
+      author: c.author,
+      text: c.text,
+      created: c.created,
+      parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
+      replies: c.replies?.map(normalizeComment),
+    });
+    
+    return normalizeComment(reply);
   },
 
   /**
