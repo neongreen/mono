@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -47,11 +48,24 @@ type IssueKey struct {
 var debugMode bool
 
 var rootCmd = &cobra.Command{
-	Use:   "beads-merge <output> <base> <left> <right>",
-	Short: "3-way merge tool for beads .jsonl issue files",
-	Long: `beads-merge is a 3-way merge tool for beads issue tracker .jsonl files.
+	Use:   "beads-merge",
+	Short: "Tools for working with beads .jsonl issue files",
+	Long: `beads-merge provides tools for working with beads issue tracker .jsonl files.
 
-It intelligently merges issues based on identity (id + created_at + created_by),
+It includes a 3-way merge tool designed to work with jj (Jujutsu) version control,
+and utilities for managing issue files.`,
+	// Allow fallthrough for unknown commands - this enables backwards compatibility
+	// where "beads-merge <output> <base> <left> <right>" still works
+	SilenceUsage:  true,
+	SilenceErrors: true,
+}
+
+var mergeCmd = &cobra.Command{
+	Use:   "merge <output> <base> <left> <right>",
+	Short: "3-way merge tool for beads .jsonl issue files",
+	Long: `3-way merge tool for beads issue tracker .jsonl files.
+
+Intelligently merges issues based on identity (id + created_at + created_by),
 applies field-specific merge rules, combines dependencies, and outputs conflict
 markers for unresolvable conflicts.
 
@@ -168,6 +182,54 @@ Designed to work with jj (Jujutsu) version control as a merge driver.`,
 	},
 }
 
+var dedupCmd = &cobra.Command{
+	Use:   "dedup --canonical=<issue-id> <issue-id> [<issue-id>...]",
+	Short: "Deduplicate issues by replacing duplicate IDs with a canonical ID",
+	Long: `Deduplicate issues by removing duplicate issues and replacing all references
+to their IDs with the canonical issue ID.
+
+This command:
+1. Removes the specified duplicate issues from the file
+2. Replaces all references to duplicate IDs with the canonical ID in:
+   - Dependency lists (issue_id and depends_on_id fields)
+   - Text fields (description, notes, title)
+
+Example:
+  beads-merge dedup --canonical=bd-1 bd-5 bd-7 bd-10 < input.jsonl > output.jsonl
+  
+This removes bd-5, bd-7, and bd-10 from the file and replaces all references to
+those IDs with bd-1.`,
+	Args: cobra.MinimumNArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		canonicalID, _ := cmd.Flags().GetString("canonical")
+		if canonicalID == "" {
+			return fmt.Errorf("--canonical flag is required")
+		}
+
+		duplicateIDs := args
+
+		// Read issues from stdin
+		issues, err := readIssuesFromReader(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("failed to read issues: %w", err)
+		}
+
+		// Perform deduplication
+		dedupedIssues := deduplicateIssues(issues, canonicalID, duplicateIDs)
+
+		// Write to stdout
+		for _, issue := range dedupedIssues {
+			line, err := json.Marshal(issue)
+			if err != nil {
+				return fmt.Errorf("failed to marshal issue %s: %w", issue.ID, err)
+			}
+			fmt.Println(string(line))
+		}
+
+		return nil
+	},
+}
+
 func splitLines(s string) []string {
 	var lines []string
 	start := 0
@@ -184,10 +246,27 @@ func splitLines(s string) []string {
 }
 
 func init() {
-	rootCmd.Flags().BoolVar(&debugMode, "debug", false, "Enable debug output to stderr")
+	// Add flags to merge command
+	mergeCmd.Flags().BoolVar(&debugMode, "debug", false, "Enable debug output to stderr")
+
+	// Add flags to dedup command
+	dedupCmd.Flags().String("canonical", "", "Canonical issue ID to use for all duplicates (required)")
+	dedupCmd.MarkFlagRequired("canonical")
+
+	// Add commands to root
+	rootCmd.AddCommand(mergeCmd)
+	rootCmd.AddCommand(dedupCmd)
 }
 
 func main() {
+	// Check if we're being called with 4 positional args (backwards compatibility)
+	// In that case, invoke merge command directly
+	if len(os.Args) == 5 && !strings.HasPrefix(os.Args[1], "-") && os.Args[1] != "merge" && os.Args[1] != "dedup" && os.Args[1] != "help" && os.Args[1] != "completion" {
+		// Looks like old-style invocation: beads-merge <output> <base> <left> <right>
+		// Insert "merge" as the first argument
+		os.Args = append([]string{os.Args[0], "merge"}, os.Args[1:]...)
+	}
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
@@ -201,8 +280,12 @@ func readIssues(path string) ([]Issue, error) {
 	}
 	defer file.Close()
 
+	return readIssuesFromReader(file)
+}
+
+func readIssuesFromReader(reader *os.File) ([]Issue, error) {
 	var issues []Issue
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(reader)
 	lineNum := 0
 	for scanner.Scan() {
 		lineNum++
@@ -508,4 +591,69 @@ func makeConflictWithBase(base, left, right string) string {
 	}
 	conflict += ">>>>>>> right\n"
 	return conflict
+}
+
+// deduplicateIssues removes duplicate issues and replaces all references to them with the canonical ID
+func deduplicateIssues(issues []Issue, canonicalID string, duplicateIDs []string) []Issue {
+	// Create a set of duplicate IDs for quick lookup
+	duplicateSet := make(map[string]bool)
+	for _, id := range duplicateIDs {
+		duplicateSet[id] = true
+	}
+
+	// Build replacement map
+	replacements := make(map[string]string)
+	for _, id := range duplicateIDs {
+		replacements[id] = canonicalID
+	}
+
+	var result []Issue
+	for _, issue := range issues {
+		// Skip duplicate issues
+		if duplicateSet[issue.ID] {
+			continue
+		}
+
+		// Replace IDs in the issue
+		issue = replaceIDsInIssue(issue, replacements)
+		result = append(result, issue)
+	}
+
+	return result
+}
+
+// replaceIDsInIssue replaces all occurrences of duplicate IDs with the canonical ID
+func replaceIDsInIssue(issue Issue, replacements map[string]string) Issue {
+	// Replace in text fields
+	issue.Title = replaceIDsInString(issue.Title, replacements)
+	issue.Description = replaceIDsInString(issue.Description, replacements)
+	issue.Notes = replaceIDsInString(issue.Notes, replacements)
+
+	// Replace in dependencies
+	for i := range issue.Dependencies {
+		if newID, ok := replacements[issue.Dependencies[i].IssueID]; ok {
+			issue.Dependencies[i].IssueID = newID
+		}
+		if newID, ok := replacements[issue.Dependencies[i].DependsOnID]; ok {
+			issue.Dependencies[i].DependsOnID = newID
+		}
+	}
+
+	return issue
+}
+
+// replaceIDsInString replaces issue ID references in text
+func replaceIDsInString(text string, replacements map[string]string) string {
+	if text == "" {
+		return text
+	}
+
+	result := text
+	for oldID, newID := range replacements {
+		// Replace the ID as a word (to avoid partial matches)
+		// Look for patterns like "bd-123" or "#bd-123" or " bd-123 "
+		result = strings.ReplaceAll(result, oldID, newID)
+	}
+
+	return result
 }

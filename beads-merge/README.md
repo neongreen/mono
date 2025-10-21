@@ -11,13 +11,39 @@ A 3-way merge tool for beads `.jsonl` issue tracker files, designed to work with
 - Combining dependency arrays and removing duplicates
 - Outputting conflict markers for unresolvable conflicts
 
-## Usage
+## Commands
+
+### merge - 3-way merge tool
+
+```bash
+beads-merge merge <output-file> <base-file> <left-file> <right-file>
+```
+
+The tool reads three versions of a `.jsonl` file, performs a 3-way merge, and writes the result to the output file. If there are conflicts, they are written as conflict markers in the output file and the tool exits with code 1.
+
+For backwards compatibility, you can also call it without the `merge` subcommand:
 
 ```bash
 beads-merge <output-file> <base-file> <left-file> <right-file>
 ```
 
-The tool reads three versions of a `.jsonl` file, performs a 3-way merge, and writes the result to the output file. If there are conflicts, they are written as conflict markers in the output file and the tool exits with code 1.
+### dedup - Deduplicate issues
+
+```bash
+beads-merge dedup --canonical=<issue-id> <issue-id> [<issue-id>...] < input.jsonl > output.jsonl
+```
+
+Removes duplicate issues from the file and replaces all references to their IDs with a canonical ID. This includes:
+- Dependencies (both `issue_id` and `depends_on_id` fields)
+- Text fields (title, description, notes)
+
+Example:
+
+```bash
+beads-merge dedup --canonical=bd-1 bd-5 bd-7 bd-10 < issues.jsonl > deduplicated.jsonl
+```
+
+This removes issues bd-5, bd-7, and bd-10 from the file and replaces all references to those IDs with bd-1.
 
 ### Debug Mode
 
@@ -34,7 +60,7 @@ This will output to stderr:
 - Preview of the output file
 - Exit status
 
-### As a jj Merge Tool
+### Using as a jj Merge Tool
 
 Configure in your jj config (e.g., `~/.jjconfig.toml`):
 
@@ -52,6 +78,8 @@ Then use it with:
 ```bash
 jj resolve --tool=beads-merge
 ```
+
+Note: The tool supports both `beads-merge merge ...` and the direct `beads-merge ...` syntax for backwards compatibility with existing configurations.
 
 ## Merge Algorithm
 

@@ -775,3 +775,203 @@ func TestJSONRoundTrip(t *testing.T) {
 		t.Errorf("Dependencies count mismatch: %v != %v", len(decoded.Dependencies), len(original.Dependencies))
 	}
 }
+
+func TestReplaceIDsInString(t *testing.T) {
+	tests := []struct {
+		name         string
+		text         string
+		replacements map[string]string
+		want         string
+	}{
+		{
+			name:         "empty string",
+			text:         "",
+			replacements: map[string]string{"bd-5": "bd-1"},
+			want:         "",
+		},
+		{
+			name:         "no matches",
+			text:         "This is a test with bd-2",
+			replacements: map[string]string{"bd-5": "bd-1"},
+			want:         "This is a test with bd-2",
+		},
+		{
+			name:         "single replacement",
+			text:         "This relates to bd-5",
+			replacements: map[string]string{"bd-5": "bd-1"},
+			want:         "This relates to bd-1",
+		},
+		{
+			name:         "multiple replacements",
+			text:         "This relates to bd-5 and bd-7",
+			replacements: map[string]string{"bd-5": "bd-1", "bd-7": "bd-1"},
+			want:         "This relates to bd-1 and bd-1",
+		},
+		{
+			name:         "replacement in middle of text",
+			text:         "See bd-5 for details",
+			replacements: map[string]string{"bd-5": "bd-1"},
+			want:         "See bd-1 for details",
+		},
+		{
+			name:         "multiple occurrences",
+			text:         "bd-5 is related to bd-5 again",
+			replacements: map[string]string{"bd-5": "bd-1"},
+			want:         "bd-1 is related to bd-1 again",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := replaceIDsInString(tt.text, tt.replacements)
+			if got != tt.want {
+				t.Errorf("replaceIDsInString() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestReplaceIDsInIssue(t *testing.T) {
+	replacements := map[string]string{
+		"bd-5": "bd-1",
+		"bd-7": "bd-1",
+	}
+
+	issue := Issue{
+		ID:          "bd-2",
+		Title:       "Issue referencing bd-5",
+		Description: "This is related to bd-5 and bd-7",
+		Notes:       "See bd-5",
+		Status:      "open",
+		CreatedAt:   "2025-10-16T20:51:29.646949+02:00",
+		CreatedBy:   "user1",
+		Dependencies: []Dependency{
+			{IssueID: "bd-2", DependsOnID: "bd-5", Type: "blocks"},
+			{IssueID: "bd-7", DependsOnID: "bd-3", Type: "related"},
+		},
+	}
+
+	result := replaceIDsInIssue(issue, replacements)
+
+	if result.Title != "Issue referencing bd-1" {
+		t.Errorf("Title not replaced: %v", result.Title)
+	}
+	if result.Description != "This is related to bd-1 and bd-1" {
+		t.Errorf("Description not replaced: %v", result.Description)
+	}
+	if result.Notes != "See bd-1" {
+		t.Errorf("Notes not replaced: %v", result.Notes)
+	}
+
+	// Check dependencies
+	if result.Dependencies[0].DependsOnID != "bd-1" {
+		t.Errorf("Dependency depends_on_id not replaced: %v", result.Dependencies[0].DependsOnID)
+	}
+	if result.Dependencies[1].IssueID != "bd-1" {
+		t.Errorf("Dependency issue_id not replaced: %v", result.Dependencies[1].IssueID)
+	}
+}
+
+func TestDeduplicateIssues(t *testing.T) {
+	issues := []Issue{
+		{
+			ID:          "bd-1",
+			Title:       "Canonical issue",
+			Description: "Main issue",
+			Status:      "open",
+			CreatedAt:   "2025-10-16T20:51:29.646949+02:00",
+			CreatedBy:   "user1",
+		},
+		{
+			ID:          "bd-2",
+			Title:       "Another issue",
+			Description: "References bd-5",
+			Status:      "open",
+			CreatedAt:   "2025-10-16T20:51:30.646949+02:00",
+			CreatedBy:   "user1",
+			Dependencies: []Dependency{
+				{IssueID: "bd-2", DependsOnID: "bd-5", Type: "blocks"},
+			},
+		},
+		{
+			ID:          "bd-5",
+			Title:       "Duplicate issue",
+			Description: "Should be removed",
+			Status:      "open",
+			CreatedAt:   "2025-10-16T20:51:31.646949+02:00",
+			CreatedBy:   "user1",
+		},
+		{
+			ID:          "bd-7",
+			Title:       "Another duplicate",
+			Description: "Also should be removed",
+			Status:      "open",
+			CreatedAt:   "2025-10-16T20:51:32.646949+02:00",
+			CreatedBy:   "user1",
+		},
+		{
+			ID:          "bd-10",
+			Title:       "Issue with dependency",
+			Description: "Depends on bd-7",
+			Status:      "open",
+			CreatedAt:   "2025-10-16T20:51:33.646949+02:00",
+			CreatedBy:   "user1",
+			Dependencies: []Dependency{
+				{IssueID: "bd-10", DependsOnID: "bd-7", Type: "blocks"},
+			},
+		},
+	}
+
+	canonicalID := "bd-1"
+	duplicateIDs := []string{"bd-5", "bd-7"}
+
+	result := deduplicateIssues(issues, canonicalID, duplicateIDs)
+
+	// Should have 3 issues left (bd-1, bd-2, bd-10)
+	if len(result) != 3 {
+		t.Errorf("Expected 3 issues, got %d", len(result))
+	}
+
+	// Find bd-2 and check its dependency
+	var bd2 *Issue
+	for i := range result {
+		if result[i].ID == "bd-2" {
+			bd2 = &result[i]
+			break
+		}
+	}
+	if bd2 == nil {
+		t.Fatal("bd-2 not found in result")
+	}
+	if bd2.Dependencies[0].DependsOnID != "bd-1" {
+		t.Errorf("bd-2 dependency not replaced: %v", bd2.Dependencies[0].DependsOnID)
+	}
+	if bd2.Description != "References bd-1" {
+		t.Errorf("bd-2 description not replaced: %v", bd2.Description)
+	}
+
+	// Find bd-10 and check its dependency
+	var bd10 *Issue
+	for i := range result {
+		if result[i].ID == "bd-10" {
+			bd10 = &result[i]
+			break
+		}
+	}
+	if bd10 == nil {
+		t.Fatal("bd-10 not found in result")
+	}
+	if bd10.Dependencies[0].DependsOnID != "bd-1" {
+		t.Errorf("bd-10 dependency not replaced: %v", bd10.Dependencies[0].DependsOnID)
+	}
+	if bd10.Description != "Depends on bd-1" {
+		t.Errorf("bd-10 description not replaced: %v", bd10.Description)
+	}
+
+	// Verify bd-5 and bd-7 are not in result
+	for _, issue := range result {
+		if issue.ID == "bd-5" || issue.ID == "bd-7" {
+			t.Errorf("Duplicate issue %s should have been removed", issue.ID)
+		}
+	}
+}
