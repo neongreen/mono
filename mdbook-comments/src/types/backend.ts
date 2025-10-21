@@ -64,6 +64,11 @@ export interface BackendAdapter {
   ): Promise<Comment>;
 
   /**
+   * Update an existing comment's text
+   */
+  updateComment(commentId: string, newText: string): Promise<Comment>;
+
+  /**
    * Get the current author name
    *
    * This is used to pre-fill the author field in forms.

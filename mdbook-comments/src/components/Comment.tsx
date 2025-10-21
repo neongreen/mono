@@ -53,10 +53,33 @@ function formatAbsoluteDate(dateString: string): string {
 
 export function Comment({ comment, backend, onUpdate }: CommentProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(comment.text);
 
   const handleReplySubmitted = () => {
     setShowReplyForm(false);
     onUpdate();
+  };
+
+  const handleEditSave = async () => {
+    if (editText.trim() === comment.text.trim()) {
+      setIsEditing(false);
+      return;
+    }
+
+    try {
+      await backend.updateComment(comment.id, editText.trim());
+      setIsEditing(false);
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to update comment:', error);
+      alert('Failed to update comment. Please try again.');
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditText(comment.text);
+    setIsEditing(false);
   };
 
   return (
@@ -70,12 +93,37 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
           title={formatAbsoluteDate(comment.created)}
         >
           {formatRelativeDate(comment.created)}
+          {comment.edited_at && (
+            <span class="edited-indicator" title={`Edited ${formatAbsoluteDate(comment.edited_at)}`}>
+              {' • edited'}
+            </span>
+          )}
         </span>
       </div>
-      <div
-        class="comment-text"
-        dangerouslySetInnerHTML={{ __html: escapeHtml(comment.text) }}
-      />
+      
+      {isEditing ? (
+        <div class="comment-edit-form">
+          <textarea
+            class="comment-edit-textarea"
+            value={editText}
+            onInput={(e) => setEditText((e.target as HTMLTextAreaElement).value)}
+            rows={3}
+          />
+          <div class="comment-edit-buttons">
+            <button class="comment-save-btn" onClick={handleEditSave}>
+              Save
+            </button>
+            <button class="comment-cancel-btn" onClick={handleEditCancel}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          class="comment-text"
+          dangerouslySetInnerHTML={{ __html: escapeHtml(comment.text) }}
+        />
+      )}
 
       {/* Nested replies */}
       {comment.replies && comment.replies.length > 0 && (
@@ -102,13 +150,24 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
         </div>
       )}
 
-      {/* Reply button */}
-      <button
-        class="comment-reply-btn"
-        onClick={() => setShowReplyForm(!showReplyForm)}
-      >
-        {showReplyForm ? 'Cancel' : 'Reply'}
-      </button>
+      {/* Action buttons */}
+      <div class="comment-actions">
+        <button
+          class="comment-reply-btn"
+          onClick={() => setShowReplyForm(!showReplyForm)}
+        >
+          {showReplyForm ? 'Cancel' : 'Reply'}
+        </button>
+        
+        {!isEditing && (
+          <button
+            class="comment-edit-btn"
+            onClick={() => setIsEditing(true)}
+          >
+            Edit
+          </button>
+        )}
+      </div>
 
       {/* Reply form */}
       {showReplyForm && (

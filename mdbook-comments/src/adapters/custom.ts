@@ -27,6 +27,8 @@ interface CustomBackendComment {
   author: string;
   text: string;
   created: string;
+  edited_at?: string | null;
+  editedAt?: string | null;
   'parent-id'?: string | null;
   parent_id?: string | null;
   parentId?: string | null;
@@ -92,6 +94,7 @@ const customBackend: BackendAdapter = {
         author: c.author,
         text: c.text,
         created: c.created,
+        edited_at: c.edited_at || c.editedAt,
         parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
         replies: c.replies?.map(normalizeComment),
       });
@@ -180,11 +183,50 @@ const customBackend: BackendAdapter = {
       author: c.author,
       text: c.text,
       created: c.created,
+      edited_at: c.edited_at || c.editedAt,
       parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
       replies: c.replies?.map(normalizeComment),
     });
     
     return normalizeComment(reply);
+  },
+
+  /**
+   * Update an existing comment's text
+   */
+  async updateComment(commentId: string, newText: string): Promise<Comment> {
+    const response = await fetch(`${config.url}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        text: newText,
+        edited_at: new Date().toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update comment');
+    }
+
+    const comment = (await response.json()) as CustomBackendComment;
+
+    // Normalize response
+    const normalizeComment = (c: CustomBackendComment): Comment => ({
+      id: c.id,
+      paragraph_id: c['paragraph-id'] || c.paragraph_id || c.paragraphId || '',
+      metadata: c.metadata,
+      author: c.author,
+      text: c.text,
+      created: c.created,
+      edited_at: c.edited_at || c.editedAt,
+      parent_id: c['parent-id'] || c.parent_id || c.parentId || null,
+      replies: c.replies?.map(normalizeComment),
+    });
+    
+    return normalizeComment(comment);
   },
 
   /**

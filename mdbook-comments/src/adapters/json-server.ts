@@ -25,6 +25,7 @@ interface JsonServerComment {
   author: string;
   text: string;
   created: string;
+  edited_at?: string | null;
   'parent-id': string | null;
   replies?: JsonServerComment[];
 }
@@ -94,6 +95,7 @@ const jsonServerBackend: BackendAdapter = {
           author: reply.author,
           text: reply.text,
           created: reply.created,
+          edited_at: reply.edited_at,
           parent_id: reply['parent-id'],
         })),
       };
@@ -213,6 +215,51 @@ const jsonServerBackend: BackendAdapter = {
         author: r.author,
         text: r.text,
         created: r.created,
+        parent_id: r['parent-id'],
+      })),
+    };
+  },
+
+  /**
+   * Update an existing comment's text
+   */
+  async updateComment(commentId: string, newText: string): Promise<Comment> {
+    const response = await fetch(`${API_URL}/comments/${commentId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        text: newText,
+        'edited_at': new Date().toISOString(),
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update comment');
+    }
+
+    const comment = (await response.json()) as JsonServerComment;
+    
+    // Normalize the response to internal Comment format
+    return {
+      id: comment.id,
+      paragraph_id: comment['paragraph-id'],
+      metadata: comment.metadata,
+      author: comment.author,
+      text: comment.text,
+      created: comment.created,
+      edited_at: comment.edited_at,
+      parent_id: comment['parent-id'],
+      replies: comment.replies?.map(r => ({
+        id: r.id,
+        paragraph_id: r['paragraph-id'],
+        metadata: r.metadata,
+        author: r.author,
+        text: r.text,
+        created: r.created,
+        edited_at: r.edited_at,
         parent_id: r['parent-id'],
       })),
     };

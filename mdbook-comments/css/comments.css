@@ -111,3 +111,87 @@
 .reply-item:last-child {
     margin-bottom: 0;
 }
+
+/* Comment editing functionality */
+.comment-edit-form {
+    margin-bottom: 12px;
+}
+
+.comment-edit-textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.comment-edit-textarea:focus {
+    outline: none;
+    border-color: #0066cc;
+}
+
+.comment-edit-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.comment-save-btn, .comment-cancel-btn {
+    padding: 6px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.comment-save-btn {
+    background: #0066cc;
+    color: white;
+    border-color: #0066cc;
+}
+
+.comment-save-btn:hover {
+    background: #0052a3;
+    border-color: #0052a3;
+}
+
+.comment-cancel-btn:hover {
+    background: #f5f5f5;
+    border-color: #999;
+}
+
+/* Comment action buttons */
+.comment-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.comment-reply-btn, .comment-edit-btn {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    background: #f8f9fa;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.comment-reply-btn:hover, .comment-edit-btn:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+/* Edited indicator */
+.edited-indicator {
+    color: #888;
+    font-style: italic;
+    cursor: help;
+}
