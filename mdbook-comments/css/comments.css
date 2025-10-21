@@ -195,3 +195,87 @@
     font-style: italic;
     cursor: help;
 }
+
+/* Markdown help text */
+.markdown-help {
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+.markdown-help small {
+    color: #666;
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+/* Markdown content styling */
+.comment-text p, .reply-text p {
+    margin: 0 0 8px 0;
+}
+
+.comment-text p:last-child, .reply-text p:last-child {
+    margin-bottom: 0;
+}
+
+.comment-text code, .reply-text code {
+    background-color: #f5f5f5;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9em;
+    color: #d73a49;
+}
+
+.comment-text pre, .reply-text pre {
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    border-left: 3px solid #0066cc;
+    overflow-x: auto;
+    margin: 8px 0;
+}
+
+.comment-text pre code, .reply-text pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+.comment-text strong, .reply-text strong,
+.comment-text b, .reply-text b {
+    font-weight: 600;
+    color: #333;
+}
+
+.comment-text em, .reply-text em,
+.comment-text i, .reply-text i {
+    font-style: italic;
+    color: #555;
+}
+
+.comment-text a, .reply-text a {
+    color: #0066cc;
+    text-decoration: underline;
+}
+
+.comment-text a:hover, .reply-text a:hover {
+    color: #0052a3;
+}
+
+.comment-text ul, .reply-text ul,
+.comment-text ol, .reply-text ol {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.comment-text li, .reply-text li {
+    margin: 2px 0;
+}
+
+.comment-text blockquote, .reply-text blockquote {
+    margin: 8px 0;
+    padding: 8px 12px;
+    border-left: 3px solid #ddd;
+    background-color: #f9f9f9;
+    color: #666;
+}

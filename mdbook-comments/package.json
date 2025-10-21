@@ -30,6 +30,8 @@
   },
   "dependencies": {
     "@preact/signals": "^2.3.2",
+    "dompurify": "^3.3.0",
+    "marked": "^16.4.1",
     "preact": "^10.27.2"
   }
 }

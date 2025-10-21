@@ -59,6 +59,11 @@ export function ReplyForm({
           disabled={isSubmitting}
           autoFocus
         />
+        <div class="markdown-help">
+          <small>
+            Supports Markdown: **bold**, *italic*, `code`, [links](url)
+          </small>
+        </div>
         <div class="reply-form-actions">
           <button
             type="submit"

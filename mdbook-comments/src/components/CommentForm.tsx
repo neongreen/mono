@@ -95,6 +95,11 @@ export function CommentForm({
           onInput={(e) => setText((e.target as HTMLTextAreaElement).value)}
           disabled={isSubmitting}
         />
+        <div class="markdown-help">
+          <small>
+            Supports Markdown: **bold**, *italic*, `code`, [links](url), and lists
+          </small>
+        </div>
         <button
           type="submit"
           class="comment-submit"

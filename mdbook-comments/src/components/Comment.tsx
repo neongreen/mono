@@ -5,6 +5,7 @@
 import { useState } from 'preact/hooks';
 import { ReplyForm } from './ReplyForm';
 import type { Comment as CommentType, BackendAdapter } from '../types';
+import { parseMarkdown } from '../utils/markdown';
 
 interface CommentProps {
   comment: CommentType;
@@ -121,7 +122,7 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
       ) : (
         <div
           class="comment-text"
-          dangerouslySetInnerHTML={{ __html: escapeHtml(comment.text) }}
+          dangerouslySetInnerHTML={{ __html: parseMarkdown(comment.text) }}
         />
       )}
 
@@ -143,7 +144,7 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
               </div>
               <div
                 class="reply-text"
-                dangerouslySetInnerHTML={{ __html: escapeHtml(reply.text) }}
+                dangerouslySetInnerHTML={{ __html: parseMarkdown(reply.text) }}
               />
             </div>
           ))}
