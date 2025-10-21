@@ -170,3 +170,105 @@ describe('textSimilarity() Jaccard similarity function', () => {
     expect(lowSim).toBeLessThan(0.2);
   });
 });
+
+/**
+ * Calculate array similarity (Jaccard index)
+ * (copied from base.tsx line 284)
+ */
+function arraySimilarity(arr1: string[], arr2: string[]): number {
+  const set1 = new Set(arr1);
+  const set2 = new Set(arr2);
+
+  const intersection = new Set(Array.from(set1).filter((x) => set2.has(x)));
+  const union = new Set([...Array.from(set1), ...Array.from(set2)]);
+
+  return union.size > 0 ? intersection.size / union.size : 0.0;
+}
+
+describe('arraySimilarity() heading path matching', () => {
+  test('should return 1.0 for identical arrays', () => {
+    const arr1 = ['Chapter 1', 'Section A'];
+    const arr2 = ['Chapter 1', 'Section A'];
+    const similarity = arraySimilarity(arr1, arr2);
+    expect(similarity).toBe(1.0);
+  });
+
+  test('should handle different array lengths', () => {
+    const short = ['Chapter 1'];
+    const long = ['Chapter 1', 'Section A'];
+    
+    // intersection: ['Chapter 1'] (size=1), union: ['Chapter 1', 'Section A'] (size=2)
+    // similarity = 1/2 = 0.5
+    const similarity = arraySimilarity(short, long);
+    expect(similarity).toBe(0.5);
+    
+    // Should be symmetric
+    const reverseSim = arraySimilarity(long, short);
+    expect(reverseSim).toBe(0.5);
+  });
+
+  test('should handle completely different arrays', () => {
+    const arr1 = ['Chapter 1'];
+    const arr2 = ['Appendix A'];
+    const similarity = arraySimilarity(arr1, arr2);
+    expect(similarity).toBe(0.0);
+  });
+
+  test('should handle empty arrays', () => {
+    const empty: string[] = [];
+    const nonEmpty = ['Chapter 1'];
+    
+    expect(arraySimilarity(empty, nonEmpty)).toBe(0.0);
+    expect(arraySimilarity(nonEmpty, empty)).toBe(0.0);
+    expect(arraySimilarity(empty, empty)).toBe(0.0);
+  });
+
+  test('should handle reordered arrays differently than sets', () => {
+    // Array similarity uses Set logic, so order doesn't matter
+    const arr1 = ['A', 'B'];
+    const arr2 = ['B', 'A'];
+    const similarity = arraySimilarity(arr1, arr2);
+    expect(similarity).toBe(1.0);
+  });
+
+  test('should handle case and punctuation differences', () => {
+    // Note: This uses string equality, not textSimilarity
+    // So case differences will not match
+    const arr1 = ['Chapter 1: Introduction'];
+    const arr2 = ['chapter 1 introduction']; // Different case and punctuation
+    
+    const similarity = arraySimilarity(arr1, arr2);
+    expect(similarity).toBe(0.0); // No exact string matches
+  });
+
+  test('should handle duplicate elements within arrays', () => {
+    // Sets will deduplicate, so duplicates don't affect similarity
+    const arr1 = ['Chapter 1', 'Chapter 1', 'Section A'];
+    const arr2 = ['Chapter 1', 'Section A'];
+    
+    const similarity = arraySimilarity(arr1, arr2);
+    expect(similarity).toBe(1.0); // Sets are identical after deduplication
+  });
+
+  test('should work with real heading hierarchy examples', () => {
+    const original = ['Getting Started', 'Installation', 'Quick Setup'];
+    const modified = ['Getting Started', 'Setup', 'Quick Setup'];
+    
+    // intersection: ['Getting Started', 'Quick Setup'] (size=2)
+    // union: ['Getting Started', 'Installation', 'Quick Setup', 'Setup'] (size=4)
+    // similarity = 2/4 = 0.5
+    const similarity = arraySimilarity(original, modified);
+    expect(similarity).toBe(0.5);
+  });
+
+  test('should handle partial heading path matches', () => {
+    const longPath = ['Book', 'Part 1', 'Chapter 1', 'Section A'];
+    const shortPath = ['Book', 'Part 1'];
+    
+    // intersection: ['Book', 'Part 1'] (size=2)
+    // union: ['Book', 'Part 1', 'Chapter 1', 'Section A'] (size=4)  
+    // similarity = 2/4 = 0.5
+    const similarity = arraySimilarity(longPath, shortPath);
+    expect(similarity).toBe(0.5);
+  });
+});
