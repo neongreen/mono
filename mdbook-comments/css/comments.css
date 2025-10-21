@@ -52,3 +52,62 @@
     outline: none;
     border-color: #0066cc;
 }
+
+/* Improved author and timestamp styling */
+.comment-header, .reply-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9em;
+}
+
+.comment-author, .reply-author {
+    font-weight: 600;
+    color: #0066cc;
+}
+
+.comment-date, .reply-date {
+    color: #666;
+    font-size: 0.9em;
+    cursor: help;
+    position: relative;
+}
+
+.comment-date:hover, .reply-date:hover {
+    color: #333;
+}
+
+/* Visual separator between author and date */
+.comment-header::after, .reply-header::after {
+    content: "";
+}
+
+.comment-author::after, .reply-author::after {
+    content: "•";
+    margin-left: 4px;
+    color: #ccc;
+    font-weight: normal;
+}
+
+/* Better spacing and typography for comment content */
+.comment-text, .reply-text {
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+/* Style improvements for reply section */
+.comment-replies {
+    margin-left: 20px;
+    border-left: 2px solid #f0f0f0;
+    padding-left: 16px;
+    margin-top: 12px;
+}
+
+.reply-item {
+    margin-bottom: 16px;
+}
+
+.reply-item:last-child {
+    margin-bottom: 0;
+}

@@ -18,21 +18,37 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-function formatDate(dateString: string): string {
+function formatRelativeDate(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
+  const diffWeeks = Math.floor(diffDays / 7);
+  const diffMonths = Math.floor(diffDays / 30);
+  const diffYears = Math.floor(diffDays / 365);
 
   if (diffMins < 1) return 'just now';
   if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-  if (diffHours < 24)
-    return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
   if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  if (diffWeeks < 4) return `${diffWeeks} week${diffWeeks > 1 ? 's' : ''} ago`;
+  if (diffMonths < 12) return `${diffMonths} month${diffMonths > 1 ? 's' : ''} ago`;
+  
+  return `${diffYears} year${diffYears > 1 ? 's' : ''} ago`;
+}
 
-  return date.toLocaleDateString();
+function formatAbsoluteDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'long', 
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
 }
 
 export function Comment({ comment, backend, onUpdate }: CommentProps) {
@@ -49,7 +65,12 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
         <span class="comment-author">
           {escapeHtml(comment.author || 'Anonymous')}
         </span>
-        <span class="comment-date">{formatDate(comment.created)}</span>
+        <span 
+          class="comment-date" 
+          title={formatAbsoluteDate(comment.created)}
+        >
+          {formatRelativeDate(comment.created)}
+        </span>
       </div>
       <div
         class="comment-text"
@@ -65,7 +86,12 @@ export function Comment({ comment, backend, onUpdate }: CommentProps) {
                 <span class="reply-author">
                   {escapeHtml(reply.author || 'Anonymous')}
                 </span>
-                <span class="reply-date">{formatDate(reply.created)}</span>
+                <span 
+                  class="reply-date" 
+                  title={formatAbsoluteDate(reply.created)}
+                >
+                  {formatRelativeDate(reply.created)}
+                </span>
               </div>
               <div
                 class="reply-text"
