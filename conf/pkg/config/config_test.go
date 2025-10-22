@@ -287,3 +287,152 @@ func TestLoadExpandsTildePaths(t *testing.T) {
 		t.Errorf("mise ConfigPath should be expanded to '%s', got '%s'", expectedMisePath, miseTool.ConfigPath)
 	}
 }
+
+func TestPerToolConfigLoading(t *testing.T) {
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "conf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	// Create config directory
+	configDir, err := ConfigDir()
+	if err != nil {
+		t.Fatalf("Failed to get config dir: %v", err)
+	}
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+
+	// Create config.toml with metadata only
+	configToml := `[tools.jj]
+name = 'jj'
+config_path = '~/.config/jj/config.toml'
+schema_path = 'embedded://jj.json'
+`
+	configPath, err := ConfigPath()
+	if err != nil {
+		t.Fatalf("Failed to get config path: %v", err)
+	}
+	if err := os.WriteFile(configPath, []byte(configToml), 0644); err != nil {
+		t.Fatalf("Failed to write config.toml: %v", err)
+	}
+
+	// Create per-tool file jj.toml with values
+	jjToml := `'user.name' = 'Emily'
+'user.email' = 'emily@artyom.me'
+`
+	jjTomlPath := configDir + "/jj.toml"
+	if err := os.WriteFile(jjTomlPath, []byte(jjToml), 0644); err != nil {
+		t.Fatalf("Failed to write jj.toml: %v", err)
+	}
+
+	// Load config
+	config, err := Load()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Verify values were loaded from per-tool file
+	jjTool, exists := config.GetTool("jj")
+	if !exists {
+		t.Fatal("Config should contain jj tool")
+	}
+
+	if jjTool.Values == nil {
+		t.Fatal("jj tool should have Values loaded from per-tool file")
+	}
+
+	if name, ok := jjTool.Values["user.name"]; !ok || name != "Emily" {
+		t.Errorf("Expected user.name to be 'Emily', got %v", name)
+	}
+
+	if email, ok := jjTool.Values["user.email"]; !ok || email != "emily@artyom.me" {
+		t.Errorf("Expected user.email to be 'emily@artyom.me', got %v", email)
+	}
+}
+
+func TestPerToolConfigSaving(t *testing.T) {
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "conf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	// Create config directory
+	configDir, err := ConfigDir()
+	if err != nil {
+		t.Fatalf("Failed to get config dir: %v", err)
+	}
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+
+	// Create empty per-tool file to signal we want per-tool format
+	jjTomlPath := configDir + "/jj.toml"
+	if err := os.WriteFile(jjTomlPath, []byte(""), 0644); err != nil {
+		t.Fatalf("Failed to create jj.toml: %v", err)
+	}
+
+	// Create config with values
+	config := &Config{
+		Tools: map[string]ToolConfig{
+			"jj": {
+				Name:       "jj",
+				ConfigPath: "~/.config/jj/config.toml",
+				SchemaPath: "embedded://jj.json",
+				Values: map[string]interface{}{
+					"user.name":  "Test User",
+					"user.email": "test@example.com",
+				},
+			},
+		},
+	}
+
+	// Save config
+	err = config.Save()
+	if err != nil {
+		t.Fatalf("Failed to save config: %v", err)
+	}
+
+	// Verify values were written to per-tool file
+	jjTomlData, err := os.ReadFile(jjTomlPath)
+	if err != nil {
+		t.Fatalf("Failed to read jj.toml: %v", err)
+	}
+
+	jjTomlStr := string(jjTomlData)
+	if !strings.Contains(jjTomlStr, "Test User") {
+		t.Error("jj.toml should contain user.name value")
+	}
+	if !strings.Contains(jjTomlStr, "test@example.com") {
+		t.Error("jj.toml should contain user.email value")
+	}
+
+	// Verify config.toml doesn't have values section
+	configPath, err := ConfigPath()
+	if err != nil {
+		t.Fatalf("Failed to get config path: %v", err)
+	}
+	configTomlData, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("Failed to read config.toml: %v", err)
+	}
+
+	configTomlStr := string(configTomlData)
+	if strings.Contains(configTomlStr, "Test User") {
+		t.Error("config.toml should not contain values (should be in per-tool file)")
+	}
+}
