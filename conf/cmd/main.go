@@ -657,6 +657,7 @@ func init() {
 	rootCmd.AddCommand(shimsCmd)
 	rootCmd.AddCommand(applyCmd)
 	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(migrateCmd)
 	rootCmd.AddCommand(completionCmd)
 }
 
@@ -788,6 +789,55 @@ Examples:
 	},
 }
 
+var migrateCmd = &cobra.Command{
+	Use:   "migrate [tool]",
+	Short: "Migrate config from centralized to per-tool files",
+	Long: `Convert configuration from centralized format (all values in config.toml)
+to per-tool files format (metadata in config.toml, values in {tool}.toml).
+
+This creates separate TOML files for each tool that uses the tool's native schema.
+For example, jj values will be moved from config.toml to ~/.config/conf/jj.toml.
+
+Examples:
+  conf migrate          # Migrate all tools
+  conf migrate jj       # Migrate only jj config
+  conf migrate --dry-run jj  # Preview what would be migrated`,
+	Args: cobra.MaximumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		conf, err := config.Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to load conf config: %v\n", err)
+			os.Exit(1)
+		}
+
+		var toolsToMigrate []string
+		if len(args) == 1 {
+			toolsToMigrate = []string{args[0]}
+		} else {
+			// Migrate all tools
+			for toolName := range conf.Tools {
+				toolsToMigrate = append(toolsToMigrate, toolName)
+			}
+		}
+
+		for _, toolName := range toolsToMigrate {
+			if err := migrateTool(conf, toolName, dryRun); err != nil {
+				fmt.Fprintf(os.Stderr, "Error migrating %s: %v\n", toolName, err)
+				os.Exit(1)
+			}
+		}
+
+		// Save the updated config (removes values from config.toml)
+		if !dryRun {
+			if err := conf.Save(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to save config: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("\n✓ Migration complete")
+		}
+	},
+}
+
 var statusCmd = &cobra.Command{
 	Use:   "status [tool]",
 	Short: "Show drift between desired and actual state",
@@ -821,6 +871,53 @@ Examples:
 			}
 		}
 	},
+}
+
+// migrateTool migrates a tool's config from centralized to per-tool file
+func migrateTool(conf *config.Config, toolName string, dryRun bool) error {
+	tool, exists := conf.GetTool(toolName)
+	if !exists {
+		return fmt.Errorf("tool %s not configured", toolName)
+	}
+
+	// Check if tool has values to migrate
+	if tool.Values == nil || len(tool.Values) == 0 {
+		fmt.Printf("%s: No values to migrate (already using per-tool file or no values set)\n", toolName)
+		return nil
+	}
+
+	configDir, err := config.ConfigDir()
+	if err != nil {
+		return fmt.Errorf("failed to get config directory: %w", err)
+	}
+
+	perToolPath := fmt.Sprintf("%s/%s.toml", configDir, toolName)
+
+	// Check if per-tool file already exists
+	if _, err := os.Stat(perToolPath); err == nil {
+		fmt.Printf("%s: Per-tool file already exists at %s, skipping\n", toolName, perToolPath)
+		return nil
+	}
+
+	fmt.Printf("Migrating %s configuration to %s\n", toolName, perToolPath)
+	fmt.Printf("  %d values to migrate\n", len(tool.Values))
+
+	if dryRun {
+		fmt.Printf("  Would create: %s\n", perToolPath)
+		for path, value := range tool.Values {
+			fmt.Printf("    %s = %v\n", path, value)
+		}
+	} else {
+		// Create the per-tool file
+		// The savePerToolConfigs will handle writing values to it
+		// We just need to create an empty file so Save() knows to write values there
+		if err := os.WriteFile(perToolPath, []byte(""), 0644); err != nil {
+			return fmt.Errorf("failed to create per-tool file: %w", err)
+		}
+		fmt.Printf("  ✓ Created %s with %d values\n", perToolPath, len(tool.Values))
+	}
+
+	return nil
 }
 
 // applyTool applies desired state for a specific tool
