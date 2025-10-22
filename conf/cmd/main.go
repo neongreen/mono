@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"conf/pkg/config"
+	"conf/pkg/schemas"
 	"conf/pkg/tools"
 	jjtool "conf/pkg/tools/jj"
 	misetool "conf/pkg/tools/mise"
@@ -29,6 +31,126 @@ tool schemas and provides surgical TOML editing while preserving formatting.`,
 
 var jjListFlag bool
 
+// jjCompletion provides schema-aware completion for jj commands
+func jjCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// Create jj tool to access schema
+	jjTool, err := jjtool.NewJJTool()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	switch len(args) {
+	case 0:
+		// First argument: complete config paths from schema
+		settings, err := jjTool.ListAllSettings()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+
+		var completions []string
+		for _, setting := range settings {
+			// Filter by what user has typed so far
+			if strings.HasPrefix(setting.Path, toComplete) {
+				description := setting.Description
+				if description == "" {
+					description = fmt.Sprintf("Type: %s", setting.Type)
+				}
+
+				// Add current value info if set
+				valueInfo := ""
+				if setting.IsSet {
+					valueInfo = fmt.Sprintf(" (current: %v)", setting.CurrentValue)
+				}
+
+				// Format: path<tab>description + value info
+				completion := fmt.Sprintf("%s\t%s%s", setting.Path, description, valueInfo)
+				completions = append(completions, completion)
+			}
+		}
+
+		return completions, cobra.ShellCompDirectiveDefault
+
+	case 1:
+		// Second argument: complete values based on schema info for the given path
+		configPath := args[0]
+
+		// Get property info for this path
+		settings, err := jjTool.ListAllSettings()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+
+		var targetSetting *schemas.SettingInfo
+		for _, setting := range settings {
+			if setting.Path == configPath {
+				targetSetting = &setting
+				break
+			}
+		}
+
+		if targetSetting == nil {
+			return nil, cobra.ShellCompDirectiveDefault
+		}
+
+		var completions []string
+
+		// If setting has enum values, complete with those
+		if len(targetSetting.Enum) > 0 {
+			for _, enumVal := range targetSetting.Enum {
+				if strings.HasPrefix(enumVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tValid enum value", enumVal))
+				}
+			}
+			return completions, cobra.ShellCompDirectiveDefault
+		}
+
+		// Provide type-based suggestions
+		switch targetSetting.Type {
+		case "boolean":
+			for _, val := range []string{"true", "false"} {
+				if strings.HasPrefix(val, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tBoolean value", val))
+				}
+			}
+		case "string":
+			// Show current value as suggestion if set
+			if targetSetting.IsSet && targetSetting.CurrentValue != nil {
+				currentVal := fmt.Sprintf("%v", targetSetting.CurrentValue)
+				if strings.HasPrefix(currentVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tCurrent value", currentVal))
+				}
+			}
+			// Show default value as suggestion if available
+			if targetSetting.Default != nil {
+				defaultVal := fmt.Sprintf("%v", targetSetting.Default)
+				if strings.HasPrefix(defaultVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tDefault value", defaultVal))
+				}
+			}
+		case "integer":
+			// Show current and default values for integers
+			if targetSetting.IsSet && targetSetting.CurrentValue != nil {
+				currentVal := fmt.Sprintf("%v", targetSetting.CurrentValue)
+				if strings.HasPrefix(currentVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tCurrent value", currentVal))
+				}
+			}
+			if targetSetting.Default != nil {
+				defaultVal := fmt.Sprintf("%v", targetSetting.Default)
+				if strings.HasPrefix(defaultVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tDefault value", defaultVal))
+				}
+			}
+		}
+
+		return completions, cobra.ShellCompDirectiveDefault
+
+	default:
+		// No completion for additional arguments
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
 var jjCmd = &cobra.Command{
 	Use:   "jj [config.path] [value]",
 	Short: "Configure jj (Jujutsu) settings",
@@ -39,7 +161,8 @@ Examples:
   conf jj user.name                    # Get current value
   conf jj user.name "John Doe"         # Set value
   conf jj user.email john@example.com  # Set email`,
-	Args: cobra.RangeArgs(0, 2),
+	Args:              cobra.RangeArgs(0, 2),
+	ValidArgsFunction: jjCompletion,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create jj tool
 		jjTool, err := jjtool.NewJJToolWithDryRun(dryRun)
@@ -178,6 +301,59 @@ Examples:
 	},
 }
 
+// miseCompletion provides completion for mise commands
+func miseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// Create mise tool
+	miseTool, err := misetool.NewMiseTool()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	switch len(args) {
+	case 0:
+		// First argument: complete config paths from common settings
+		settings := miseTool.ListCommonSettings()
+		var completions []string
+		for _, setting := range settings {
+			if strings.HasPrefix(setting.Path, toComplete) {
+				completion := fmt.Sprintf("%s\t%s", setting.Path, setting.Description)
+				completions = append(completions, completion)
+			}
+		}
+		return completions, cobra.ShellCompDirectiveDefault
+
+	case 1:
+		// Second argument: provide type-based suggestions
+		configPath := args[0]
+		settings := miseTool.ListCommonSettings()
+
+		for _, setting := range settings {
+			if setting.Path == configPath {
+				switch setting.Type {
+				case "boolean":
+					var completions []string
+					for _, val := range []string{"true", "false"} {
+						if strings.HasPrefix(val, toComplete) {
+							completions = append(completions, fmt.Sprintf("%s\tBoolean value", val))
+						}
+					}
+					return completions, cobra.ShellCompDirectiveDefault
+				case "integer":
+					// Show example as suggestion
+					if strings.HasPrefix(setting.Example, toComplete) {
+						return []string{fmt.Sprintf("%s\tExample value", setting.Example)}, cobra.ShellCompDirectiveDefault
+					}
+				}
+				break
+			}
+		}
+		return nil, cobra.ShellCompDirectiveDefault
+
+	default:
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
 var miseCmd = &cobra.Command{
 	Use:   "mise [config.path] [value]",
 	Short: "Configure mise settings",
@@ -187,7 +363,8 @@ Examples:
   conf mise settings.experimental         # Get current value
   conf mise settings.experimental true    # Set boolean value
   conf mise settings.jobs 4               # Set numeric value`,
-	Args: cobra.RangeArgs(1, 2),
+	Args:              cobra.RangeArgs(1, 2),
+	ValidArgsFunction: miseCompletion,
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
 
@@ -268,6 +445,64 @@ var miseListCmd = &cobra.Command{
 	},
 }
 
+// starshipCompletion provides completion for starship commands
+func starshipCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// Create starship tool
+	starshipTool, err := starshiptool.NewStarshipTool()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	switch len(args) {
+	case 0:
+		// First argument: complete config paths from common settings
+		settings := starshipTool.ListCommonSettings()
+		var completions []string
+		for _, setting := range settings {
+			if strings.HasPrefix(setting.Path, toComplete) {
+				completion := fmt.Sprintf("%s\t%s", setting.Path, setting.Description)
+				completions = append(completions, completion)
+			}
+		}
+		return completions, cobra.ShellCompDirectiveDefault
+
+	case 1:
+		// Second argument: provide type-based suggestions
+		configPath := args[0]
+		settings := starshipTool.ListCommonSettings()
+
+		for _, setting := range settings {
+			if setting.Path == configPath {
+				switch setting.Type {
+				case "boolean":
+					var completions []string
+					for _, val := range []string{"true", "false"} {
+						if strings.HasPrefix(val, toComplete) {
+							completions = append(completions, fmt.Sprintf("%s\tBoolean value", val))
+						}
+					}
+					return completions, cobra.ShellCompDirectiveDefault
+				case "integer":
+					// Show example as suggestion
+					if strings.HasPrefix(setting.Example, toComplete) {
+						return []string{fmt.Sprintf("%s\tExample value", setting.Example)}, cobra.ShellCompDirectiveDefault
+					}
+				case "string":
+					// Show example as suggestion
+					if strings.HasPrefix(setting.Example, toComplete) {
+						return []string{fmt.Sprintf("%s\tExample value", setting.Example)}, cobra.ShellCompDirectiveDefault
+					}
+				}
+				break
+			}
+		}
+		return nil, cobra.ShellCompDirectiveDefault
+
+	default:
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
 var starshipCmd = &cobra.Command{
 	Use:   "starship [config.path] [value]",
 	Short: "Configure starship settings",
@@ -277,7 +512,8 @@ Examples:
   conf starship add_newline              # Get current value
   conf starship add_newline true         # Set boolean value
   conf starship command_timeout 500      # Set timeout value`,
-	Args: cobra.RangeArgs(1, 2),
+	Args:              cobra.RangeArgs(1, 2),
+	ValidArgsFunction: starshipCompletion,
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
 
@@ -332,19 +568,51 @@ Examples:
 
 var completionCmd = &cobra.Command{
 	Use:   "completion [bash|zsh|fish]",
-	Short: "Generate shell completion scripts",
-	Args:  cobra.ExactArgs(1),
+	Short: "Generate schema-aware shell completion scripts",
+	Long: `Generate shell completion scripts with intelligent schema-aware suggestions.
+
+The completion system provides:
+- Configuration path completion from actual schemas 
+- Type-aware value suggestions (boolean, enum, etc.)
+- Current value display for existing settings
+- Descriptions for all configuration options
+
+Installation:
+  # Bash
+  conf completion bash > /etc/bash_completion.d/conf
+  # or for user-only:
+  conf completion bash > ~/.local/share/bash-completion/completions/conf
+
+  # Zsh  
+  conf completion zsh > ~/.oh-my-zsh/completions/_conf
+  # or add to fpath and autoload
+
+  # Fish
+  conf completion fish > ~/.config/fish/completions/conf.fish
+
+Then restart your shell or source the completion file.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		shell := args[0]
 		switch shell {
 		case "bash":
+			fmt.Fprintf(os.Stderr, "# conf schema-aware completion for bash\n")
+			fmt.Fprintf(os.Stderr, "# Generated by: conf completion bash\n")
+			fmt.Fprintf(os.Stderr, "# Install with: conf completion bash > ~/.local/share/bash-completion/completions/conf\n\n")
 			rootCmd.GenBashCompletion(os.Stdout)
 		case "zsh":
+			fmt.Fprintf(os.Stderr, "# conf schema-aware completion for zsh\n")
+			fmt.Fprintf(os.Stderr, "# Generated by: conf completion zsh\n")
+			fmt.Fprintf(os.Stderr, "# Install with: conf completion zsh > ~/.oh-my-zsh/completions/_conf\n\n")
 			rootCmd.GenZshCompletion(os.Stdout)
 		case "fish":
+			fmt.Fprintf(os.Stderr, "# conf schema-aware completion for fish\n")
+			fmt.Fprintf(os.Stderr, "# Generated by: conf completion fish\n")
+			fmt.Fprintf(os.Stderr, "# Install with: conf completion fish > ~/.config/fish/completions/conf.fish\n\n")
 			rootCmd.GenFishCompletion(os.Stdout, true)
 		default:
 			fmt.Printf("Unsupported shell: %s\n", shell)
+			fmt.Println("\nSupported shells: bash, zsh, fish")
 			os.Exit(1)
 		}
 	},
