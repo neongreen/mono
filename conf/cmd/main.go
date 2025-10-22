@@ -850,6 +850,14 @@ This command downloads config from iCloud, merges with local config, and uploads
 the merged result back to iCloud. Conflicts are resolved using Last-Write-Wins
 based on file modification times.
 
+iCloud Drive location:
+  ~/Library/Mobile Documents/com~apple~CloudDocs/conf/
+
+  Tool configs are stored as:
+    - jj.toml (for jj config)
+    - mise.toml (for mise config)
+    - etc.
+
 Examples:
   conf sync           # Sync all tools
   conf sync jj        # Sync only jj config
