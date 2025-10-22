@@ -27,25 +27,70 @@ tool schemas and provides surgical TOML editing while preserving formatting.`,
 	},
 }
 
+var jjListFlag bool
+
 var jjCmd = &cobra.Command{
 	Use:   "jj [config.path] [value]",
 	Short: "Configure jj (Jujutsu) settings",
 	Long: `Get or set configuration values in ~/.config/jj/config.toml using dotted path notation.
 
 Examples:
+  conf jj --list                       # List all available settings with current values  
   conf jj user.name                    # Get current value
   conf jj user.name "John Doe"         # Set value
   conf jj user.email john@example.com  # Set email`,
-	Args: cobra.RangeArgs(1, 2),
+	Args: cobra.RangeArgs(0, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		configPath := args[0]
-
 		// Create jj tool
 		jjTool, err := jjtool.NewJJToolWithDryRun(dryRun)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize jj tool: %v\n", err)
 			os.Exit(1)
 		}
+
+		// Handle --list flag
+		if jjListFlag {
+			settings, err := jjTool.ListAllSettings()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to list settings: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Println("All jj configuration settings:")
+			fmt.Println()
+
+			for _, setting := range settings {
+				fmt.Printf("  %s\n", setting.Path)
+				fmt.Printf("    Type: %s\n", setting.Type)
+				if setting.Description != "" {
+					fmt.Printf("    Description: %s\n", setting.Description)
+				}
+				if setting.Default != nil {
+					fmt.Printf("    Default: %v\n", setting.Default)
+				}
+				if len(setting.Enum) > 0 {
+					fmt.Printf("    Valid values: %v\n", setting.Enum)
+				}
+
+				if setting.IsSet {
+					fmt.Printf("    Current value: %v ✓\n", setting.CurrentValue)
+				} else {
+					fmt.Printf("    Current value: (not set)\n")
+				}
+				fmt.Println()
+			}
+
+			fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
+			return
+		}
+
+		// Require arguments when not listing
+		if len(args) == 0 {
+			fmt.Fprintf(os.Stderr, "Error: config path required (use --list to see available options)\n")
+			os.Exit(1)
+		}
+
+		configPath := args[0]
 
 		// GET operation: only config path provided
 		if len(args) == 1 {
@@ -127,34 +172,6 @@ Examples:
 
 			fmt.Printf("✓ Set jj config: %s = %v\n", configPath, parsedValue)
 			fmt.Printf("✓ Recorded in conf state\n")
-		}
-
-		fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
-	},
-}
-
-var jjListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List common jj configuration options",
-	Long:  `Display a list of commonly used jj configuration options with descriptions and examples.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		jjTool, err := jjtool.NewJJTool()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: Failed to initialize jj tool: %v\n", err)
-			os.Exit(1)
-		}
-
-		settings := jjTool.ListCommonSettings()
-
-		fmt.Println("Common jj configuration settings:")
-		fmt.Println()
-
-		for _, setting := range settings {
-			fmt.Printf("  %s\n", setting.Path)
-			fmt.Printf("    Type: %s\n", setting.Type)
-			fmt.Printf("    Description: %s\n", setting.Description)
-			fmt.Printf("    Example: %s\n", setting.Example)
-			fmt.Println()
 		}
 
 		fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
@@ -358,7 +375,9 @@ func init() {
 	// Add dry-run flag to root command
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would be changed without making any modifications")
 
-	jjCmd.AddCommand(jjListCmd)
+	// Add --list flag to jj command
+	jjCmd.Flags().BoolVar(&jjListFlag, "list", false, "List all available jj configuration settings with current values")
+
 	miseCmd.AddCommand(miseListCmd)
 
 	// Add shims subcommands

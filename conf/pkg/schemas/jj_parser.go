@@ -237,6 +237,71 @@ type PropertyInfo struct {
 	Enum        []string
 }
 
+// SettingInfo contains comprehensive information about a setting including current value
+type SettingInfo struct {
+	Path         string
+	Type         string
+	Description  string
+	Default      interface{}
+	Enum         []string
+	CurrentValue interface{}
+	IsSet        bool
+}
+
+// GetAllSettingsWithInfo returns comprehensive information about all settings in the schema
+func (p *JJSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
+	var settings []SettingInfo
+
+	properties, ok := p.schema["properties"].(map[string]interface{})
+	if !ok {
+		return settings
+	}
+
+	settings = p.collectAllSettingsWithInfo(properties, "")
+
+	// Sort by path for consistent output
+	sort.Slice(settings, func(i, j int) bool {
+		return settings[i].Path < settings[j].Path
+	})
+
+	return settings
+}
+
+// collectAllSettingsWithInfo recursively collects all settings with their information
+func (p *JJSchemaParser) collectAllSettingsWithInfo(properties map[string]interface{}, prefix string) []SettingInfo {
+	var settings []SettingInfo
+
+	for name, prop := range properties {
+		var currentPath string
+		if prefix == "" {
+			currentPath = name
+		} else {
+			currentPath = prefix + "." + name
+		}
+
+		if propMap, ok := prop.(map[string]interface{}); ok {
+			// Add this setting to the list
+			setting := SettingInfo{
+				Path:        currentPath,
+				Type:        getTypeFromProperty(propMap),
+				Description: getDescriptionFromProperty(propMap),
+				Default:     getDefaultFromProperty(propMap),
+				Enum:        getEnumFromProperty(propMap),
+				// CurrentValue and IsSet will be filled in by the caller
+			}
+			settings = append(settings, setting)
+
+			// Recursively collect nested settings
+			if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+				nestedSettings := p.collectAllSettingsWithInfo(nestedProps, currentPath)
+				settings = append(settings, nestedSettings...)
+			}
+		}
+	}
+
+	return settings
+}
+
 // Helper functions to extract information from property maps
 func getTypeFromProperty(prop map[string]interface{}) string {
 	if t, ok := prop["type"].(string); ok {

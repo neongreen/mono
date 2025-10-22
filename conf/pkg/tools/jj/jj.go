@@ -163,6 +163,25 @@ func (j *JJTool) ListCommonSettings() []CommonSetting {
 	}
 }
 
+// ListAllSettings returns comprehensive information about all jj settings from schema
+func (j *JJTool) ListAllSettings() ([]schemas.SettingInfo, error) {
+	// Get all settings from schema
+	schemaSettings := j.parser.GetAllSettingsWithInfo()
+
+	// Enhance with current values
+	for i := range schemaSettings {
+		currentValue, err := j.editor.GetValue(schemaSettings[i].Path)
+		if err == nil && currentValue != nil {
+			schemaSettings[i].CurrentValue = currentValue
+			schemaSettings[i].IsSet = true
+		} else {
+			schemaSettings[i].IsSet = false
+		}
+	}
+
+	return schemaSettings, nil
+}
+
 // createInvalidPathError creates a helpful error message for invalid configuration paths
 func (j *JJTool) createInvalidPathError(path string) error {
 	// Get all valid paths from schema
