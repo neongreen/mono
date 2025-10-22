@@ -59,6 +59,10 @@ func (e *TOMLEditor) SetValue(path string, value interface{}) error {
 		if err := toml.Unmarshal(content, &data); err != nil {
 			return fmt.Errorf("failed to parse existing TOML: %w", err)
 		}
+		// Ensure data is never nil, even if TOML only contains comments
+		if data == nil {
+			data = make(map[string]interface{})
+		}
 	} else {
 		data = make(map[string]interface{})
 	}
@@ -214,8 +218,9 @@ func setNestedValue(data map[string]interface{}, path string, value interface{})
 				current = current[key].(map[string]interface{})
 			}
 		} else {
-			current[key] = make(map[string]interface{})
-			current = current[key].(map[string]interface{})
+			newMap := make(map[string]interface{})
+			current[key] = newMap
+			current = newMap
 		}
 	}
 

@@ -41,6 +41,10 @@ func DefaultConfig() *Config {
 				ConfigPath: filepath.Join(homeDir, ".config", "mise", "config.toml"),
 				SchemaPath: "embedded://mise.toml",
 			},
+			"starship": {
+				Name:       "starship",
+				ConfigPath: filepath.Join(homeDir, ".config", "starship.toml"),
+			},
 		},
 	}
 }
@@ -142,12 +146,12 @@ func (c *Config) SetToolValue(toolName, path string, value interface{}) {
 	if c.Tools == nil {
 		c.Tools = make(map[string]ToolConfig)
 	}
-	
+
 	tool := c.Tools[toolName]
 	if tool.Values == nil {
 		tool.Values = make(map[string]interface{})
 	}
-	
+
 	tool.Values[path] = value
 	c.Tools[toolName] = tool
 }
@@ -158,7 +162,7 @@ func (c *Config) GetToolValue(toolName, path string) (interface{}, bool) {
 	if !exists || tool.Values == nil {
 		return nil, false
 	}
-	
+
 	value, exists := tool.Values[path]
 	return value, exists
 }
@@ -169,7 +173,7 @@ func (c *Config) UnsetToolValue(toolName, path string) {
 	if !exists || tool.Values == nil {
 		return
 	}
-	
+
 	delete(tool.Values, path)
 	c.Tools[toolName] = tool
 }

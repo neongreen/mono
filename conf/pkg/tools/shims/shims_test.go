@@ -286,7 +286,7 @@ func TestShimsTool_ValidateShimName(t *testing.T) {
 	invalidNames := map[string]string{
 		"":          "empty",
 		"test/path": "contains slash",
-		"test\\win": "contains backslash", 
+		"test\\win": "contains backslash",
 		".hidden":   "starts with dot",
 	}
 

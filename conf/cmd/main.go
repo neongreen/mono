@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"conf/pkg/config"
+	"conf/pkg/tools"
 	jjtool "conf/pkg/tools/jj"
 	misetool "conf/pkg/tools/mise"
 	shimstool "conf/pkg/tools/shims"
@@ -29,13 +30,13 @@ tool schemas and provides surgical TOML editing while preserving formatting.`,
 var jjCmd = &cobra.Command{
 	Use:   "jj [config.path] [value]",
 	Short: "Configure jj (Jujutsu) settings",
-	Long:  `Get or set configuration values in ~/.config/jj/config.toml using dotted path notation.
+	Long: `Get or set configuration values in ~/.config/jj/config.toml using dotted path notation.
 
 Examples:
   conf jj user.name                    # Get current value
   conf jj user.name "John Doe"         # Set value
   conf jj user.email john@example.com  # Set email`,
-	Args:  cobra.RangeArgs(1, 2),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
 
@@ -163,13 +164,13 @@ var jjListCmd = &cobra.Command{
 var miseCmd = &cobra.Command{
 	Use:   "mise [config.path] [value]",
 	Short: "Configure mise settings",
-	Long:  `Get or set configuration values in ~/.config/mise/config.toml using dotted path notation.
+	Long: `Get or set configuration values in ~/.config/mise/config.toml using dotted path notation.
 
 Examples:
   conf mise settings.experimental         # Get current value
   conf mise settings.experimental true    # Set boolean value
   conf mise settings.jobs 4               # Set numeric value`,
-	Args:  cobra.RangeArgs(1, 2),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
 
@@ -253,13 +254,13 @@ var miseListCmd = &cobra.Command{
 var starshipCmd = &cobra.Command{
 	Use:   "starship [config.path] [value]",
 	Short: "Configure starship settings",
-	Long:  `Get or set configuration values in ~/.config/starship.toml using dotted path notation.
+	Long: `Get or set configuration values in ~/.config/starship.toml using dotted path notation.
 
 Examples:
   conf starship add_newline              # Get current value
   conf starship add_newline true         # Set boolean value
   conf starship command_timeout 500      # Set timeout value`,
-	Args:  cobra.RangeArgs(1, 2),
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		configPath := args[0]
 
@@ -359,7 +360,7 @@ func init() {
 
 	jjCmd.AddCommand(jjListCmd)
 	miseCmd.AddCommand(miseListCmd)
-	
+
 	// Add shims subcommands
 	shimsCmd.AddCommand(shimsCreateCmd)
 	shimsCmd.AddCommand(shimsRemoveCmd)
@@ -384,7 +385,7 @@ func main() {
 var shimsCmd = &cobra.Command{
 	Use:   "shims",
 	Short: "Manage command shims",
-	Long:  `Create and manage executable command shims in ~/.local/bin/conf-shims/.
+	Long: `Create and manage executable command shims in ~/.local/bin/conf-shims/.
 	
 Shims are executable scripts that act as aliases for longer commands.
 They work across all shells (bash, zsh, fish) without modifying shell config files.
@@ -466,11 +467,10 @@ var shimsRemoveCmd = &cobra.Command{
 	},
 }
 
-
 var applyCmd = &cobra.Command{
 	Use:   "apply [tool]",
 	Short: "Apply desired state to target configuration files",
-	Long:  `Sync the desired state from conf config to target files.
+	Long: `Sync the desired state from conf config to target files.
 
 Examples:
   conf apply          # Apply all tools
@@ -506,7 +506,7 @@ Examples:
 var statusCmd = &cobra.Command{
 	Use:   "status [tool]",
 	Short: "Show drift between desired and actual state",
-	Long:  `Compare desired state in conf config with actual values in target files.
+	Long: `Compare desired state in conf config with actual values in target files.
 
 Examples:
   conf status         # Show status for all tools
@@ -551,7 +551,7 @@ func applyTool(conf *config.Config, toolName string, dryRun bool) error {
 	}
 
 	fmt.Printf("Applying %s configuration...\n", toolName)
-	
+
 	for path, value := range tool.Values {
 		if dryRun {
 			fmt.Printf("  Would set %s.%s = %v\n", toolName, path, value)
@@ -562,34 +562,13 @@ func applyTool(conf *config.Config, toolName string, dryRun bool) error {
 			fmt.Printf("  ✓ Set %s.%s = %v\n", toolName, path, value)
 		}
 	}
-	
+
 	return nil
 }
 
 // applyToolValue applies a single configuration value to a tool
 func applyToolValue(toolName, path string, value interface{}) error {
-	switch toolName {
-	case "jj":
-		jjTool, err := jjtool.NewJJTool()
-		if err != nil {
-			return err
-		}
-		return jjTool.SetConfig(path, value)
-	case "mise":
-		miseTool, err := misetool.NewMiseTool()
-		if err != nil {
-			return err
-		}
-		return miseTool.SetConfig(path, value)
-	case "starship":
-		starshipTool, err := starshiptool.NewStarshipTool()
-		if err != nil {
-			return err
-		}
-		return starshipTool.SetConfig(path, value)
-	default:
-		return fmt.Errorf("unknown tool: %s", toolName)
-	}
+	return tools.ApplyToolValue(toolName, path, value)
 }
 
 // showToolStatus shows drift status for a specific tool
@@ -600,7 +579,7 @@ func showToolStatus(conf *config.Config, toolName string) error {
 	}
 
 	fmt.Printf("%s status:\n", toolName)
-	
+
 	if tool.Values == nil || len(tool.Values) == 0 {
 		fmt.Printf("  No managed values\n")
 		return nil
@@ -629,32 +608,11 @@ func showToolStatus(conf *config.Config, toolName string) error {
 	if !hasChanges {
 		fmt.Printf("  All values in sync\n")
 	}
-	
+
 	return nil
 }
 
 // getActualValue gets the actual value from a tool config file
 func getActualValue(toolName, path string) (interface{}, error) {
-	switch toolName {
-	case "jj":
-		jjTool, err := jjtool.NewJJTool()
-		if err != nil {
-			return nil, err
-		}
-		return jjTool.GetConfig(path)
-	case "mise":
-		miseTool, err := misetool.NewMiseTool()
-		if err != nil {
-			return nil, err
-		}
-		return miseTool.GetConfig(path)
-	case "starship":
-		starshipTool, err := starshiptool.NewStarshipTool()
-		if err != nil {
-			return nil, err
-		}
-		return starshipTool.GetConfig(path)
-	default:
-		return nil, fmt.Errorf("unknown tool: %s", toolName)
-	}
+	return tools.GetActualValue(toolName, path)
 }

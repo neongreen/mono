@@ -167,7 +167,7 @@ func (j *JJTool) ListCommonSettings() []CommonSetting {
 func (j *JJTool) createInvalidPathError(path string) error {
 	// Get all valid paths from schema
 	allPaths := j.parser.GetAllPaths()
-	
+
 	// Find similar paths (simple string matching for now)
 	var suggestions []string
 	for _, validPath := range allPaths {
@@ -178,9 +178,9 @@ func (j *JJTool) createInvalidPathError(path string) error {
 			}
 		}
 	}
-	
+
 	errorMsg := fmt.Sprintf("invalid configuration path: %s", path)
-	
+
 	if len(suggestions) > 0 {
 		errorMsg += "\n\nDid you mean one of these?"
 		for _, suggestion := range suggestions {
@@ -189,7 +189,7 @@ func (j *JJTool) createInvalidPathError(path string) error {
 	} else {
 		errorMsg += "\n\nUse 'conf jj list' to see available configuration options"
 	}
-	
+
 	return fmt.Errorf("%s", errorMsg)
 }
 
@@ -198,10 +198,10 @@ func containsSubstring(s, substr string) bool {
 	if len(substr) < 3 { // Avoid too short matches
 		return false
 	}
-	return len(s) >= len(substr) && 
-		   (s == substr || 
-		    (len(s) > len(substr) && s[:len(substr)] == substr) ||
-		    (len(s) > len(substr) && s[len(s)-len(substr):] == substr))
+	return len(s) >= len(substr) &&
+		(s == substr ||
+			(len(s) > len(substr) && s[:len(substr)] == substr) ||
+			(len(s) > len(substr) && s[len(s)-len(substr):] == substr))
 }
 
 // CommonSetting represents a commonly used configuration setting

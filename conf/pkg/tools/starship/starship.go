@@ -120,7 +120,7 @@ func (s *StarshipTool) isValidPath(path string) bool {
 	if path == "" {
 		return false
 	}
-	
+
 	// Allow any dotted path for starship (it's very flexible)
 	return true
 }

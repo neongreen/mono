@@ -248,7 +248,6 @@ func splitPath(path string) []string {
 	return strings.Split(path, ".")
 }
 
-
 // createInvalidPathError creates a helpful error message for invalid configuration paths
 func (m *MiseTool) createInvalidPathError(path string) error {
 	errorMsg := fmt.Sprintf("invalid configuration path: %s", path)
@@ -261,8 +260,8 @@ func containsSubstring(s, substr string) bool {
 	if len(substr) < 3 { // Avoid too short matches
 		return false
 	}
-	return len(s) >= len(substr) && 
-		   (s == substr || 
-		    (len(s) > len(substr) && s[:len(substr)] == substr) ||
-		    (len(s) > len(substr) && s[len(s)-len(substr):] == substr))
+	return len(s) >= len(substr) &&
+		(s == substr ||
+			(len(s) > len(substr) && s[:len(substr)] == substr) ||
+			(len(s) > len(substr) && s[len(s)-len(substr):] == substr))
 }

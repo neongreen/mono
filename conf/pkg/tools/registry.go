@@ -36,7 +36,7 @@ func GetTool(toolName string) (Tool, error) {
 	if !exists {
 		return nil, fmt.Errorf("unknown tool: %s", toolName)
 	}
-	
+
 	return factory()
 }
 
@@ -55,7 +55,7 @@ func ApplyToolValue(toolName, path string, value interface{}) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return tool.SetConfig(path, value)
 }
 
@@ -65,6 +65,6 @@ func GetActualValue(toolName, path string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return tool.GetConfig(path)
 }

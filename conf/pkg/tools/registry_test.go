@@ -6,23 +6,23 @@ import (
 
 func TestGetSupportedTools(t *testing.T) {
 	tools := GetSupportedTools()
-	
+
 	expectedTools := map[string]bool{
 		"jj":       true,
 		"mise":     true,
 		"starship": true,
 	}
-	
+
 	if len(tools) != len(expectedTools) {
 		t.Errorf("Expected %d tools, got %d", len(expectedTools), len(tools))
 	}
-	
+
 	for _, tool := range tools {
 		if !expectedTools[tool] {
 			t.Errorf("Unexpected tool: %s", tool)
 		}
 	}
-	
+
 	for expectedTool := range expectedTools {
 		found := false
 		for _, tool := range tools {
@@ -40,7 +40,7 @@ func TestGetSupportedTools(t *testing.T) {
 func TestGetTool(t *testing.T) {
 	// Test getting valid tools (some may fail in test environment)
 	validTools := []string{"jj", "mise", "starship"}
-	
+
 	for _, toolName := range validTools {
 		tool, err := GetTool(toolName)
 		if err != nil {
@@ -52,7 +52,7 @@ func TestGetTool(t *testing.T) {
 			t.Errorf("Expected tool %s to be non-nil when no error", toolName)
 		}
 	}
-	
+
 	// Test getting invalid tool
 	_, err := GetTool("nonexistent")
 	if err == nil {
@@ -72,7 +72,7 @@ func TestApplyToolValue(t *testing.T) {
 	if err.Error() != "unknown tool: nonexistent" {
 		t.Errorf("Expected specific error message, got: %v", err)
 	}
-	
+
 	// Note: We can't easily test valid tools without setting up their environments
 	// This would be covered by integration tests
 }
@@ -86,7 +86,7 @@ func TestGetActualValue(t *testing.T) {
 	if err.Error() != "unknown tool: nonexistent" {
 		t.Errorf("Expected specific error message, got: %v", err)
 	}
-	
+
 	// Note: We can't easily test valid tools without setting up their environments
 	// This would be covered by integration tests
 }
@@ -94,7 +94,7 @@ func TestGetActualValue(t *testing.T) {
 func TestToolRegistryCompleteness(t *testing.T) {
 	// Ensure all expected tools are registered
 	expectedTools := []string{"jj", "mise", "starship"}
-	
+
 	for _, expectedTool := range expectedTools {
 		if _, exists := toolRegistry[expectedTool]; !exists {
 			t.Errorf("Tool %s not registered in toolRegistry", expectedTool)
