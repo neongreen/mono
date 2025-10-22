@@ -125,7 +125,54 @@ func Load() (*Config, error) {
 		}
 	}
 
+	// Load per-tool config files if they exist
+	if err := config.loadPerToolConfigs(); err != nil {
+		return nil, fmt.Errorf("failed to load per-tool configs: %w", err)
+	}
+
 	return &config, nil
+}
+
+// loadPerToolConfigs loads values from per-tool config files (e.g., ~/.config/conf/jj.toml)
+// and merges them with the tool metadata from config.toml
+func (c *Config) loadPerToolConfigs() error {
+	configDir, err := ConfigDir()
+	if err != nil {
+		return err
+	}
+
+	for toolName, tool := range c.Tools {
+		// Check if per-tool config file exists
+		perToolPath := filepath.Join(configDir, toolName+".toml")
+		if _, err := os.Stat(perToolPath); err != nil {
+			// Per-tool file doesn't exist, keep existing values from config.toml
+			continue
+		}
+
+		// Read per-tool config file
+		data, err := os.ReadFile(perToolPath)
+		if err != nil {
+			return fmt.Errorf("failed to read per-tool config %s: %w", perToolPath, err)
+		}
+
+		// Parse per-tool config into a map
+		var perToolValues map[string]interface{}
+		if err := toml.Unmarshal(data, &perToolValues); err != nil {
+			return fmt.Errorf("failed to parse per-tool config %s: %w", perToolPath, err)
+		}
+
+		// Merge per-tool values with tool metadata
+		// Per-tool file values override config.toml values
+		if tool.Values == nil {
+			tool.Values = make(map[string]interface{})
+		}
+		for k, v := range perToolValues {
+			tool.Values[k] = v
+		}
+		c.Tools[toolName] = tool
+	}
+
+	return nil
 }
 
 // Save saves the configuration to the config file
@@ -141,7 +188,12 @@ func (c *Config) Save() error {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	// Marshal config to TOML
+	// Save per-tool configs if they exist
+	if err := c.savePerToolConfigs(); err != nil {
+		return fmt.Errorf("failed to save per-tool configs: %w", err)
+	}
+
+	// Marshal config to TOML (metadata only if per-tool files exist)
 	data, err := toml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
@@ -150,6 +202,42 @@ func (c *Config) Save() error {
 	// Write to file
 	if err := os.WriteFile(configPath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
+}
+
+// savePerToolConfigs saves values to per-tool config files if they exist
+func (c *Config) savePerToolConfigs() error {
+	configDir, err := ConfigDir()
+	if err != nil {
+		return err
+	}
+
+	for toolName, tool := range c.Tools {
+		perToolPath := filepath.Join(configDir, toolName+".toml")
+
+		// Check if per-tool file exists
+		if _, err := os.Stat(perToolPath); err != nil {
+			// Per-tool file doesn't exist, keep values in config.toml
+			continue
+		}
+
+		// Per-tool file exists, save values there
+		if tool.Values != nil && len(tool.Values) > 0 {
+			data, err := toml.Marshal(tool.Values)
+			if err != nil {
+				return fmt.Errorf("failed to marshal per-tool config for %s: %w", toolName, err)
+			}
+
+			if err := os.WriteFile(perToolPath, data, 0644); err != nil {
+				return fmt.Errorf("failed to write per-tool config %s: %w", perToolPath, err)
+			}
+
+			// Remove values from main config since they're in per-tool file
+			tool.Values = nil
+			c.Tools[toolName] = tool
+		}
 	}
 
 	return nil
