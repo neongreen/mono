@@ -13,8 +13,8 @@ func TestDefaultConfig(t *testing.T) {
 		t.Fatal("Default config should not be nil")
 	}
 
-	if len(config.Tools) != 2 {
-		t.Errorf("Default config should have 2 tools, got %d", len(config.Tools))
+	if len(config.Tools) != 3 {
+		t.Errorf("Default config should have 3 tools, got %d", len(config.Tools))
 	}
 
 	// Check jj tool config
@@ -25,8 +25,12 @@ func TestDefaultConfig(t *testing.T) {
 	if jjTool.Name != "jj" {
 		t.Errorf("jj tool name should be 'jj', got '%s'", jjTool.Name)
 	}
+	// GetTool() expands tilde, so check for expanded path
 	if !strings.Contains(jjTool.ConfigPath, ".config/jj/config.toml") {
 		t.Errorf("jj config path should contain '.config/jj/config.toml', got '%s'", jjTool.ConfigPath)
+	}
+	if strings.HasPrefix(jjTool.ConfigPath, "~") {
+		t.Errorf("jj config path should be expanded, got '%s'", jjTool.ConfigPath)
 	}
 
 	// Check mise tool config
@@ -37,8 +41,92 @@ func TestDefaultConfig(t *testing.T) {
 	if miseTool.Name != "mise" {
 		t.Errorf("mise tool name should be 'mise', got '%s'", miseTool.Name)
 	}
-	if !strings.Contains(miseTool.ConfigPath, "mise/config.toml") {
-		t.Errorf("mise config path should contain 'mise/config.toml', got '%s'", miseTool.ConfigPath)
+	// GetTool() expands tilde, so check for expanded path
+	if !strings.Contains(miseTool.ConfigPath, ".config/mise/config.toml") {
+		t.Errorf("mise config path should contain '.config/mise/config.toml', got '%s'", miseTool.ConfigPath)
+	}
+	if strings.HasPrefix(miseTool.ConfigPath, "~") {
+		t.Errorf("mise config path should be expanded, got '%s'", miseTool.ConfigPath)
+	}
+
+	// Check starship tool config
+	starshipTool, exists := config.GetTool("starship")
+	if !exists {
+		t.Error("Default config should include starship tool")
+	}
+	if starshipTool.Name != "starship" {
+		t.Errorf("starship tool name should be 'starship', got '%s'", starshipTool.Name)
+	}
+	// GetTool() expands tilde, so check for expanded path
+	if !strings.Contains(starshipTool.ConfigPath, ".config/starship.toml") {
+		t.Errorf("starship config path should contain '.config/starship.toml', got '%s'", starshipTool.ConfigPath)
+	}
+	if strings.HasPrefix(starshipTool.ConfigPath, "~") {
+		t.Errorf("starship config path should be expanded, got '%s'", starshipTool.ConfigPath)
+	}
+}
+
+func TestExpandPath(t *testing.T) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("Failed to get home dir: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "expand tilde with slash",
+			input:    "~/.config/jj/config.toml",
+			expected: homeDir + "/.config/jj/config.toml",
+			wantErr:  false,
+		},
+		{
+			name:     "expand just tilde",
+			input:    "~",
+			expected: homeDir,
+			wantErr:  false,
+		},
+		{
+			name:     "no tilde - absolute path",
+			input:    "/etc/config.toml",
+			expected: "/etc/config.toml",
+			wantErr:  false,
+		},
+		{
+			name:     "no tilde - relative path",
+			input:    "./config.toml",
+			expected: "./config.toml",
+			wantErr:  false,
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+			wantErr:  false,
+		},
+		{
+			name:     "tilde in middle - no expansion",
+			input:    "/path/~/config.toml",
+			expected: "/path/~/config.toml",
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := ExpandPath(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ExpandPath() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if result != tt.expected {
+				t.Errorf("ExpandPath() = %v, want %v", result, tt.expected)
+			}
+		})
 	}
 }
 
@@ -133,5 +221,69 @@ func TestSaveAndLoad(t *testing.T) {
 
 	if testTool.Name != "test" {
 		t.Errorf("Test tool name should be 'test', got '%s'", testTool.Name)
+	}
+}
+
+func TestLoadExpandsTildePaths(t *testing.T) {
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "conf-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	// Create config with tilde paths
+	config := &Config{
+		Tools: map[string]ToolConfig{
+			"jj": {
+				Name:       "jj",
+				ConfigPath: "~/.config/jj/config.toml",
+				SchemaPath: "embedded://jj.json",
+			},
+			"mise": {
+				Name:       "mise",
+				ConfigPath: "~/.config/mise/config.toml",
+				SchemaPath: "embedded://mise.toml",
+			},
+		},
+	}
+
+	// Save config
+	err = config.Save()
+	if err != nil {
+		t.Fatalf("Failed to save config: %v", err)
+	}
+
+	// Load config - should expand tilde paths
+	loadedConfig, err := Load()
+	if err != nil {
+		t.Fatalf("Failed to load config: %v", err)
+	}
+
+	// Verify jj path was expanded
+	jjTool, exists := loadedConfig.GetTool("jj")
+	if !exists {
+		t.Fatal("Loaded config should contain jj tool")
+	}
+
+	expectedJJPath := tempDir + "/.config/jj/config.toml"
+	if jjTool.ConfigPath != expectedJJPath {
+		t.Errorf("jj ConfigPath should be expanded to '%s', got '%s'", expectedJJPath, jjTool.ConfigPath)
+	}
+
+	// Verify mise path was expanded
+	miseTool, exists := loadedConfig.GetTool("mise")
+	if !exists {
+		t.Fatal("Loaded config should contain mise tool")
+	}
+
+	expectedMisePath := tempDir + "/.config/mise/config.toml"
+	if miseTool.ConfigPath != expectedMisePath {
+		t.Errorf("mise ConfigPath should be expanded to '%s', got '%s'", expectedMisePath, miseTool.ConfigPath)
 	}
 }

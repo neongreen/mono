@@ -24,26 +24,21 @@ type ToolConfig struct {
 
 // DefaultConfig returns a new Config with default settings
 func DefaultConfig() *Config {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		homeDir = "~"
-	}
-
 	return &Config{
 		Tools: map[string]ToolConfig{
 			"jj": {
 				Name:       "jj",
-				ConfigPath: filepath.Join(homeDir, ".config/jj/config.toml"),
+				ConfigPath: "~/.config/jj/config.toml",
 				SchemaPath: "embedded://jj.json",
 			},
 			"mise": {
 				Name:       "mise",
-				ConfigPath: filepath.Join(homeDir, ".config", "mise", "config.toml"),
+				ConfigPath: "~/.config/mise/config.toml",
 				SchemaPath: "embedded://mise.toml",
 			},
 			"starship": {
 				Name:       "starship",
-				ConfigPath: filepath.Join(homeDir, ".config", "starship.toml"),
+				ConfigPath: "~/.config/starship.toml",
 			},
 		},
 	}
@@ -68,6 +63,31 @@ func ConfigPath() (string, error) {
 	}
 
 	return filepath.Join(configDir, "config.toml"), nil
+}
+
+// ExpandPath expands tilde (~) in paths to the user's home directory
+func ExpandPath(path string) (string, error) {
+	if path == "" {
+		return path, nil
+	}
+
+	// Only expand if path starts with ~
+	if path[0] != '~' {
+		return path, nil
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user home directory: %w", err)
+	}
+
+	// Handle ~/ or just ~
+	if len(path) == 1 || path[1] == '/' {
+		return filepath.Join(homeDir, path[1:]), nil
+	}
+
+	// Don't support ~user syntax for now
+	return path, nil
 }
 
 // Load loads the configuration from the config file, creating it if it doesn't exist
@@ -95,6 +115,14 @@ func Load() (*Config, error) {
 	var config Config
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	// Expand tilde in config paths
+	for name, tool := range config.Tools {
+		if expandedPath, err := ExpandPath(tool.ConfigPath); err == nil {
+			tool.ConfigPath = expandedPath
+			config.Tools[name] = tool
+		}
 	}
 
 	return &config, nil
@@ -127,10 +155,19 @@ func (c *Config) Save() error {
 	return nil
 }
 
-// GetTool returns the configuration for a specific tool
+// GetTool returns the configuration for a specific tool with expanded paths
 func (c *Config) GetTool(name string) (ToolConfig, bool) {
 	tool, exists := c.Tools[name]
-	return tool, exists
+	if !exists {
+		return tool, false
+	}
+
+	// Expand tilde in config path
+	if expandedPath, err := ExpandPath(tool.ConfigPath); err == nil {
+		tool.ConfigPath = expandedPath
+	}
+
+	return tool, true
 }
 
 // SetTool sets the configuration for a specific tool
