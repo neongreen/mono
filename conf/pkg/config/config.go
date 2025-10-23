@@ -18,8 +18,8 @@ type Config struct {
 // ToolConfig represents configuration for a specific tool
 type ToolConfig struct {
 	Name       string                 `toml:"name"`
-	ConfigPath string                 `toml:"config_path"`
-	SchemaPath string                 `toml:"schema_path,omitempty"`
+	ConfigPath string                 `toml:"path"`
+	SchemaPath string                 `toml:"schema,omitempty"`
 	Values     map[string]interface{} `toml:"values,omitempty"`
 }
 
