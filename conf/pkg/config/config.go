@@ -93,20 +93,14 @@ func ExpandPath(path string) (string, error) {
 
 // Load loads the configuration including per-tool config files
 // Keeps all default tool metadata in memory, but only loads values from existing per-tool files
+// Paths are kept in tilde notation (~/) for portability
 func Load() (*Config, error) {
 	// Start with default tool metadata - always keep all tools available
 	config := DefaultConfig()
 
-	// Expand tilde in config paths
-	for name, tool := range config.Tools {
-		if expandedPath, err := ExpandPath(tool.ConfigPath); err == nil {
-			tool.ConfigPath = expandedPath
-			config.Tools[name] = tool
-		}
-	}
-
 	// Load values from per-tool config files if they exist
 	// This only loads values, doesn't remove tools
+	// Note: paths remain in tilde notation; GetTool() expands them when needed
 	if err := config.loadPerToolConfigs(); err != nil {
 		return nil, fmt.Errorf("failed to load per-tool configs: %w", err)
 	}
