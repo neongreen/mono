@@ -217,6 +217,12 @@ Examples:
 
 		configPath := args[0]
 
+		// Validate config path
+		if configPath == "" {
+			fmt.Fprintf(os.Stderr, "Error: invalid configuration path: %s\n", configPath)
+			os.Exit(1)
+		}
+
 		// GET operation: only config path provided
 		if len(args) == 1 {
 			// Load conf's state config to show desired state
@@ -261,6 +267,10 @@ Examples:
 		}
 
 		// SET operation: config path and value provided
+		if configPath == "" {
+			fmt.Fprintf(os.Stderr, "Error: invalid configuration path: %s\n", configPath)
+			os.Exit(1)
+		}
 		value := args[1]
 		parsedValue := parseValue(value)
 
@@ -278,6 +288,7 @@ Examples:
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
+			fmt.Print("DRY RUN: ")
 			fmt.Print(preview)
 			fmt.Printf("Would also record in conf state: jj.%s = %v\n", configPath, parsedValue)
 		} else {
@@ -393,6 +404,10 @@ Examples:
 		}
 
 		// SET operation: config path and value provided
+		if configPath == "" {
+			fmt.Fprintf(os.Stderr, "Error: invalid configuration path: %s\n", configPath)
+			os.Exit(1)
+		}
 		value := args[1]
 		parsedValue := parseValue(value)
 
@@ -403,6 +418,7 @@ Examples:
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
+			fmt.Print("DRY RUN: ")
 			fmt.Print(preview)
 		} else {
 			// Set the configuration
@@ -505,6 +521,34 @@ func starshipCompletion(cmd *cobra.Command, args []string, toComplete string) ([
 	}
 }
 
+var starshipListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List common starship configuration options",
+	Long:  `Display a list of commonly used starship configuration options with descriptions and examples.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		starshipTool, err := starshiptool.NewStarshipTool()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to initialize starship tool: %v\n", err)
+			os.Exit(1)
+		}
+
+		settings := starshipTool.ListCommonSettings()
+
+		fmt.Println("Common starship configuration settings:")
+		fmt.Println()
+
+		for _, setting := range settings {
+			fmt.Printf("  %s\n", setting.Path)
+			fmt.Printf("    Type: %s\n", setting.Type)
+			fmt.Printf("    Description: %s\n", setting.Description)
+			fmt.Printf("    Example: %s\n", setting.Example)
+			fmt.Println()
+		}
+
+		fmt.Printf("Config file: %s\n", starshipTool.GetConfigPath())
+	},
+}
+
 var starshipCmd = &cobra.Command{
 	Use:   "starship [config.path] [value]",
 	Short: "Configure starship settings",
@@ -542,6 +586,10 @@ Examples:
 		}
 
 		// SET operation: config path and value provided
+		if configPath == "" {
+			fmt.Fprintf(os.Stderr, "Error: invalid configuration path: %s\n", configPath)
+			os.Exit(1)
+		}
 		value := args[1]
 		parsedValue := parseValue(value)
 
@@ -552,6 +600,7 @@ Examples:
 				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 				os.Exit(1)
 			}
+			fmt.Print("DRY RUN: ")
 			fmt.Print(preview)
 		} else {
 			// Set the configuration
@@ -647,6 +696,7 @@ func init() {
 	jjCmd.Flags().BoolVar(&jjListFlag, "list", false, "List all available jj configuration settings with current values")
 
 	miseCmd.AddCommand(miseListCmd)
+	starshipCmd.AddCommand(starshipListCmd)
 
 	// Add shims subcommands
 	shimsCmd.AddCommand(shimsCreateCmd)

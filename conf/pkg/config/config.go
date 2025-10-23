@@ -92,14 +92,47 @@ func ExpandPath(path string) (string, error) {
 }
 
 // Load loads the configuration including per-tool config files
-// Keeps all default tool metadata in memory, but only loads values from existing per-tool files
+// Loads tool definitions and values from main config.toml, then augments with per-tool files
 // Paths are kept in tilde notation (~/) for portability
 func Load() (*Config, error) {
-	// Start with default tool metadata - always keep all tools available
-	config := DefaultConfig()
+	// Start with default tool metadata as base
+	defaultConfig := DefaultConfig()
+
+	// Try to load main config.toml to get all stored tools and values
+	configPath, err := ConfigPath()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get config path: %w", err)
+	}
+
+	var config *Config
+	
+	if _, err := os.Stat(configPath); err == nil {
+		// Main config.toml exists, load it
+		data, err := os.ReadFile(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read main config: %w", err)
+		}
+
+		var loadedConfig Config
+		if err := toml.Unmarshal(data, &loadedConfig); err != nil {
+			return nil, fmt.Errorf("failed to parse main config: %w", err)
+		}
+		
+		config = &loadedConfig
+	} else {
+		// Main config.toml doesn't exist, start with default config
+		config = defaultConfig
+	}
+
+	// Ensure default tools are available (preserve their metadata if not already in config)
+	for name, defaultTool := range defaultConfig.Tools {
+		if _, exists := config.Tools[name]; !exists {
+			config.Tools[name] = defaultTool
+		}
+	}
 
 	// Load values from per-tool config files if they exist
-	// This only loads values, doesn't remove tools
+	// This augments the values loaded from main config.toml
 	// Note: paths remain in tilde notation; GetTool() expands them when needed
 	if err := config.loadPerToolConfigs(); err != nil {
 		return nil, fmt.Errorf("failed to load per-tool configs: %w", err)
@@ -209,6 +242,7 @@ func convertDottedToNested(flat map[string]interface{}) map[string]interface{} {
 
 // Save saves the configuration to per-tool files
 // Only creates/updates files for tools that already have per-tool files
+// Also saves the main config.toml to preserve tool metadata
 func (c *Config) Save() error {
 	configDir, err := ConfigDir()
 	if err != nil {
@@ -220,29 +254,68 @@ func (c *Config) Save() error {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	// Only save tools that have existing per-tool files
+	// Save tools to per-tool files if they exist
 	for toolName, tool := range c.Tools {
 		perToolPath := filepath.Join(configDir, toolName+".toml")
 
-		// Skip if per-tool file doesn't exist
-		if _, err := os.Stat(perToolPath); os.IsNotExist(err) {
-			continue
-		}
+		// Save to per-tool file if it exists
+		if _, err := os.Stat(perToolPath); err == nil {
+			// Save values if they exist
+			if tool.Values != nil && len(tool.Values) > 0 {
+				// Convert dotted keys to nested structure
+				nested := convertDottedToNested(tool.Values)
 
-		// Save values if they exist
-		if tool.Values != nil && len(tool.Values) > 0 {
-			// Convert dotted keys to nested structure
-			nested := convertDottedToNested(tool.Values)
+				data, err := toml.Marshal(nested)
+				if err != nil {
+					return fmt.Errorf("failed to marshal %s config: %w", toolName, err)
+				}
 
-			data, err := toml.Marshal(nested)
-			if err != nil {
-				return fmt.Errorf("failed to marshal %s config: %w", toolName, err)
-			}
-
-			if err := os.WriteFile(perToolPath, data, 0644); err != nil {
-				return fmt.Errorf("failed to write %s config: %w", toolName, err)
+				if err := os.WriteFile(perToolPath, data, 0644); err != nil {
+					return fmt.Errorf("failed to write %s config: %w", toolName, err)
+				}
 			}
 		}
+	}
+
+	// Save main config.toml to preserve tool metadata (paths, schema paths, etc.)
+	// and values for tools that don't have per-tool files
+	mainConfig := &Config{
+		Tools: make(map[string]ToolConfig),
+		Shims: c.Shims, // Always save shims in main config
+	}
+
+	for toolName, tool := range c.Tools {
+		perToolPath := filepath.Join(configDir, toolName+".toml")
+		
+		// Only preserve tool metadata in main config if per-tool file exists
+		// (the values go to the per-tool file, the metadata stays in main config) 
+		if _, err := os.Stat(perToolPath); err == nil {
+			// Copy tool config but without Values (they go to per-tool file)
+			mainConfig.Tools[toolName] = ToolConfig{
+				Name:       tool.Name,
+				ConfigPath: tool.ConfigPath,
+				SchemaPath: tool.SchemaPath,
+				// Values are stored in per-tool file, not main config
+			}
+		} else {
+			// If per-tool file doesn't exist, save everything in main config
+			mainConfig.Tools[toolName] = tool
+		}
+	}
+
+	// Write main config.toml
+	configPath, err := ConfigPath()
+	if err != nil {
+		return fmt.Errorf("failed to get config path: %w", err)
+	}
+	
+	data, err := toml.Marshal(mainConfig)
+	if err != nil {
+		return fmt.Errorf("failed to marshal main config: %w", err)
+	}
+
+	if err := os.WriteFile(configPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write main config: %w", err)
 	}
 
 	return nil

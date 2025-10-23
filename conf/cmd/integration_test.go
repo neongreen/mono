@@ -249,13 +249,19 @@ func TestCLIListCommands(t *testing.T) {
 
 	// Create minimal config structures
 	jjConfigDir := filepath.Join(tempHome, ".config", "jj")
+	starshipConfigDir := filepath.Join(tempHome, ".config")
 	os.MkdirAll(jjConfigDir, 0755)
+	os.MkdirAll(starshipConfigDir, 0755)
 
 	jjConfig := `# JJ config for testing
 [user]
 name = "Test User"
 `
+	starshipConfig := `# Starship config for testing
+add_newline = true
+`
 	os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(jjConfig), 0644)
+	os.WriteFile(filepath.Join(starshipConfigDir, "starship.toml"), []byte(starshipConfig), 0644)
 
 	// Build the binary for testing
 	tmpDir := t.TempDir()
