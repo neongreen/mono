@@ -118,7 +118,14 @@ var newCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Created task %s: %s\n", taskID, title)
+		// Get all task IDs for formatting (including the one we just created)
+		allTaskIDs, err := db.GetAllTaskIDs()
+		if err != nil {
+			return err
+		}
+
+		displayID := FormatTaskID(taskID, allTaskIDs)
+		fmt.Printf("Created task %s: %s\n", displayID, title)
 		return nil
 	},
 }
@@ -317,6 +324,12 @@ var lsCmd = &cobra.Command{
 
 		tasks := reducer.GetAllTasks()
 
+		// Get all task IDs for formatting
+		allTaskIDs, err := db.GetAllTaskIDs()
+		if err != nil {
+			return err
+		}
+
 		// Filter by axis if specified
 		if axisFilter != "" {
 			parts := strings.Split(axisFilter, ":")
@@ -338,7 +351,8 @@ var lsCmd = &cobra.Command{
 		}
 
 		for _, task := range tasks {
-			fmt.Printf("%s: %s\n", task.TaskID, task.Title)
+			displayID := FormatTaskID(task.TaskID, allTaskIDs)
+			fmt.Printf("%s: %s\n", displayID, task.Title)
 			for axisName, axis := range task.Axes {
 				fmt.Printf("  %s: %s\n", axisName, axis.Effective)
 			}

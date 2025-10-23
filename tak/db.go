@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -296,8 +297,8 @@ func generateRandomSuffix(length int) string {
 	return string(b)
 }
 
-// ResolveTaskID resolves a short task ID (e.g., "tak-2") to a full task ID (e.g., "tak-2-abc123")
-// If the input is already a full ID, it validates that it exists
+// ResolveTaskID resolves a short task ID to a full task ID
+// Accepts formats: "1", "tak-1", "tak-1-abc123"
 // Returns an error if the ID is ambiguous or doesn't exist
 func (d *DB) ResolveTaskID(shortID string) (string, error) {
 	// Get all task IDs from the database
@@ -333,6 +334,12 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 		}
 	}
 
+	// Normalize shortID - if it's just a number, prepend "tak-"
+	normalizedID := shortID
+	if _, err := strconv.Atoi(shortID); err == nil {
+		normalizedID = "tak-" + shortID
+	}
+
 	// Try to match as a short ID (without suffix)
 	var matches []string
 	for _, fullID := range taskIDs {
@@ -341,7 +348,7 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 		parts := strings.Split(fullID, "-")
 		if len(parts) >= 2 {
 			shortForm := strings.Join(parts[:2], "-") // tak-<number>
-			if shortForm == shortID {
+			if shortForm == normalizedID {
 				matches = append(matches, fullID)
 			}
 		}
@@ -356,4 +363,62 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 	}
 
 	return matches[0], nil
+}
+
+// GetAllTaskIDs returns all task IDs in the database
+func (d *DB) GetAllTaskIDs() ([]string, error) {
+	query := `
+		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
+		FROM events
+		WHERE kind = 'task.created'
+	`
+
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query task IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var taskIDs []string
+	for rows.Next() {
+		var taskID string
+		if err := rows.Scan(&taskID); err != nil {
+			return nil, fmt.Errorf("failed to scan task ID: %w", err)
+		}
+		taskIDs = append(taskIDs, taskID)
+	}
+
+	return taskIDs, rows.Err()
+}
+
+// FormatTaskID formats a task ID for display, hiding the suffix unless needed for disambiguation
+func FormatTaskID(fullID string, allTaskIDs []string) string {
+	// Extract parts: tak-<number>-<suffix>
+	parts := strings.Split(fullID, "-")
+	if len(parts) < 3 {
+		return fullID // Malformed ID, return as-is
+	}
+
+	shortForm := strings.Join(parts[:2], "-") // tak-<number>
+
+	// Check if any other task has the same short form but different suffix
+	needsSuffix := false
+	for _, otherID := range allTaskIDs {
+		if otherID == fullID {
+			continue
+		}
+		otherParts := strings.Split(otherID, "-")
+		if len(otherParts) >= 2 {
+			otherShortForm := strings.Join(otherParts[:2], "-")
+			if otherShortForm == shortForm {
+				needsSuffix = true
+				break
+			}
+		}
+	}
+
+	if needsSuffix {
+		return fullID
+	}
+	return shortForm
 }
