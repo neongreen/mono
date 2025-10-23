@@ -37,12 +37,3 @@ func GenerateEventID() string {
 	}
 	return string(b)
 }
-
-// Simple lamport timestamp counter
-var lamportCounter int64 = 0
-
-// GetNextLamportTS returns the next Lamport timestamp
-func GetNextLamportTS() int64 {
-	lamportCounter++
-	return lamportCounter
-}

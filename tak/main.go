@@ -93,6 +93,12 @@ var newCmd = &cobra.Command{
 		}
 		eventID := GenerateEventID()
 
+		// Get next Lamport timestamp from DB
+		lamportTS, err := db.GetNextLamportTS()
+		if err != nil {
+			return err
+		}
+
 		payload := TaskCreatedPayload{
 			TaskID:    taskID,
 			Title:     title,
@@ -106,7 +112,7 @@ var newCmd = &cobra.Command{
 		now := time.Now()
 		event := Event{
 			ID:        eventID,
-			TS:        GetNextLamportTS(),
+			TS:        lamportTS,
 			CreatedAt: now,
 			Actor:     currentUser,
 			Role:      "human",
@@ -165,6 +171,12 @@ var statusSetCmd = &cobra.Command{
 
 		eventID := GenerateEventID()
 
+		// Get next Lamport timestamp from DB
+		lamportTS, err := db.GetNextLamportTS()
+		if err != nil {
+			return err
+		}
+
 		payload := TaskStatusSetPayload{
 			TaskID: fullTaskID,
 			Axis:   axis,
@@ -179,7 +191,7 @@ var statusSetCmd = &cobra.Command{
 		now := time.Now()
 		event := Event{
 			ID:        eventID,
-			TS:        GetNextLamportTS(),
+			TS:        lamportTS,
 			CreatedAt: now,
 			Actor:     currentUser,
 			Role:      role,
@@ -223,6 +235,12 @@ var noteCmd = &cobra.Command{
 
 		eventID := GenerateEventID()
 
+		// Get next Lamport timestamp from DB
+		lamportTS, err := db.GetNextLamportTS()
+		if err != nil {
+			return err
+		}
+
 		payload := TaskNoteAddPayload{
 			TaskID:   fullTaskID,
 			Markdown: text,
@@ -235,7 +253,7 @@ var noteCmd = &cobra.Command{
 		now := time.Now()
 		event := Event{
 			ID:        eventID,
-			TS:        GetNextLamportTS(),
+			TS:        lamportTS,
 			CreatedAt: now,
 			Actor:     currentUser,
 			Role:      "human",

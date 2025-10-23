@@ -256,6 +256,43 @@ func (d *DB) GetOrCreateInstallationSuffix() (string, error) {
 	return suffix, nil
 }
 
+// GetNextLamportTS gets the next Lamport timestamp and increments the counter
+func (d *DB) GetNextLamportTS() (int64, error) {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Get current counter value
+	var counter int64
+	err = tx.QueryRow("SELECT value FROM metadata WHERE key = 'lamport_counter'").Scan(&counter)
+	if err == sql.ErrNoRows {
+		counter = 0
+	} else if err != nil {
+		return 0, fmt.Errorf("failed to query lamport counter: %w", err)
+	}
+
+	// Increment counter
+	nextTS := counter + 1
+
+	// Update or insert
+	if counter == 0 {
+		_, err = tx.Exec("INSERT INTO metadata (key, value) VALUES ('lamport_counter', ?)", nextTS)
+	} else {
+		_, err = tx.Exec("UPDATE metadata SET value = ? WHERE key = 'lamport_counter'", nextTS)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("failed to update lamport counter: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nextTS, nil
+}
+
 // GetNextTaskNumber gets the next task number and increments the counter
 func (d *DB) GetNextTaskNumber() (int64, error) {
 	tx, err := d.db.Begin()
