@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -117,7 +118,7 @@ func (d *DB) InsertEvent(e Event) error {
 // GetEvents retrieves all events in chronological order
 func (d *DB) GetEvents() ([]Event, error) {
 	query := `SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
-	          FROM events ORDER BY ts, id`
+	          FROM events ORDER BY created_at, id`
 
 	rows, err := d.db.Query(query)
 	if err != nil {
@@ -165,7 +166,7 @@ func (d *DB) GetEventsByTaskID(taskID string) ([]Event, error) {
 		SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
 		FROM events
 		WHERE json_extract(payload, '$.task_id') = ?
-		ORDER BY ts, id
+		ORDER BY created_at, id
 	`
 
 	rows, err := d.db.Query(query, taskID)
@@ -293,4 +294,66 @@ func generateRandomSuffix(length int) string {
 		b[i] = charset[n.Int64()]
 	}
 	return string(b)
+}
+
+// ResolveTaskID resolves a short task ID (e.g., "tak-2") to a full task ID (e.g., "tak-2-abc123")
+// If the input is already a full ID, it validates that it exists
+// Returns an error if the ID is ambiguous or doesn't exist
+func (d *DB) ResolveTaskID(shortID string) (string, error) {
+	// Get all task IDs from the database
+	query := `
+		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
+		FROM events
+		WHERE kind = 'task.created'
+	`
+
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return "", fmt.Errorf("failed to query task IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var taskIDs []string
+	for rows.Next() {
+		var taskID string
+		if err := rows.Scan(&taskID); err != nil {
+			return "", fmt.Errorf("failed to scan task ID: %w", err)
+		}
+		taskIDs = append(taskIDs, taskID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return "", fmt.Errorf("failed to iterate task IDs: %w", err)
+	}
+
+	// Check if shortID is already a full ID
+	for _, fullID := range taskIDs {
+		if fullID == shortID {
+			return fullID, nil
+		}
+	}
+
+	// Try to match as a short ID (without suffix)
+	var matches []string
+	for _, fullID := range taskIDs {
+		// Extract the numeric part (e.g., "tak-2" from "tak-2-abc123")
+		// Format is tak-<number>-<suffix>
+		parts := strings.Split(fullID, "-")
+		if len(parts) >= 2 {
+			shortForm := strings.Join(parts[:2], "-") // tak-<number>
+			if shortForm == shortID {
+				matches = append(matches, fullID)
+			}
+		}
+	}
+
+	if len(matches) == 0 {
+		return "", fmt.Errorf("task not found: %s", shortID)
+	}
+
+	if len(matches) > 1 {
+		return "", fmt.Errorf("ambiguous task ID %s, matches: %v", shortID, matches)
+	}
+
+	return matches[0], nil
 }

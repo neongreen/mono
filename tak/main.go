@@ -145,6 +145,12 @@ var statusSetCmd = &cobra.Command{
 		}
 		defer db.Close()
 
+		// Resolve short task ID to full ID
+		fullTaskID, err := db.ResolveTaskID(taskID)
+		if err != nil {
+			return err
+		}
+
 		currentUser, err := getCurrentUser()
 		if err != nil {
 			return err
@@ -153,7 +159,7 @@ var statusSetCmd = &cobra.Command{
 		eventID := GenerateEventID()
 
 		payload := TaskStatusSetPayload{
-			TaskID: taskID,
+			TaskID: fullTaskID,
 			Axis:   axis,
 			State:  state,
 			Role:   role,
@@ -197,6 +203,12 @@ var noteCmd = &cobra.Command{
 		}
 		defer db.Close()
 
+		// Resolve short task ID to full ID
+		fullTaskID, err := db.ResolveTaskID(taskID)
+		if err != nil {
+			return err
+		}
+
 		currentUser, err := getCurrentUser()
 		if err != nil {
 			return err
@@ -205,7 +217,7 @@ var noteCmd = &cobra.Command{
 		eventID := GenerateEventID()
 
 		payload := TaskNoteAddPayload{
-			TaskID:   taskID,
+			TaskID:   fullTaskID,
 			Markdown: text,
 		}
 		payloadJSON, err := json.Marshal(payload)
@@ -246,7 +258,13 @@ var viewCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		events, err := db.GetEventsByTaskID(taskID)
+		// Resolve short task ID to full ID
+		fullTaskID, err := db.ResolveTaskID(taskID)
+		if err != nil {
+			return err
+		}
+
+		events, err := db.GetEventsByTaskID(fullTaskID)
 		if err != nil {
 			return err
 		}
@@ -260,7 +278,7 @@ var viewCmd = &cobra.Command{
 			return err
 		}
 
-		task, ok := reducer.GetTask(taskID)
+		task, ok := reducer.GetTask(fullTaskID)
 		if !ok {
 			return fmt.Errorf("task not found: %s", taskID)
 		}
