@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pelletier/go-toml/v2"
 )
@@ -113,6 +114,32 @@ func Load() (*Config, error) {
 	return config, nil
 }
 
+// convertNestedToFlat converts a nested map structure to flat map with dotted keys
+// Example: {"user": {"name": "John"}} -> {"user.name": "John"}
+func convertNestedToFlat(nested map[string]interface{}, prefix string) map[string]interface{} {
+	flat := make(map[string]interface{})
+
+	for key, value := range nested {
+		fullKey := key
+		if prefix != "" {
+			fullKey = prefix + "." + key
+		}
+
+		// If value is a map, recurse
+		if nestedMap, ok := value.(map[string]interface{}); ok {
+			// Merge the flattened results
+			for k, v := range convertNestedToFlat(nestedMap, fullKey) {
+				flat[k] = v
+			}
+		} else {
+			// Leaf value, add to flat map
+			flat[fullKey] = value
+		}
+	}
+
+	return flat
+}
+
 // loadPerToolConfigs loads values from per-tool config files (e.g., ~/.config/conf/jj.toml)
 // and merges them with the tool metadata from config.toml
 func (c *Config) loadPerToolConfigs() error {
@@ -135,24 +162,55 @@ func (c *Config) loadPerToolConfigs() error {
 			return fmt.Errorf("failed to read per-tool config %s: %w", perToolPath, err)
 		}
 
-		// Parse per-tool config into a map
-		var perToolValues map[string]interface{}
-		if err := toml.Unmarshal(data, &perToolValues); err != nil {
+		// Parse per-tool config into a nested map
+		var perToolNested map[string]interface{}
+		if err := toml.Unmarshal(data, &perToolNested); err != nil {
 			return fmt.Errorf("failed to parse per-tool config %s: %w", perToolPath, err)
 		}
+
+		// Convert nested structure to flat dotted keys
+		perToolFlat := convertNestedToFlat(perToolNested, "")
 
 		// Merge per-tool values with tool metadata
 		// Per-tool file values override config.toml values
 		if tool.Values == nil {
 			tool.Values = make(map[string]interface{})
 		}
-		for k, v := range perToolValues {
+		for k, v := range perToolFlat {
 			tool.Values[k] = v
 		}
 		c.Tools[toolName] = tool
 	}
 
 	return nil
+}
+
+// convertDottedToNested converts a flat map with dotted keys to nested map structure
+// Example: {"user.name": "John"} -> {"user": {"name": "John"}}
+func convertDottedToNested(flat map[string]interface{}) map[string]interface{} {
+	nested := make(map[string]interface{})
+
+	for key, value := range flat {
+		parts := strings.Split(key, ".")
+		current := nested
+
+		// Navigate/create nested structure for all parts except the last
+		for i := 0; i < len(parts)-1; i++ {
+			part := parts[i]
+			if _, exists := current[part]; !exists {
+				current[part] = make(map[string]interface{})
+			}
+			// Type assert to map for next iteration
+			if nextMap, ok := current[part].(map[string]interface{}); ok {
+				current = nextMap
+			}
+		}
+
+		// Set the final value
+		current[parts[len(parts)-1]] = value
+	}
+
+	return nested
 }
 
 // Save saves the configuration to per-tool files
@@ -179,7 +237,10 @@ func (c *Config) Save() error {
 
 		// Save values if they exist
 		if tool.Values != nil && len(tool.Values) > 0 {
-			data, err := toml.Marshal(tool.Values)
+			// Convert dotted keys to nested structure
+			nested := convertDottedToNested(tool.Values)
+
+			data, err := toml.Marshal(nested)
 			if err != nil {
 				return fmt.Errorf("failed to marshal %s config: %w", toolName, err)
 			}
