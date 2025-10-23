@@ -8,7 +8,7 @@ tak is a command-line tool that tracks tasks system-wide using an append-only ev
 - **Claims-based status**: Multiple actors (human, agent, bot, qa, rel) can make status claims
 - **Authority lattice**: Conflicts are resolved based on role authority (human > qa > rel > agent > bot)
 - **Multi-valued registers**: Conflicting claims are preserved as tentative/effective
-- **SQLite backend**: Durable, inspectable, and portable
+- **SQLite backend**: Durable, inspectable, and portable (pure Go, no CGO required)
 - **Automatic setup**: Database is created automatically in `~/.tak/` on first use
 
 ## Installation

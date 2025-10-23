@@ -11,6 +11,7 @@ Successfully implemented v0 of tak - a system-wide event-sourced task tracker as
 - **ULID identifiers**: Lexicographically sortable unique IDs for tasks and events
 - **Lamport timestamps**: Logical clock for event ordering
 - **WAL mode**: SQLite configured for better concurrency and durability
+- **Pure Go SQLite**: Uses modernc.org/sqlite - no CGO required, works with static binaries
 - **Automatic setup**: Database created in `~/.tak/` on first use
 
 ### Event Types
