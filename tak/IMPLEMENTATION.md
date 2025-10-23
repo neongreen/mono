@@ -11,6 +11,7 @@ Successfully implemented v0 of tak - a system-wide event-sourced task tracker as
 - **ULID identifiers**: Lexicographically sortable unique IDs for tasks and events
 - **Lamport timestamps**: Logical clock for event ordering
 - **WAL mode**: SQLite configured for better concurrency and durability
+- **Automatic setup**: Database created in `~/.tak/` on first use
 
 ### Event Types
 1. **task.created**: Creates a new task with title and creator
@@ -28,8 +29,8 @@ Role hierarchy (highest to lowest authority):
 When concurrent claims exist (same Lamport timestamp), the claim with highest authority becomes effective, and lower-authority claims are marked as tentative.
 
 ### CLI Commands
-- `tak init` - Initialize a new database
-- `tak db path` - Show database path
+- `tak init` - Initialize a new database (optional, auto-created on first use)
+- `tak db path` - Show database path (defaults to `~/.tak/tak.db`)
 - `tak new "title"` - Create a new task
 - `tak status set <id> <state>` - Set task status (supports --axis and --role flags)
 - `tak note <id> "text"` - Add a note to a task
@@ -92,11 +93,12 @@ PASS
 
 Example workflow:
 ```bash
-$ tak init
-Database initialized at /tmp/tak-demo/tak.db
-
+# No initialization needed - database is created automatically
 $ tak new "Implement authentication"
 Created task tak_01K86GH6XWR3RYYY008V84SE8B: Implement authentication
+
+$ tak db path
+/home/user/.tak/tak.db
 
 $ tak status set tak_01K86GH6XWR3RYYY008V84SE8B in_progress
 Set status for task tak_01K86GH6XWR3RYYY008V84SE8B: generic=in_progress

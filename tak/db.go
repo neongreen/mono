@@ -21,6 +21,12 @@ type DB struct {
 
 // OpenDB opens or creates a tak database at the given path
 func OpenDB(path string) (*DB, error) {
+	// Ensure the directory exists
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create directory %s: %w", dir, err)
+	}
+
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
@@ -178,14 +184,15 @@ func (d *DB) Close() error {
 	return d.db.Close()
 }
 
-// GetDBPath returns the database path for the current directory
+// GetDBPath returns the database path in ~/.tak/ directory
 func GetDBPath() (string, error) {
-	cwd, err := os.Getwd()
+	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("failed to get current directory: %w", err)
+		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	return filepath.Join(cwd, dbFileName), nil
+	takDir := filepath.Join(home, ".tak")
+	return filepath.Join(takDir, dbFileName), nil
 }
 
 // DBExists checks if a database exists at the given path

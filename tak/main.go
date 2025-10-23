@@ -350,11 +350,23 @@ func openExistingDB() (*DB, error) {
 		return nil, err
 	}
 
-	if !DBExists(path) {
-		return nil, fmt.Errorf("database not found at %s, run 'tak init' first", path)
+	// Check if database exists, if not, create it
+	dbExists := DBExists(path)
+
+	db, err := OpenDB(path)
+	if err != nil {
+		return nil, err
 	}
 
-	return OpenDB(path)
+	// If database didn't exist, initialize the schema
+	if !dbExists {
+		if err := db.InitDB(); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("failed to initialize database schema: %w", err)
+		}
+	}
+
+	return db, nil
 }
 
 func getCurrentUser() (string, error) {

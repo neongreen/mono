@@ -9,6 +9,7 @@ tak is a command-line tool that tracks tasks system-wide using an append-only ev
 - **Authority lattice**: Conflicts are resolved based on role authority (human > qa > rel > agent > bot)
 - **Multi-valued registers**: Conflicting claims are preserved as tentative/effective
 - **SQLite backend**: Durable, inspectable, and portable
+- **Automatic setup**: Database is created automatically in `~/.tak/` on first use
 
 ## Installation
 
@@ -27,13 +28,9 @@ mise run //tak:run
 
 ## Usage
 
-### Initialize a database
+### Database Location
 
-```bash
-tak init
-```
-
-This creates a `tak.db` file in the current directory.
+tak stores its database in `~/.tak/tak.db` by default. The database and directory are created automatically on first use.
 
 ### Create a task
 
@@ -41,7 +38,7 @@ This creates a `tak.db` file in the current directory.
 tak new "wire up rc deploy toggle"
 ```
 
-This creates a new task with a unique ID like `tak_01J3XM4NZ2R72`.
+This creates a new task with a unique ID like `tak_01J3XM4NZ2R72`. No initialization is required.
 
 ### Set task status
 
@@ -87,6 +84,14 @@ tak ls --axis generic:in_progress
 tak db path
 ```
 
+### Initialize database (optional)
+
+The database is created automatically when you first use tak. However, you can explicitly initialize it:
+
+```bash
+tak init
+```
+
 ## Concepts
 
 ### Events
@@ -122,7 +127,8 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 This is v0 of tak - a minimal claims tracker. The current implementation includes:
 
-- Event store with SQLite backend
+- Event store with SQLite backend in `~/.tak/`
+- Automatic database initialization
 - Basic task lifecycle (create, status, notes)
 - Authority-based claim resolution
 - CLI for all core operations
@@ -148,6 +154,6 @@ go fmt ./...
 
 Run via mise:
 ```bash
-mise run //tak:run init
 mise run //tak:run new "test task"
+mise run //tak:run ls
 ```
