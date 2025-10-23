@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -86,7 +87,10 @@ var newCmd = &cobra.Command{
 			return err
 		}
 
-		taskID := GenerateULID("tak")
+		taskID, err := GenerateTaskID(db)
+		if err != nil {
+			return err
+		}
 		eventID := GenerateEventID()
 
 		payload := TaskCreatedPayload{
@@ -99,13 +103,15 @@ var newCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
+		now := time.Now()
 		event := Event{
-			ID:      eventID,
-			TS:      GetNextLamportTS(),
-			Actor:   currentUser,
-			Role:    "human",
-			Kind:    "task.created",
-			Payload: payloadJSON,
+			ID:        eventID,
+			TS:        GetNextLamportTS(),
+			CreatedAt: now,
+			Actor:     currentUser,
+			Role:      "human",
+			Kind:      "task.created",
+			Payload:   payloadJSON,
 		}
 
 		if err := db.InsertEvent(event); err != nil {
@@ -157,13 +163,15 @@ var statusSetCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
+		now := time.Now()
 		event := Event{
-			ID:      eventID,
-			TS:      GetNextLamportTS(),
-			Actor:   currentUser,
-			Role:    role,
-			Kind:    "task.status.set",
-			Payload: payloadJSON,
+			ID:        eventID,
+			TS:        GetNextLamportTS(),
+			CreatedAt: now,
+			Actor:     currentUser,
+			Role:      role,
+			Kind:      "task.status.set",
+			Payload:   payloadJSON,
 		}
 
 		if err := db.InsertEvent(event); err != nil {
@@ -205,13 +213,15 @@ var noteCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
+		now := time.Now()
 		event := Event{
-			ID:      eventID,
-			TS:      GetNextLamportTS(),
-			Actor:   currentUser,
-			Role:    "human",
-			Kind:    "task.note.add",
-			Payload: payloadJSON,
+			ID:        eventID,
+			TS:        GetNextLamportTS(),
+			CreatedAt: now,
+			Actor:     currentUser,
+			Role:      "human",
+			Kind:      "task.note.add",
+			Payload:   payloadJSON,
 		}
 
 		if err := db.InsertEvent(event); err != nil {

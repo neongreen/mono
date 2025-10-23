@@ -2,77 +2,40 @@ package main
 
 import (
 	"crypto/rand"
-	"time"
+	"fmt"
+	"math/big"
 )
 
-// ULID implementation - Universally Unique Lexicographically Sortable Identifier
-// Format: 26 characters, base32 encoded
-// First 10 chars: timestamp (48 bits)
-// Last 16 chars: randomness (80 bits)
-
-const (
-	ulidEncoding = "0123456789ABCDEFGHJKMNPQRSTVWXYZ" // Crockford's Base32
-	ulidLength   = 26
-)
-
-var (
-	encodeMap = []byte(ulidEncoding)
-	decodeMap [256]byte
-)
-
-func init() {
-	for i := range decodeMap {
-		decodeMap[i] = 0xFF
+// GenerateTaskID generates a task ID in the format tak-<number>-<suffix>
+func GenerateTaskID(db *DB) (string, error) {
+	// Get the installation suffix
+	suffix, err := db.GetOrCreateInstallationSuffix()
+	if err != nil {
+		return "", fmt.Errorf("failed to get installation suffix: %w", err)
 	}
-	for i, c := range encodeMap {
-		decodeMap[c] = byte(i)
+
+	// Get the next task number
+	taskNum, err := db.GetNextTaskNumber()
+	if err != nil {
+		return "", fmt.Errorf("failed to get next task number: %w", err)
 	}
+
+	return fmt.Sprintf("tak-%d-%s", taskNum, suffix), nil
 }
 
-// GenerateULID generates a new ULID with the given prefix
-func GenerateULID(prefix string) string {
-	// Get current timestamp in milliseconds
-	now := time.Now()
-	ms := uint64(now.UnixNano() / 1e6)
-
-	// Encode timestamp (48 bits = 10 base32 chars)
-	var result [ulidLength]byte
-	for i := 9; i >= 0; i-- {
-		result[i] = encodeMap[ms&0x1F]
-		ms >>= 5
-	}
-
-	// Generate random bytes (80 bits = 10 bytes = 16 base32 chars)
-	randomBytes := make([]byte, 10)
-	if _, err := rand.Read(randomBytes); err != nil {
-		panic(err)
-	}
-
-	// Encode random part
-	var random uint64
-	for i := 0; i < 10; i++ {
-		random = (random << 8) | uint64(randomBytes[i])
-		if i == 4 {
-			// First 5 bytes encoded
-			for j := 15; j >= 10; j-- {
-				result[j] = encodeMap[random&0x1F]
-				random >>= 5
-			}
-			random = 0
-		}
-	}
-	// Last 5 bytes encoded
-	for j := 25; j >= 16; j-- {
-		result[j] = encodeMap[random&0x1F]
-		random >>= 5
-	}
-
-	return prefix + "_" + string(result[:])
-}
-
-// GenerateEventID generates an event ID (just a ULID without prefix)
+// GenerateEventID generates an event ID (random alphanumeric string)
 func GenerateEventID() string {
-	return GenerateULID("")[1:] // Remove the leading underscore
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	const length = 16
+	b := make([]byte, length)
+	for i := range b {
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			panic(err)
+		}
+		b[i] = charset[idx.Int64()]
+	}
+	return string(b)
 }
 
 // Simple lamport timestamp counter

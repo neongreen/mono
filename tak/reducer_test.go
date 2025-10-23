@@ -3,25 +3,28 @@ package main
 import (
 	"encoding/json"
 	"testing"
+	"time"
 )
 
 func TestReducer_TaskCreated(t *testing.T) {
 	reducer := NewReducer()
 
 	payload := TaskCreatedPayload{
-		TaskID:    "tak_01234",
+		TaskID:    "tak-1-test",
 		Title:     "Test task",
 		CreatedBy: "alice",
 	}
 	payloadJSON, _ := json.Marshal(payload)
 
+	now := time.Now()
 	event := Event{
-		ID:      "event_01",
-		TS:      1,
-		Actor:   "alice",
-		Role:    "human",
-		Kind:    "task.created",
-		Payload: payloadJSON,
+		ID:        "event_01",
+		TS:        1,
+		CreatedAt: now,
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   payloadJSON,
 	}
 
 	err := reducer.Apply(event)
@@ -29,13 +32,13 @@ func TestReducer_TaskCreated(t *testing.T) {
 		t.Fatalf("Failed to apply task.created event: %v", err)
 	}
 
-	task, ok := reducer.GetTask("tak_01234")
+	task, ok := reducer.GetTask("tak-1-test")
 	if !ok {
 		t.Fatal("Task not found")
 	}
 
-	if task.TaskID != "tak_01234" {
-		t.Errorf("Expected task ID tak_01234, got %s", task.TaskID)
+	if task.TaskID != "tak-1-test" {
+		t.Errorf("Expected task ID tak-1-test, got %s", task.TaskID)
 	}
 
 	if task.Title != "Test task" {
@@ -45,6 +48,10 @@ func TestReducer_TaskCreated(t *testing.T) {
 	if task.CreatedBy != "alice" {
 		t.Errorf("Expected creator alice, got %s", task.CreatedBy)
 	}
+
+	if !task.CreatedAt.Equal(now) {
+		t.Errorf("Expected created_at to be %v, got %v", now, task.CreatedAt)
+	}
 }
 
 func TestReducer_StatusSet(t *testing.T) {
@@ -52,26 +59,27 @@ func TestReducer_StatusSet(t *testing.T) {
 
 	// Create task first
 	createPayload := TaskCreatedPayload{
-		TaskID:    "tak_01234",
+		TaskID:    "tak-1-test",
 		Title:     "Test task",
 		CreatedBy: "alice",
 	}
 	createPayloadJSON, _ := json.Marshal(createPayload)
 
 	createEvent := Event{
-		ID:      "event_01",
-		TS:      1,
-		Actor:   "alice",
-		Role:    "human",
-		Kind:    "task.created",
-		Payload: createPayloadJSON,
+		ID:        "event_01",
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   createPayloadJSON,
 	}
 
 	reducer.Apply(createEvent)
 
 	// Set status
 	statusPayload := TaskStatusSetPayload{
-		TaskID: "tak_01234",
+		TaskID: "tak-1-test",
 		Axis:   "generic",
 		State:  "in_progress",
 		Role:   "human",
@@ -79,12 +87,13 @@ func TestReducer_StatusSet(t *testing.T) {
 	statusPayloadJSON, _ := json.Marshal(statusPayload)
 
 	statusEvent := Event{
-		ID:      "event_02",
-		TS:      2,
-		Actor:   "alice",
-		Role:    "human",
-		Kind:    "task.status.set",
-		Payload: statusPayloadJSON,
+		ID:        "event_02",
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.status.set",
+		Payload:   statusPayloadJSON,
 	}
 
 	err := reducer.Apply(statusEvent)
@@ -92,7 +101,7 @@ func TestReducer_StatusSet(t *testing.T) {
 		t.Fatalf("Failed to apply task.status.set event: %v", err)
 	}
 
-	task, _ := reducer.GetTask("tak_01234")
+	task, _ := reducer.GetTask("tak-1-test")
 
 	axis, ok := task.Axes["generic"]
 	if !ok {
@@ -121,26 +130,27 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 
 	// Create task
 	createPayload := TaskCreatedPayload{
-		TaskID:    "tak_01234",
+		TaskID:    "tak-1-test",
 		Title:     "Test task",
 		CreatedBy: "alice",
 	}
 	createPayloadJSON, _ := json.Marshal(createPayload)
 
 	createEvent := Event{
-		ID:      "event_01",
-		TS:      1,
-		Actor:   "alice",
-		Role:    "human",
-		Kind:    "task.created",
-		Payload: createPayloadJSON,
+		ID:        "event_01",
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   createPayloadJSON,
 	}
 
 	reducer.Apply(createEvent)
 
 	// Agent sets status to done
 	agentPayload := TaskStatusSetPayload{
-		TaskID: "tak_01234",
+		TaskID: "tak-1-test",
 		Axis:   "generic",
 		State:  "done",
 		Role:   "agent",
@@ -148,19 +158,20 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	agentPayloadJSON, _ := json.Marshal(agentPayload)
 
 	agentEvent := Event{
-		ID:      "event_02",
-		TS:      2,
-		Actor:   "claude",
-		Role:    "agent",
-		Kind:    "task.status.set",
-		Payload: agentPayloadJSON,
+		ID:        "event_02",
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "claude",
+		Role:      "agent",
+		Kind:      "task.status.set",
+		Payload:   agentPayloadJSON,
 	}
 
 	reducer.Apply(agentEvent)
 
 	// Human sets status to in_progress (same timestamp for concurrent claim)
 	humanPayload := TaskStatusSetPayload{
-		TaskID: "tak_01234",
+		TaskID: "tak-1-test",
 		Axis:   "generic",
 		State:  "in_progress",
 		Role:   "human",
@@ -168,17 +179,18 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	humanPayloadJSON, _ := json.Marshal(humanPayload)
 
 	humanEvent := Event{
-		ID:      "event_03",
-		TS:      2, // Same timestamp as agent
-		Actor:   "alice",
-		Role:    "human",
-		Kind:    "task.status.set",
-		Payload: humanPayloadJSON,
+		ID:        "event_03",
+		TS:        2, // Same timestamp as agent
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.status.set",
+		Payload:   humanPayloadJSON,
 	}
 
 	reducer.Apply(humanEvent)
 
-	task, _ := reducer.GetTask("tak_01234")
+	task, _ := reducer.GetTask("tak-1-test")
 	axis := task.Axes["generic"]
 
 	// Human claim should win due to higher authority
@@ -215,37 +227,39 @@ func TestReducer_NoteAdd(t *testing.T) {
 
 	// Create task
 	createPayload := TaskCreatedPayload{
-		TaskID:    "tak_01234",
+		TaskID:    "tak-1-test",
 		Title:     "Test task",
 		CreatedBy: "alice",
 	}
 	createPayloadJSON, _ := json.Marshal(createPayload)
 
 	createEvent := Event{
-		ID:      "event_01",
-		TS:      1,
-		Actor:   "alice",
-		Role:    "human",
-		Kind:    "task.created",
-		Payload: createPayloadJSON,
+		ID:        "event_01",
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   createPayloadJSON,
 	}
 
 	reducer.Apply(createEvent)
 
 	// Add note
 	notePayload := TaskNoteAddPayload{
-		TaskID:   "tak_01234",
+		TaskID:   "tak-1-test",
 		Markdown: "This is a test note",
 	}
 	notePayloadJSON, _ := json.Marshal(notePayload)
 
 	noteEvent := Event{
-		ID:      "event_02",
-		TS:      2,
-		Actor:   "alice",
-		Role:    "human",
-		Kind:    "task.note.add",
-		Payload: notePayloadJSON,
+		ID:        "event_02",
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.note.add",
+		Payload:   notePayloadJSON,
 	}
 
 	err := reducer.Apply(noteEvent)
@@ -253,7 +267,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 		t.Fatalf("Failed to apply task.note.add event: %v", err)
 	}
 
-	task, _ := reducer.GetTask("tak_01234")
+	task, _ := reducer.GetTask("tak-1-test")
 
 	if len(task.Notes) != 1 {
 		t.Fatalf("Expected 1 note, got %d", len(task.Notes))

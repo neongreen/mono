@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"time"
 )
 
 // Reducer reconstructs task state from events
@@ -45,7 +44,7 @@ func (r *Reducer) applyTaskCreated(e Event) error {
 		Axes:      make(map[string]AxisStatus),
 		Notes:     []Note{},
 		CreatedBy: payload.CreatedBy,
-		CreatedAt: time.Unix(0, e.TS*1e6), // Convert Lamport TS to approximate time
+		CreatedAt: e.CreatedAt, // Use actual creation time from event
 	}
 
 	return nil
@@ -101,7 +100,7 @@ func (r *Reducer) applyTaskNoteAdd(e Event) error {
 	note := Note{
 		Markdown:  payload.Markdown,
 		Actor:     e.Actor,
-		Timestamp: time.Unix(0, e.TS*1e6),
+		Timestamp: e.CreatedAt, // Use actual creation time from event
 	}
 	task.Notes = append(task.Notes, note)
 
