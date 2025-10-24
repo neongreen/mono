@@ -16,15 +16,15 @@ import (
 )
 
 const (
-	dbFileName = "tak.db"
+	dbFileName = "tk.db"
 )
 
-// DB wraps a SQLite database for tak events
+// DB wraps a SQLite database for tk events
 type DB struct {
 	db *sql.DB
 }
 
-// OpenDB opens or creates a tak database at the given path
+// OpenDB opens or creates a tk database at the given path
 func OpenDB(path string) (*DB, error) {
 	// Ensure the directory exists
 	dir := filepath.Dir(path)
@@ -215,15 +215,15 @@ func (d *DB) Close() error {
 	return d.db.Close()
 }
 
-// GetDBPath returns the database path in ~/.tak/ directory
+// GetDBPath returns the database path in ~/.tk/ directory
 func GetDBPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	takDir := filepath.Join(home, ".tak")
-	return filepath.Join(takDir, dbFileName), nil
+	tkDir := filepath.Join(home, ".tk")
+	return filepath.Join(tkDir, dbFileName), nil
 }
 
 // DBExists checks if a database exists at the given path
@@ -335,7 +335,7 @@ func generateRandomSuffix(length int) string {
 }
 
 // ResolveTaskID resolves a short task ID to a full task ID
-// Accepts formats: "1", "tak-1", "tak-1-abc123"
+// Accepts formats: "1", "tk-1", "tk-1-abc123"
 // Returns an error if the ID is ambiguous or doesn't exist
 func (d *DB) ResolveTaskID(shortID string) (string, error) {
 	// Get all task IDs from the database
@@ -371,20 +371,20 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 		}
 	}
 
-	// Normalize shortID - if it's just a number, prepend "tak-"
+	// Normalize shortID - if it's just a number, prepend "tk-"
 	normalizedID := shortID
 	if _, err := strconv.Atoi(shortID); err == nil {
-		normalizedID = "tak-" + shortID
+		normalizedID = "tk-" + shortID
 	}
 
 	// Try to match as a short ID (without suffix)
 	var matches []string
 	for _, fullID := range taskIDs {
-		// Extract the numeric part (e.g., "tak-2" from "tak-2-abc123")
-		// Format is tak-<number>-<suffix>
+		// Extract the numeric part (e.g., "tk-2" from "tk-2-abc123")
+		// Format is tk-<number>-<suffix>
 		parts := strings.Split(fullID, "-")
 		if len(parts) >= 2 {
-			shortForm := strings.Join(parts[:2], "-") // tak-<number>
+			shortForm := strings.Join(parts[:2], "-") // tk-<number>
 			if shortForm == normalizedID {
 				matches = append(matches, fullID)
 			}
@@ -430,13 +430,13 @@ func (d *DB) GetAllTaskIDs() ([]string, error) {
 
 // FormatTaskID formats a task ID for display, hiding the suffix unless needed for disambiguation
 func FormatTaskID(fullID string, allTaskIDs []string) string {
-	// Extract parts: tak-<number>-<suffix>
+	// Extract parts: tk-<number>-<suffix>
 	parts := strings.Split(fullID, "-")
 	if len(parts) < 3 {
 		return fullID // Malformed ID, return as-is
 	}
 
-	shortForm := strings.Join(parts[:2], "-") // tak-<number>
+	shortForm := strings.Join(parts[:2], "-") // tk-<number>
 
 	// Check if any other task has the same short form but different suffix
 	needsSuffix := false

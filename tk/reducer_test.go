@@ -10,7 +10,7 @@ func TestReducer_TaskCreated(t *testing.T) {
 	reducer := NewReducer()
 
 	payload := TaskCreatedPayload{
-		TaskID:    "tak-1-test",
+		TaskID:    "tk-1-test",
 		Title:     "Test task",
 		CreatedBy: "alice",
 	}
@@ -32,13 +32,13 @@ func TestReducer_TaskCreated(t *testing.T) {
 		t.Fatalf("Failed to apply task.created event: %v", err)
 	}
 
-	task, ok := reducer.GetTask("tak-1-test")
+	task, ok := reducer.GetTask("tk-1-test")
 	if !ok {
 		t.Fatal("Task not found")
 	}
 
-	if task.TaskID != "tak-1-test" {
-		t.Errorf("Expected task ID tak-1-test, got %s", task.TaskID)
+	if task.TaskID != "tk-1-test" {
+		t.Errorf("Expected task ID tk-1-test, got %s", task.TaskID)
 	}
 
 	if task.Title != "Test task" {
@@ -59,7 +59,7 @@ func TestReducer_StatusSet(t *testing.T) {
 
 	// Create task first
 	createPayload := TaskCreatedPayload{
-		TaskID:    "tak-1-test",
+		TaskID:    "tk-1-test",
 		Title:     "Test task",
 		CreatedBy: "alice",
 	}
@@ -79,7 +79,7 @@ func TestReducer_StatusSet(t *testing.T) {
 
 	// Set status
 	statusPayload := TaskStatusSetPayload{
-		TaskID: "tak-1-test",
+		TaskID: "tk-1-test",
 		Axis:   "generic",
 		State:  "in_progress",
 		Role:   "human",
@@ -101,7 +101,7 @@ func TestReducer_StatusSet(t *testing.T) {
 		t.Fatalf("Failed to apply task.status.set event: %v", err)
 	}
 
-	task, _ := reducer.GetTask("tak-1-test")
+	task, _ := reducer.GetTask("tk-1-test")
 
 	axis, ok := task.Axes["generic"]
 	if !ok {
@@ -130,7 +130,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 
 	// Create task
 	createPayload := TaskCreatedPayload{
-		TaskID:    "tak-1-test",
+		TaskID:    "tk-1-test",
 		Title:     "Test task",
 		CreatedBy: "alice",
 	}
@@ -150,7 +150,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 
 	// Agent sets status to done
 	agentPayload := TaskStatusSetPayload{
-		TaskID: "tak-1-test",
+		TaskID: "tk-1-test",
 		Axis:   "generic",
 		State:  "done",
 		Role:   "agent",
@@ -171,7 +171,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 
 	// Human sets status to in_progress (same timestamp for concurrent claim)
 	humanPayload := TaskStatusSetPayload{
-		TaskID: "tak-1-test",
+		TaskID: "tk-1-test",
 		Axis:   "generic",
 		State:  "in_progress",
 		Role:   "human",
@@ -190,7 +190,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 
 	reducer.Apply(humanEvent)
 
-	task, _ := reducer.GetTask("tak-1-test")
+	task, _ := reducer.GetTask("tk-1-test")
 	axis := task.Axes["generic"]
 
 	// Human claim should win due to higher authority
@@ -227,7 +227,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 
 	// Create task
 	createPayload := TaskCreatedPayload{
-		TaskID:    "tak-1-test",
+		TaskID:    "tk-1-test",
 		Title:     "Test task",
 		CreatedBy: "alice",
 	}
@@ -247,7 +247,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 
 	// Add note
 	notePayload := TaskNoteAddPayload{
-		TaskID:   "tak-1-test",
+		TaskID:   "tk-1-test",
 		Markdown: "This is a test note",
 	}
 	notePayloadJSON, _ := json.Marshal(notePayload)
@@ -267,7 +267,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 		t.Fatalf("Failed to apply task.note.add event: %v", err)
 	}
 
-	task, _ := reducer.GetTask("tak-1-test")
+	task, _ := reducer.GetTask("tk-1-test")
 
 	if len(task.Notes) != 1 {
 		t.Fatalf("Expected 1 note, got %d", len(task.Notes))

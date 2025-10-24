@@ -24,14 +24,14 @@ func main() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:   "tak",
-	Short: "tak - system-wide event-sourced task tracker",
-	Long:  `tak is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.`,
+	Use:   "tk",
+	Short: "tk - system-wide event-sourced task tracker",
+	Long:  `tk is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.`,
 }
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Create a new tak database",
+	Short: "Create a new tk database",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		path, err := GetDBPath()
 		if err != nil {

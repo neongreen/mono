@@ -1,8 +1,8 @@
-# tak v0 Implementation Summary
+# tk v0 Implementation Summary
 
 ## Overview
 
-Successfully implemented v0 of tak - a system-wide event-sourced task tracker as specified in the requirements.
+Successfully implemented v0 of tk - a system-wide event-sourced task tracker as specified in the requirements.
 
 ## Implemented Features
 
@@ -12,7 +12,7 @@ Successfully implemented v0 of tak - a system-wide event-sourced task tracker as
 - **Lamport timestamps**: Logical clock for event ordering
 - **WAL mode**: SQLite configured for better concurrency and durability
 - **Pure Go SQLite**: Uses modernc.org/sqlite - no CGO required, works with static binaries
-- **Automatic setup**: Database created in `~/.tak/` on first use
+- **Automatic setup**: Database created in `~/.tk/` on first use
 
 ### Event Types
 1. **task.created**: Creates a new task with title and creator
@@ -30,17 +30,17 @@ Role hierarchy (highest to lowest authority):
 When concurrent claims exist (same Lamport timestamp), the claim with highest authority becomes effective, and lower-authority claims are marked as tentative.
 
 ### CLI Commands
-- `tak init` - Initialize a new database (optional, auto-created on first use)
-- `tak db path` - Show database path (defaults to `~/.tak/tak.db`)
-- `tak new "title"` - Create a new task
-- `tak status set <id> <state>` - Set task status (supports --axis and --role flags)
-- `tak note <id> "text"` - Add a note to a task
-- `tak view <id>` - View task with all claims (JSON output)
-- `tak ls` - List all tasks (supports --axis filter)
+- `tk init` - Initialize a new database (optional, auto-created on first use)
+- `tk db path` - Show database path (defaults to `~/.tk/tk.db`)
+- `tk new "title"` - Create a new task
+- `tk status set <id> <state>` - Set task status (supports --axis and --role flags)
+- `tk note <id> "text"` - Add a note to a task
+- `tk view <id>` - View task with all claims (JSON output)
+- `tk ls` - List all tasks (supports --axis filter)
 
 ### Project Structure
 ```
-tak/
+tk/
 ├── db.go           # SQLite database layer
 ├── main.go         # CLI interface (cobra commands)
 ├── reducer.go      # Event projection/state reconstruction
@@ -78,7 +78,7 @@ PASS
 
 ## Integration
 
-- **CI workflow**: `.github/workflows/tak.yml` runs tests on push/PR
+- **CI workflow**: `.github/workflows/tk.yml` runs tests on push/PR
 - **Release configuration**: Added to `release-mirror.toml` for automated releases
 - **Monorepo**: Integrated into Go workspace in `go.work`
 - **Documentation**: Added to main README.md
@@ -95,21 +95,21 @@ PASS
 Example workflow:
 ```bash
 # No initialization needed - database is created automatically
-$ tak new "Implement authentication"
-Created task tak_01K86GH6XWR3RYYY008V84SE8B: Implement authentication
+$ tk new "Implement authentication"
+Created task tk_01K86GH6XWR3RYYY008V84SE8B: Implement authentication
 
-$ tak db path
-/home/user/.tak/tak.db
+$ tk db path
+/home/user/.tk/tk.db
 
-$ tak status set tak_01K86GH6XWR3RYYY008V84SE8B in_progress
-Set status for task tak_01K86GH6XWR3RYYY008V84SE8B: generic=in_progress
+$ tk status set tk_01K86GH6XWR3RYYY008V84SE8B in_progress
+Set status for task tk_01K86GH6XWR3RYYY008V84SE8B: generic=in_progress
 
-$ tak status set tak_01K86GH6XWR3RYYY008V84SE8B done --role agent
-Set status for task tak_01K86GH6XWR3RYYY008V84SE8B: generic=done
+$ tk status set tk_01K86GH6XWR3RYYY008V84SE8B done --role agent
+Set status for task tk_01K86GH6XWR3RYYY008V84SE8B: generic=done
 
-$ tak view tak_01K86GH6XWR3RYYY008V84SE8B
+$ tk view tk_01K86GH6XWR3RYYY008V84SE8B
 {
-  "task_id": "tak_01K86GH6XWR3RYYY008V84SE8B",
+  "task_id": "tk_01K86GH6XWR3RYYY008V84SE8B",
   "title": "Implement authentication",
   "axes": {
     "generic": {
@@ -143,9 +143,9 @@ Note: The human claim (in_progress) is effective, while the agent claim (done) i
 The following features are planned for future versions:
 - Context binding (repo, branch, commit tracking)
 - JJ integration for VCS awareness
-- `tak who` - query tasks by context
-- `tak start` - bind + set in_progress
-- `tak vcs discover` - detect repo context
+- `tk who` - query tasks by context
+- `tk start` - bind + set in_progress
+- `tk vcs discover` - detect repo context
 - Dangling context detection
 - Custom axes and workflows
 - Task relations (blocks, subtasks)
