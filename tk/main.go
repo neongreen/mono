@@ -142,7 +142,7 @@ var newCmd = &cobra.Command{
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Manage task status",
+	Short: "Manage task status and sync status",
 }
 
 var statusSetCmd = &cobra.Command{
@@ -435,6 +435,7 @@ func init() {
 	statusSetCmd.Flags().String("axis", "generic", "Status axis")
 	statusSetCmd.Flags().String("role", "human", "Actor role")
 	statusCmd.AddCommand(statusSetCmd)
+	statusCmd.AddCommand(statusSyncCmd)
 	rootCmd.AddCommand(statusCmd)
 
 	rootCmd.AddCommand(noteCmd)
@@ -448,6 +449,9 @@ func init() {
 	rootCmd.AddCommand(remoteCmd)
 	rootCmd.AddCommand(exportCmd)
 	rootCmd.AddCommand(ingestCmd)
+	rootCmd.AddCommand(pushCmd)
+	rootCmd.AddCommand(pullCmd)
+	rootCmd.AddCommand(syncCmd)
 }
 
 func openExistingDB() (*DB, error) {
