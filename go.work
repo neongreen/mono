@@ -8,11 +8,11 @@ use (
 	./ingest
 	./lib/ghclient
 	./lib/ghrelease
+	./lib/toml
 	./markdown-format
 	./printpdf
 	./prrun
 	./tak
-  ./tomlcp
 	./want
 )
 

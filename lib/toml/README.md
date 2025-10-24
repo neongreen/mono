@@ -1,8 +1,8 @@
-# tomlcp - Comment-Preserving TOML Library for Go
+# toml - Comment-Preserving TOML Library for Go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/neongreen/mono/tomlcp.svg)](https://pkg.go.dev/github.com/neongreen/mono/tomlcp)
+[![Go Reference](https://pkg.go.dev/badge/github.com/neongreen/mono/lib/toml.svg)](https://pkg.go.dev/github.com/neongreen/mono/lib/toml)
 
-`tomlcp` is a Go library for parsing, modifying, and serializing TOML documents while **preserving all comments, formatting, and declaration order**. It wraps the excellent [creachadair/tomledit](https://github.com/creachadair/tomledit) library to provide a stable, user-friendly API.
+A Go library for parsing, modifying, and serializing TOML documents while **preserving all comments, formatting, and declaration order**. It wraps the excellent [creachadair/tomledit](https://github.com/creachadair/tomledit) library to provide a stable, user-friendly API.
 
 ## Features
 
@@ -19,7 +19,7 @@
 ## Installation
 
 ```bash
-go get github.com/neongreen/mono/tomlcp
+go get github.com/neongreen/mono/lib/toml
 ```
 
 ## Quick Start
@@ -31,7 +31,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/neongreen/mono/tomlcp"
+	"github.com/neongreen/mono/lib/toml"
 )
 
 func main() {
@@ -45,7 +45,7 @@ port = 8080         # The port to listen on
 url = "postgres://localhost/db"
 `
 
-	doc, err := tomlcp.ParseString(input)
+	doc, err := toml.ParseString(input)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,7 +81,7 @@ Parses a TOML document from a byte slice.
 
 ```go
 data, _ := os.ReadFile("config.toml")
-doc, err := tomlcp.Parse(data)
+doc, err := toml.Parse(data)
 ```
 
 #### `ParseString(input string) (*Document, error)`
@@ -89,7 +89,7 @@ doc, err := tomlcp.Parse(data)
 Parses a TOML document from a string.
 
 ```go
-doc, err := tomlcp.ParseString(`
+doc, err := toml.ParseString(`
 name = "myapp"
 version = 1
 `)
@@ -195,7 +195,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/neongreen/mono/tomlcp"
+	"github.com/neongreen/mono/lib/toml"
 )
 
 func main() {
@@ -205,7 +205,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	doc, err := tomlcp.Parse(data)
+	doc, err := toml.Parse(data)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -233,7 +233,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/neongreen/mono/tomlcp"
+	"github.com/neongreen/mono/lib/toml"
 )
 
 func main() {
@@ -249,7 +249,7 @@ host = "localhost"
 port = 5432
 `
 
-	doc, _ := tomlcp.ParseString(input)
+	doc, _ := toml.ParseString(input)
 
 	// Modify values - comments AND quote styles are preserved!
 	doc.Set("version", 2)           // Comment preserved
@@ -279,11 +279,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/neongreen/mono/tomlcp"
+	"github.com/neongreen/mono/lib/toml"
 )
 
 func main() {
-	doc, _ := tomlcp.ParseString("")
+	doc, _ := toml.ParseString("")
 
 	// Create a complex nested structure
 	doc.Set("servers.alpha.ip", "10.0.0.1")
@@ -312,7 +312,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/neongreen/mono/tomlcp"
+	"github.com/neongreen/mono/lib/toml"
 )
 
 func main() {
@@ -321,7 +321,7 @@ func main() {
 server.host = "localhost"
 server.port = 8080
 `
-	doc1, _ := tomlcp.ParseString(input1)
+	doc1, _ := toml.ParseString(input1)
 	doc1.Set("server.host", "0.0.0.0")  // Stays as dotted key!
 	fmt.Println(doc1.String())
 	// Output:
@@ -334,7 +334,7 @@ server.port = 8080
 host = "localhost"
 port = 8080
 `
-	doc2, _ := tomlcp.ParseString(input2)
+	doc2, _ := toml.ParseString(input2)
 	doc2.Set("server.host", "0.0.0.0")  // Stays in [server] section!
 	fmt.Println(doc2.String())
 	// Output:
@@ -352,7 +352,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/neongreen/mono/tomlcp"
+	"github.com/neongreen/mono/lib/toml"
 )
 
 func main() {
@@ -364,7 +364,7 @@ setting = "value"
 host = "localhost"
 `
 
-	doc, _ := tomlcp.ParseString(input)
+	doc, _ := toml.ParseString(input)
 
 	// Migrate old setting to new location
 	if oldValue, _ := doc.Get("old_section.setting"); oldValue != nil {
@@ -381,7 +381,7 @@ host = "localhost"
 ### Accessing Arrays
 
 ```go
-doc, _ := tomlcp.ParseString(`
+doc, _ := toml.ParseString(`
 tags = ["go", "toml", "parser"]
 `)
 
@@ -396,7 +396,7 @@ if arr, ok := tags.([]interface{}); ok {
 ### Accessing Inline Tables
 
 ```go
-doc, _ := tomlcp.ParseString(`
+doc, _ := toml.ParseString(`
 person = { name = "Alice", age = 30 }
 `)
 
@@ -466,7 +466,7 @@ See [TEST_COVERAGE.md](TEST_COVERAGE.md) for detailed test coverage documentatio
 
 ## Comparison with Other Libraries
 
-| Feature | tomlcp | go-toml/v2 | BurntSushi/toml |
+| Feature | toml | go-toml/v2 | BurntSushi/toml |
 |---------|--------|------------|-----------------|
 | Comment preservation | ✅ | ❌ | ❌ |
 | Format preservation | ✅ | ❌ | ❌ |
@@ -477,7 +477,7 @@ See [TEST_COVERAGE.md](TEST_COVERAGE.md) for detailed test coverage documentatio
 | Struct tags | ❌ | ✅ | ✅ |
 | Use case | Config editing | Data serialization | Data serialization |
 
-**When to use tomlcp:**
+**When to use toml:**
 - You need to edit TOML files while preserving comments
 - You're building a configuration management tool
 - You need to maintain human-readable formatting (quote styles, key order, nestedness style)
@@ -491,7 +491,7 @@ See [TEST_COVERAGE.md](TEST_COVERAGE.md) for detailed test coverage documentatio
 
 ## Implementation Details
 
-`tomlcp` is built on top of [creachadair/tomledit](https://github.com/creachadair/tomledit), which provides the low-level AST-based parsing and formatting capabilities. `tomlcp` adds:
+`toml` is built on top of [creachadair/tomledit](https://github.com/creachadair/tomledit), which provides the low-level AST-based parsing and formatting capabilities. `toml` adds:
 
 - A higher-level, more ergonomic API
 - Automatic comment preservation when updating values

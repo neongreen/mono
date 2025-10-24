@@ -1,4 +1,4 @@
-module github.com/neongreen/mono/tomlcp
+module github.com/neongreen/mono/lib/toml
 
 go 1.24
 

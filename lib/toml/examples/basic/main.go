@@ -5,11 +5,11 @@ import (
 	"log"
 	"strings"
 
-	"github.com/neongreen/mono/tomlcp"
+	"github.com/neongreen/mono/lib/toml"
 )
 
 func main() {
-	fmt.Println("=== tomlcp Basic Example ===")
+	fmt.Println("=== TOML Library Basic Example ===")
 	fmt.Println()
 
 	// Example 1: Parse and Read
@@ -28,7 +28,7 @@ url = "postgres://localhost/mydb"
 max_connections = 100
 `
 
-	doc, err := tomlcp.ParseString(input)
+	doc, err := toml.ParseString(input)
 	if err != nil {
 		log.Fatal(err)
 	}

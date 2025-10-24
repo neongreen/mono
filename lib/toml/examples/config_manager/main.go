@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/neongreen/mono/tomlcp"
+	"github.com/neongreen/mono/lib/toml"
 )
 
 func main() {
@@ -46,7 +46,7 @@ output = "stdout"       # Output: stdout, stderr, file
 `
 
 	// Create a temporary directory for the example
-	tmpDir, err := os.MkdirTemp("", "tomlcp-example-*")
+	tmpDir, err := os.MkdirTemp("", "toml-example-*")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -68,7 +68,7 @@ output = "stdout"       # Output: stdout, stderr, file
 		log.Fatal(err)
 	}
 
-	doc, err := tomlcp.Parse(data)
+	doc, err := toml.Parse(data)
 	if err != nil {
 		log.Fatal(err)
 	}

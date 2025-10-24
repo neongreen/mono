@@ -21,7 +21,7 @@
 //
 //	// Write back with comments preserved
 //	output := doc.String()
-package tomlcp
+package toml
 
 import (
 	"bytes"

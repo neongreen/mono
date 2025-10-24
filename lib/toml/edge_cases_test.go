@@ -1,4 +1,4 @@
-package tomlcp
+package toml
 
 import (
 	"strings"
