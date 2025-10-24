@@ -92,7 +92,10 @@ var newCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		eventID := GenerateEventID()
+		eventID, err := GenerateEventID(db)
+		if err != nil {
+			return err
+		}
 
 		// Get next Lamport timestamp from DB
 		lamportTS, err := db.GetNextLamportTS()
@@ -170,7 +173,10 @@ var statusSetCmd = &cobra.Command{
 			return err
 		}
 
-		eventID := GenerateEventID()
+		eventID, err := GenerateEventID(db)
+		if err != nil {
+			return err
+		}
 
 		// Get next Lamport timestamp from DB
 		lamportTS, err := db.GetNextLamportTS()
@@ -234,7 +240,10 @@ var noteCmd = &cobra.Command{
 			return err
 		}
 
-		eventID := GenerateEventID()
+		eventID, err := GenerateEventID(db)
+		if err != nil {
+			return err
+		}
 
 		// Get next Lamport timestamp from DB
 		lamportTS, err := db.GetNextLamportTS()
