@@ -8,6 +8,7 @@ Library for downloading GitHub release assets with platform detection and authen
 - GitHub authentication via environment variables or gh CLI
 - Download release assets by tag name
 - Support for both public and private repositories
+- Automatic pagination to fetch all releases (up to 100 per page)
 
 ## Usage
 
@@ -51,6 +52,13 @@ asset, err := ghrelease.FindPlatformAsset(release, "project-name")
 
 ```go
 err := ghrelease.DownloadAsset(asset, "/path/to/destination")
+```
+
+### Listing Releases
+
+```go
+releases, err := ghrelease.ListReleases("owner", "repo")
+// Returns all releases (automatically paginated)
 ```
 
 ## Authentication
