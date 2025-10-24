@@ -1,6 +1,6 @@
 # tk - System-Wide Event-Sourced Task Tracker
 
-tk is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.
+tk is a command-line tool that tracks tasks system-wide using an append-only event log with offline-first sync.
 
 ## Features
 
@@ -10,6 +10,8 @@ tk is a command-line tool that tracks tasks system-wide using an append-only eve
 - **Multi-valued registers**: Conflicting claims are preserved as tentative/effective
 - **SQLite backend**: Durable, inspectable, and portable (pure Go, no CGO required)
 - **Automatic setup**: Database is created automatically in `~/.tk/` on first use
+- **Offline-first sync**: Sync events between machines using immutable segment files (v1)
+- **iCloud sync**: Use iCloud Drive as a sync remote for multi-Mac workflows (v1)
 
 ## Installation
 
@@ -38,12 +40,12 @@ tk stores its database in `~/.tk/tk.db` by default. The database and directory a
 tk new "wire up rc deploy toggle"
 ```
 
-This creates a new task with a unique ID like `tk_01J3XM4NZ2R72`. No initialization is required.
+This creates a new task with a unique ID like `tk-1-abc123` where `abc123` is your node ID.
 
 ### Set task status
 
 ```bash
-tk status set tk_01J3XM4NZ2R72 in_progress
+tk status set tk-1 in_progress
 ```
 
 You can specify the axis and role:
@@ -92,12 +94,70 @@ The database is created automatically when you first use tk. However, you can ex
 tk init
 ```
 
+## Sync (v1)
+
+tk v1 supports offline-first sync between machines using immutable event segments.
+
+### Node ID
+
+Each tk installation has a unique 6-character node ID. View yours with:
+
+```bash
+tk node show
+```
+
+Task and event IDs include the node ID (e.g., `tk-1-abc123`, `ev-42-abc123`) to prevent collisions.
+
+### Add a sync remote
+
+To sync between two Macs using iCloud Drive:
+
+```bash
+tk remote add icloud folder ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events
+```
+
+### Sync workflow
+
+Initial sync on Machine A:
+```bash
+tk export --all icloud  # Export all existing events
+tk sync icloud          # Push to iCloud
+```
+
+Wait for iCloud to finish uploading, then on Machine B:
+```bash
+tk remote add icloud folder ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events
+tk sync icloud          # Pull and sync
+```
+
+Regular sync on either machine:
+```bash
+tk sync icloud
+```
+
+The sync command performs: pull → ingest → export → push
+
+### Check sync status
+
+```bash
+tk status sync
+```
+
+Shows divergence between local and remote segments.
+
+### Individual sync operations
+
+- `tk export [remote]` - Export local events to segments
+- `tk ingest [remote|file]` - Ingest events from segments
+- `tk pull [remote]` - Pull segments from remote
+- `tk push [remote]` - Push segments to remote
+
 ## Concepts
 
 ### Events
 
 Every action in tk is recorded as an immutable event in the SQLite database. Events have:
-- **ID**: ULID identifier
+- **ID**: Event ID in format `ev-<seq>-<node>` (e.g., `ev-42-abc123`)
 - **TS**: Lamport timestamp for ordering
 - **Actor**: Username who created the event
 - **Role**: Role of the actor (human, agent, bot, qa, rel)
@@ -123,17 +183,21 @@ When concurrent claims exist (same timestamp), the claim with the highest author
 
 Tasks can have multiple status axes. Currently, only the "generic" axis is used, but the system is designed to support workflow-specific axes in future versions.
 
-## Status (v0)
+## Status
 
-This is v0 of tk - a minimal claims tracker. The current implementation includes:
+### v1 (current)
 
-- Event store with SQLite backend in `~/.tk/`
-- Automatic database initialization
-- Basic task lifecycle (create, status, notes)
-- Authority-based claim resolution
-- CLI for all core operations
+- Event sourcing with stable event IDs (`ev-<seq>-<node>`)
+- Task IDs with node suffix (`tk-<seq>-<node>`)
+- Offline-first sync via immutable segment files
+- iCloud Drive folder remote support
+- Segment files with zstd compression
+- Automatic deduplication on ingest
+- Lamport clock synchronization
+- Node collision detection
 
-Not yet implemented:
+### Not yet implemented
+
 - Context binding (repo, branch, commit tracking)
 - JJ integration
 - Custom axes and workflows

@@ -288,6 +288,12 @@ Examples:
 		}
 		defer db.Close()
 
+		// Check for node collisions first
+		fmt.Println("Checking for node collisions...")
+		if err := checkNodeCollision(db, remoteName, remote); err != nil {
+			return fmt.Errorf("node collision detected: %w", err)
+		}
+
 		// 1. Pull
 		fmt.Println("Pulling from remote...")
 		if remote.Pull {
