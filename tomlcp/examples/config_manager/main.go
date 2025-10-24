@@ -11,7 +11,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Configuration Manager Example ===\n")
+	fmt.Println("=== Configuration Manager Example ===")
+	fmt.Println()
 
 	// Create a sample config file
 	sampleConfig := `# Application Configuration

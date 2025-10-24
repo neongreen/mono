@@ -9,7 +9,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== tomlcp Basic Example ===\n")
+	fmt.Println("=== tomlcp Basic Example ===")
+	fmt.Println()
 
 	// Example 1: Parse and Read
 	fmt.Println("Example 1: Parse and Read")

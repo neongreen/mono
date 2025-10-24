@@ -77,72 +77,176 @@ func (d *Document) Get(path string) (interface{}, error) {
 
 // Set sets a value at the given dotted path, creating intermediate sections
 // if necessary. The value can be a string, int, float64, bool, or []interface{}.
+// This method preserves the original style (dotted keys vs sections, quote styles).
 func (d *Document) Set(path string, value interface{}) error {
 	keys, err := parseKeyPath(path)
 	if err != nil {
 		return err
 	}
 
-	// Format the value to a TOML string
+	// Check if the key already exists
+	existingEntry := d.doc.First(keys...)
+
+	if existingEntry != nil && existingEntry.KeyValue != nil {
+		// Key exists - update it in place, preserving style and comments
+		return d.updateExistingKey(existingEntry, value)
+	}
+
+	// Key doesn't exist - add it in an appropriate style
+	return d.addNewKey(keys, value)
+}
+
+// updateExistingKey updates an existing key while preserving its formatting
+func (d *Document) updateExistingKey(entry *tomledit.Entry, value interface{}) error {
+	oldValue := entry.KeyValue.Value
+
+	// Try to format the new value in the same style as the old value
+	newValue, err := d.formatValuePreservingStyle(value, oldValue)
+	if err != nil {
+		return fmt.Errorf("failed to format value: %w", err)
+	}
+
+	// Update the value while preserving comments
+	entry.KeyValue.Value = newValue
+	entry.KeyValue.Value.Trailer = oldValue.Trailer // Preserve trailing comment
+
+	return nil
+}
+
+// formatValuePreservingStyle formats a value trying to match the style of an existing value
+func (d *Document) formatValuePreservingStyle(value interface{}, existingValue parser.Value) (parser.Value, error) {
+	// For strings, try to preserve quote style
+	if strValue, ok := value.(string); ok {
+		if token, ok := existingValue.X.(parser.Token); ok {
+			// Preserve the quote style from the original
+			originalStr := token.String()
+
+			var formatted string
+			if strings.HasPrefix(originalStr, "'''") {
+				// Multiline literal string
+				formatted = "'''" + strValue + "'''"
+			} else if strings.HasPrefix(originalStr, `"""`) {
+				// Multiline basic string
+				formatted = `"""` + strValue + `"""`
+			} else if strings.HasPrefix(originalStr, "'") {
+				// Single-quoted literal string
+				formatted = "'" + strValue + "'"
+			} else {
+				// Double-quoted basic string (default)
+				formatted = quoteString(strValue)
+			}
+
+			return parser.ParseValue(formatted)
+		}
+	}
+
+	// For non-strings or when we can't preserve style, use default formatting
+	valueStr, err := formatValueToString(value)
+	if err != nil {
+		return parser.Value{}, err
+	}
+
+	return parser.ParseValue(valueStr)
+}
+
+// addNewKey adds a new key in an appropriate style (dotted key vs section)
+func (d *Document) addNewKey(keys parser.Key, value interface{}) error {
+	// Format the value
 	valueStr, err := formatValueToString(value)
 	if err != nil {
 		return fmt.Errorf("failed to format value: %w", err)
 	}
 
-	// Parse the value string into a parser.Value
 	parsedValue, err := parser.ParseValue(valueStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse value: %w", err)
 	}
 
-	// Create the key-value pair
+	// Determine where and how to add the new key
+	if len(keys) == 1 {
+		// Top-level key - add to global section
+		return d.addToGlobalSection(keys, parsedValue)
+	}
+
+	// Multi-part key - determine if we should use dotted key or section style
+	// Check if there are existing dotted keys with the same prefix
+	if d.hasDottedKeysWithPrefix(keys[:len(keys)-1]) {
+		// Use dotted key style to match existing style
+		return d.addDottedKey(keys, parsedValue)
+	}
+
+	// Check if there's an existing section for this prefix
+	tableName := keys[:len(keys)-1]
+	entry := transform.FindTable(d.doc, tableName...)
+
+	if entry != nil {
+		// Section exists - add to it
+		return d.addToSection(entry.Section, parser.Key{keys[len(keys)-1]}, parsedValue)
+	}
+
+	// No existing pattern - default to dotted key style for simplicity
+	// This preserves the most compact format
+	return d.addDottedKey(keys, parsedValue)
+}
+
+// hasDottedKeysWithPrefix checks if there are any dotted keys with the given prefix
+func (d *Document) hasDottedKeysWithPrefix(prefix parser.Key) bool {
+	if d.doc.Global == nil {
+		return false
+	}
+
+	prefixStr := strings.Join(prefix, ".") + "."
+
+	for _, item := range d.doc.Global.Items {
+		if kv, ok := item.(*parser.KeyValue); ok {
+			keyStr := kv.Name.String()
+			if strings.HasPrefix(keyStr, prefixStr) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// addToGlobalSection adds a key-value pair to the global section
+func (d *Document) addToGlobalSection(keys parser.Key, value parser.Value) error {
+	if d.doc.Global == nil {
+		d.doc.Global = &tomledit.Section{}
+	}
+
 	kv := &parser.KeyValue{
 		Name:  keys,
-		Value: parsedValue,
+		Value: value,
 	}
 
-	// Check if the key already exists to preserve its comments
-	existingEntry := d.doc.First(keys...)
-	if existingEntry != nil && existingEntry.KeyValue != nil {
-		// Preserve block comments from the existing entry
-		kv.Block = existingEntry.KeyValue.Block
-		// Preserve line comments
-		kv.Value.Trailer = existingEntry.KeyValue.Value.Trailer
+	transform.InsertMapping(d.doc.Global, kv, true)
+	return nil
+}
+
+// addDottedKey adds a key as a dotted key in the global section
+func (d *Document) addDottedKey(keys parser.Key, value parser.Value) error {
+	if d.doc.Global == nil {
+		d.doc.Global = &tomledit.Section{}
 	}
 
-	// Determine which section to add to
-	var section *tomledit.Section
-	if len(keys) == 1 {
-		// Top-level key, add to global section
-		section = d.doc.Global
-		if section == nil {
-			section = &tomledit.Section{}
-			d.doc.Global = section
-		}
-	} else {
-		// Nested key, find or create the appropriate table
-		tableName := keys[:len(keys)-1]
-		entry := transform.FindTable(d.doc, tableName...)
-
-		if entry == nil {
-			// Create the table
-			section = &tomledit.Section{
-				Heading: &parser.Heading{
-					Name: tableName,
-				},
-			}
-			d.doc.Sections = append(d.doc.Sections, section)
-		} else {
-			section = entry.Section
-		}
-
-		// Update the key-value to just use the last component
-		kv.Name = parser.Key{keys[len(keys)-1]}
+	kv := &parser.KeyValue{
+		Name:  keys, // Full dotted path
+		Value: value,
 	}
 
-	// Insert or replace the mapping
+	transform.InsertMapping(d.doc.Global, kv, true)
+	return nil
+}
+
+// addToSection adds a key-value pair to an existing section
+func (d *Document) addToSection(section *tomledit.Section, key parser.Key, value parser.Value) error {
+	kv := &parser.KeyValue{
+		Name:  key,
+		Value: value,
+	}
+
 	transform.InsertMapping(section, kv, true)
-
 	return nil
 }
 

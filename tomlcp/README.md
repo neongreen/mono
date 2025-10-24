@@ -9,10 +9,12 @@
 - ✅ **Comment Preservation**: All comments (block, inline, and trailing) are preserved during read-modify-write operations
 - ✅ **Format Preservation**: Original formatting and whitespace are maintained
 - ✅ **Order Preservation**: Declaration order of keys and sections is preserved
+- ✅ **Quote Style Preservation**: String quote styles (single `'`, double `"`, multiline `"""` or `'''`) are preserved when modifying values
+- ✅ **Nestedness Style Preservation**: Dotted keys (`server.host = "..."`) vs section style (`[server]` + `host = "..."`) are preserved
 - ✅ **Simple API**: Easy-to-use interface with `Get`, `Set`, `Delete`, and `Has` methods
 - ✅ **Dotted Path Support**: Access nested values using dotted paths (e.g., `server.database.host`)
 - ✅ **Full TOML v1.0.0 Support**: Supports all TOML features including arrays, inline tables, and multiline strings
-- ✅ **Extensively Tested**: Comprehensive test suite with 27+ test cases
+- ✅ **Extensively Tested**: Comprehensive test suite with 37+ test cases
 
 ## Installation
 
@@ -223,7 +225,7 @@ func main() {
 }
 ```
 
-### Example 2: Comment Preservation
+### Example 2: Comment and Style Preservation
 
 ```go
 package main
@@ -238,6 +240,7 @@ func main() {
 	input := `# Application settings
 app_name = "myapp"    # The name of the application
 version = 1           # Current version
+license = 'MIT'       # Single-quoted string
 
 # Database configuration
 [database]
@@ -248,18 +251,23 @@ port = 5432
 
 	doc, _ := tomlcp.ParseString(input)
 
-	// Modify the version (comment is preserved!)
-	doc.Set("version", 2)
-
-	// Modify database port (comments are preserved!)
-	doc.Set("database.port", 5433)
+	// Modify values - comments AND quote styles are preserved!
+	doc.Set("version", 2)           // Comment preserved
+	doc.Set("license", "Apache-2.0") // Single quotes preserved
+	doc.Set("database.port", 5433)  // Comment preserved
 
 	fmt.Println(doc.String())
-	// Output still contains:
+	// Output:
 	// # Application settings
 	// app_name = "myapp"    # The name of the application
 	// version = 2           # Current version
-	// ... etc
+	// license = 'Apache-2.0'       # Single-quoted string (note: STILL single-quoted!)
+	//
+	// # Database configuration
+	// [database]
+	// # Connection settings
+	// host = "localhost"
+	// port = 5433
 }
 ```
 
@@ -296,7 +304,47 @@ func main() {
 }
 ```
 
-### Example 4: Migrating Configuration Values
+### Example 4: Style Preservation (Dotted Keys vs Sections)
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/neongreen/mono/tomlcp"
+)
+
+func main() {
+	// Example with dotted key style
+	input1 := `
+server.host = "localhost"
+server.port = 8080
+`
+	doc1, _ := tomlcp.ParseString(input1)
+	doc1.Set("server.host", "0.0.0.0")  // Stays as dotted key!
+	fmt.Println(doc1.String())
+	// Output:
+	// server.host = "0.0.0.0"
+	// server.port = 8080
+
+	// Example with section style
+	input2 := `
+[server]
+host = "localhost"
+port = 8080
+`
+	doc2, _ := tomlcp.ParseString(input2)
+	doc2.Set("server.host", "0.0.0.0")  // Stays in [server] section!
+	fmt.Println(doc2.String())
+	// Output:
+	// [server]
+	// host = "0.0.0.0"
+	// port = 8080
+}
+```
+
+### Example 5: Migrating Configuration Values
 
 ```go
 package main
@@ -387,17 +435,21 @@ if b, ok := value.(bool); ok {
 
 ## Testing
 
-The library includes a comprehensive test suite with 27+ test cases covering:
+The library includes a comprehensive test suite with 37+ test cases covering:
 
 - Parsing various TOML formats
 - Getting and setting values
 - Deleting values
-- Comment preservation
+- **Comment preservation** (block, inline, trailing)
+- **Quote style preservation** (single, double, multiline)
+- **Key order preservation**
+- **Nestedness style preservation** (dotted keys vs sections)
 - Round-trip parsing and serialization
 - Arrays and inline tables
 - Edge cases and error handling
 - Unicode support
 - Large and complex documents
+- Multiple modifications and deletions
 
 Run tests with:
 
@@ -412,6 +464,8 @@ go test -v ./...
 | Comment preservation | ✅ | ❌ | ❌ |
 | Format preservation | ✅ | ❌ | ❌ |
 | Order preservation | ✅ | ❌ | ❌ |
+| Quote style preservation | ✅ | ❌ | ❌ |
+| Nestedness preservation | ✅ | ❌ | ❌ |
 | Marshal/Unmarshal | ❌ | ✅ | ✅ |
 | Struct tags | ❌ | ✅ | ✅ |
 | Use case | Config editing | Data serialization | Data serialization |
@@ -419,8 +473,9 @@ go test -v ./...
 **When to use tomlcp:**
 - You need to edit TOML files while preserving comments
 - You're building a configuration management tool
-- You need to maintain human-readable formatting
+- You need to maintain human-readable formatting (quote styles, key order, nestedness style)
 - You want to programmatically update config files without losing documentation
+- You need to respect the original author's formatting choices
 
 **When to use go-toml/v2 or BurntSushi/toml:**
 - You just need to deserialize TOML into Go structs
