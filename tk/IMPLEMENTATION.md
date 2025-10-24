@@ -155,7 +155,7 @@ Set status for task tk-1: generic=done
 
 $ tk view tk-1
 {
-  "task_id": "tk-1-abc123",
+  "task_id": "tk-1-AbC123",
   "title": "Implement authentication",
   "axes": {
     "generic": {
@@ -188,7 +188,7 @@ Note: The human claim (in_progress) is effective, while the agent claim (done) i
 ```bash
 # On Machine A: Initial setup and export
 $ tk new "Deploy feature X"
-Created task tk-1-abc123: Deploy feature X
+Created task tk-1-AbC123: Deploy feature X
 
 $ tk remote add icloud folder ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events
 Added remote 'icloud' (type: folder, path: ...)
@@ -200,7 +200,7 @@ No segments found on remote
 Ingesting events...
 No segments directory found
 Exporting local events...
-Wrote segment: personal/segments/2025/10/24/2025-10-24T12-00-00Z_abc123_v1_s000001.jsonl.zst
+Wrote segment: personal/segments/2025/10/24/2025-10-24T12-00-00Z_AbC123_v1_s000001.jsonl.zst
 Exported 1 events in 1 segments
 Pushing to remote...
 Pushed 1 segments, index updated
@@ -210,7 +210,7 @@ Sync complete
 $ tk remote add icloud folder ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events
 $ tk sync icloud
 Checking for node collisions...
-Info: Found 1 other node(s) in remote 'icloud': [abc123]
+Info: Found 1 other node(s) in remote 'icloud': [AbC123]
 Pulling from remote...
 Found 1 segments on remote
 Pulled 1 segments
@@ -223,7 +223,7 @@ No new segments to push
 Sync complete
 
 $ tk ls
-tk-1-abc123: Deploy feature X
+tk-1-AbC123: Deploy feature X
 
 # Check sync status
 $ tk status sync
