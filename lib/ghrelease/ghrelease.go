@@ -239,3 +239,36 @@ func DownloadReleaseAsset(owner, repo, tag, projectName, destPath string) error 
 
 	return DownloadAsset(asset, destPath)
 }
+
+// ListReleases fetches all releases for a repository
+func ListReleases(owner, repo string) ([]Release, error) {
+	return ListReleasesWithContext(context.Background(), owner, repo)
+}
+
+// ListReleasesWithContext fetches all releases for a repository with context
+func ListReleasesWithContext(ctx context.Context, owner, repo string) ([]Release, error) {
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", owner, repo)
+	req, err := CreateAuthenticatedRequestWithContext(ctx, "GET", apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request for %s/%s releases: %w", owner, repo, err)
+	}
+
+	client := ghclient.NewHTTPClient(ctx)
+	client.Timeout = 30 * time.Second
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch releases for %s/%s: %w", owner, repo, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("GitHub API returned status %d for %s/%s releases (URL: %s)", resp.StatusCode, owner, repo, apiURL)
+	}
+
+	var releases []Release
+	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+		return nil, fmt.Errorf("failed to decode releases for %s/%s: %w", owner, repo, err)
+	}
+
+	return releases, nil
+}

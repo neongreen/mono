@@ -17,6 +17,10 @@ Interactive task fulfillment tool for macOS.
   - Works with both public and private repositories (with GITHUB_TOKEN)
   - Downloads to `~/.local/bin/` and makes executable
   - Shows plan and asks for confirmation
+- [x] **Install from mono repository** - `want mono <project>@<version>`
+  - List all releases for a project: `want mono printpdf --list`
+  - Install specific version: `want mono printpdf@main.1`
+  - Supports both main and PR releases
 - [x] **Install tools via mise** - Request and install tools using `want <tool>`
   - Shows plan including mise installation if needed
   - Asks for confirmation before installation
@@ -52,6 +56,8 @@ want --dry-run jujutsu      # Preview what would be done (no confirmation)
 want --plan-json jujutsu    # Output fulfillment plan as JSON
 want json ps                # Get process list as JSON (installs jc if needed)
 want md https://example.com # Convert URL to markdown
+want mono printpdf --list   # List all releases of printpdf from mono
+want mono printpdf@main.1   # Install printpdf version main.1 from mono
 want https://github.com/org/repo/releases/tag/v1.0.0  # Download GitHub release
 want github.com/user/repo   # Clone a repository (NOT YET IMPLEMENTED)
 want list                   # Show what you have (NOT YET IMPLEMENTED)
@@ -82,6 +88,46 @@ Or add to your `.mise.toml`:
 ```
 
 ## Usage
+
+### Install from mono repository (✅ WORKING)
+
+```bash
+# List all available releases for a project
+want mono printpdf --list
+
+# Install a specific version
+want mono printpdf@main.1
+
+# Install a PR release
+want mono dissect@pr-42.1
+```
+
+The tool will:
+- Fetch all releases from neongreen/mono repository
+- Filter releases for the specified project
+- Download the binary matching your platform (OS and architecture)
+- Install to `~/.local/bin/`
+- Make it executable
+- Notify you if `~/.local/bin/` is not in your PATH
+
+Example output for listing releases:
+
+```bash
+$ want mono printpdf --list
+Fetching releases for printpdf from neongreen/mono...
+
+Available releases for printpdf:
+  main.5
+  main.4
+  main.3
+  pr-42.1
+
+To install a specific version:
+  want mono printpdf@<version>
+
+Examples:
+  want mono printpdf@main.5
+```
 
 ### Download GitHub release assets (✅ WORKING)
 
