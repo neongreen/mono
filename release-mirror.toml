@@ -57,6 +57,13 @@ homepage = "https://github.com/neongreen/mono/tree/main/claude-trace"
 binary = "claude-trace"
 test_args = ["--help"]
 
+[[mirror.projects]]
+name = "tak"
+desc = "System-wide event-sourced task tracker with claims-based authority."
+homepage = "https://github.com/neongreen/mono/tree/main/tak"
+binary = "tak"
+test_args = ["--help"]
+
 # idk if this works for non-Go projects right now, see bd-341
 #
 # [[mirror.projects]]
