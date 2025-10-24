@@ -247,28 +247,50 @@ func ListReleases(owner, repo string) ([]Release, error) {
 
 // ListReleasesWithContext fetches all releases for a repository with context
 func ListReleasesWithContext(ctx context.Context, owner, repo string) ([]Release, error) {
-	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases", owner, repo)
-	req, err := CreateAuthenticatedRequestWithContext(ctx, "GET", apiURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request for %s/%s releases: %w", owner, repo, err)
-	}
+	var allReleases []Release
+	page := 1
+	perPage := 100 // Maximum allowed by GitHub API
 
 	client := ghclient.NewHTTPClient(ctx)
 	client.Timeout = 30 * time.Second
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch releases for %s/%s: %w", owner, repo, err)
-	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("GitHub API returned status %d for %s/%s releases (URL: %s)", resp.StatusCode, owner, repo, apiURL)
+	for {
+		apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases?per_page=%d&page=%d", owner, repo, perPage, page)
+		req, err := CreateAuthenticatedRequestWithContext(ctx, "GET", apiURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create request for %s/%s releases: %w", owner, repo, err)
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch releases for %s/%s: %w", owner, repo, err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return nil, fmt.Errorf("GitHub API returned status %d for %s/%s releases (URL: %s)", resp.StatusCode, owner, repo, apiURL)
+		}
+
+		var releases []Release
+		if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+			resp.Body.Close()
+			return nil, fmt.Errorf("failed to decode releases for %s/%s: %w", owner, repo, err)
+		}
+		resp.Body.Close()
+
+		if len(releases) == 0 {
+			break
+		}
+
+		allReleases = append(allReleases, releases...)
+
+		// If we got fewer releases than requested, we've reached the last page
+		if len(releases) < perPage {
+			break
+		}
+
+		page++
 	}
 
-	var releases []Release
-	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
-		return nil, fmt.Errorf("failed to decode releases for %s/%s: %w", owner, repo, err)
-	}
-
-	return releases, nil
+	return allReleases, nil
 }
