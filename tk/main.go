@@ -446,6 +446,8 @@ func init() {
 
 	rootCmd.AddCommand(nodeCmd)
 	rootCmd.AddCommand(remoteCmd)
+	rootCmd.AddCommand(exportCmd)
+	rootCmd.AddCommand(ingestCmd)
 }
 
 func openExistingDB() (*DB, error) {
