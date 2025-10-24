@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"sort"
 	"strings"
 	"time"
 
@@ -323,6 +324,7 @@ var lsCmd = &cobra.Command{
 	Short: "List tasks",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		axisFilter, _ := cmd.Flags().GetString("axis")
+		sortBy, _ := cmd.Flags().GetString("sort")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -368,6 +370,9 @@ var lsCmd = &cobra.Command{
 			tasks = filtered
 		}
 
+		// Sort tasks based on the --sort flag
+		sortTasks(tasks, sortBy)
+
 		for _, task := range tasks {
 			displayID := FormatTaskID(task.TaskID, allTaskIDs)
 			fmt.Printf("%s: %s\n", displayID, task.Title)
@@ -378,6 +383,32 @@ var lsCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+// sortTasks sorts tasks based on the specified sort order
+func sortTasks(tasks []*Task, sortBy string) {
+	switch sortBy {
+	case "created":
+		// Sort by creation time (oldest first)
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
+		})
+	case "id":
+		// Sort by task ID (lexicographic)
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].TaskID < tasks[j].TaskID
+		})
+	case "title":
+		// Sort by title (lexicographic)
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].Title < tasks[j].Title
+		})
+	default:
+		// Default: sort by creation time (oldest first)
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
+		})
+	}
 }
 
 func init() {
@@ -401,6 +432,7 @@ func init() {
 	rootCmd.AddCommand(viewCmd)
 
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
+	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
 	rootCmd.AddCommand(lsCmd)
 }
 
