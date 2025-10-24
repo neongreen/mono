@@ -276,6 +276,20 @@ func (d *DB) GetOrCreateNodeID() (string, error) {
 	return nodeID, nil
 }
 
+// RegenerateNodeID generates a new node ID and updates the metadata
+func (d *DB) RegenerateNodeID() (string, error) {
+	// Generate new node ID
+	newNodeID := generateNodeID(6)
+
+	// Update the metadata
+	_, err := d.db.Exec("UPDATE metadata SET value = ? WHERE key = 'node_id'", newNodeID)
+	if err != nil {
+		return "", fmt.Errorf("failed to update node ID: %w", err)
+	}
+
+	return newNodeID, nil
+}
+
 // GetNextLamportTS gets the next Lamport timestamp and increments the counter
 func (d *DB) GetNextLamportTS() (int64, error) {
 	tx, err := d.db.Begin()
@@ -311,6 +325,42 @@ func (d *DB) GetNextLamportTS() (int64, error) {
 	}
 
 	return nextTS, nil
+}
+
+// BumpLamport updates the lamport counter if the given value is higher
+func (d *DB) BumpLamport(newValue int64) error {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Get current counter value
+	var counter int64
+	err = tx.QueryRow("SELECT value FROM metadata WHERE key = 'lamport_counter'").Scan(&counter)
+	if err == sql.ErrNoRows {
+		counter = 0
+	} else if err != nil {
+		return fmt.Errorf("failed to query lamport counter: %w", err)
+	}
+
+	// Only update if new value is higher
+	if newValue > counter {
+		if counter == 0 {
+			_, err = tx.Exec("INSERT INTO metadata (key, value) VALUES ('lamport_counter', ?)", newValue)
+		} else {
+			_, err = tx.Exec("UPDATE metadata SET value = ? WHERE key = 'lamport_counter'", newValue)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to update lamport counter: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
 
 // GetNextTaskNumber gets the next task number and increments the counter

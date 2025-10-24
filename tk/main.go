@@ -443,6 +443,9 @@ func init() {
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
 	rootCmd.AddCommand(lsCmd)
+
+	rootCmd.AddCommand(nodeCmd)
+	rootCmd.AddCommand(remoteCmd)
 }
 
 func openExistingDB() (*DB, error) {
