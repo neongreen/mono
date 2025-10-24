@@ -7,6 +7,7 @@
 # Daemon runtime files
 daemon.log
 daemon.pid
+daemon.lock
 bd.sock
 
 # Legacy database files
