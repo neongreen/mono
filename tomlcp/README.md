@@ -14,7 +14,7 @@
 - ✅ **Simple API**: Easy-to-use interface with `Get`, `Set`, `Delete`, and `Has` methods
 - ✅ **Dotted Path Support**: Access nested values using dotted paths (e.g., `server.database.host`)
 - ✅ **Full TOML v1.0.0 Support**: Supports all TOML features including arrays, inline tables, and multiline strings
-- ✅ **Extensively Tested**: Comprehensive test suite with 37+ test cases
+- ✅ **Extensively Tested**: Comprehensive test suite with 39 test cases covering all edge cases
 
 ## Installation
 
@@ -435,7 +435,7 @@ if b, ok := value.(bool); ok {
 
 ## Testing
 
-The library includes a comprehensive test suite with 37+ test cases covering:
+The library includes a comprehensive test suite with **39 test cases** covering:
 
 - Parsing various TOML formats
 - Getting and setting values
@@ -446,16 +446,23 @@ The library includes a comprehensive test suite with 37+ test cases covering:
 - **Nestedness style preservation** (dotted keys vs sections)
 - Round-trip parsing and serialization
 - Arrays and inline tables
-- Edge cases and error handling
+- **Array of tables** (`[[name]]` syntax)
+- **Array of inline tables** with formatting preservation
+- **Quoted keys** (`"key with spaces"`, `[foo."bar:baz".qux]`)
+- **Malformed TOML** detection and error handling
+- Edge cases and special syntax
 - Unicode support
 - Large and complex documents
 - Multiple modifications and deletions
+- Concurrent access
 
 Run tests with:
 
 ```bash
 go test -v ./...
 ```
+
+See [TEST_COVERAGE.md](TEST_COVERAGE.md) for detailed test coverage documentation.
 
 ## Comparison with Other Libraries
 
