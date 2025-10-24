@@ -11,7 +11,8 @@ use (
 	./markdown-format
 	./printpdf
 	./prrun
-	./tomlcp
+	./tak
+  ./tomlcp
 	./want
 )
 

@@ -124,6 +124,8 @@ func main() {
 	command := os.Args[1]
 
 	switch command {
+	case "mono":
+		handleMono()
 	case "list":
 		handleList()
 	case "check":
@@ -144,6 +146,7 @@ func printUsage() {
 
 Usage:
   want [--dry-run] [--plan-json] <requirement>  Get a tool, repository, or resource
+  want mono <project> [--list]                  Install tools from neongreen/mono repo
   want json <command>                           Convert command output to JSON
   want md <url>                                 Convert URL to markdown
   want list                                     Show what you have
@@ -163,6 +166,8 @@ Examples:
   want --plan-json jujutsu        # Show installation plan as JSON
   want json ps                    # Get running processes as JSON (uses jc)
   want md https://example.com     # Convert webpage to markdown
+  want mono printpdf --list       # List all releases of printpdf from mono
+  want mono printpdf@main.1       # Install printpdf version main.1 from mono
   want https://github.com/org/repo/releases/tag/v1.0.0  # Download GitHub release
   want github.com/user/repo       # Clone a repository (not yet implemented)
 
@@ -1089,5 +1094,172 @@ func handleGitHubAsset(url string, dryRun bool, planJson bool) {
 		fmt.Printf("     source %s\n", configFile)
 	} else {
 		fmt.Printf("✓ Binary is available in your PATH as: %s\n", destFile)
+	}
+}
+
+// handleMono handles installation of tools from the neongreen/mono repository
+func handleMono() {
+	if len(os.Args) < 3 {
+		fmt.Println("Error: no project specified")
+		fmt.Println("Usage: want mono <project> [--list]")
+		fmt.Println("       want mono <project@version>")
+		fmt.Println("\nExamples:")
+		fmt.Println("  want mono printpdf --list     # List all releases for printpdf")
+		fmt.Println("  want mono printpdf@main.1     # Install printpdf version main.1")
+		os.Exit(1)
+	}
+
+	arg := os.Args[2]
+
+	// Check for --list flag
+	if len(os.Args) == 4 && os.Args[3] == "--list" {
+		listMonoReleases(arg)
+		return
+	}
+
+	// Parse project@version syntax
+	parts := strings.Split(arg, "@")
+	if len(parts) == 1 {
+		// No version specified - list releases
+		listMonoReleases(parts[0])
+		return
+	}
+
+	if len(parts) != 2 {
+		fmt.Printf("Error: Invalid format '%s'\n", arg)
+		fmt.Println("Expected: <project>@<version> or <project> --list")
+		fmt.Println("\nExamples:")
+		fmt.Println("  want mono printpdf@main.1")
+		fmt.Println("  want mono printpdf --list")
+		os.Exit(1)
+	}
+
+	project := parts[0]
+	version := parts[1]
+
+	installMonoRelease(project, version)
+}
+
+// listMonoReleases lists all releases for a project from neongreen/mono
+func listMonoReleases(project string) {
+	fmt.Printf("Fetching releases for %s from neongreen/mono...\n", project)
+	fmt.Println()
+
+	releases, err := ghrelease.ListReleases("neongreen", "mono")
+	if err != nil {
+		fmt.Printf("Error: Failed to fetch releases: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Filter releases for the specified project
+	var projectReleases []ghrelease.Release
+	prefix := project + "--"
+	for _, release := range releases {
+		if strings.HasPrefix(release.TagName, prefix) {
+			projectReleases = append(projectReleases, release)
+		}
+	}
+
+	if len(projectReleases) == 0 {
+		fmt.Printf("No releases found for %s\n", project)
+		fmt.Println("\nAvailable projects in mono:")
+		fmt.Println("  printpdf, dissect, want, prrun, markdown-format, ingest, conf, claude-trace")
+		os.Exit(1)
+	}
+
+	fmt.Printf("Available releases for %s:\n", project)
+	fmt.Println()
+	for _, release := range projectReleases {
+		// Extract version from tag (e.g., "printpdf--main.1" -> "main.1")
+		version := strings.TrimPrefix(release.TagName, prefix)
+
+		status := ""
+		if release.Prerelease {
+			status = " (prerelease)"
+		}
+
+		fmt.Printf("  %s%s\n", version, status)
+	}
+	fmt.Println()
+	fmt.Println("To install a specific version:")
+	fmt.Printf("  want mono %s@<version>\n", project)
+	fmt.Println()
+	fmt.Println("Examples:")
+	if len(projectReleases) > 0 {
+		version := strings.TrimPrefix(projectReleases[0].TagName, prefix)
+		fmt.Printf("  want mono %s@%s\n", project, version)
+	}
+}
+
+// installMonoRelease installs a specific version of a project from neongreen/mono
+func installMonoRelease(project, version string) {
+	tag := fmt.Sprintf("%s--%s", project, version)
+
+	fmt.Printf("Installing %s version %s from neongreen/mono...\n", project, version)
+	fmt.Println()
+
+	// Determine destination path
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error: Failed to get home directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	destDir := filepath.Join(homeDir, ".local", "bin")
+	destPath := filepath.Join(destDir, project)
+
+	// Check if already installed
+	if _, err := os.Stat(destPath); err == nil {
+		fmt.Printf("⚠ %s is already installed at %s\n", project, destPath)
+		fmt.Println()
+		fmt.Print("Overwrite? [y/N]: ")
+		reader := bufio.NewReader(os.Stdin)
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Error reading response")
+			os.Exit(1)
+		}
+		response = strings.TrimSpace(strings.ToLower(response))
+		if response != "y" && response != "yes" {
+			fmt.Println("Cancelled.")
+			os.Exit(0)
+		}
+		fmt.Println()
+	}
+
+	fmt.Println("Fetching release information...")
+	err = ghrelease.DownloadReleaseAsset("neongreen", "mono", tag, project, destPath)
+	if err != nil {
+		fmt.Printf("\nError: Failed to download release: %v\n", err)
+		fmt.Println("\nTroubleshooting:")
+		fmt.Println("  • Check that the release exists")
+		fmt.Println("  • Check that there's an asset for your platform")
+		platform := ghrelease.GetCurrentPlatform()
+		fmt.Printf("  • Your platform: %s-%s\n", platform.OS, platform.Arch)
+		fmt.Println()
+		fmt.Println("To see available releases:")
+		fmt.Printf("  want mono %s --list\n", project)
+		os.Exit(1)
+	}
+
+	fmt.Println()
+	fmt.Printf("✓ Installed %s version %s to: %s\n", project, version, destPath)
+	fmt.Println()
+
+	// Check if destDir is in PATH
+	pathEnv := os.Getenv("PATH")
+	if !strings.Contains(pathEnv, destDir) {
+		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Println()
+		fmt.Println("To use the binary, either:")
+		fmt.Println("  1. Run it with the full path:")
+		fmt.Printf("     %s\n", destPath)
+		fmt.Println()
+		fmt.Println("  2. Add the directory to your PATH:")
+		configFile := getShellConfigFile()
+		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
+		fmt.Printf("     source %s\n", configFile)
+	} else {
+		fmt.Printf("✓ Binary is available in your PATH as: %s\n", project)
 	}
 }
