@@ -1,14 +1,14 @@
-name: tak
+name: tk
 
 on:
   push:
     paths:
-      - "tak/**"
-      - ".github/workflows/tak.yml"
+      - "tk/**"
+      - ".github/workflows/tk.yml"
   pull_request:
     paths:
-      - "tak/**"
-      - ".github/workflows/tak.yml"
+      - "tk/**"
+      - ".github/workflows/tk.yml"
 
 jobs:
   test:
@@ -26,8 +26,8 @@ jobs:
         uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version: "1.24.7"
-          cache-dependency-path: tak/go.sum
+          cache-dependency-path: tk/go.sum
 
       - name: Run tests
-        working-directory: tak
+        working-directory: tk
         run: go test ./... -v

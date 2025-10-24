@@ -12,7 +12,7 @@ use (
 	./markdown-format
 	./printpdf
 	./prrun
-	./tak
+	./tk
 	./want
 )
 

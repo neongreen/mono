@@ -6,7 +6,7 @@ import (
 	"math/big"
 )
 
-// GenerateTaskID generates a task ID in the format tak-<number>-<suffix>
+// GenerateTaskID generates a task ID in the format tk-<number>-<suffix>
 func GenerateTaskID(db *DB) (string, error) {
 	// Get the installation suffix
 	suffix, err := db.GetOrCreateInstallationSuffix()
@@ -20,7 +20,7 @@ func GenerateTaskID(db *DB) (string, error) {
 		return "", fmt.Errorf("failed to get next task number: %w", err)
 	}
 
-	return fmt.Sprintf("tak-%d-%s", taskNum, suffix), nil
+	return fmt.Sprintf("tk-%d-%s", taskNum, suffix), nil
 }
 
 // GenerateEventID generates an event ID (random alphanumeric string)

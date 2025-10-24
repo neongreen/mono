@@ -1,6 +1,6 @@
-# tak - System-Wide Event-Sourced Task Tracker
+# tk - System-Wide Event-Sourced Task Tracker
 
-tak is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.
+tk is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.
 
 ## Features
 
@@ -9,59 +9,59 @@ tak is a command-line tool that tracks tasks system-wide using an append-only ev
 - **Authority lattice**: Conflicts are resolved based on role authority (human > qa > rel > agent > bot)
 - **Multi-valued registers**: Conflicting claims are preserved as tentative/effective
 - **SQLite backend**: Durable, inspectable, and portable (pure Go, no CGO required)
-- **Automatic setup**: Database is created automatically in `~/.tak/` on first use
+- **Automatic setup**: Database is created automatically in `~/.tk/` on first use
 
 ## Installation
 
 ### From Source
 
 ```bash
-cd tak
-go build -o tak .
+cd tk
+go build -o tk .
 ```
 
 ### Using mise
 
 ```bash
-mise run //tak:run
+mise run //tk:run
 ```
 
 ## Usage
 
 ### Database Location
 
-tak stores its database in `~/.tak/tak.db` by default. The database and directory are created automatically on first use.
+tk stores its database in `~/.tk/tk.db` by default. The database and directory are created automatically on first use.
 
 ### Create a task
 
 ```bash
-tak new "wire up rc deploy toggle"
+tk new "wire up rc deploy toggle"
 ```
 
-This creates a new task with a unique ID like `tak_01J3XM4NZ2R72`. No initialization is required.
+This creates a new task with a unique ID like `tk_01J3XM4NZ2R72`. No initialization is required.
 
 ### Set task status
 
 ```bash
-tak status set tak_01J3XM4NZ2R72 in_progress
+tk status set tk_01J3XM4NZ2R72 in_progress
 ```
 
 You can specify the axis and role:
 
 ```bash
-tak status set tak_01J3XM4NZ2R72 done --axis generic --role agent
+tk status set tk_01J3XM4NZ2R72 done --axis generic --role agent
 ```
 
 ### Add a note to a task
 
 ```bash
-tak note tak_01J3XM4NZ2R72 "Fixed the deployment toggle"
+tk note tk_01J3XM4NZ2R72 "Fixed the deployment toggle"
 ```
 
 ### View a task
 
 ```bash
-tak view tak_01J3XM4NZ2R72
+tk view tk_01J3XM4NZ2R72
 ```
 
 This shows the current state, all claims (effective and tentative), and notes.
@@ -69,34 +69,34 @@ This shows the current state, all claims (effective and tentative), and notes.
 ### List tasks
 
 ```bash
-tak ls
+tk ls
 ```
 
 Filter by status:
 
 ```bash
-tak ls --axis generic:in_progress
+tk ls --axis generic:in_progress
 ```
 
 ### Get database path
 
 ```bash
-tak db path
+tk db path
 ```
 
 ### Initialize database (optional)
 
-The database is created automatically when you first use tak. However, you can explicitly initialize it:
+The database is created automatically when you first use tk. However, you can explicitly initialize it:
 
 ```bash
-tak init
+tk init
 ```
 
 ## Concepts
 
 ### Events
 
-Every action in tak is recorded as an immutable event in the SQLite database. Events have:
+Every action in tk is recorded as an immutable event in the SQLite database. Events have:
 - **ID**: ULID identifier
 - **TS**: Lamport timestamp for ordering
 - **Actor**: Username who created the event
@@ -125,9 +125,9 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 ## Status (v0)
 
-This is v0 of tak - a minimal claims tracker. The current implementation includes:
+This is v0 of tk - a minimal claims tracker. The current implementation includes:
 
-- Event store with SQLite backend in `~/.tak/`
+- Event store with SQLite backend in `~/.tk/`
 - Automatic database initialization
 - Basic task lifecycle (create, status, notes)
 - Authority-based claim resolution
@@ -154,6 +154,6 @@ go fmt ./...
 
 Run via mise:
 ```bash
-mise run //tak:run new "test task"
-mise run //tak:run ls
+mise run //tk:run new "test task"
+mise run //tk:run ls
 ```

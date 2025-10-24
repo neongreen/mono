@@ -1,4 +1,4 @@
-module github.com/neongreen/mono/tak
+module github.com/neongreen/mono/tk
 
 go 1.24.7
 

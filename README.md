@@ -17,7 +17,7 @@ This repository contains multiple independent projects.
 | [want](want/) | pre-alpha | Planning/fulfilment assistant; core design still in flux. |
 | [claude-trace](claude-trace/) | alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
 | [conf](conf/) | pre-alpha | Smart configuration manager; command coverage incomplete. |
-| [tak](tak/) | pre-alpha | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
+| [tk](tk/) | pre-alpha | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
 | [ghrelease](lib/ghrelease/) | internal library | Shared helper for fetching release assets; API may change without notice. |
 
 ## Installing Tools
@@ -72,7 +72,7 @@ Go projects in this repository are automatically released:
 
 Main channel releases are considered unstable snapshots unless explicitly tagged. Stable channels are being defined (see bd-313).
 
-Homebrew formulas for the Go CLIs (`ingest`, `want`, `printpdf`, `conf`, `dissect`, `markdown-format`, `prrun`, `claude-trace`, `tak`) are published to [neongreen/homebrew-mono](https://github.com/neongreen/homebrew-mono). Tap it with `brew tap neongreen/mono` and install what you need:
+Homebrew formulas for the Go CLIs (`ingest`, `want`, `printpdf`, `conf`, `dissect`, `markdown-format`, `prrun`, `claude-trace`, `tk`) are published to [neongreen/homebrew-mono](https://github.com/neongreen/homebrew-mono). Tap it with `brew tap neongreen/mono` and install what you need:
 
 ```bash
 brew tap neongreen/mono
@@ -84,7 +84,7 @@ brew install dissect
 brew install markdown-format
 brew install prrun
 brew install claude-trace
-brew install tak
+brew install tk
 ```
 
 See [Release Workflow Documentation](.github/workflows/RELEASE_WORKFLOW.md) for more details.

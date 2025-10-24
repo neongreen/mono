@@ -11,6 +11,15 @@ zizmor = "latest"
 description = "Count lines of Go code by file"
 run = "cloc --by-file --include-lang=Go ."
 
+[tasks."go:tidy-all"]
+description = "Run go mod tidy in all modules"
+run = '''
+for dir in $(find . -name "go.mod" -exec dirname {} \;); do
+  echo "Processing $dir"
+  (cd "$dir" && go mod tidy)
+done
+'''
+
 [tasks."jj:track"]
 description = "Track all remote bookmarks"
 run = """
