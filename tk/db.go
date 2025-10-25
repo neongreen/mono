@@ -155,10 +155,23 @@ func (d *DB) InitDB() error {
 			return fmt.Errorf("failed to get legacy counter: %w", err)
 		}
 
+		// Check if there are existing tasks that would indicate a legacy DB
+		var taskCount int
+		err = d.db.QueryRow("SELECT COUNT(*) FROM events WHERE kind = 'task.created'").Scan(&taskCount)
+		if err != nil {
+			return fmt.Errorf("failed to check task count: %w", err)
+		}
+
+		description := "Default task prefix"
+		if taskCount > 0 && legacyCounter > 0 {
+			// This is a legacy DB with existing tasks, adjust the description
+			description = "Imported from legacy (default)"
+		}
+
 		// Create default "tk" prefix
 		_, err = d.db.Exec(
 			"INSERT OR IGNORE INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
-			"tk", nodeID, "Default task prefix", time.Now().UnixNano(), "system",
+			"tk", nodeID, description, time.Now().UnixNano(), "system",
 		)
 		if err != nil {
 			return fmt.Errorf("failed to create default prefix: %w", err)
