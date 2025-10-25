@@ -153,18 +153,18 @@ func runMvCmd(cmd *cobra.Command, args []string) error {
 }
 
 type movePlanEntry struct {
-	oldID      string
-	newID      string
-	taskUUID   string
-	oldPrefix  string
-	oldNumber  int64
-	oldNode    string
-	newPrefix  string
-	newNumber  int64
-	action     string // "move", "renumber", "reprefix"
-	note       string
-	addAlias   bool
-	conflict   bool
+	oldID     string
+	newID     string
+	taskUUID  string
+	oldPrefix string
+	oldNumber int64
+	oldNode   string
+	newPrefix string
+	newNumber int64
+	action    string // "move", "renumber", "reprefix"
+	note      string
+	addAlias  bool
+	conflict  bool
 }
 
 func parseMoveSpecs(args []string) ([]moveSpec, error) {
@@ -178,8 +178,8 @@ func parseMoveSpecs(args []string) ([]moveSpec, error) {
 		newSpec := args[i+1]
 
 		spec := moveSpec{
-			oldID:     oldID,
-			addAlias:  true, // default
+			oldID:    oldID,
+			addAlias: true, // default
 		}
 
 		// Parse new spec: "prefix" or "prefix:number"

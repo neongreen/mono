@@ -23,8 +23,8 @@ type Event struct {
 
 // TaskCreatedPayload is the payload for task.created events
 type TaskCreatedPayload struct {
-	TaskUUID  string `json:"task_uuid"`  // Canonical immutable UUID
-	TaskID    string `json:"task_id"`    // Display ID (prefix-number-node)
+	TaskUUID  string `json:"task_uuid"` // Canonical immutable UUID
+	TaskID    string `json:"task_id"`   // Display ID (prefix-number-node)
 	Title     string `json:"title"`
 	CreatedBy string `json:"created_by"`
 }
@@ -71,13 +71,13 @@ type PrefixRemovedPayload struct {
 
 // TaskReprefixPayload is the payload for task.reprefix events
 type TaskReprefixPayload struct {
-	TaskUUID   string `json:"task_uuid"`
-	OldPrefix  string `json:"old_prefix"`
-	NewPrefix  string `json:"new_prefix"`
-	OldNumber  int64  `json:"old_number"`
-	NewNumber  int64  `json:"new_number"`
-	OldNode    string `json:"old_node"`
-	Reason     string `json:"reason,omitempty"`
+	TaskUUID  string `json:"task_uuid"`
+	OldPrefix string `json:"old_prefix"`
+	NewPrefix string `json:"new_prefix"`
+	OldNumber int64  `json:"old_number"`
+	NewNumber int64  `json:"new_number"`
+	OldNode   string `json:"old_node"`
+	Reason    string `json:"reason,omitempty"`
 }
 
 // TaskAliasAddedPayload is the payload for task.alias.added events
@@ -102,9 +102,9 @@ type AxisStatus struct {
 
 // Task represents the current state of a task, derived from events
 type Task struct {
-	TaskUUID  string                `json:"task_uuid"`            // Canonical immutable UUID
-	TaskID    string                `json:"task_id"`              // Current display ID
-	Aliases   []string              `json:"aliases,omitempty"`    // Previous IDs (when task was moved)
+	TaskUUID  string                `json:"task_uuid"`         // Canonical immutable UUID
+	TaskID    string                `json:"task_id"`           // Current display ID
+	Aliases   []string              `json:"aliases,omitempty"` // Previous IDs (when task was moved)
 	Title     string                `json:"title"`
 	Axes      map[string]AxisStatus `json:"axes"`
 	Notes     []Note                `json:"notes"`

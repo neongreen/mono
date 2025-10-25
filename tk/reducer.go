@@ -8,8 +8,8 @@ import (
 
 // Reducer reconstructs task state from events
 type Reducer struct {
-	tasks      map[string]*Task // Key: task UUID
-	taskByID   map[string]string // Key: task ID (current or alias) -> Value: task UUID
+	tasks    map[string]*Task  // Key: task UUID
+	taskByID map[string]string // Key: task ID (current or alias) -> Value: task UUID
 }
 
 // NewReducer creates a new reducer

@@ -402,7 +402,7 @@ func (d *DB) ResolveTaskIDToUUID(taskID string) (string, error) {
 			matches = append(matches, t.TaskID)
 			matchedUUIDs = append(matchedUUIDs, t.TaskUUID)
 		}
-		
+
 		// Also check aliases
 		for _, alias := range t.Aliases {
 			shortForm := FormatTaskID(alias, allTaskIDs)

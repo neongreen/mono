@@ -441,13 +441,13 @@ var lsCmd = &cobra.Command{
 		// Create table
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		
+
 		if showAliases {
 			t.AppendHeader(table.Row{"ID", "Aliases", "Status", "Title"})
 		} else {
 			t.AppendHeader(table.Row{"ID", "Status", "Title"})
 		}
-		
+
 		t.SetStyle(table.StyleLight)
 		t.Style().Options.SeparateRows = false
 		t.Style().Options.DrawBorder = false
