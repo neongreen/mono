@@ -229,11 +229,27 @@ Prefixes are first-class entities that allow you to organize tasks by project, c
 - Is scoped to the node that created it (preventing conflicts when syncing)
 - Has its own independent task counter (e.g., `foo-1`, `foo-2` are separate from `bar-1`, `bar-2`)
 - Can be filtered in the `tk ls` command
+- Must be lowercase, 2-20 characters, start with a letter, and contain only letters, digits, and underscores
 
-When you sync with other machines, their prefixes are also synced, but each node maintains its own task numbering for each prefix. This means:
-- Node A's `foo-1` is different from Node B's `foo-1` (they have different node suffixes)
-- Each prefix on each node has its own counter
+**Counter Model:**
+- Counters are local to `(prefix, node)` and never sync between nodes
+- Each node maintains its own counter for each prefix it uses
+- Global uniqueness is guaranteed by the node suffix in task IDs
+- Example: Node A creates `foo-1-aaa111` and Node B independently creates `foo-1-bbb222`
+- Both tasks are globally unique despite having the same prefix and number
+
+When you sync with other machines:
+- Prefix metadata (descriptions) is synced via `prefix.created` events
+- Their prefixes become visible in `tk prefix list --all`
+- Each node maintains its own task numbering for each prefix
 - Task IDs include the node suffix to ensure global uniqueness (e.g., `foo-1-abc123`)
+
+**Prefix Naming Rules:**
+- 2-20 characters long
+- Must start with a lowercase letter (a-z)
+- Can contain lowercase letters, digits, and underscores
+- No hyphens allowed (reserved for ID parsing)
+- Reserved prefixes: ev, event, task, node, remote, sync
 
 ### Events
 
@@ -242,8 +258,14 @@ Every action in tk is recorded as an immutable event in the SQLite database. Eve
 - **TS**: Lamport timestamp for ordering
 - **Actor**: Username who created the event
 - **Role**: Role of the actor (human, agent, bot, qa, rel)
-- **Kind**: Event type (task.created, task.status.set, task.note.add)
+- **Kind**: Event type (task.created, task.status.set, task.note.add, prefix.created)
 - **Payload**: Event-specific data (JSON)
+
+Supported event types:
+- `task.created` - A new task was created
+- `task.status.set` - Task status was updated
+- `task.note.add` - A note was added to a task
+- `prefix.created` - A new prefix was created
 
 ### Claims
 

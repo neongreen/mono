@@ -1,10 +1,207 @@
 package main
 
 import (
+	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestValidatePrefixName(t *testing.T) {
+	tests := []struct {
+		name    string
+		prefix  string
+		wantErr bool
+		errMsg  string
+	}{
+		{"valid lowercase", "backend", false, ""},
+		{"valid with digits", "backend2", false, ""},
+		{"valid with underscore", "backend_api", false, ""},
+		{"too short", "a", true, "2-20 characters"},
+		{"too long", "verylongprefixnameabcd", true, "2-20 characters"},
+		{"starts with number", "2backend", true, "must start with a lowercase letter"},
+		{"starts with uppercase", "Backend", true, "must start with a lowercase letter"},
+		{"contains hyphen", "back-end", true, "lowercase letters, digits, and underscores"},
+		{"contains space", "back end", true, "lowercase letters, digits, and underscores"},
+		{"reserved ev", "ev", true, "reserved"},
+		{"reserved event", "event", true, "reserved"},
+		{"reserved task", "task", true, "reserved"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidatePrefixName(tt.prefix)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidatePrefixName(%q) error = %v, wantErr %v", tt.prefix, err, tt.wantErr)
+				return
+			}
+			if err != nil && tt.errMsg != "" && !strings.Contains(err.Error(), tt.errMsg) {
+				t.Errorf("ValidatePrefixName(%q) error = %v, want error containing %q", tt.prefix, err, tt.errMsg)
+			}
+		})
+	}
+}
+
+func TestPrefixCreatedEvent(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "tk.db")
+
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+
+	// Create a prefix
+	err = db.CreatePrefix("backend", "Backend tasks", "test-user")
+	if err != nil {
+		t.Fatalf("failed to create prefix: %v", err)
+	}
+
+	// Check that prefix.created event was created
+	events, err := db.GetEvents()
+	if err != nil {
+		t.Fatalf("failed to get events: %v", err)
+	}
+
+	var foundPrefixCreated bool
+	for _, e := range events {
+		if e.Kind == "prefix.created" {
+			foundPrefixCreated = true
+
+			// Validate payload
+			var payload PrefixCreatedPayload
+			if err := json.Unmarshal(e.Payload, &payload); err != nil {
+				t.Fatalf("failed to unmarshal payload: %v", err)
+			}
+
+			if payload.Prefix != "backend" {
+				t.Errorf("expected prefix 'backend', got %q", payload.Prefix)
+			}
+			if payload.Description != "Backend tasks" {
+				t.Errorf("expected description 'Backend tasks', got %q", payload.Description)
+			}
+			if payload.CreatedBy != "test-user" {
+				t.Errorf("expected created_by 'test-user', got %q", payload.CreatedBy)
+			}
+			break
+		}
+	}
+
+	if !foundPrefixCreated {
+		t.Error("prefix.created event was not created")
+	}
+}
+
+func TestPrefixNormalization(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "tk.db")
+
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+
+	// Create a prefix with uppercase letters
+	err = db.CreatePrefix("Backend", "Backend tasks", "test-user")
+	if err != nil {
+		t.Fatalf("failed to create prefix: %v", err)
+	}
+
+	// Check that it was normalized to lowercase
+	prefixes, err := db.GetPrefixes()
+	if err != nil {
+		t.Fatalf("failed to get prefixes: %v", err)
+	}
+
+	found := false
+	for _, p := range prefixes {
+		if p.Prefix == "backend" {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("prefix was not normalized to lowercase")
+	}
+}
+
+func TestProjectPrefixCreatedEvent(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "tk.db")
+
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+
+	nodeID, err := db.GetOrCreateNodeID()
+	if err != nil {
+		t.Fatalf("failed to get node ID: %v", err)
+	}
+
+	// Create a prefix.created event
+	payload := PrefixCreatedPayload{
+		Prefix:      "frontend",
+		Description: "Frontend tasks",
+		CreatedBy:   "remote-user",
+	}
+	payloadJSON, _ := json.Marshal(payload)
+
+	event := Event{
+		ID:        "ev-1-" + nodeID,
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "remote-user",
+		Role:      "human",
+		Kind:      "prefix.created",
+		Payload:   payloadJSON,
+	}
+
+	// Insert the event
+	if err := db.InsertEvent(event); err != nil {
+		t.Fatalf("failed to insert event: %v", err)
+	}
+
+	// Project it
+	if err := db.ProjectPrefixCreatedEvent(event); err != nil {
+		t.Fatalf("failed to project event: %v", err)
+	}
+
+	// Check that the prefix was created
+	prefixes, err := db.GetPrefixes()
+	if err != nil {
+		t.Fatalf("failed to get prefixes: %v", err)
+	}
+
+	found := false
+	for _, p := range prefixes {
+		if p.Prefix == "frontend" && p.Description == "Frontend tasks" {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("prefix was not projected from event")
+	}
+}
 
 func TestPrefixCreation(t *testing.T) {
 	tmpDir := t.TempDir()
