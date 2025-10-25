@@ -1308,10 +1308,12 @@ func buildMonoFromPR(project string, prNumber int) {
 	destPath := filepath.Join(destDir, project)
 
 	// Create a temporary directory for cloning
-	tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("want-mono-%s-pr-%d", project, prNumber))
-	if err := os.RemoveAll(tmpDir); err != nil {
-		fmt.Printf("Warning: Failed to clean up temporary directory: %v\n", err)
+	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-pr-%d-*", project, prNumber))
+	if err != nil {
+		fmt.Printf("Error: Failed to create temporary directory: %v\n", err)
+		os.Exit(1)
 	}
+	defer os.RemoveAll(tmpDir)
 
 	// Clone the repository
 	fmt.Printf("Cloning neongreen/mono (branch: %s)...\n", branch)
@@ -1328,7 +1330,6 @@ func buildMonoFromPR(project string, prNumber int) {
 	projectDir := filepath.Join(tmpDir, project)
 	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
 		fmt.Printf("\nError: Project '%s' not found in repository\n", project)
-		os.RemoveAll(tmpDir)
 		os.Exit(1)
 	}
 
@@ -1340,12 +1341,8 @@ func buildMonoFromPR(project string, prNumber int) {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		fmt.Printf("\nError: Failed to build %s: %v\n", project, err)
-		os.RemoveAll(tmpDir)
 		os.Exit(1)
 	}
-
-	// Clean up temporary directory
-	os.RemoveAll(tmpDir)
 
 	// Make executable
 	if err := os.Chmod(destPath, 0755); err != nil {
@@ -1383,14 +1380,15 @@ func installMonoRelease(project, version string) {
 		// Remove any version suffix like ".1"
 		parts := strings.Split(prStr, ".")
 		var prNumber int
-		if _, err := fmt.Sscanf(parts[0], "%d", &prNumber); err != nil {
+		n, err := fmt.Sscanf(parts[0], "%d", &prNumber)
+		if err != nil || n != 1 {
 			fmt.Printf("Error: Invalid PR number in '%s'\n", version)
 			os.Exit(1)
 		}
 
 		// Check if there's a release for this PR
 		tag := fmt.Sprintf("%s--%s", project, version)
-		_, err := ghrelease.GetReleaseByTag("neongreen", "mono", tag)
+		_, err = ghrelease.GetReleaseByTag("neongreen", "mono", tag)
 		if err != nil {
 			// No release found, build from PR
 			fmt.Printf("No release found for %s (would be tagged as %s)\n", version, tag)
