@@ -57,11 +57,61 @@ tk prefix create bar "Tasks for bar project"
 tk prefix list
 ```
 
+The list shows the state of each prefix:
+- **explicit**: Created with `tk prefix create`
+- **discovered**: Found in task IDs but not explicitly created
+- **removed**: Marked as removed with `tk prefix remove`
+
 Show prefixes from all nodes (including synced prefixes):
 
 ```bash
 tk prefix list --all
 ```
+
+#### Remove a prefix
+
+Mark a prefix as removed (does not delete tasks):
+
+```bash
+tk prefix remove old-prefix
+```
+
+This marks the prefix as "removed" in the prefix list but does not delete any tasks using that prefix.
+
+### Move tasks between prefixes
+
+Move a task to a different prefix:
+
+```bash
+tk mv tk-1 foo:1
+```
+
+This moves task `tk-1` to prefix `foo` with number `1`, creating the new ID `foo-1`. The old ID `tk-1` becomes an alias and can still be used to reference the task.
+
+Move multiple tasks at once:
+
+```bash
+tk mv tk-1 foo:1 tk-2 foo:2
+```
+
+Move a task and auto-assign the next available number:
+
+```bash
+tk mv tk-1 foo --auto
+```
+
+Dry run to preview changes:
+
+```bash
+tk mv tk-1 foo:1 -n
+```
+
+Options:
+- `--alias` / `--no-alias`: Create (or don't create) an alias for the old ID (default: create alias)
+- `--auto`: Auto-assign next available number on collision
+- `--keep-number`: Keep the same number in the new prefix
+- `-n` / `--dry-run`: Show what would happen without making changes
+- `--on-collision`: What to do on collision: fail, auto, or swap (default: fail)
 
 ### Create a task
 
@@ -146,6 +196,14 @@ Combine filters:
 ```bash
 tk ls --prefix foo --axis generic:in_progress
 ```
+
+Show task aliases:
+
+```bash
+tk ls --aliases
+```
+
+This displays a table with an additional "Aliases" column showing any aliases for tasks (e.g., old IDs after moving tasks).
 
 ### Get database path
 
@@ -251,6 +309,34 @@ When you sync with other machines:
 - No hyphens allowed (reserved for ID parsing)
 - Reserved prefixes: ev, event, task, node, remote, sync
 
+**Prefix States:**
+- **explicit**: Created with `tk prefix create`, has full metadata
+- **discovered**: Found in task IDs but not explicitly created (no description)
+- **removed**: Marked as removed with `tk prefix remove`, but tasks still exist
+
+### Task Identity and Aliases
+
+Each task has two identifiers:
+- **Task UUID**: A unique, immutable identifier that never changes (e.g., `task-abc123xyz...`)
+- **Task ID**: The current display ID (e.g., `foo-1-node123`)
+
+When you move a task between prefixes using `tk mv`, the task UUID stays the same, but the task ID changes. The old task ID becomes an **alias**, allowing you to reference the task by its old ID.
+
+Example:
+```bash
+# Create a task
+tk new "My task"  # Creates tk-1
+
+# Move it to foo prefix
+tk mv tk-1 foo:1  # Now foo-1, but tk-1 is an alias
+
+# Both IDs work
+tk view tk-1      # Works (using alias)
+tk view foo-1     # Works (using current ID)
+```
+
+Aliases are preserved indefinitely and synced between machines, ensuring old links and references continue to work.
+
 ### Events
 
 Every action in tk is recorded as an immutable event in the SQLite database. Events have:
@@ -265,7 +351,10 @@ Supported event types:
 - `task.created` - A new task was created
 - `task.status.set` - Task status was updated
 - `task.note.add` - A note was added to a task
+- `task.reprefix` - Task was moved to a different prefix
+- `task.alias.added` - An alias was added for a task
 - `prefix.created` - A new prefix was created
+- `prefix.removed` - A prefix was marked as removed
 
 ### Claims
 
@@ -292,8 +381,11 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 - Event sourcing with stable event IDs (`ev-<number>-<node>`)
 - Task IDs with prefix and node suffix (`<prefix>-<number>-<node>`)
+- Task UUIDs for stable identity across moves
 - Multiple task prefixes with independent counters
-- Prefix management (create, list, filter)
+- Prefix management (create, list, remove, filter)
+- Task movement between prefixes with alias preservation
+- Task aliases for backward compatibility
 - Offline-first sync via immutable segment files
 - iCloud Drive folder remote support
 - Segment files with zstd compression
