@@ -5,6 +5,8 @@ tk is a command-line tool that tracks tasks system-wide using an append-only eve
 ## Features
 
 - **Event sourcing**: All task changes are recorded as immutable events
+- **Prefixes**: Organize tasks with custom prefixes (e.g., `tk-1`, `foo-2`, `bar-3`)
+- **Namespace isolation**: Each prefix has its own task numbering, scoped by node ID
 - **Claims-based status**: Multiple actors (human, agent, bot, qa, rel) can make status claims
 - **Authority lattice**: Conflicts are resolved based on role authority (human > qa > rel > agent > bot)
 - **Multi-valued registers**: Conflicting claims are preserved as tentative/effective
@@ -34,41 +36,88 @@ mise run //tk:run
 
 tk stores its database in `~/.tk/tk.db` by default. The database and directory are created automatically on first use.
 
+### Prefixes
+
+tk supports multiple task prefixes, allowing you to organize tasks by project or category. Each prefix has its own namespace for task numbers.
+
+#### Default prefix
+
+When you initialize tk, a default `tk` prefix is automatically created.
+
+#### Create a new prefix
+
+```bash
+tk prefix create foo "Tasks for foo project"
+tk prefix create bar "Tasks for bar project"
+```
+
+#### List prefixes
+
+```bash
+tk prefix list
+```
+
+Show prefixes from all nodes (including synced prefixes):
+
+```bash
+tk prefix list --all
+```
+
 ### Create a task
+
+Create a task with the default `tk` prefix:
 
 ```bash
 tk new "wire up rc deploy toggle"
 ```
 
-This creates a new task with a unique ID like `tk-1-abc123` where `abc123` is your node ID.
+This creates a new task with a unique ID like `tk-1-abc123` where:
+- `tk` is the prefix
+- `1` is the task number within that prefix
+- `abc123` is your node ID
+
+The task is displayed as `tk-1` when there's no ambiguity (i.e., no other node has created a `tk-1` task).
+
+Create a task with a specific prefix:
+
+```bash
+tk new --prefix foo "implement foo feature"
+```
+
+This creates a task like `foo-1-abc123`.
 
 ### Set task status
 
 ```bash
 tk status set tk-1 in_progress
+tk status set foo-1 done
 ```
 
 You can specify the axis and role:
 
 ```bash
-tk status set tk_01J3XM4NZ2R72 done --axis generic --role agent
+tk status set tk-1 done --axis generic --role agent
 ```
 
 ### Add a note to a task
 
 ```bash
-tk note tk_01J3XM4NZ2R72 "Fixed the deployment toggle"
+tk note tk-1 "Fixed the deployment toggle"
+tk note foo-1 "Implemented new feature"
 ```
 
 ### View a task
 
 ```bash
-tk view tk_01J3XM4NZ2R72
+tk view tk-1
+tk view foo-1
 ```
 
 This shows the current state, all claims (effective and tentative), and notes.
 
 ### List tasks
+
+List all tasks:
 
 ```bash
 tk ls
@@ -78,6 +127,24 @@ Filter by status:
 
 ```bash
 tk ls --axis generic:in_progress
+```
+
+Filter by prefix:
+
+```bash
+tk ls --prefix foo
+```
+
+Filter by multiple prefixes:
+
+```bash
+tk ls --prefix foo --prefix bar
+```
+
+Combine filters:
+
+```bash
+tk ls --prefix foo --axis generic:in_progress
 ```
 
 ### Get database path
@@ -154,15 +221,51 @@ Shows divergence between local and remote segments.
 
 ## Concepts
 
+### Prefixes
+
+Prefixes are first-class entities that allow you to organize tasks by project, category, or any other grouping. Each prefix:
+
+- Has a description explaining its purpose
+- Is scoped to the node that created it (preventing conflicts when syncing)
+- Has its own independent task counter (e.g., `foo-1`, `foo-2` are separate from `bar-1`, `bar-2`)
+- Can be filtered in the `tk ls` command
+- Must be lowercase, 2-20 characters, start with a letter, and contain only letters, digits, and underscores
+
+**Counter Model:**
+- Counters are local to `(prefix, node)` and never sync between nodes
+- Each node maintains its own counter for each prefix it uses
+- Global uniqueness is guaranteed by the node suffix in task IDs
+- Example: Node A creates `foo-1-aaa111` and Node B independently creates `foo-1-bbb222`
+- Both tasks are globally unique despite having the same prefix and number
+
+When you sync with other machines:
+- Prefix metadata (descriptions) is synced via `prefix.created` events
+- Their prefixes become visible in `tk prefix list --all`
+- Each node maintains its own task numbering for each prefix
+- Task IDs include the node suffix to ensure global uniqueness (e.g., `foo-1-abc123`)
+
+**Prefix Naming Rules:**
+- 2-20 characters long
+- Must start with a lowercase letter (a-z)
+- Can contain lowercase letters, digits, and underscores
+- No hyphens allowed (reserved for ID parsing)
+- Reserved prefixes: ev, event, task, node, remote, sync
+
 ### Events
 
 Every action in tk is recorded as an immutable event in the SQLite database. Events have:
-- **ID**: Event ID in format `ev-<seq>-<node>` (e.g., `ev-42-abc123`)
+- **ID**: Event ID in format `ev-<number>-<node>` (e.g., `ev-42-abc123`)
 - **TS**: Lamport timestamp for ordering
 - **Actor**: Username who created the event
 - **Role**: Role of the actor (human, agent, bot, qa, rel)
-- **Kind**: Event type (task.created, task.status.set, task.note.add)
+- **Kind**: Event type (task.created, task.status.set, task.note.add, prefix.created)
 - **Payload**: Event-specific data (JSON)
+
+Supported event types:
+- `task.created` - A new task was created
+- `task.status.set` - Task status was updated
+- `task.note.add` - A note was added to a task
+- `prefix.created` - A new prefix was created
 
 ### Claims
 
@@ -187,8 +290,10 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 ### v1 (current)
 
-- Event sourcing with stable event IDs (`ev-<seq>-<node>`)
-- Task IDs with node suffix (`tk-<seq>-<node>`)
+- Event sourcing with stable event IDs (`ev-<number>-<node>`)
+- Task IDs with prefix and node suffix (`<prefix>-<number>-<node>`)
+- Multiple task prefixes with independent counters
+- Prefix management (create, list, filter)
 - Offline-first sync via immutable segment files
 - iCloud Drive folder remote support
 - Segment files with zstd compression

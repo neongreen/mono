@@ -83,6 +83,7 @@ var newCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title := args[0]
+		prefix, _ := cmd.Flags().GetString("prefix")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -90,12 +91,21 @@ var newCmd = &cobra.Command{
 		}
 		defer db.Close()
 
+		// Check if prefix exists
+		exists, err := db.PrefixExists(prefix)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("prefix %q does not exist. Create it first with: tk prefix create %s <description>", prefix, prefix)
+		}
+
 		currentUser, err := getCurrentUser()
 		if err != nil {
 			return err
 		}
 
-		taskID, err := GenerateTaskID(db)
+		taskID, err := GenerateTaskID(db, prefix)
 		if err != nil {
 			return err
 		}
@@ -346,6 +356,7 @@ var lsCmd = &cobra.Command{
 
 		axisFilter, _ := cmd.Flags().GetString("axis")
 		sortBy, _ := cmd.Flags().GetString("sort")
+		prefixFilter, _ := cmd.Flags().GetStringSlice("prefix")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -365,10 +376,31 @@ var lsCmd = &cobra.Command{
 
 		tasks := reducer.GetAllTasks()
 
-		// Get all task IDs for formatting
-		allTaskIDs, err := db.GetAllTaskIDs()
-		if err != nil {
-			return err
+		// Get task IDs for filtering and formatting
+		var taskIDs []string
+		if len(prefixFilter) > 0 {
+			taskIDs, err = db.GetTaskIDsByPrefixes(prefixFilter)
+			if err != nil {
+				return err
+			}
+
+			// Filter tasks by prefix
+			var filtered []*Task
+			taskIDSet := make(map[string]bool)
+			for _, id := range taskIDs {
+				taskIDSet[id] = true
+			}
+			for _, task := range tasks {
+				if taskIDSet[task.TaskID] {
+					filtered = append(filtered, task)
+				}
+			}
+			tasks = filtered
+		} else {
+			taskIDs, err = db.GetAllTaskIDs()
+			if err != nil {
+				return err
+			}
 		}
 
 		// Filter by axis if specified
@@ -421,7 +453,7 @@ var lsCmd = &cobra.Command{
 		})
 
 		for _, task := range tasks {
-			displayID := FormatTaskID(task.TaskID, allTaskIDs)
+			displayID := FormatTaskID(task.TaskID, taskIDs)
 
 			// Get status from generic axis (or empty if not present)
 			status := ""
@@ -485,6 +517,7 @@ func init() {
 	dbCmd.AddCommand(dbPathCmd)
 	rootCmd.AddCommand(dbCmd)
 
+	newCmd.Flags().String("prefix", "tk", "Task prefix to use")
 	rootCmd.AddCommand(newCmd)
 
 	statusSetCmd.Flags().String("axis", "generic", "Status axis")
@@ -498,6 +531,7 @@ func init() {
 
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
+	lsCmd.Flags().StringSlice("prefix", []string{}, "Filter by prefix (can be specified multiple times)")
 	rootCmd.AddCommand(lsCmd)
 
 	rootCmd.AddCommand(nodeCmd)
@@ -507,6 +541,7 @@ func init() {
 	rootCmd.AddCommand(pushCmd)
 	rootCmd.AddCommand(pullCmd)
 	rootCmd.AddCommand(syncCmd)
+	rootCmd.AddCommand(prefixCmd)
 }
 
 func openExistingDB() (*DB, error) {

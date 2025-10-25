@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -89,13 +90,29 @@ func (d *DB) InitDB() error {
 		rowid INTEGER PRIMARY KEY,
 		event_id TEXT UNIQUE NOT NULL
 	);
+	
+	CREATE TABLE IF NOT EXISTS prefixes (
+		prefix TEXT NOT NULL,
+		node TEXT NOT NULL,
+		description TEXT NOT NULL,
+		created_at INTEGER NOT NULL,
+		created_by TEXT NOT NULL,
+		PRIMARY KEY (prefix, node)
+	);
+	
+	CREATE TABLE IF NOT EXISTS prefix_counters (
+		prefix TEXT NOT NULL,
+		node TEXT NOT NULL,
+		last_id INTEGER NOT NULL,
+		PRIMARY KEY (prefix, node)
+	);
 	`
 
 	if _, err := d.db.Exec(schema); err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
-	// Initialize task counter if it doesn't exist
+	// Initialize task counter if it doesn't exist (legacy support)
 	var count int
 	err := d.db.QueryRow("SELECT COUNT(*) FROM task_counter").Scan(&count)
 	if err != nil {
@@ -115,6 +132,58 @@ func (d *DB) InitDB() error {
 	if count == 0 {
 		if _, err := d.db.Exec("INSERT INTO event_counter (last_id) VALUES (0)"); err != nil {
 			return fmt.Errorf("failed to initialize event counter: %w", err)
+		}
+	}
+
+	// Create default "tk" prefix if no prefixes exist
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	var prefixCount int
+	err = d.db.QueryRow("SELECT COUNT(*) FROM prefixes WHERE node = ?", nodeID).Scan(&prefixCount)
+	if err != nil {
+		return fmt.Errorf("failed to check prefixes: %w", err)
+	}
+
+	if prefixCount == 0 {
+		// Migrate legacy counter to "tk" prefix
+		var legacyCounter int64
+		err = d.db.QueryRow("SELECT last_id FROM task_counter").Scan(&legacyCounter)
+		if err != nil {
+			return fmt.Errorf("failed to get legacy counter: %w", err)
+		}
+
+		// Check if there are existing tasks that would indicate a legacy DB
+		var taskCount int
+		err = d.db.QueryRow("SELECT COUNT(*) FROM events WHERE kind = 'task.created'").Scan(&taskCount)
+		if err != nil {
+			return fmt.Errorf("failed to check task count: %w", err)
+		}
+
+		description := "Default task prefix"
+		if taskCount > 0 && legacyCounter > 0 {
+			// This is a legacy DB with existing tasks, adjust the description
+			description = "Imported from legacy (default)"
+		}
+
+		// Create default "tk" prefix
+		_, err = d.db.Exec(
+			"INSERT OR IGNORE INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
+			"tk", nodeID, description, time.Now().UnixNano(), "system",
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create default prefix: %w", err)
+		}
+
+		// Initialize prefix counter with legacy value
+		_, err = d.db.Exec(
+			"INSERT OR IGNORE INTO prefix_counters (prefix, node, last_id) VALUES (?, ?, ?)",
+			"tk", nodeID, legacyCounter,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to initialize prefix counter: %w", err)
 		}
 	}
 
@@ -432,58 +501,116 @@ func generateNodeID(length int) string {
 }
 
 // ResolveTaskID resolves a short task ID to a full task ID
-// Accepts formats: "1", "tk-1", "tk-1-abc123"
+// Accepts formats: "1", "tk-1", "foo-2", "tk-1-abc123"
 // Returns an error if the ID is ambiguous or doesn't exist
 func (d *DB) ResolveTaskID(shortID string) (string, error) {
-	// Get all task IDs from the database
+	// Check if it's already a full ID (contains at least 2 hyphens)
+	hyphenCount := strings.Count(shortID, "-")
+	if hyphenCount >= 2 {
+		// Verify it exists
+		var count int
+		err := d.db.QueryRow(`
+			SELECT COUNT(*)
+			FROM events
+			WHERE kind = 'task.created' AND json_extract(payload, '$.task_id') = ?
+		`, shortID).Scan(&count)
+		if err != nil {
+			return "", fmt.Errorf("failed to query task ID: %w", err)
+		}
+		if count > 0 {
+			return shortID, nil
+		}
+		return "", fmt.Errorf("task not found: %s", shortID)
+	}
+
+	// Try to match as a number or prefix-number format
+	if _, err := strconv.Atoi(shortID); err == nil {
+		// Just a number - use SQL to find matches efficiently
+		query := `
+			SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
+			FROM events
+			WHERE kind = 'task.created'
+			  AND json_extract(payload, '$.task_id') LIKE '%-' || ? || '-%'
+		`
+
+		rows, err := d.db.Query(query, shortID)
+		if err != nil {
+			return "", fmt.Errorf("failed to query task IDs: %w", err)
+		}
+		defer rows.Close()
+
+		var matches []string
+		for rows.Next() {
+			var taskID string
+			if err := rows.Scan(&taskID); err != nil {
+				return "", fmt.Errorf("failed to scan task ID: %w", err)
+			}
+			matches = append(matches, taskID)
+		}
+
+		if len(matches) == 0 {
+			return "", fmt.Errorf("task not found: %s", shortID)
+		}
+
+		// Group by prefix-number to detect ambiguity
+		prefixNumberMap := make(map[string][]string)
+		for _, taskID := range matches {
+			parts := strings.Split(taskID, "-")
+			if len(parts) >= 2 {
+				prefixNumber := strings.Join(parts[:2], "-")
+				prefixNumberMap[prefixNumber] = append(prefixNumberMap[prefixNumber], taskID)
+			}
+		}
+
+		if len(prefixNumberMap) > 1 {
+			prefixes := make([]string, 0, len(prefixNumberMap))
+			for pn := range prefixNumberMap {
+				prefixes = append(prefixes, pn)
+			}
+			return "", fmt.Errorf("ambiguous task ID %s (matches %v) — use <prefix>-%s instead", shortID, prefixes, shortID)
+		}
+
+		// Only one prefix-number combination
+		if len(matches) == 1 {
+			return matches[0], nil
+		}
+
+		// Multiple matches with same prefix-number but different nodes - this is ambiguous
+		// Extract the prefix-number for error message
+		var prefixNumber string
+		for pn := range prefixNumberMap {
+			prefixNumber = pn
+			break
+		}
+		return "", fmt.Errorf("ambiguous task ID %s (multiple nodes created %s) — use full ID like %s", shortID, prefixNumber, matches[0])
+	}
+
+	// Format is prefix-number - use SQL to find matches
 	query := `
 		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
 		FROM events
 		WHERE kind = 'task.created'
+		  AND json_extract(payload, '$.task_id') LIKE ? || '-%'
 	`
 
-	rows, err := d.db.Query(query)
+	rows, err := d.db.Query(query, shortID)
 	if err != nil {
 		return "", fmt.Errorf("failed to query task IDs: %w", err)
 	}
 	defer rows.Close()
 
-	var taskIDs []string
+	var matches []string
 	for rows.Next() {
 		var taskID string
 		if err := rows.Scan(&taskID); err != nil {
 			return "", fmt.Errorf("failed to scan task ID: %w", err)
 		}
-		taskIDs = append(taskIDs, taskID)
-	}
-
-	if err := rows.Err(); err != nil {
-		return "", fmt.Errorf("failed to iterate task IDs: %w", err)
-	}
-
-	// Check if shortID is already a full ID
-	for _, fullID := range taskIDs {
-		if fullID == shortID {
-			return fullID, nil
-		}
-	}
-
-	// Normalize shortID - if it's just a number, prepend "tk-"
-	normalizedID := shortID
-	if _, err := strconv.Atoi(shortID); err == nil {
-		normalizedID = "tk-" + shortID
-	}
-
-	// Try to match as a short ID (without suffix)
-	var matches []string
-	for _, fullID := range taskIDs {
-		// Extract the numeric part (e.g., "tk-2" from "tk-2-abc123")
-		// Format is tk-<number>-<suffix>
-		parts := strings.Split(fullID, "-")
+		// Verify it actually starts with prefix-number-
+		parts := strings.Split(taskID, "-")
 		if len(parts) >= 2 {
-			shortForm := strings.Join(parts[:2], "-") // tk-<number>
-			if shortForm == normalizedID {
-				matches = append(matches, fullID)
+			shortForm := strings.Join(parts[:2], "-")
+			if shortForm == shortID {
+				matches = append(matches, taskID)
 			}
 		}
 	}
@@ -493,7 +620,7 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 	}
 
 	if len(matches) > 1 {
-		return "", fmt.Errorf("ambiguous task ID %s, matches: %v", shortID, matches)
+		return "", fmt.Errorf("ambiguous task ID %s (multiple nodes created %s) — use full ID like %s", shortID, shortID, matches[0])
 	}
 
 	return matches[0], nil
@@ -525,15 +652,53 @@ func (d *DB) GetAllTaskIDs() ([]string, error) {
 	return taskIDs, rows.Err()
 }
 
+// GetTaskIDsByPrefixes returns task IDs filtered by prefix list
+func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
+	if len(prefixes) == 0 {
+		return d.GetAllTaskIDs()
+	}
+
+	// Build SQL query with OR conditions for each prefix
+	var conditions []string
+	var args []interface{}
+	for _, prefix := range prefixes {
+		conditions = append(conditions, "json_extract(payload, '$.task_id') LIKE ?")
+		args = append(args, prefix+"-%")
+	}
+
+	query := `
+		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
+		FROM events
+		WHERE kind = 'task.created' AND (` + strings.Join(conditions, " OR ") + `)
+	`
+
+	rows, err := d.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query task IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var taskIDs []string
+	for rows.Next() {
+		var taskID string
+		if err := rows.Scan(&taskID); err != nil {
+			return nil, fmt.Errorf("failed to scan task ID: %w", err)
+		}
+		taskIDs = append(taskIDs, taskID)
+	}
+
+	return taskIDs, rows.Err()
+}
+
 // FormatTaskID formats a task ID for display, hiding the suffix unless needed for disambiguation
 func FormatTaskID(fullID string, allTaskIDs []string) string {
-	// Extract parts: tk-<number>-<suffix>
+	// Extract parts: <prefix>-<number>-<suffix>
 	parts := strings.Split(fullID, "-")
 	if len(parts) < 3 {
 		return fullID // Malformed ID, return as-is
 	}
 
-	shortForm := strings.Join(parts[:2], "-") // tk-<number>
+	shortForm := strings.Join(parts[:2], "-") // <prefix>-<number>
 
 	// Check if any other task has the same short form but different suffix
 	needsSuffix := false
@@ -555,4 +720,357 @@ func FormatTaskID(fullID string, allTaskIDs []string) string {
 		return fullID
 	}
 	return shortForm
+}
+
+// Prefix represents a task prefix definition
+type Prefix struct {
+	Prefix      string
+	Node        string
+	Description string
+	CreatedAt   time.Time
+	CreatedBy   string
+}
+
+// CreatePrefix creates a new prefix and emits a prefix.created event
+func (d *DB) CreatePrefix(prefix, description, createdBy string) error {
+	// Normalize to lowercase first
+	prefix = strings.ToLower(prefix)
+
+	// Validate prefix format
+	if err := ValidatePrefixName(prefix); err != nil {
+		return err
+	}
+
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	// Check if prefix already exists for this node
+	var count int
+	err = d.db.QueryRow("SELECT COUNT(*) FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to check prefix existence: %w", err)
+	}
+
+	if count > 0 {
+		return fmt.Errorf("prefix %q already exists for this node", prefix)
+	}
+
+	// Generate event ID
+	eventID, err := GenerateEventID(d)
+	if err != nil {
+		return fmt.Errorf("failed to generate event ID: %w", err)
+	}
+
+	// Get next Lamport timestamp
+	lamportTS, err := d.GetNextLamportTS()
+	if err != nil {
+		return fmt.Errorf("failed to get lamport timestamp: %w", err)
+	}
+
+	// Create prefix.created event
+	payload := PrefixCreatedPayload{
+		Prefix:      prefix,
+		Description: description,
+		CreatedBy:   createdBy,
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	now := time.Now()
+	event := Event{
+		ID:        eventID,
+		TS:        lamportTS,
+		CreatedAt: now,
+		Actor:     createdBy,
+		Role:      "human",
+		Kind:      "prefix.created",
+		Payload:   payloadJSON,
+	}
+
+	// Insert event first (event-sourcing principle)
+	if err := d.InsertEvent(event); err != nil {
+		return fmt.Errorf("failed to insert prefix.created event: %w", err)
+	}
+
+	// Project into prefixes table (idempotent)
+	_, err = d.db.Exec(
+		"INSERT OR IGNORE INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
+		prefix, nodeID, description, now.UnixNano(), createdBy,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create prefix: %w", err)
+	}
+
+	// Initialize counter for this prefix (idempotent)
+	_, err = d.db.Exec(
+		"INSERT OR IGNORE INTO prefix_counters (prefix, node, last_id) VALUES (?, ?, ?)",
+		prefix, nodeID, 0,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize prefix counter: %w", err)
+	}
+
+	return nil
+}
+
+// GetPrefixes returns all prefixes for this node
+func (d *DB) GetPrefixes() ([]Prefix, error) {
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	query := `
+		SELECT prefix, node, description, created_at, created_by
+		FROM prefixes
+		WHERE node = ?
+		ORDER BY created_at
+	`
+
+	rows, err := d.db.Query(query, nodeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query prefixes: %w", err)
+	}
+	defer rows.Close()
+
+	var prefixes []Prefix
+	for rows.Next() {
+		var p Prefix
+		var createdAtNano int64
+		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan prefix: %w", err)
+		}
+		p.CreatedAt = time.Unix(0, createdAtNano)
+		prefixes = append(prefixes, p)
+	}
+
+	return prefixes, rows.Err()
+}
+
+// GetAllPrefixes returns all prefixes from all nodes (event-backed)
+func (d *DB) GetAllPrefixes() ([]Prefix, error) {
+	// Get prefixes from the prefixes table (from prefix.created events)
+	query := `
+		SELECT prefix, node, description, created_at, created_by
+		FROM prefixes
+		ORDER BY created_at
+	`
+
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query prefixes: %w", err)
+	}
+	defer rows.Close()
+
+	prefixMap := make(map[string]Prefix) // key: prefix-node
+	for rows.Next() {
+		var p Prefix
+		var createdAtNano int64
+		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan prefix: %w", err)
+		}
+		p.CreatedAt = time.Unix(0, createdAtNano)
+		key := p.Prefix + "-" + p.Node
+		prefixMap[key] = p
+	}
+
+	// Also derive prefixes from task.created events (for prefixes that don't have metadata)
+	// We need to extract both prefix and node from each task ID
+	taskQuery := `
+		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id,
+		       json_extract(payload, '$.created_by') as created_by
+		FROM events
+		WHERE kind = 'task.created'
+	`
+
+	taskRows, err := d.db.Query(taskQuery)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query task prefixes: %w", err)
+	}
+	defer taskRows.Close()
+
+	for taskRows.Next() {
+		var taskID, createdBy string
+		if err := taskRows.Scan(&taskID, &createdBy); err != nil {
+			return nil, fmt.Errorf("failed to scan task: %w", err)
+		}
+
+		// Extract prefix and node from task ID (format: prefix-number-node)
+		parts := strings.Split(taskID, "-")
+		if len(parts) < 3 {
+			continue
+		}
+		prefix := parts[0]
+		node := parts[2]
+		key := prefix + "-" + node
+
+		// Only add if not already in map (from prefix.created events)
+		if _, exists := prefixMap[key]; !exists {
+			prefixMap[key] = Prefix{
+				Prefix:      prefix,
+				Node:        node,
+				Description: "(discovered from tasks, no metadata)",
+				CreatedBy:   createdBy,
+				CreatedAt:   time.Time{}, // Unknown creation time
+			}
+		}
+	}
+
+	// Convert map to slice
+	var prefixes []Prefix
+	for _, p := range prefixMap {
+		prefixes = append(prefixes, p)
+	}
+
+	// Sort by creation time
+	sort.Slice(prefixes, func(i, j int) bool {
+		// Put items with unknown time at the end
+		if prefixes[i].CreatedAt.IsZero() && !prefixes[j].CreatedAt.IsZero() {
+			return false
+		}
+		if !prefixes[i].CreatedAt.IsZero() && prefixes[j].CreatedAt.IsZero() {
+			return true
+		}
+		return prefixes[i].CreatedAt.Before(prefixes[j].CreatedAt)
+	})
+
+	return prefixes, nil
+}
+
+// PrefixExists checks if a prefix exists for this node
+func (d *DB) PrefixExists(prefix string) (bool, error) {
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return false, fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	var count int
+	err = d.db.QueryRow("SELECT COUNT(*) FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check prefix existence: %w", err)
+	}
+
+	return count > 0, nil
+}
+
+// GetNextTaskNumberForPrefix gets the next task number for a specific prefix and increments the counter
+func (d *DB) GetNextTaskNumberForPrefix(prefix string) (int64, error) {
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	// Check if prefix exists
+	exists, err := d.PrefixExists(prefix)
+	if err != nil {
+		return 0, err
+	}
+	if !exists {
+		return 0, fmt.Errorf("prefix %q does not exist for this node", prefix)
+	}
+
+	tx, err := d.db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	var lastID int64
+	err = tx.QueryRow("SELECT last_id FROM prefix_counters WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&lastID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get last task ID for prefix %q: %w", prefix, err)
+	}
+
+	nextID := lastID + 1
+	_, err = tx.Exec("UPDATE prefix_counters SET last_id = ? WHERE prefix = ? AND node = ?", nextID, prefix, nodeID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update task counter for prefix %q: %w", prefix, err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nextID, nil
+}
+
+// ValidatePrefixName validates a prefix name according to the spec
+func ValidatePrefixName(prefix string) error {
+	if len(prefix) < 2 || len(prefix) > 20 {
+		return fmt.Errorf("prefix must be 2-20 characters long")
+	}
+
+	// Must start with lowercase letter
+	if prefix[0] < 'a' || prefix[0] > 'z' {
+		return fmt.Errorf("prefix must start with a lowercase letter (a-z)")
+	}
+
+	// Must contain only lowercase letters, digits, and underscores (no hyphens)
+	for i, c := range prefix {
+		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_') {
+			return fmt.Errorf("prefix must contain only lowercase letters, digits, and underscores (char %d: %c)", i, c)
+		}
+	}
+
+	// Check for reserved prefixes
+	reserved := []string{"ev", "event", "task", "node", "remote", "sync"}
+	for _, r := range reserved {
+		if prefix == r {
+			return fmt.Errorf("prefix %q is reserved", prefix)
+		}
+	}
+
+	return nil
+}
+
+// ProjectPrefixCreatedEvent projects a prefix.created event into the prefixes table (idempotent)
+func (d *DB) ProjectPrefixCreatedEvent(e Event) error {
+	if e.Kind != "prefix.created" {
+		return fmt.Errorf("expected prefix.created event, got %s", e.Kind)
+	}
+
+	var payload PrefixCreatedPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal prefix.created payload: %w", err)
+	}
+
+	// Extract node from event (we need to determine which node created this)
+	// The event actor should match the creating node
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	// For events from other nodes, we'd need to extract the node from the event ID
+	// Format: ev-<number>-<node>
+	parts := strings.Split(e.ID, "-")
+	if len(parts) >= 3 {
+		nodeID = parts[2]
+	}
+
+	// Project into prefixes table (idempotent)
+	_, err = d.db.Exec(
+		"INSERT OR IGNORE INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
+		payload.Prefix, nodeID, payload.Description, e.CreatedAt.UnixNano(), payload.CreatedBy,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to project prefix.created event: %w", err)
+	}
+
+	// Initialize counter if it doesn't exist (idempotent)
+	_, err = d.db.Exec(
+		"INSERT OR IGNORE INTO prefix_counters (prefix, node, last_id) VALUES (?, ?, ?)",
+		payload.Prefix, nodeID, 0,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize prefix counter: %w", err)
+	}
+
+	return nil
 }
