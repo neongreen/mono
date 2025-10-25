@@ -5,6 +5,8 @@ tk is a command-line tool that tracks tasks system-wide using an append-only eve
 ## Features
 
 - **Event sourcing**: All task changes are recorded as immutable events
+- **Prefixes**: Organize tasks with custom prefixes (e.g., `tk-1`, `foo-2`, `bar-3`)
+- **Namespace isolation**: Each prefix has its own task numbering, scoped by node ID
 - **Claims-based status**: Multiple actors (human, agent, bot, qa, rel) can make status claims
 - **Authority lattice**: Conflicts are resolved based on role authority (human > qa > rel > agent > bot)
 - **Multi-valued registers**: Conflicting claims are preserved as tentative/effective
@@ -34,7 +36,36 @@ mise run //tk:run
 
 tk stores its database in `~/.tk/tk.db` by default. The database and directory are created automatically on first use.
 
+### Prefixes
+
+tk supports multiple task prefixes, allowing you to organize tasks by project or category. Each prefix has its own namespace for task numbers.
+
+#### Default prefix
+
+When you initialize tk, a default `tk` prefix is automatically created.
+
+#### Create a new prefix
+
+```bash
+tk prefix create foo "Tasks for foo project"
+tk prefix create bar "Tasks for bar project"
+```
+
+#### List prefixes
+
+```bash
+tk prefix list
+```
+
+Show prefixes from all nodes (including synced prefixes):
+
+```bash
+tk prefix list --all
+```
+
 ### Create a task
+
+Create a task with the default `tk` prefix:
 
 ```bash
 tk new "wire up rc deploy toggle"
@@ -42,33 +73,46 @@ tk new "wire up rc deploy toggle"
 
 This creates a new task with a unique ID like `tk-1-abc123` where `abc123` is your node ID.
 
+Create a task with a specific prefix:
+
+```bash
+tk new --prefix foo "implement foo feature"
+```
+
+This creates a task like `foo-1-abc123`.
+
 ### Set task status
 
 ```bash
 tk status set tk-1 in_progress
+tk status set foo-1 done
 ```
 
 You can specify the axis and role:
 
 ```bash
-tk status set tk_01J3XM4NZ2R72 done --axis generic --role agent
+tk status set tk-1 done --axis generic --role agent
 ```
 
 ### Add a note to a task
 
 ```bash
-tk note tk_01J3XM4NZ2R72 "Fixed the deployment toggle"
+tk note tk-1 "Fixed the deployment toggle"
+tk note foo-1 "Implemented new feature"
 ```
 
 ### View a task
 
 ```bash
-tk view tk_01J3XM4NZ2R72
+tk view tk-1
+tk view foo-1
 ```
 
 This shows the current state, all claims (effective and tentative), and notes.
 
 ### List tasks
+
+List all tasks:
 
 ```bash
 tk ls
@@ -78,6 +122,24 @@ Filter by status:
 
 ```bash
 tk ls --axis generic:in_progress
+```
+
+Filter by prefix:
+
+```bash
+tk ls --prefix foo
+```
+
+Filter by multiple prefixes:
+
+```bash
+tk ls --prefix foo --prefix bar
+```
+
+Combine filters:
+
+```bash
+tk ls --prefix foo --axis generic:in_progress
 ```
 
 ### Get database path
@@ -154,6 +216,20 @@ Shows divergence between local and remote segments.
 
 ## Concepts
 
+### Prefixes
+
+Prefixes are first-class entities that allow you to organize tasks by project, category, or any other grouping. Each prefix:
+
+- Has a description explaining its purpose
+- Is scoped to the node that created it (preventing conflicts when syncing)
+- Has its own independent task counter (e.g., `foo-1`, `foo-2` are separate from `bar-1`, `bar-2`)
+- Can be filtered in the `tk ls` command
+
+When you sync with other machines, their prefixes are also synced, but each node maintains its own task numbering for each prefix. This means:
+- Node A's `foo-1` is different from Node B's `foo-1` (they have different node suffixes)
+- Each prefix on each node has its own counter
+- Task IDs include the node suffix to ensure global uniqueness (e.g., `foo-1-abc123`)
+
 ### Events
 
 Every action in tk is recorded as an immutable event in the SQLite database. Events have:
@@ -188,7 +264,9 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 ### v1 (current)
 
 - Event sourcing with stable event IDs (`ev-<seq>-<node>`)
-- Task IDs with node suffix (`tk-<seq>-<node>`)
+- Task IDs with prefix and node suffix (`<prefix>-<seq>-<node>`)
+- Multiple task prefixes with independent counters
+- Prefix management (create, list, filter)
 - Offline-first sync via immutable segment files
 - iCloud Drive folder remote support
 - Segment files with zstd compression
