@@ -181,8 +181,8 @@ var statusSetCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve short task ID to full ID
-		fullTaskID, err := db.ResolveTaskID(taskID)
+		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
+		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
 		if err != nil {
 			return err
 		}
@@ -204,10 +204,11 @@ var statusSetCmd = &cobra.Command{
 		}
 
 		payload := TaskStatusSetPayload{
-			TaskID: fullTaskID,
-			Axis:   axis,
-			State:  state,
-			Role:   role,
+			TaskUUID: taskUUID,
+			TaskID:   taskID, // Use the input ID for legacy compatibility
+			Axis:     axis,
+			State:    state,
+			Role:     role,
 		}
 		payloadJSON, err := json.Marshal(payload)
 		if err != nil {
@@ -248,8 +249,8 @@ var noteCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve short task ID to full ID
-		fullTaskID, err := db.ResolveTaskID(taskID)
+		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
+		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
 		if err != nil {
 			return err
 		}
@@ -271,7 +272,8 @@ var noteCmd = &cobra.Command{
 		}
 
 		payload := TaskNoteAddPayload{
-			TaskID:   fullTaskID,
+			TaskUUID: taskUUID,
+			TaskID:   taskID, // Use the input ID for legacy compatibility
 			Markdown: text,
 		}
 		payloadJSON, err := json.Marshal(payload)
@@ -312,13 +314,14 @@ var viewCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve short task ID to full ID
-		fullTaskID, err := db.ResolveTaskID(taskID)
+		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
+		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
 		if err != nil {
 			return err
 		}
 
-		events, err := db.GetEventsByTaskID(fullTaskID)
+		// Get events by UUID
+		events, err := db.GetEventsByTaskUUID(taskUUID)
 		if err != nil {
 			return err
 		}
@@ -332,7 +335,7 @@ var viewCmd = &cobra.Command{
 			return err
 		}
 
-		task, ok := reducer.GetTask(fullTaskID)
+		task, ok := reducer.GetTask(taskUUID)
 		if !ok {
 			return fmt.Errorf("task not found: %s", taskID)
 		}
@@ -536,6 +539,7 @@ func init() {
 	lsCmd.Flags().StringSlice("prefix", []string{}, "Filter by prefix (can be specified multiple times)")
 	rootCmd.AddCommand(lsCmd)
 
+	rootCmd.AddCommand(mvCmd)
 	rootCmd.AddCommand(nodeCmd)
 	rootCmd.AddCommand(remoteCmd)
 	rootCmd.AddCommand(exportCmd)

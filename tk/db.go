@@ -299,6 +299,120 @@ func (d *DB) GetEventsByTaskID(taskID string) ([]Event, error) {
 	return events, rows.Err()
 }
 
+// GetEventsByTaskUUID retrieves events for a specific task UUID
+func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]Event, error) {
+	query := `
+		SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
+		FROM events
+		WHERE json_extract(payload, '$.task_uuid') = ?
+		   OR json_extract(payload, '$.task_id') = ?
+		ORDER BY created_at, id
+	`
+
+	rows, err := d.db.Query(query, taskUUID, taskUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query events for task UUID %s: %w", taskUUID, err)
+	}
+	defer rows.Close()
+
+	var events []Event
+	for rows.Next() {
+		var e Event
+		var ctx, repoUUID, branch, commit, jjOpID sql.NullString
+		var createdAtNano int64
+
+		err := rows.Scan(&e.ID, &e.TS, &createdAtNano, &e.Actor, &e.Role, &e.Kind, &e.Payload, &ctx, &repoUUID, &branch, &commit, &jjOpID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event row: %w", err)
+		}
+
+		e.CreatedAt = time.Unix(0, createdAtNano)
+		if ctx.Valid {
+			e.Ctx = json.RawMessage(ctx.String)
+		}
+		if repoUUID.Valid {
+			e.RepoUUID = repoUUID.String
+		}
+		if branch.Valid {
+			e.Branch = branch.String
+		}
+		if commit.Valid {
+			e.Commit = commit.String
+		}
+		if jjOpID.Valid {
+			e.JJOpID = jjOpID.String
+		}
+
+		events = append(events, e)
+	}
+
+	return events, rows.Err()
+}
+
+// ResolveTaskIDToUUID resolves a task ID (full or short, current or alias) to its UUID
+func (d *DB) ResolveTaskIDToUUID(taskID string) (string, error) {
+	// Build reducer from all events to resolve ID to UUID
+	events, err := d.GetEvents()
+	if err != nil {
+		return "", fmt.Errorf("failed to get events: %w", err)
+	}
+
+	reducer, err := BuildFromEvents(events)
+	if err != nil {
+		return "", fmt.Errorf("failed to build reducer: %w", err)
+	}
+
+	// First try direct lookup by taskID (handles full IDs - current or aliases)
+	task, ok := reducer.GetTask(taskID)
+	if ok {
+		return task.TaskUUID, nil
+	}
+
+	// If not found, it might be a short form (e.g., "foo-1" instead of "foo-1-kdTlV2")
+	// Get all tasks and check for matching short forms
+	allTasks := reducer.GetAllTasks()
+	allTaskIDs := make([]string, 0, len(allTasks))
+	for _, t := range allTasks {
+		allTaskIDs = append(allTaskIDs, t.TaskID)
+		// Also add aliases
+		for _, alias := range t.Aliases {
+			allTaskIDs = append(allTaskIDs, alias)
+		}
+	}
+
+	// Use FormatTaskID logic to match short forms
+	var matches []string
+	var matchedUUIDs []string
+	for _, t := range allTasks {
+		// Check if taskID matches the short form of this task's current ID
+		shortForm := FormatTaskID(t.TaskID, allTaskIDs)
+		if shortForm == taskID {
+			matches = append(matches, t.TaskID)
+			matchedUUIDs = append(matchedUUIDs, t.TaskUUID)
+		}
+		
+		// Also check aliases
+		for _, alias := range t.Aliases {
+			shortForm := FormatTaskID(alias, allTaskIDs)
+			if shortForm == taskID {
+				matches = append(matches, alias)
+				matchedUUIDs = append(matchedUUIDs, t.TaskUUID)
+				break
+			}
+		}
+	}
+
+	if len(matches) == 0 {
+		return "", fmt.Errorf("task not found: %s", taskID)
+	}
+
+	if len(matches) > 1 {
+		return "", fmt.Errorf("ambiguous task ID: %s (matches %v)", taskID, matches)
+	}
+
+	return matchedUUIDs[0], nil
+}
+
 // Close closes the database
 func (d *DB) Close() error {
 	return d.db.Close()
