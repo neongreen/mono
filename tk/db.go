@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -605,13 +606,21 @@ func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
 		return d.GetAllTaskIDs()
 	}
 
+	// Build SQL query with OR conditions for each prefix
+	var conditions []string
+	var args []interface{}
+	for _, prefix := range prefixes {
+		conditions = append(conditions, "json_extract(payload, '$.task_id') LIKE ?")
+		args = append(args, prefix+"-%")
+	}
+
 	query := `
 		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
 		FROM events
-		WHERE kind = 'task.created'
+		WHERE kind = 'task.created' AND (` + strings.Join(conditions, " OR ") + `)
 	`
 
-	rows, err := d.db.Query(query)
+	rows, err := d.db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query task IDs: %w", err)
 	}
@@ -623,18 +632,7 @@ func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
 		if err := rows.Scan(&taskID); err != nil {
 			return nil, fmt.Errorf("failed to scan task ID: %w", err)
 		}
-
-		// Extract prefix from task ID
-		parts := strings.Split(taskID, "-")
-		if len(parts) >= 1 {
-			taskPrefix := parts[0]
-			for _, prefix := range prefixes {
-				if taskPrefix == prefix {
-					taskIDs = append(taskIDs, taskID)
-					break
-				}
-			}
-		}
+		taskIDs = append(taskIDs, taskID)
 	}
 
 	return taskIDs, rows.Err()
@@ -681,8 +679,16 @@ type Prefix struct {
 	CreatedBy   string
 }
 
-// CreatePrefix creates a new prefix
+// CreatePrefix creates a new prefix and emits a prefix.created event
 func (d *DB) CreatePrefix(prefix, description, createdBy string) error {
+	// Normalize to lowercase first
+	prefix = strings.ToLower(prefix)
+
+	// Validate prefix format
+	if err := ValidatePrefixName(prefix); err != nil {
+		return err
+	}
+
 	nodeID, err := d.GetOrCreateNodeID()
 	if err != nil {
 		return fmt.Errorf("failed to get node ID: %w", err)
@@ -699,18 +705,57 @@ func (d *DB) CreatePrefix(prefix, description, createdBy string) error {
 		return fmt.Errorf("prefix %q already exists for this node", prefix)
 	}
 
-	// Insert prefix
+	// Generate event ID
+	eventID, err := GenerateEventID(d)
+	if err != nil {
+		return fmt.Errorf("failed to generate event ID: %w", err)
+	}
+
+	// Get next Lamport timestamp
+	lamportTS, err := d.GetNextLamportTS()
+	if err != nil {
+		return fmt.Errorf("failed to get lamport timestamp: %w", err)
+	}
+
+	// Create prefix.created event
+	payload := PrefixCreatedPayload{
+		Prefix:      prefix,
+		Description: description,
+		CreatedBy:   createdBy,
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	now := time.Now()
+	event := Event{
+		ID:        eventID,
+		TS:        lamportTS,
+		CreatedAt: now,
+		Actor:     createdBy,
+		Role:      "human",
+		Kind:      "prefix.created",
+		Payload:   payloadJSON,
+	}
+
+	// Insert event first (event-sourcing principle)
+	if err := d.InsertEvent(event); err != nil {
+		return fmt.Errorf("failed to insert prefix.created event: %w", err)
+	}
+
+	// Project into prefixes table (idempotent)
 	_, err = d.db.Exec(
-		"INSERT INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
-		prefix, nodeID, description, time.Now().UnixNano(), createdBy,
+		"INSERT OR IGNORE INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
+		prefix, nodeID, description, now.UnixNano(), createdBy,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create prefix: %w", err)
 	}
 
-	// Initialize counter for this prefix
+	// Initialize counter for this prefix (idempotent)
 	_, err = d.db.Exec(
-		"INSERT INTO prefix_counters (prefix, node, last_id) VALUES (?, ?, ?)",
+		"INSERT OR IGNORE INTO prefix_counters (prefix, node, last_id) VALUES (?, ?, ?)",
 		prefix, nodeID, 0,
 	)
 	if err != nil {
@@ -755,8 +800,9 @@ func (d *DB) GetPrefixes() ([]Prefix, error) {
 	return prefixes, rows.Err()
 }
 
-// GetAllPrefixes returns all prefixes from all nodes
+// GetAllPrefixes returns all prefixes from all nodes (event-backed)
 func (d *DB) GetAllPrefixes() ([]Prefix, error) {
+	// Get prefixes from the prefixes table (from prefix.created events)
 	query := `
 		SELECT prefix, node, description, created_at, created_by
 		FROM prefixes
@@ -769,7 +815,7 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 	}
 	defer rows.Close()
 
-	var prefixes []Prefix
+	prefixMap := make(map[string]Prefix) // key: prefix-node
 	for rows.Next() {
 		var p Prefix
 		var createdAtNano int64
@@ -778,10 +824,83 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 			return nil, fmt.Errorf("failed to scan prefix: %w", err)
 		}
 		p.CreatedAt = time.Unix(0, createdAtNano)
+		key := p.Prefix + "-" + p.Node
+		prefixMap[key] = p
+	}
+
+	// Also derive prefixes from task.created events (for prefixes that don't have metadata)
+	taskQuery := `
+		SELECT DISTINCT substr(json_extract(payload, '$.task_id'), 1, instr(json_extract(payload, '$.task_id'), '-') - 1) as prefix,
+		       json_extract(payload, '$.created_by') as created_by
+		FROM events
+		WHERE kind = 'task.created'
+	`
+
+	taskRows, err := d.db.Query(taskQuery)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query task prefixes: %w", err)
+	}
+	defer taskRows.Close()
+
+	for taskRows.Next() {
+		var prefix, createdBy string
+		if err := taskRows.Scan(&prefix, &createdBy); err != nil {
+			return nil, fmt.Errorf("failed to scan task prefix: %w", err)
+		}
+
+		// Extract node from task ID to build the key
+		// We need to query for a task with this prefix to get the node
+		var taskID string
+		err = d.db.QueryRow(`
+			SELECT json_extract(payload, '$.task_id')
+			FROM events
+			WHERE kind = 'task.created' 
+			  AND json_extract(payload, '$.task_id') LIKE ?
+			LIMIT 1
+		`, prefix+"-%").Scan(&taskID)
+		if err != nil {
+			continue
+		}
+
+		// Extract node from task ID (format: prefix-number-node)
+		parts := strings.Split(taskID, "-")
+		if len(parts) < 3 {
+			continue
+		}
+		node := parts[2]
+		key := prefix + "-" + node
+
+		// Only add if not already in map (from prefix.created events)
+		if _, exists := prefixMap[key]; !exists {
+			prefixMap[key] = Prefix{
+				Prefix:      prefix,
+				Node:        node,
+				Description: "(discovered from tasks, no metadata)",
+				CreatedBy:   createdBy,
+				CreatedAt:   time.Time{}, // Unknown creation time
+			}
+		}
+	}
+
+	// Convert map to slice
+	var prefixes []Prefix
+	for _, p := range prefixMap {
 		prefixes = append(prefixes, p)
 	}
 
-	return prefixes, rows.Err()
+	// Sort by creation time
+	sort.Slice(prefixes, func(i, j int) bool {
+		// Put items with unknown time at the end
+		if prefixes[i].CreatedAt.IsZero() && !prefixes[j].CreatedAt.IsZero() {
+			return false
+		}
+		if !prefixes[i].CreatedAt.IsZero() && prefixes[j].CreatedAt.IsZero() {
+			return true
+		}
+		return prefixes[i].CreatedAt.Before(prefixes[j].CreatedAt)
+	})
+
+	return prefixes, nil
 }
 
 // PrefixExists checks if a prefix exists for this node
@@ -839,4 +958,79 @@ func (d *DB) GetNextTaskNumberForPrefix(prefix string) (int64, error) {
 	}
 
 	return nextID, nil
+}
+
+// ValidatePrefixName validates a prefix name according to the spec
+func ValidatePrefixName(prefix string) error {
+	if len(prefix) < 2 || len(prefix) > 20 {
+		return fmt.Errorf("prefix must be 2-20 characters long")
+	}
+
+	// Must start with lowercase letter
+	if prefix[0] < 'a' || prefix[0] > 'z' {
+		return fmt.Errorf("prefix must start with a lowercase letter (a-z)")
+	}
+
+	// Must contain only lowercase letters, digits, and underscores (no hyphens)
+	for i, c := range prefix {
+		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_') {
+			return fmt.Errorf("prefix must contain only lowercase letters, digits, and underscores (char %d: %c)", i, c)
+		}
+	}
+
+	// Check for reserved prefixes
+	reserved := []string{"ev", "event", "task", "node", "remote", "sync"}
+	for _, r := range reserved {
+		if prefix == r {
+			return fmt.Errorf("prefix %q is reserved", prefix)
+		}
+	}
+
+	return nil
+}
+
+// ProjectPrefixCreatedEvent projects a prefix.created event into the prefixes table (idempotent)
+func (d *DB) ProjectPrefixCreatedEvent(e Event) error {
+	if e.Kind != "prefix.created" {
+		return fmt.Errorf("expected prefix.created event, got %s", e.Kind)
+	}
+
+	var payload PrefixCreatedPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal prefix.created payload: %w", err)
+	}
+
+	// Extract node from event (we need to determine which node created this)
+	// The event actor should match the creating node
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	// For events from other nodes, we'd need to extract the node from the event ID
+	// Format: ev-<number>-<node>
+	parts := strings.Split(e.ID, "-")
+	if len(parts) >= 3 {
+		nodeID = parts[2]
+	}
+
+	// Project into prefixes table (idempotent)
+	_, err = d.db.Exec(
+		"INSERT OR IGNORE INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
+		payload.Prefix, nodeID, payload.Description, e.CreatedAt.UnixNano(), payload.CreatedBy,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to project prefix.created event: %w", err)
+	}
+
+	// Initialize counter if it doesn't exist (idempotent)
+	_, err = d.db.Exec(
+		"INSERT OR IGNORE INTO prefix_counters (prefix, node, last_id) VALUES (?, ?, ?)",
+		payload.Prefix, nodeID, 0,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize prefix counter: %w", err)
+	}
+
+	return nil
 }

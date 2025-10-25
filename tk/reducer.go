@@ -27,8 +27,12 @@ func (r *Reducer) Apply(e Event) error {
 		return r.applyTaskStatusSet(e)
 	case "task.note.add":
 		return r.applyTaskNoteAdd(e)
+	case "prefix.created":
+		// Prefix events are handled by the DB projector, not the reducer
+		return nil
 	default:
-		return fmt.Errorf("unknown event kind: %s", e.Kind)
+		// Unknown events are ignored for forward compatibility
+		return nil
 	}
 }
 

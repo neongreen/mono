@@ -42,6 +42,13 @@ type TaskNoteAddPayload struct {
 	Markdown string `json:"markdown"`
 }
 
+// PrefixCreatedPayload is the payload for prefix.created events
+type PrefixCreatedPayload struct {
+	Prefix      string `json:"prefix"`
+	Description string `json:"description"`
+	CreatedBy   string `json:"created_by"`
+}
+
 // Claim represents a status assertion by an actor
 type Claim struct {
 	State     string `json:"state"`

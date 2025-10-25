@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
@@ -32,11 +33,15 @@ var prefixCreateCmd = &cobra.Command{
 			return err
 		}
 
+		// Normalize prefix (will be lowercased in CreatePrefix)
+		normalizedPrefix := strings.ToLower(prefix)
+
 		if err := db.CreatePrefix(prefix, description, currentUser); err != nil {
 			return err
 		}
 
-		fmt.Printf("Created prefix %q: %s\n", prefix, description)
+		// Show the normalized prefix in the output
+		fmt.Printf("Created prefix %q: %s\n", normalizedPrefix, description)
 		return nil
 	},
 }
