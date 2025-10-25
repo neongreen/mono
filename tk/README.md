@@ -71,7 +71,12 @@ Create a task with the default `tk` prefix:
 tk new "wire up rc deploy toggle"
 ```
 
-This creates a new task with a unique ID like `tk-1-abc123` where `abc123` is your node ID.
+This creates a new task with a unique ID like `tk-1-abc123` where:
+- `tk` is the prefix
+- `1` is the task number within that prefix
+- `abc123` is your node ID
+
+The task is displayed as `tk-1` when there's no ambiguity (i.e., no other node has created a `tk-1` task).
 
 Create a task with a specific prefix:
 
@@ -233,7 +238,7 @@ When you sync with other machines, their prefixes are also synced, but each node
 ### Events
 
 Every action in tk is recorded as an immutable event in the SQLite database. Events have:
-- **ID**: Event ID in format `ev-<seq>-<node>` (e.g., `ev-42-abc123`)
+- **ID**: Event ID in format `ev-<number>-<node>` (e.g., `ev-42-abc123`)
 - **TS**: Lamport timestamp for ordering
 - **Actor**: Username who created the event
 - **Role**: Role of the actor (human, agent, bot, qa, rel)
@@ -263,8 +268,8 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 ### v1 (current)
 
-- Event sourcing with stable event IDs (`ev-<seq>-<node>`)
-- Task IDs with prefix and node suffix (`<prefix>-<seq>-<node>`)
+- Event sourcing with stable event IDs (`ev-<number>-<node>`)
+- Task IDs with prefix and node suffix (`<prefix>-<number>-<node>`)
 - Multiple task prefixes with independent counters
 - Prefix management (create, list, filter)
 - Offline-first sync via immutable segment files
