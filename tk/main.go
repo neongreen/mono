@@ -9,11 +9,18 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var (
 	dbPath string
+	// Color formatters for status display
+	yellowStatus = color.New(color.FgYellow).SprintFunc()
+	greenStatus  = color.New(color.FgGreen).SprintFunc()
 )
 
 func main() {
@@ -332,6 +339,11 @@ var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "List tasks",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		// Respect color environment variables
+		if os.Getenv("FORCE_COLOR") != "" || os.Getenv("CLICOLOR_FORCE") != "" {
+			color.NoColor = false
+		}
+
 		axisFilter, _ := cmd.Flags().GetString("axis")
 		sortBy, _ := cmd.Flags().GetString("sort")
 
@@ -382,14 +394,45 @@ var lsCmd = &cobra.Command{
 		// Sort tasks based on the --sort flag
 		sortTasks(tasks, sortBy)
 
-		for _, task := range tasks {
-			displayID := FormatTaskID(task.TaskID, allTaskIDs)
-			fmt.Printf("%s: %s\n", displayID, task.Title)
-			for axisName, axis := range task.Axes {
-				fmt.Printf("  %s: %s\n", axisName, axis.Effective)
-			}
+		// Get terminal width for wrapping
+		termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
+		if err != nil {
+			termWidth = 80 // default width if terminal size cannot be determined
 		}
 
+		// Create table
+		t := table.NewWriter()
+		t.SetOutputMirror(os.Stdout)
+		t.AppendHeader(table.Row{"ID", "Status", "Title"})
+		t.SetStyle(table.StyleLight)
+		t.Style().Options.SeparateRows = false
+		t.Style().Options.DrawBorder = false
+
+		// Configure column widths and wrapping
+		// Reserve space for ID (~10 chars), Status (~10 chars), separators (~10 chars)
+		titleMaxWidth := termWidth - 30
+		if titleMaxWidth < 20 {
+			titleMaxWidth = 20 // minimum width
+		}
+		t.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 1, AutoMerge: false}, // ID column
+			{Number: 2, AutoMerge: false}, // Status column
+			{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
+		})
+
+		for _, task := range tasks {
+			displayID := FormatTaskID(task.TaskID, allTaskIDs)
+
+			// Get status from generic axis (or empty if not present)
+			status := ""
+			if axis, ok := task.Axes["generic"]; ok {
+				status = colorizeStatus(axis.Effective)
+			}
+
+			t.AppendRow(table.Row{displayID, status, task.Title})
+		}
+
+		t.Render()
 		return nil
 	},
 }
@@ -417,6 +460,18 @@ func sortTasks(tasks []*Task, sortBy string) {
 		sort.Slice(tasks, func(i, j int) bool {
 			return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
 		})
+	}
+}
+
+// colorizeStatus returns a colored status string based on the status value
+func colorizeStatus(status string) string {
+	switch status {
+	case "wip":
+		return yellowStatus(status)
+	case "done", "fixed":
+		return greenStatus(status)
+	default:
+		return status
 	}
 }
 
