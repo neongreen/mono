@@ -1,17 +1,15 @@
 package main
 
 import (
-	"crypto/rand"
 	"fmt"
-	"math/big"
 )
 
-// GenerateTaskID generates a task ID in the format tk-<number>-<suffix>
+// GenerateTaskID generates a task ID in the format tk-<number>-<node>
 func GenerateTaskID(db *DB) (string, error) {
-	// Get the installation suffix
-	suffix, err := db.GetOrCreateInstallationSuffix()
+	// Get the node ID
+	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
-		return "", fmt.Errorf("failed to get installation suffix: %w", err)
+		return "", fmt.Errorf("failed to get node ID: %w", err)
 	}
 
 	// Get the next task number
@@ -20,20 +18,22 @@ func GenerateTaskID(db *DB) (string, error) {
 		return "", fmt.Errorf("failed to get next task number: %w", err)
 	}
 
-	return fmt.Sprintf("tk-%d-%s", taskNum, suffix), nil
+	return fmt.Sprintf("tk-%d-%s", taskNum, nodeID), nil
 }
 
-// GenerateEventID generates an event ID (random alphanumeric string)
-func GenerateEventID() string {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
-	const length = 16
-	b := make([]byte, length)
-	for i := range b {
-		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
-		if err != nil {
-			panic(err)
-		}
-		b[i] = charset[idx.Int64()]
+// GenerateEventID generates an event ID in the format ev-<number>-<node>
+func GenerateEventID(db *DB) (string, error) {
+	// Get the node ID
+	nodeID, err := db.GetOrCreateNodeID()
+	if err != nil {
+		return "", fmt.Errorf("failed to get node ID: %w", err)
 	}
-	return string(b)
+
+	// Get the next event number
+	eventNum, err := db.GetNextEventNumber()
+	if err != nil {
+		return "", fmt.Errorf("failed to get next event number: %w", err)
+	}
+
+	return fmt.Sprintf("ev-%d-%s", eventNum, nodeID), nil
 }

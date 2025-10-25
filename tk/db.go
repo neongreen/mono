@@ -80,21 +80,41 @@ func (d *DB) InitDB() error {
 	CREATE TABLE IF NOT EXISTS task_counter (
 		last_id INTEGER NOT NULL
 	);
+	
+	CREATE TABLE IF NOT EXISTS event_counter (
+		last_id INTEGER NOT NULL
+	);
+	
+	CREATE TABLE IF NOT EXISTS event_id_map (
+		rowid INTEGER PRIMARY KEY,
+		event_id TEXT UNIQUE NOT NULL
+	);
 	`
 
 	if _, err := d.db.Exec(schema); err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
-	// Initialize counter if it doesn't exist
+	// Initialize task counter if it doesn't exist
 	var count int
 	err := d.db.QueryRow("SELECT COUNT(*) FROM task_counter").Scan(&count)
 	if err != nil {
-		return fmt.Errorf("failed to check counter: %w", err)
+		return fmt.Errorf("failed to check task counter: %w", err)
 	}
 	if count == 0 {
 		if _, err := d.db.Exec("INSERT INTO task_counter (last_id) VALUES (0)"); err != nil {
-			return fmt.Errorf("failed to initialize counter: %w", err)
+			return fmt.Errorf("failed to initialize task counter: %w", err)
+		}
+	}
+
+	// Initialize event counter if it doesn't exist
+	err = d.db.QueryRow("SELECT COUNT(*) FROM event_counter").Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to check event counter: %w", err)
+	}
+	if count == 0 {
+		if _, err := d.db.Exec("INSERT INTO event_counter (last_id) VALUES (0)"); err != nil {
+			return fmt.Errorf("failed to initialize event counter: %w", err)
 		}
 	}
 
@@ -232,28 +252,42 @@ func DBExists(path string) bool {
 	return err == nil
 }
 
-// GetOrCreateInstallationSuffix gets the installation suffix or creates one if it doesn't exist
-func (d *DB) GetOrCreateInstallationSuffix() (string, error) {
-	// Try to get existing suffix
-	var suffix string
-	err := d.db.QueryRow("SELECT value FROM metadata WHERE key = 'installation_suffix'").Scan(&suffix)
+// GetOrCreateNodeID gets the node ID or creates one if it doesn't exist
+func (d *DB) GetOrCreateNodeID() (string, error) {
+	// Try to get existing node ID
+	var nodeID string
+	err := d.db.QueryRow("SELECT value FROM metadata WHERE key = 'node_id'").Scan(&nodeID)
 	if err == nil {
-		return suffix, nil
+		return nodeID, nil
 	}
 	if err != sql.ErrNoRows {
-		return "", fmt.Errorf("failed to query installation suffix: %w", err)
+		return "", fmt.Errorf("failed to query node ID: %w", err)
 	}
 
-	// Generate new suffix (6 random alphanumeric characters)
-	suffix = generateRandomSuffix(6)
+	// Generate new node ID (6 random alphanumeric characters, mixed case)
+	nodeID = generateNodeID(6)
 
 	// Store it
-	_, err = d.db.Exec("INSERT INTO metadata (key, value) VALUES ('installation_suffix', ?)", suffix)
+	_, err = d.db.Exec("INSERT INTO metadata (key, value) VALUES ('node_id', ?)", nodeID)
 	if err != nil {
-		return "", fmt.Errorf("failed to store installation suffix: %w", err)
+		return "", fmt.Errorf("failed to store node ID: %w", err)
 	}
 
-	return suffix, nil
+	return nodeID, nil
+}
+
+// RegenerateNodeID generates a new node ID and updates the metadata
+func (d *DB) RegenerateNodeID() (string, error) {
+	// Generate new node ID
+	newNodeID := generateNodeID(6)
+
+	// Update the metadata
+	_, err := d.db.Exec("UPDATE metadata SET value = ? WHERE key = 'node_id'", newNodeID)
+	if err != nil {
+		return "", fmt.Errorf("failed to update node ID: %w", err)
+	}
+
+	return newNodeID, nil
 }
 
 // GetNextLamportTS gets the next Lamport timestamp and increments the counter
@@ -293,6 +327,42 @@ func (d *DB) GetNextLamportTS() (int64, error) {
 	return nextTS, nil
 }
 
+// BumpLamport updates the lamport counter if the given value is higher
+func (d *DB) BumpLamport(newValue int64) error {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Get current counter value
+	var counter int64
+	err = tx.QueryRow("SELECT value FROM metadata WHERE key = 'lamport_counter'").Scan(&counter)
+	if err == sql.ErrNoRows {
+		counter = 0
+	} else if err != nil {
+		return fmt.Errorf("failed to query lamport counter: %w", err)
+	}
+
+	// Only update if new value is higher
+	if newValue > counter {
+		if counter == 0 {
+			_, err = tx.Exec("INSERT INTO metadata (key, value) VALUES ('lamport_counter', ?)", newValue)
+		} else {
+			_, err = tx.Exec("UPDATE metadata SET value = ? WHERE key = 'lamport_counter'", newValue)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to update lamport counter: %w", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
 // GetNextTaskNumber gets the next task number and increments the counter
 func (d *DB) GetNextTaskNumber() (int64, error) {
 	tx, err := d.db.Begin()
@@ -320,9 +390,36 @@ func (d *DB) GetNextTaskNumber() (int64, error) {
 	return nextID, nil
 }
 
-// generateRandomSuffix generates a random alphanumeric suffix
-func generateRandomSuffix(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+// GetNextEventNumber gets the next event number and increments the counter
+func (d *DB) GetNextEventNumber() (int64, error) {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return 0, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	var lastID int64
+	err = tx.QueryRow("SELECT last_id FROM event_counter").Scan(&lastID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get last event ID: %w", err)
+	}
+
+	nextID := lastID + 1
+	_, err = tx.Exec("UPDATE event_counter SET last_id = ?", nextID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to update event counter: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nextID, nil
+}
+
+// generateNodeID generates a random alphanumeric node ID with mixed case
+func generateNodeID(length int) string {
+	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, length)
 	for i := range b {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))

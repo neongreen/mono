@@ -92,7 +92,10 @@ var newCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		eventID := GenerateEventID()
+		eventID, err := GenerateEventID(db)
+		if err != nil {
+			return err
+		}
 
 		// Get next Lamport timestamp from DB
 		lamportTS, err := db.GetNextLamportTS()
@@ -139,7 +142,7 @@ var newCmd = &cobra.Command{
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Manage task status",
+	Short: "Manage task status and sync status",
 }
 
 var statusSetCmd = &cobra.Command{
@@ -170,7 +173,10 @@ var statusSetCmd = &cobra.Command{
 			return err
 		}
 
-		eventID := GenerateEventID()
+		eventID, err := GenerateEventID(db)
+		if err != nil {
+			return err
+		}
 
 		// Get next Lamport timestamp from DB
 		lamportTS, err := db.GetNextLamportTS()
@@ -234,7 +240,10 @@ var noteCmd = &cobra.Command{
 			return err
 		}
 
-		eventID := GenerateEventID()
+		eventID, err := GenerateEventID(db)
+		if err != nil {
+			return err
+		}
 
 		// Get next Lamport timestamp from DB
 		lamportTS, err := db.GetNextLamportTS()
@@ -426,6 +435,7 @@ func init() {
 	statusSetCmd.Flags().String("axis", "generic", "Status axis")
 	statusSetCmd.Flags().String("role", "human", "Actor role")
 	statusCmd.AddCommand(statusSetCmd)
+	statusCmd.AddCommand(statusSyncCmd)
 	rootCmd.AddCommand(statusCmd)
 
 	rootCmd.AddCommand(noteCmd)
@@ -434,6 +444,14 @@ func init() {
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
 	rootCmd.AddCommand(lsCmd)
+
+	rootCmd.AddCommand(nodeCmd)
+	rootCmd.AddCommand(remoteCmd)
+	rootCmd.AddCommand(exportCmd)
+	rootCmd.AddCommand(ingestCmd)
+	rootCmd.AddCommand(pushCmd)
+	rootCmd.AddCommand(pullCmd)
+	rootCmd.AddCommand(syncCmd)
 }
 
 func openExistingDB() (*DB, error) {
@@ -442,20 +460,15 @@ func openExistingDB() (*DB, error) {
 		return nil, err
 	}
 
-	// Check if database exists, if not, create it
-	dbExists := DBExists(path)
-
 	db, err := OpenDB(path)
 	if err != nil {
 		return nil, err
 	}
 
-	// If database didn't exist, initialize the schema
-	if !dbExists {
-		if err := db.InitDB(); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("failed to initialize database schema: %w", err)
-		}
+	// Always ensure schema is up to date (handles both new DBs and migrations)
+	if err := db.InitDB(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
 	}
 
 	return db, nil
