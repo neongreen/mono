@@ -273,7 +273,7 @@ jobs:
           repository: ${{ needs.detect.outputs.mirror_repo }}
           token: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
           path: tap
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Update Homebrew formula
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
