@@ -97,6 +97,7 @@ func (d *DB) InitDB() error {
 		description TEXT NOT NULL,
 		created_at INTEGER NOT NULL,
 		created_by TEXT NOT NULL,
+		removed INTEGER NOT NULL DEFAULT 0,
 		PRIMARY KEY (prefix, node)
 	);
 	
@@ -112,9 +113,20 @@ func (d *DB) InitDB() error {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
+	// Migration: Add removed column to prefixes table if it doesn't exist
+	// Check if the removed column exists
+	var columnExists bool
+	err := d.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('prefixes') WHERE name = 'removed'").Scan(&columnExists)
+	if err == nil && !columnExists {
+		_, err = d.db.Exec("ALTER TABLE prefixes ADD COLUMN removed INTEGER NOT NULL DEFAULT 0")
+		if err != nil {
+			return fmt.Errorf("failed to add removed column to prefixes table: %w", err)
+		}
+	}
+
 	// Initialize task counter if it doesn't exist (legacy support)
 	var count int
-	err := d.db.QueryRow("SELECT COUNT(*) FROM task_counter").Scan(&count)
+	err = d.db.QueryRow("SELECT COUNT(*) FROM task_counter").Scan(&count)
 	if err != nil {
 		return fmt.Errorf("failed to check task counter: %w", err)
 	}
@@ -843,6 +855,7 @@ type Prefix struct {
 	Description string
 	CreatedAt   time.Time
 	CreatedBy   string
+	Removed     bool
 }
 
 // CreatePrefix creates a new prefix and emits a prefix.created event
@@ -939,7 +952,7 @@ func (d *DB) GetPrefixes() ([]Prefix, error) {
 	}
 
 	query := `
-		SELECT prefix, node, description, created_at, created_by
+		SELECT prefix, node, description, created_at, created_by, removed
 		FROM prefixes
 		WHERE node = ?
 		ORDER BY created_at
@@ -955,11 +968,13 @@ func (d *DB) GetPrefixes() ([]Prefix, error) {
 	for rows.Next() {
 		var p Prefix
 		var createdAtNano int64
-		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy)
+		var removed int
+		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy, &removed)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan prefix: %w", err)
 		}
 		p.CreatedAt = time.Unix(0, createdAtNano)
+		p.Removed = removed != 0
 		prefixes = append(prefixes, p)
 	}
 
@@ -970,7 +985,7 @@ func (d *DB) GetPrefixes() ([]Prefix, error) {
 func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 	// Get prefixes from the prefixes table (from prefix.created events)
 	query := `
-		SELECT prefix, node, description, created_at, created_by
+		SELECT prefix, node, description, created_at, created_by, removed
 		FROM prefixes
 		ORDER BY created_at
 	`
@@ -985,11 +1000,13 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 	for rows.Next() {
 		var p Prefix
 		var createdAtNano int64
-		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy)
+		var removed int
+		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy, &removed)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan prefix: %w", err)
 		}
 		p.CreatedAt = time.Unix(0, createdAtNano)
+		p.Removed = removed != 0
 		key := p.Prefix + "-" + p.Node
 		prefixMap[key] = p
 	}
@@ -1032,6 +1049,7 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 				Description: "(discovered from tasks, no metadata)",
 				CreatedBy:   createdBy,
 				CreatedAt:   time.Time{}, // Unknown creation time
+				Removed:     false,
 			}
 		}
 	}
@@ -1055,6 +1073,84 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 	})
 
 	return prefixes, nil
+}
+
+// RemovePrefix marks a prefix as removed by emitting a prefix.removed event
+func (d *DB) RemovePrefix(prefix, actor string) error {
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	// Check if prefix exists for this node
+	var count int
+	err = d.db.QueryRow("SELECT COUNT(*) FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to check prefix existence: %w", err)
+	}
+
+	if count == 0 {
+		return fmt.Errorf("prefix %q does not exist for this node", prefix)
+	}
+
+	// Check if already removed
+	var removed int
+	err = d.db.QueryRow("SELECT removed FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&removed)
+	if err != nil {
+		return fmt.Errorf("failed to check if prefix is removed: %w", err)
+	}
+
+	if removed != 0 {
+		return fmt.Errorf("prefix %q is already removed", prefix)
+	}
+
+	// Generate event ID
+	eventID, err := GenerateEventID(d)
+	if err != nil {
+		return fmt.Errorf("failed to generate event ID: %w", err)
+	}
+
+	// Get next Lamport timestamp
+	lamportTS, err := d.GetNextLamportTS()
+	if err != nil {
+		return fmt.Errorf("failed to get lamport timestamp: %w", err)
+	}
+
+	// Create prefix.removed event
+	payload := PrefixRemovedPayload{
+		Prefix: prefix,
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	now := time.Now()
+	event := Event{
+		ID:        eventID,
+		TS:        lamportTS,
+		CreatedAt: now,
+		Actor:     actor,
+		Role:      "human",
+		Kind:      "prefix.removed",
+		Payload:   payloadJSON,
+	}
+
+	// Insert event first (event-sourcing principle)
+	if err := d.InsertEvent(event); err != nil {
+		return fmt.Errorf("failed to insert prefix.removed event: %w", err)
+	}
+
+	// Project into prefixes table (mark as removed)
+	_, err = d.db.Exec(
+		"UPDATE prefixes SET removed = 1 WHERE prefix = ? AND node = ?",
+		prefix, nodeID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to mark prefix as removed: %w", err)
+	}
+
+	return nil
 }
 
 // PrefixExists checks if a prefix exists for this node

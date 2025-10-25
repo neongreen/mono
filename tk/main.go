@@ -362,6 +362,7 @@ var lsCmd = &cobra.Command{
 		axisFilter, _ := cmd.Flags().GetString("axis")
 		sortBy, _ := cmd.Flags().GetString("sort")
 		prefixFilter, _ := cmd.Flags().GetStringSlice("prefix")
+		showAliases, _ := cmd.Flags().GetBool("aliases")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -440,22 +441,42 @@ var lsCmd = &cobra.Command{
 		// Create table
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(table.Row{"ID", "Status", "Title"})
+		
+		if showAliases {
+			t.AppendHeader(table.Row{"ID", "Aliases", "Status", "Title"})
+		} else {
+			t.AppendHeader(table.Row{"ID", "Status", "Title"})
+		}
+		
 		t.SetStyle(table.StyleLight)
 		t.Style().Options.SeparateRows = false
 		t.Style().Options.DrawBorder = false
 
 		// Configure column widths and wrapping
-		// Reserve space for ID (~10 chars), Status (~10 chars), separators (~10 chars)
-		titleMaxWidth := termWidth - 30
-		if titleMaxWidth < 20 {
-			titleMaxWidth = 20 // minimum width
+		if showAliases {
+			// Reserve more space for aliases column
+			titleMaxWidth := termWidth - 60
+			if titleMaxWidth < 20 {
+				titleMaxWidth = 20 // minimum width
+			}
+			t.SetColumnConfigs([]table.ColumnConfig{
+				{Number: 1, AutoMerge: false}, // ID column
+				{Number: 2, AutoMerge: false}, // Aliases column
+				{Number: 3, AutoMerge: false}, // Status column
+				{Number: 4, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
+			})
+		} else {
+			// Reserve space for ID (~10 chars), Status (~10 chars), separators (~10 chars)
+			titleMaxWidth := termWidth - 30
+			if titleMaxWidth < 20 {
+				titleMaxWidth = 20 // minimum width
+			}
+			t.SetColumnConfigs([]table.ColumnConfig{
+				{Number: 1, AutoMerge: false}, // ID column
+				{Number: 2, AutoMerge: false}, // Status column
+				{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
+			})
 		}
-		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false}, // ID column
-			{Number: 2, AutoMerge: false}, // Status column
-			{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
-		})
 
 		for _, task := range tasks {
 			displayID := FormatTaskID(task.TaskID, taskIDs)
@@ -466,7 +487,20 @@ var lsCmd = &cobra.Command{
 				status = colorizeStatus(axis.Effective)
 			}
 
-			t.AppendRow(table.Row{displayID, status, task.Title})
+			if showAliases {
+				// Format aliases
+				aliasesStr := ""
+				if len(task.Aliases) > 0 {
+					var shortAliases []string
+					for _, alias := range task.Aliases {
+						shortAliases = append(shortAliases, FormatTaskID(alias, taskIDs))
+					}
+					aliasesStr = strings.Join(shortAliases, ", ")
+				}
+				t.AppendRow(table.Row{displayID, aliasesStr, status, task.Title})
+			} else {
+				t.AppendRow(table.Row{displayID, status, task.Title})
+			}
 		}
 
 		t.Render()
@@ -537,6 +571,7 @@ func init() {
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
 	lsCmd.Flags().StringSlice("prefix", []string{}, "Filter by prefix (can be specified multiple times)")
+	lsCmd.Flags().Bool("aliases", false, "Show task aliases")
 	rootCmd.AddCommand(lsCmd)
 
 	rootCmd.AddCommand(mvCmd)
