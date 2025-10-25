@@ -460,20 +460,15 @@ func openExistingDB() (*DB, error) {
 		return nil, err
 	}
 
-	// Check if database exists, if not, create it
-	dbExists := DBExists(path)
-
 	db, err := OpenDB(path)
 	if err != nil {
 		return nil, err
 	}
 
-	// If database didn't exist, initialize the schema
-	if !dbExists {
-		if err := db.InitDB(); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("failed to initialize database schema: %w", err)
-		}
+	// Always ensure schema is up to date (handles both new DBs and migrations)
+	if err := db.InitDB(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
 	}
 
 	return db, nil
