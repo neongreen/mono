@@ -1273,6 +1273,19 @@ func listMonoReleases(project string) {
 	}
 }
 
+// createGoBuildCommand creates a command to run 'go build' with the given arguments.
+// If 'go' is not in PATH, it uses 'mise exec go@1.24.7 -- go build' instead.
+func createGoBuildCommand(args ...string) *exec.Cmd {
+	if isToolAvailable("go") {
+		return exec.Command("go", args...)
+	}
+
+	// go is not available, use mise exec
+	miseArgs := []string{"exec", "go@1.24.7", "--", "go"}
+	miseArgs = append(miseArgs, args...)
+	return exec.Command("mise", miseArgs...)
+}
+
 // buildMonoFromPR builds a project from a PR branch
 func buildMonoFromPR(project string, prNumber int) {
 	fmt.Printf("Building %s from PR #%d...\n", project, prNumber)
@@ -1335,7 +1348,7 @@ func buildMonoFromPR(project string, prNumber int) {
 
 	// Build the project
 	fmt.Printf("\nBuilding %s...\n", project)
-	cmd = exec.Command("go", "build", "-o", destPath, ".")
+	cmd = createGoBuildCommand("build", "-o", destPath, ".")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
