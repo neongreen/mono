@@ -105,6 +105,7 @@ var newCmd = &cobra.Command{
 			return err
 		}
 
+		taskUUID := GenerateTaskUUID()
 		taskID, err := GenerateTaskID(db, prefix)
 		if err != nil {
 			return err
@@ -121,6 +122,7 @@ var newCmd = &cobra.Command{
 		}
 
 		payload := TaskCreatedPayload{
+			TaskUUID:  taskUUID,
 			TaskID:    taskID,
 			Title:     title,
 			CreatedBy: currentUser,

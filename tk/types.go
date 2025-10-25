@@ -23,22 +23,25 @@ type Event struct {
 
 // TaskCreatedPayload is the payload for task.created events
 type TaskCreatedPayload struct {
-	TaskID    string `json:"task_id"`
+	TaskUUID  string `json:"task_uuid"`  // Canonical immutable UUID
+	TaskID    string `json:"task_id"`    // Display ID (prefix-number-node)
 	Title     string `json:"title"`
 	CreatedBy string `json:"created_by"`
 }
 
 // TaskStatusSetPayload is the payload for task.status.set events
 type TaskStatusSetPayload struct {
-	TaskID string `json:"task_id"`
-	Axis   string `json:"axis"`  // e.g. "generic"
-	State  string `json:"state"` // e.g. "in_progress", "done", "blocked"
-	Role   string `json:"role"`  // human / agent / bot / qa / rel
+	TaskUUID string `json:"task_uuid,omitempty"` // New field for UUID-based updates
+	TaskID   string `json:"task_id"`             // Legacy field, still required for now
+	Axis     string `json:"axis"`                // e.g. "generic"
+	State    string `json:"state"`               // e.g. "in_progress", "done", "blocked"
+	Role     string `json:"role"`                // human / agent / bot / qa / rel
 }
 
 // TaskNoteAddPayload is the payload for task.note.add events
 type TaskNoteAddPayload struct {
-	TaskID   string `json:"task_id"`
+	TaskUUID string `json:"task_uuid,omitempty"` // New field for UUID-based updates
+	TaskID   string `json:"task_id"`             // Legacy field, still required for now
 	Markdown string `json:"markdown"`
 }
 
@@ -47,6 +50,40 @@ type PrefixCreatedPayload struct {
 	Prefix      string `json:"prefix"`
 	Description string `json:"description"`
 	CreatedBy   string `json:"created_by"`
+}
+
+// PrefixDescriptionSetPayload is the payload for prefix.description.set events
+type PrefixDescriptionSetPayload struct {
+	Prefix      string `json:"prefix"`
+	Description string `json:"description"`
+}
+
+// PrefixAliasAddedPayload is the payload for prefix.alias.added events
+type PrefixAliasAddedPayload struct {
+	Prefix string `json:"prefix"`
+	Alias  string `json:"alias"`
+}
+
+// PrefixRemovedPayload is the payload for prefix.removed events
+type PrefixRemovedPayload struct {
+	Prefix string `json:"prefix"`
+}
+
+// TaskReprefixPayload is the payload for task.reprefix events
+type TaskReprefixPayload struct {
+	TaskUUID   string `json:"task_uuid"`
+	OldPrefix  string `json:"old_prefix"`
+	NewPrefix  string `json:"new_prefix"`
+	OldNumber  int64  `json:"old_number"`
+	NewNumber  int64  `json:"new_number"`
+	OldNode    string `json:"old_node"`
+	Reason     string `json:"reason,omitempty"`
+}
+
+// TaskAliasAddedPayload is the payload for task.alias.added events
+type TaskAliasAddedPayload struct {
+	TaskUUID string `json:"task_uuid"`
+	AliasID  string `json:"alias_id"`
 }
 
 // Claim represents a status assertion by an actor
@@ -65,7 +102,9 @@ type AxisStatus struct {
 
 // Task represents the current state of a task, derived from events
 type Task struct {
-	TaskID    string                `json:"task_id"`
+	TaskUUID  string                `json:"task_uuid"`            // Canonical immutable UUID
+	TaskID    string                `json:"task_id"`              // Current display ID
+	Aliases   []string              `json:"aliases,omitempty"`    // Previous IDs (when task was moved)
 	Title     string                `json:"title"`
 	Axes      map[string]AxisStatus `json:"axes"`
 	Notes     []Note                `json:"notes"`
