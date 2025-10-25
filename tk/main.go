@@ -11,7 +11,9 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var (
@@ -392,13 +394,31 @@ var lsCmd = &cobra.Command{
 		// Sort tasks based on the --sort flag
 		sortTasks(tasks, sortBy)
 
+		// Get terminal width for wrapping
+		termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
+		if err != nil {
+			termWidth = 80 // default width if terminal size cannot be determined
+		}
+
 		// Create table
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(table.Row{"ID", "Title", "Status"})
+		t.AppendHeader(table.Row{"ID", "Status", "Title"})
 		t.SetStyle(table.StyleLight)
 		t.Style().Options.SeparateRows = false
 		t.Style().Options.DrawBorder = false
+
+		// Configure column widths and wrapping
+		// Reserve space for ID (~10 chars), Status (~10 chars), separators (~10 chars)
+		titleMaxWidth := termWidth - 30
+		if titleMaxWidth < 20 {
+			titleMaxWidth = 20 // minimum width
+		}
+		t.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 1, AutoMerge: false}, // ID column
+			{Number: 2, AutoMerge: false}, // Status column
+			{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
+		})
 
 		for _, task := range tasks {
 			displayID := FormatTaskID(task.TaskID, allTaskIDs)
@@ -409,7 +429,7 @@ var lsCmd = &cobra.Command{
 				status = colorizeStatus(axis.Effective)
 			}
 
-			t.AppendRow(table.Row{displayID, task.Title, status})
+			t.AppendRow(table.Row{displayID, status, task.Title})
 		}
 
 		t.Render()
