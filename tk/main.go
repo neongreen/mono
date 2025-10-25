@@ -16,6 +16,9 @@ import (
 
 var (
 	dbPath string
+	// Color formatters for status display
+	yellowStatus = color.New(color.FgYellow).SprintFunc()
+	greenStatus  = color.New(color.FgGreen).SprintFunc()
 )
 
 func main() {
@@ -442,14 +445,11 @@ func sortTasks(tasks []*Task, sortBy string) {
 
 // colorizeStatus returns a colored status string based on the status value
 func colorizeStatus(status string) string {
-	yellow := color.New(color.FgYellow).SprintFunc()
-	green := color.New(color.FgGreen).SprintFunc()
-
 	switch status {
 	case "wip":
-		return yellow(status)
+		return yellowStatus(status)
 	case "done", "fixed":
-		return green(status)
+		return greenStatus(status)
 	default:
 		return status
 	}
