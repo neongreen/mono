@@ -504,74 +504,107 @@ func generateNodeID(length int) string {
 // Accepts formats: "1", "tk-1", "foo-2", "tk-1-abc123"
 // Returns an error if the ID is ambiguous or doesn't exist
 func (d *DB) ResolveTaskID(shortID string) (string, error) {
-	// Get all task IDs from the database
-	query := `
-		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
-		FROM events
-		WHERE kind = 'task.created'
-	`
-
-	rows, err := d.db.Query(query)
-	if err != nil {
-		return "", fmt.Errorf("failed to query task IDs: %w", err)
-	}
-	defer rows.Close()
-
-	var taskIDs []string
-	for rows.Next() {
-		var taskID string
-		if err := rows.Scan(&taskID); err != nil {
-			return "", fmt.Errorf("failed to scan task ID: %w", err)
+	// Check if it's already a full ID (contains at least 2 hyphens)
+	hyphenCount := strings.Count(shortID, "-")
+	if hyphenCount >= 2 {
+		// Verify it exists
+		var count int
+		err := d.db.QueryRow(`
+			SELECT COUNT(*)
+			FROM events
+			WHERE kind = 'task.created' AND json_extract(payload, '$.task_id') = ?
+		`, shortID).Scan(&count)
+		if err != nil {
+			return "", fmt.Errorf("failed to query task ID: %w", err)
 		}
-		taskIDs = append(taskIDs, taskID)
-	}
-
-	if err := rows.Err(); err != nil {
-		return "", fmt.Errorf("failed to iterate task IDs: %w", err)
-	}
-
-	// Check if shortID is already a full ID
-	for _, fullID := range taskIDs {
-		if fullID == shortID {
-			return fullID, nil
+		if count > 0 {
+			return shortID, nil
 		}
+		return "", fmt.Errorf("task not found: %s", shortID)
 	}
 
-	// Try to match as a short ID
-	// First, check if it's just a number - if so, we need to try all prefixes
-	if num, err := strconv.Atoi(shortID); err == nil {
-		// Just a number - try to find a matching task
+	// Try to match as a number or prefix-number format
+	if _, err := strconv.Atoi(shortID); err == nil {
+		// Just a number - use SQL to find matches efficiently
+		query := `
+			SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
+			FROM events
+			WHERE kind = 'task.created'
+			  AND json_extract(payload, '$.task_id') LIKE '%-' || ? || '-%'
+		`
+
+		rows, err := d.db.Query(query, shortID)
+		if err != nil {
+			return "", fmt.Errorf("failed to query task IDs: %w", err)
+		}
+		defer rows.Close()
+
 		var matches []string
-		for _, fullID := range taskIDs {
-			parts := strings.Split(fullID, "-")
-			if len(parts) >= 2 {
-				if taskNum, err := strconv.Atoi(parts[1]); err == nil && taskNum == num {
-					matches = append(matches, fullID)
-				}
+		for rows.Next() {
+			var taskID string
+			if err := rows.Scan(&taskID); err != nil {
+				return "", fmt.Errorf("failed to scan task ID: %w", err)
 			}
+			matches = append(matches, taskID)
 		}
 
 		if len(matches) == 0 {
 			return "", fmt.Errorf("task not found: %s", shortID)
 		}
 
-		if len(matches) > 1 {
-			return "", fmt.Errorf("ambiguous task ID %s (multiple prefixes match), please specify prefix (e.g., tk-%s)", shortID, shortID)
+		// Group by prefix-number to detect ambiguity
+		prefixNumberMap := make(map[string][]string)
+		for _, taskID := range matches {
+			parts := strings.Split(taskID, "-")
+			if len(parts) >= 2 {
+				prefixNumber := strings.Join(parts[:2], "-")
+				prefixNumberMap[prefixNumber] = append(prefixNumberMap[prefixNumber], taskID)
+			}
 		}
 
+		if len(prefixNumberMap) > 1 {
+			prefixes := make([]string, 0, len(prefixNumberMap))
+			for pn := range prefixNumberMap {
+				prefixes = append(prefixes, pn)
+			}
+			return "", fmt.Errorf("ambiguous task ID %s (multiple prefixes match: %v), please specify prefix", shortID, prefixes)
+		}
+
+		// Only one prefix-number combination, so return any match (they differ only in node suffix)
+		if len(matches) == 1 {
+			return matches[0], nil
+		}
+
+		// Multiple matches with same prefix-number but different nodes - return first (or could error)
 		return matches[0], nil
 	}
 
-	// Try to match as prefix-number format
+	// Format is prefix-number - use SQL to find matches
+	query := `
+		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
+		FROM events
+		WHERE kind = 'task.created'
+		  AND json_extract(payload, '$.task_id') LIKE ? || '-%'
+	`
+
+	rows, err := d.db.Query(query, shortID)
+	if err != nil {
+		return "", fmt.Errorf("failed to query task IDs: %w", err)
+	}
+	defer rows.Close()
+
 	var matches []string
-	for _, fullID := range taskIDs {
-		// Extract the short form (e.g., "tk-2" from "tk-2-abc123")
-		// Format is <prefix>-<number>-<suffix>
-		parts := strings.Split(fullID, "-")
+	for rows.Next() {
+		var taskID string
+		if err := rows.Scan(&taskID); err != nil {
+			return "", fmt.Errorf("failed to scan task ID: %w", err)
+		}
+		// Verify it actually starts with prefix-number-
+		parts := strings.Split(taskID, "-")
 		if len(parts) >= 2 {
-			shortForm := strings.Join(parts[:2], "-") // <prefix>-<number>
+			shortForm := strings.Join(parts[:2], "-")
 			if shortForm == shortID {
-				matches = append(matches, fullID)
+				matches = append(matches, taskID)
 			}
 		}
 	}

@@ -98,8 +98,65 @@ var prefixListCmd = &cobra.Command{
 	},
 }
 
+var prefixDescribeCmd = &cobra.Command{
+	Use:   "describe [prefix]",
+	Short: "Show details about a prefix",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		prefix := strings.ToLower(args[0])
+
+		db, err := openExistingDB()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		// Get all prefixes to find the one we want
+		prefixes, err := db.GetAllPrefixes()
+		if err != nil {
+			return err
+		}
+
+		nodeID, err := db.GetOrCreateNodeID()
+		if err != nil {
+			return err
+		}
+
+		var found *Prefix
+		for _, p := range prefixes {
+			if p.Prefix == prefix && p.Node == nodeID {
+				found = &p
+				break
+			}
+		}
+
+		if found == nil {
+			return fmt.Errorf("prefix %q not found for this node", prefix)
+		}
+
+		// Display prefix details
+		fmt.Printf("Prefix: %s\n", found.Prefix)
+		fmt.Printf("Node: %s\n", found.Node)
+		fmt.Printf("Description: %s\n", found.Description)
+		fmt.Printf("Created By: %s\n", found.CreatedBy)
+		if !found.CreatedAt.IsZero() {
+			fmt.Printf("Created At: %s\n", found.CreatedAt.Format("2006-01-02 15:04:05"))
+		}
+
+		// Count tasks with this prefix
+		taskIDs, err := db.GetTaskIDsByPrefixes([]string{prefix})
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Task Count: %d\n", len(taskIDs))
+
+		return nil
+	},
+}
+
 func init() {
 	prefixListCmd.Flags().Bool("all", false, "Show prefixes from all nodes")
 	prefixCmd.AddCommand(prefixCreateCmd)
 	prefixCmd.AddCommand(prefixListCmd)
+	prefixCmd.AddCommand(prefixDescribeCmd)
 }
