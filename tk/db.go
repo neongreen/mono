@@ -567,16 +567,22 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 			for pn := range prefixNumberMap {
 				prefixes = append(prefixes, pn)
 			}
-			return "", fmt.Errorf("ambiguous task ID %s (multiple prefixes match: %v), please specify prefix", shortID, prefixes)
+			return "", fmt.Errorf("ambiguous task ID %s (matches %v) — use <prefix>-%s instead", shortID, prefixes, shortID)
 		}
 
-		// Only one prefix-number combination, so return any match (they differ only in node suffix)
+		// Only one prefix-number combination
 		if len(matches) == 1 {
 			return matches[0], nil
 		}
 
-		// Multiple matches with same prefix-number but different nodes - return first (or could error)
-		return matches[0], nil
+		// Multiple matches with same prefix-number but different nodes - this is ambiguous
+		// Extract the prefix-number for error message
+		var prefixNumber string
+		for pn := range prefixNumberMap {
+			prefixNumber = pn
+			break
+		}
+		return "", fmt.Errorf("ambiguous task ID %s (multiple nodes created %s) — use full ID like %s", shortID, prefixNumber, matches[0])
 	}
 
 	// Format is prefix-number - use SQL to find matches
@@ -614,7 +620,7 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 	}
 
 	if len(matches) > 1 {
-		return "", fmt.Errorf("ambiguous task ID %s, matches: %v", shortID, matches)
+		return "", fmt.Errorf("ambiguous task ID %s (multiple nodes created %s) — use full ID like %s", shortID, shortID, matches[0])
 	}
 
 	return matches[0], nil
@@ -875,8 +881,9 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 	}
 
 	// Also derive prefixes from task.created events (for prefixes that don't have metadata)
+	// We need to extract both prefix and node from each task ID
 	taskQuery := `
-		SELECT DISTINCT substr(json_extract(payload, '$.task_id'), 1, instr(json_extract(payload, '$.task_id'), '-') - 1) as prefix,
+		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id,
 		       json_extract(payload, '$.created_by') as created_by
 		FROM events
 		WHERE kind = 'task.created'
@@ -889,30 +896,17 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 	defer taskRows.Close()
 
 	for taskRows.Next() {
-		var prefix, createdBy string
-		if err := taskRows.Scan(&prefix, &createdBy); err != nil {
-			return nil, fmt.Errorf("failed to scan task prefix: %w", err)
+		var taskID, createdBy string
+		if err := taskRows.Scan(&taskID, &createdBy); err != nil {
+			return nil, fmt.Errorf("failed to scan task: %w", err)
 		}
 
-		// Extract node from task ID to build the key
-		// We need to query for a task with this prefix to get the node
-		var taskID string
-		err = d.db.QueryRow(`
-			SELECT json_extract(payload, '$.task_id')
-			FROM events
-			WHERE kind = 'task.created' 
-			  AND json_extract(payload, '$.task_id') LIKE ?
-			LIMIT 1
-		`, prefix+"-%").Scan(&taskID)
-		if err != nil {
-			continue
-		}
-
-		// Extract node from task ID (format: prefix-number-node)
+		// Extract prefix and node from task ID (format: prefix-number-node)
 		parts := strings.Split(taskID, "-")
 		if len(parts) < 3 {
 			continue
 		}
+		prefix := parts[0]
 		node := parts[2]
 		key := prefix + "-" + node
 

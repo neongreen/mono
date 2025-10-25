@@ -544,3 +544,79 @@ func TestGetTaskIDsByPrefixes(t *testing.T) {
 		t.Errorf("expected 2 tasks, got %d", len(tkFooTasks))
 	}
 }
+
+func TestResolveTaskIDMultiNodeAmbiguity(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "tk.db")
+
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+
+	// Create a prefix
+	err = db.CreatePrefix("foo", "Foo prefix", "test-user")
+	if err != nil {
+		t.Fatalf("failed to create foo prefix: %v", err)
+	}
+
+	// Simulate two different nodes creating tasks with same prefix-number
+	// This would happen after syncing tasks from another node
+	lamportTS1, _ := db.GetNextLamportTS()
+	eventID1, _ := GenerateEventID(db)
+	event1 := Event{
+		ID:        eventID1,
+		TS:        lamportTS1,
+		CreatedAt: testTime(),
+		Actor:     "test-user",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   []byte(`{"task_id":"foo-1-nodeA","title":"task from node A","created_by":"test-user"}`),
+	}
+	db.InsertEvent(event1)
+
+	lamportTS2, _ := db.GetNextLamportTS()
+	eventID2, _ := GenerateEventID(db)
+	event2 := Event{
+		ID:        eventID2,
+		TS:        lamportTS2,
+		CreatedAt: testTime(),
+		Actor:     "test-user",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   []byte(`{"task_id":"foo-1-nodeB","title":"task from node B","created_by":"test-user"}`),
+	}
+	db.InsertEvent(event2)
+
+	// Try to resolve with just number "1" - should error about ambiguity
+	_, err = db.ResolveTaskID("1")
+	if err == nil {
+		t.Error("expected error for ambiguous numeric ID, got nil")
+	}
+	if !strings.Contains(err.Error(), "ambiguous") {
+		t.Errorf("expected 'ambiguous' in error, got: %v", err)
+	}
+
+	// Try to resolve with "foo-1" - should error about multiple nodes
+	_, err = db.ResolveTaskID("foo-1")
+	if err == nil {
+		t.Error("expected error for multi-node ambiguity, got nil")
+	}
+	if !strings.Contains(err.Error(), "ambiguous") || !strings.Contains(err.Error(), "multiple nodes") {
+		t.Errorf("expected error about multiple nodes, got: %v", err)
+	}
+
+	// Full ID should work
+	resolved, err := db.ResolveTaskID("foo-1-nodeA")
+	if err != nil {
+		t.Fatalf("failed to resolve full ID: %v", err)
+	}
+	if resolved != "foo-1-nodeA" {
+		t.Errorf("expected foo-1-nodeA, got %s", resolved)
+	}
+}
