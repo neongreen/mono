@@ -18,6 +18,9 @@ import (
 
 const version = "0.1.0-mvp"
 
+// goVersion is the Go version to use when building projects via mise
+const goVersion = "1.24.7"
+
 // PlanStep represents a single step in a fulfillment plan
 type PlanStep struct {
 	Type        string `json:"type"`        // "install", "download", "execute", "configure"
@@ -1274,14 +1277,21 @@ func listMonoReleases(project string) {
 }
 
 // createGoBuildCommand creates a command to run 'go build' with the given arguments.
-// If 'go' is not in PATH, it uses 'mise exec go@1.24.7 -- go build' instead.
+// If 'go' is not in PATH, it uses 'mise exec go@<version> -- go build' instead.
 func createGoBuildCommand(args ...string) *exec.Cmd {
 	if isToolAvailable("go") {
 		return exec.Command("go", args...)
 	}
 
-	// go is not available, use mise exec
-	miseArgs := []string{"exec", "go@1.24.7", "--", "go"}
+	// go is not available, check if mise is available
+	if !isMiseAvailable() {
+		// Neither go nor mise is available - return go command anyway
+		// so the error message will be clear to the user
+		return exec.Command("go", args...)
+	}
+
+	// Use mise exec to run go
+	miseArgs := []string{"exec", fmt.Sprintf("go@%s", goVersion), "--", "go"}
 	miseArgs = append(miseArgs, args...)
 	return exec.Command("mise", miseArgs...)
 }

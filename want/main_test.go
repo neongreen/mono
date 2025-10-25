@@ -240,14 +240,26 @@ func TestCreateGoBuildCommand(t *testing.T) {
 					}
 				}
 			} else {
-				// When go is not in PATH, should use mise exec
-				if !strings.Contains(cmd.Args[0], "mise") {
-					t.Errorf("expected to use mise when go not available, got %s", cmd.Args[0])
-				}
-				// Check for "exec", "go@1.24.7", "--", "go" in args
-				expectedPrefix := []string{"mise", "exec", "go@1.24.7", "--", "go"}
-				if len(cmd.Args) < len(expectedPrefix) {
-					t.Fatalf("expected at least %d args for mise exec, got %d", len(expectedPrefix), len(cmd.Args))
+				// When go is not in PATH, should use mise exec if mise is available
+				if isMiseAvailable() {
+					if !strings.Contains(cmd.Args[0], "mise") {
+						t.Errorf("expected to use mise when go not available and mise is available, got %s", cmd.Args[0])
+					}
+					// Check for "exec", "go@<version>", "--", "go" in args
+					expectedArgs := []string{"mise", "exec", fmt.Sprintf("go@%s", goVersion), "--", "go"}
+					if len(cmd.Args) < len(expectedArgs) {
+						t.Fatalf("expected at least %d args for mise exec, got %d", len(expectedArgs), len(cmd.Args))
+					}
+					// Verify the go version matches
+					if !strings.Contains(cmd.Args[2], goVersion) {
+						t.Errorf("expected go version %s in args, got %v", goVersion, cmd.Args)
+					}
+				} else {
+					// If neither go nor mise is available, should still return go command
+					// (will fail with clear error when executed)
+					if !strings.Contains(cmd.Args[0], "go") {
+						t.Errorf("expected to use go when neither go nor mise available, got %s", cmd.Args[0])
+					}
 				}
 			}
 		})
