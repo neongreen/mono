@@ -92,29 +92,37 @@ Or add to your `.mise.toml`:
 ### Install from mono repository (✅ WORKING)
 
 ```bash
-# List all available releases for a project
+# List all available releases and open PRs for a project
 want mono printpdf --list
 
 # Install a specific version
 want mono printpdf@main.1
 
-# Install a PR release
+# Install a PR release (if available)
 want mono dissect@pr-42.1
+
+# Install from a PR (builds locally if no release)
+want mono dissect@pr-100
 ```
 
 The tool will:
 - Fetch all releases from neongreen/mono repository
+- Fetch all open PRs that modify the specified project
 - Filter releases for the specified project
+- For PR versions:
+  - First try to download a pre-built release
+  - If no release exists, build the project locally from the PR branch
 - Download the binary matching your platform (OS and architecture)
 - Install to `~/.local/bin/`
 - Make it executable
 - Notify you if `~/.local/bin/` is not in your PATH
 
-Example output for listing releases:
+Example output for listing releases and PRs:
 
 ```bash
 $ want mono printpdf --list
 Fetching releases for printpdf from neongreen/mono...
+Fetching open PRs for printpdf...
 
 Available releases for printpdf:
   main.5
@@ -122,11 +130,37 @@ Available releases for printpdf:
   main.3
   pr-42.1
 
+Open PRs for printpdf:
+  pr-100: Add new feature to printpdf
+  pr-95: Fix bug in PDF rendering
+
 To install a specific version:
   want mono printpdf@<version>
 
 Examples:
   want mono printpdf@main.5
+  want mono printpdf@pr-100
+```
+
+When installing from a PR without a release:
+
+```bash
+$ want mono dissect@pr-100
+No release found for pr-100 (would be tagged as dissect--pr-100)
+Building from PR #100 instead...
+
+PR #100: Add support for new syntax
+Branch: feature-branch
+
+Cloning neongreen/mono (branch: feature-branch)...
+[clone output]
+
+Building dissect...
+[build output]
+
+✓ Built and installed dissect from PR #100 to: ~/.local/bin/dissect
+
+✓ Binary is available in your PATH as: dissect
 ```
 
 ### Download GitHub release assets (✅ WORKING)

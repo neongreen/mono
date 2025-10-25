@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -32,6 +33,13 @@ func TestParseMonoProjectVersion(t *testing.T) {
 			input:          "dissect@pr-42.1",
 			wantProject:    "dissect",
 			wantVersion:    "pr-42.1",
+			wantListFormat: false,
+		},
+		{
+			name:           "project with pr version without suffix",
+			input:          "want@pr-100",
+			wantProject:    "want",
+			wantVersion:    "pr-100",
 			wantListFormat: false,
 		},
 	}
@@ -120,6 +128,60 @@ func TestExtractVersionFromTag(t *testing.T) {
 			got := strings.TrimPrefix(tt.tag, prefix)
 			if got != tt.want {
 				t.Errorf("version = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestParsePRNumber(t *testing.T) {
+	tests := []struct {
+		name      string
+		version   string
+		wantPR    int
+		wantError bool
+	}{
+		{
+			name:      "pr with suffix",
+			version:   "pr-42.1",
+			wantPR:    42,
+			wantError: false,
+		},
+		{
+			name:      "pr without suffix",
+			version:   "pr-100",
+			wantPR:    100,
+			wantError: false,
+		},
+		{
+			name:      "not a pr version",
+			version:   "main.1",
+			wantPR:    0,
+			wantError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !strings.HasPrefix(tt.version, "pr-") {
+				if !tt.wantError {
+					t.Errorf("expected error for non-PR version %s", tt.version)
+				}
+				return
+			}
+
+			prStr := strings.TrimPrefix(tt.version, "pr-")
+			parts := strings.Split(prStr, ".")
+			var prNumber int
+			n, err := fmt.Sscanf(parts[0], "%d", &prNumber)
+
+			if tt.wantError && err == nil && n == 1 {
+				t.Errorf("expected error but got none")
+			}
+			if !tt.wantError && (err != nil || n != 1) {
+				t.Errorf("unexpected error: %v, n=%d", err, n)
+			}
+			if !tt.wantError && prNumber != tt.wantPR {
+				t.Errorf("PR number = %v, want %v", prNumber, tt.wantPR)
 			}
 		})
 	}

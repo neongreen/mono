@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/neongreen/mono/lib/ghclient"
 	"github.com/neongreen/mono/lib/ghrelease"
 )
 
@@ -147,6 +149,7 @@ func printUsage() {
 Usage:
   want [--dry-run] [--plan-json] <requirement>  Get a tool, repository, or resource
   want mono <project> [--list]                  Install tools from neongreen/mono repo
+  want mono <project@version>                   Install specific version or PR
   want json <command>                           Convert command output to JSON
   want md <url>                                 Convert URL to markdown
   want list                                     Show what you have
@@ -166,8 +169,9 @@ Examples:
   want --plan-json jujutsu        # Show installation plan as JSON
   want json ps                    # Get running processes as JSON (uses jc)
   want md https://example.com     # Convert webpage to markdown
-  want mono printpdf --list       # List all releases of printpdf from mono
+  want mono printpdf --list       # List all releases and open PRs of printpdf
   want mono printpdf@main.1       # Install printpdf version main.1 from mono
+  want mono dissect@pr-42         # Install from PR #42 (builds if no release)
   want https://github.com/org/repo/releases/tag/v1.0.0  # Download GitHub release
   want github.com/user/repo       # Clone a repository (not yet implemented)
 
@@ -1104,8 +1108,9 @@ func handleMono() {
 		fmt.Println("Usage: want mono <project> [--list]")
 		fmt.Println("       want mono <project@version>")
 		fmt.Println("\nExamples:")
-		fmt.Println("  want mono printpdf --list     # List all releases for printpdf")
+		fmt.Println("  want mono printpdf --list     # List all releases and open PRs for printpdf")
 		fmt.Println("  want mono printpdf@main.1     # Install printpdf version main.1")
+		fmt.Println("  want mono dissect@pr-42       # Install from PR #42 (builds if no release)")
 		os.Exit(1)
 	}
 
@@ -1130,6 +1135,7 @@ func handleMono() {
 		fmt.Println("Expected: <project>@<version> or <project> --list")
 		fmt.Println("\nExamples:")
 		fmt.Println("  want mono printpdf@main.1")
+		fmt.Println("  want mono dissect@pr-42")
 		fmt.Println("  want mono printpdf --list")
 		os.Exit(1)
 	}
@@ -1138,6 +1144,60 @@ func handleMono() {
 	version := parts[1]
 
 	installMonoRelease(project, version)
+}
+
+// PRInfo holds information about a pull request
+type PRInfo struct {
+	Number int
+	Title  string
+	Branch string
+}
+
+// listOpenPRs fetches open PRs that modify the given project
+func listOpenPRs(project string) ([]PRInfo, error) {
+	ctx := context.Background()
+	client := ghclient.NewClient(ctx)
+
+	// List open PRs
+	prs, _, err := client.PullRequests.List(ctx, "neongreen", "mono", nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list PRs: %w", err)
+	}
+
+	var projectPRs []PRInfo
+	for _, pr := range prs {
+		if pr.Number == nil || pr.Title == nil || pr.Head == nil || pr.Head.Ref == nil {
+			continue
+		}
+
+		// Check if PR modifies the project
+		files, _, err := client.PullRequests.ListFiles(ctx, "neongreen", "mono", *pr.Number, nil)
+		if err != nil {
+			continue
+		}
+
+		modifiesProject := false
+		projectPrefix := project + "/"
+		for _, file := range files {
+			if file.Filename == nil {
+				continue
+			}
+			if strings.HasPrefix(*file.Filename, projectPrefix) {
+				modifiesProject = true
+				break
+			}
+		}
+
+		if modifiesProject {
+			projectPRs = append(projectPRs, PRInfo{
+				Number: *pr.Number,
+				Title:  *pr.Title,
+				Branch: *pr.Head.Ref,
+			})
+		}
+	}
+
+	return projectPRs, nil
 }
 
 // listMonoReleases lists all releases for a project from neongreen/mono
@@ -1160,26 +1220,45 @@ func listMonoReleases(project string) {
 		}
 	}
 
-	if len(projectReleases) == 0 {
-		fmt.Printf("No releases found for %s\n", project)
+	// Also fetch open PRs
+	fmt.Printf("Fetching open PRs for %s...\n", project)
+	openPRs, err := listOpenPRs(project)
+	if err != nil {
+		fmt.Printf("Warning: Failed to fetch open PRs: %v\n", err)
+		fmt.Println()
+	}
+
+	if len(projectReleases) == 0 && len(openPRs) == 0 {
+		fmt.Printf("No releases or open PRs found for %s\n", project)
 		fmt.Println("\nAvailable projects in mono:")
-		fmt.Println("  printpdf, dissect, want, prrun, markdown-format, ingest, conf, claude-trace")
+		fmt.Println("  printpdf, dissect, want, prrun, markdown-format, ingest, conf, claude-trace, tk")
 		os.Exit(1)
 	}
 
-	fmt.Printf("Available releases for %s:\n", project)
-	fmt.Println()
-	for _, release := range projectReleases {
-		// Extract version from tag (e.g., "printpdf--main.1" -> "main.1")
-		version := strings.TrimPrefix(release.TagName, prefix)
+	if len(projectReleases) > 0 {
+		fmt.Printf("\nAvailable releases for %s:\n", project)
+		fmt.Println()
+		for _, release := range projectReleases {
+			// Extract version from tag (e.g., "printpdf--main.1" -> "main.1")
+			version := strings.TrimPrefix(release.TagName, prefix)
 
-		status := ""
-		if release.Prerelease {
-			status = " (prerelease)"
+			status := ""
+			if release.Prerelease {
+				status = " (prerelease)"
+			}
+
+			fmt.Printf("  %s%s\n", version, status)
 		}
-
-		fmt.Printf("  %s%s\n", version, status)
 	}
+
+	if len(openPRs) > 0 {
+		fmt.Printf("\nOpen PRs for %s:\n", project)
+		fmt.Println()
+		for _, pr := range openPRs {
+			fmt.Printf("  pr-%d: %s\n", pr.Number, pr.Title)
+		}
+	}
+
 	fmt.Println()
 	fmt.Println("To install a specific version:")
 	fmt.Printf("  want mono %s@<version>\n", project)
@@ -1189,10 +1268,138 @@ func listMonoReleases(project string) {
 		version := strings.TrimPrefix(projectReleases[0].TagName, prefix)
 		fmt.Printf("  want mono %s@%s\n", project, version)
 	}
+	if len(openPRs) > 0 {
+		fmt.Printf("  want mono %s@pr-%d\n", project, openPRs[0].Number)
+	}
+}
+
+// buildMonoFromPR builds a project from a PR branch
+func buildMonoFromPR(project string, prNumber int) {
+	fmt.Printf("Building %s from PR #%d...\n", project, prNumber)
+	fmt.Println()
+
+	// Get PR info to find the branch
+	ctx := context.Background()
+	client := ghclient.NewClient(ctx)
+	pr, _, err := client.PullRequests.Get(ctx, "neongreen", "mono", prNumber)
+	if err != nil {
+		fmt.Printf("Error: Failed to fetch PR #%d: %v\n", prNumber, err)
+		os.Exit(1)
+	}
+
+	if pr.Head == nil || pr.Head.Ref == nil {
+		fmt.Printf("Error: PR #%d has no head branch\n", prNumber)
+		os.Exit(1)
+	}
+
+	branch := *pr.Head.Ref
+	fmt.Printf("PR #%d: %s\n", prNumber, *pr.Title)
+	fmt.Printf("Branch: %s\n", branch)
+	fmt.Println()
+
+	// Determine destination path
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error: Failed to get home directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	destDir := filepath.Join(homeDir, ".local", "bin")
+	destPath := filepath.Join(destDir, project)
+
+	// Create a temporary directory for cloning
+	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-pr-%d-*", project, prNumber))
+	if err != nil {
+		fmt.Printf("Error: Failed to create temporary directory: %v\n", err)
+		os.Exit(1)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Clone the repository
+	fmt.Printf("Cloning neongreen/mono (branch: %s)...\n", branch)
+	cmd := exec.Command("git", "clone", "--depth=1", "--branch", branch,
+		"https://github.com/neongreen/mono.git", tmpDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("\nError: Failed to clone repository: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Check if project directory exists
+	projectDir := filepath.Join(tmpDir, project)
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		fmt.Printf("\nError: Project '%s' not found in repository\n", project)
+		os.Exit(1)
+	}
+
+	// Build the project
+	fmt.Printf("\nBuilding %s...\n", project)
+	cmd = exec.Command("go", "build", "-o", destPath, ".")
+	cmd.Dir = projectDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("\nError: Failed to build %s: %v\n", project, err)
+		os.Exit(1)
+	}
+
+	// Make executable
+	if err := os.Chmod(destPath, 0755); err != nil {
+		fmt.Printf("Warning: Failed to make binary executable: %v\n", err)
+	}
+
+	fmt.Println()
+	fmt.Printf("✓ Built and installed %s from PR #%d to: %s\n", project, prNumber, destPath)
+	fmt.Println()
+
+	// Check if destDir is in PATH
+	pathEnv := os.Getenv("PATH")
+	if !strings.Contains(pathEnv, destDir) {
+		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Println()
+		fmt.Println("To use the binary, either:")
+		fmt.Println("  1. Run it with the full path:")
+		fmt.Printf("     %s\n", destPath)
+		fmt.Println()
+		fmt.Println("  2. Add the directory to your PATH:")
+		configFile := getShellConfigFile()
+		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
+		fmt.Printf("     source %s\n", configFile)
+	} else {
+		fmt.Printf("✓ Binary is available in your PATH as: %s\n", project)
+	}
 }
 
 // installMonoRelease installs a specific version of a project from neongreen/mono
 func installMonoRelease(project, version string) {
+	// Check if this is a PR reference (e.g., "pr-42" or "pr-42.1")
+	if strings.HasPrefix(version, "pr-") {
+		// Extract PR number
+		prStr := strings.TrimPrefix(version, "pr-")
+		// Remove any version suffix like ".1"
+		parts := strings.Split(prStr, ".")
+		var prNumber int
+		n, err := fmt.Sscanf(parts[0], "%d", &prNumber)
+		if err != nil || n != 1 {
+			fmt.Printf("Error: Invalid PR number in '%s'\n", version)
+			os.Exit(1)
+		}
+
+		// Check if there's a release for this PR
+		tag := fmt.Sprintf("%s--%s", project, version)
+		_, err = ghrelease.GetReleaseByTag("neongreen", "mono", tag)
+		if err != nil {
+			// No release found, build from PR
+			fmt.Printf("No release found for %s (would be tagged as %s)\n", version, tag)
+			fmt.Printf("Building from PR #%d instead...\n", prNumber)
+			fmt.Println()
+			buildMonoFromPR(project, prNumber)
+			return
+		}
+		// Release exists, install it normally
+	}
+
 	tag := fmt.Sprintf("%s--%s", project, version)
 
 	fmt.Printf("Installing %s version %s from neongreen/mono...\n", project, version)
