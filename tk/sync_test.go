@@ -45,7 +45,7 @@ func TestSegmentRoundTrip(t *testing.T) {
 		t.Fatalf("failed to generate event ID: %v", err)
 	}
 
-	taskID, err := GenerateTaskID(db)
+	taskID, err := GenerateTaskID(db, "tk")
 	if err != nil {
 		t.Fatalf("failed to generate task ID: %v", err)
 	}
@@ -136,7 +136,7 @@ func TestDuplicateIngest(t *testing.T) {
 		t.Fatalf("failed to generate event ID: %v", err)
 	}
 
-	taskID, err := GenerateTaskID(db)
+	taskID, err := GenerateTaskID(db, "tk")
 	if err != nil {
 		t.Fatalf("failed to generate task ID: %v", err)
 	}
@@ -293,7 +293,7 @@ func TestEventAndTaskIDFormats(t *testing.T) {
 	}
 
 	// Generate task ID
-	taskID, err := GenerateTaskID(db)
+	taskID, err := GenerateTaskID(db, "tk")
 	if err != nil {
 		t.Fatalf("failed to generate task ID: %v", err)
 	}
