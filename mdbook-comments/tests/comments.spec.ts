@@ -15,11 +15,11 @@ test.describe('mdbook-comments functionality', () => {
   // Reset database before each test
   test.beforeEach(async ({ page }) => {
     // Clear all comments via json-server API
-    const response = await page.request.get('http://localhost:54322/comments');
+    const response = await page.request.get('http://localhost:55432/comments');
     const comments = await response.json();
     
     for (const comment of comments) {
-      await page.request.delete(`http://localhost:54322/comments/${comment.id}`);
+      await page.request.delete(`http://localhost:55432/comments/${comment.id}`);
     }
   });
 
@@ -123,7 +123,7 @@ test.describe('mdbook-comments functionality', () => {
     await expect(commentText).toBeVisible();
     
     // Verify comment was saved to json-server
-    const response = await page.request.get('http://localhost:54322/comments');
+    const response = await page.request.get('http://localhost:55432/comments');
     const comments = await response.json();
     expect(comments.length).toBe(1);
     expect(comments[0].text).toBe('This is a test comment!');
@@ -132,7 +132,7 @@ test.describe('mdbook-comments functionality', () => {
 
   test('should display existing comments from json-server', async ({ page }) => {
     // First, add a comment via API
-    await page.request.post('http://localhost:54322/comments', {
+    await page.request.post('http://localhost:55432/comments', {
       data: {
         'paragraph-id': 'chapter-1-md-block-0-e9f5a4bf',
         metadata: {
@@ -173,7 +173,7 @@ test.describe('mdbook-comments functionality', () => {
 
   test('should reply to a comment', async ({ page }) => {
     // First, add a comment via API
-    const createResponse = await page.request.post('http://localhost:54322/comments', {
+    const createResponse = await page.request.post('http://localhost:55432/comments', {
       data: {
         'paragraph-id': 'chapter-1-md-block-0-e9f5a4bf',
         metadata: {
@@ -223,7 +223,7 @@ test.describe('mdbook-comments functionality', () => {
     await expect(replyText).toBeVisible();
     
     // Verify reply was saved with correct parent-id
-    const response = await page.request.get('http://localhost:54322/comments');
+    const response = await page.request.get('http://localhost:55432/comments');
     const comments = await response.json();
     const reply = comments.find(c => c.text === 'This is a reply!');
     expect(reply).toBeTruthy();
@@ -233,7 +233,7 @@ test.describe('mdbook-comments functionality', () => {
   test('should show comment count on links', async ({ page }) => {
     // Add multiple comments to first paragraph
     for (let i = 0; i < 3; i++) {
-      await page.request.post('http://localhost:54322/comments', {
+      await page.request.post('http://localhost:55432/comments', {
         data: {
           'paragraph-id': 'chapter-1-md-block-0-e9f5a4bf',
           metadata: { id: 'chapter-1-md-block-0-e9f5a4bf' },
@@ -258,7 +258,7 @@ test.describe('mdbook-comments functionality', () => {
 
   test('should handle multiple paragraphs with comments', async ({ page }) => {
     // Add comments to multiple paragraphs
-    await page.request.post('http://localhost:54322/comments', {
+    await page.request.post('http://localhost:55432/comments', {
       data: {
         'paragraph-id': 'chapter-1-md-block-0-e9f5a4bf',
         metadata: { id: 'chapter-1-md-block-0-e9f5a4bf' },
@@ -268,7 +268,7 @@ test.describe('mdbook-comments functionality', () => {
       }
     });
     
-    await page.request.post('http://localhost:54322/comments', {
+    await page.request.post('http://localhost:55432/comments', {
       data: {
         'paragraph-id': 'chapter-1-md-block-1-3142a274',
         metadata: { id: 'chapter-1-md-block-1-3142a274' },

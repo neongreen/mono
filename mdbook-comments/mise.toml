@@ -77,7 +77,7 @@ set -e
 echo "🧹 Cleaning up test environment..."
 
 # Kill any existing servers on the ports we use
-pkill -f "json-server.*54322" || true
+pkill -f "json-server.*55432" || true
 pkill -f "mdbook serve.*3300" || true
 
 # Also kill any other json-server or mdbook processes that might interfere
@@ -185,7 +185,7 @@ echo ""
 echo "Next steps:"
 echo "  1. Run 'mise run dev' to start local development"
 echo "  2. Open http://localhost:3300 in your browser"
-echo "  3. Open http://localhost:54322 for JSON Server API"
+echo "  3. Open http://localhost:55432 for JSON Server API"
 """
 
 [tasks.dev]
@@ -217,7 +217,7 @@ cleanup() {
   echo ""
   echo "Stopping servers..."
   # Kill json-server if it's running
-  pkill -f "json-server.*54322" || true
+  pkill -f "json-server.*55432" || true
   # Kill mdbook serve if it's running
   pkill -f "mdbook serve.*3300" || true
 }
@@ -227,7 +227,7 @@ trap cleanup EXIT INT TERM
 
 # Start JSON Server in background
 echo "Starting JSON Server..."
-json-server db.json --port 54322 --middlewares json-server-middleware.js --routes routes.json &
+json-server db.json --port 55432 --middlewares json-server-middleware.js --routes routes.json &
 JSON_SERVER_PID=$!
 
 # Wait a moment for JSON Server to start
@@ -239,7 +239,7 @@ if ! kill -0 $JSON_SERVER_PID 2>/dev/null; then
   exit 1
 fi
 
-echo "✅ JSON Server running on port 54322"
+echo "✅ JSON Server running on port 55432"
 
 # Configure the book with JSON Server config
 echo ""
@@ -251,7 +251,7 @@ echo ""
 echo "Starting mdbook..."
 echo ""
 echo "📚 Book will be available at: http://localhost:3300"
-echo "🔧 JSON Server API at: http://localhost:54322"
+echo "🔧 JSON Server API at: http://localhost:55432"
 echo ""
 echo "Press Ctrl+C to stop both servers"
 echo ""
@@ -310,7 +310,7 @@ EOF
 
 [tasks."dev:api"]
 description = "Open JSON Server API in browser"
-run = "open http://localhost:54322 || xdg-open http://localhost:54322 || echo 'Open http://localhost:54322 in your browser'"
+run = "open http://localhost:55432 || xdg-open http://localhost:55432 || echo 'Open http://localhost:55432 in your browser'"
 
 [tasks."dev:logs"]
 description = "View JSON Server status (check if running)"
@@ -318,7 +318,7 @@ run = "ps aux | grep json-server | grep -v grep || echo 'JSON Server not running
 
 [tasks."dev:status"]
 description = "Show JSON Server status"
-run = "curl -s http://localhost:54322/comments | head -c 200 || echo 'JSON Server not responding'"
+run = "curl -s http://localhost:55432/comments | head -c 200 || echo 'JSON Server not responding'"
 
 [tasks."docker:build"]
 description = "Build Docker image locally"

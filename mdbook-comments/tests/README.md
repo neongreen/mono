@@ -37,7 +37,7 @@ cd example-book && PATH="../target/release:$PATH" mdbook build && cd ..
 ## Running Tests
 
 The test suite automatically starts:
-1. json-server on port 54322 with test database
+1. json-server on port 55432 with test database
 2. mdbook serve on port 3300
 
 ### Run all tests
@@ -112,7 +112,7 @@ These tests run automatically in GitHub Actions. The workflow:
 The tests are configured in `playwright.config.ts`. Key settings:
 
 - **Base URL**: `http://localhost:3300`
-- **Web Servers**: json-server (54322) and mdbook serve (3300)
+- **Web Servers**: json-server (55432) and mdbook serve (3300)
 - **Browser**: Chromium (headless)
 - **Workers**: 1 (to avoid database conflicts)
 - **Retries**: 2 retries on CI, 0 locally
@@ -141,12 +141,12 @@ test('my new test', async ({ page }) => {
 
 ### Port conflicts
 
-If ports 3300 or 54322 are in use:
+If ports 3300 or 55432 are in use:
 
 ```bash
 # Find and kill processes
 lsof -i :3300
-lsof -i :54322
+lsof -i :55432
 kill <pid>
 ```
 

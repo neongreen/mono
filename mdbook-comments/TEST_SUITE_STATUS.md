@@ -33,7 +33,7 @@ The new test suite (`tests/comments.spec.ts`) includes tests for:
   - Chapter navigation
 
 ### 3. Backend Setup ✅
-- **json-server**: Configured as test backend (port 54322)
+- **json-server**: Configured as test backend (port 55432)
 - **Middleware**: Custom middleware for reply endpoints (`/api/comments/:id/reply`)
 - **Routes**: Configured API routes (`/api/comments`)
 - **Test Database**: Uses `db.json` with sample data
@@ -41,7 +41,7 @@ The new test suite (`tests/comments.spec.ts`) includes tests for:
 ### 4. Playwright Configuration ✅
 - **Updated `playwright.config.ts`:**
   - Configured base URL: `http://localhost:3300`
-  - Web server auto-start: json-server (54322) + mdbook serve (3300)
+  - Web server auto-start: json-server (55432) + mdbook serve (3300)
   - Single worker to avoid database conflicts
   - Proper timeouts and retry configuration
 
@@ -123,20 +123,20 @@ You can also test manually:
 ```bash
 # Terminal 1: Start json-server
 cd mdbook-comments
-npx json-server db.json --port 54322 --middlewares json-server-middleware.js --routes routes.json
+npx json-server db.json --port 55432 --middlewares json-server-middleware.js --routes routes.json
 
 # Terminal 2: Start mdbook serve
 cd mdbook-comments/example-book
 PATH="../target/release:$PATH" mdbook serve --port 3300
 
 # Terminal 3: Test API
-curl http://localhost:54322/comments
+curl http://localhost:55432/comments
 
 # Browser: Open http://localhost:3300/chapter-1.html
 # - Click a "comment" link
 # - Verify comment section appears
 # - Add a test comment
-# - Verify it saves (check API: curl http://localhost:54322/comments)
+# - Verify it saves (check API: curl http://localhost:55432/comments)
 ```
 
 ## Test Design Philosophy
