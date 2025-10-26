@@ -121,6 +121,76 @@ func TestJJSchemaParser_ValidatePath(t *testing.T) {
 	}
 }
 
+func TestJJSchemaParser_ValidatePath_AdditionalProperties(t *testing.T) {
+	parser, err := NewJJSchemaParser()
+	if err != nil {
+		t.Fatalf("Failed to create parser: %v", err)
+	}
+
+	// Test paths for properties that use additionalProperties
+	// These should accept any arbitrary key name
+	testCases := []struct {
+		path          string
+		shouldBeValid bool
+		description   string
+	}{
+		// aliases - accepts any alias name
+		{"aliases", true, "aliases object itself"},
+		{"aliases.r", true, "arbitrary alias name"},
+		{"aliases.rebase", true, "arbitrary alias name"},
+		{"aliases.my-custom-command", true, "arbitrary alias name with dash"},
+
+		// revset-aliases - accepts any alias name
+		{"revset-aliases", true, "revset-aliases object itself"},
+		{"revset-aliases.trunk", true, "arbitrary revset alias"},
+		{"revset-aliases.immutable_heads()", true, "predefined revset alias with parens"},
+		{"revset-aliases.my-alias", true, "arbitrary revset alias name"},
+
+		// template-aliases - accepts any alias name
+		{"template-aliases", true, "template-aliases object itself"},
+		{"template-aliases.my-template", true, "arbitrary template alias"},
+
+		// colors - accepts any color label
+		{"colors", true, "colors object itself"},
+		{"colors.error", true, "arbitrary color label"},
+		{"colors.warning", true, "arbitrary color label"},
+
+		// merge-tools - accepts any tool name and has nested properties
+		{"merge-tools", true, "merge-tools object itself"},
+		{"merge-tools.vimdiff", true, "arbitrary merge tool name"},
+		{"merge-tools.vimdiff.program", true, "merge tool property"},
+		{"merge-tools.vimdiff.diff-args", true, "merge tool property"},
+		{"merge-tools.custom-tool.merge-args", true, "custom merge tool property"},
+		{"merge-tools.my-custom-tool", true, "arbitrary merge tool name"},
+
+		// hints - accepts any hint name
+		{"hints", true, "hints object itself"},
+		{"hints.my-hint", true, "arbitrary hint name"},
+
+		// templates - accepts any template name
+		{"templates", true, "templates object itself"},
+		{"templates.log", true, "arbitrary template name"},
+
+		// revsets - accepts any revset name
+		{"revsets", true, "revsets object itself"},
+		{"revsets.log", true, "arbitrary revset name"},
+
+		// These should still be invalid - too deep nesting or invalid base path
+		{"aliases.r.invalid", false, "aliases values are arrays, not objects"},
+		{"revset-aliases.trunk.invalid", false, "revset-aliases values are strings, not objects"},
+		{"nonexistent.path", false, "nonexistent base property"},
+		{"merge-tools.vimdiff.nonexistent", false, "merge tool nonexistent property"},
+	}
+
+	for _, tc := range testCases {
+		result := parser.ValidatePath(tc.path)
+		if result != tc.shouldBeValid {
+			t.Errorf("Path '%s' (%s): expected valid=%v, got valid=%v",
+				tc.path, tc.description, tc.shouldBeValid, result)
+		}
+	}
+}
+
 func TestJJSchemaParser_GetAllPaths(t *testing.T) {
 	parser, err := NewJJSchemaParser()
 	if err != nil {
