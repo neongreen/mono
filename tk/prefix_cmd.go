@@ -49,6 +49,25 @@ var prefixCreateCmd = &cobra.Command{
 var prefixListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all task prefixes",
+	Long: `List task prefixes.
+
+By default, shows only prefixes created on this machine (node).
+Use --all to show prefixes from all nodes, including synced prefixes.
+
+State values:
+  explicit    - Created with 'tk prefix create' (has full metadata)
+  discovered  - Found in task IDs but not explicitly created (no metadata)
+  removed     - Marked as removed with 'tk prefix remove'
+
+Source values (--all mode only):
+  local       - Prefix created on this machine
+  synced      - Prefix received from another machine via sync
+
+Examples:
+  tk prefix list                # Show local prefixes only
+  tk prefix list --all          # Show all prefixes including synced
+  tk prefix list --all --verbose # Show with creation timestamps
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		all, _ := cmd.Flags().GetBool("all")
 		verbose, _ := cmd.Flags().GetBool("verbose")
