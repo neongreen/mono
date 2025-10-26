@@ -100,6 +100,15 @@ want mono printpdf --list
 # Install a specific version (asks for confirmation)
 want mono printpdf@main.1
 
+# Build from the latest commit on main branch
+want mono printpdf@main
+
+# Build from a specific branch
+want mono dissect@feature-refactor
+
+# Build from a specific commit SHA
+want mono want@abc1234
+
 # Preview what would be done without confirmation
 want mono --dry-run printpdf@main.1
 
@@ -122,9 +131,11 @@ The tool will:
 - Fetch all releases from neongreen/mono repository
 - Fetch all open PRs that modify the specified project
 - Filter releases for the specified project
-- For PR versions:
-  - First try to download a pre-built release
-  - If no release exists, build the project locally from the PR branch
+- For version strings:
+  - If it matches a release tag (e.g., `main.1`, `pr-42.1`): download the pre-built binary
+  - If it starts with `pr-` but has no release: build from the PR branch
+  - If it's a branch name (e.g., `main`, `feature-xyz`): build from the latest commit on that branch
+  - If it's a commit SHA (7-40 hex chars): build from that specific commit
 - Download the binary matching your platform (OS and architecture)
 - Install to `~/.local/bin/`
 - Make it executable
@@ -211,6 +222,37 @@ Building dissect...
 ✓ Built and installed dissect from PR #100 to: ~/.local/bin/dissect
 
 ✓ Binary is available in your PATH as: dissect
+```
+
+When building from a branch or commit:
+
+```bash
+$ want mono printpdf@main
+No release found for main (would be tagged as printpdf--main)
+Building from latest commit on main branch instead...
+
+Fulfillment plan:
+
+Step 1: Clone neongreen/mono repository (latest commit on main branch)
+  $ git clone --depth=1 --branch main https://github.com/neongreen/mono.git <tmpdir>
+
+Step 2: Build printpdf from source
+  $ go build -o /home/user/.local/bin/printpdf .
+
+Step 3: Make binary executable
+  $ chmod +x /home/user/.local/bin/printpdf
+
+Proceed with this plan? [Y/n]: y
+
+Cloning neongreen/mono (latest commit on main branch)...
+[clone output]
+
+Building printpdf...
+[build output]
+
+✓ Built and installed printpdf from latest commit on main branch to: ~/.local/bin/printpdf
+
+✓ Binary is available in your PATH as: printpdf
 ```
 
 ### Download GitHub release assets (✅ WORKING)

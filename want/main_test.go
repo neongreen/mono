@@ -266,6 +266,59 @@ func TestCreateGoBuildCommand(t *testing.T) {
 	}
 }
 
+func TestIsHexString(t *testing.T) {
+	tests := []struct {
+		name string
+		str  string
+		want bool
+	}{
+		{
+			name: "valid short commit sha",
+			str:  "abc1234",
+			want: true,
+		},
+		{
+			name: "valid full commit sha",
+			str:  "abc1234567890abcdef1234567890abcdef12345",
+			want: true,
+		},
+		{
+			name: "uppercase hex",
+			str:  "ABC1234",
+			want: true,
+		},
+		{
+			name: "mixed case hex",
+			str:  "AbC1234",
+			want: true,
+		},
+		{
+			name: "non-hex characters",
+			str:  "xyz1234",
+			want: false,
+		},
+		{
+			name: "branch name",
+			str:  "feature-branch",
+			want: false,
+		},
+		{
+			name: "version number",
+			str:  "main.5",
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isHexString(tt.str)
+			if got != tt.want {
+				t.Errorf("isHexString(%q) = %v, want %v", tt.str, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestCreateGoBuildCommandIntegration(t *testing.T) {
 	// This test verifies the command structure without executing it
 	cmd := createGoBuildCommand("build", "-o", "/tmp/test", ".")
