@@ -2,6 +2,8 @@ experimental_monorepo_root = true
 
 [env]
 GOWORK = "auto"
+GOPRIVATE = "github.com/neongreen/mono"
+GONOSUMDB = "github.com/neongreen/mono"
 
 [tools]
 go = "1.24.7"
@@ -19,20 +21,9 @@ run = "cloc --by-file --include-lang=Go ."
 description = "Format everything"
 run = """
 mise run //...:fmt
+go work sync
 mise run //:lint:go-workspace --fix
 """
-
-[tasks."go:tidy-all"]
-description = "Synchronize Go workspace dependencies"
-run = '''
-# Disable checksum verification and proxy for local modules
-export GOPRIVATE=github.com/neongreen/mono
-export GONOSUMDB=github.com/neongreen/mono
-
-# Sync workspace to update all module versions
-# This handles dependency resolution for all workspace modules
-go work sync
-'''
 
 [tasks."jj:track"]
 description = "Track all remote bookmarks"
