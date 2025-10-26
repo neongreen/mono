@@ -446,7 +446,7 @@ var lsCmd = &cobra.Command{
 		}
 
 		t.SetStyle(table.StyleLight)
-		t.Style().Options.SeparateRows = false
+		t.Style().Options.SeparateRows = true
 		t.Style().Options.DrawBorder = false
 
 		// Configure column widths and wrapping
