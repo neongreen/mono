@@ -256,3 +256,59 @@ some_setting = true
 		t.Errorf("New value should be correct, got %v", value)
 	}
 }
+
+func TestTOMLEditor_GetAllValues(t *testing.T) {
+	// Create temporary directory
+	tempDir, err := os.MkdirTemp("", "toml-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := filepath.Join(tempDir, "test.toml")
+	editor := NewTOMLEditor(testFile)
+
+	// Test empty file
+	values, err := editor.GetAllValues()
+	if err != nil {
+		t.Fatalf("Failed to get all values from non-existent file: %v", err)
+	}
+	if len(values) != 0 {
+		t.Errorf("Expected empty map, got %d values", len(values))
+	}
+
+	// Set some values
+	editor.SetValue("user.name", "Alice")
+	editor.SetValue("user.email", "alice@example.com")
+	editor.SetValue("snapshot.max-new-file-size", int64(1024))
+	editor.SetValue("ui.diff-editor", "vimdiff")
+
+	// Get all values
+	values, err = editor.GetAllValues()
+	if err != nil {
+		t.Fatalf("Failed to get all values: %v", err)
+	}
+
+	// Verify all values are present
+	expected := map[string]interface{}{
+		"user.name":                  "Alice",
+		"user.email":                 "alice@example.com",
+		"snapshot.max-new-file-size": int64(1024),
+		"ui.diff-editor":             "vimdiff",
+	}
+
+	if len(values) != len(expected) {
+		t.Errorf("Expected %d values, got %d", len(expected), len(values))
+	}
+
+	for key, expectedValue := range expected {
+		actualValue, exists := values[key]
+		if !exists {
+			t.Errorf("Expected key %s not found", key)
+			continue
+		}
+		if actualValue != expectedValue {
+			t.Errorf("For key %s: expected %v, got %v", key, expectedValue, actualValue)
+		}
+	}
+}
