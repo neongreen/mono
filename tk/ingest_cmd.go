@@ -88,11 +88,17 @@ func ingestFile(db *DB, path string) error {
 			return fmt.Errorf("failed to bump lamport: %w", err)
 		}
 
-		// Project prefix.created events into prefixes table
+		// Project prefix events into prefixes table
 		if event.Kind == "prefix.created" {
 			if err := db.ProjectPrefixCreatedEvent(event); err != nil {
 				// Log but don't fail - projection errors are not critical
 				fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.created event %s: %v\n", event.ID, err)
+			}
+		}
+		if event.Kind == "prefix.removed" {
+			if err := db.ProjectPrefixRemovedEvent(event); err != nil {
+				// Log but don't fail - projection errors are not critical
+				fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.removed event %s: %v\n", event.ID, err)
 			}
 		}
 
@@ -165,6 +171,20 @@ func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
 			// Bump lamport if needed
 			if err := db.BumpLamport(event.TS); err != nil {
 				return fmt.Errorf("failed to bump lamport: %w", err)
+			}
+
+			// Project prefix events into prefixes table
+			if event.Kind == "prefix.created" {
+				if err := db.ProjectPrefixCreatedEvent(event); err != nil {
+					// Log but don't fail - projection errors are not critical
+					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.created event %s: %v\n", event.ID, err)
+				}
+			}
+			if event.Kind == "prefix.removed" {
+				if err := db.ProjectPrefixRemovedEvent(event); err != nil {
+					// Log but don't fail - projection errors are not critical
+					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.removed event %s: %v\n", event.ID, err)
+				}
 			}
 
 			totalIngested++

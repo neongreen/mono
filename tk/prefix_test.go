@@ -203,6 +203,96 @@ func TestProjectPrefixCreatedEvent(t *testing.T) {
 	}
 }
 
+func TestProjectPrefixRemovedEvent(t *testing.T) {
+	tmpDir := t.TempDir()
+	dbPath := filepath.Join(tmpDir, "tk.db")
+
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+
+	nodeID, err := db.GetOrCreateNodeID()
+	if err != nil {
+		t.Fatalf("failed to get node ID: %v", err)
+	}
+
+	// First create a prefix
+	if err := db.CreatePrefix("temp", "Temporary prefix", "test-user"); err != nil {
+		t.Fatalf("failed to create prefix: %v", err)
+	}
+
+	// Verify it exists and is not removed
+	prefixes, err := db.GetPrefixes()
+	if err != nil {
+		t.Fatalf("failed to get prefixes: %v", err)
+	}
+
+	found := false
+	for _, p := range prefixes {
+		if p.Prefix == "temp" {
+			found = true
+			if p.Removed {
+				t.Error("prefix should not be marked as removed initially")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("prefix 'temp' not found after creation")
+	}
+
+	// Create a prefix.removed event
+	payload := PrefixRemovedPayload{
+		Prefix: "temp",
+	}
+	payloadJSON, _ := json.Marshal(payload)
+
+	event := Event{
+		ID:        "ev-2-" + nodeID,
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "test-user",
+		Role:      "human",
+		Kind:      "prefix.removed",
+		Payload:   payloadJSON,
+	}
+
+	// Insert the event
+	if err := db.InsertEvent(event); err != nil {
+		t.Fatalf("failed to insert event: %v", err)
+	}
+
+	// Project it
+	if err := db.ProjectPrefixRemovedEvent(event); err != nil {
+		t.Fatalf("failed to project prefix.removed event: %v", err)
+	}
+
+	// Check that the prefix is now marked as removed
+	prefixes, err = db.GetPrefixes()
+	if err != nil {
+		t.Fatalf("failed to get prefixes: %v", err)
+	}
+
+	found = false
+	for _, p := range prefixes {
+		if p.Prefix == "temp" {
+			found = true
+			if !p.Removed {
+				t.Error("prefix should be marked as removed after projecting prefix.removed event")
+			}
+		}
+	}
+
+	if !found {
+		t.Error("prefix 'temp' not found after projection")
+	}
+}
+
 func TestPrefixCreation(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "tk.db")
