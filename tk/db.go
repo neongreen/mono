@@ -1284,3 +1284,39 @@ func (d *DB) ProjectPrefixCreatedEvent(e Event) error {
 
 	return nil
 }
+
+// ProjectPrefixRemovedEvent projects a prefix.removed event into the prefixes table (idempotent)
+func (d *DB) ProjectPrefixRemovedEvent(e Event) error {
+	if e.Kind != "prefix.removed" {
+		return fmt.Errorf("expected prefix.removed event, got %s", e.Kind)
+	}
+
+	var payload PrefixRemovedPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal prefix.removed payload: %w", err)
+	}
+
+	// Extract node from event ID
+	// Format: ev-<number>-<node>
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	parts := strings.Split(e.ID, "-")
+	if len(parts) >= 3 {
+		nodeID = parts[2]
+	}
+
+	// Mark prefix as removed in prefixes table (idempotent)
+	// Use UPDATE instead of INSERT OR REPLACE to avoid losing data
+	_, err = d.db.Exec(
+		"UPDATE prefixes SET removed = 1 WHERE prefix = ? AND node = ?",
+		payload.Prefix, nodeID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to project prefix.removed event: %w", err)
+	}
+
+	return nil
+}

@@ -503,3 +503,134 @@ func TestPrefixSync(t *testing.T) {
 		}
 	}
 }
+
+// TestPrefixRemovedSync tests that prefix.removed events are properly synced between machines
+func TestPrefixRemovedSync(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Machine A setup
+	dbPathA := filepath.Join(tmpDir, "machine-a", "tk.db")
+	dbA, err := OpenDB(dbPathA)
+	if err != nil {
+		t.Fatalf("failed to open database A: %v", err)
+	}
+	defer dbA.Close()
+
+	if err := dbA.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database A: %v", err)
+	}
+
+	nodeA, err := dbA.GetOrCreateNodeID()
+	if err != nil {
+		t.Fatalf("failed to get node ID for machine A: %v", err)
+	}
+
+	// Create and then remove a prefix on machine A
+	if err := dbA.CreatePrefix("temp", "Temporary prefix", "alice"); err != nil {
+		t.Fatalf("failed to create prefix 'temp' on machine A: %v", err)
+	}
+
+	if err := dbA.RemovePrefix("temp", "alice"); err != nil {
+		t.Fatalf("failed to remove prefix 'temp' on machine A: %v", err)
+	}
+
+	// Verify prefix is marked as removed on machine A
+	prefixesA, err := dbA.GetAllPrefixes()
+	if err != nil {
+		t.Fatalf("failed to get prefixes on machine A: %v", err)
+	}
+
+	foundTemp := false
+	for _, p := range prefixesA {
+		if p.Prefix == "temp" && p.Node == nodeA {
+			foundTemp = true
+			if !p.Removed {
+				t.Error("prefix 'temp' should be marked as removed on machine A")
+			}
+		}
+	}
+	if !foundTemp {
+		t.Error("prefix 'temp' not found on machine A")
+	}
+
+	// Machine B setup
+	dbPathB := filepath.Join(tmpDir, "machine-b", "tk.db")
+	dbB, err := OpenDB(dbPathB)
+	if err != nil {
+		t.Fatalf("failed to open database B: %v", err)
+	}
+	defer dbB.Close()
+
+	if err := dbB.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database B: %v", err)
+	}
+
+	nodeB, err := dbB.GetOrCreateNodeID()
+	if err != nil {
+		t.Fatalf("failed to get node ID for machine B: %v", err)
+	}
+
+	if nodeA == nodeB {
+		t.Fatal("machine A and B should have different node IDs")
+	}
+
+	// Export events from machine A to shared remote
+	remotePath := filepath.Join(tmpDir, "remote")
+	space := "personal"
+
+	eventsA, err := dbA.GetEvents()
+	if err != nil {
+		t.Fatalf("failed to get events from machine A: %v", err)
+	}
+
+	writer := NewSegmentWriter(remotePath, space, nodeA, 1, 2_000_000, 120)
+	for _, event := range eventsA {
+		segEvent, err := eventToSegmentEvent(event, space, nodeA)
+		if err != nil {
+			t.Fatalf("failed to convert event to segment event: %v", err)
+		}
+		writer.AddEvent(segEvent)
+	}
+
+	segInfo, err := writer.WriteSegment()
+	if err != nil {
+		t.Fatalf("failed to write segment: %v", err)
+	}
+
+	if segInfo == nil {
+		t.Fatal("expected segment info, got nil")
+	}
+
+	// Ingest on machine B using ingestRemote
+	remoteConfig := RemoteConfig{
+		Type: "folder",
+		Path: remotePath,
+		Pull: true,
+		Push: true,
+	}
+
+	if err := ingestRemote(dbB, "test-remote", remoteConfig); err != nil {
+		t.Fatalf("failed to ingest on machine B: %v", err)
+	}
+
+	// Verify prefix.removed was properly projected on machine B
+	prefixesB, err := dbB.GetAllPrefixes()
+	if err != nil {
+		t.Fatalf("failed to get prefixes on machine B: %v", err)
+	}
+
+	foundTempB := false
+	for _, p := range prefixesB {
+		if p.Prefix == "temp" && p.Node == nodeA {
+			foundTempB = true
+			// This is the key check - the removed flag should be synced
+			if !p.Removed {
+				t.Error("prefix 'temp' should be marked as removed on machine B after sync")
+			}
+		}
+	}
+
+	if !foundTempB {
+		t.Error("prefix 'temp' from machine A not found on machine B after sync")
+	}
+}
