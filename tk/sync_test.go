@@ -489,15 +489,14 @@ func TestPrefixSync(t *testing.T) {
 		t.Error("prefix 'bar' from machine A not found on machine B after sync")
 	}
 
-	// Also verify that prefixes appear in prefix list (not just --all)
-	// They should appear in --all since they're from a different node
-	// but not in the default list (which only shows local node prefixes)
+	// Also verify that GetPrefixes() returns only local node prefixes
+	// while GetAllPrefixes() returns all prefixes including remote ones
 	localPrefixesB, err := dbB.GetPrefixes()
 	if err != nil {
 		t.Fatalf("failed to get local prefixes on machine B: %v", err)
 	}
 
-	// Should NOT find foo/bar in local prefixes (different node)
+	// Should NOT find foo/bar in local prefixes since they're from a different node
 	for _, p := range localPrefixesB {
 		if (p.Prefix == "foo" || p.Prefix == "bar") && p.Node == nodeA {
 			t.Errorf("prefix %s from node A should not appear in local prefix list on machine B", p.Prefix)
