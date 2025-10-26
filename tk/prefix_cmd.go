@@ -86,12 +86,14 @@ var prefixListCmd = &cobra.Command{
 		t.Style().Options.DrawBorder = false
 
 		for _, p := range prefixes {
-			// Determine state
+			// Determine state based on data, not string matching
 			state := "explicit"
-			if p.Description == "(discovered from tasks, no metadata)" {
+			if p.CreatedAt.IsZero() {
+				// Discovered prefixes have no creation time
 				state = "discovered"
 			}
 			if p.Removed {
+				// Removed prefixes override discovered/explicit
 				state = "removed"
 			}
 

@@ -314,23 +314,19 @@ var viewCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
-		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		// Build reducer to get task and all its IDs (current + aliases)
+		events, err := db.GetEvents()
 		if err != nil {
 			return err
-		}
-
-		// Get events by UUID
-		events, err := db.GetEventsByTaskUUID(taskUUID)
-		if err != nil {
-			return err
-		}
-
-		if len(events) == 0 {
-			return fmt.Errorf("task not found: %s", taskID)
 		}
 
 		reducer, err := BuildFromEvents(events)
+		if err != nil {
+			return err
+		}
+
+		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
+		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
 		if err != nil {
 			return err
 		}
