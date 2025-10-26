@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // V4 Migration Functions
@@ -205,15 +206,70 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) error {
 			projectUID = string(NewProjectUID())
 			projectMap[prefix] = projectUID
 
-			// Emit project.created event
-			if err := d.emitProjectCreatedEvent(projectUID, "local", prefix, description, createdBy, createdAt); err != nil {
-				return err
+			// Create and insert project.created event
+			payload := ProjectCreatedPayload{
+				ProjectUID:  projectUID,
+				Type:        "local",
+				Name:        prefix,
+				Description: description,
+				CreatedBy:   createdBy,
+			}
+			payloadJSON, err := json.Marshal(payload)
+			if err != nil {
+				return fmt.Errorf("failed to marshal project.created payload: %w", err)
+			}
+
+			event := Event{
+				ID:        string(NewEventID()),
+				TS:        0, // Will be set during ingest/replay
+				CreatedAt: time.Unix(createdAt, 0),
+				Actor:     createdBy,
+				Role:      "human",
+				Kind:      string(EventKindProjectCreated),
+				Payload:   payloadJSON,
+			}
+
+			// Insert event
+			if err := d.InsertEvent(event); err != nil {
+				return fmt.Errorf("failed to insert project.created event: %w", err)
+			}
+
+			// Project immediately
+			if err := d.ProjectProjectCreatedEvent(event); err != nil {
+				return fmt.Errorf("failed to project project.created event: %w", err)
 			}
 		}
 
-		// Emit project.alias.add event for this node
-		if err := d.emitProjectAliasAddEvent(projectUID, prefix, node, createdBy, createdAt); err != nil {
-			return err
+		// Create and insert project.alias.add event for this node
+		aliasPayload := ProjectAliasAddPayload{
+			ProjectUID: projectUID,
+			Alias:      prefix,
+			Node:       node,
+			AddedBy:    createdBy,
+		}
+		aliasPayloadJSON, err := json.Marshal(aliasPayload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal project.alias.add payload: %w", err)
+		}
+
+		aliasEvent := Event{
+			ID:        string(NewEventID()),
+			TS:        0,
+			CreatedAt: time.Unix(createdAt, 0),
+			Actor:     createdBy,
+			Role:      "human",
+			Kind:      string(EventKindProjectAliasAdd),
+			Payload:   aliasPayloadJSON,
+		}
+
+		// Insert event
+		if err := d.InsertEvent(aliasEvent); err != nil {
+			return fmt.Errorf("failed to insert project.alias.add event: %w", err)
+		}
+
+		// Project immediately
+		if err := d.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
+			return fmt.Errorf("failed to project project.alias.add event: %w", err)
 		}
 	}
 
@@ -286,14 +342,70 @@ func (d *DB) migrateTasksToV4(nodeID string, actor string) error {
 			taskUID = string(NewTaskUID())
 		}
 
-		// Emit task.created (v4) event
-		if err := d.emitTaskCreatedV4Event(taskUID, projectUID, number, nodeID, legacyPayload.Title, legacyPayload.CreatedBy, createdAt); err != nil {
-			return err
+		// Create and insert task.created (v4) event
+		taskPayload := TaskCreatedV4Payload{
+			TaskUID:        taskUID,
+			ProjectUID:     projectUID,
+			ProposedNumber: number,
+			CreatedNode:    nodeID,
+			Title:          legacyPayload.Title,
+			CreatedBy:      legacyPayload.CreatedBy,
+		}
+		taskPayloadJSON, err := json.Marshal(taskPayload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal task.created payload: %w", err)
 		}
 
-		// Emit task.number.set event
-		if err := d.emitTaskNumberSetEvent(taskUID, projectUID, number, "migration", createdAt); err != nil {
-			return err
+		taskEvent := Event{
+			ID:        string(NewEventID()),
+			TS:        0,
+			CreatedAt: time.Unix(0, createdAt),
+			Actor:     legacyPayload.CreatedBy,
+			Role:      "human",
+			Kind:      string(EventKindTaskCreated),
+			Payload:   taskPayloadJSON,
+		}
+
+		// Insert event
+		if err := d.InsertEvent(taskEvent); err != nil {
+			return fmt.Errorf("failed to insert task.created event: %w", err)
+		}
+
+		// Project immediately
+		if err := d.ProjectTaskCreatedV4Event(taskEvent); err != nil {
+			return fmt.Errorf("failed to project task.created event: %w", err)
+		}
+
+		// Create and insert task.number.set event
+		numberPayload := TaskNumberSetPayload{
+			TaskUID:    taskUID,
+			ProjectUID: projectUID,
+			Number:     number,
+			Reason:     "migration",
+		}
+		numberPayloadJSON, err := json.Marshal(numberPayload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal task.number.set payload: %w", err)
+		}
+
+		numberEvent := Event{
+			ID:        string(NewEventID()),
+			TS:        0,
+			CreatedAt: time.Unix(0, createdAt),
+			Actor:     legacyPayload.CreatedBy,
+			Role:      "human",
+			Kind:      string(EventKindTaskNumberSet),
+			Payload:   numberPayloadJSON,
+		}
+
+		// Insert event
+		if err := d.InsertEvent(numberEvent); err != nil {
+			return fmt.Errorf("failed to insert task.number.set event: %w", err)
+		}
+
+		// Project immediately
+		if err := d.ProjectTaskNumberSetEvent(numberEvent); err != nil {
+			return fmt.Errorf("failed to project task.number.set event: %w", err)
 		}
 	}
 

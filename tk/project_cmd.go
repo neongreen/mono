@@ -75,7 +75,7 @@ var projectCreateCmd = &cobra.Command{
 		}
 
 		// Project the event into projects table
-		if err := db.emitProjectCreatedEvent(string(projectUID), "local", name, description, actor, event.CreatedAt.Unix()); err != nil {
+		if err := db.ProjectProjectCreatedEvent(event); err != nil {
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 
@@ -112,7 +112,7 @@ var projectCreateCmd = &cobra.Command{
 			}
 
 			// Project the alias
-			if err := db.emitProjectAliasAddEvent(string(projectUID), alias, nodeID, actor, aliasEvent.CreatedAt.Unix()); err != nil {
+			if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
 				return fmt.Errorf("failed to project alias: %w", err)
 			}
 
@@ -253,7 +253,7 @@ var projectAliasAddCmd = &cobra.Command{
 		}
 
 		// Project the alias
-		if err := db.emitProjectAliasAddEvent(projectUID, alias, nodeID, actor, event.CreatedAt.Unix()); err != nil {
+		if err := db.ProjectProjectAliasAddEvent(event); err != nil {
 			return fmt.Errorf("failed to project alias: %w", err)
 		}
 
@@ -323,13 +323,9 @@ var projectAliasRemoveCmd = &cobra.Command{
 			return fmt.Errorf("failed to insert event: %w", err)
 		}
 
-		// Remove the alias from the table
-		_, err = db.db.Exec(`
-			DELETE FROM project_aliases 
-			WHERE alias = ? AND node = ?
-		`, alias, nodeID)
-		if err != nil {
-			return fmt.Errorf("failed to remove alias: %w", err)
+		// Project the event (removes the alias from the table)
+		if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
+			return fmt.Errorf("failed to project alias removal: %w", err)
 		}
 
 		fmt.Printf("Removed alias '%s' for project %s\n", alias, projectUID)

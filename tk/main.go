@@ -182,12 +182,39 @@ func createTaskV4(db *DB, cmd *cobra.Command, title string) error {
 	}
 
 	// Project the event into tasks and task_numbers tables
-	if err := db.emitTaskCreatedV4Event(string(taskUID), projectUID, proposedNumber, nodeID, title, currentUser, event.CreatedAt.Unix()); err != nil {
+	if err := db.ProjectTaskCreatedV4Event(event); err != nil {
 		return fmt.Errorf("failed to project task: %w", err)
 	}
 
-	if err := db.emitTaskNumberSetEvent(string(taskUID), projectUID, proposedNumber, "initial", event.CreatedAt.Unix()); err != nil {
-		return fmt.Errorf("failed to set task number: %w", err)
+	// Create task.number.set event
+	numberPayload := TaskNumberSetPayload{
+		TaskUID:    string(taskUID),
+		ProjectUID: projectUID,
+		Number:     proposedNumber,
+		Reason:     "initial",
+	}
+	numberPayloadJSON, err := json.Marshal(numberPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal number payload: %w", err)
+	}
+
+	numberEvent := Event{
+		ID:        generateEventID(db),
+		TS:        getNextLamportTimestamp(db),
+		CreatedAt: time.Now(),
+		Actor:     currentUser,
+		Role:      "human",
+		Kind:      string(EventKindTaskNumberSet),
+		Payload:   numberPayloadJSON,
+	}
+
+	if err := db.InsertEvent(numberEvent); err != nil {
+		return fmt.Errorf("failed to insert number event: %w", err)
+	}
+
+	// Project the number event
+	if err := db.ProjectTaskNumberSetEvent(numberEvent); err != nil {
+		return fmt.Errorf("failed to project task number: %w", err)
 	}
 
 	// Display the task
