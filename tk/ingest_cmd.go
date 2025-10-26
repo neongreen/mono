@@ -167,6 +167,14 @@ func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
 				return fmt.Errorf("failed to bump lamport: %w", err)
 			}
 
+			// Project prefix.created events into prefixes table
+			if event.Kind == "prefix.created" {
+				if err := db.ProjectPrefixCreatedEvent(event); err != nil {
+					// Log but don't fail - projection errors are not critical
+					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.created event %s: %v\n", event.ID, err)
+				}
+			}
+
 			totalIngested++
 		}
 	}
