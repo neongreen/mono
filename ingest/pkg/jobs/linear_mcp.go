@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	"ingest/pkg/database"
-	"ingest/pkg/linear"
-	mcppkg "ingest/pkg/mcp"
+	"github.com/neongreen/mono/ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/linear"
+	mcppkg "github.com/neongreen/mono/ingest/pkg/mcp"
 )
 
 // RunLinearMCP ingests issues from the Linear MCP server.

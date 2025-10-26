@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"claude-trace/pkg/storage"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 
 	"time"
 

@@ -6,8 +6,8 @@ import (
 	"io"
 	"os"
 
-	"ingest/pkg/command"
-	"ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/command"
+	"github.com/neongreen/mono/ingest/pkg/database"
 )
 
 // RunCommand executes a shell command and stores its output.

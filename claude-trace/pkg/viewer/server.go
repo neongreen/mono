@@ -1,10 +1,10 @@
 package viewer
 
 import (
-	"claude-trace/pkg/render"
-	"claude-trace/pkg/storage"
 	"encoding/json"
 	"fmt"
+	"github.com/neongreen/mono/claude-trace/pkg/render"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"log"
 	"net/http"
 )

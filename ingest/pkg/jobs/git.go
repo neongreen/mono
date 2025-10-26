@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"ingest/pkg/database"
-	"ingest/pkg/git"
+	"github.com/neongreen/mono/ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/git"
 )
 
 // RunGit ingests a git repository and stores metadata in the database.

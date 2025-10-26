@@ -7,14 +7,14 @@ import (
 	"strconv"
 	"strings"
 
-	"conf/pkg/config"
-	"conf/pkg/schemas"
-	"conf/pkg/sync"
-	"conf/pkg/tools"
-	jjtool "conf/pkg/tools/jj"
-	misetool "conf/pkg/tools/mise"
-	shimstool "conf/pkg/tools/shims"
-	starshiptool "conf/pkg/tools/starship"
+	"github.com/neongreen/mono/conf/pkg/config"
+	"github.com/neongreen/mono/conf/pkg/schemas"
+	"github.com/neongreen/mono/conf/pkg/sync"
+	"github.com/neongreen/mono/conf/pkg/tools"
+	jjtool "github.com/neongreen/mono/conf/pkg/tools/jj"
+	misetool "github.com/neongreen/mono/conf/pkg/tools/mise"
+	shimstool "github.com/neongreen/mono/conf/pkg/tools/shims"
+	starshiptool "github.com/neongreen/mono/conf/pkg/tools/starship"
 	"github.com/spf13/cobra"
 )
 

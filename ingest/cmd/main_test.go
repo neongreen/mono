@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"ingest/pkg/testutil"
+	"github.com/neongreen/mono/ingest/pkg/testutil"
 )
 
 func runCLI(t *testing.T, args ...string) (string, string) {

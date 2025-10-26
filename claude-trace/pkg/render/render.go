@@ -1,10 +1,10 @@
 package render
 
 import (
-	"claude-trace/pkg/parser"
-	"claude-trace/pkg/storage"
 	"encoding/json"
 	"fmt"
+	"github.com/neongreen/mono/claude-trace/pkg/parser"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"strings"
 	"time"
 )

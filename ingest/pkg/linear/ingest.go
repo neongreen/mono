@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/database"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )

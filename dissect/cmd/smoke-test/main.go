@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang-cz/devslog"
 
-	"dissect/pkg/externaltest"
+	"github.com/neongreen/mono/dissect/pkg/externaltest"
 )
 
 func main() {

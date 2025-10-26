@@ -1,8 +1,8 @@
 package render
 
 import (
-	"claude-trace/pkg/parser"
 	"fmt"
+	"github.com/neongreen/mono/claude-trace/pkg/parser"
 	"strings"
 )
 

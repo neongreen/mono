@@ -1,9 +1,9 @@
 package main
 
 import (
-	"claude-trace/pkg/render"
-	"claude-trace/pkg/storage"
 	"fmt"
+	"github.com/neongreen/mono/claude-trace/pkg/render"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"log"
 	"os"
 	"path/filepath"

@@ -21,8 +21,7 @@ run = "cloc --by-file --include-lang=Go ."
 description = "Format everything"
 run = """
 mise run //...:fmt
-go work sync
-mise run //:lint:go-workspace --fix
+mise run //:go:fmt
 """
 
 [tasks."jj:track"]
@@ -43,10 +42,17 @@ run = "GITHUB_TOKEN=$(gh auth token) pinact run --check --diff --verify"
 description = "Lint GitHub Actions workflows"
 depends = ["//:lint:actions:*"]
 
-[tasks."lint:go-workspace"]
-description = "Validate Go workspace consistency"
-run = "uv run scripts/lint-go-workspace.py"
+[tasks."go:fmt"]
+description = "Format Go code in the unified module"
+run = "go fmt ./..."
 
-[tasks."lint:go-workspace:ci"]
-description = "Run full Go workspace CI checks locally"
-run = "act pull_request -W .github/workflows/go-workspace-lint.yml"
+[tasks."go:tidy"]
+description = "Synchronize Go dependencies"
+run = "go mod tidy"
+
+[tasks."lint:go-module"]
+description = "Ensure go.mod and go.sum are tidy"
+run = """
+go mod tidy
+git diff --exit-code go.mod go.sum
+"""

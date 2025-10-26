@@ -12,10 +12,10 @@ import (
 	"github.com/golang-cz/devslog"
 	"github.com/pelletier/go-toml/v2"
 
-	main "dissect/cmd"
-	"dissect/pkg/externaltest"
-	"dissect/pkg/goutils"
-	"dissect/pkg/testutils"
+	main "github.com/neongreen/mono/dissect/cmd"
+	"github.com/neongreen/mono/dissect/pkg/externaltest"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/testutils"
 )
 
 // Run this to init logging

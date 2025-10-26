@@ -1,11 +1,11 @@
 package main
 
 import (
-	"dissect/pkg/commands"
-	"dissect/pkg/gopls"
-	"dissect/pkg/goutils"
-	"dissect/pkg/refactor"
-	"dissect/pkg/utils"
+	"github.com/neongreen/mono/dissect/pkg/commands"
+	"github.com/neongreen/mono/dissect/pkg/gopls"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/refactor"
+	"github.com/neongreen/mono/dissect/pkg/utils"
 	"go/ast"
 	"log/slog"
 	"os"

@@ -1,7 +1,7 @@
 package goutils_test
 
 import (
-	"dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"testing"
 )
 

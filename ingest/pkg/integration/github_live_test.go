@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"ingest/pkg/database"
-	"ingest/pkg/jobs"
-	"ingest/pkg/testutil"
+	"github.com/neongreen/mono/ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/jobs"
+	"github.com/neongreen/mono/ingest/pkg/testutil"
 )
 
 // TestGitHubLiveIngestion exercises the GitHub REST ingestion against

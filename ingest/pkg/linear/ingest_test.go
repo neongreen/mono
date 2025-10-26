@@ -3,7 +3,7 @@ package linear
 import (
 	"context"
 	"fmt"
-	"ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/database"
 	"os"
 	"testing"
 

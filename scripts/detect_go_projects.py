@@ -8,14 +8,31 @@ from pathlib import Path
 
 def list_projects() -> list[str]:
     projects: list[str] = []
-    for entry in Path(".").iterdir():
+    root = Path(".")
+    for entry in sorted(root.iterdir()):
         if not entry.is_dir():
             continue
-        if not (entry / "go.mod").exists():
+        name = entry.name
+        if name.startswith("."):
             continue
-        if any(entry.glob("**/main.go")):
-            projects.append(entry.name)
-    return sorted(projects)
+        if name in {"diagram-dsl", "mdbook-comments", "scripts", "lib"}:
+            continue
+
+        has_main = False
+        for go_file in entry.rglob("*.go"):
+            if go_file.name.endswith("_test.go"):
+                continue
+            try:
+                for line in go_file.open("r", encoding="utf-8"):
+                    if line.strip().startswith("package main"):
+                        has_main = True
+                        break
+            except UnicodeDecodeError:
+                continue
+            if has_main:
+                projects.append(name)
+                break
+    return projects
 
 
 def git_output(*args: str) -> str:

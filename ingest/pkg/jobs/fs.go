@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"ingest/pkg/database"
-	ingfs "ingest/pkg/fs"
+	"github.com/neongreen/mono/ingest/pkg/database"
+	ingfs "github.com/neongreen/mono/ingest/pkg/fs"
 )
 
 // RunFS ingests filesystem entries recursively.

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"conf/pkg/config"
+	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/pelletier/go-toml/v2"
 )
 

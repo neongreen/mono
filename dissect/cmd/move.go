@@ -10,10 +10,10 @@ package main
 
 import (
 	"bytes"
-	"dissect/pkg/commands"
-	"dissect/pkg/gopls"
-	"dissect/pkg/goutils"
 	"fmt"
+	"github.com/neongreen/mono/dissect/pkg/commands"
+	"github.com/neongreen/mono/dissect/pkg/gopls"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"go/ast"
 	"go/printer"
 	"go/token"

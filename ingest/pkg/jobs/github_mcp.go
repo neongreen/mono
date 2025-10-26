@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	"ingest/pkg/database"
-	"ingest/pkg/githubmcp"
-	mcppkg "ingest/pkg/mcp"
+	"github.com/neongreen/mono/ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/githubmcp"
+	mcppkg "github.com/neongreen/mono/ingest/pkg/mcp"
 )
 
 // RunGitHubMCP ingests issues and pull requests from the GitHub MCP server.

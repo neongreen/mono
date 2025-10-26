@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
 )
 
 func Rename(filePath string, oldName string, newName string, moduleRoot string) error {

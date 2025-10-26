@@ -1,7 +1,7 @@
 package main_test
 
 import (
-	"dissect/cmd/internal/testutils"
+	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
 	"os"
 	"os/exec"
 	"path/filepath"

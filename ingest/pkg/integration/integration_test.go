@@ -1,8 +1,8 @@
 package integration
 
 import (
-	"ingest/pkg/git"
-	"ingest/pkg/testutil"
+	"github.com/neongreen/mono/ingest/pkg/git"
+	"github.com/neongreen/mono/ingest/pkg/testutil"
 	"testing"
 )
 

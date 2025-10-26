@@ -1,7 +1,7 @@
 package goutils
 
 import (
-	"dissect/pkg/utils"
+	"github.com/neongreen/mono/dissect/pkg/utils"
 	"go/ast"
 )
 
