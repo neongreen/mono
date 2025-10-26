@@ -2,11 +2,40 @@
 
 tk is a command-line tool that tracks tasks system-wide using an append-only event log with offline-first sync.
 
+## Version 4 (Current)
+
+**⚠️ Breaking Change**: Version 4 introduces a new project-based model that automatically migrates from v1/v2/v3 on first run.
+
+### What's New in v4
+
+- **Projects with stable UIDs**: Projects are now first-class entities with immutable identifiers (`prj_...`)
+- **Per-node aliases**: Project aliases are scoped to nodes, allowing flexible naming without conflicts
+- **Task UIDs as identity**: Tasks now have stable UIDs (`tsk_...`) - task numbers are mutable labels
+- **Collision-tolerant numbering**: Multiple tasks can share the same number; collisions are resolved at display time
+- **Automatic migration**: Existing v1/v2/v3 databases are automatically upgraded to v4 on first run
+- **Rollback support**: Use `tk admin rollback-v4` to restore the v3 backup if needed
+
+See [specs/v4.md](specs/v4.md) and [specs/v4-migration.md](specs/v4-migration.md) for complete details.
+
+### Migration from v1/v2/v3
+
+When you first run the v4 binary on an existing database:
+
+1. **Automatic backup** is created at `~/.tk/tk.db.v3.bak`
+2. **Schema upgrade** adds v4 tables (projects, project_aliases, tasks, task_numbers)
+3. **Data migration** converts prefixes to projects and tasks to the new model
+4. **Version update** marks the database as v4
+
+The migration preserves all your existing data. Old task IDs continue to work via aliases.
+
+**To rollback**: Run `tk admin rollback-v4` to restore the v3 backup.
+
 ## Features
 
 - **Event sourcing**: All task changes are recorded as immutable events
-- **Prefixes**: Organize tasks with custom prefixes (e.g., `tk-1`, `foo-2`, `bar-3`)
-- **Namespace isolation**: Each prefix has its own task numbering, scoped by node ID
+- **Projects (v4)**: Organize tasks with projects that have stable UIDs and per-node aliases
+- **Prefixes (v1-v3, legacy)**: Organize tasks with custom prefixes (e.g., `tk-1`, `foo-2`, `bar-3`)
+- **Namespace isolation**: Each prefix/project has its own task numbering
 - **Claims-based status**: Multiple actors (human, agent, bot, qa, rel) can make status claims
 - **Authority lattice**: Conflicts are resolved based on role authority (human > qa > rel > agent > bot)
 - **Multi-valued registers**: Conflicting claims are preserved as tentative/effective
@@ -38,7 +67,55 @@ mise run //tk:run
 
 tk stores its database in `~/.tk/tk.db` by default. The database and directory are created automatically on first use.
 
-### Prefixes
+### Projects (v4)
+
+In v4, tasks are organized by projects. Each project has:
+- A stable **project UID** (e.g., `prj_01J5Q...`) that never changes
+- A human-readable **name**
+- Per-node **aliases** for easy reference
+
+#### Create a new project
+
+```bash
+tk project create "My Project" "Project description" --alias myproj
+```
+
+This creates a new project with a stable UID and adds the alias `myproj` on your current node.
+
+#### List projects
+
+```bash
+tk project list
+```
+
+Shows all projects with their UIDs, names, aliases, and descriptions.
+
+#### Manage project aliases
+
+Add an alias for a project:
+
+```bash
+tk project alias add prj_01J5Q... myalias
+```
+
+Remove an alias:
+
+```bash
+tk project alias remove myalias
+```
+
+Aliases are per-node, so different nodes can use the same alias for different projects without conflicts.
+
+#### Create tasks in a project
+
+```bash
+tk new "Task title" --project myproj
+tk new "Another task" --project tk
+```
+
+The `--project` flag accepts either a project alias or a project UID.
+
+### Prefixes (v1-v3, legacy)
 
 tk supports multiple task prefixes, allowing you to organize tasks by project or category. Each prefix has its own namespace for task numbers.
 
@@ -426,9 +503,20 @@ Every action in tk is recorded as an immutable event in the SQLite database. Eve
 - **Payload**: Event-specific data (JSON)
 
 Supported event types:
-- `task.created` - A new task was created
+
+**V4 events:**
+- `project.created` - A new project was created
+- `project.alias.add` - An alias was added to a project
+- `project.alias.remove` - An alias was removed from a project
+- `task.created` - A new task was created (v4 format with project_uid)
+- `task.number.set` - Task number was assigned or changed
+- `task.relocate` - Task was moved to a different project
+- `task.title.set` - Task title was changed
 - `task.status.set` - Task status was updated
 - `task.note.add` - A note was added to a task
+
+**Legacy v1/v2 events (pre-migration):**
+- `task.created` - A new task was created (legacy format)
 - `task.reprefix` - Task was moved to a different prefix
 - `task.alias.added` - An alias was added for a task
 - `prefix.created` - A new prefix was created
@@ -455,7 +543,20 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 ## Status
 
-### v2 (current)
+### v4 (current)
+
+All v1/v2 features plus:
+
+- **Projects with stable UIDs**: First-class projects with immutable identifiers (`prj_...`)
+- **Per-node project aliases**: Flexible naming without conflicts
+- **Task UIDs as identity**: Stable task UIDs (`tsk_...`) - numbers are mutable labels
+- **Collision-tolerant numbering**: Multiple tasks can share the same number
+- **Automatic migration**: v1/v2/v3 databases automatically upgrade on first run
+- **Rollback support**: `tk admin rollback-v4` to restore v3 backup
+- **Project commands**: `tk project create`, `tk project list`, `tk project alias`
+- **Task creation with projects**: `tk new --project <alias>`
+
+### v2
 
 All v1 features plus:
 
@@ -489,6 +590,7 @@ All v1 features plus:
 - JJ integration
 - Custom axes and workflows
 - Task hierarchies with rollups (v3: stories, epics, progress tracking)
+- External project integrations (GitHub, Linear, Jira) - v4 has the foundation
 
 ## Testing
 
