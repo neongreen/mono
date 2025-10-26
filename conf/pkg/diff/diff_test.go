@@ -5,62 +5,6 @@ import (
 	"testing"
 )
 
-func TestDisplayDiff(t *testing.T) {
-	tests := []struct {
-		name        string
-		before      string
-		after       string
-		wantChanges bool
-	}{
-		{
-			name:        "no changes",
-			before:      "line1\nline2\nline3\n",
-			after:       "line1\nline2\nline3\n",
-			wantChanges: false,
-		},
-		{
-			name:        "single line change",
-			before:      "line1\nline2\nline3\n",
-			after:       "line1\nmodified\nline3\n",
-			wantChanges: true,
-		},
-		{
-			name:        "addition",
-			before:      "line1\nline2\n",
-			after:       "line1\nline2\nline3\n",
-			wantChanges: true,
-		},
-		{
-			name:        "deletion",
-			before:      "line1\nline2\nline3\n",
-			after:       "line1\nline3\n",
-			wantChanges: true,
-		},
-		{
-			name:        "empty to content",
-			before:      "",
-			after:       "line1\nline2\n",
-			wantChanges: true,
-		},
-		{
-			name:        "content to empty",
-			before:      "line1\nline2\n",
-			after:       "",
-			wantChanges: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			hasChanges := DisplayDiff(tt.before, tt.after)
-
-			if hasChanges != tt.wantChanges {
-				t.Errorf("DisplayDiff() hasChanges = %v, want %v", hasChanges, tt.wantChanges)
-			}
-		})
-	}
-}
-
 func TestDisplayUnifiedDiff(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -88,6 +32,34 @@ func TestDisplayUnifiedDiff(t *testing.T) {
 			before:      "[user]\nname = \"Old\"\nemail = \"old@example.com\"\n",
 			after:       "[user]\nname = \"New\"\nemail = \"new@example.com\"\n",
 			filename:    "config.toml",
+			wantChanges: true,
+		},
+		{
+			name:        "addition",
+			before:      "line1\nline2\n",
+			after:       "line1\nline2\nline3\n",
+			filename:    "test.txt",
+			wantChanges: true,
+		},
+		{
+			name:        "deletion",
+			before:      "line1\nline2\nline3\n",
+			after:       "line1\nline3\n",
+			filename:    "test.txt",
+			wantChanges: true,
+		},
+		{
+			name:        "empty to content",
+			before:      "",
+			after:       "line1\nline2\n",
+			filename:    "test.txt",
+			wantChanges: true,
+		},
+		{
+			name:        "content to empty",
+			before:      "line1\nline2\n",
+			after:       "",
+			filename:    "test.txt",
 			wantChanges: true,
 		},
 	}
