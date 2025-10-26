@@ -3,7 +3,6 @@ package editors
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -24,22 +23,17 @@ func TestTOMLEditor_SetValue(t *testing.T) {
 		t.Fatalf("Failed to set simple value: %v", err)
 	}
 
-	// Verify file was created and value was set
-	content, err := os.ReadFile(testFile)
+	// Verify value was set correctly by reading it back
+	value, err := editor.GetValue("user.name")
 	if err != nil {
-		t.Fatalf("Failed to read test file: %v", err)
+		t.Fatalf("Failed to read back user.name: %v", err)
 	}
-
-	contentStr := string(content)
-	if !strings.Contains(contentStr, "[user]") {
-		t.Error("File should contain [user] section")
-	}
-	if !strings.Contains(contentStr, "name = 'Alice'") {
-		t.Errorf("File should contain name = 'Alice', got: %s", contentStr)
+	if value != "Alice" {
+		t.Errorf("Expected 'Alice', got %v", value)
 	}
 
 	// Test setting nested value
-	err = editor.SetValue("snapshot.max-new-file-size", 0)
+	err = editor.SetValue("snapshot.max-new-file-size", int64(0))
 	if err != nil {
 		t.Fatalf("Failed to set nested value: %v", err)
 	}
@@ -50,21 +44,21 @@ func TestTOMLEditor_SetValue(t *testing.T) {
 		t.Fatalf("Failed to set another value in existing section: %v", err)
 	}
 
-	// Verify all values are present
-	content, err = os.ReadFile(testFile)
+	// Verify all values are present by reading them back
+	value, err = editor.GetValue("user.email")
 	if err != nil {
-		t.Fatalf("Failed to read test file after updates: %v", err)
+		t.Fatalf("Failed to read back user.email: %v", err)
+	}
+	if value != "alice@example.com" {
+		t.Errorf("Expected 'alice@example.com', got %v", value)
 	}
 
-	contentStr = string(content)
-	if !strings.Contains(contentStr, "email = 'alice@example.com'") {
-		t.Errorf("File should contain email setting, got: %s", contentStr)
+	value, err = editor.GetValue("snapshot.max-new-file-size")
+	if err != nil {
+		t.Fatalf("Failed to read back snapshot.max-new-file-size: %v", err)
 	}
-	if !strings.Contains(contentStr, "[snapshot]") {
-		t.Error("File should contain [snapshot] section")
-	}
-	if !strings.Contains(contentStr, "max-new-file-size = 0") {
-		t.Error("File should contain max-new-file-size setting")
+	if value != int64(0) {
+		t.Errorf("Expected 0, got %v", value)
 	}
 }
 
@@ -202,47 +196,6 @@ func TestTOMLEditor_FileCreation(t *testing.T) {
 	}
 	if value != "value" {
 		t.Errorf("Expected 'value', got %v", value)
-	}
-}
-
-func TestNestedValueFunctions(t *testing.T) {
-	// Test setNestedValue
-	data := make(map[string]interface{})
-
-	err := setNestedValue(data, "level1.level2.key", "value")
-	if err != nil {
-		t.Fatalf("Failed to set nested value: %v", err)
-	}
-
-	// Test getNestedValue
-	value, err := getNestedValue(data, "level1.level2.key")
-	if err != nil {
-		t.Fatalf("Failed to get nested value: %v", err)
-	}
-	if value != "value" {
-		t.Errorf("Expected 'value', got %v", value)
-	}
-
-	// Test unsetNestedValue
-	err = unsetNestedValue(data, "level1.level2.key")
-	if err != nil {
-		t.Fatalf("Failed to unset nested value: %v", err)
-	}
-
-	_, err = getNestedValue(data, "level1.level2.key")
-	if err == nil {
-		t.Error("Value should be unset")
-	}
-
-	// Test error cases
-	err = setNestedValue(data, "", "value")
-	if err == nil {
-		t.Error("Should error on empty path")
-	}
-
-	err = setNestedValue(data, "key..subkey", "value")
-	if err == nil {
-		t.Error("Should error on empty key in path")
 	}
 }
 

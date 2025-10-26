@@ -3,9 +3,10 @@ package editors
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/pelletier/go-toml/v2"
+	"github.com/neongreen/mono/lib/toml"
 )
 
 // TOMLEditor provides surgical editing of TOML files while preserving formatting
@@ -53,38 +54,34 @@ func (e *TOMLEditor) SetValue(path string, value interface{}) error {
 		}
 	}
 
-	// Parse existing TOML or create new structure
-	var data map[string]interface{}
+	// Parse existing TOML or create new document
+	var doc *toml.Document
 	if len(content) > 0 {
-		if err := toml.Unmarshal(content, &data); err != nil {
+		doc, err = toml.Parse(content)
+		if err != nil {
 			return fmt.Errorf("failed to parse existing TOML: %w", err)
 		}
-		// Ensure data is never nil, even if TOML only contains comments
-		if data == nil {
-			data = make(map[string]interface{})
-		}
 	} else {
-		data = make(map[string]interface{})
+		// Create an empty document
+		doc, err = toml.ParseString("")
+		if err != nil {
+			return fmt.Errorf("failed to create TOML document: %w", err)
+		}
 	}
 
 	// Set the value at the specified path
-	if err := setNestedValue(data, path, value); err != nil {
+	if err := doc.Set(path, value); err != nil {
 		return fmt.Errorf("failed to set value at path %s: %w", path, err)
 	}
 
-	// Marshal back to TOML
-	newContent, err := toml.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("failed to marshal TOML: %w", err)
-	}
-
 	// Ensure directory exists
-	if err := os.MkdirAll(strings.TrimSuffix(e.filePath, "/"+getFileName(e.filePath)), 0755); err != nil {
+	dir := filepath.Dir(e.filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	// Write the file
-	if err := os.WriteFile(e.filePath, newContent, 0644); err != nil {
+	// Write the file with preserved formatting
+	if err := os.WriteFile(e.filePath, doc.Bytes(), 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -104,12 +101,21 @@ func (e *TOMLEditor) GetValue(path string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	var data map[string]interface{}
-	if err := toml.Unmarshal(content, &data); err != nil {
+	doc, err := toml.Parse(content)
+	if err != nil {
 		return nil, fmt.Errorf("failed to parse TOML: %w", err)
 	}
 
-	return getNestedValue(data, path)
+	value, err := doc.Get(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get value at path %s: %w", path, err)
+	}
+	
+	if value == nil {
+		return nil, fmt.Errorf("path %s does not exist", path)
+	}
+
+	return value, nil
 }
 
 // UnsetValue removes a value at the specified dotted path
@@ -127,23 +133,17 @@ func (e *TOMLEditor) UnsetValue(path string) error {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	var data map[string]interface{}
-	if err := toml.Unmarshal(content, &data); err != nil {
+	doc, err := toml.Parse(content)
+	if err != nil {
 		return fmt.Errorf("failed to parse TOML: %w", err)
 	}
 
-	if err := unsetNestedValue(data, path); err != nil {
-		return fmt.Errorf("failed to unset value at path %s: %w", path, err)
-	}
-
-	// Marshal back to TOML
-	newContent, err := toml.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("failed to marshal TOML: %w", err)
+	if err := doc.Delete(path); err != nil {
+		return fmt.Errorf("failed to delete value at path %s: %w", path, err)
 	}
 
 	// Write the file
-	if err := os.WriteFile(e.filePath, newContent, 0644); err != nil {
+	if err := os.WriteFile(e.filePath, doc.Bytes(), 0644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -194,116 +194,4 @@ func (e *TOMLEditor) PreviewUnsetValue(path string) (string, error) {
 	preview.WriteString(fmt.Sprintf("Path: %s\n", path))
 
 	return preview.String(), nil
-}
-
-// setNestedValue sets a value in a nested map structure using a dotted path
-func setNestedValue(data map[string]interface{}, path string, value interface{}) error {
-	keys := strings.Split(path, ".")
-	if len(keys) == 0 {
-		return fmt.Errorf("empty path")
-	}
-
-	current := data
-	for i, key := range keys[:len(keys)-1] {
-		if key == "" {
-			return fmt.Errorf("empty key at position %d in path %s", i, path)
-		}
-
-		if existing, exists := current[key]; exists {
-			if nested, ok := existing.(map[string]interface{}); ok {
-				current = nested
-			} else {
-				// Convert existing value to map if needed
-				current[key] = make(map[string]interface{})
-				current = current[key].(map[string]interface{})
-			}
-		} else {
-			newMap := make(map[string]interface{})
-			current[key] = newMap
-			current = newMap
-		}
-	}
-
-	finalKey := keys[len(keys)-1]
-	if finalKey == "" {
-		return fmt.Errorf("empty final key in path %s", path)
-	}
-
-	current[finalKey] = value
-	return nil
-}
-
-// getNestedValue retrieves a value from a nested map structure using a dotted path
-func getNestedValue(data map[string]interface{}, path string) (interface{}, error) {
-	keys := strings.Split(path, ".")
-	if len(keys) == 0 {
-		return nil, fmt.Errorf("empty path")
-	}
-
-	current := data
-	for i, key := range keys[:len(keys)-1] {
-		if key == "" {
-			return nil, fmt.Errorf("empty key at position %d in path %s", i, path)
-		}
-
-		if existing, exists := current[key]; exists {
-			if nested, ok := existing.(map[string]interface{}); ok {
-				current = nested
-			} else {
-				return nil, fmt.Errorf("path %s does not exist: key %s is not a map", path, key)
-			}
-		} else {
-			return nil, fmt.Errorf("path %s does not exist: key %s not found", path, key)
-		}
-	}
-
-	finalKey := keys[len(keys)-1]
-	if finalKey == "" {
-		return nil, fmt.Errorf("empty final key in path %s", path)
-	}
-
-	if value, exists := current[finalKey]; exists {
-		return value, nil
-	}
-
-	return nil, fmt.Errorf("path %s does not exist: final key %s not found", path, finalKey)
-}
-
-// unsetNestedValue removes a value from a nested map structure using a dotted path
-func unsetNestedValue(data map[string]interface{}, path string) error {
-	keys := strings.Split(path, ".")
-	if len(keys) == 0 {
-		return fmt.Errorf("empty path")
-	}
-
-	current := data
-	for i, key := range keys[:len(keys)-1] {
-		if key == "" {
-			return fmt.Errorf("empty key at position %d in path %s", i, path)
-		}
-
-		if existing, exists := current[key]; exists {
-			if nested, ok := existing.(map[string]interface{}); ok {
-				current = nested
-			} else {
-				return fmt.Errorf("path %s does not exist: key %s is not a map", path, key)
-			}
-		} else {
-			return nil // Path doesn't exist, nothing to unset
-		}
-	}
-
-	finalKey := keys[len(keys)-1]
-	if finalKey == "" {
-		return fmt.Errorf("empty final key in path %s", path)
-	}
-
-	delete(current, finalKey)
-	return nil
-}
-
-// getFileName extracts filename from a file path
-func getFileName(path string) string {
-	parts := strings.Split(path, "/")
-	return parts[len(parts)-1]
 }
