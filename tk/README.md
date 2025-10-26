@@ -10,6 +10,8 @@ tk is a command-line tool that tracks tasks system-wide using an append-only eve
 - **Claims-based status**: Multiple actors (human, agent, bot, qa, rel) can make status claims
 - **Authority lattice**: Conflicts are resolved based on role authority (human > qa > rel > agent > bot)
 - **Multi-valued registers**: Conflicting claims are preserved as tentative/effective
+- **Task relations (v2)**: Model dependencies (blocks), hierarchies (subtasks), and other relationships
+- **Blocked tracking**: Automatically compute which tasks are blocked by incomplete dependencies
 - **SQLite backend**: Durable, inspectable, and portable (pure Go, no CGO required)
 - **Automatic setup**: Database is created automatically in `~/.tk/` on first use
 - **Offline-first sync**: Sync events between machines using immutable segment files (v1)
@@ -205,6 +207,42 @@ tk ls --aliases
 
 This displays a table with an additional "Aliases" column showing any aliases for tasks (e.g., old IDs after moving tasks).
 
+## Task Relations (v2)
+
+tk supports relations between tasks for modeling dependencies, hierarchies, and other relationships.
+
+### Add Relations
+
+```bash
+# Task tk-1 blocks task tk-2
+tk relate add tk-1 blocks tk-2
+
+# Task tk-3 is a subtask of tk-1
+tk relate add tk-1 subtask tk-3 --note "API design"
+
+# Mark tasks as duplicates
+tk dup tk-4 tk-5
+```
+
+### View Relations
+
+```bash
+# Show graph of task dependencies
+tk graph tk-1 --type blocks
+
+# List all tasks blocking tk-2
+tk blockers tk-2
+
+# List all blocked tasks
+tk blocked
+
+# Filter tasks by blocked status
+tk ls --blocked
+tk ls --unblocked
+```
+
+See [RELATIONS.md](RELATIONS.md) for complete documentation on task relations.
+
 ### Get database path
 
 ```bash
@@ -377,7 +415,19 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 ## Status
 
-### v1 (current)
+### v2 (current)
+
+All v1 features plus:
+
+- Task relations (blocks, subtasks, related, duplicate, supersedes)
+- OR-set CRDT semantics for relation conflict resolution
+- Blocked task tracking with configurable blocking axis
+- Cycle detection for blocks and subtasks
+- Relation visualization with `tk graph`
+- CLI commands: `tk relate`, `tk blockers`, `tk blocked`, `tk dup`
+- Filtering by blocked status in `tk ls`
+
+### v1
 
 - Event sourcing with stable event IDs (`ev-<number>-<node>`)
 - Task IDs with prefix and node suffix (`<prefix>-<number>-<node>`)
@@ -398,7 +448,7 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 - Context binding (repo, branch, commit tracking)
 - JJ integration
 - Custom axes and workflows
-- Relations between tasks (blocks, subtasks)
+- Task hierarchies with rollups (v3: stories, epics, progress tracking)
 
 ## Testing
 
