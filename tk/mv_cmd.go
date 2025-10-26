@@ -222,6 +222,63 @@ func parseMoveSpecs(args []string) ([]moveSpec, error) {
 	return specs, nil
 }
 
+// findCollisionFreeNumber finds a number for the given prefix that doesn't collide
+// with any existing task from any node. It starts with the local node's next number
+// and increments until it finds a free slot.
+func findCollisionFreeNumber(db *DB, reducer *Reducer, prefix string, reserved map[string]struct{}) (int64, error) {
+	// Start with the next number from the local node's counter
+	nextNum, err := db.GetNextTaskNumberForPrefix(prefix)
+	if err != nil {
+		return 0, err
+	}
+
+	// Get all existing task IDs to check for collisions
+	allTasks := reducer.GetAllTasks()
+	usedNumbers := make(map[int64]bool)
+
+	// Check which numbers are already used for this prefix (from any node)
+	for _, task := range allTasks {
+		parts := strings.Split(task.TaskID, "-")
+		if len(parts) >= 2 && parts[0] == prefix {
+			if num, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
+				usedNumbers[num] = true
+			}
+		}
+		// Also check aliases
+		for _, alias := range task.Aliases {
+			parts := strings.Split(alias, "-")
+			if len(parts) >= 2 && parts[0] == prefix {
+				if num, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
+					usedNumbers[num] = true
+				}
+			}
+		}
+	}
+
+	// Also check reserved numbers from this batch
+	for reservedID := range reserved {
+		parts := strings.Split(reservedID, "-")
+		if len(parts) >= 2 && parts[0] == prefix {
+			if num, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
+				usedNumbers[num] = true
+			}
+		}
+	}
+
+	// Find the first available number starting from nextNum
+	candidate := nextNum
+	for {
+		if !usedNumbers[candidate] {
+			return candidate, nil
+		}
+		candidate++
+		// Safety check to prevent infinite loop
+		if candidate > nextNum+10000 {
+			return 0, fmt.Errorf("could not find available number for prefix %s after checking 10000 candidates", prefix)
+		}
+	}
+}
+
 func planMove(db *DB, reducer *Reducer, nodeID string, spec moveSpec, reserved map[string]struct{}) (movePlanEntry, error) {
 	// Resolve old ID to task
 	task, ok := reducer.GetTask(spec.oldID)
@@ -248,10 +305,11 @@ func planMove(db *DB, reducer *Reducer, nodeID string, spec moveSpec, reserved m
 		// --keep-number takes precedence
 		newNumber = oldNumber
 	} else if spec.autoNumber {
-		// Get next available number for the prefix
-		newNumber, err = db.GetNextTaskNumberForPrefix(spec.newPrefix)
+		// Get next available number that doesn't collide with any node
+		var err error
+		newNumber, err = findCollisionFreeNumber(db, reducer, spec.newPrefix, reserved)
 		if err != nil {
-			return movePlanEntry{}, fmt.Errorf("failed to get next number for prefix %s: %w", spec.newPrefix, err)
+			return movePlanEntry{}, fmt.Errorf("failed to find collision-free number for prefix %s: %w", spec.newPrefix, err)
 		}
 	}
 
@@ -280,8 +338,8 @@ func planMove(db *DB, reducer *Reducer, nodeID string, spec moveSpec, reserved m
 			note = fmt.Sprintf("collision with existing task %s", newID)
 		}
 		if spec.onCollision == "auto" {
-			// Auto-assign next number
-			newNumber, err = db.GetNextTaskNumberForPrefix(spec.newPrefix)
+			// Auto-assign collision-free number
+			newNumber, err = findCollisionFreeNumber(db, reducer, spec.newPrefix, reserved)
 			if err != nil {
 				return movePlanEntry{}, err
 			}
