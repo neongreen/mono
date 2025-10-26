@@ -239,3 +239,21 @@ func (e *TOMLEditor) SetAllValues(values map[string]interface{}) error {
 
 	return nil
 }
+
+// ReadFileContent reads and returns the content of the file as a string
+// Returns empty string if file doesn't exist
+func (e *TOMLEditor) ReadFileContent() (string, error) {
+	content, err := os.ReadFile(e.filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", fmt.Errorf("failed to read file: %w", err)
+	}
+	return string(content), nil
+}
+
+// GetFilePath returns the path to the file being edited
+func (e *TOMLEditor) GetFilePath() string {
+	return e.filePath
+}
