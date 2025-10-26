@@ -4,6 +4,10 @@
 // user-friendly API for reading, modifying, and writing TOML files while
 // preserving all comments, formatting, and declaration order.
 //
+// The package supports TOML-compliant path parsing, including quoted keys
+// for special characters. For example: aliases."." or section."key with spaces".
+// Invalid paths like "aliases." (trailing dot) are rejected.
+//
 // Example usage:
 //
 //	doc, err := tomlcp.Parse([]byte(`
@@ -18,6 +22,9 @@
 //
 //	// Modify a value
 //	doc.Set("server.port", 9090)
+//
+//	// Use quoted keys for special characters
+//	doc.Set(`aliases."."`, "status")
 //
 //	// Write back with comments preserved
 //	output := doc.String()
