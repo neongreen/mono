@@ -1323,6 +1323,31 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 	return exec.Command("mise", miseArgs...)
 }
 
+// getBuildPath determines the correct build path for a Go project.
+// Some projects have their main.go in a cmd subdirectory, while others have it in the root.
+// Returns the relative path to use with 'go build' (either "." or "./cmd").
+func getBuildPath(projectDir string) string {
+	// Check if there's a cmd subdirectory with Go files
+	cmdDir := filepath.Join(projectDir, "cmd")
+	if _, err := os.Stat(cmdDir); err == nil {
+		// cmd directory exists, check if it has Go files
+		entries, err := os.ReadDir(cmdDir)
+		if err != nil {
+			// If we can't read the directory (e.g., permissions issue),
+			// fall back to default. The actual error will surface when go build runs.
+			return "."
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".go" {
+				// Found Go files in cmd directory
+				return "./cmd"
+			}
+		}
+	}
+	// Default to current directory (either cmd exists but has no .go files, or cmd doesn't exist)
+	return "."
+}
+
 // buildMonoFromSource builds a project from a branch or commit in the mono repository
 func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bool, dryRun bool, planJson bool) {
 	// Determine destination path
@@ -1448,7 +1473,8 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 
 	// Build the project
 	fmt.Printf("\nBuilding %s...\n", project)
-	cmd = createGoBuildCommand("build", "-o", destPath, ".")
+	buildPath := getBuildPath(projectDir)
+	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -1602,7 +1628,8 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 
 	// Build the project
 	fmt.Printf("\nBuilding %s...\n", project)
-	cmd = createGoBuildCommand("build", "-o", destPath, ".")
+	buildPath := getBuildPath(projectDir)
+	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
