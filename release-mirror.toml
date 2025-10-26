@@ -45,7 +45,7 @@ test_args = ["--help"]
 
 [[mirror.projects]]
 name = "prrun"
-desc = "Run binaries from GitHub PR releases for quick verification."
+desc = "Deprecated tool originally for running PR release binaries."
 homepage = "https://github.com/neongreen/mono/tree/main/prrun"
 binary = "prrun"
 test_args = ["--help"]

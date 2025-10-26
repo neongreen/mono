@@ -34,7 +34,6 @@ if [ $# -lt 1 ]; then
     echo ""
     echo "Examples:"
     echo "  $0 dissect main.5          # Install specific version"
-    echo "  $0 dissect pr-42.1         # Install PR version"
     echo "  $0 markdown-format         # Install latest main"
     exit 1
 fi

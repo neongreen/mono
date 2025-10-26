@@ -1,10 +1,12 @@
 # Release Workflow for Go Projects
 
+**Note**: As of 2025, this workflow only creates releases for the main branch. Pull request releases are no longer supported.
+
 This document explains how the automated release system works for Go projects in this monorepo.
 
 ## Overview
 
-The `release.yml` workflow automatically builds and releases Go projects from this monorepo. It creates versioned releases for both the main branch and pull requests, allowing you to easily install and test different versions of tools.
+The `release.yml` workflow automatically builds and releases Go projects from this monorepo when changes are pushed to the main branch.
 
 ## How It Works
 
@@ -13,24 +15,23 @@ The `release.yml` workflow automatically builds and releases Go projects from th
 The workflow automatically detects Go projects by:
 1. Looking for directories with `go.mod` files at the root level
 2. Verifying they contain at least one `main.go` file
-3. Currently detected: `dissect`, `markdown-format`
+3. Currently detected: `dissect`, `markdown-format`, and others
 
 ### Version Naming
 
-Releases use the format: `<project>--<branch>.<number>`
+Releases use the format: `<project>--main.<number>`
 
 Examples:
 - `dissect--main.1` - First release of dissect from main branch
 - `dissect--main.2` - Second release of dissect from main branch
-- `dissect--pr-42.1` - First release of dissect from PR #42
 - `markdown-format--main.1` - First release of markdown-format from main branch
 
-The version number automatically increments based on existing tags for that project+branch combination.
+The version number automatically increments based on existing tags for that project.
 
 ### When Releases Are Created
 
-- **Main branch**: On every push to main
-- **Pull requests**: On PR open, synchronize (new commits), or reopen
+- **Main branch**: On every push to main that modifies Go files
+- **Manual**: Via workflow_dispatch trigger
 
 ### Supported Platforms
 
@@ -90,15 +91,6 @@ chmod +x dissect-main.5-darwin-arm64
 sudo mv dissect-main.5-darwin-arm64 /usr/local/bin/dissect
 ```
 
-### Install dissect from PR #123
-
-```bash
-# Find the release tag (e.g., dissect--pr-123.1)
-wget https://github.com/neongreen/mono/releases/download/dissect--pr-123.1/dissect-pr-123.1-linux-amd64
-chmod +x dissect-pr-123.1-linux-amd64
-sudo mv dissect-pr-123.1-linux-amd64 /usr/local/bin/dissect
-```
-
 ## Technical Details
 
 ### Build Process
@@ -106,15 +98,14 @@ sudo mv dissect-pr-123.1-linux-amd64 /usr/local/bin/dissect
 For each detected Go project:
 1. Determines if the project has `cmd/main.go` or root-level `main.go`
 2. Builds for all supported platforms using cross-compilation
-3. Names binaries as: `<project>-<version>-<os>-<arch>[.exe]`
+3. Names binaries as: `<project>-<version>-<os>-<arch>`
 
 ### Release Creation
 
 - Uses GitHub Releases API via `softprops/action-gh-release@v2`
 - Attaches all platform binaries
 - Includes installation instructions
-- Main branch releases are regular releases
-- PR releases are marked as pre-releases
+- All releases are regular releases (not pre-releases)
 
 ### Workflow Jobs
 

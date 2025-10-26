@@ -1,14 +1,15 @@
 # Release Workflow Implementation Summary
 
+**Note**: As of 2025, this repository no longer creates binary releases for pull requests. This document describes the historical implementation and current main-branch-only release workflow.
+
 This document summarizes the automated release system implemented for Go projects in this monorepo.
 
 ## Problem Solved
 
 You wanted to be able to:
-1. Install tools from this repository, not just from main but also from PRs
+1. Install tools from this repository from main branch
 2. Have versioned releases for each Go project
-3. Distinguish between releases from main and different branches/PRs
-4. Easily install specific versions
+3. Easily install specific versions
 
 ## Solution Delivered
 
@@ -16,22 +17,21 @@ You wanted to be able to:
 
 **File:** `.github/workflows/release.yml`
 
-- **Triggers:** Push to main, Pull request activity (open, sync, reopen)
+- **Triggers:** Push to main, Manual workflow dispatch
 - **Path filters:** Only runs when Go files change (`*.go`, `go.mod`, `go.sum`)
 - **Auto-detection:** Finds Go projects automatically (directories with `go.mod` + `main.go`)
 - **Multi-platform:** Builds for Linux and macOS (amd64 and arm64)
-- **Version management:** Auto-increments versions per project and branch
+- **Version management:** Auto-increments versions per project
 
 ### Version Naming Convention
 
-Format: `<project>--<branch>.<number>`
+Format: `<project>--main.<number>`
 
 **Examples:**
 - `dissect--main.1`, `dissect--main.2`, `dissect--main.3` - Main branch releases
-- `dissect--pr-42.1`, `dissect--pr-42.2` - PR #42 releases
 - `markdown-format--main.1` - Markdown-format from main
 
-Each project and branch combination has independent version numbering. PR releases are marked as pre-releases.
+Each project has independent version numbering.
 
 ### Supported Platforms
 
@@ -51,9 +51,6 @@ curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | ba
 
 # Install specific version
 curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | bash -s dissect main.5
-
-# Install from PR (for testing)
-curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | bash -s dissect pr-42.1
 ```
 
 #### Option 2: Install Script
@@ -81,19 +78,14 @@ chmod +x install.sh
    sudo mv dissect-main.1-linux-amd64 /usr/local/bin/dissect
    ```
 
-### Testing PR Changes
+### Testing Changes
 
-When you want to test changes from a PR before merging:
+To test changes before they're merged:
 
-1. Open or update a PR
-2. Workflow creates a release (e.g., `dissect--pr-123.1`)
-3. Install it:
-   ```bash
-   ./install.sh dissect pr-123.1
-   ```
-4. Test the changes
-5. If satisfied, merge the PR
-6. A new main release is automatically created
+1. Check out the branch locally
+2. Build and test the tool manually
+
+The install script and releases are only for main branch versions.
 
 ## Files Created
 
@@ -138,7 +130,6 @@ For each detected project:
 - Creates GitHub release with the version tag
 - Attaches all binaries
 - Includes installation instructions
-- Marks PR releases as pre-releases
 
 ## Testing Performed
 
@@ -159,14 +150,14 @@ For each detected project:
 # Automatically finds and installs the latest main version
 ```
 
-### Scenario 2: Testing a PR
+### Scenario 2: Testing a Change
 ```bash
-# PR #42 has a new feature you want to test
-./install.sh dissect pr-42.1
-# Run tests with the PR version
-dissect --help
-# If it works, merge PR #42
-# Then install from main:
+# Check out the branch with the change
+git checkout feature-branch
+# Build and test locally
+cd dissect && go build .
+./dissect --help
+# If it works, merge and install from main:
 ./install.sh dissect
 ```
 
@@ -185,17 +176,15 @@ dissect --help
 # Both installed from their latest main versions
 ```
 
-## What Happens on Merge
+## What Happens on Push to Main
 
-When this PR is merged to main:
+When code is pushed to main:
 
-1. Workflow triggers (Go files changed)
-2. Detects 2 projects: `dissect`, `markdown-format`
-3. Calculates versions: Both will be `.1` (first releases)
-4. Builds 8 binaries (4 platforms × 2 projects)
-5. Creates 2 releases:
-   - `dissect--main.1` with 4 binaries
-   - `markdown-format--main.1` with 4 binaries
+1. Workflow triggers (if Go files changed)
+2. Detects changed Go projects
+3. Calculates next version numbers
+4. Builds binaries (4 platforms per project)
+5. Creates releases with tags like `<project>--main.N`
 
 Then users can immediately install with:
 ```bash
@@ -209,11 +198,6 @@ Every subsequent push to main will:
 - Increment version numbers (`main.2`, `main.3`, etc.)
 - Create new releases
 - Build fresh binaries
-
-Every PR will:
-- Create pre-releases with PR number (`pr-N.1`, `pr-N.2`, etc.)
-- Allow testing before merge
-- Be marked as pre-release (not "latest")
 
 ## Maintenance
 
@@ -238,18 +222,12 @@ Edit `.github/workflows/release.yml` and modify the `PLATFORMS` array.
 
 Each project is independent and can have its own version cadence. Users only install what they need.
 
-### Why tag format `project--branch.number`?
+### Why tag format `project--main.number`?
 
 - Clearly identifies the project
-- Clearly identifies the branch/PR
+- Clearly identifies it's from main branch
 - Simple incrementing number
 - Compatible with Go tooling (avoids issues with slashes)
-
-### Why pre-release for PRs?
-
-- Distinguishes experimental builds from stable ones
-- Doesn't appear as "latest release"
-- Still fully accessible for testing
 
 ### Why auto-detect projects?
 
@@ -262,11 +240,9 @@ Each project is independent and can have its own version cadence. Users only ins
 | Requirement | Implementation | Status |
 |------------|----------------|--------|
 | Install tools from repository | `install.sh` script + releases | ✅ |
-| Install from main branch | `project/main.N` releases | ✅ |
-| Install from PRs | `project/pr-N.N` releases | ✅ |
-| Version identification | `project/branch.number` format | ✅ |
-| Incremental versions | Auto-increment per project+branch | ✅ |
-| Sanitized branch names | PR numbers instead of branch names | ✅ |
+| Install from main branch | `project--main.N` releases | ✅ |
+| Version identification | `project--main.number` format | ✅ |
+| Incremental versions | Auto-increment per project | ✅ |
 | Multiple projects | Matrix builds, independent releases | ✅ |
 | Easy installation | Three installation options | ✅ |
 
@@ -274,10 +250,10 @@ Each project is independent and can have its own version cadence. Users only ins
 
 You now have a fully automated release system that:
 - ✅ Creates releases for every Go project
-- ✅ Works for both main and PRs
+- ✅ Works for main branch
 - ✅ Uses clear, incrementing version numbers
 - ✅ Supports multiple platforms
 - ✅ Provides easy installation
 - ✅ Requires zero manual intervention
 
-You can install any version of any tool from any branch or PR with a single command.
+You can install any version of any tool from the main branch with a single command.

@@ -1,5 +1,7 @@
 # Release Workflow Architecture
 
+**Note**: As of 2025, this workflow only creates releases for the main branch. PR releases are no longer supported.
+
 ## Overview
 
 This document describes the technical architecture of the automated release system for Go projects.
@@ -7,7 +9,7 @@ This document describes the technical architecture of the automated release syst
 ## Workflow Flow
 
 ```
-Trigger (Push to main OR Pull Request)
+Trigger (Push to main OR Manual workflow dispatch)
     |
     v
 [Detect Job]
@@ -35,16 +37,13 @@ Decision: Has projects?
     v
 [Determine Version]
     |
-    +-- Extract branch/PR info
-    |   |
-    |   +-- Main: REF="main"
-    |   +-- PR: REF="pr-NUMBER"
+    +-- Set REF="main"
     |
-    +-- Find existing tags: PROJECT/REF.*
+    +-- Find existing tags: PROJECT--main.*
     |
     +-- Calculate next version number
     |
-    +-- Output: TAG="project/branch.N"
+    +-- Output: TAG="project--main.N"
     |
     v
 [Build Binaries]
@@ -64,11 +63,9 @@ Decision: Has projects?
     |
     +-- Create GitHub release
     |
-    +-- Set tag: PROJECT/BRANCH.NUMBER
+    +-- Set tag: PROJECT--main.NUMBER
     |
     +-- Attach all binaries
-    |
-    +-- Mark as pre-release if from PR
     |
     v
 Done
@@ -77,7 +74,7 @@ Done
 ## Version Numbering
 
 ### Format
-`<project>/<branch>.<number>`
+`<project>--main.<number>`
 
 ### Examples
 
@@ -85,11 +82,6 @@ Done
 - First push: `dissect--main.1`
 - Second push: `dissect--main.2`
 - Third push: `dissect--main.3`
-
-**Pull Request #42:**
-- First build: `dissect--pr-42.1`
-- Updated PR: `dissect--pr-42.2`
-- Another update: `dissect--pr-42.3`
 
 **Different Projects:**
 - `dissect--main.1` - dissect from main
@@ -162,14 +154,13 @@ Uses `softprops/action-gh-release@v2` to:
 2. Tag it with the calculated version
 3. Attach all built binaries
 4. Generate installation instructions
-5. Mark PR releases as pre-release
 
 ### Release Body Template
 
 ```markdown
 Release of **{project}** version `{version}`
 
-Built from: {main branch | PR #NUMBER}
+Built from: main branch
 Commit: {sha}
 
 ## Installation

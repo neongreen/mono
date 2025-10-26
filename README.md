@@ -8,7 +8,7 @@ This repository contains multiple independent projects.
 | --- | --- | --- |
 | [dissect](dissect/) | beta (actively used internally) | Go tool for structural code refactoring; feature set continues to grow. |
 | [markdown-format](markdown-format/) | alpha | Markdown formatter; command surface and formatting rules are still evolving. |
-| [prrun](prrun/) | beta | Runs binaries from PR releases to speed up verification workflows. |
+| [prrun](prrun/) | deprecated | Was designed to run binaries from PR releases; PR releases are no longer created. |
 | [printpdf](printpdf/) | alpha | Markdown/web-to-PDF tool; rendering pipeline has known gaps documented in project issues. |
 | [beads-merge](beads-merge/) | alpha | 3-way merge tool for beads `.jsonl` issue files; designed for jj version control. |
 | [ingest](ingest/) | pre-alpha | Data ingestion orchestrator; schema and connectors change frequently. |
@@ -32,9 +32,6 @@ curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | ba
 
 # Install specific version
 curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | bash -s dissect main.5
-
-# Install from a pull request
-curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | bash -s dissect pr-42.1
 ```
 
 Or download the script and run it locally:
@@ -68,7 +65,6 @@ sudo mv <binary-name> /usr/local/bin/<tool-name>
 Go projects in this repository are automatically released:
 
 - **Main branch releases**: Created on every push to main (e.g., `dissect--main.1`, `dissect--main.2`)
-- **PR releases**: Created for pull requests (e.g., `dissect--pr-42.1`) - useful for testing changes before merge
 
 Main channel releases are considered unstable snapshots unless explicitly tagged. Stable channels are being defined (see bd-313).
 
@@ -89,30 +85,14 @@ brew install tk
 
 See [Release Workflow Documentation](.github/workflows/RELEASE_WORKFLOW.md) for more details.
 
-## Testing PR Changes
+## Testing Changes
 
-Use **[prrun](prrun/)** to easily test binaries from pull requests without manual installation:
+To test changes before they're merged:
 
-```bash
-# Build prrun first (or wait for it to be released)
-cd prrun && go build -o prrun .
+1. Check out the branch locally
+2. Build and test the tool manually
 
-# Test a PR binary directly (auto-detects project if only one modified)
-./prrun https://github.com/neongreen/mono/pull/123 --help
-
-# Or specify the project explicitly
-./prrun https://github.com/neongreen/mono/pull/123 -p dissect --help
-
-# Run it on your files
-./prrun https://github.com/neongreen/mono/pull/123 -p dissect myfile.go
-```
-
-The tool automatically:
-1. Detects which project the PR modifies (or lets you specify with `-p`)
-2. Finds the PR release
-3. Downloads the binary to `~/.cache/prrun/`
-4. Runs it with your arguments
-5. Warns if the release workflow is pending approval
+For testing released versions, see the [Releases](#releases) section above.
 
 ## Development
 
