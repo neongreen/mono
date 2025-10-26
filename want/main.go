@@ -1332,16 +1332,19 @@ func getBuildPath(projectDir string) string {
 	if _, err := os.Stat(cmdDir); err == nil {
 		// cmd directory exists, check if it has Go files
 		entries, err := os.ReadDir(cmdDir)
-		if err == nil {
-			for _, entry := range entries {
-				if !entry.IsDir() && filepath.Ext(entry.Name()) == ".go" {
-					// Found Go files in cmd directory
-					return "./cmd"
-				}
+		if err != nil {
+			// If we can't read the directory (e.g., permissions issue),
+			// fall back to default. The actual error will surface when go build runs.
+			return "."
+		}
+		for _, entry := range entries {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".go" {
+				// Found Go files in cmd directory
+				return "./cmd"
 			}
 		}
 	}
-	// Default to current directory
+	// Default to current directory (either cmd exists but has no .go files, or cmd doesn't exist)
 	return "."
 }
 
