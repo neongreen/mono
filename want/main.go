@@ -1324,7 +1324,7 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 }
 
 // buildMonoFromSource builds a project from a branch or commit in the mono repository
-func buildMonoFromSource(project, refSpec, refDescription string, dryRun bool, planJson bool) {
+func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bool, dryRun bool, planJson bool) {
 	// Determine destination path
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -1335,14 +1335,21 @@ func buildMonoFromSource(project, refSpec, refDescription string, dryRun bool, p
 	destDir := filepath.Join(homeDir, ".local", "bin")
 	destPath := filepath.Join(destDir, project)
 
-	// Build the plan first
+	// Build the plan - different commands for commits vs branches
+	var cloneCmd string
+	if isCommitSHA {
+		cloneCmd = fmt.Sprintf("git clone --depth=1 https://github.com/neongreen/mono.git <tmpdir> && cd <tmpdir> && git fetch origin %s && git checkout %s", refSpec, refSpec)
+	} else {
+		cloneCmd = fmt.Sprintf("git clone --depth=1 --branch %s https://github.com/neongreen/mono.git <tmpdir>", refSpec)
+	}
+
 	plan := FulfillmentPlan{
 		Requirement: fmt.Sprintf("mono %s@%s", project, refSpec),
 		Steps: []PlanStep{
 			{
 				Type:        "download",
 				Description: fmt.Sprintf("Clone neongreen/mono repository (%s)", refDescription),
-				Command:     fmt.Sprintf("git clone --depth=1 --branch %s https://github.com/neongreen/mono.git <tmpdir>", refSpec),
+				Command:     cloneCmd,
 				Automatic:   true,
 			},
 			{
@@ -1396,16 +1403,49 @@ func buildMonoFromSource(project, refSpec, refDescription string, dryRun bool, p
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// Clone the repository
+	// Clone the repository - different approach for commits vs branches
 	fmt.Printf("Cloning neongreen/mono (%s)...\n", refDescription)
-	cmd := exec.Command("git", "clone", "--depth=1", "--branch", refSpec,
-		"https://github.com/neongreen/mono.git", tmpDir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to clone repository: %v\n", err)
-		fmt.Printf("Note: Make sure the branch or tag '%s' exists in neongreen/mono\n", refSpec)
-		os.Exit(1)
+	var cmd *exec.Cmd
+	if isCommitSHA {
+		// For commit SHAs, we need to clone first then checkout
+		cmd = exec.Command("git", "clone", "--depth=1", "https://github.com/neongreen/mono.git", tmpDir)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("\nError: Failed to clone repository: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Now fetch and checkout the specific commit
+		cmd = exec.Command("git", "fetch", "origin", refSpec)
+		cmd.Dir = tmpDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("\nError: Failed to fetch commit %s: %v\n", refSpec, err)
+			fmt.Printf("Note: Make sure the commit '%s' exists in neongreen/mono\n", refSpec)
+			os.Exit(1)
+		}
+
+		cmd = exec.Command("git", "checkout", refSpec)
+		cmd.Dir = tmpDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("\nError: Failed to checkout commit %s: %v\n", refSpec, err)
+			os.Exit(1)
+		}
+	} else {
+		// For branches and tags, use --branch flag
+		cmd = exec.Command("git", "clone", "--depth=1", "--branch", refSpec,
+			"https://github.com/neongreen/mono.git", tmpDir)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("\nError: Failed to clone repository: %v\n", err)
+			fmt.Printf("Note: Make sure the branch or tag '%s' exists in neongreen/mono\n", refSpec)
+			os.Exit(1)
+		}
 	}
 
 	// Check if project directory exists
@@ -1646,10 +1686,12 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 		// Common branch names: main, develop, feature-xyz, etc.
 		// Commit SHAs are typically 40 hex chars, but can be abbreviated (7+ chars)
 		refDescription := version
+		isCommitSHA := false
 		if version == "main" || version == "master" {
 			refDescription = fmt.Sprintf("latest commit on %s branch", version)
 		} else if len(version) >= 7 && len(version) <= 40 && isHexString(version) {
 			refDescription = fmt.Sprintf("commit %s", version)
+			isCommitSHA = true
 		} else {
 			refDescription = fmt.Sprintf("branch %s", version)
 		}
@@ -1659,7 +1701,7 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 			fmt.Printf("Building from %s instead...\n", refDescription)
 			fmt.Println()
 		}
-		buildMonoFromSource(project, version, refDescription, dryRun, planJson)
+		buildMonoFromSource(project, version, refDescription, isCommitSHA, dryRun, planJson)
 		return
 	}
 
