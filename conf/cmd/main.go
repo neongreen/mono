@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/neongreen/mono/conf/pkg/config"
+	"github.com/neongreen/mono/conf/pkg/diff"
 	"github.com/neongreen/mono/conf/pkg/schemas"
 	"github.com/neongreen/mono/conf/pkg/sync"
 	"github.com/neongreen/mono/conf/pkg/tools"
@@ -1204,13 +1205,44 @@ func applyTool(conf *config.Config, toolName string, dryRun bool) error {
 	if dryRun {
 		fmt.Printf("  Would apply %d top-level config sections\n", len(tool.Values))
 	} else {
+		// Capture the "before" state
+		before, err := readFileContentSafe(tool.ConfigPath)
+		if err != nil {
+			return fmt.Errorf("failed to read config file before applying: %w", err)
+		}
+
+		// Apply the configuration
 		if err := tools.ApplyAllToolValues(toolName, tool.Values); err != nil {
 			return fmt.Errorf("failed to apply %s configuration: %w", toolName, err)
 		}
-		fmt.Printf("  ✓ Applied configuration successfully\n")
+
+		// Capture the "after" state
+		after, err := readFileContentSafe(tool.ConfigPath)
+		if err != nil {
+			return fmt.Errorf("failed to read config file after applying: %w", err)
+		}
+
+		// Display diff if there were changes
+		if diff.DisplayUnifiedDiff(before, after, tool.ConfigPath) {
+			fmt.Printf("  ✓ Applied configuration successfully\n")
+		} else {
+			fmt.Printf("  ✓ No changes needed (already in sync)\n")
+		}
 	}
 
 	return nil
+}
+
+// readFileContentSafe reads file content, returning empty string if file doesn't exist
+func readFileContentSafe(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", nil
+		}
+		return "", err
+	}
+	return string(content), nil
 }
 
 // applyToolValue applies a single configuration value to a tool
