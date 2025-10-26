@@ -79,7 +79,7 @@ Events are emitted in timestamp order and projected immediately.
 
 ### Step 4: Finalize
 - Set meta.version_major = 4
-- Set config.remote_subdir = "tk-v4"
+- Set config.remote_subdir = "v4"
 - Drop the lock
 - Keep tk.db.v3.bak for rollback
 
@@ -100,7 +100,7 @@ This:
 2. Resets meta.version_major = 3
 3. Lets you use v1/v2 binaries again
 
-The v4 segments in `tk-v4/` remain untouched and can be ignored.
+The v4 segments in `v4/` remain untouched and can be ignored.
 
 ---
 
@@ -206,13 +206,13 @@ tk mv foo-1 bar:2
 **v4:**
 ```bash
 # Change number within same project:
-tk number set foo-1 2
+tk edit foo-1 number 2
 # Emits: task.number.set {task_uid, project_uid, number: 2}
 # Result: Display changes from foo-1 to foo-2
 # The old number foo-1 becomes available again for new tasks
 
 # Move to different project (atomic operation):
-tk move foo-1 --to bar --force 2
+tk mv foo-1 bar --force 2
 # Emits: task.relocate {from_project_uid, to_project_uid, number_policy}
 # Result: Task moved to bar project, numbered as bar-2
 ```
@@ -247,7 +247,7 @@ After sync:
     tk-1-def  ← Node B's task (with node hint)
 
   Resolution (optional):
-    tk number set tk-1-def 2  → Renumber one task
+    tk edit tk-1-def number 2  → Renumber one task
     Result: tk-1 and tk-2 (no more collision)
 ```
 
@@ -281,9 +281,9 @@ This is **allowed by design** in v4 (aliases are per-node).
 | project.alias.add/remove | manage aliases | prefix.created |
 | task.created | create task | task.created (with project_uid) |
 | task.number.set | assign / change label | task.reprefix (partially) |
-| task.relocate | atomic move + renumber | task.reprefix sequence |
+| task.relocate | atomic move + renumber | task.reprefix |
 
-The new `task.relocate` event replaces the legacy "move then renumber" sequence. It atomically handles moving a task from one project to another and renumbering within the new project.
+The `task.relocate` event is the v4 equivalent of `task.reprefix` from v1/v2. Both are atomic operations. The key difference is that v4 uses stable project UIDs instead of prefix strings.
 
 ---
 
@@ -294,11 +294,9 @@ The new `task.relocate` event replaces the legacy "move then renumber" sequence.
 | `tk prefix create foo "desc"` | `tk project create "desc"`<br>`tk project alias foo <uid>` | Two commands in v4 |
 | `tk prefix list` | `tk project list` | Similar output |
 | `tk new --prefix foo "title"` | `tk new --project foo "title"` | `--project` instead of `--prefix` |
-| `tk mv foo-1 bar:2` | `tk number set foo-1 2`<br>`tk move foo-1 --to bar --force 2` | v4: renumber or move separately |
+| `tk mv foo-1 bar:2` | `tk edit foo-1 number 2`<br>`tk mv foo-1 bar --force 2` | v4: renumber or move separately |
 | `tk ls --prefix foo` | `tk ls --project foo` | `--project` instead of `--prefix` |
 | `tk view foo-1-abc123` | `tk view foo-1`<br>`tk view foo-1-abc` | Node hint only if needed |
-
-Note: `tk mv` is removed. (Optional hidden alias may exist for one release.)
 
 ---
 
@@ -317,7 +315,7 @@ task_counter (last_id)  -- legacy
 **v4:**
 ```sql
 events (id, ts, actor, role, kind, payload, ...)
-projects (project_uid PK, type, origin_json, name, description, created_at, created_by)
+projects (project_uid PK, type, name, description, created_at, created_by)
 project_aliases (project_uid, alias, node, added_by, PRIMARY KEY(alias, node))
 tasks (task_uid PK, project_uid, created_node, title, created_at, created_by, ...)
 task_numbers (project_uid, number, task_uid)  -- Note: NOT unique!
@@ -366,7 +364,6 @@ task_numbers (project_uid, number, task_uid)  -- Note: NOT unique!
   "payload": {
     "project_uid": "prj_01J5Q...",
     "type": "local",
-    "origin": null,
     "name": "Foo project",
     "description": "Foo project tasks",
     "created_by": "alice"
@@ -416,7 +413,7 @@ task_numbers (project_uid, number, task_uid)  -- Note: NOT unique!
 The v4 binary includes several safety measures:
 
 ### Version Guard
-- The v4 binary refuses to ingest any segment not under `tk-v4/` or without `"tk_major": 4`.
+- The v4 binary refuses to ingest any segment not under `v4/` or without `"spec_version": 4`.
 - This prevents accidental ingestion of v1/v2 segments.
 
 ### Automatic Health Check
@@ -437,12 +434,11 @@ The v4 binary includes several safety measures:
 
 ## Key Benefits of v4
 
-### 1. External Integration Ready
+### 1. External Integration Ready (Future)
 ```
-# GitHub project
+# GitHub project (future feature)
 project_uid: prj_github_1
 type: github
-origin: {"owner": "neongreen", "repo": "mono"}
 name: "neongreen/mono"
 
 # Display as: neongreen/mono#123
@@ -452,8 +448,8 @@ name: "neongreen/mono"
 ### 2. Flexible Numbering
 ```
 # Can renumber tasks without changing identity
-tk number set old-task 100  # "Fresh start" numbering
-tk number set urgent-1 999  # Priority numbering
+tk edit old-task number 100  # "Fresh start" numbering
+tk edit urgent-1 number 999  # Priority numbering
 
 # Numbers are just labels, identity is task_uid
 ```
@@ -477,7 +473,7 @@ tk number set urgent-1 999  # Priority numbering
 # Two people create "urgent-1" offline
 # After sync: Both exist as urgent-1-alice and urgent-1-bob
 # No data loss, no merge conflicts
-# Can renumber later: tk number set urgent-1-bob 2
+# Can renumber later: tk edit urgent-1-bob number 2
 ```
 
 ---
