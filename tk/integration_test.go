@@ -253,15 +253,24 @@ func TestRelationRemovalIntegration(t *testing.T) {
 	reducer := NewReducer()
 
 	// Create two tasks
-	for _, uuid := range []string{"task-a", "task-b"} {
+	taskData := []struct {
+		uuid  string
+		id    string
+		title string
+	}{
+		{"task-a", "test-1", "Task A"},
+		{"task-b", "test-2", "Task B"},
+	}
+
+	for _, task := range taskData {
 		event := Event{
-			ID:        "ev-" + uuid,
+			ID:        "ev-" + task.uuid,
 			TS:        1,
 			CreatedAt: time.Now(),
 			Actor:     "alice",
 			Role:      "human",
 			Kind:      "task.created",
-			Payload:   marshalPayload(TaskCreatedPayload{TaskUUID: uuid, TaskID: uuid, Title: uuid, CreatedBy: "alice"}),
+			Payload:   marshalPayload(TaskCreatedPayload{TaskUUID: task.uuid, TaskID: task.id, Title: task.title, CreatedBy: "alice"}),
 		}
 		reducer.Apply(event)
 	}
