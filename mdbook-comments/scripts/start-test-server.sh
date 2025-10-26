@@ -12,7 +12,7 @@ EOF
 
 # Start json-server with test database
 json-server /tmp/test-db.json \
-  --port 54322 \
+  --port 55432 \
   --middlewares json-server-middleware.js \
   --routes routes.json \
   --watch

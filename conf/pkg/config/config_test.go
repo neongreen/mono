@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -349,11 +350,16 @@ schema_path = 'embedded://jj.json'
 		t.Fatal("jj tool should have Values loaded from per-tool file")
 	}
 
-	if name, ok := jjTool.Values["user.name"]; !ok || name != "Emily" {
+	userValues, ok := jjTool.Values["user"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected user values to be a map, got %T", jjTool.Values["user"])
+	}
+
+	if name, ok := userValues["name"]; !ok || name != "Emily" {
 		t.Errorf("Expected user.name to be 'Emily', got %v", name)
 	}
 
-	if email, ok := jjTool.Values["user.email"]; !ok || email != "emily@artyom.me" {
+	if email, ok := userValues["email"]; !ok || email != "emily@artyom.me" {
 		t.Errorf("Expected user.email to be 'emily@artyom.me', got %v", email)
 	}
 }
@@ -380,10 +386,21 @@ func TestPerToolConfigSaving(t *testing.T) {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
-	// Create empty per-tool file to signal we want per-tool format
+	// Seed per-tool file with a comment to verify preservation
 	jjTomlPath := configDir + "/jj.toml"
-	if err := os.WriteFile(jjTomlPath, []byte(""), 0644); err != nil {
+	initialJJContent := "# keep-this-comment\n"
+	if err := os.WriteFile(jjTomlPath, []byte(initialJJContent), 0644); err != nil {
 		t.Fatalf("Failed to create jj.toml: %v", err)
+	}
+
+	// Seed config.toml with a comment that should be preserved
+	configPath, err := ConfigPath()
+	if err != nil {
+		t.Fatalf("Failed to get config path: %v", err)
+	}
+	initialConfigContent := "# preserve-this-config-comment\n"
+	if err := os.WriteFile(configPath, []byte(initialConfigContent), 0644); err != nil {
+		t.Fatalf("Failed to seed config.toml: %v", err)
 	}
 
 	// Create config with values
@@ -394,8 +411,10 @@ func TestPerToolConfigSaving(t *testing.T) {
 				ConfigPath: "~/.config/jj/config.toml",
 				SchemaPath: "embedded://jj.json",
 				Values: map[string]interface{}{
-					"user.name":  "Test User",
-					"user.email": "test@example.com",
+					"user": map[string]interface{}{
+						"name":  "Test User",
+						"email": "test@example.com",
+					},
 				},
 			},
 		},
@@ -420,12 +439,17 @@ func TestPerToolConfigSaving(t *testing.T) {
 	if !strings.Contains(jjTomlStr, "test@example.com") {
 		t.Error("jj.toml should contain user.email value")
 	}
-
-	// Verify config.toml doesn't have values section
-	configPath, err := ConfigPath()
-	if err != nil {
-		t.Fatalf("Failed to get config path: %v", err)
+	if !strings.Contains(jjTomlStr, "[user]") {
+		t.Error("jj.toml should render nested tables using section syntax")
 	}
+	if strings.Contains(jjTomlStr, "user.name") {
+		t.Error("jj.toml should not collapse nested values into dotted keys")
+	}
+	if !strings.Contains(jjTomlStr, "# keep-this-comment") {
+		t.Error("jj.toml should preserve existing comments")
+	}
+
+	// Verify config.toml doesn't have values section and keeps comments
 	configTomlData, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("Failed to read config.toml: %v", err)
@@ -434,5 +458,75 @@ func TestPerToolConfigSaving(t *testing.T) {
 	configTomlStr := string(configTomlData)
 	if strings.Contains(configTomlStr, "Test User") {
 		t.Error("config.toml should not contain values (should be in per-tool file)")
+	}
+	if !strings.Contains(configTomlStr, "# preserve-this-config-comment") {
+		t.Error("config.toml should preserve existing comments")
+	}
+}
+
+func TestFlattenValuesQuotedKeys(t *testing.T) {
+	nested := map[string]interface{}{
+		"aliases": map[string]interface{}{
+			".":  []interface{}{"ci", "-m."},
+			"..": []interface{}{"ci", "-m.."},
+			"s":  "status",
+		},
+	}
+
+	flat := FlattenValues(nested)
+
+	if val, ok := flat[`aliases."."`]; !ok {
+		t.Fatalf("expected key aliases.\".\" to be present in flattened map, got keys %v", flat)
+	} else if !reflect.DeepEqual(val, []interface{}{"ci", "-m."}) {
+		t.Errorf("aliases.\".\" value = %v, want %v", val, []interface{}{"ci", "-m."})
+	}
+
+	if val, ok := flat[`aliases.".."`]; !ok {
+		t.Fatalf("expected key aliases.\"..\" to be present in flattened map, got keys %v", flat)
+	} else if !reflect.DeepEqual(val, []interface{}{"ci", "-m.."}) {
+		t.Errorf("aliases.\"..\" value = %v, want %v", val, []interface{}{"ci", "-m.."})
+	}
+
+	if val, ok := flat["aliases.s"]; !ok {
+		t.Fatalf("expected key aliases.s to be present in flattened map, got keys %v", flat)
+	} else if val != "status" {
+		t.Errorf("aliases.s value = %v, want %q", val, "status")
+	}
+}
+
+func TestExpandValuesQuotedKeys(t *testing.T) {
+	flat := map[string]interface{}{
+		`aliases."."`:  []interface{}{"ci", "-m."},
+		`aliases.".."`: []interface{}{"ci", "-m.."},
+		"aliases.s":    "status",
+	}
+
+	nested := ExpandValues(flat)
+
+	aliases, ok := nested["aliases"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected aliases map in nested structure, got %#v", nested["aliases"])
+	}
+
+	if val, ok := aliases["."]; !ok {
+		t.Fatalf("expected aliases map to contain '.' key, got keys %v", aliases)
+	} else if !reflect.DeepEqual(val, []interface{}{"ci", "-m."}) {
+		t.Errorf("aliases[\".\"] = %v, want %v", val, []interface{}{"ci", "-m."})
+	}
+
+	if val, ok := aliases[".."]; !ok {
+		t.Fatalf("expected aliases map to contain '..' key, got keys %v", aliases)
+	} else if !reflect.DeepEqual(val, []interface{}{"ci", "-m.."}) {
+		t.Errorf("aliases[\"..\"] = %v, want %v", val, []interface{}{"ci", "-m.."})
+	}
+
+	if val, ok := aliases["s"]; !ok {
+		t.Fatalf("expected aliases map to contain 's' key, got keys %v", aliases)
+	} else if val != "status" {
+		t.Errorf("aliases[\"s\"] = %v, want %q", val, "status")
+	}
+
+	if len(aliases) != 3 {
+		t.Errorf("expected aliases map to have exactly 3 entries, got %d", len(aliases))
 	}
 }

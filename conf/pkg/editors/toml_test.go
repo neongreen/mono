@@ -3,6 +3,7 @@ package editors
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -289,26 +290,91 @@ func TestTOMLEditor_GetAllValues(t *testing.T) {
 		t.Fatalf("Failed to get all values: %v", err)
 	}
 
-	// Verify all values are present
+	// Verify all values are present in nested representation
 	expected := map[string]interface{}{
-		"user.name":                  "Alice",
-		"user.email":                 "alice@example.com",
-		"snapshot.max-new-file-size": int64(1024),
-		"ui.diff-editor":             "vimdiff",
+		"user": map[string]interface{}{
+			"name":  "Alice",
+			"email": "alice@example.com",
+		},
+		"snapshot": map[string]interface{}{
+			"max-new-file-size": int64(1024),
+		},
+		"ui": map[string]interface{}{
+			"diff-editor": "vimdiff",
+		},
 	}
 
-	if len(values) != len(expected) {
-		t.Errorf("Expected %d values, got %d", len(expected), len(values))
+	if !reflect.DeepEqual(values, expected) {
+		t.Errorf("Expected values %v, got %v", expected, values)
+	}
+}
+
+func TestTOMLEditor_GetAllValuesWithQuotedKeys(t *testing.T) {
+	// Create temporary directory
+	tempDir, err := os.MkdirTemp("", "toml-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := filepath.Join(tempDir, "test.toml")
+
+	// Create test file with quoted keys (like jj aliases)
+	testContent := `[user]
+name = "Alice"
+
+[aliases]
+"." = ["foo"]
+".." = ["bar"]
+normal = "baz"
+`
+	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
 	}
 
-	for key, expectedValue := range expected {
-		actualValue, exists := values[key]
-		if !exists {
-			t.Errorf("Expected key %s not found", key)
-			continue
+	editor := NewTOMLEditor(testFile)
+
+	// Get all values
+	values, err := editor.GetAllValues()
+	if err != nil {
+		t.Fatalf("Failed to get all values: %v", err)
+	}
+
+	user, ok := values["user"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected user section to be a map, got %T", values["user"])
+	}
+	if user["name"] != "Alice" {
+		t.Errorf("Expected user.name to be Alice, got %v", user["name"])
+	}
+
+	aliases, ok := values["aliases"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected aliases section to be a map, got %T", values["aliases"])
+	}
+
+	if val, ok := aliases["."]; ok {
+		if arr, isArr := val.([]interface{}); !isArr {
+			t.Errorf("Expected aliases[\".\"] to be array, got %T", val)
+		} else if len(arr) != 1 || arr[0] != "foo" {
+			t.Errorf("Expected aliases[\".\"] = [\"foo\"], got %v", arr)
 		}
-		if actualValue != expectedValue {
-			t.Errorf("For key %s: expected %v, got %v", key, expectedValue, actualValue)
+	} else {
+		t.Errorf("Key aliases[\".\"] not found")
+	}
+
+	if val, ok := aliases[".."]; ok {
+		if arr, isArr := val.([]interface{}); !isArr {
+			t.Errorf("Expected aliases[\"..\"] to be array, got %T", val)
+		} else if len(arr) != 1 || arr[0] != "bar" {
+			t.Errorf("Expected aliases[\"..\"] = [\"bar\"], got %v", arr)
 		}
+	} else {
+		t.Errorf("Key aliases[\"..\"] not found")
+	}
+
+	if val, ok := aliases["normal"]; !ok || val != "baz" {
+		t.Errorf("Expected aliases[\"normal\"] = \"baz\", got %v", val)
 	}
 }

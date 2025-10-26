@@ -27,3 +27,7 @@ example-book/supabase-config.js
 node_modules/
 playwright-report/
 test-results/
+
+# Frontend build output
+js/*.js
+js/*.js.map

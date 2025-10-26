@@ -3,7 +3,7 @@
 ## Project-Specific Rules
 
 - **Schema handling**: Use `santhosh-tekuri/jsonschema/v5` for JSON schema parsing
-- **TOML editing**: Use `github.com/neongreen/mono/lib/toml` for surgical editing with comment preservation
+- **TOML editing**: Use `github.com/neongreen/mono/lib/toml` for surgical editing with comment preservation, including conf's own files under `~/.config/conf/`
 - **TOML serialization**: Use `pelletier/go-toml/v2` for struct marshaling/unmarshaling in internal config files
 - **No validation**: conf should surgically set/unset keys without validating surrounding config
 - **Global configs only**: Only handle user-level configuration files, not project-specific ones

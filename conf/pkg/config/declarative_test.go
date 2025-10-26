@@ -24,12 +24,12 @@ func TestConfig_SetToolValue(t *testing.T) {
 		t.Fatal("Expected tool values to be initialized")
 	}
 
-	value, exists := tool.Values["user.name"]
-	if !exists {
-		t.Fatal("Expected value 'user.name' to be set")
+	userValues, ok := tool.Values["user"].(map[string]interface{})
+	if !ok {
+		t.Fatal("Expected user values to be a map")
 	}
 
-	if value != "Test User" {
+	if value, exists := userValues["name"]; !exists || value != "Test User" {
 		t.Errorf("Expected value to be 'Test User', got %v", value)
 	}
 }
@@ -40,8 +40,10 @@ func TestConfig_GetToolValue(t *testing.T) {
 			"jj": {
 				Name: "jj",
 				Values: map[string]interface{}{
-					"user.name":  "Test User",
-					"user.email": "test@example.com",
+					"user": map[string]interface{}{
+						"name":  "Test User",
+						"email": "test@example.com",
+					},
 				},
 			},
 		},
@@ -75,8 +77,10 @@ func TestConfig_UnsetToolValue(t *testing.T) {
 			"jj": {
 				Name: "jj",
 				Values: map[string]interface{}{
-					"user.name":  "Test User",
-					"user.email": "test@example.com",
+					"user": map[string]interface{}{
+						"name":  "Test User",
+						"email": "test@example.com",
+					},
 				},
 			},
 		},
@@ -198,16 +202,20 @@ func TestConfig_DeclarativeStateSaveAndLoad(t *testing.T) {
 				Name:       "jj",
 				ConfigPath: "/test/jj/config.toml",
 				Values: map[string]interface{}{
-					"user.name":  "Test User",
-					"user.email": "test@example.com",
+					"user": map[string]interface{}{
+						"name":  "Test User",
+						"email": "test@example.com",
+					},
 				},
 			},
 			"mise": {
 				Name:       "mise",
 				ConfigPath: "/test/mise/config.toml",
 				Values: map[string]interface{}{
-					"settings.experimental": true,
-					"settings.jobs":         4,
+					"settings": map[string]interface{}{
+						"experimental": true,
+						"jobs":         4,
+					},
 				},
 			},
 		},

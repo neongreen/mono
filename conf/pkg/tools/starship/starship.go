@@ -194,7 +194,7 @@ type CommonSetting struct {
 	Example     string
 }
 
-// GetAllValues returns all configuration values from the starship config file as a flat map
+// GetAllValues returns all configuration values from the starship config file as a nested map
 func (s *StarshipTool) GetAllValues() (map[string]interface{}, error) {
 	return s.editor.GetAllValues()
 }

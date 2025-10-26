@@ -749,24 +749,27 @@ func importTool(conf *config.Config, toolName string, dryRun bool) error {
 		return fmt.Errorf("failed to read target config: %w", err)
 	}
 
-	if len(values) == 0 {
+	flatValues := config.FlattenValues(values)
+
+	if len(flatValues) == 0 {
 		fmt.Printf("  No values found in %s\n", tool.ConfigPath)
 		return nil
 	}
 
-	fmt.Printf("  Found %d values\n", len(values))
+	fmt.Printf("  Found %d values\n", len(flatValues))
 
 	if dryRun {
 		// Preview what would be imported
-		for path, value := range values {
+		for path, value := range flatValues {
 			fmt.Printf("  Would import: %s.%s = %v\n", toolName, path, value)
 		}
 	} else {
 		// Import all values into conf state
-		for path, value := range values {
-			conf.SetToolValue(toolName, path, value)
+		for path, value := range flatValues {
 			fmt.Printf("  ✓ Imported %s.%s = %v\n", toolName, path, value)
 		}
+
+		conf.MergeToolValues(toolName, values)
 
 		// Save conf state
 		if err := conf.Save(); err != nil {
@@ -1132,7 +1135,9 @@ func syncTool(conf *config.Config, configDir, toolName string, dryRun bool) erro
 	}
 
 	// Both have data - need to merge
-	fmt.Printf("  Local: %d values, iCloud: %d values\n", len(localValues), len(icloudValues))
+	localCount := len(config.FlattenValues(localValues))
+	icloudCount := len(config.FlattenValues(icloudValues))
+	fmt.Printf("  Local: %d values, iCloud: %d values\n", localCount, icloudCount)
 
 	// Get file modification times for LWW
 	perToolPath := filepath.Join(configDir, toolName+".toml")
@@ -1187,14 +1192,15 @@ func applyTool(conf *config.Config, toolName string, dryRun bool) error {
 		return fmt.Errorf("tool %s not configured", toolName)
 	}
 
-	if tool.Values == nil || len(tool.Values) == 0 {
+	flatValues := config.FlattenValues(tool.Values)
+	if len(flatValues) == 0 {
 		fmt.Printf("%s: No values to apply\n", toolName)
 		return nil
 	}
 
 	fmt.Printf("Applying %s configuration...\n", toolName)
 
-	for path, value := range tool.Values {
+	for path, value := range flatValues {
 		if dryRun {
 			fmt.Printf("  Would set %s.%s = %v\n", toolName, path, value)
 		} else {
@@ -1222,21 +1228,23 @@ func showToolStatus(conf *config.Config, toolName string) error {
 
 	fmt.Printf("%s status:\n", toolName)
 
-	if tool.Values == nil || len(tool.Values) == 0 {
+	flatValues := config.FlattenValues(tool.Values)
+	if len(flatValues) == 0 {
 		fmt.Printf("  No managed values\n")
 		return nil
 	}
 
-	hasChanges := false
-	for path, desiredValue := range tool.Values {
-		actualValue, err := getActualValue(toolName, path)
-		if err != nil {
-			fmt.Printf("  %s: ERROR - %v\n", path, err)
-			hasChanges = true
-			continue
-		}
+	actualValues, err := getTargetConfigValues(toolName)
+	if err != nil {
+		return fmt.Errorf("failed to read current %s configuration: %w", toolName, err)
+	}
+	actualFlat := config.FlattenValues(actualValues)
 
-		if actualValue == nil {
+	hasChanges := false
+	for path, desiredValue := range flatValues {
+		actualValue, exists := actualFlat[path]
+
+		if !exists {
 			fmt.Printf("  %s: MISSING (desired: %v)\n", path, desiredValue)
 			hasChanges = true
 		} else if fmt.Sprintf("%v", actualValue) != fmt.Sprintf("%v", desiredValue) {
@@ -1252,9 +1260,4 @@ func showToolStatus(conf *config.Config, toolName string) error {
 	}
 
 	return nil
-}
-
-// getActualValue gets the actual value from a tool config file
-func getActualValue(toolName, path string) (interface{}, error) {
-	return tools.GetActualValue(toolName, path)
 }

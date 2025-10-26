@@ -266,7 +266,7 @@ func containsSubstring(s, substr string) bool {
 			(len(s) > len(substr) && s[len(s)-len(substr):] == substr))
 }
 
-// GetAllValues returns all configuration values from the mise config file as a flat map
+// GetAllValues returns all configuration values from the mise config file as a nested map
 func (m *MiseTool) GetAllValues() (map[string]interface{}, error) {
 	return m.editor.GetAllValues()
 }

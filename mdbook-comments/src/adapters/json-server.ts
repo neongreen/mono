@@ -45,7 +45,7 @@ declare global {
 }
 
 const config: JsonServerConfig = window.JSON_SERVER_CONFIG || {
-  url: 'http://localhost:54322',
+  url: 'http://localhost:55432',
 };
 
 const API_URL = config.url;

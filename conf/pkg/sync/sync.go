@@ -87,28 +87,22 @@ func UploadToICloud(toolName string, values map[string]interface{}) error {
 // MergeConfigs merges local and iCloud configs
 // For conflicting keys, uses Last-Write-Wins based on file modification times
 func MergeConfigs(local, icloud map[string]interface{}, localMtime, icloudMtime int64) map[string]interface{} {
-	result := make(map[string]interface{})
+	localFlat := config.FlattenValues(local)
+	icloudFlat := config.FlattenValues(icloud)
 
-	// Start with all local keys
-	for k, v := range local {
-		result[k] = v
+	resultFlat := make(map[string]interface{}, len(localFlat))
+	for k, v := range localFlat {
+		resultFlat[k] = v
 	}
 
 	// Add/override with iCloud keys
-	for k, v := range icloud {
-		if _, exists := result[k]; !exists {
-			// New key from iCloud
-			result[k] = v
-		} else {
-			// Conflict: use Last-Write-Wins
-			if icloudMtime > localMtime {
-				result[k] = v
-			}
-			// else keep local value (it's newer)
+	for k, v := range icloudFlat {
+		if _, exists := resultFlat[k]; !exists || icloudMtime > localMtime {
+			resultFlat[k] = v
 		}
 	}
 
-	return result
+	return config.ExpandValues(resultFlat)
 }
 
 // GetLocalValues returns the values for a tool from local config

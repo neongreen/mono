@@ -31,7 +31,7 @@ export interface BackendConfig {
  */
 export interface JsonServerConfig extends BackendConfig {
   type: 'json-server';
-  /** API base URL (default: http://localhost:54322) */
+  /** API base URL (default: http://localhost:55432) */
   url?: string;
 }
 
