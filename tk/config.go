@@ -29,8 +29,9 @@ func LoadConfig() (*Config, error) {
 	// Return default config if file doesn't exist
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return &Config{
-			Remotes: make(map[string]RemoteConfig),
-			Sync:    DefaultSyncConfig(),
+			Remotes:  make(map[string]RemoteConfig),
+			Sync:     DefaultSyncConfig(),
+			Blocking: DefaultBlockingConfig(),
 		}, nil
 	}
 
@@ -47,6 +48,9 @@ func LoadConfig() (*Config, error) {
 	// Set defaults if not specified
 	if config.Sync.SegmentMaxBytes == 0 {
 		config.Sync = DefaultSyncConfig()
+	}
+	if config.Blocking.BlockingAxis == "" {
+		config.Blocking = DefaultBlockingConfig()
 	}
 
 	return &config, nil

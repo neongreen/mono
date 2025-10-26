@@ -51,8 +51,15 @@ type RemoteConfig struct {
 
 // Config represents the tk configuration file
 type Config struct {
-	Remotes map[string]RemoteConfig `json:"remotes"`
-	Sync    SyncConfig              `json:"sync"`
+	Remotes  map[string]RemoteConfig `json:"remotes"`
+	Sync     SyncConfig              `json:"sync"`
+	Blocking BlockingConfig          `json:"blocking"`
+}
+
+// BlockingConfig represents blocking-specific configuration
+type BlockingConfig struct {
+	BlockingAxis string   `json:"blocking_axis"` // Axis to check for blocked status (e.g., "generic", "code")
+	DoneStates   []string `json:"done_states"`   // States that indicate a task is done
 }
 
 // SyncConfig represents sync-specific configuration
@@ -90,5 +97,13 @@ func DefaultSyncConfig() SyncConfig {
 		Compress:        "zstd",
 		SafeMode:        true,
 		Spaces:          []string{"personal"},
+	}
+}
+
+// DefaultBlockingConfig returns the default blocking configuration
+func DefaultBlockingConfig() BlockingConfig {
+	return BlockingConfig{
+		BlockingAxis: "generic",
+		DoneStates:   []string{"done"},
 	}
 }
