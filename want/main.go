@@ -174,6 +174,9 @@ Examples:
   want md https://example.com          # Convert webpage to markdown
   want mono printpdf --list            # List all releases and open PRs of printpdf
   want mono printpdf@main.1            # Install printpdf version main.1 from mono
+  want mono printpdf@main              # Build printpdf from latest commit on main branch
+  want mono dissect@feature-branch     # Build dissect from a specific branch
+  want mono want@abc1234               # Build want from a specific commit
   want mono --dry-run dissect@pr-42    # Preview building from PR #42
   want mono --plan-json dissect@pr-42  # Show build plan as JSON for PR #42
   want https://github.com/org/repo/releases/tag/v1.0.0  # Download GitHub release
@@ -482,6 +485,16 @@ func isCommandSafe(command string) bool {
 	}
 
 	return false
+}
+
+// isHexString checks if a string contains only hexadecimal characters
+func isHexString(s string) bool {
+	for _, c := range s {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+	return true
 }
 
 // handleJsonCommand handles "want json <command>" - converts command output to JSON
@@ -1123,6 +1136,9 @@ func handleMono() {
 		fmt.Println("\nExamples:")
 		fmt.Println("  want mono printpdf --list              # List all releases and open PRs for printpdf")
 		fmt.Println("  want mono printpdf@main.1              # Install printpdf version main.1")
+		fmt.Println("  want mono printpdf@main                # Build printpdf from latest commit on main")
+		fmt.Println("  want mono dissect@feature-branch       # Build dissect from a specific branch")
+		fmt.Println("  want mono want@abc1234                 # Build want from a specific commit")
 		fmt.Println("  want mono --dry-run dissect@pr-42      # Preview building from PR #42")
 		fmt.Println("  want mono --plan-json printpdf@main.1  # Show installation plan as JSON")
 		os.Exit(1)
@@ -1305,6 +1321,136 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 	miseArgs := []string{"exec", fmt.Sprintf("go@%s", goVersion), "--", "go"}
 	miseArgs = append(miseArgs, args...)
 	return exec.Command("mise", miseArgs...)
+}
+
+// buildMonoFromSource builds a project from a branch or commit in the mono repository
+func buildMonoFromSource(project, refSpec, refDescription string, dryRun bool, planJson bool) {
+	// Determine destination path
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error: Failed to get home directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	destDir := filepath.Join(homeDir, ".local", "bin")
+	destPath := filepath.Join(destDir, project)
+
+	// Build the plan first
+	plan := FulfillmentPlan{
+		Requirement: fmt.Sprintf("mono %s@%s", project, refSpec),
+		Steps: []PlanStep{
+			{
+				Type:        "download",
+				Description: fmt.Sprintf("Clone neongreen/mono repository (%s)", refDescription),
+				Command:     fmt.Sprintf("git clone --depth=1 --branch %s https://github.com/neongreen/mono.git <tmpdir>", refSpec),
+				Automatic:   true,
+			},
+			{
+				Type:        "install",
+				Description: fmt.Sprintf("Build %s from source", project),
+				Command:     fmt.Sprintf("go build -o %s .", destPath),
+				Automatic:   true,
+			},
+			{
+				Type:        "configure",
+				Description: "Make binary executable",
+				Command:     fmt.Sprintf("chmod +x %s", destPath),
+				Automatic:   true,
+			},
+		},
+	}
+
+	// Handle plan output modes
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(jsonStr)
+		return
+	}
+
+	if dryRun {
+		fmt.Printf("Building %s from %s...\n", project, refDescription)
+		fmt.Println()
+		plan.PrintPlan()
+		return
+	}
+
+	// Execute the plan
+	fmt.Printf("Building %s from %s...\n", project, refDescription)
+	fmt.Println()
+	plan.PrintPlan()
+	if !plan.ConfirmPlan() {
+		fmt.Println("Cancelled.")
+		os.Exit(0)
+	}
+	fmt.Println()
+
+	// Create a temporary directory for cloning
+	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-*", project))
+	if err != nil {
+		fmt.Printf("Error: Failed to create temporary directory: %v\n", err)
+		os.Exit(1)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Clone the repository
+	fmt.Printf("Cloning neongreen/mono (%s)...\n", refDescription)
+	cmd := exec.Command("git", "clone", "--depth=1", "--branch", refSpec,
+		"https://github.com/neongreen/mono.git", tmpDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("\nError: Failed to clone repository: %v\n", err)
+		fmt.Printf("Note: Make sure the branch or tag '%s' exists in neongreen/mono\n", refSpec)
+		os.Exit(1)
+	}
+
+	// Check if project directory exists
+	projectDir := filepath.Join(tmpDir, project)
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		fmt.Printf("\nError: Project '%s' not found in repository\n", project)
+		os.Exit(1)
+	}
+
+	// Build the project
+	fmt.Printf("\nBuilding %s...\n", project)
+	cmd = createGoBuildCommand("build", "-o", destPath, ".")
+	cmd.Dir = projectDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("\nError: Failed to build %s: %v\n", project, err)
+		os.Exit(1)
+	}
+
+	// Make executable
+	if err := os.Chmod(destPath, 0755); err != nil {
+		fmt.Printf("Warning: Failed to make binary executable: %v\n", err)
+	}
+
+	fmt.Println()
+	fmt.Printf("✓ Built and installed %s from %s to: %s\n", project, refDescription, destPath)
+	fmt.Println()
+
+	// Check if destDir is in PATH
+	pathEnv := os.Getenv("PATH")
+	if !strings.Contains(pathEnv, destDir) {
+		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Println()
+		fmt.Println("To use the binary, either:")
+		fmt.Println("  1. Run it with the full path:")
+		fmt.Printf("     %s\n", destPath)
+		fmt.Println()
+		fmt.Println("  2. Add the directory to your PATH:")
+		configFile := getShellConfigFile()
+		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
+		fmt.Printf("     source %s\n", configFile)
+	} else {
+		fmt.Printf("✓ Binary is available in your PATH as: %s\n", project)
+	}
 }
 
 // buildMonoFromPR builds a project from a PR branch
@@ -1492,6 +1638,31 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 		// Release exists, install it normally
 	}
 
+	// Try to fetch as a release tag first
+	tag := fmt.Sprintf("%s--%s", project, version)
+	_, err := ghrelease.GetReleaseByTag("neongreen", "mono", tag)
+	if err != nil {
+		// Not a release tag - treat as branch name or commit SHA
+		// Common branch names: main, develop, feature-xyz, etc.
+		// Commit SHAs are typically 40 hex chars, but can be abbreviated (7+ chars)
+		refDescription := version
+		if version == "main" || version == "master" {
+			refDescription = fmt.Sprintf("latest commit on %s branch", version)
+		} else if len(version) >= 7 && len(version) <= 40 && isHexString(version) {
+			refDescription = fmt.Sprintf("commit %s", version)
+		} else {
+			refDescription = fmt.Sprintf("branch %s", version)
+		}
+
+		if !planJson && !dryRun {
+			fmt.Printf("No release found for %s (would be tagged as %s)\n", version, tag)
+			fmt.Printf("Building from %s instead...\n", refDescription)
+			fmt.Println()
+		}
+		buildMonoFromSource(project, version, refDescription, dryRun, planJson)
+		return
+	}
+
 	// Determine destination path
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -1501,7 +1672,6 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 
 	destDir := filepath.Join(homeDir, ".local", "bin")
 	destPath := filepath.Join(destDir, project)
-	tag := fmt.Sprintf("%s--%s", project, version)
 
 	// Build the plan
 	platform := ghrelease.GetCurrentPlatform()
