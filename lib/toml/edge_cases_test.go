@@ -126,8 +126,8 @@ items = [
 			},
 		},
 		{
-			name: "single-line array of inline tables",
-			input: `points = [{ x = 1, y = 2 }, { x = 3, y = 4 }]`,
+			name:        "single-line array of inline tables",
+			input:       `points = [{ x = 1, y = 2 }, { x = 3, y = 4 }]`,
 			modifyKey:   "version",
 			modifyValue: 1,
 			shouldContain: []string{

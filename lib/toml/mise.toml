@@ -1,0 +1,2 @@
+[tasks.fmt]
+run = "go fmt ./..."

@@ -412,8 +412,8 @@ feature_b = false
 	}
 
 	// Make several modifications
-	doc.Set("app_version", 2)                 // Modify top-level key
-	doc.Set("server.port", 9090)              // Modify dotted key
+	doc.Set("app_version", 2)                  // Modify top-level key
+	doc.Set("server.port", 9090)               // Modify dotted key
 	doc.Set("database.host", "db.example.com") // Modify value in section
 	doc.Set("features.feature_m", false)       // Modify value in section
 

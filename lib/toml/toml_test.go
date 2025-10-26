@@ -369,12 +369,12 @@ host = "localhost"
 // TestCommentPreservation tests that comments are preserved during round-trip
 func TestCommentPreservation(t *testing.T) {
 	tests := []struct {
-		name            string
-		input           string
-		path            string
-		value           interface{}
-		mustContain     []string
-		mustNotContain  []string
+		name           string
+		input          string
+		path           string
+		value          interface{}
+		mustContain    []string
+		mustNotContain []string
 	}{
 		{
 			name: "preserve top-level comments",

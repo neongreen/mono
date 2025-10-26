@@ -136,7 +136,10 @@ impl Preprocessor for CommentsPreprocessor {
             if let BookItem::Chapter(chapter) = item {
                 // Inject CSS and JS assets at the beginning of every chapter
                 if let Err(e) = processor.inject_assets(chapter) {
-                    eprintln!("Error injecting assets into chapter {}: {}", chapter.name, e);
+                    eprintln!(
+                        "Error injecting assets into chapter {}: {}",
+                        chapter.name, e
+                    );
                 }
             }
         });
