@@ -191,6 +191,51 @@ func TestJJSchemaParser_ValidatePath_AdditionalProperties(t *testing.T) {
 	}
 }
 
+func TestJJSchemaParser_ValidatePath_QuotedKeys(t *testing.T) {
+	parser, err := NewJJSchemaParser()
+	if err != nil {
+		t.Fatalf("Failed to create parser: %v", err)
+	}
+
+	// Test paths with quoted keys (special characters that require quoting in TOML)
+	// These are produced by FlattenValues when keys contain special characters
+	testCases := []struct {
+		path          string
+		shouldBeValid bool
+		description   string
+	}{
+		// Quoted keys in aliases (the main issue from the problem statement)
+		{`aliases."."`, true, "alias with dot as key name"},
+		{`aliases."*"`, true, "alias with asterisk as key name"},
+		{`aliases."foo bar"`, true, "alias with space in key name"},
+		{`aliases."foo-bar"`, true, "alias with hyphen (could be bare but quoted is also valid)"},
+		{`aliases."123"`, true, "alias starting with number"},
+
+		// Quoted keys in other additionalProperties fields
+		{`revset-aliases."."`, true, "revset-alias with dot as key"},
+		{`template-aliases."."`, true, "template-alias with dot as key"},
+		{`colors."."`, true, "color label with dot as key"},
+		{`hints."."`, true, "hint with dot as key"},
+
+		// Quoted keys in nested structures
+		{`merge-tools."my.tool"`, true, "merge tool name with dot"},
+		{`merge-tools."my.tool".program`, true, "merge tool with dot in name, accessing property"},
+
+		// Invalid cases - too deep nesting
+		{`aliases.".".invalid`, false, "aliases values are arrays, cannot nest further"},
+		{`revset-aliases.".".invalid`, false, "revset-aliases values are strings, cannot nest further"},
+	}
+
+	for _, tc := range testCases {
+		result := parser.ValidatePath(tc.path)
+		if result != tc.shouldBeValid {
+			t.Errorf("Path '%s' (%s): expected valid=%v, got valid=%v",
+				tc.path, tc.description, tc.shouldBeValid, result)
+		}
+	}
+}
+
+
 func TestJJSchemaParser_GetAllPaths(t *testing.T) {
 	parser, err := NewJJSchemaParser()
 	if err != nil {

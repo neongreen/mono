@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/creachadair/tomledit/parser"
 )
 
 // JJSchemaParser handles parsing of jj JSON schema for completion data
@@ -144,6 +146,7 @@ func (p *JJSchemaParser) collectAllPaths(properties map[string]interface{}, pref
 }
 
 // ValidatePath checks if a given dotted path exists in the schema
+// The path can contain quoted keys (e.g., aliases.".") which are properly parsed
 func (p *JJSchemaParser) ValidatePath(path string) bool {
 	if path == "" {
 		return true
@@ -154,7 +157,18 @@ func (p *JJSchemaParser) ValidatePath(path string) bool {
 		return false
 	}
 
-	parts := strings.Split(path, ".")
+	// Use parser.ParseKey to properly handle quoted keys like aliases."."
+	key, err := parser.ParseKey(path)
+	if err != nil {
+		// If parsing fails, fall back to simple split for backwards compatibility
+		key = strings.Split(path, ".")
+	}
+
+	parts := make([]string, len(key))
+	for i, k := range key {
+		parts[i] = k
+	}
+
 	current := properties
 	var currentPropSchema map[string]interface{}
 
