@@ -49,9 +49,37 @@ func WriteFile(path string, values map[string]interface{}) error {
 	return nil
 }
 
-// ApplyMap updates the document with the provided nested map and removes any
-// keys that are not present in values.
+// ApplyMap merges the provided nested map into the document, preserving
+// any existing keys that are not present in values. This allows partial
+// updates without affecting unmanaged configuration.
 func (d *Document) ApplyMap(values map[string]interface{}) error {
+	if d == nil {
+		return fmt.Errorf("cannot apply values to a nil document")
+	}
+
+	desired := flattenValues(values)
+
+	// Sort keys for deterministic ordering
+	keys := make([]string, 0, len(desired))
+	for path := range desired {
+		keys = append(keys, path)
+	}
+	sort.Strings(keys)
+
+	// Set all desired values, preserving any existing keys not in desired
+	for _, path := range keys {
+		if err := d.Set(path, desired[path]); err != nil {
+			return fmt.Errorf("failed to set %s: %w", path, err)
+		}
+	}
+
+	return nil
+}
+
+// ReplaceMap updates the document with the provided nested map and removes any
+// keys that are not present in values. Use ApplyMap instead if you want to
+// preserve unmanaged keys.
+func (d *Document) ReplaceMap(values map[string]interface{}) error {
 	if d == nil {
 		return fmt.Errorf("cannot apply values to a nil document")
 	}
@@ -67,6 +95,7 @@ func (d *Document) ApplyMap(values map[string]interface{}) error {
 
 	current := flattenValues(existing)
 
+	// Delete keys that are not in desired values
 	for path := range current {
 		if _, ok := desired[path]; !ok {
 			if err := d.Delete(path); err != nil {

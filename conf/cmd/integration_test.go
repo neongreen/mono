@@ -620,3 +620,95 @@ normal = "status"
 		}
 	})
 }
+
+// TestApplyPreservesUnmanagedSettings tests that `conf apply` preserves
+// settings in the target config that are not managed by conf
+func TestApplyPreservesUnmanagedSettings(t *testing.T) {
+	// Build the binary for testing
+	tmpDir := t.TempDir()
+	binaryPath := filepath.Join(tmpDir, "conf")
+
+	// Build conf binary
+	cmd := exec.Command("go", "build", "-o", binaryPath, "./main.go")
+	cmd.Dir = "."
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to build conf binary: %v", err)
+	}
+
+	// Setup test home directory
+	testHome := t.TempDir()
+
+	// Create jj config with existing user settings
+	jjConfigDir := filepath.Join(testHome, ".config", "jj")
+	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+		t.Fatalf("Failed to create jj config dir: %v", err)
+	}
+	
+	// Initial config has both [user] and [ui] settings
+	initialConfig := `# Existing jj config
+[user]
+name = "Original User"
+email = "original@example.com"
+
+[ui]
+default-command = "log"
+`
+	if err := os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(initialConfig), 0644); err != nil {
+		t.Fatalf("Failed to write jj config: %v", err)
+	}
+
+	// Create conf state directory
+	confDir := filepath.Join(testHome, ".config", "conf")
+	if err := os.MkdirAll(confDir, 0755); err != nil {
+		t.Fatalf("Failed to create conf dir: %v", err)
+	}
+
+	// Conf state only manages ui.default-command (NOT user settings)
+	confState := `[ui]
+default-command = "status"
+`
+	if err := os.WriteFile(filepath.Join(confDir, "jj.toml"), []byte(confState), 0644); err != nil {
+		t.Fatalf("Failed to write conf state: %v", err)
+	}
+
+	// Run conf apply jj
+	t.Run("apply preserves unmanaged user settings", func(t *testing.T) {
+		cmd := exec.Command(binaryPath, "apply", "jj")
+		cmd.Env = append(os.Environ(), "HOME="+testHome)
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		if err := cmd.Run(); err != nil {
+			t.Errorf("Apply failed: %v", err)
+			t.Logf("stdout: %s", stdout.String())
+			t.Logf("stderr: %s", stderr.String())
+		}
+
+		// Read the resulting config
+		resultConfig, err := os.ReadFile(filepath.Join(jjConfigDir, "config.toml"))
+		if err != nil {
+			t.Fatalf("Failed to read result config: %v", err)
+		}
+		resultStr := string(resultConfig)
+
+		// Verify user settings are preserved
+		if !strings.Contains(resultStr, `name = "Original User"`) {
+			t.Errorf("Expected user.name to be preserved, got: %s", resultStr)
+		}
+		if !strings.Contains(resultStr, `email = "original@example.com"`) {
+			t.Errorf("Expected user.email to be preserved, got: %s", resultStr)
+		}
+
+		// Verify ui.default-command was updated
+		if !strings.Contains(resultStr, `default-command = "status"`) {
+			t.Errorf("Expected ui.default-command to be updated to 'status', got: %s", resultStr)
+		}
+
+		// Verify old value was replaced
+		if strings.Contains(resultStr, `default-command = "log"`) {
+			t.Errorf("Expected old ui.default-command 'log' to be replaced, got: %s", resultStr)
+		}
+	})
+}
