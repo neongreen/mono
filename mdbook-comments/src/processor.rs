@@ -1,8 +1,16 @@
 use crate::{CommentsConfig, CssAsset, JsAsset};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use mdbook::book::Chapter;
+use pulldown_cmark::{CowStr, Event, HeadingLevel, Options, Parser, Tag};
+use pulldown_cmark_to_cmark::cmark;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SpanPosition {
+    BeforeEnd,
+    AfterEnd,
+}
 
 pub struct CommentsProcessor {
     config: CommentsConfig,
@@ -77,231 +85,214 @@ impl CommentsProcessor {
     }
 
     fn process_markdown(&self, content: &str, path: &Option<std::path::PathBuf>) -> Result<String> {
-        // Split content into lines for processing
-        let lines: Vec<&str> = content.lines().collect();
-        let mut result = String::new();
-        let mut in_code_block = false;
-        let mut code_fence_char = ' ';
-        let mut block_index = 0;
+        #[derive(Debug)]
+        struct BlockRecord {
+            end_index: usize,
+            content: String,
+            heading_path: Vec<String>,
+            block_index: usize,
+            section_index: usize,
+            prev_content: Option<String>,
+            next_content: Option<String>,
+            span_position: SpanPosition,
+        }
+
+        #[derive(Debug)]
+        struct StackEntry<'a> {
+            tag: Tag<'a>,
+            start_index: usize,
+            is_commentable: bool,
+            span_position: SpanPosition,
+            heading_level: Option<HeadingLevel>,
+        }
+
+        let mut events: Vec<Event<'_>> = Vec::new();
+        let mut stack: Vec<StackEntry<'_>> = Vec::new();
+        let mut blocks: Vec<BlockRecord> = Vec::new();
+        let mut block_index = 0usize;
+        let mut section_index = 0usize;
         let mut heading_stack: Vec<String> = Vec::new();
-        let mut current_section_index = 0;
+        let mut active_commentable_depth = 0usize;
 
-        let mut i = 0;
-        while i < lines.len() {
-            let line = lines[i];
-            let trimmed = line.trim();
+        let parser = Parser::new_ext(content, Options::all());
+        for event in parser {
+            if let Event::Start(tag) = &event {
+                let is_candidate = self.is_commentable_tag(tag);
+                let is_commentable = is_candidate && active_commentable_depth == 0usize;
+                if is_commentable {
+                    active_commentable_depth += 1;
+                }
 
-            // Track code blocks
-            if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
-                if !in_code_block {
-                    in_code_block = true;
-                    code_fence_char = trimmed.chars().next().unwrap();
-                } else if trimmed.starts_with(code_fence_char) {
-                    in_code_block = false;
+                stack.push(StackEntry {
+                    tag: tag.clone(),
+                    start_index: events.len(),
+                    is_commentable,
+                    span_position: self.span_position_for_tag(tag),
+                    heading_level: match tag {
+                        Tag::Heading(level, ..) => Some(*level),
+                        _ => None,
+                    },
+                });
+            }
+
+            events.push(event.clone());
+
+            if let Event::End(tag) = &event {
+                let entry = stack
+                    .pop()
+                    .ok_or_else(|| anyhow!("unbalanced markdown tags"))?;
+
+                debug_assert!(
+                    entry.tag == *tag,
+                    "mismatched tags: start={:?}, end={:?}",
+                    entry.tag,
+                    tag
+                );
+
+                if let Some(level) = entry.heading_level {
+                    let slice = &events[entry.start_index..events.len()];
+                    let heading_text = self.extract_plain_text(slice);
+                    self.update_heading_stack(&mut heading_stack, level, heading_text);
+                    section_index = 0;
+                }
+
+                if entry.is_commentable {
+                    active_commentable_depth = active_commentable_depth.saturating_sub(1);
+
+                    let slice = &events[entry.start_index..events.len()];
+                    let content = self
+                        .render_events_to_markdown(slice)?
+                        .trim_end_matches('\n')
+                        .to_string();
+
+                    blocks.push(BlockRecord {
+                        end_index: events.len() - 1,
+                        content,
+                        heading_path: heading_stack.clone(),
+                        block_index,
+                        section_index,
+                        prev_content: None,
+                        next_content: None,
+                        span_position: entry.span_position,
+                    });
+
+                    block_index += 1;
+                    section_index += 1;
+                }
+            }
+        }
+
+        for idx in 0..blocks.len() {
+            if idx > 0 {
+                blocks[idx].prev_content = Some(blocks[idx - 1].content.clone());
+            }
+            if idx + 1 < blocks.len() {
+                blocks[idx].next_content = Some(blocks[idx + 1].content.clone());
+            }
+        }
+
+        let mut block_metadata = Vec::with_capacity(blocks.len());
+        for block in &blocks {
+            let params = MetadataParams {
+                content: &block.content,
+                block_index: block.block_index,
+                section_index: block.section_index,
+                heading_stack: &block.heading_path,
+                path,
+                prev_content: &block.prev_content,
+                next_content: &block.next_content,
+            };
+            block_metadata.push(self.generate_metadata(&params));
+        }
+
+        let mut output_events: Vec<Event<'_>> = Vec::new();
+        let mut end_to_block: HashMap<usize, usize> = HashMap::new();
+        for (idx, block) in blocks.iter().enumerate() {
+            end_to_block.insert(block.end_index, idx);
+        }
+
+        for (idx, event) in events.into_iter().enumerate() {
+            if let Some(&block_idx) = end_to_block.get(&idx) {
+                if blocks[block_idx].span_position == SpanPosition::BeforeEnd {
+                    let html = self.add_comment_link(&block_metadata[block_idx], " ");
+                    output_events.push(Event::Html(CowStr::from(html)));
                 }
             }
 
-            // Track headings for context
-            if !in_code_block && trimmed.starts_with('#') {
-                let level = trimmed.chars().take_while(|c| *c == '#').count();
-                let heading_text = trimmed.trim_start_matches('#').trim();
+            output_events.push(event);
 
-                // Update heading stack
-                heading_stack.truncate(level - 1);
-                if level <= heading_stack.len() {
-                    heading_stack[level - 1] = heading_text.to_string();
-                } else {
-                    heading_stack.push(heading_text.to_string());
-                }
-                current_section_index = 0;
-            }
-
-            // Check if this is a commentable block
-            if !in_code_block && self.is_commentable_line(line, &lines, i) {
-                // Extract the content block
-                let (block_content, block_lines) = self.extract_block(&lines, i);
-
-                // Get context (prev and next blocks)
-                let prev_content = self.get_prev_block_content(&lines, i);
-                let next_content = self.get_next_block_content(&lines, i + block_lines);
-
-                // Generate metadata
-                let params = MetadataParams {
-                    content: &block_content,
-                    block_index,
-                    section_index: current_section_index,
-                    heading_stack: &heading_stack,
-                    path,
-                    prev_content: &prev_content,
-                    next_content: &next_content,
-                };
-                let metadata = self.generate_metadata(&params);
-
-                // Add the block with comment link
-                result.push_str(&self.add_comment_link(&block_content, &metadata));
-                result.push('\n');
-
-                block_index += 1;
-                current_section_index += 1;
-                i += block_lines;
-                continue;
-            }
-
-            result.push_str(line);
-            result.push('\n');
-            i += 1;
-        }
-
-        Ok(result)
-    }
-
-    fn is_commentable_line(&self, line: &str, _lines: &[&str], _index: usize) -> bool {
-        let trimmed = line.trim();
-
-        // Empty lines are not commentable
-        if trimmed.is_empty() {
-            return false;
-        }
-
-        // Check if it's a heading
-        if trimmed.starts_with('#') {
-            return self.config.elements.headings;
-        }
-
-        // Check if it's a list item
-        if trimmed.starts_with('-')
-            || trimmed.starts_with('*')
-            || trimmed.starts_with('+')
-            || (trimmed
-                .chars()
-                .next()
-                .map(|c| c.is_numeric())
-                .unwrap_or(false)
-                && trimmed.contains('.'))
-        {
-            return self.config.elements.lists;
-        }
-
-        // Check if it's a blockquote
-        if trimmed.starts_with('>') {
-            return self.config.elements.blockquotes;
-        }
-
-        // Check if it's a code block
-        if trimmed.starts_with("```") || trimmed.starts_with("~~~") {
-            return self.config.elements.code_blocks;
-        }
-
-        // Check if it's a table
-        if trimmed.starts_with('|') {
-            return self.config.elements.tables;
-        }
-
-        // Otherwise, it's likely a paragraph
-        self.config.elements.paragraphs
-    }
-
-    fn extract_block(&self, lines: &[&str], start: usize) -> (String, usize) {
-        let mut content = String::new();
-        let mut count = 0;
-        let first_line = lines[start].trim();
-
-        // Handle code blocks specially
-        if first_line.starts_with("```") || first_line.starts_with("~~~") {
-            let fence_char = first_line.chars().next().unwrap();
-            content.push_str(lines[start]);
-            content.push('\n');
-            count += 1;
-
-            for line in &lines[(start + 1)..] {
-                content.push_str(line);
-                content.push('\n');
-                count += 1;
-
-                if line.trim().starts_with(fence_char) && line.trim().len() >= 3 {
-                    break;
+            if let Some(&block_idx) = end_to_block.get(&idx) {
+                if blocks[block_idx].span_position == SpanPosition::AfterEnd {
+                    let html = self.add_comment_link(&block_metadata[block_idx], " ");
+                    output_events.push(Event::Html(CowStr::from(html)));
                 }
             }
-            return (content, count);
         }
 
-        // Handle regular blocks (paragraphs, list items, etc.)
-        for line in &lines[start..] {
-            let trimmed = line.trim();
-
-            // Stop at empty line (end of block)
-            if trimmed.is_empty() && count > 0 {
-                break;
-            }
-
-            // For paragraphs, stop at heading or special blocks
-            if count > 0
-                && (trimmed.starts_with('#')
-                    || trimmed.starts_with("```")
-                    || trimmed.starts_with("~~~")
-                    || trimmed.starts_with('|'))
-            {
-                break;
-            }
-
-            if !trimmed.is_empty() {
-                content.push_str(line);
-                content.push('\n');
-                count += 1;
-            }
-        }
-
-        (content.trim_end().to_string(), count)
+        let mut rendered = String::new();
+        cmark(output_events.into_iter(), &mut rendered)
+            .map_err(|_| anyhow!("failed to render markdown from events"))?;
+        Ok(rendered)
     }
 
-    fn get_prev_block_content(&self, lines: &[&str], current: usize) -> Option<String> {
-        if current == 0 {
-            return None;
+    fn is_commentable_tag(&self, tag: &Tag<'_>) -> bool {
+        match tag {
+            Tag::Paragraph => self.config.elements.paragraphs,
+            Tag::Heading(..) => self.config.elements.headings,
+            Tag::BlockQuote => self.config.elements.blockquotes,
+            Tag::Item => self.config.elements.lists,
+            Tag::CodeBlock(_) => self.config.elements.code_blocks,
+            Tag::Table(_) => self.config.elements.tables,
+            _ => false,
         }
-
-        // Search backwards for previous non-empty block
-        let mut i = current - 1;
-        while i > 0 && lines[i].trim().is_empty() {
-            i -= 1;
-        }
-
-        if lines[i].trim().is_empty() {
-            return None;
-        }
-
-        // Find start of this block
-        let mut start = i;
-        while start > 0 && !lines[start - 1].trim().is_empty() {
-            start -= 1;
-        }
-
-        let content: Vec<&str> = lines[start..=i].to_vec();
-        Some(content.join("\n"))
     }
 
-    fn get_next_block_content(&self, lines: &[&str], current: usize) -> Option<String> {
-        if current >= lines.len() {
-            return None;
+    fn span_position_for_tag(&self, tag: &Tag<'_>) -> SpanPosition {
+        match tag {
+            Tag::CodeBlock(_) | Tag::Table(_) => SpanPosition::AfterEnd,
+            _ => SpanPosition::BeforeEnd,
         }
+    }
 
-        // Skip empty lines
-        let mut i = current;
-        while i < lines.len() && lines[i].trim().is_empty() {
-            i += 1;
+    fn render_events_to_markdown(&self, events: &[Event<'_>]) -> Result<String> {
+        let mut buf = String::new();
+        cmark(events.iter().cloned(), &mut buf)
+            .map_err(|_| anyhow!("failed to render markdown slice"))?;
+        Ok(buf)
+    }
+
+    fn extract_plain_text(&self, events: &[Event<'_>]) -> String {
+        let mut text = String::new();
+        for event in events {
+            match event {
+                Event::Text(t) | Event::Code(t) | Event::Html(t) => {
+                    text.push_str(t.as_ref());
+                }
+                Event::SoftBreak | Event::HardBreak => {
+                    text.push(' ');
+                }
+                _ => {}
+            }
         }
+        text.trim().to_string()
+    }
 
-        if i >= lines.len() {
-            return None;
+    fn update_heading_stack(
+        &self,
+        heading_stack: &mut Vec<String>,
+        level: HeadingLevel,
+        text: String,
+    ) {
+        let level = level as usize;
+        if level == 0 {
+            return;
         }
-
-        // Find end of this block
-        let start = i;
-        while i < lines.len() && !lines[i].trim().is_empty() {
-            i += 1;
+        if level > 1 {
+            heading_stack.truncate(level - 1);
+        } else {
+            heading_stack.clear();
         }
-
-        let content: Vec<&str> = lines[start..i].to_vec();
-        Some(content.join("\n"))
+        heading_stack.push(text);
     }
 
     fn generate_metadata(&self, params: &MetadataParams) -> HashMap<String, serde_json::Value> {
@@ -364,8 +355,8 @@ impl CommentsProcessor {
 
     fn add_comment_link(
         &self,
-        content: &str,
         metadata: &HashMap<String, serde_json::Value>,
+        prefix: &str,
     ) -> String {
         let metadata_json = serde_json::to_string(metadata).unwrap_or_default();
         let metadata_escaped = metadata_json
@@ -382,8 +373,8 @@ impl CommentsProcessor {
         let link_text = &self.config.ui.link_text;
 
         format!(
-            "{} <span class=\"comment-link-wrapper\" data-comment-id=\"{}\" data-comment-meta=\"{}\"><a href=\"#\" class=\"comment-link\" onclick=\"toggleComments('{}'); return false;\">{}</a></span>",
-            content,
+            "{}<span class=\"comment-link-wrapper\" data-comment-id=\"{}\" data-comment-meta=\"{}\"><a href=\"#\" class=\"comment-link\" onclick=\"toggleComments('{}'); return false;\">{}</a></span>",
+            prefix,
             id,
             metadata_escaped,
             id,
@@ -396,6 +387,8 @@ impl CommentsProcessor {
 mod tests {
     use super::*;
     use crate::{CommentsConfig, ElementsConfig, UiConfig};
+    use serde_json::Value;
+    use std::collections::HashMap;
     use std::path::PathBuf;
 
     fn create_test_config() -> CommentsConfig {
@@ -420,177 +413,77 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_is_commentable_line_paragraph() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec!["This is a paragraph."];
+    fn extract_metadata(markdown: &str) -> Vec<Value> {
+        let mut values = Vec::new();
+        let pattern = "data-comment-meta=\"";
+        let mut search_start = 0;
 
-        assert!(processor.is_commentable_line("This is a paragraph.", &lines, 0));
-        assert!(!processor.is_commentable_line("", &lines, 0));
-        assert!(!processor.is_commentable_line("   ", &lines, 0));
+        while let Some(idx) = markdown[search_start..].find(pattern) {
+            let start = search_start + idx + pattern.len();
+            if let Some(end_offset) = markdown[start..].find('\"') {
+                let end = start + end_offset;
+                let raw = &markdown[start..end];
+                let decoded = raw
+                    .replace("&quot;", "\"")
+                    .replace("&lt;", "<")
+                    .replace("&gt;", ">")
+                    .replace("&amp;", "&");
+                if let Ok(value) = serde_json::from_str::<Value>(&decoded) {
+                    values.push(value);
+                }
+                search_start = end + 1;
+            } else {
+                break;
+            }
+        }
+
+        values
     }
 
     #[test]
-    fn test_is_commentable_line_headings() {
+    fn test_process_markdown_paragraphs_have_comment_links() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let path = Some(PathBuf::from("sample.md"));
+        let markdown = "First paragraph.\n\nSecond paragraph.";
+        let result = processor.process_markdown(markdown, &path).unwrap();
+
+        assert_eq!(result.match_indices("comment-link-wrapper").count(), 2);
+        assert!(result.contains("First paragraph. <span class=\"comment-link-wrapper\""));
+        assert!(result.contains("Second paragraph. <span class=\"comment-link-wrapper\""));
+    }
+
+    #[test]
+    fn test_process_markdown_code_block_and_following_paragraphs() {
+        let processor = CommentsProcessor::new(create_test_config());
+        let path = Some(PathBuf::from("code.md"));
+        let markdown = "```bash\nls\n```\n\nAfter code.";
+        let result = processor.process_markdown(markdown, &path).unwrap();
+
+        assert_eq!(result.match_indices("comment-link-wrapper").count(), 2);
+        let metadata = extract_metadata(&result);
+        assert_eq!(metadata.len(), 2);
+        let first_content = metadata[0]["content"].as_str().unwrap();
+        assert!(first_content.contains("```"));
+        assert!(first_content.contains("ls"));
+        let second_content = metadata[1]["content"].as_str().unwrap();
+        assert!(second_content.contains("After code."));
+    }
+
+    #[test]
+    fn test_process_markdown_headings_reset_section_index() {
         let mut config = create_test_config();
         config.elements.headings = true;
         let processor = CommentsProcessor::new(config);
-        let lines = vec!["# Heading"];
+        let path = Some(PathBuf::from("chapter.md"));
+        let markdown = "# Heading\n\nIntro paragraph.\n\n## Subheading\n\nBody paragraph.";
+        let result = processor.process_markdown(markdown, &path).unwrap();
 
-        assert!(processor.is_commentable_line("# Heading", &lines, 0));
-        assert!(processor.is_commentable_line("## Sub heading", &lines, 0));
-        assert!(processor.is_commentable_line("### Deep heading", &lines, 0));
-
-        // Test with headings disabled
-        let mut config = create_test_config();
-        config.elements.headings = false;
-        let processor = CommentsProcessor::new(config);
-        assert!(!processor.is_commentable_line("# Heading", &lines, 0));
-    }
-
-    #[test]
-    fn test_is_commentable_line_lists() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec!["- List item"];
-
-        assert!(processor.is_commentable_line("- List item", &lines, 0));
-        assert!(processor.is_commentable_line("* Another list item", &lines, 0));
-        assert!(processor.is_commentable_line("+ Plus list item", &lines, 0));
-        assert!(processor.is_commentable_line("1. Ordered list item", &lines, 0));
-        assert!(processor.is_commentable_line("42. Numbered item", &lines, 0));
-
-        // Test with lists disabled
-        let mut config = create_test_config();
-        config.elements.lists = false;
-        let processor = CommentsProcessor::new(config);
-        assert!(!processor.is_commentable_line("- List item", &lines, 0));
-    }
-
-    #[test]
-    fn test_is_commentable_line_blockquotes() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec!["> Quote"];
-
-        assert!(processor.is_commentable_line("> Quote", &lines, 0));
-        assert!(processor.is_commentable_line("> Another quote", &lines, 0));
-
-        // Test with blockquotes disabled
-        let mut config = create_test_config();
-        config.elements.blockquotes = false;
-        let processor = CommentsProcessor::new(config);
-        assert!(!processor.is_commentable_line("> Quote", &lines, 0));
-    }
-
-    #[test]
-    fn test_is_commentable_line_code_blocks() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec!["```rust"];
-
-        assert!(processor.is_commentable_line("```rust", &lines, 0));
-        assert!(processor.is_commentable_line("~~~python", &lines, 0));
-
-        // Test with code blocks disabled
-        let mut config = create_test_config();
-        config.elements.code_blocks = false;
-        let processor = CommentsProcessor::new(config);
-        assert!(!processor.is_commentable_line("```rust", &lines, 0));
-    }
-
-    #[test]
-    fn test_is_commentable_line_tables() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec!["| Header | Header |"];
-
-        assert!(processor.is_commentable_line("| Header | Header |", &lines, 0));
-        assert!(processor.is_commentable_line("| Data | Data |", &lines, 0));
-
-        // Test with tables disabled
-        let mut config = create_test_config();
-        config.elements.tables = false;
-        let processor = CommentsProcessor::new(config);
-        assert!(!processor.is_commentable_line("| Header | Header |", &lines, 0));
-    }
-
-    #[test]
-    fn test_extract_block_paragraph() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec![
-            "This is a paragraph.",
-            "It spans multiple lines.",
-            "",
-            "This is the next paragraph.",
-        ];
-
-        let (content, count) = processor.extract_block(&lines, 0);
-        assert_eq!(content, "This is a paragraph.\nIt spans multiple lines.");
-        assert_eq!(count, 2);
-    }
-
-    #[test]
-    fn test_extract_block_code_block() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec![
-            "```rust",
-            "fn main() {",
-            "    println!(\"Hello\");",
-            "}",
-            "```",
-            "",
-            "Next paragraph.",
-        ];
-
-        let (content, count) = processor.extract_block(&lines, 0);
-        assert_eq!(
-            content,
-            "```rust\nfn main() {\n    println!(\"Hello\");\n}\n```\n"
-        );
-        assert_eq!(count, 5);
-    }
-
-    #[test]
-    fn test_extract_block_single_line() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec!["Single line paragraph.", "", "Next paragraph."];
-
-        let (content, count) = processor.extract_block(&lines, 0);
-        assert_eq!(content, "Single line paragraph.");
-        assert_eq!(count, 1);
-    }
-
-    #[test]
-    fn test_get_prev_block_content() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec![
-            "Previous paragraph.",
-            "",
-            "Current paragraph.",
-            "",
-            "Next paragraph.",
-        ];
-
-        let prev = processor.get_prev_block_content(&lines, 2);
-        assert_eq!(prev, Some("Previous paragraph.".to_string()));
-
-        let no_prev = processor.get_prev_block_content(&lines, 0);
-        assert_eq!(no_prev, None);
-    }
-
-    #[test]
-    fn test_get_next_block_content() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let lines = vec![
-            "Previous paragraph.",
-            "",
-            "Current paragraph.",
-            "",
-            "Next paragraph.",
-        ];
-
-        let next = processor.get_next_block_content(&lines, 3);
-        assert_eq!(next, Some("Next paragraph.".to_string()));
-
-        let no_next = processor.get_next_block_content(&lines, 5);
-        assert_eq!(no_next, None);
+        let metadata = extract_metadata(&result);
+        assert_eq!(metadata.len(), 4);
+        assert_eq!(metadata[0]["position"]["section-index"].as_u64(), Some(0));
+        assert_eq!(metadata[1]["position"]["section-index"].as_u64(), Some(1));
+        assert_eq!(metadata[2]["position"]["section-index"].as_u64(), Some(0));
+        assert_eq!(metadata[3]["position"]["section-index"].as_u64(), Some(1));
     }
 
     #[test]
@@ -611,12 +504,10 @@ mod tests {
 
         let metadata = processor.generate_metadata(&params);
 
-        // Test ID generation
         let id = metadata.get("id").unwrap().as_str().unwrap();
         assert!(id.starts_with("chapter1-md-block-0-"));
-        assert_eq!(id.len(), "chapter1-md-block-0-".len() + 8); // 8 char hash
+        assert_eq!(id.len(), "chapter1-md-block-0-".len() + 8);
 
-        // Test position
         let position = metadata.get("position").unwrap().as_object().unwrap();
         assert_eq!(
             position.get("file").unwrap().as_str().unwrap(),
@@ -625,13 +516,11 @@ mod tests {
         assert_eq!(position.get("block-index").unwrap().as_u64().unwrap(), 0);
         assert_eq!(position.get("section-index").unwrap().as_u64().unwrap(), 2);
 
-        // Test content
         assert_eq!(
             metadata.get("content").unwrap().as_str().unwrap(),
             "Test content for metadata"
         );
 
-        // Test context
         let context = metadata.get("context").unwrap().as_object().unwrap();
         assert_eq!(
             context.get("prev").unwrap().as_str().unwrap(),
@@ -653,14 +542,12 @@ mod tests {
         let mut metadata = HashMap::new();
         metadata.insert("id".to_string(), serde_json::json!("test-id-12345678"));
 
-        let result = processor.add_comment_link("Test paragraph content.", &metadata);
+        let result = processor.add_comment_link(&metadata, " ");
 
-        assert!(result.contains("Test paragraph content."));
+        assert!(result.starts_with(" <span"));
         assert!(result.contains("data-comment-id=\"test-id-12345678\""));
-        assert!(result.contains("onclick=\"toggleComments('test-id-12345678')"));
-        assert!(result.contains("comment")); // link text
+        assert!(result.contains("onclick=\"toggleComments('test-id-12345678'); return false;\""));
         assert!(result.contains("comment-link-wrapper"));
-        assert!(result.contains("comment-link"));
     }
 
     #[test]
@@ -673,61 +560,11 @@ mod tests {
             serde_json::json!("Content with \"quotes\" & <tags>"),
         );
 
-        let result = processor.add_comment_link("Test content.", &metadata);
+        let result = processor.add_comment_link(&metadata, " ");
 
-        // Check that special characters are escaped in the data attribute
-        // The metadata is JSON-encoded then HTML-escaped
         assert!(result.contains("&quot;"));
         assert!(result.contains("&amp;"));
         assert!(result.contains("&lt;"));
-    }
-
-    #[test]
-    fn test_process_markdown_simple_paragraph() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let content = "This is a simple paragraph.\n\nThis is another paragraph.";
-        let path = Some(PathBuf::from("test.md"));
-
-        let result = processor.process_markdown(content, &path).unwrap();
-
-        // Should contain both paragraphs with comment links
-        assert!(result.contains("This is a simple paragraph."));
-        assert!(result.contains("This is another paragraph."));
-        assert_eq!(result.matches("comment-link-wrapper").count(), 2);
-        assert_eq!(result.matches("data-comment-id=").count(), 2);
-    }
-
-    #[test]
-    fn test_process_markdown_with_heading() {
-        let mut config = create_test_config();
-        config.elements.headings = true;
-        let processor = CommentsProcessor::new(config);
-
-        let content = "# Chapter Title\n\nThis is a paragraph under the heading.";
-        let path = Some(PathBuf::from("test.md"));
-
-        let result = processor.process_markdown(content, &path).unwrap();
-
-        // Should have comment links for both heading and paragraph
-        assert_eq!(result.matches("comment-link-wrapper").count(), 2);
-        assert!(result.contains("Chapter Title"));
-        assert!(result.contains("This is a paragraph"));
-    }
-
-    #[test]
-    fn test_process_markdown_code_block_handling() {
-        let processor = CommentsProcessor::new(create_test_config());
-        let content = "Before code.\n\n```rust\nfn main() {\n    // This should not be processed\n}\n```\n\nAfter code.";
-        let path = Some(PathBuf::from("test.md"));
-
-        let result = processor.process_markdown(content, &path).unwrap();
-
-        // Should have comment links for commentable blocks
-        // Note: The exact count depends on how the markdown is parsed
-        assert!(result.matches("comment-link-wrapper").count() >= 2);
-        assert!(result.contains("Before code."));
-        assert!(result.contains("After code."));
-        assert!(result.contains("```rust"));
     }
 
     #[test]
@@ -749,7 +586,6 @@ mod tests {
         let metadata1 = processor.generate_metadata(&params);
         let metadata2 = processor.generate_metadata(&params);
 
-        // Same content should generate same ID
         assert_eq!(metadata1.get("id"), metadata2.get("id"));
     }
 }

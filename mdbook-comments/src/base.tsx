@@ -441,144 +441,6 @@ export function showReplyForm(commentId: string): void {
 }
 
 /**
- * Submit a new comment
- * NOTE: This function is kept for backward compatibility.
- * The CommentForm component handles submission internally.
- */
-export async function submitComment(paragraphId: string): Promise<void> {
-  if (!state.backend) {
-    throw new Error('Backend not initialized');
-  }
-
-  const wrapper = document.querySelector(
-    `[data-comment-id="${paragraphId}"]`
-  );
-  if (!wrapper) return;
-
-  const section = document.getElementById(`comments-${paragraphId}`);
-  if (!section) return;
-
-  const form = section.querySelector('.comment-form');
-  if (!form) return;
-
-  // Get author if needed
-  let author = state.backend.getCurrentAuthor
-    ? state.backend.getCurrentAuthor()
-    : null;
-  if (state.backend.showAuthorInput && !author) {
-    const authorInput = form.querySelector('.author-input') as HTMLInputElement;
-    if (authorInput) {
-      author = authorInput.value.trim();
-      if (!author) {
-        alert('Please enter your name');
-        return;
-      }
-      // Save author for future comments
-      if (state.backend.setCurrentAuthor) {
-        state.backend.setCurrentAuthor(author);
-      }
-    }
-  }
-
-  const textarea = form.querySelector('.comment-input') as HTMLTextAreaElement;
-  if (!textarea) return;
-
-  const text = textarea.value.trim();
-
-  if (!text) {
-    alert('Please enter a comment');
-    return;
-  }
-
-  const metaStr = wrapper.getAttribute('data-comment-meta') || '{}';
-  const metadata: ParagraphMetadata = JSON.parse(metaStr);
-
-  try {
-    const newComment = await state.backend.saveComment(
-      paragraphId,
-      metadata,
-      text,
-      author || 'Anonymous'
-    );
-
-    // Add to local state
-    newComment.replies = newComment.replies || [];
-    state.allComments.push(newComment);
-    state.currentPageComments.push({
-      paragraphId,
-      comment: newComment,
-      confidence: 1.0,
-    });
-
-    // Clear textarea
-    textarea.value = '';
-
-    // Reload comments and re-render section
-    await loadComments();
-  } catch (error) {
-    console.error('Error posting comment:', error);
-    alert('Failed to post comment. Please try again.');
-  }
-}
-
-/**
- * Submit a reply to a comment
- * NOTE: This function is kept for backward compatibility.
- * The ReplyForm component handles submission internally.
- */
-export async function submitReply(commentId: string): Promise<void> {
-  if (!state.backend) {
-    throw new Error('Backend not initialized');
-  }
-
-  // Get author if needed
-  let author = state.backend.getCurrentAuthor
-    ? state.backend.getCurrentAuthor()
-    : null;
-
-  const form = document.getElementById(`reply-form-${commentId}`);
-  if (!form) return;
-
-  const textarea = form.querySelector('.reply-input') as HTMLTextAreaElement;
-  if (!textarea) return;
-
-  const text = textarea.value.trim();
-
-  if (!text) {
-    alert('Please enter a reply');
-    return;
-  }
-
-  try {
-    const newReply = await state.backend.saveReply(
-      commentId,
-      text,
-      author || 'Anonymous'
-    );
-
-    // Update local comment
-    const comment = state.allComments.find((c) => c.id === commentId);
-    if (comment) {
-      if (!comment.replies) comment.replies = [];
-      comment.replies.push(newReply);
-    }
-
-    // Add to global list
-    state.allComments.push(newReply);
-
-    // Clear textarea and hide form
-    textarea.value = '';
-    form.style.display = 'none';
-
-    // Reload comments and re-render
-    await loadComments();
-  } catch (error) {
-    console.error('Error posting reply:', error);
-    alert('Failed to post reply. Please try again.');
-  }
-}
-
-/**
  * Refresh all open comment sections (e.g., after auth change)
  */
 async function refreshAllCommentSections(): Promise<void> {
@@ -838,7 +700,7 @@ function injectStyles(): void {
 }
 
 /**
- * Public API exposed on window for backwards compatibility
+ * Public API exposed on window for inline handlers and external scripts
  */
 export interface MdbookCommentsAPI {
   init: typeof init;
@@ -848,8 +710,6 @@ declare global {
   interface Window {
     MdbookComments: MdbookCommentsAPI;
     toggleComments: typeof toggleComments;
-    submitComment: typeof submitComment;
-    submitReply: typeof submitReply;
     showReplyForm: typeof showReplyForm;
   }
 }
@@ -859,8 +719,6 @@ window.MdbookComments = {
   init: init,
 };
 
-// Export global functions for backwards compatibility
+// Export functions referenced by injected inline handlers
 window.toggleComments = toggleComments;
-window.submitComment = submitComment;
-window.submitReply = submitReply;
 window.showReplyForm = showReplyForm;
