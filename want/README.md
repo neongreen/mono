@@ -91,21 +91,34 @@ Or add to your `.mise.toml`:
 
 ### Install from mono repository (✅ WORKING)
 
+The `want mono` command now supports the same fulfillment plan machinery as other `want` commands, including `--dry-run` and `--plan-json` flags.
+
 ```bash
 # List all available releases and open PRs for a project
 want mono printpdf --list
 
-# Install a specific version
+# Install a specific version (asks for confirmation)
 want mono printpdf@main.1
+
+# Preview what would be done without confirmation
+want mono --dry-run printpdf@main.1
+
+# Get the fulfillment plan as JSON
+want mono --plan-json printpdf@main.1
 
 # Install a PR release (if available)
 want mono dissect@pr-42.1
 
-# Install from a PR (builds locally if no release)
-want mono dissect@pr-100
+# Preview building from a PR (builds locally if no release)
+want mono --dry-run dissect@pr-100
+
+# Install from a PR with plan output as JSON
+want mono --plan-json dissect@pr-100
 ```
 
 The tool will:
+- Build a fulfillment plan showing all steps before execution
+- Ask for confirmation before proceeding (unless using --dry-run or --plan-json)
 - Fetch all releases from neongreen/mono repository
 - Fetch all open PRs that modify the specified project
 - Filter releases for the specified project
@@ -142,12 +155,49 @@ Examples:
   want mono printpdf@pr-100
 ```
 
+Example using dry-run mode:
+
+```bash
+$ want mono --dry-run dissect@pr-100
+Building dissect from PR #100...
+
+Fulfillment plan:
+
+Step 1: Fetch PR #100 information from GitHub
+  $ GET https://api.github.com/repos/neongreen/mono/pulls/100
+
+Step 2: Clone neongreen/mono repository (PR branch)
+  $ git clone --depth=1 --branch <pr-branch> https://github.com/neongreen/mono.git <tmpdir>
+
+Step 3: Build dissect from source
+  $ go build -o /home/user/.local/bin/dissect .
+
+Step 4: Make binary executable
+  $ chmod +x /home/user/.local/bin/dissect
+```
+
 When installing from a PR without a release:
 
 ```bash
 $ want mono dissect@pr-100
 No release found for pr-100 (would be tagged as dissect--pr-100)
 Building from PR #100 instead...
+
+Fulfillment plan:
+
+Step 1: Fetch PR #100 information from GitHub
+  $ GET https://api.github.com/repos/neongreen/mono/pulls/100
+
+Step 2: Clone neongreen/mono repository (PR branch)
+  $ git clone --depth=1 --branch <pr-branch> https://github.com/neongreen/mono.git <tmpdir>
+
+Step 3: Build dissect from source
+  $ go build -o /home/user/.local/bin/dissect .
+
+Step 4: Make binary executable
+  $ chmod +x /home/user/.local/bin/dissect
+
+Proceed with this plan? [Y/n]: y
 
 PR #100: Add support for new syntax
 Branch: feature-branch
