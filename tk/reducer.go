@@ -8,15 +8,17 @@ import (
 
 // Reducer reconstructs task state from events
 type Reducer struct {
-	tasks    map[string]*Task  // Key: task UUID
-	taskByID map[string]string // Key: task ID (current or alias) -> Value: task UUID
+	tasks     map[string]*Task  // Key: task UUID
+	taskByID  map[string]string // Key: task ID (current or alias) -> Value: task UUID
+	relations *RelationsGraph   // Relations graph
 }
 
 // NewReducer creates a new reducer
 func NewReducer() *Reducer {
 	return &Reducer{
-		tasks:    make(map[string]*Task),
-		taskByID: make(map[string]string),
+		tasks:     make(map[string]*Task),
+		taskByID:  make(map[string]string),
+		relations: NewRelationsGraph(),
 	}
 }
 
@@ -33,6 +35,12 @@ func (r *Reducer) Apply(e Event) error {
 		return r.applyTaskReprefix(e)
 	case "task.alias.added":
 		return r.applyTaskAliasAdded(e)
+	case "relation.add":
+		return r.applyRelationAdd(e)
+	case "relation.remove":
+		return r.applyRelationRemove(e)
+	case "relation.note":
+		return r.applyRelationNote(e)
 	case "prefix.created":
 		// Prefix events are handled by the DB projector, not the reducer
 		return nil
@@ -295,6 +303,68 @@ func (r *Reducer) GetAllTasks() []*Task {
 	return tasks
 }
 
+// applyRelationAdd adds a relation edge
+func (r *Reducer) applyRelationAdd(e Event) error {
+	var payload RelationAddPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal relation.add payload: %w", err)
+	}
+
+	// Extract node from event ID (format: ev-<number>-<node>)
+	node := ""
+	if len(e.ID) > 0 {
+		parts := splitEventID(e.ID)
+		if len(parts) == 3 {
+			node = parts[2]
+		}
+	}
+
+	r.relations.AddRelation(payload.Src, payload.Type, payload.Dst, payload.Note, e.ID, node, e.TS)
+	return nil
+}
+
+// applyRelationRemove removes a relation edge
+func (r *Reducer) applyRelationRemove(e Event) error {
+	var payload RelationRemovePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal relation.remove payload: %w", err)
+	}
+
+	// Extract node from event ID
+	node := ""
+	if len(e.ID) > 0 {
+		parts := splitEventID(e.ID)
+		if len(parts) == 3 {
+			node = parts[2]
+		}
+	}
+
+	r.relations.RemoveRelation(payload.Src, payload.Type, payload.Dst, e.ID, node, e.TS)
+	return nil
+}
+
+// applyRelationNote sets a note on a relation
+func (r *Reducer) applyRelationNote(e Event) error {
+	var payload RelationNotePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal relation.note payload: %w", err)
+	}
+
+	r.relations.SetRelationNote(payload.Src, payload.Type, payload.Dst, payload.Markdown)
+	return nil
+}
+
+// FinalizeRelations builds relations for all tasks and computes blocked status
+func (r *Reducer) FinalizeRelations(config *Config) {
+	// Build relations for all tasks
+	for uuid, task := range r.tasks {
+		task.Relations = r.relations.BuildTaskRelations(uuid)
+	}
+
+	// Compute blocked status
+	r.relations.ComputeBlocked(r.tasks, config.Blocking.BlockingAxis, config.Blocking.DoneStates)
+}
+
 // BuildFromEvents builds the current state from a list of events
 func BuildFromEvents(events []Event) (*Reducer, error) {
 	reducer := NewReducer()
@@ -303,5 +373,17 @@ func BuildFromEvents(events []Event) (*Reducer, error) {
 			return nil, fmt.Errorf("failed to apply event %s: %w", e.ID, err)
 		}
 	}
+	return reducer, nil
+}
+
+// BuildFromEventsWithConfig builds the current state from events and finalizes relations
+func BuildFromEventsWithConfig(events []Event, config *Config) (*Reducer, error) {
+	reducer := NewReducer()
+	for _, e := range events {
+		if err := reducer.Apply(e); err != nil {
+			return nil, fmt.Errorf("failed to apply event %s: %w", e.ID, err)
+		}
+	}
+	reducer.FinalizeRelations(config)
 	return reducer, nil
 }

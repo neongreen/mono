@@ -49,3 +49,9 @@ func generateULID() string {
 	// In production, this would be a proper ULID
 	return generateNodeID(20) // 20 chars for UUID
 }
+
+// splitEventID splits an event ID into its components
+// Format: ev-<number>-<node> or other formats
+func splitEventID(eventID string) []string {
+	return strings.Split(eventID, "-")
+}

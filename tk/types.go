@@ -86,6 +86,29 @@ type TaskAliasAddedPayload struct {
 	AliasID  string `json:"alias_id"`
 }
 
+// RelationAddPayload is the payload for relation.add events
+type RelationAddPayload struct {
+	Src  string `json:"src"`  // Source task UUID
+	Type string `json:"type"` // blocks|blocked_by|subtask|parent|related|duplicate_of|supersedes
+	Dst  string `json:"dst"`  // Destination task UUID
+	Note string `json:"note,omitempty"`
+}
+
+// RelationRemovePayload is the payload for relation.remove events
+type RelationRemovePayload struct {
+	Src  string `json:"src"`  // Source task UUID
+	Type string `json:"type"` // Relation type
+	Dst  string `json:"dst"`  // Destination task UUID
+}
+
+// RelationNotePayload is the payload for relation.note events
+type RelationNotePayload struct {
+	Src      string `json:"src"`      // Source task UUID
+	Type     string `json:"type"`     // Relation type
+	Dst      string `json:"dst"`      // Destination task UUID
+	Markdown string `json:"markdown"` // Note text
+}
+
 // Claim represents a status assertion by an actor
 type Claim struct {
 	State     string `json:"state"`
@@ -110,6 +133,39 @@ type Task struct {
 	Notes     []Note                `json:"notes"`
 	CreatedBy string                `json:"created_by"`
 	CreatedAt time.Time             `json:"created_at"`
+	Relations *Relations            `json:"relations,omitempty"` // Task relations
+	Blocked   bool                  `json:"blocked,omitempty"`   // Is this task blocked
+	Blockers  []Blocker             `json:"blockers,omitempty"`  // List of blocking tasks
+}
+
+// Relations represents all relations for a task
+type Relations struct {
+	Blocks     RelationSet `json:"blocks,omitempty"`     // Tasks this task blocks
+	Subtask    RelationSet `json:"subtask,omitempty"`    // Parent/children for subtasks
+	Related    RelationSet `json:"related,omitempty"`    // Related tasks
+	Duplicate  RelationSet `json:"duplicate,omitempty"`  // Duplicate tasks
+	Supersedes RelationSet `json:"supersedes,omitempty"` // Tasks this supersedes
+}
+
+// RelationSet represents directional relations
+type RelationSet struct {
+	Out      []RelationTarget `json:"out,omitempty"`      // Outgoing edges (this task -> others)
+	In       []RelationTarget `json:"in,omitempty"`       // Incoming edges (others -> this task)
+	Children []string         `json:"children,omitempty"` // For subtask relations
+	Parent   string           `json:"parent,omitempty"`   // For subtask relations
+}
+
+// RelationTarget represents a relation target
+type RelationTarget struct {
+	TaskUUID string `json:"dst"` // Destination task UUID
+	Note     string `json:"note,omitempty"`
+}
+
+// Blocker represents a task that blocks another
+type Blocker struct {
+	TaskID   string `json:"task_id"`
+	Title    string `json:"title"`
+	Distance int    `json:"distance"` // Distance in dependency graph
 }
 
 // Note represents a note on a task
