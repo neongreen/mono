@@ -156,31 +156,103 @@ func (p *JJSchemaParser) ValidatePath(path string) bool {
 
 	parts := strings.Split(path, ".")
 	current := properties
+	var currentPropSchema map[string]interface{}
 
 	for i, part := range parts {
+		// First, try to find the property in the current properties map
 		if prop, exists := current[part]; exists {
 			if propMap, ok := prop.(map[string]interface{}); ok {
+				currentPropSchema = propMap
 				if i == len(parts)-1 {
-					// This is the final part - it's valid regardless of whether it has nested properties
+					// This is the final part - it's valid
 					return true
-				} else {
-					// Continue navigating if there are nested properties
-					if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
-						current = nestedProps
-					} else {
-						// No nested properties but more parts in path - invalid
-						return false
-					}
 				}
-			} else {
+				// Continue navigating if there are nested properties
+				if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+					current = nestedProps
+					continue
+				}
+				// No explicit nested properties - check if this property allows additionalProperties
+				if additionalProps, ok := propMap["additionalProperties"].(map[string]interface{}); ok {
+					// The property has additionalProperties - check if the remaining path is valid
+					// under the additionalProperties schema
+					return p.validateAgainstSchema(additionalProps, parts[i+1:])
+				}
+				// No nested properties and no additionalProperties - invalid
 				return false
 			}
-		} else {
 			return false
 		}
+
+		// Property doesn't exist in explicit properties - check if we're inside a property with additionalProperties
+		if currentPropSchema != nil {
+			if additionalProps, ok := currentPropSchema["additionalProperties"].(map[string]interface{}); ok {
+				// Current property allows additionalProperties - validate remaining path against that schema
+				return p.validateAgainstSchema(additionalProps, parts[i:])
+			}
+		}
+
+		// Not found and no additionalProperties - invalid
+		return false
 	}
 
 	return true
+}
+
+// validateAgainstSchema validates a path against a schema definition
+// This is used to validate paths under additionalProperties
+// parts[0] is the current property name to validate, parts[1:] are the remaining path segments
+func (p *JJSchemaParser) validateAgainstSchema(schema map[string]interface{}, parts []string) bool {
+	if len(parts) == 0 {
+		return true
+	}
+
+	// We're in an additionalProperties context, so parts[0] (the current property name) is always valid
+	// We just need to check if there are more parts and if they can be validated against this schema
+
+	if len(parts) == 1 {
+		// This is the last part - it's valid
+		return true
+	}
+
+	// More parts remaining - check if the schema defines a structure that allows deeper nesting
+	// First, check if the schema has explicit properties
+	if nestedProps, ok := schema["properties"].(map[string]interface{}); ok {
+		// The schema has explicit properties - check if parts[1] is one of them
+		if prop, exists := nestedProps[parts[1]]; exists {
+			if propMap, ok := prop.(map[string]interface{}); ok {
+				// Found the property - continue validation with remaining parts
+				return p.validateAgainstSchema(propMap, parts[2:])
+			}
+			// Property exists but not a map - can't nest further
+			return false
+		}
+		// parts[1] not in explicit properties - check if schema has additionalProperties
+		if additionalProps, ok := schema["additionalProperties"].(map[string]interface{}); ok {
+			return p.validateAgainstSchema(additionalProps, parts[1:])
+		}
+		// No additionalProperties and parts[1] not in properties - invalid
+		return false
+	}
+
+	// No explicit properties - check if schema has additionalProperties
+	if additionalProps, ok := schema["additionalProperties"].(map[string]interface{}); ok {
+		// Schema allows any nested property - validate remaining path against additionalProperties
+		return p.validateAgainstSchema(additionalProps, parts[1:])
+	}
+
+	// Check the schema type
+	if schemaType, ok := schema["type"].(string); ok {
+		// Non-object types don't support nested properties
+		if schemaType != "object" {
+			return false
+		}
+		// Object type with no properties or additionalProperties - no nesting allowed
+		return false
+	}
+
+	// Unknown schema structure - reject nesting
+	return false
 }
 
 // GetPropertyInfo returns detailed information about a specific property
