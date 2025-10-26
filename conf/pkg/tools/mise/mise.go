@@ -172,6 +172,20 @@ func (m *MiseTool) IsDryRun() bool {
 	return m.dryRun
 }
 
+// SetAllValues sets multiple configuration values from a nested map structure
+// This is more efficient than setting individual paths as it avoids the need
+// to flatten/unflatten the structure and parse quoted keys
+func (m *MiseTool) SetAllValues(values map[string]interface{}) error {
+	if m.dryRun {
+		fmt.Println("DRY RUN: Would set all values")
+		return nil
+	}
+
+	// We don't validate individual paths here because we're working with
+	// the native nested structure. The TOML library will handle the writing.
+	return m.editor.SetAllValues(values)
+}
+
 // ListCommonSettings returns a list of commonly used mise settings with descriptions
 func (m *MiseTool) ListCommonSettings() []CommonSetting {
 	return []CommonSetting{

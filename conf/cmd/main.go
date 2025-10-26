@@ -1192,23 +1192,22 @@ func applyTool(conf *config.Config, toolName string, dryRun bool) error {
 		return fmt.Errorf("tool %s not configured", toolName)
 	}
 
-	flatValues := config.FlattenValues(tool.Values)
-	if len(flatValues) == 0 {
+	if tool.Values == nil || len(tool.Values) == 0 {
 		fmt.Printf("%s: No values to apply\n", toolName)
 		return nil
 	}
 
 	fmt.Printf("Applying %s configuration...\n", toolName)
 
-	for path, value := range flatValues {
-		if dryRun {
-			fmt.Printf("  Would set %s.%s = %v\n", toolName, path, value)
-		} else {
-			if err := applyToolValue(toolName, path, value); err != nil {
-				return fmt.Errorf("failed to apply %s.%s: %w", toolName, path, err)
-			}
-			fmt.Printf("  ✓ Set %s.%s = %v\n", toolName, path, value)
+	// Use the nested structure directly instead of flattening to strings
+	// This avoids the need to parse quoted keys and is more efficient
+	if dryRun {
+		fmt.Printf("  Would apply %d top-level config sections\n", len(tool.Values))
+	} else {
+		if err := tools.ApplyAllToolValues(toolName, tool.Values); err != nil {
+			return fmt.Errorf("failed to apply %s configuration: %w", toolName, err)
 		}
+		fmt.Printf("  ✓ Applied configuration successfully\n")
 	}
 
 	return nil

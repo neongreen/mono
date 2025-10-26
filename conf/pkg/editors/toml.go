@@ -216,3 +216,26 @@ func (e *TOMLEditor) GetAllValues() (map[string]interface{}, error) {
 
 	return data, nil
 }
+
+// SetAllValues sets all values from a nested map structure, replacing the entire file
+// This is more efficient than setting individual paths when applying bulk updates
+func (e *TOMLEditor) SetAllValues(values map[string]interface{}) error {
+	if e.dryRun {
+		fmt.Printf("DRY RUN: Would set all values in %s\n", e.filePath)
+		return nil
+	}
+
+	// Ensure directory exists
+	dir := filepath.Dir(e.filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	// Use the toml library to write the values
+	// This preserves the structure without needing to flatten/unflatten
+	if err := toml.WriteFile(e.filePath, values); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	return nil
+}
