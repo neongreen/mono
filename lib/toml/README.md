@@ -13,6 +13,8 @@ A Go library for parsing, modifying, and serializing TOML documents while **pres
 - ✅ **Nestedness Style Preservation**: Dotted keys (`server.host = "..."`) vs section style (`[server]` + `host = "..."`) are preserved
 - ✅ **Simple API**: Easy-to-use interface with `Get`, `Set`, `Delete`, and `Has` methods
 - ✅ **Dotted Path Support**: Access nested values using dotted paths (e.g., `server.database.host`)
+- ✅ **Quoted Key Support**: Full support for TOML quoted keys with special characters (e.g., `aliases."."`, `section."key with spaces"`)
+- ✅ **Path Validation**: Validates paths according to TOML specification, rejecting invalid paths like `aliases.` (trailing dot)
 - ✅ **Full TOML v1.0.0 Support**: Supports all TOML features including arrays, inline tables, and multiline strings
 - ✅ **Extensively Tested**: Comprehensive test suite with 39 test cases covering all edge cases
 
@@ -376,7 +378,67 @@ host = "localhost"
 }
 ```
 
-## Advanced Usage
+### Example 6: Working with Quoted Keys
+
+TOML allows special characters in keys when they are quoted. This is useful for tools like jj (Jujutsu VCS) that use single-character aliases.
+
+```go
+package main
+
+import (
+	"fmt"
+
+	"github.com/neongreen/mono/lib/toml"
+)
+
+func main() {
+	// Example: jj-style aliases with quoted single-character keys
+	input := `
+[aliases]
+"." = "status"
+".." = "show @-"
+"..." = "show @--"
+l = "log"
+`
+
+	doc, _ := toml.ParseString(input)
+
+	// Get quoted keys - use backslash escaping or raw strings
+	status, _ := doc.Get(`aliases."."`)
+	fmt.Println("Alias '.':", status) // Output: Alias '.': status
+
+	showParent, _ := doc.Get(`aliases.".."`)
+	fmt.Println("Alias '..':", showParent) // Output: Alias '..': show @-
+
+	// Set new quoted keys
+	doc.Set(`aliases."!!!!"`, "diff")
+
+	// Regular keys work as usual
+	log, _ := doc.Get("aliases.l")
+	fmt.Println("Alias 'l':", log) // Output: Alias 'l': log
+
+	// Invalid paths are rejected
+	_, err := doc.Get("aliases.") // trailing dot
+	fmt.Println("Invalid path error:", err != nil) // Output: Invalid path error: true
+
+	fmt.Println(doc.String())
+	// Output:
+	// [aliases]
+	// "." = "status"
+	// ".." = "show @-"
+	// "..." = "show @--"
+	// l = "log"
+	// "!!!!" = "diff"
+}
+```
+
+**Path Validation:**
+
+The library uses TOML-compliant path parsing that:
+- ✅ Accepts: `aliases."."`, `section."key with spaces"`, `config."key-with-dashes"`
+- ❌ Rejects: `aliases.` (trailing dot), `.aliases` (leading dot), `aliases..key` (double dot)
+
+
 
 ### Accessing Arrays
 

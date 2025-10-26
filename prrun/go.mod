@@ -2,7 +2,7 @@ module github.com/neongreen/mono/prrun
 
 go 1.24.7
 
-require github.com/neongreen/mono/lib/ghrelease v0.0.0
+require github.com/neongreen/mono/lib/ghrelease v0.0.0-20251026114155-13f77e63a1cc
 
 require (
 	github.com/google/go-github/v61 v61.0.0 // indirect
