@@ -556,3 +556,70 @@ values = [40, 50, 60]
 		t.Errorf("Round-trip produced invalid TOML: %v", err)
 	}
 }
+
+// TestQuotedDotKey tests handling of a quoted key that is just a dot character.
+// This is an interesting edge case: [aliases] with '.' = ['ci', '-m.']
+// In JSON this would be {"aliases": {".": ["ci", "-m."]}}.
+//
+// TOML syntax: The key '.' is a valid quoted key (TOML v1.0.0 spec).
+// Library behavior: The document can be parsed and serialized correctly,
+// preserving the quoted dot key. However, accessing the value through the
+// path-based Get() API is a known limitation since dots are path separators.
+func TestQuotedDotKey(t *testing.T) {
+	input := `[aliases]
+'.' = ['ci', '-m.']
+`
+
+	doc, err := ParseString(input)
+	if err != nil {
+		t.Fatalf("ParseString() error = %v", err)
+	}
+
+	// Verify the document can be parsed and serialized correctly
+	output := doc.String()
+	t.Logf("Serialized output:\n%s", output)
+
+	// The output should preserve the quoted dot key
+	if !strings.Contains(output, `"." = `) && !strings.Contains(output, `'.' = `) {
+		t.Errorf("Expected output to contain quoted dot key, got:\n%s", output)
+	}
+
+	// Verify round-trip parsing works
+	doc2, err := ParseString(output)
+	if err != nil {
+		t.Fatalf("Round-trip parsing failed: %v\nOutput was:\n%s", err, output)
+	}
+
+	output2 := doc2.String()
+	if !strings.Contains(output2, `"." = `) && !strings.Contains(output2, `'.' = `) {
+		t.Errorf("Round-trip lost the quoted dot key:\n%s", output2)
+	}
+
+	// Document that accessing via path-based API is a known limitation
+	// The key "." cannot be accessed via "aliases." because parseKeyPath
+	// splits on dots, creating ["aliases", ""] instead of ["aliases", "."]
+	val, err := doc.Get("aliases.")
+	if val != nil {
+		// If this ever works, it would be a great improvement!
+		t.Logf("Successfully retrieved value via path: %v", val)
+
+		// Verify it's the expected array
+		arr, ok := val.([]interface{})
+		if !ok {
+			t.Errorf("Expected array, got %T", val)
+		} else if len(arr) != 2 {
+			t.Errorf("Expected array of length 2, got %d", len(arr))
+		} else {
+			if arr[0] != "ci" {
+				t.Errorf("Expected first element 'ci', got %v", arr[0])
+			}
+			if arr[1] != "-m." {
+				t.Errorf("Expected second element '-m.', got %v", arr[1])
+			}
+		}
+	} else {
+		// Current expected behavior: value is not accessible via path API
+		t.Logf("Note: Value is not accessible via path-based API (known limitation)")
+		t.Logf("  Get(\"aliases.\") returned: %v (err: %v)", val, err)
+	}
+}
