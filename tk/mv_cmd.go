@@ -78,11 +78,18 @@ func runMvCmd(cmd *cobra.Command, args []string) error {
 		}
 		if autoFlag {
 			specs[i].autoNumber = true
+			// When --auto is set, also set on-collision to auto unless explicitly specified
+			if !cmd.Flags().Changed("on-collision") {
+				specs[i].onCollision = "auto"
+			} else {
+				specs[i].onCollision = onCollision
+			}
+		} else {
+			specs[i].onCollision = onCollision
 		}
 		if keepNumberFlag {
 			specs[i].keepNumber = true
 		}
-		specs[i].onCollision = onCollision
 	}
 
 	// Validate collision strategy

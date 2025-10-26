@@ -115,9 +115,9 @@ func (d *DB) InitDB() error {
 
 	// Migration: Add removed column to prefixes table if it doesn't exist
 	// Check if the removed column exists
-	var columnExists bool
-	err := d.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('prefixes') WHERE name = 'removed'").Scan(&columnExists)
-	if err == nil && !columnExists {
+	var columnCount int
+	err := d.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('prefixes') WHERE name = 'removed'").Scan(&columnCount)
+	if err == nil && columnCount == 0 {
 		_, err = d.db.Exec("ALTER TABLE prefixes ADD COLUMN removed INTEGER NOT NULL DEFAULT 0")
 		if err != nil {
 			return fmt.Errorf("failed to add removed column to prefixes table: %w", err)
