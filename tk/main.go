@@ -698,6 +698,7 @@ func init() {
 	rootCmd.AddCommand(syncCmd)
 	rootCmd.AddCommand(prefixCmd)
 	rootCmd.AddCommand(eventsCmd)
+	rootCmd.AddCommand(adminCmd)
 }
 
 func openExistingDB() (*DB, error) {
@@ -715,6 +716,26 @@ func openExistingDB() (*DB, error) {
 	if err := db.InitDB(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
+	}
+
+	// Check if v4 migration is needed
+	needsMigration, err := db.NeedsMigrationToV4()
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to check migration status: %w", err)
+	}
+
+	if needsMigration {
+		fmt.Println("Migrating database to v4...")
+		fmt.Printf("Creating backup at %s%s\n", path, v4BackupSuffix)
+
+		if err := db.MigrateToV4(path); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("failed to migrate to v4: %w", err)
+		}
+
+		fmt.Println("Migration to v4 complete!")
+		fmt.Println("Run 'tk doctor' to verify the migration")
 	}
 
 	return db, nil

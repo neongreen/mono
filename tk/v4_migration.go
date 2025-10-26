@@ -263,7 +263,7 @@ func (d *DB) migrateTasksToV4(nodeID string, actor string) error {
 
 		// Parse legacy task.created payload
 		var legacyPayload TaskCreatedPayload
-		if err := unmarshalJSON(payload, &legacyPayload); err != nil {
+		if err := json.Unmarshal(payload, &legacyPayload); err != nil {
 			return fmt.Errorf("failed to parse task.created payload: %w", err)
 		}
 
@@ -372,32 +372,17 @@ func copyFile(src, dst string) error {
 // parseTaskID extracts prefix, number, and node from a task ID
 // Format: prefix-number-node
 func parseTaskID(taskID string) (prefix string, number int64, node string, err error) {
-	parts := splitTaskID(taskID)
+	parts := strings.Split(taskID, "-")
 	if len(parts) != 3 {
 		return "", 0, "", fmt.Errorf("invalid task ID format: expected prefix-number-node")
 	}
 
 	prefix = parts[0]
-	number, err = parseNumber(parts[1])
+	number, err = strconv.ParseInt(parts[1], 10, 64)
 	if err != nil {
 		return "", 0, "", fmt.Errorf("invalid number in task ID: %w", err)
 	}
 	node = parts[2]
 
 	return prefix, number, node, nil
-}
-
-// splitTaskID splits a task ID by dashes
-func splitTaskID(taskID string) []string {
-	return strings.Split(taskID, "-")
-}
-
-// parseNumber parses a string to int64
-func parseNumber(s string) (int64, error) {
-	return strconv.ParseInt(s, 10, 64)
-}
-
-// unmarshalJSON is a helper to unmarshal JSON
-func unmarshalJSON(data []byte, v interface{}) error {
-	return json.Unmarshal(data, v)
 }
