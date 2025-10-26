@@ -315,6 +315,46 @@ Shows divergence between local and remote segments.
 - `tk pull [remote]` - Pull segments from remote
 - `tk push [remote]` - Push segments to remote
 
+### Debug sync issues
+
+Use the `events` command to inspect events in the database:
+
+```bash
+# List all events
+tk events list
+
+# List only prefix.created events
+tk events list --kind prefix.created
+
+# Show first 10 events
+tk events list --limit 10
+
+# Show detailed event information
+tk events show ev-1-abc123
+
+# Show event statistics
+tk events stats
+```
+
+Use enhanced prefix listing to see sync state:
+
+```bash
+# Show all prefixes including synced ones
+tk prefix list --all
+
+# Show verbose output with timestamps
+tk prefix list --all --verbose
+```
+
+The "Source" column in `--all` mode shows:
+- **local** - Created on this machine
+- **synced** - Received from another machine via sync
+
+The "State" column shows:
+- **explicit** - Created with `tk prefix create` (has full metadata)
+- **discovered** - Found in task IDs but not explicitly created (no metadata)
+- **removed** - Marked as removed with `tk prefix remove`
+
 ## Concepts
 
 ### Prefixes

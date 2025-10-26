@@ -49,14 +49,40 @@ var prefixCreateCmd = &cobra.Command{
 var prefixListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all task prefixes",
+	Long: `List task prefixes.
+
+By default, shows only prefixes created on this machine (node).
+Use --all to show prefixes from all nodes, including synced prefixes.
+
+State values:
+  explicit    - Created with 'tk prefix create' (has full metadata)
+  discovered  - Found in task IDs but not explicitly created (no metadata)
+  removed     - Marked as removed with 'tk prefix remove'
+
+Source values (--all mode only):
+  local       - Prefix created on this machine
+  synced      - Prefix received from another machine via sync
+
+Examples:
+  tk prefix list                # Show local prefixes only
+  tk prefix list --all          # Show all prefixes including synced
+  tk prefix list --all --verbose # Show with creation timestamps
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		all, _ := cmd.Flags().GetBool("all")
+		verbose, _ := cmd.Flags().GetBool("verbose")
 
 		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
 		defer db.Close()
+
+		// Get current node ID to distinguish local vs remote prefixes
+		currentNode, err := db.GetOrCreateNodeID()
+		if err != nil {
+			return err
+		}
 
 		var prefixes []Prefix
 		if all {
@@ -76,8 +102,10 @@ var prefixListCmd = &cobra.Command{
 		// Create table
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		if all {
-			t.AppendHeader(table.Row{"Prefix", "Node", "State", "Description", "Created By"})
+		if all && verbose {
+			t.AppendHeader(table.Row{"Prefix", "Node", "Source", "State", "Description", "Created By", "Created At"})
+		} else if all {
+			t.AppendHeader(table.Row{"Prefix", "Node", "Source", "State", "Description", "Created By"})
 		} else {
 			t.AppendHeader(table.Row{"Prefix", "State", "Description", "Created By"})
 		}
@@ -97,8 +125,20 @@ var prefixListCmd = &cobra.Command{
 				state = "removed"
 			}
 
-			if all {
-				t.AppendRow(table.Row{p.Prefix, p.Node, state, p.Description, p.CreatedBy})
+			// Determine source (local vs synced)
+			source := "local"
+			if p.Node != currentNode {
+				source = "synced"
+			}
+
+			if all && verbose {
+				createdAtStr := ""
+				if !p.CreatedAt.IsZero() {
+					createdAtStr = p.CreatedAt.Format("2006-01-02 15:04:05")
+				}
+				t.AppendRow(table.Row{p.Prefix, p.Node, source, state, p.Description, p.CreatedBy, createdAtStr})
+			} else if all {
+				t.AppendRow(table.Row{p.Prefix, p.Node, source, state, p.Description, p.CreatedBy})
 			} else {
 				t.AppendRow(table.Row{p.Prefix, state, p.Description, p.CreatedBy})
 			}
@@ -194,6 +234,7 @@ var prefixRemoveCmd = &cobra.Command{
 
 func init() {
 	prefixListCmd.Flags().Bool("all", false, "Show prefixes from all nodes")
+	prefixListCmd.Flags().Bool("verbose", false, "Show additional details like creation time")
 	prefixCmd.AddCommand(prefixCreateCmd)
 	prefixCmd.AddCommand(prefixListCmd)
 	prefixCmd.AddCommand(prefixDescribeCmd)

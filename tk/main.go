@@ -697,6 +697,7 @@ func init() {
 	rootCmd.AddCommand(pullCmd)
 	rootCmd.AddCommand(syncCmd)
 	rootCmd.AddCommand(prefixCmd)
+	rootCmd.AddCommand(eventsCmd)
 }
 
 func openExistingDB() (*DB, error) {
