@@ -287,12 +287,29 @@ func (d *Document) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// parseKeyPath parses a dotted path into a parser.Key
+// parseKeyPath parses a dotted path into a parser.Key using the TOML-compliant
+// parser from tomledit. This properly handles quoted keys like aliases."." and
+// rejects invalid paths like "aliases." (trailing dot).
+//
+// Examples:
+//   - "simple" -> ["simple"]
+//   - "dotted.key" -> ["dotted", "key"]
+//   - "aliases.\".\"" or `aliases."."` -> ["aliases", "."]
+//   - "aliases." -> error (trailing dot not allowed)
+//   - "" -> error (empty path not allowed)
 func parseKeyPath(path string) (parser.Key, error) {
 	if path == "" {
 		return nil, fmt.Errorf("empty path")
 	}
-	return strings.Split(path, "."), nil
+	
+	// Use tomledit's parser.ParseKey which handles quoted keys and validates
+	// according to TOML specification
+	key, err := parser.ParseKey(path)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path %q: %w", path, err)
+	}
+	
+	return key, nil
 }
 
 // parseValue converts a parser.Value into a Go value.
