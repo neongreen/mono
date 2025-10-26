@@ -191,9 +191,17 @@ func (d *Document) addNewKey(keys parser.Key, value interface{}) error {
 		return d.addToSection(entry.Section, parser.Key{keys[len(keys)-1]}, parsedValue)
 	}
 
-	// No existing pattern - default to dotted key style for simplicity
-	// This preserves the most compact format
-	return d.addDottedKey(keys, parsedValue)
+	// No existing pattern. Prefer creating table sections for nested keys.
+	if len(keys) > 1 {
+		section, err := d.ensureSection(tableName)
+		if err != nil {
+			return err
+		}
+		return d.addToSection(section, parser.Key{keys[len(keys)-1]}, parsedValue)
+	}
+
+	// Fallback to global section for single-part keys.
+	return d.addToGlobalSection(keys, parsedValue)
 }
 
 // hasDottedKeysWithPrefix checks if there are any dotted keys with the given prefix
@@ -255,6 +263,46 @@ func (d *Document) addToSection(section *tomledit.Section, key parser.Key, value
 
 	transform.InsertMapping(section, kv, true)
 	return nil
+}
+
+// ensureSection finds or creates a table section for the given key.
+func (d *Document) ensureSection(name parser.Key) (*tomledit.Section, error) {
+	if len(name) == 0 {
+		if d.doc.Global == nil {
+			d.doc.Global = &tomledit.Section{}
+		}
+		return d.doc.Global, nil
+	}
+
+	if entry := transform.FindTable(d.doc, name...); entry != nil {
+		return entry.Section, nil
+	}
+
+	// Ensure parent section exists to maintain hierarchy.
+	if len(name) > 1 {
+		if _, err := d.ensureSection(name[:len(name)-1]); err != nil {
+			return nil, err
+		}
+	}
+
+	section := &tomledit.Section{
+		Heading: &parser.Heading{
+			Name: copyKey(name),
+		},
+	}
+
+	d.doc.Sections = append(d.doc.Sections, section)
+
+	return section, nil
+}
+
+func copyKey(key parser.Key) parser.Key {
+	if key == nil {
+		return nil
+	}
+	out := make(parser.Key, len(key))
+	copy(out, key)
+	return out
 }
 
 // Delete removes a key at the given dotted path.

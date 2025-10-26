@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"unicode"
 
 	"github.com/creachadair/tomledit/parser"
-	"github.com/pelletier/go-toml/v2"
+	tomlcp "github.com/neongreen/mono/lib/toml"
+	tomlv2 "github.com/pelletier/go-toml/v2"
 )
 
 // Config represents the main configuration for conf
@@ -116,7 +118,7 @@ func Load() (*Config, error) {
 		}
 
 		var loadedConfig Config
-		if err := toml.Unmarshal(data, &loadedConfig); err != nil {
+		if err := tomlv2.Unmarshal(data, &loadedConfig); err != nil {
 			return nil, fmt.Errorf("failed to parse main config: %w", err)
 		}
 
@@ -173,7 +175,7 @@ func (c *Config) loadPerToolConfigs() error {
 
 		// Parse per-tool config into a nested map
 		var perToolNested map[string]interface{}
-		if err := toml.Unmarshal(data, &perToolNested); err != nil {
+		if err := tomlv2.Unmarshal(data, &perToolNested); err != nil {
 			return fmt.Errorf("failed to parse per-tool config %s: %w", perToolPath, err)
 		}
 
@@ -207,12 +209,7 @@ func (c *Config) Save() error {
 		if _, err := os.Stat(perToolPath); err == nil {
 			// Save values if they exist
 			if tool.Values != nil && len(tool.Values) > 0 {
-				data, err := toml.Marshal(tool.Values)
-				if err != nil {
-					return fmt.Errorf("failed to marshal %s config: %w", toolName, err)
-				}
-
-				if err := os.WriteFile(perToolPath, data, 0644); err != nil {
+				if err := WriteTOMLPreserving(perToolPath, tool.Values); err != nil {
 					return fmt.Errorf("failed to write %s config: %w", toolName, err)
 				}
 			}
@@ -251,12 +248,12 @@ func (c *Config) Save() error {
 		return fmt.Errorf("failed to get config path: %w", err)
 	}
 
-	data, err := toml.Marshal(mainConfig)
+	mainConfigMap, err := marshalToMap(mainConfig)
 	if err != nil {
 		return fmt.Errorf("failed to marshal main config: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := WriteTOMLPreserving(configPath, mainConfigMap); err != nil {
 		return fmt.Errorf("failed to write main config: %w", err)
 	}
 
@@ -281,12 +278,7 @@ func (c *Config) savePerToolConfigs() error {
 
 		// Per-tool file exists, save values there
 		if tool.Values != nil && len(tool.Values) > 0 {
-			data, err := toml.Marshal(tool.Values)
-			if err != nil {
-				return fmt.Errorf("failed to marshal per-tool config for %s: %w", toolName, err)
-			}
-
-			if err := os.WriteFile(perToolPath, data, 0644); err != nil {
+			if err := WriteTOMLPreserving(perToolPath, tool.Values); err != nil {
 				return fmt.Errorf("failed to write per-tool config %s: %w", perToolPath, err)
 			}
 
@@ -441,6 +433,85 @@ func FlattenValues(values map[string]interface{}) map[string]interface{} {
 	normalized := normalizeValues(values)
 	flattenRecursive(normalized, "", result)
 	return result
+}
+
+// WriteTOMLPreserving writes the provided values to filePath while preserving
+// existing comments and formatting. Values should be a nested map structure.
+func WriteTOMLPreserving(filePath string, values map[string]interface{}) error {
+	content, readErr := os.ReadFile(filePath)
+	if readErr != nil && !os.IsNotExist(readErr) {
+		return fmt.Errorf("failed to read file %s: %w", filePath, readErr)
+	}
+
+	var doc *tomlcp.Document
+	var err error
+
+	if readErr == nil {
+		doc, err = tomlcp.Parse(content)
+		if err != nil {
+			return fmt.Errorf("failed to parse existing TOML %s: %w", filePath, err)
+		}
+	} else {
+		doc, err = tomlcp.ParseString("")
+		if err != nil {
+			return fmt.Errorf("failed to create TOML document for %s: %w", filePath, err)
+		}
+	}
+
+	var existing map[string]interface{}
+	if readErr == nil && len(content) > 0 {
+		if unmarshalErr := tomlv2.Unmarshal(content, &existing); unmarshalErr != nil {
+			return fmt.Errorf("failed to parse existing TOML content %s: %w", filePath, unmarshalErr)
+		}
+	}
+
+	desired := FlattenValues(values)
+	current := FlattenValues(existing)
+
+	for path := range current {
+		if _, ok := desired[path]; !ok {
+			if deleteErr := doc.Delete(path); deleteErr != nil {
+				return fmt.Errorf("failed to delete %s from %s: %w", path, filePath, deleteErr)
+			}
+		}
+	}
+
+	paths := make([]string, 0, len(desired))
+	for path := range desired {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+
+	for _, path := range paths {
+		val := desired[path]
+		if setErr := doc.Set(path, val); setErr != nil {
+			return fmt.Errorf("failed to set %s in %s: %w", path, filePath, setErr)
+		}
+	}
+
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return fmt.Errorf("failed to create directory for %s: %w", filePath, err)
+	}
+
+	if writeErr := os.WriteFile(filePath, doc.Bytes(), 0644); writeErr != nil {
+		return fmt.Errorf("failed to write file %s: %w", filePath, writeErr)
+	}
+
+	return nil
+}
+
+func marshalToMap(v interface{}) (map[string]interface{}, error) {
+	data, err := tomlv2.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := tomlv2.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 // ExpandValues converts a map of dotted paths back into a nested map structure.

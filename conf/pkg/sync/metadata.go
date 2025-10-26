@@ -8,7 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pelletier/go-toml/v2"
+	"conf/pkg/config"
+	tomlv2 "github.com/pelletier/go-toml/v2"
 )
 
 // SyncMetadata represents the sync state for all tools
@@ -40,7 +41,7 @@ func LoadSyncMetadata(configDir string) (*SyncMetadata, error) {
 	}
 
 	var metadata SyncMetadata
-	if err := toml.Unmarshal(data, &metadata); err != nil {
+	if err := tomlv2.Unmarshal(data, &metadata); err != nil {
 		return nil, fmt.Errorf("failed to parse sync metadata: %w", err)
 	}
 
@@ -55,12 +56,12 @@ func LoadSyncMetadata(configDir string) (*SyncMetadata, error) {
 func (m *SyncMetadata) Save(configDir string) error {
 	metadataPath := filepath.Join(configDir, ".sync-state")
 
-	data, err := toml.Marshal(m)
+	metadataMap, err := metadataToMap(m)
 	if err != nil {
 		return fmt.Errorf("failed to marshal sync metadata: %w", err)
 	}
 
-	if err := os.WriteFile(metadataPath, data, 0644); err != nil {
+	if err := config.WriteTOMLPreserving(metadataPath, metadataMap); err != nil {
 		return fmt.Errorf("failed to write sync metadata: %w", err)
 	}
 
@@ -91,4 +92,18 @@ func ComputeFileHash(path string) (string, error) {
 
 	hash := sha256.Sum256(data)
 	return hex.EncodeToString(hash[:]), nil
+}
+
+func metadataToMap(m *SyncMetadata) (map[string]interface{}, error) {
+	data, err := tomlv2.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]interface{}
+	if err := tomlv2.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

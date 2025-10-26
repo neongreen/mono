@@ -386,10 +386,21 @@ func TestPerToolConfigSaving(t *testing.T) {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
-	// Create empty per-tool file to signal we want per-tool format
+	// Seed per-tool file with a comment to verify preservation
 	jjTomlPath := configDir + "/jj.toml"
-	if err := os.WriteFile(jjTomlPath, []byte(""), 0644); err != nil {
+	initialJJContent := "# keep-this-comment\n"
+	if err := os.WriteFile(jjTomlPath, []byte(initialJJContent), 0644); err != nil {
 		t.Fatalf("Failed to create jj.toml: %v", err)
+	}
+
+	// Seed config.toml with a comment that should be preserved
+	configPath, err := ConfigPath()
+	if err != nil {
+		t.Fatalf("Failed to get config path: %v", err)
+	}
+	initialConfigContent := "# preserve-this-config-comment\n"
+	if err := os.WriteFile(configPath, []byte(initialConfigContent), 0644); err != nil {
+		t.Fatalf("Failed to seed config.toml: %v", err)
 	}
 
 	// Create config with values
@@ -428,12 +439,17 @@ func TestPerToolConfigSaving(t *testing.T) {
 	if !strings.Contains(jjTomlStr, "test@example.com") {
 		t.Error("jj.toml should contain user.email value")
 	}
-
-	// Verify config.toml doesn't have values section
-	configPath, err := ConfigPath()
-	if err != nil {
-		t.Fatalf("Failed to get config path: %v", err)
+	if !strings.Contains(jjTomlStr, "[user]") {
+		t.Error("jj.toml should render nested tables using section syntax")
 	}
+	if strings.Contains(jjTomlStr, "user.name") {
+		t.Error("jj.toml should not collapse nested values into dotted keys")
+	}
+	if !strings.Contains(jjTomlStr, "# keep-this-comment") {
+		t.Error("jj.toml should preserve existing comments")
+	}
+
+	// Verify config.toml doesn't have values section and keeps comments
 	configTomlData, err := os.ReadFile(configPath)
 	if err != nil {
 		t.Fatalf("Failed to read config.toml: %v", err)
@@ -442,6 +458,9 @@ func TestPerToolConfigSaving(t *testing.T) {
 	configTomlStr := string(configTomlData)
 	if strings.Contains(configTomlStr, "Test User") {
 		t.Error("config.toml should not contain values (should be in per-tool file)")
+	}
+	if !strings.Contains(configTomlStr, "# preserve-this-config-comment") {
+		t.Error("config.toml should preserve existing comments")
 	}
 }
 
