@@ -699,6 +699,7 @@ func init() {
 	rootCmd.AddCommand(prefixCmd)
 	rootCmd.AddCommand(eventsCmd)
 	rootCmd.AddCommand(adminCmd)
+	rootCmd.AddCommand(projectCmd)
 }
 
 func openExistingDB() (*DB, error) {
