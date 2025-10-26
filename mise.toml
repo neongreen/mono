@@ -1,23 +1,30 @@
 experimental_monorepo_root = true
 
+[env]
+GOWORK = "auto"
+
 [tools]
 go = "1.24.7"
 "go:github.com/steveyegge/beads/cmd/bd" = "latest"
 "go:github.com/rhysd/actionlint/cmd/actionlint" = "latest"
 "go:github.com/suzuki-shunsuke/pinact/v3/cmd/pinact" = "latest"
 zizmor = "latest"
+act = "latest"
 
 [tasks.cloc]
 description = "Count lines of Go code by file"
 run = "cloc --by-file --include-lang=Go ."
 
 [tasks."go:tidy-all"]
-description = "Run go mod tidy in all modules"
+description = "Synchronize Go workspace dependencies"
 run = '''
-for dir in $(find . -name "go.mod" -exec dirname {} \;); do
-  echo "Processing $dir"
-  (cd "$dir" && go mod tidy)
-done
+# Disable checksum verification and proxy for local modules
+export GOPRIVATE=github.com/neongreen/mono
+export GONOSUMDB=github.com/neongreen/mono
+
+# Sync workspace to update all module versions
+# This handles dependency resolution for all workspace modules
+go work sync
 '''
 
 [tasks."jj:track"]
@@ -37,3 +44,11 @@ run = "GITHUB_TOKEN=$(gh auth token) pinact run --check --diff --verify"
 [tasks."lint:actions"]
 description = "Lint GitHub Actions workflows"
 depends = ["//:lint:actions:*"]
+
+[tasks."lint:go-workspace"]
+description = "Validate Go workspace consistency"
+run = "uv run scripts/lint-go-workspace.py"
+
+[tasks."lint:go-workspace:ci"]
+description = "Run full Go workspace CI checks locally"
+run = "act pull_request -W .github/workflows/go-workspace-lint.yml"

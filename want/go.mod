@@ -4,7 +4,7 @@ go 1.24.7
 
 require (
 	github.com/neongreen/mono/lib/ghclient v0.0.0
-	github.com/neongreen/mono/lib/ghrelease v0.0.0-20251022141859-f6ab99927bb0
+	github.com/neongreen/mono/lib/ghrelease v0.0.0
 )
 
 require (
@@ -12,5 +12,3 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	golang.org/x/oauth2 v0.26.0 // indirect
 )
-
-replace github.com/neongreen/mono/lib/ghclient => ../lib/ghclient
