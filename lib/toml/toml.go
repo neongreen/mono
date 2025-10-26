@@ -308,14 +308,14 @@ func parseKeyPath(path string) (parser.Key, error) {
 	if path == "" {
 		return nil, fmt.Errorf("empty path")
 	}
-	
+
 	// Use tomledit's parser.ParseKey which handles quoted keys and validates
 	// according to TOML specification
 	key, err := parser.ParseKey(path)
 	if err != nil {
 		return nil, fmt.Errorf("invalid path %q: %w", path, err)
 	}
-	
+
 	return key, nil
 }
 

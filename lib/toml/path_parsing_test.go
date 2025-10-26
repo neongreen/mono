@@ -221,9 +221,9 @@ func TestInvalidPathsRejected(t *testing.T) {
 	}
 
 	invalidPaths := []string{
-		"",           // empty
-		"section.",   // trailing dot
-		".section",   // leading dot
+		"",             // empty
+		"section.",     // trailing dot
+		".section",     // leading dot
 		"section..key", // double dot
 	}
 
