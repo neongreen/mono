@@ -46,10 +46,13 @@ See [DOCKER_DEMO.md](DOCKER_DEMO.md) for complete setup instructions.
 
 ```bash
 cd mdbook-comments
+pnpm install
 cargo build --release
 ```
 
 The binary will be at `target/release/mdbook-comments`.
+
+The Rust build script runs `pnpm build` automatically to generate the embedded frontend bundles, so you only need to install dependencies once.
 
 ### Installing
 
