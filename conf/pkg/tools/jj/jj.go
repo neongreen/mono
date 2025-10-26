@@ -235,3 +235,19 @@ type CommonSetting struct {
 func (j *JJTool) GetAllValues() (map[string]interface{}, error) {
 	return j.editor.GetAllValues()
 }
+
+// SetAllValues sets multiple configuration values from a nested map structure
+// This is more efficient than setting individual paths as it avoids the need
+// to flatten/unflatten the structure and parse quoted keys
+func (j *JJTool) SetAllValues(values map[string]interface{}) error {
+	if j.dryRun {
+		fmt.Println("DRY RUN: Would set all values")
+		return nil
+	}
+
+	// We don't validate individual paths here because we're working with
+	// the native nested structure. The TOML library will handle the writing.
+	// Schema validation would need to be done at a different level if needed.
+
+	return j.editor.SetAllValues(values)
+}

@@ -28,4 +28,5 @@ Thumbs.db
 
 # Temporary files
 ai-temp-*
-tmp_rovodev_*
+tmp_rovodev_*conf/main
+main

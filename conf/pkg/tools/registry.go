@@ -12,6 +12,9 @@ import (
 type Tool interface {
 	SetConfig(path string, value interface{}) error
 	GetConfig(path string) (interface{}, error)
+	// SetAllValues sets multiple configuration values from a nested map structure
+	// This is more efficient than flattening and setting individual paths
+	SetAllValues(values map[string]interface{}) error
 }
 
 // ToolFactory is a function that creates a new tool instance
@@ -67,4 +70,15 @@ func GetActualValue(toolName, path string) (interface{}, error) {
 	}
 
 	return tool.GetConfig(path)
+}
+
+// ApplyAllToolValues applies a nested map of configuration values to a tool
+// This is more efficient than flattening and applying individual paths
+func ApplyAllToolValues(toolName string, values map[string]interface{}) error {
+	tool, err := GetTool(toolName)
+	if err != nil {
+		return err
+	}
+
+	return tool.SetAllValues(values)
 }

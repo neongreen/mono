@@ -664,3 +664,81 @@ When adding a new module to the workspace:
 3. Add corresponding `replace` directives in `go.work` for the `v0.0.0` versions
 4. Run `mise run //:go:tidy-all` to synchronize everything
 5. Verify with `mise run //:lint:go-workspace`
+
+------------------------------------------------------------
+
+## Avoid String Rendering for Internal APIs
+
+**Never convert structured data to strings for internal APIs.** String rendering (like dotted paths, JSON, etc.) should only be used for:
+- Human-readable output/display
+- Accepting human input
+- External API contracts
+- Serialization for storage/transmission
+
+### The Problem
+
+Converting structured data to strings and then parsing them back is poor engineering:
+
+```go
+// ❌ BAD: Flattening, then parsing
+values := map[string]interface{}{"aliases": map[string]interface{}{".": ["status"]}}
+flatValues := FlattenValues(values)  // Creates "aliases.\".\"" 
+for path, value := range flatValues {
+    tool.SetConfig(path, value)  // Has to parse "aliases.\".\""
+}
+
+// ✅ GOOD: Work with native structures
+values := map[string]interface{}{"aliases": map[string]interface{}{".": ["status"]}}
+tool.SetAllValues(values)  // No parsing needed
+```
+
+### Why This Matters
+
+1. **Parsing complexity**: Special characters (dots, quotes, etc.) require escaping and complex parsing logic
+2. **Performance**: Converting to strings and back is wasteful
+3. **Error-prone**: Easy to introduce bugs in escaping/unescaping
+4. **Fragile**: Changes to rendering format break everything
+
+### Example: conf apply
+
+The `conf apply` command was originally implemented incorrectly:
+
+```go
+// ❌ Original (bad) implementation:
+func applyTool(conf *config.Config, toolName string) error {
+    flatValues := config.FlattenValues(tool.Values)  // Convert to strings
+    for path, value := range flatValues {
+        ApplyToolValue(toolName, path, value)  // Parse strings back
+    }
+}
+```
+
+This required:
+- `FlattenValues` to quote special keys: `aliases."."` 
+- `ValidatePath` to parse quoted keys with `parser.ParseKey`
+- Extra complexity throughout the codebase
+
+The correct implementation passes structured data directly:
+
+```go
+// ✅ Correct implementation:
+func applyTool(conf *config.Config, toolName string) error {
+    tools.ApplyAllToolValues(toolName, tool.Values)  // Pass native map
+}
+```
+
+### Guidelines
+
+1. **Keep structured data as structured data** until you need to serialize it
+2. **Add bulk/batch methods** (like `SetAllValues`) instead of flattening
+3. **Only flatten for display** or when a human needs to provide individual values
+4. **Use parser.Key or similar types** internally if you need to represent paths programmatically
+
+### When String Rendering Is Acceptable
+
+- CLI commands that accept user input: `conf jj set user.name "John"`
+- Display output: showing config drift, status, etc.
+- External APIs: REST endpoints, file formats, etc.
+- Configuration file serialization: TOML, JSON, YAML
+
+**The key principle**: If you control both ends (caller and callee), use structured data. Only render to strings at the boundaries.

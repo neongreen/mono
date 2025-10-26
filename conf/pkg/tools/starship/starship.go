@@ -114,6 +114,20 @@ func (s *StarshipTool) IsDryRun() bool {
 	return s.dryRun
 }
 
+// SetAllValues sets multiple configuration values from a nested map structure
+// This is more efficient than setting individual paths as it avoids the need
+// to flatten/unflatten the structure and parse quoted keys
+func (s *StarshipTool) SetAllValues(values map[string]interface{}) error {
+	if s.dryRun {
+		fmt.Println("DRY RUN: Would set all values")
+		return nil
+	}
+
+	// We don't validate individual paths here because we're working with
+	// the native nested structure. The TOML library will handle the writing.
+	return s.editor.SetAllValues(values)
+}
+
 // isValidPath performs basic validation on starship config paths
 func (s *StarshipTool) isValidPath(path string) bool {
 	// Basic validation - just check it's not empty and has reasonable format
