@@ -350,11 +350,16 @@ schema_path = 'embedded://jj.json'
 		t.Fatal("jj tool should have Values loaded from per-tool file")
 	}
 
-	if name, ok := jjTool.Values["user.name"]; !ok || name != "Emily" {
+	userValues, ok := jjTool.Values["user"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("Expected user values to be a map, got %T", jjTool.Values["user"])
+	}
+
+	if name, ok := userValues["name"]; !ok || name != "Emily" {
 		t.Errorf("Expected user.name to be 'Emily', got %v", name)
 	}
 
-	if email, ok := jjTool.Values["user.email"]; !ok || email != "emily@artyom.me" {
+	if email, ok := userValues["email"]; !ok || email != "emily@artyom.me" {
 		t.Errorf("Expected user.email to be 'emily@artyom.me', got %v", email)
 	}
 }
@@ -395,8 +400,10 @@ func TestPerToolConfigSaving(t *testing.T) {
 				ConfigPath: "~/.config/jj/config.toml",
 				SchemaPath: "embedded://jj.json",
 				Values: map[string]interface{}{
-					"user.name":  "Test User",
-					"user.email": "test@example.com",
+					"user": map[string]interface{}{
+						"name":  "Test User",
+						"email": "test@example.com",
+					},
 				},
 			},
 		},
@@ -438,7 +445,7 @@ func TestPerToolConfigSaving(t *testing.T) {
 	}
 }
 
-func TestConvertNestedToFlatQuotedKeys(t *testing.T) {
+func TestFlattenValuesQuotedKeys(t *testing.T) {
 	nested := map[string]interface{}{
 		"aliases": map[string]interface{}{
 			".":  []interface{}{"ci", "-m."},
@@ -447,7 +454,7 @@ func TestConvertNestedToFlatQuotedKeys(t *testing.T) {
 		},
 	}
 
-	flat := convertNestedToFlat(nested, "")
+	flat := FlattenValues(nested)
 
 	if val, ok := flat[`aliases."."`]; !ok {
 		t.Fatalf("expected key aliases.\".\" to be present in flattened map, got keys %v", flat)
@@ -468,14 +475,14 @@ func TestConvertNestedToFlatQuotedKeys(t *testing.T) {
 	}
 }
 
-func TestConvertDottedToNestedQuotedKeys(t *testing.T) {
+func TestExpandValuesQuotedKeys(t *testing.T) {
 	flat := map[string]interface{}{
 		`aliases."."`:  []interface{}{"ci", "-m."},
 		`aliases.".."`: []interface{}{"ci", "-m.."},
 		"aliases.s":    "status",
 	}
 
-	nested := convertDottedToNested(flat)
+	nested := ExpandValues(flat)
 
 	aliases, ok := nested["aliases"].(map[string]interface{})
 	if !ok {

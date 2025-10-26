@@ -197,7 +197,7 @@ func (e *TOMLEditor) PreviewUnsetValue(path string) (string, error) {
 	return preview.String(), nil
 }
 
-// GetAllValues reads all values from the TOML file and returns them as a flat map with dotted keys
+// GetAllValues reads all values from the TOML file and returns them as a nested map
 func (e *TOMLEditor) GetAllValues() (map[string]interface{}, error) {
 	content, err := os.ReadFile(e.filePath)
 	if err != nil {
@@ -214,62 +214,5 @@ func (e *TOMLEditor) GetAllValues() (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to parse TOML: %w", err)
 	}
 
-	// Convert nested map to flat map with dotted keys
-	flat := make(map[string]interface{})
-	flattenMap(data, "", flat)
-
-	return flat, nil
-}
-
-// flattenMap recursively converts a nested map to a flat map with dotted keys
-func flattenMap(nested map[string]interface{}, prefix string, result map[string]interface{}) {
-	for key, value := range nested {
-		// Quote the key if necessary (e.g., if it contains dots, spaces, or starts with a dot)
-		quotedKey := quoteKeyIfNeeded(key)
-
-		fullKey := quotedKey
-		if prefix != "" {
-			fullKey = prefix + "." + quotedKey
-		}
-
-		if m, ok := value.(map[string]interface{}); ok {
-			flattenMap(m, fullKey, result)
-		} else {
-			result[fullKey] = value
-		}
-	}
-}
-
-// quoteKeyIfNeeded returns the key with quotes if it needs them for TOML compliance
-func quoteKeyIfNeeded(key string) string {
-	// Keys that start with a dot or contain spaces need quoting
-	// We use a simple heuristic: if the key contains characters that make it
-	// ambiguous in a dotted path, quote it
-	needsQuoting := false
-
-	// Empty key needs quoting
-	if len(key) == 0 {
-		needsQuoting = true
-	}
-
-	// Keys starting with . need quoting
-	if len(key) > 0 && key[0] == '.' {
-		needsQuoting = true
-	}
-
-	// Keys containing spaces need quoting
-	if strings.Contains(key, " ") {
-		needsQuoting = true
-	}
-
-	// Keys that are just dots need quoting
-	if key == "." || key == ".." {
-		needsQuoting = true
-	}
-
-	if needsQuoting {
-		return `"` + key + `"`
-	}
-
-	return key
+	return data, nil
 }

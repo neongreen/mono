@@ -5,7 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
+	"github.com/creachadair/tomledit/parser"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -131,6 +133,12 @@ func Load() (*Config, error) {
 		}
 	}
 
+	// Normalize tool values to nested maps (handles legacy dotted keys)
+	for name, tool := range config.Tools {
+		tool.Values = normalizeValues(tool.Values)
+		config.Tools[name] = tool
+	}
+
 	// Load values from per-tool config files if they exist
 	// This augments the values loaded from main config.toml
 	// Note: paths remain in tilde notation; GetTool() expands them when needed
@@ -139,31 +147,6 @@ func Load() (*Config, error) {
 	}
 
 	return config, nil
-}
-
-// convertNestedToFlat converts a nested map structure to flat map with dotted keys
-// Example: {"user": {"name": "John"}} -> {"user.name": "John"}
-func convertNestedToFlat(nested map[string]interface{}, prefix string) map[string]interface{} {
-	flat := make(map[string]interface{})
-
-	for key, value := range nested {
-		quotedKey := quoteKeyIfNeeded(key)
-
-		fullKey := quotedKey
-		if prefix != "" {
-			fullKey = prefix + "." + quotedKey
-		}
-
-		if nestedMap, ok := value.(map[string]interface{}); ok {
-			for k, v := range convertNestedToFlat(nestedMap, fullKey) {
-				flat[k] = v
-			}
-		} else {
-			flat[fullKey] = value
-		}
-	}
-
-	return flat
 }
 
 // loadPerToolConfigs loads values from per-tool config files (e.g., ~/.config/conf/jj.toml)
@@ -194,113 +177,12 @@ func (c *Config) loadPerToolConfigs() error {
 			return fmt.Errorf("failed to parse per-tool config %s: %w", perToolPath, err)
 		}
 
-		// Convert nested structure to flat dotted keys
-		perToolFlat := convertNestedToFlat(perToolNested, "")
-
-		// Merge per-tool values with tool metadata
-		// Per-tool file values override config.toml values
-		if tool.Values == nil {
-			tool.Values = make(map[string]interface{})
-		}
-		for k, v := range perToolFlat {
-			tool.Values[k] = v
-		}
+		perToolValues := normalizeValues(perToolNested)
+		tool.Values = mergeNestedValues(tool.Values, perToolValues)
 		c.Tools[toolName] = tool
 	}
 
 	return nil
-}
-
-// convertDottedToNested converts a flat map with dotted keys to nested map structure
-// Example: {"user.name": "John"} -> {"user": {"name": "John"}}
-func convertDottedToNested(flat map[string]interface{}) map[string]interface{} {
-	nested := make(map[string]interface{})
-
-	for key, value := range flat {
-		parts := splitDottedKey(key)
-		if len(parts) == 0 {
-			continue
-		}
-
-		current := nested
-
-		for i := 0; i < len(parts)-1; i++ {
-			part := parts[i]
-			if _, exists := current[part]; !exists {
-				current[part] = make(map[string]interface{})
-			}
-			if nextMap, ok := current[part].(map[string]interface{}); ok {
-				current = nextMap
-			}
-		}
-
-		current[parts[len(parts)-1]] = value
-	}
-
-	return nested
-}
-
-func splitDottedKey(path string) []string {
-	if path == "" {
-		return []string{""}
-	}
-
-	var (
-		parts    []string
-		current  strings.Builder
-		inQuotes bool
-	)
-
-	for i := 0; i < len(path); i++ {
-		ch := path[i]
-
-		switch ch {
-		case '"':
-			inQuotes = !inQuotes
-		case '.':
-			if inQuotes {
-				current.WriteByte(ch)
-			} else {
-				parts = append(parts, current.String())
-				current.Reset()
-			}
-		default:
-			current.WriteByte(ch)
-		}
-	}
-
-	if inQuotes {
-		return []string{path}
-	}
-
-	parts = append(parts, current.String())
-	return parts
-}
-
-func quoteKeyIfNeeded(key string) string {
-	needsQuoting := false
-
-	if len(key) == 0 {
-		needsQuoting = true
-	}
-
-	if len(key) > 0 && key[0] == '.' {
-		needsQuoting = true
-	}
-
-	if strings.Contains(key, " ") {
-		needsQuoting = true
-	}
-
-	if key == "." || key == ".." {
-		needsQuoting = true
-	}
-
-	if needsQuoting {
-		return `"` + key + `"`
-	}
-
-	return key
 }
 
 // Save saves the configuration to per-tool files
@@ -325,10 +207,7 @@ func (c *Config) Save() error {
 		if _, err := os.Stat(perToolPath); err == nil {
 			// Save values if they exist
 			if tool.Values != nil && len(tool.Values) > 0 {
-				// Convert dotted keys to nested structure
-				nested := convertDottedToNested(tool.Values)
-
-				data, err := toml.Marshal(nested)
+				data, err := toml.Marshal(tool.Values)
 				if err != nil {
 					return fmt.Errorf("failed to marshal %s config: %w", toolName, err)
 				}
@@ -451,11 +330,13 @@ func (c *Config) SetToolValue(toolName, path string, value interface{}) {
 	}
 
 	tool := c.Tools[toolName]
-	if tool.Values == nil {
-		tool.Values = make(map[string]interface{})
+	key, err := parser.ParseKey(path)
+	if err != nil || len(key) == 0 {
+		return
 	}
 
-	tool.Values[path] = value
+	tool.Values = ensureMap(tool.Values)
+	setNestedValue(tool.Values, key, value)
 	c.Tools[toolName] = tool
 
 	// Ensure per-tool file will be created on Save()
@@ -472,6 +353,30 @@ func (c *Config) SetToolValue(toolName, path string, value interface{}) {
 	}
 }
 
+// MergeToolValues merges a map of values into a tool's configuration.
+// Nested maps are merged recursively.
+func (c *Config) MergeToolValues(toolName string, values map[string]interface{}) {
+	if c.Tools == nil {
+		c.Tools = make(map[string]ToolConfig)
+	}
+
+	tool := c.Tools[toolName]
+	tool.Values = mergeNestedValues(tool.Values, values)
+	c.Tools[toolName] = tool
+
+	// Ensure per-tool file will be created on Save()
+	configDir, err := ConfigDir()
+	if err != nil {
+		return
+	}
+	perToolPath := filepath.Join(configDir, toolName+".toml")
+
+	if _, err := os.Stat(perToolPath); os.IsNotExist(err) {
+		os.MkdirAll(configDir, 0755)
+		os.WriteFile(perToolPath, []byte{}, 0644)
+	}
+}
+
 // GetToolValue gets a specific configuration value for a tool
 func (c *Config) GetToolValue(toolName, path string) (interface{}, bool) {
 	tool, exists := c.Tools[toolName]
@@ -479,8 +384,12 @@ func (c *Config) GetToolValue(toolName, path string) (interface{}, bool) {
 		return nil, false
 	}
 
-	value, exists := tool.Values[path]
-	return value, exists
+	key, err := parser.ParseKey(path)
+	if err != nil || len(key) == 0 {
+		return nil, false
+	}
+
+	return getNestedValue(tool.Values, key)
 }
 
 // UnsetToolValue removes a specific configuration value for a tool
@@ -490,8 +399,14 @@ func (c *Config) UnsetToolValue(toolName, path string) {
 		return
 	}
 
-	delete(tool.Values, path)
-	c.Tools[toolName] = tool
+	key, err := parser.ParseKey(path)
+	if err != nil || len(key) == 0 {
+		return
+	}
+
+	if unsetNestedValue(tool.Values, key) {
+		c.Tools[toolName] = tool
+	}
 }
 
 // SetShim sets a shim command
@@ -517,4 +432,250 @@ func (c *Config) UnsetShim(name string) {
 		return
 	}
 	delete(c.Shims, name)
+}
+
+// FlattenValues converts nested configuration maps to dotted-path representation.
+// Keys are quoted when necessary to produce TOML-compliant paths (e.g., aliases.".")
+func FlattenValues(values map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	normalized := normalizeValues(values)
+	flattenRecursive(normalized, "", result)
+	return result
+}
+
+// ExpandValues converts a map of dotted paths back into a nested map structure.
+func ExpandValues(flat map[string]interface{}) map[string]interface{} {
+	if flat == nil {
+		return nil
+	}
+
+	result := make(map[string]interface{})
+	for path, val := range flat {
+		key, err := parser.ParseKey(path)
+		if err != nil || len(key) == 0 {
+			result[path] = normalizeValue(val)
+			continue
+		}
+		setNestedValue(result, key, val)
+	}
+	return result
+}
+
+func flattenRecursive(values map[string]interface{}, prefix string, result map[string]interface{}) {
+	if values == nil {
+		return
+	}
+
+	for key, val := range values {
+		formattedKey := formatKeySegment(key)
+
+		fullKey := formattedKey
+		if prefix != "" {
+			fullKey = prefix + "." + formattedKey
+		}
+
+		if nested, ok := val.(map[string]interface{}); ok {
+			flattenRecursive(nested, fullKey, result)
+			continue
+		}
+
+		result[fullKey] = val
+	}
+}
+
+func formatKeySegment(key string) string {
+	if isBareKey(key) {
+		return key
+	}
+	escaped := strings.ReplaceAll(key, `"`, `\"`)
+	return `"` + escaped + `"`
+}
+
+func isBareKey(key string) bool {
+	if len(key) == 0 {
+		return false
+	}
+	for _, r := range key {
+		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+func ensureMap(m map[string]interface{}) map[string]interface{} {
+	if m == nil {
+		return make(map[string]interface{})
+	}
+	return m
+}
+
+func normalizeValues(values map[string]interface{}) map[string]interface{} {
+	if values == nil {
+		return nil
+	}
+
+	normalized := make(map[string]interface{}, len(values))
+	for rawKey, rawVal := range values {
+		normalizedVal := normalizeValue(rawVal)
+		key, err := parser.ParseKey(rawKey)
+		if err == nil && len(key) > 1 {
+			setNestedValue(normalized, key, normalizedVal)
+			continue
+		}
+		if err == nil && len(key) == 1 {
+			normalized[key[0]] = normalizedVal
+			continue
+		}
+		normalized[rawKey] = normalizedVal
+	}
+	return normalized
+}
+
+func normalizeValue(value interface{}) interface{} {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		return normalizeValues(v)
+	case map[interface{}]interface{}:
+		converted := make(map[string]interface{}, len(v))
+		for k, elem := range v {
+			strKey, ok := k.(string)
+			if !ok {
+				continue
+			}
+			converted[strKey] = normalizeValue(elem)
+		}
+		return normalizeValues(converted)
+	case []interface{}:
+		out := make([]interface{}, len(v))
+		for i, elem := range v {
+			out[i] = normalizeValue(elem)
+		}
+		return out
+	default:
+		return value
+	}
+}
+
+func mergeNestedValues(dst map[string]interface{}, src map[string]interface{}) map[string]interface{} {
+	dst = normalizeValues(dst)
+	if dst == nil {
+		dst = make(map[string]interface{})
+	}
+
+	srcNormalized := normalizeValues(src)
+	if srcNormalized == nil {
+		return dst
+	}
+
+	for key, val := range srcNormalized {
+		if existing, ok := dst[key]; ok {
+			existingMap, existingIsMap := existing.(map[string]interface{})
+			newMap, newIsMap := val.(map[string]interface{})
+			if existingIsMap && newIsMap {
+				dst[key] = mergeNestedValues(existingMap, newMap)
+				continue
+			}
+		}
+		dst[key] = val
+	}
+
+	return dst
+}
+
+func setNestedValue(m map[string]interface{}, key parser.Key, value interface{}) {
+	if len(key) == 0 {
+		return
+	}
+
+	current := ensureMap(m)
+	for i := 0; i < len(key)-1; i++ {
+		part := key[i]
+		next, ok := current[part]
+		if !ok {
+			nextMap := make(map[string]interface{})
+			current[part] = nextMap
+			current = nextMap
+			continue
+		}
+
+		nextMap, ok := next.(map[string]interface{})
+		if !ok {
+			nextMap = make(map[string]interface{})
+			current[part] = nextMap
+		}
+		current = nextMap
+	}
+
+	current[key[len(key)-1]] = normalizeValue(value)
+}
+
+func getNestedValue(m map[string]interface{}, key parser.Key) (interface{}, bool) {
+	if len(key) == 0 {
+		return nil, false
+	}
+
+	current := m
+	for i := 0; i < len(key); i++ {
+		part := key[i]
+		val, ok := current[part]
+		if !ok {
+			return nil, false
+		}
+
+		if i == len(key)-1 {
+			return val, true
+		}
+
+		nextMap, ok := val.(map[string]interface{})
+		if !ok {
+			return nil, false
+		}
+		current = nextMap
+	}
+
+	return nil, false
+}
+
+func unsetNestedValue(m map[string]interface{}, key parser.Key) bool {
+	if len(key) == 0 {
+		return false
+	}
+
+	current := m
+	stack := make([]map[string]interface{}, 0, len(key))
+	stack = append(stack, current)
+
+	for i := 0; i < len(key)-1; i++ {
+		part := key[i]
+		next, ok := current[part].(map[string]interface{})
+		if !ok {
+			return false
+		}
+		stack = append(stack, next)
+		current = next
+	}
+
+	lastPart := key[len(key)-1]
+	if _, exists := current[lastPart]; !exists {
+		return false
+	}
+	delete(current, lastPart)
+
+	// Cleanup empty maps from the bottom up
+	for i := len(stack) - 1; i > 0; i-- {
+		parent := stack[i-1]
+		childKey := key[i-1]
+		child, ok := parent[childKey].(map[string]interface{})
+		if !ok {
+			break
+		}
+		if len(child) == 0 {
+			delete(parent, childKey)
+		} else {
+			break
+		}
+	}
+
+	return true
 }
