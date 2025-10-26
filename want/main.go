@@ -1112,7 +1112,7 @@ func handleMono() {
 	dryRun := fs.Bool("dry-run", false, "Show what would be done without doing it")
 	planJson := fs.Bool("plan-json", false, "Output the fulfillment plan as JSON")
 	listFlag := fs.Bool("list", false, "List all releases and open PRs")
-	
+
 	// Parse remaining args (skip "mono" command)
 	fs.Parse(os.Args[2:])
 
