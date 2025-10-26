@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/neongreen/mono/lib/toml"
+	tomlv2 "github.com/pelletier/go-toml/v2"
 )
 
 // TOMLEditor provides surgical editing of TOML files while preserving formatting
@@ -110,7 +111,7 @@ func (e *TOMLEditor) GetValue(path string) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get value at path %s: %w", path, err)
 	}
-	
+
 	if value == nil {
 		return nil, fmt.Errorf("path %s does not exist", path)
 	}
@@ -194,4 +195,44 @@ func (e *TOMLEditor) PreviewUnsetValue(path string) (string, error) {
 	preview.WriteString(fmt.Sprintf("Path: %s\n", path))
 
 	return preview.String(), nil
+}
+
+// GetAllValues reads all values from the TOML file and returns them as a flat map with dotted keys
+func (e *TOMLEditor) GetAllValues() (map[string]interface{}, error) {
+	content, err := os.ReadFile(e.filePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Return empty map if file doesn't exist
+			return make(map[string]interface{}), nil
+		}
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Parse TOML into nested map structure
+	var data map[string]interface{}
+	if err := tomlv2.Unmarshal(content, &data); err != nil {
+		return nil, fmt.Errorf("failed to parse TOML: %w", err)
+	}
+
+	// Convert nested map to flat map with dotted keys
+	flat := make(map[string]interface{})
+	flattenMap(data, "", flat)
+
+	return flat, nil
+}
+
+// flattenMap recursively converts a nested map to a flat map with dotted keys
+func flattenMap(nested map[string]interface{}, prefix string, result map[string]interface{}) {
+	for key, value := range nested {
+		fullKey := key
+		if prefix != "" {
+			fullKey = prefix + "." + key
+		}
+
+		if m, ok := value.(map[string]interface{}); ok {
+			flattenMap(m, fullKey, result)
+		} else {
+			result[fullKey] = value
+		}
+	}
 }

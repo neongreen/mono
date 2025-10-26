@@ -415,3 +415,107 @@ func TestCLIErrorHandling(t *testing.T) {
 		})
 	}
 }
+
+// TestImportCommand tests the import command functionality
+func TestImportCommand(t *testing.T) {
+	// Build the binary for testing
+	tmpDir := t.TempDir()
+	binaryPath := filepath.Join(tmpDir, "conf")
+
+	// Build conf binary
+	cmd := exec.Command("go", "build", "-o", binaryPath, "./main.go")
+	cmd.Dir = "."
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Failed to build conf binary: %v", err)
+	}
+
+	// Setup test home directory
+	testHome := t.TempDir()
+
+	// Create test jj config
+	jjConfigDir := filepath.Join(testHome, ".config", "jj")
+	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+		t.Fatalf("Failed to create jj config dir: %v", err)
+	}
+	jjConfig := `[user]
+name = "Import Test User"
+email = "import@example.com"
+
+[snapshot]
+max-new-file-size = 2048
+`
+	if err := os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(jjConfig), 0644); err != nil {
+		t.Fatalf("Failed to write jj config: %v", err)
+	}
+
+	// Test dry-run import
+	t.Run("import dry-run", func(t *testing.T) {
+		cmd := exec.Command(binaryPath, "import", "jj", "--dry-run")
+		cmd.Env = append(os.Environ(), "HOME="+testHome)
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		if err := cmd.Run(); err != nil {
+			t.Errorf("Import dry-run failed: %v", err)
+			t.Logf("stdout: %s", stdout.String())
+			t.Logf("stderr: %s", stderr.String())
+		}
+
+		output := stdout.String()
+		if !strings.Contains(output, "Would import: jj.user.name = Import Test User") {
+			t.Errorf("Expected dry-run output to show user.name, got: %s", output)
+		}
+		if !strings.Contains(output, "Would import: jj.user.email = import@example.com") {
+			t.Errorf("Expected dry-run output to show user.email, got: %s", output)
+		}
+		if !strings.Contains(output, "Would import: jj.snapshot.max-new-file-size = 2048") {
+			t.Errorf("Expected dry-run output to show max-new-file-size, got: %s", output)
+		}
+	})
+
+	// Test actual import
+	t.Run("import actual", func(t *testing.T) {
+		cmd := exec.Command(binaryPath, "import", "jj")
+		cmd.Env = append(os.Environ(), "HOME="+testHome)
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		if err := cmd.Run(); err != nil {
+			t.Errorf("Import failed: %v", err)
+			t.Logf("stdout: %s", stdout.String())
+			t.Logf("stderr: %s", stderr.String())
+		}
+
+		output := stdout.String()
+		if !strings.Contains(output, "✓ Imported jj.user.name = Import Test User") {
+			t.Errorf("Expected import output to show user.name imported, got: %s", output)
+		}
+		if !strings.Contains(output, "✓ Import complete") {
+			t.Errorf("Expected completion message, got: %s", output)
+		}
+
+		// Verify conf state file was created
+		confStateFile := filepath.Join(testHome, ".config", "conf", "jj.toml")
+		if _, err := os.Stat(confStateFile); os.IsNotExist(err) {
+			t.Errorf("Expected conf state file to be created at %s", confStateFile)
+		} else {
+			// Read and verify content
+			content, err := os.ReadFile(confStateFile)
+			if err != nil {
+				t.Errorf("Failed to read conf state file: %v", err)
+			} else {
+				contentStr := string(content)
+				if !strings.Contains(contentStr, "Import Test User") {
+					t.Errorf("Expected conf state to contain imported user name, got: %s", contentStr)
+				}
+				if !strings.Contains(contentStr, "import@example.com") {
+					t.Errorf("Expected conf state to contain imported email, got: %s", contentStr)
+				}
+			}
+		}
+	})
+}

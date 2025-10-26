@@ -24,7 +24,7 @@ func TestJJSchemaParserIntegration(t *testing.T) {
 		// Test that we can validate known paths
 		knownValidPaths := []string{
 			"user.name",
-			"user.email", 
+			"user.email",
 			"ui.default-command",
 			"ui.editor",
 			"snapshot.max-new-file-size",
@@ -115,14 +115,14 @@ func TestJJSchemaParserIntegration(t *testing.T) {
 			},
 			{
 				path:         "user.email",
-				expectedType: "string", 
+				expectedType: "string",
 				hasDefault:   false,
 				hasDesc:      true,
 			},
 			{
 				path:         "ui.default-command",
 				expectedType: "unknown", // Schema doesn't specify type for this field
-				hasDefault:   true, // Likely has a default
+				hasDefault:   true,      // Likely has a default
 				hasDesc:      true,
 			},
 		}
@@ -133,15 +133,15 @@ func TestJJSchemaParserIntegration(t *testing.T) {
 				t.Errorf("Failed to get property info for %s: %v", tc.path, err)
 				continue
 			}
-			
+
 			// Note: PropertyInfo.Name contains just the final part, not the full path
 			if !strings.HasSuffix(tc.path, info.Name) {
-				t.Errorf("Property info name mismatch for %s: expected to end with %s, got %s", 
+				t.Errorf("Property info name mismatch for %s: expected to end with %s, got %s",
 					tc.path, info.Name, info.Name)
 			}
 
 			if info.Type != tc.expectedType {
-				t.Errorf("Property info type mismatch for %s: expected %s, got %s", 
+				t.Errorf("Property info type mismatch for %s: expected %s, got %s",
 					tc.path, tc.expectedType, info.Type)
 			}
 
@@ -153,12 +153,12 @@ func TestJJSchemaParserIntegration(t *testing.T) {
 				t.Errorf("Expected default value for %s but got nil", tc.path)
 			}
 
-			t.Logf("Path %s: type=%s, desc=%q, default=%v, enum=%v", 
+			t.Logf("Path %s: type=%s, desc=%q, default=%v, enum=%v",
 				tc.path, info.Type, info.Description, info.Default, info.Enum)
 		}
 	})
 
-	// Test 4: GetAllSettingsWithInfo functionality  
+	// Test 4: GetAllSettingsWithInfo functionality
 	t.Run("get all settings with info", func(t *testing.T) {
 		settings := parser.GetAllSettingsWithInfo()
 
@@ -182,7 +182,7 @@ func TestJJSchemaParserIntegration(t *testing.T) {
 		// Verify settings are sorted
 		for i := 1; i < len(settings); i++ {
 			if settings[i-1].Path > settings[i].Path {
-				t.Errorf("Settings not sorted: %s comes after %s", 
+				t.Errorf("Settings not sorted: %s comes after %s",
 					settings[i-1].Path, settings[i].Path)
 			}
 		}
@@ -249,17 +249,17 @@ func TestSchemaCompletion(t *testing.T) {
 	// Test 1: Path completion generation
 	t.Run("path completion", func(t *testing.T) {
 		allPaths := parser.GetAllPaths()
-		
+
 		// Test filtering by prefix
 		testPrefixes := []struct {
 			prefix   string
 			minMatch int
 		}{
-			{"user", 2},        // user.name, user.email, etc.
-			{"user.", 2},       // Same as above but more specific
-			{"ui", 3},          // ui.default-command, ui.editor, etc.
-			{"ui.", 3},         // Same as above but more specific
-			{"snapshot", 1},    // snapshot.max-new-file-size, etc.
+			{"user", 2},     // user.name, user.email, etc.
+			{"user.", 2},    // Same as above but more specific
+			{"ui", 3},       // ui.default-command, ui.editor, etc.
+			{"ui.", 3},      // Same as above but more specific
+			{"snapshot", 1}, // snapshot.max-new-file-size, etc.
 		}
 
 		for _, tc := range testPrefixes {
@@ -271,7 +271,7 @@ func TestSchemaCompletion(t *testing.T) {
 			}
 
 			if len(matches) < tc.minMatch {
-				t.Errorf("Expected at least %d matches for prefix '%s', got %d: %v", 
+				t.Errorf("Expected at least %d matches for prefix '%s', got %d: %v",
 					tc.minMatch, tc.prefix, len(matches), matches)
 			}
 
@@ -282,10 +282,10 @@ func TestSchemaCompletion(t *testing.T) {
 	// Test 2: Value completion generation
 	t.Run("value completion", func(t *testing.T) {
 		settings := parser.GetAllSettingsWithInfo()
-		
+
 		// Find settings with different characteristics for testing
 		var booleanSetting, stringSetting, enumSetting *SettingInfo
-		
+
 		for i, setting := range settings {
 			switch setting.Type {
 			case "boolean":
@@ -331,27 +331,27 @@ func TestSchemaCompletion(t *testing.T) {
 	// Test 3: Completion context generation
 	t.Run("completion context", func(t *testing.T) {
 		settings := parser.GetAllSettingsWithInfo()
-		
+
 		// Test that we can generate helpful completion context
 		for _, setting := range settings[:5] { // Test first 5 settings
 			// Generate completion entry (path + description)
 			var completionText strings.Builder
 			completionText.WriteString(setting.Path)
 			completionText.WriteString("\t") // Tab separator for shell completion
-			
+
 			if setting.Description != "" {
 				completionText.WriteString(setting.Description)
 			} else {
 				completionText.WriteString("Type: " + setting.Type)
 			}
-			
+
 			// Add type info if not in description
 			if !strings.Contains(setting.Description, setting.Type) {
 				completionText.WriteString(" (")
 				completionText.WriteString(setting.Type)
 				completionText.WriteString(")")
 			}
-			
+
 			// Add default info if available
 			if setting.Default != nil {
 				completionText.WriteString(" [default: ")
@@ -359,12 +359,12 @@ func TestSchemaCompletion(t *testing.T) {
 				completionText.WriteString(strings.ReplaceAll(defaultStr, "\t", " "))
 				completionText.WriteString("]")
 			}
-			
+
 			completion := completionText.String()
 			if completion == "" {
 				t.Errorf("Generated empty completion for setting %s", setting.Path)
 			}
-			
+
 			// Verify completion format
 			parts := strings.Split(completion, "\t")
 			if len(parts) < 2 {
@@ -373,7 +373,7 @@ func TestSchemaCompletion(t *testing.T) {
 			if parts[0] != setting.Path {
 				t.Errorf("First part should be path, got: %s", parts[0])
 			}
-			
+
 			t.Logf("Completion: %s", completion)
 		}
 	})
@@ -458,12 +458,12 @@ func TestSchemaConsistency(t *testing.T) {
 
 			// Basic consistency checks - PropertyInfo.Name is just the final component
 			if !strings.HasSuffix(setting.Path, propInfo.Name) {
-				t.Errorf("Property info name mismatch: setting=%s, propInfo=%s", 
+				t.Errorf("Property info name mismatch: setting=%s, propInfo=%s",
 					setting.Path, propInfo.Name)
 			}
 
 			if propInfo.Type != setting.Type {
-				t.Errorf("Property info type mismatch for %s: setting=%s, propInfo=%s", 
+				t.Errorf("Property info type mismatch for %s: setting=%s, propInfo=%s",
 					setting.Path, setting.Type, propInfo.Type)
 			}
 
@@ -473,7 +473,7 @@ func TestSchemaConsistency(t *testing.T) {
 
 			// Check enum consistency
 			if len(propInfo.Enum) != len(setting.Enum) {
-				t.Errorf("Property info enum length mismatch for %s: %d vs %d", 
+				t.Errorf("Property info enum length mismatch for %s: %d vs %d",
 					setting.Path, len(propInfo.Enum), len(setting.Enum))
 			}
 
@@ -486,7 +486,7 @@ func TestSchemaConsistency(t *testing.T) {
 
 				for _, val := range setting.Enum {
 					if !propEnumMap[val] {
-						t.Errorf("Setting enum value '%s' not found in property info for %s", 
+						t.Errorf("Setting enum value '%s' not found in property info for %s",
 							val, setting.Path)
 					}
 				}
@@ -535,13 +535,13 @@ func TestSchemaConsistency(t *testing.T) {
 		// Report statistics
 		t.Logf("Schema quality metrics:")
 		t.Logf("  Total settings: %d", len(allSettings))
-		t.Logf("  With descriptions: %d (%.1f%%)", 
+		t.Logf("  With descriptions: %d (%.1f%%)",
 			descriptionsCount, float64(descriptionsCount)/float64(len(allSettings))*100)
-		t.Logf("  With defaults: %d (%.1f%%)", 
+		t.Logf("  With defaults: %d (%.1f%%)",
 			defaultsCount, float64(defaultsCount)/float64(len(allSettings))*100)
-		t.Logf("  With enums: %d (%.1f%%)", 
+		t.Logf("  With enums: %d (%.1f%%)",
 			enumsCount, float64(enumsCount)/float64(len(allSettings))*100)
-		
+
 		t.Logf("  Type distribution:")
 		for typ, count := range typeCounts {
 			t.Logf("    %s: %d", typ, count)

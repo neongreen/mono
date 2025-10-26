@@ -105,7 +105,7 @@ func Load() (*Config, error) {
 	}
 
 	var config *Config
-	
+
 	if _, err := os.Stat(configPath); err == nil {
 		// Main config.toml exists, load it
 		data, err := os.ReadFile(configPath)
@@ -117,7 +117,7 @@ func Load() (*Config, error) {
 		if err := toml.Unmarshal(data, &loadedConfig); err != nil {
 			return nil, fmt.Errorf("failed to parse main config: %w", err)
 		}
-		
+
 		config = &loadedConfig
 	} else {
 		// Main config.toml doesn't exist, start with default config
@@ -286,9 +286,9 @@ func (c *Config) Save() error {
 
 	for toolName, tool := range c.Tools {
 		perToolPath := filepath.Join(configDir, toolName+".toml")
-		
+
 		// Only preserve tool metadata in main config if per-tool file exists
-		// (the values go to the per-tool file, the metadata stays in main config) 
+		// (the values go to the per-tool file, the metadata stays in main config)
 		if _, err := os.Stat(perToolPath); err == nil {
 			// Copy tool config but without Values (they go to per-tool file)
 			mainConfig.Tools[toolName] = ToolConfig{
@@ -308,7 +308,7 @@ func (c *Config) Save() error {
 	if err != nil {
 		return fmt.Errorf("failed to get config path: %w", err)
 	}
-	
+
 	data, err := toml.Marshal(mainConfig)
 	if err != nil {
 		return fmt.Errorf("failed to marshal main config: %w", err)

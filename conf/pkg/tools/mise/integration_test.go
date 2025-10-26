@@ -24,10 +24,10 @@ func TestMiseToolRealFileOperations(t *testing.T) {
 	// Test 1: Create new config file from scratch
 	t.Run("create new config file", func(t *testing.T) {
 		configPath := filepath.Join(miseConfigDir, "config.toml")
-		
+
 		// Ensure file doesn't exist
 		os.Remove(configPath)
-		
+
 		// Create tool
 		tool, err := NewMiseTool()
 		if err != nil {
@@ -69,7 +69,7 @@ func TestMiseToolRealFileOperations(t *testing.T) {
 	// Test 2: Modify existing config file
 	t.Run("modify existing config file", func(t *testing.T) {
 		configPath := filepath.Join(miseConfigDir, "config.toml")
-		
+
 		// Create initial config
 		initialConfig := `# Mise configuration
 [settings]
@@ -134,7 +134,7 @@ NODE_ENV = "development"
 	// Test 3: Add nested configuration
 	t.Run("add nested configuration", func(t *testing.T) {
 		configPath := filepath.Join(miseConfigDir, "config.toml")
-		
+
 		// Start with basic config
 		initialConfig := `[settings]
 experimental = true
@@ -192,7 +192,7 @@ experimental = true
 	// Test 4: Unset configuration values
 	t.Run("unset configuration values", func(t *testing.T) {
 		configPath := filepath.Join(miseConfigDir, "config.toml")
-		
+
 		// Start with multiple values
 		initialConfig := `[settings]
 experimental = true
@@ -245,7 +245,7 @@ DEBUG = "true"
 	// Test 5: Dry run mode doesn't modify files
 	t.Run("dry run mode", func(t *testing.T) {
 		configPath := filepath.Join(miseConfigDir, "config.toml")
-		
+
 		// Create initial config
 		initialConfig := `[settings]
 experimental = false
@@ -299,7 +299,7 @@ experimental = false
 	// Test 6: Various data types
 	t.Run("various data types", func(t *testing.T) {
 		configPath := filepath.Join(miseConfigDir, "config.toml")
-		
+
 		// Remove any existing config
 		os.Remove(configPath)
 

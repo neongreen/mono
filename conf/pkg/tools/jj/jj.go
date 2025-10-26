@@ -230,3 +230,8 @@ type CommonSetting struct {
 	Type        string
 	Example     string
 }
+
+// GetAllValues returns all configuration values from the jj config file as a flat map
+func (j *JJTool) GetAllValues() (map[string]interface{}, error) {
+	return j.editor.GetAllValues()
+}
