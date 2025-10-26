@@ -77,19 +77,30 @@ var prefixListCmd = &cobra.Command{
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
 		if all {
-			t.AppendHeader(table.Row{"Prefix", "Node", "Description", "Created By"})
+			t.AppendHeader(table.Row{"Prefix", "Node", "State", "Description", "Created By"})
 		} else {
-			t.AppendHeader(table.Row{"Prefix", "Description", "Created By"})
+			t.AppendHeader(table.Row{"Prefix", "State", "Description", "Created By"})
 		}
 		t.SetStyle(table.StyleLight)
 		t.Style().Options.SeparateRows = false
 		t.Style().Options.DrawBorder = false
 
 		for _, p := range prefixes {
+			// Determine state based on data, not string matching
+			state := "explicit"
+			if p.CreatedAt.IsZero() {
+				// Discovered prefixes have no creation time
+				state = "discovered"
+			}
+			if p.Removed {
+				// Removed prefixes override discovered/explicit
+				state = "removed"
+			}
+
 			if all {
-				t.AppendRow(table.Row{p.Prefix, p.Node, p.Description, p.CreatedBy})
+				t.AppendRow(table.Row{p.Prefix, p.Node, state, p.Description, p.CreatedBy})
 			} else {
-				t.AppendRow(table.Row{p.Prefix, p.Description, p.CreatedBy})
+				t.AppendRow(table.Row{p.Prefix, state, p.Description, p.CreatedBy})
 			}
 		}
 
@@ -154,9 +165,37 @@ var prefixDescribeCmd = &cobra.Command{
 	},
 }
 
+var prefixRemoveCmd = &cobra.Command{
+	Use:   "remove [prefix]",
+	Short: "Mark a prefix as removed",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		prefix := strings.ToLower(args[0])
+
+		db, err := openExistingDB()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		currentUser, err := getCurrentUser()
+		if err != nil {
+			return err
+		}
+
+		if err := db.RemovePrefix(prefix, currentUser); err != nil {
+			return err
+		}
+
+		fmt.Printf("Marked prefix %q as removed\n", prefix)
+		return nil
+	},
+}
+
 func init() {
 	prefixListCmd.Flags().Bool("all", false, "Show prefixes from all nodes")
 	prefixCmd.AddCommand(prefixCreateCmd)
 	prefixCmd.AddCommand(prefixListCmd)
 	prefixCmd.AddCommand(prefixDescribeCmd)
+	prefixCmd.AddCommand(prefixRemoveCmd)
 }

@@ -8,13 +8,15 @@ import (
 
 // Reducer reconstructs task state from events
 type Reducer struct {
-	tasks map[string]*Task
+	tasks    map[string]*Task  // Key: task UUID
+	taskByID map[string]string // Key: task ID (current or alias) -> Value: task UUID
 }
 
 // NewReducer creates a new reducer
 func NewReducer() *Reducer {
 	return &Reducer{
-		tasks: make(map[string]*Task),
+		tasks:    make(map[string]*Task),
+		taskByID: make(map[string]string),
 	}
 }
 
@@ -27,7 +29,20 @@ func (r *Reducer) Apply(e Event) error {
 		return r.applyTaskStatusSet(e)
 	case "task.note.add":
 		return r.applyTaskNoteAdd(e)
+	case "task.reprefix":
+		return r.applyTaskReprefix(e)
+	case "task.alias.added":
+		return r.applyTaskAliasAdded(e)
 	case "prefix.created":
+		// Prefix events are handled by the DB projector, not the reducer
+		return nil
+	case "prefix.description.set":
+		// Prefix events are handled by the DB projector, not the reducer
+		return nil
+	case "prefix.alias.added":
+		// Prefix events are handled by the DB projector, not the reducer
+		return nil
+	case "prefix.removed":
 		// Prefix events are handled by the DB projector, not the reducer
 		return nil
 	default:
@@ -42,14 +57,31 @@ func (r *Reducer) applyTaskCreated(e Event) error {
 		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
 	}
 
-	r.tasks[payload.TaskID] = &Task{
+	// Support both old events (without task_uuid) and new events (with task_uuid)
+	taskUUID := payload.TaskUUID
+	if taskUUID == "" {
+		// Legacy event without UUID - use task_id as UUID
+		taskUUID = payload.TaskID
+	}
+
+	// Guard against duplicate task.created for same UUID
+	if _, exists := r.tasks[taskUUID]; exists {
+		return nil
+	}
+
+	r.tasks[taskUUID] = &Task{
+		TaskUUID:  taskUUID,
 		TaskID:    payload.TaskID,
+		Aliases:   []string{},
 		Title:     payload.Title,
 		Axes:      make(map[string]AxisStatus),
 		Notes:     []Note{},
 		CreatedBy: payload.CreatedBy,
 		CreatedAt: e.CreatedAt, // Use actual creation time from event
 	}
+
+	// Register the task ID in the lookup map
+	r.taskByID[payload.TaskID] = taskUUID
 
 	return nil
 }
@@ -60,9 +92,20 @@ func (r *Reducer) applyTaskStatusSet(e Event) error {
 		return fmt.Errorf("failed to unmarshal task.status.set payload: %w", err)
 	}
 
-	task, ok := r.tasks[payload.TaskID]
+	// Resolve task ID to UUID
+	taskUUID := payload.TaskUUID
+	if taskUUID == "" {
+		// Legacy event - look up UUID by task ID
+		var ok bool
+		taskUUID, ok = r.taskByID[payload.TaskID]
+		if !ok {
+			return fmt.Errorf("task not found: %s", payload.TaskID)
+		}
+	}
+
+	task, ok := r.tasks[taskUUID]
 	if !ok {
-		return fmt.Errorf("task not found: %s", payload.TaskID)
+		return fmt.Errorf("task UUID not found: %s", taskUUID)
 	}
 
 	// Get or create axis status
@@ -96,9 +139,20 @@ func (r *Reducer) applyTaskNoteAdd(e Event) error {
 		return fmt.Errorf("failed to unmarshal task.note.add payload: %w", err)
 	}
 
-	task, ok := r.tasks[payload.TaskID]
+	// Resolve task ID to UUID
+	taskUUID := payload.TaskUUID
+	if taskUUID == "" {
+		// Legacy event - look up UUID by task ID
+		var ok bool
+		taskUUID, ok = r.taskByID[payload.TaskID]
+		if !ok {
+			return fmt.Errorf("task not found: %s", payload.TaskID)
+		}
+	}
+
+	task, ok := r.tasks[taskUUID]
 	if !ok {
-		return fmt.Errorf("task not found: %s", payload.TaskID)
+		return fmt.Errorf("task UUID not found: %s", taskUUID)
 	}
 
 	note := Note{
@@ -107,6 +161,60 @@ func (r *Reducer) applyTaskNoteAdd(e Event) error {
 		Timestamp: e.CreatedAt, // Use actual creation time from event
 	}
 	task.Notes = append(task.Notes, note)
+
+	return nil
+}
+
+func (r *Reducer) applyTaskReprefix(e Event) error {
+	var payload TaskReprefixPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.reprefix payload: %w", err)
+	}
+
+	task, ok := r.tasks[payload.TaskUUID]
+	if !ok {
+		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
+	}
+
+	// Construct old and new task IDs
+	oldTaskID := fmt.Sprintf("%s-%d-%s", payload.OldPrefix, payload.OldNumber, payload.OldNode)
+	newTaskID := fmt.Sprintf("%s-%d-%s", payload.NewPrefix, payload.NewNumber, payload.OldNode)
+
+	// Update the task's current ID
+	task.TaskID = newTaskID
+
+	// Update the lookup map: remove old ID, add new ID
+	delete(r.taskByID, oldTaskID)
+	r.taskByID[newTaskID] = payload.TaskUUID
+
+	return nil
+}
+
+func (r *Reducer) applyTaskAliasAdded(e Event) error {
+	var payload TaskAliasAddedPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.alias.added payload: %w", err)
+	}
+
+	task, ok := r.tasks[payload.TaskUUID]
+	if !ok {
+		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
+	}
+
+	// Dedupe: only add alias if not already present
+	alreadyExists := false
+	for _, alias := range task.Aliases {
+		if alias == payload.AliasID {
+			alreadyExists = true
+			break
+		}
+	}
+	if !alreadyExists {
+		task.Aliases = append(task.Aliases, payload.AliasID)
+	}
+
+	// Register the alias in the lookup map (idempotent)
+	r.taskByID[payload.AliasID] = payload.TaskUUID
 
 	return nil
 }
@@ -160,9 +268,21 @@ func (r *Reducer) resolveEffectiveStatus(axis *AxisStatus) {
 	}
 }
 
-// GetTask returns the current state of a task
-func (r *Reducer) GetTask(taskID string) (*Task, bool) {
-	task, ok := r.tasks[taskID]
+// GetTask returns the current state of a task by ID (supports task ID or UUID)
+func (r *Reducer) GetTask(idOrUUID string) (*Task, bool) {
+	// Try direct UUID lookup first
+	task, ok := r.tasks[idOrUUID]
+	if ok {
+		return task, true
+	}
+
+	// Try looking up by task ID
+	taskUUID, ok := r.taskByID[idOrUUID]
+	if !ok {
+		return nil, false
+	}
+
+	task, ok = r.tasks[taskUUID]
 	return task, ok
 }
 

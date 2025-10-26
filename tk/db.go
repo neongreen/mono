@@ -97,6 +97,7 @@ func (d *DB) InitDB() error {
 		description TEXT NOT NULL,
 		created_at INTEGER NOT NULL,
 		created_by TEXT NOT NULL,
+		removed INTEGER NOT NULL DEFAULT 0,
 		PRIMARY KEY (prefix, node)
 	);
 	
@@ -112,9 +113,20 @@ func (d *DB) InitDB() error {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
+	// Migration: Add removed column to prefixes table if it doesn't exist
+	// Check if the removed column exists
+	var columnCount int
+	err := d.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('prefixes') WHERE name = 'removed'").Scan(&columnCount)
+	if err == nil && columnCount == 0 {
+		_, err = d.db.Exec("ALTER TABLE prefixes ADD COLUMN removed INTEGER NOT NULL DEFAULT 0")
+		if err != nil {
+			return fmt.Errorf("failed to add removed column to prefixes table: %w", err)
+		}
+	}
+
 	// Initialize task counter if it doesn't exist (legacy support)
 	var count int
-	err := d.db.QueryRow("SELECT COUNT(*) FROM task_counter").Scan(&count)
+	err = d.db.QueryRow("SELECT COUNT(*) FROM task_counter").Scan(&count)
 	if err != nil {
 		return fmt.Errorf("failed to check task counter: %w", err)
 	}
@@ -297,6 +309,120 @@ func (d *DB) GetEventsByTaskID(taskID string) ([]Event, error) {
 	}
 
 	return events, rows.Err()
+}
+
+// GetEventsByTaskUUID retrieves events for a specific task UUID
+func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]Event, error) {
+	query := `
+		SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
+		FROM events
+		WHERE json_extract(payload, '$.task_uuid') = ?
+		   OR json_extract(payload, '$.task_id') = ?
+		ORDER BY created_at, id
+	`
+
+	rows, err := d.db.Query(query, taskUUID, taskUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query events for task UUID %s: %w", taskUUID, err)
+	}
+	defer rows.Close()
+
+	var events []Event
+	for rows.Next() {
+		var e Event
+		var ctx, repoUUID, branch, commit, jjOpID sql.NullString
+		var createdAtNano int64
+
+		err := rows.Scan(&e.ID, &e.TS, &createdAtNano, &e.Actor, &e.Role, &e.Kind, &e.Payload, &ctx, &repoUUID, &branch, &commit, &jjOpID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan event row: %w", err)
+		}
+
+		e.CreatedAt = time.Unix(0, createdAtNano)
+		if ctx.Valid {
+			e.Ctx = json.RawMessage(ctx.String)
+		}
+		if repoUUID.Valid {
+			e.RepoUUID = repoUUID.String
+		}
+		if branch.Valid {
+			e.Branch = branch.String
+		}
+		if commit.Valid {
+			e.Commit = commit.String
+		}
+		if jjOpID.Valid {
+			e.JJOpID = jjOpID.String
+		}
+
+		events = append(events, e)
+	}
+
+	return events, rows.Err()
+}
+
+// ResolveTaskIDToUUID resolves a task ID (full or short, current or alias) to its UUID
+func (d *DB) ResolveTaskIDToUUID(taskID string) (string, error) {
+	// Build reducer from all events to resolve ID to UUID
+	events, err := d.GetEvents()
+	if err != nil {
+		return "", fmt.Errorf("failed to get events: %w", err)
+	}
+
+	reducer, err := BuildFromEvents(events)
+	if err != nil {
+		return "", fmt.Errorf("failed to build reducer: %w", err)
+	}
+
+	// First try direct lookup by taskID (handles full IDs - current or aliases)
+	task, ok := reducer.GetTask(taskID)
+	if ok {
+		return task.TaskUUID, nil
+	}
+
+	// If not found, it might be a short form (e.g., "foo-1" instead of "foo-1-kdTlV2")
+	// Get all tasks and check for matching short forms
+	allTasks := reducer.GetAllTasks()
+	allTaskIDs := make([]string, 0, len(allTasks))
+	for _, t := range allTasks {
+		allTaskIDs = append(allTaskIDs, t.TaskID)
+		// Also add aliases
+		for _, alias := range t.Aliases {
+			allTaskIDs = append(allTaskIDs, alias)
+		}
+	}
+
+	// Use FormatTaskID logic to match short forms
+	var matches []string
+	var matchedUUIDs []string
+	for _, t := range allTasks {
+		// Check if taskID matches the short form of this task's current ID
+		shortForm := FormatTaskID(t.TaskID, allTaskIDs)
+		if shortForm == taskID {
+			matches = append(matches, t.TaskID)
+			matchedUUIDs = append(matchedUUIDs, t.TaskUUID)
+		}
+
+		// Also check aliases
+		for _, alias := range t.Aliases {
+			shortForm := FormatTaskID(alias, allTaskIDs)
+			if shortForm == taskID {
+				matches = append(matches, alias)
+				matchedUUIDs = append(matchedUUIDs, t.TaskUUID)
+				break
+			}
+		}
+	}
+
+	if len(matches) == 0 {
+		return "", fmt.Errorf("task not found: %s", taskID)
+	}
+
+	if len(matches) > 1 {
+		return "", fmt.Errorf("ambiguous task ID: %s (matches %v)", taskID, matches)
+	}
+
+	return matchedUUIDs[0], nil
 }
 
 // Close closes the database
@@ -729,6 +855,7 @@ type Prefix struct {
 	Description string
 	CreatedAt   time.Time
 	CreatedBy   string
+	Removed     bool
 }
 
 // CreatePrefix creates a new prefix and emits a prefix.created event
@@ -825,7 +952,7 @@ func (d *DB) GetPrefixes() ([]Prefix, error) {
 	}
 
 	query := `
-		SELECT prefix, node, description, created_at, created_by
+		SELECT prefix, node, description, created_at, created_by, removed
 		FROM prefixes
 		WHERE node = ?
 		ORDER BY created_at
@@ -841,11 +968,13 @@ func (d *DB) GetPrefixes() ([]Prefix, error) {
 	for rows.Next() {
 		var p Prefix
 		var createdAtNano int64
-		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy)
+		var removed int
+		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy, &removed)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan prefix: %w", err)
 		}
 		p.CreatedAt = time.Unix(0, createdAtNano)
+		p.Removed = removed != 0
 		prefixes = append(prefixes, p)
 	}
 
@@ -856,7 +985,7 @@ func (d *DB) GetPrefixes() ([]Prefix, error) {
 func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 	// Get prefixes from the prefixes table (from prefix.created events)
 	query := `
-		SELECT prefix, node, description, created_at, created_by
+		SELECT prefix, node, description, created_at, created_by, removed
 		FROM prefixes
 		ORDER BY created_at
 	`
@@ -871,11 +1000,13 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 	for rows.Next() {
 		var p Prefix
 		var createdAtNano int64
-		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy)
+		var removed int
+		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy, &removed)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan prefix: %w", err)
 		}
 		p.CreatedAt = time.Unix(0, createdAtNano)
+		p.Removed = removed != 0
 		key := p.Prefix + "-" + p.Node
 		prefixMap[key] = p
 	}
@@ -918,6 +1049,7 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 				Description: "(discovered from tasks, no metadata)",
 				CreatedBy:   createdBy,
 				CreatedAt:   time.Time{}, // Unknown creation time
+				Removed:     false,
 			}
 		}
 	}
@@ -941,6 +1073,84 @@ func (d *DB) GetAllPrefixes() ([]Prefix, error) {
 	})
 
 	return prefixes, nil
+}
+
+// RemovePrefix marks a prefix as removed by emitting a prefix.removed event
+func (d *DB) RemovePrefix(prefix, actor string) error {
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	// Check if prefix exists for this node
+	var count int
+	err = d.db.QueryRow("SELECT COUNT(*) FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&count)
+	if err != nil {
+		return fmt.Errorf("failed to check prefix existence: %w", err)
+	}
+
+	if count == 0 {
+		return fmt.Errorf("prefix %q does not exist for this node", prefix)
+	}
+
+	// Check if already removed
+	var removed int
+	err = d.db.QueryRow("SELECT removed FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&removed)
+	if err != nil {
+		return fmt.Errorf("failed to check if prefix is removed: %w", err)
+	}
+
+	if removed != 0 {
+		return fmt.Errorf("prefix %q is already removed", prefix)
+	}
+
+	// Generate event ID
+	eventID, err := GenerateEventID(d)
+	if err != nil {
+		return fmt.Errorf("failed to generate event ID: %w", err)
+	}
+
+	// Get next Lamport timestamp
+	lamportTS, err := d.GetNextLamportTS()
+	if err != nil {
+		return fmt.Errorf("failed to get lamport timestamp: %w", err)
+	}
+
+	// Create prefix.removed event
+	payload := PrefixRemovedPayload{
+		Prefix: prefix,
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	now := time.Now()
+	event := Event{
+		ID:        eventID,
+		TS:        lamportTS,
+		CreatedAt: now,
+		Actor:     actor,
+		Role:      "human",
+		Kind:      "prefix.removed",
+		Payload:   payloadJSON,
+	}
+
+	// Insert event first (event-sourcing principle)
+	if err := d.InsertEvent(event); err != nil {
+		return fmt.Errorf("failed to insert prefix.removed event: %w", err)
+	}
+
+	// Project into prefixes table (mark as removed)
+	_, err = d.db.Exec(
+		"UPDATE prefixes SET removed = 1 WHERE prefix = ? AND node = ?",
+		prefix, nodeID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to mark prefix as removed: %w", err)
+	}
+
+	return nil
 }
 
 // PrefixExists checks if a prefix exists for this node

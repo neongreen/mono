@@ -105,6 +105,7 @@ var newCmd = &cobra.Command{
 			return err
 		}
 
+		taskUUID := GenerateTaskUUID()
 		taskID, err := GenerateTaskID(db, prefix)
 		if err != nil {
 			return err
@@ -121,6 +122,7 @@ var newCmd = &cobra.Command{
 		}
 
 		payload := TaskCreatedPayload{
+			TaskUUID:  taskUUID,
 			TaskID:    taskID,
 			Title:     title,
 			CreatedBy: currentUser,
@@ -179,8 +181,8 @@ var statusSetCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve short task ID to full ID
-		fullTaskID, err := db.ResolveTaskID(taskID)
+		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
+		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
 		if err != nil {
 			return err
 		}
@@ -202,10 +204,11 @@ var statusSetCmd = &cobra.Command{
 		}
 
 		payload := TaskStatusSetPayload{
-			TaskID: fullTaskID,
-			Axis:   axis,
-			State:  state,
-			Role:   role,
+			TaskUUID: taskUUID,
+			TaskID:   taskID, // Use the input ID for legacy compatibility
+			Axis:     axis,
+			State:    state,
+			Role:     role,
 		}
 		payloadJSON, err := json.Marshal(payload)
 		if err != nil {
@@ -246,8 +249,8 @@ var noteCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve short task ID to full ID
-		fullTaskID, err := db.ResolveTaskID(taskID)
+		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
+		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
 		if err != nil {
 			return err
 		}
@@ -269,7 +272,8 @@ var noteCmd = &cobra.Command{
 		}
 
 		payload := TaskNoteAddPayload{
-			TaskID:   fullTaskID,
+			TaskUUID: taskUUID,
+			TaskID:   taskID, // Use the input ID for legacy compatibility
 			Markdown: text,
 		}
 		payloadJSON, err := json.Marshal(payload)
@@ -310,19 +314,11 @@ var viewCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve short task ID to full ID
-		fullTaskID, err := db.ResolveTaskID(taskID)
+		// Build reducer to get task and all its IDs (current + aliases)
+		// TODO: Consider caching reducer or adding task_index table for performance
+		events, err := db.GetEvents()
 		if err != nil {
 			return err
-		}
-
-		events, err := db.GetEventsByTaskID(fullTaskID)
-		if err != nil {
-			return err
-		}
-
-		if len(events) == 0 {
-			return fmt.Errorf("task not found: %s", taskID)
 		}
 
 		reducer, err := BuildFromEvents(events)
@@ -330,7 +326,13 @@ var viewCmd = &cobra.Command{
 			return err
 		}
 
-		task, ok := reducer.GetTask(fullTaskID)
+		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
+		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		if err != nil {
+			return err
+		}
+
+		task, ok := reducer.GetTask(taskUUID)
 		if !ok {
 			return fmt.Errorf("task not found: %s", taskID)
 		}
@@ -357,6 +359,7 @@ var lsCmd = &cobra.Command{
 		axisFilter, _ := cmd.Flags().GetString("axis")
 		sortBy, _ := cmd.Flags().GetString("sort")
 		prefixFilter, _ := cmd.Flags().GetStringSlice("prefix")
+		showAliases, _ := cmd.Flags().GetBool("aliases")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -435,22 +438,42 @@ var lsCmd = &cobra.Command{
 		// Create table
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(table.Row{"ID", "Status", "Title"})
+
+		if showAliases {
+			t.AppendHeader(table.Row{"ID", "Aliases", "Status", "Title"})
+		} else {
+			t.AppendHeader(table.Row{"ID", "Status", "Title"})
+		}
+
 		t.SetStyle(table.StyleLight)
 		t.Style().Options.SeparateRows = false
 		t.Style().Options.DrawBorder = false
 
 		// Configure column widths and wrapping
-		// Reserve space for ID (~10 chars), Status (~10 chars), separators (~10 chars)
-		titleMaxWidth := termWidth - 30
-		if titleMaxWidth < 20 {
-			titleMaxWidth = 20 // minimum width
+		if showAliases {
+			// Reserve more space for aliases column
+			titleMaxWidth := termWidth - 60
+			if titleMaxWidth < 20 {
+				titleMaxWidth = 20 // minimum width
+			}
+			t.SetColumnConfigs([]table.ColumnConfig{
+				{Number: 1, AutoMerge: false}, // ID column
+				{Number: 2, AutoMerge: false}, // Aliases column
+				{Number: 3, AutoMerge: false}, // Status column
+				{Number: 4, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
+			})
+		} else {
+			// Reserve space for ID (~10 chars), Status (~10 chars), separators (~10 chars)
+			titleMaxWidth := termWidth - 30
+			if titleMaxWidth < 20 {
+				titleMaxWidth = 20 // minimum width
+			}
+			t.SetColumnConfigs([]table.ColumnConfig{
+				{Number: 1, AutoMerge: false}, // ID column
+				{Number: 2, AutoMerge: false}, // Status column
+				{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
+			})
 		}
-		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false}, // ID column
-			{Number: 2, AutoMerge: false}, // Status column
-			{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
-		})
 
 		for _, task := range tasks {
 			displayID := FormatTaskID(task.TaskID, taskIDs)
@@ -461,7 +484,20 @@ var lsCmd = &cobra.Command{
 				status = colorizeStatus(axis.Effective)
 			}
 
-			t.AppendRow(table.Row{displayID, status, task.Title})
+			if showAliases {
+				// Format aliases
+				aliasesStr := ""
+				if len(task.Aliases) > 0 {
+					var shortAliases []string
+					for _, alias := range task.Aliases {
+						shortAliases = append(shortAliases, FormatTaskID(alias, taskIDs))
+					}
+					aliasesStr = strings.Join(shortAliases, ", ")
+				}
+				t.AppendRow(table.Row{displayID, aliasesStr, status, task.Title})
+			} else {
+				t.AppendRow(table.Row{displayID, status, task.Title})
+			}
 		}
 
 		t.Render()
@@ -532,8 +568,10 @@ func init() {
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
 	lsCmd.Flags().StringSlice("prefix", []string{}, "Filter by prefix (can be specified multiple times)")
+	lsCmd.Flags().Bool("aliases", false, "Show task aliases")
 	rootCmd.AddCommand(lsCmd)
 
+	rootCmd.AddCommand(mvCmd)
 	rootCmd.AddCommand(nodeCmd)
 	rootCmd.AddCommand(remoteCmd)
 	rootCmd.AddCommand(exportCmd)
