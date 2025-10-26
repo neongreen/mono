@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -530,6 +531,179 @@ func TestDuplicateAliasAdded(t *testing.T) {
 	}
 	if task.Aliases[0] != aliasID {
 		t.Fatalf("Expected alias %s, got %s", aliasID, task.Aliases[0])
+	}
+}
+
+func TestAutoNumberAvoidsCollision(t *testing.T) {
+	// Create a temporary directory for the test database
+	tmpDir, err := os.MkdirTemp("", "tk-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	dbPath := filepath.Join(tmpDir, "tk.db")
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("Failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("Failed to initialize database: %v", err)
+	}
+
+	// Create tak prefix
+	if err := db.CreatePrefix("tak", "Tak prefix", "test"); err != nil {
+		t.Fatalf("Failed to create tak prefix: %v", err)
+	}
+
+	// Simulate a task from another node (e.g., from sync)
+	// Create tk-10-nodeB (from a different node)
+	otherTaskUUID := GenerateTaskUUID()
+	otherTaskID := "tk-10-nodeB"
+	otherEventID, _ := GenerateEventID(db)
+	otherLamportTS, _ := db.GetNextLamportTS()
+
+	otherTaskCreatedPayload := TaskCreatedPayload{
+		TaskUUID:  otherTaskUUID,
+		TaskID:    otherTaskID,
+		Title:     "Task from other node",
+		CreatedBy: "other",
+	}
+	otherTaskCreatedEvent := Event{
+		ID:      otherEventID,
+		TS:      otherLamportTS,
+		Actor:   "other",
+		Role:    "human",
+		Kind:    "task.created",
+		Payload: mustMarshal(otherTaskCreatedPayload),
+	}
+	if err := db.InsertEvent(otherTaskCreatedEvent); err != nil {
+		t.Fatalf("Failed to insert other task.created event: %v", err)
+	}
+
+	// Create local tk tasks 1-9 to advance counter to 9
+	// This ensures GetNextTaskNumberForPrefix will return 10,
+	// which will collide with tk-10-nodeB and trigger the fix
+	for i := 1; i <= 9; i++ {
+		localTkTaskUUID := GenerateTaskUUID()
+		localTkTaskID, err := GenerateTaskID(db, "tk")
+		if err != nil {
+			t.Fatalf("Failed to generate tk task ID: %v", err)
+		}
+		localTkEventID, _ := GenerateEventID(db)
+		localTkLamportTS, _ := db.GetNextLamportTS()
+
+		localTkTaskCreatedPayload := TaskCreatedPayload{
+			TaskUUID:  localTkTaskUUID,
+			TaskID:    localTkTaskID,
+			Title:     fmt.Sprintf("Local tk task %d", i),
+			CreatedBy: "test",
+		}
+		localTkTaskCreatedEvent := Event{
+			ID:      localTkEventID,
+			TS:      localTkLamportTS,
+			Actor:   "test",
+			Role:    "human",
+			Kind:    "task.created",
+			Payload: mustMarshal(localTkTaskCreatedPayload),
+		}
+		if err := db.InsertEvent(localTkTaskCreatedEvent); err != nil {
+			t.Fatalf("Failed to insert local tk task.created event: %v", err)
+		}
+	}
+
+	// Create our local task tak-10 from local node
+	localTaskUUID := GenerateTaskUUID()
+	localTaskID, err := GenerateTaskID(db, "tak")
+	if err != nil {
+		t.Fatalf("Failed to generate task ID: %v", err)
+	}
+	// Manually set it to tak-10 to match the scenario
+	parts := splitTaskID(localTaskID)
+	localNode := parts[2]
+	localTaskID = "tak-10-" + localNode
+
+	localEventID, _ := GenerateEventID(db)
+	localLamportTS, _ := db.GetNextLamportTS()
+
+	localTaskCreatedPayload := TaskCreatedPayload{
+		TaskUUID:  localTaskUUID,
+		TaskID:    localTaskID,
+		Title:     "Local task to move",
+		CreatedBy: "test",
+	}
+	localTaskCreatedEvent := Event{
+		ID:      localEventID,
+		TS:      localLamportTS,
+		Actor:   "test",
+		Role:    "human",
+		Kind:    "task.created",
+		Payload: mustMarshal(localTaskCreatedPayload),
+	}
+	if err := db.InsertEvent(localTaskCreatedEvent); err != nil {
+		t.Fatalf("Failed to insert local task.created event: %v", err)
+	}
+
+	// Build reducer to get current state
+	events, err := db.GetEvents()
+	if err != nil {
+		t.Fatalf("Failed to get events: %v", err)
+	}
+	reducer, err := BuildFromEvents(events)
+	if err != nil {
+		t.Fatalf("Failed to build reducer: %v", err)
+	}
+
+	// Verify both tasks exist
+	_, ok := reducer.GetTask(otherTaskUUID)
+	if !ok {
+		t.Fatalf("Other task not found")
+	}
+	_, ok = reducer.GetTask(localTaskUUID)
+	if !ok {
+		t.Fatalf("Local task not found")
+	}
+
+	// Now simulate: tk mv tak-10 tk (with auto-number)
+	// This should choose a number that doesn't collide with tk-10-nodeB
+	spec := moveSpec{
+		oldID:      localTaskID,
+		newPrefix:  "tk",
+		autoNumber: true,
+		addAlias:   true,
+	}
+
+	reserved := make(map[string]struct{})
+	entry, err := planMove(db, reducer, localNode, spec, reserved)
+	if err != nil {
+		t.Fatalf("Failed to plan move: %v", err)
+	}
+
+	t.Logf("Old task ID: %s", entry.oldID)
+	t.Logf("New task ID: %s", entry.newID)
+	t.Logf("New number: %d", entry.newNumber)
+	t.Logf("Other task ID: %s", otherTaskID)
+
+	// The new number should NOT be 10 (because that would collide with tk-10-nodeB)
+	// It should be a different number that avoids collision
+	if entry.newNumber == 10 {
+		t.Errorf("Auto-number chose 10, which collides with tk-10-nodeB. Expected a different number.")
+	}
+
+	// Verify the new ID doesn't cause a display collision
+	// When formatted with FormatTaskID, it should show without node suffix
+	allTaskIDs := []string{otherTaskID, entry.newID}
+	formattedNewID := FormatTaskID(entry.newID, allTaskIDs)
+	formattedOtherID := FormatTaskID(otherTaskID, allTaskIDs)
+
+	// Both should be displayed without node suffix since they don't collide
+	if strings.Contains(formattedNewID, localNode) {
+		t.Errorf("New task ID %s is displayed with node suffix %s, indicating collision", formattedNewID, localNode)
+	}
+	if strings.Contains(formattedOtherID, "nodeB") {
+		t.Errorf("Other task ID %s is displayed with node suffix, indicating collision", formattedOtherID)
 	}
 }
 
