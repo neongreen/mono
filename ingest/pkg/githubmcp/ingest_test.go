@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/database"
 
 	gh "github.com/google/go-github/v61/github"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"

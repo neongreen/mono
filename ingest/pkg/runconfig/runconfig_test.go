@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"ingest/pkg/testutil"
+	"github.com/neongreen/mono/ingest/pkg/testutil"
 )
 
 func TestParseConfig(t *testing.T) {

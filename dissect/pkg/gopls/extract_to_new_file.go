@@ -2,8 +2,8 @@ package gopls
 
 import (
 	"bytes"
-	"dissect/pkg/goutils"
 	"fmt"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"log/slog"
 	"os"
 	"os/exec"

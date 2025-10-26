@@ -1,8 +1,8 @@
 package tui
 
 import (
-	"claude-trace/pkg/storage"
 	"fmt"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"

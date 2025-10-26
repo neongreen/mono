@@ -1,8 +1,8 @@
 package refactor
 
 import (
-	"dissect/pkg/goutils"
-	"dissect/pkg/utils"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/utils"
 	"go/ast"
 	"path/filepath"
 	"strings"

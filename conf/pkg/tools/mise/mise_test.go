@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"conf/pkg/config"
+	"github.com/neongreen/mono/conf/pkg/config"
 )
 
 func TestNewMiseTool(t *testing.T) {

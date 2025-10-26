@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"ingest/pkg/database"
-	"ingest/pkg/github"
+	"github.com/neongreen/mono/ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/github"
 )
 
 // RunGitHub ingests issues and pull requests using the GitHub REST API.

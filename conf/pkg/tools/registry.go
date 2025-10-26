@@ -3,9 +3,9 @@ package tools
 import (
 	"fmt"
 
-	jjtool "conf/pkg/tools/jj"
-	misetool "conf/pkg/tools/mise"
-	starshiptool "conf/pkg/tools/starship"
+	jjtool "github.com/neongreen/mono/conf/pkg/tools/jj"
+	misetool "github.com/neongreen/mono/conf/pkg/tools/mise"
+	starshiptool "github.com/neongreen/mono/conf/pkg/tools/starship"
 )
 
 // Tool interface represents a configuration tool

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"claude-trace/pkg/storage"
 	"fmt"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"log"
 
 	"github.com/spf13/cobra"

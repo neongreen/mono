@@ -1,8 +1,8 @@
 package gopls
 
 import (
-	"dissect/pkg/goutils"
 	"fmt"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"go/ast"
 	"go/token"
 	"path/filepath"

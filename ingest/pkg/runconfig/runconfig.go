@@ -15,8 +15,8 @@ import (
 
 	"github.com/pelletier/go-toml/v2"
 
-	"ingest/pkg/jobs"
-	mcppkg "ingest/pkg/mcp"
+	"github.com/neongreen/mono/ingest/pkg/jobs"
+	mcppkg "github.com/neongreen/mono/ingest/pkg/mcp"
 )
 
 // Config represents the contents of ingest.config.toml.

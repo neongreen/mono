@@ -1,9 +1,9 @@
 package main
 
 import (
-	"claude-trace/pkg/storage"
-	"claude-trace/pkg/tui"
 	"fmt"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
+	"github.com/neongreen/mono/claude-trace/pkg/tui"
 	"log"
 	"os"
 

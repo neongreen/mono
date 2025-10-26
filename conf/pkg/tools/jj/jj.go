@@ -3,9 +3,9 @@ package jj
 import (
 	"fmt"
 
-	"conf/pkg/config"
-	"conf/pkg/editors"
-	"conf/pkg/schemas"
+	"github.com/neongreen/mono/conf/pkg/config"
+	"github.com/neongreen/mono/conf/pkg/editors"
+	"github.com/neongreen/mono/conf/pkg/schemas"
 )
 
 // JJTool implements jj configuration management

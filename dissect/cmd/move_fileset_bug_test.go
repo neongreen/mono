@@ -1,7 +1,7 @@
 package main_test
 
 import (
-	"dissect/cmd/internal/testutils"
+	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -69,7 +69,7 @@ func anotherFunc() {
 	}
 
 	dissectBinary := filepath.Join(tmpDir, "dissect")
-	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./cmd")
+	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect/cmd")
 	buildCmd.Dir = findRepoRoot(t)
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)
@@ -191,7 +191,7 @@ func existingFunc() {
 	}
 
 	dissectBinary := filepath.Join(tmpDir, "dissect")
-	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./cmd")
+	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect/cmd")
 	buildCmd.Dir = findRepoRoot(t)
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)
@@ -313,7 +313,7 @@ func processData() {
 	}
 
 	dissectBinary := filepath.Join(tmpDir, "dissect")
-	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./cmd")
+	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect/cmd")
 	buildCmd.Dir = findRepoRoot(t)
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)

@@ -12,10 +12,10 @@ import (
 	"github.com/golang-cz/devslog"
 	"github.com/pelletier/go-toml/v2"
 
-	main "dissect/cmd"
-	"dissect/pkg/externaltest"
-	"dissect/pkg/goutils"
-	"dissect/pkg/testutils"
+	main "github.com/neongreen/mono/dissect/cmd"
+	"github.com/neongreen/mono/dissect/pkg/externaltest"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/testutils"
 )
 
 // Run this to init logging
@@ -86,7 +86,7 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 
 	// Load test files from TOML
 	repoRoot := findRepoRoot(t)
-	tomlPath := filepath.Join(repoRoot, "tests", tomlFileName)
+	tomlPath := filepath.Join(repoRoot, "dissect", "tests", tomlFileName)
 	testData := loadTestFilesFromTOML(t, tomlPath)
 
 	// Write files to the temporary project directory
@@ -207,7 +207,7 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 func TestAllDissectIntegration(t *testing.T) {
 	// Get the repository root
 	repoRoot := findRepoRoot(t)
-	testsDir := filepath.Join(repoRoot, "tests")
+	testsDir := filepath.Join(repoRoot, "dissect", "tests")
 
 	// Find all .toml files in the tests directory
 	var testFiles []string

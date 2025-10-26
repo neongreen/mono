@@ -3,8 +3,8 @@ package starship
 import (
 	"fmt"
 
-	"conf/pkg/config"
-	"conf/pkg/editors"
+	"github.com/neongreen/mono/conf/pkg/config"
+	"github.com/neongreen/mono/conf/pkg/editors"
 )
 
 // StarshipTool implements starship configuration management

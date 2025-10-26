@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/database"
 )
 
 // GitCommit describes files to write for a commit and the commit message.

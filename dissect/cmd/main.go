@@ -1,8 +1,8 @@
 package main
 
 import (
-	"dissect/pkg/commands"
 	"fmt"
+	"github.com/neongreen/mono/dissect/pkg/commands"
 	"log/slog"
 	"os"
 	"path/filepath"
