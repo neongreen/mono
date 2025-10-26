@@ -130,7 +130,6 @@ For each detected project:
 - Creates GitHub release with the version tag
 - Attaches all binaries
 - Includes installation instructions
-- Marks PR releases as pre-releases
 
 ## Testing Performed
 
