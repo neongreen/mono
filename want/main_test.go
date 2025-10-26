@@ -337,3 +337,46 @@ func TestCreateGoBuildCommandIntegration(t *testing.T) {
 		}
 	}
 }
+
+func TestGetBuildPath(t *testing.T) {
+	tests := []struct {
+		name        string
+		projectDir  string
+		want        string
+		description string
+	}{
+		{
+			name:        "project with cmd subdirectory",
+			projectDir:  "../conf",
+			want:        "./cmd",
+			description: "conf has Go files in cmd subdirectory",
+		},
+		{
+			name:        "project without cmd subdirectory",
+			projectDir:  "../want",
+			want:        ".",
+			description: "want has Go files in root directory",
+		},
+		{
+			name:        "another project with cmd",
+			projectDir:  "../dissect",
+			want:        "./cmd",
+			description: "dissect has Go files in cmd subdirectory",
+		},
+		{
+			name:        "project without cmd - prrun",
+			projectDir:  "../prrun",
+			want:        ".",
+			description: "prrun has Go files in root directory",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getBuildPath(tt.projectDir)
+			if got != tt.want {
+				t.Errorf("getBuildPath(%q) = %v, want %v (%s)", tt.projectDir, got, tt.want, tt.description)
+			}
+		})
+	}
+}
