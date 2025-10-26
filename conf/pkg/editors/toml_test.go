@@ -312,3 +312,82 @@ func TestTOMLEditor_GetAllValues(t *testing.T) {
 		}
 	}
 }
+
+func TestTOMLEditor_GetAllValuesWithQuotedKeys(t *testing.T) {
+	// Create temporary directory
+	tempDir, err := os.MkdirTemp("", "toml-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	testFile := filepath.Join(tempDir, "test.toml")
+
+	// Create test file with quoted keys (like jj aliases)
+	testContent := `[user]
+name = "Alice"
+
+[aliases]
+"." = ["foo"]
+".." = ["bar"]
+normal = "baz"
+`
+	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write test file: %v", err)
+	}
+
+	editor := NewTOMLEditor(testFile)
+
+	// Get all values
+	values, err := editor.GetAllValues()
+	if err != nil {
+		t.Fatalf("Failed to get all values: %v", err)
+	}
+
+	// Verify quoted keys are properly handled
+	// The keys should be properly quoted in the flattened map
+	expectedKeys := []string{
+		"user.name",
+		`aliases."."`,  // Should be quoted
+		`aliases.".."`, // Should be quoted
+		"aliases.normal",
+	}
+
+	for _, key := range expectedKeys {
+		if _, exists := values[key]; !exists {
+			t.Errorf("Expected key %q not found in values. Got keys: %v", key, getKeys(values))
+		}
+	}
+
+	// Verify specific values
+	if val, ok := values[`aliases."."`]; ok {
+		// Value should be an array
+		if arr, isArr := val.([]interface{}); !isArr {
+			t.Errorf("Expected aliases.\".\" to be array, got %T", val)
+		} else if len(arr) != 1 || arr[0] != "foo" {
+			t.Errorf("Expected aliases.\".\" = [\"foo\"], got %v", arr)
+		}
+	} else {
+		t.Errorf("Key aliases.\".\" not found")
+	}
+
+	if val, ok := values[`aliases.".."`]; ok {
+		if arr, isArr := val.([]interface{}); !isArr {
+			t.Errorf("Expected aliases.\"..\" to be array, got %T", val)
+		} else if len(arr) != 1 || arr[0] != "bar" {
+			t.Errorf("Expected aliases.\"..\" = [\"bar\"], got %v", arr)
+		}
+	} else {
+		t.Errorf("Key aliases.\"..\" not found")
+	}
+}
+
+// Helper function to get keys from a map
+func getKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}

@@ -518,4 +518,81 @@ max-new-file-size = 2048
 			}
 		}
 	})
+
+	// Test importing jj config with quoted keys (like single-character aliases)
+	t.Run("import quoted keys", func(t *testing.T) {
+		// Create a new test home for this test
+		testHome2 := t.TempDir()
+
+		// Create test jj config with quoted keys
+		jjConfigDir2 := filepath.Join(testHome2, ".config", "jj")
+		if err := os.MkdirAll(jjConfigDir2, 0755); err != nil {
+			t.Fatalf("Failed to create jj config dir: %v", err)
+		}
+
+		// Config with quoted single-character aliases (common jj pattern)
+		jjConfigWithQuotedKeys := `[user]
+name = "Test User"
+
+[aliases]
+"." = ["foo"]
+".." = ["bar"]
+normal = "status"
+`
+		if err := os.WriteFile(filepath.Join(jjConfigDir2, "config.toml"), []byte(jjConfigWithQuotedKeys), 0644); err != nil {
+			t.Fatalf("Failed to write jj config with quoted keys: %v", err)
+		}
+
+		// Run import
+		cmd := exec.Command(binaryPath, "import", "jj")
+		cmd.Env = append(os.Environ(), "HOME="+testHome2)
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		if err := cmd.Run(); err != nil {
+			t.Errorf("Import with quoted keys failed: %v", err)
+			t.Logf("stdout: %s", stdout.String())
+			t.Logf("stderr: %s", stderr.String())
+		}
+
+		output := stdout.String()
+
+		// Verify the quoted keys are imported correctly
+		// The output should show the quoted keys
+		if !strings.Contains(output, `aliases."."`) {
+			t.Errorf("Expected import output to show aliases.\".\", got: %s", output)
+		}
+		if !strings.Contains(output, `aliases.".."`) {
+			t.Errorf("Expected import output to show aliases.\"..\", got: %s", output)
+		}
+		if !strings.Contains(output, "aliases.normal") {
+			t.Errorf("Expected import output to show aliases.normal, got: %s", output)
+		}
+
+		// Verify conf state file contains the imported values with quoted keys
+		confStateFile := filepath.Join(testHome2, ".config", "conf", "jj.toml")
+		if _, err := os.Stat(confStateFile); os.IsNotExist(err) {
+			t.Errorf("Expected conf state file to be created at %s", confStateFile)
+		} else {
+			content, err := os.ReadFile(confStateFile)
+			if err != nil {
+				t.Errorf("Failed to read conf state file: %v", err)
+			} else {
+				contentStr := string(content)
+				// The conf state file should contain the values
+				// Note: the exact format may vary, but the values should be there
+				if !strings.Contains(contentStr, "foo") {
+					t.Errorf("Expected conf state to contain 'foo' from aliases.\".\", got: %s", contentStr)
+				}
+				if !strings.Contains(contentStr, "bar") {
+					t.Errorf("Expected conf state to contain 'bar' from aliases.\"..\", got: %s", contentStr)
+				}
+				if !strings.Contains(contentStr, "status") {
+					t.Errorf("Expected conf state to contain 'status' from aliases.normal, got: %s", contentStr)
+				}
+			}
+		}
+	})
 }
