@@ -360,6 +360,7 @@ var lsCmd = &cobra.Command{
 		sortBy, _ := cmd.Flags().GetString("sort")
 		prefixFilter, _ := cmd.Flags().GetStringSlice("prefix")
 		showAliases, _ := cmd.Flags().GetBool("aliases")
+		groupBy, _ := cmd.Flags().GetString("group")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -435,72 +436,67 @@ var lsCmd = &cobra.Command{
 			termWidth = 80 // default width if terminal size cannot be determined
 		}
 
-		// Create table
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
+		// Group and render tasks based on groupBy flag
+		switch groupBy {
+		case "prefix":
+			// Group tasks by prefix
+			grouped := make(map[string][]*Task)
+			var groupOrder []string // To maintain consistent order
 
-		if showAliases {
-			t.AppendHeader(table.Row{"ID", "Aliases", "Status", "Title"})
-		} else {
-			t.AppendHeader(table.Row{"ID", "Status", "Title"})
-		}
-
-		t.SetStyle(table.StyleLight)
-		t.Style().Options.SeparateRows = true
-		t.Style().Options.DrawBorder = false
-
-		// Configure column widths and wrapping
-		if showAliases {
-			// Reserve more space for aliases column
-			titleMaxWidth := termWidth - 60
-			if titleMaxWidth < 20 {
-				titleMaxWidth = 20 // minimum width
-			}
-			t.SetColumnConfigs([]table.ColumnConfig{
-				{Number: 1, AutoMerge: false}, // ID column
-				{Number: 2, AutoMerge: false}, // Aliases column
-				{Number: 3, AutoMerge: false}, // Status column
-				{Number: 4, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
-			})
-		} else {
-			// Reserve space for ID (~10 chars), Status (~10 chars), separators (~10 chars)
-			titleMaxWidth := termWidth - 30
-			if titleMaxWidth < 20 {
-				titleMaxWidth = 20 // minimum width
-			}
-			t.SetColumnConfigs([]table.ColumnConfig{
-				{Number: 1, AutoMerge: false}, // ID column
-				{Number: 2, AutoMerge: false}, // Status column
-				{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
-			})
-		}
-
-		for _, task := range tasks {
-			displayID := FormatTaskID(task.TaskID, taskIDs)
-
-			// Get status from generic axis (or empty if not present)
-			status := ""
-			if axis, ok := task.Axes["generic"]; ok {
-				status = colorizeStatus(axis.Effective)
-			}
-
-			if showAliases {
-				// Format aliases
-				aliasesStr := ""
-				if len(task.Aliases) > 0 {
-					var shortAliases []string
-					for _, alias := range task.Aliases {
-						shortAliases = append(shortAliases, FormatTaskID(alias, taskIDs))
-					}
-					aliasesStr = strings.Join(shortAliases, ", ")
+			for _, task := range tasks {
+				prefix := extractPrefix(task.TaskID)
+				if _, exists := grouped[prefix]; !exists {
+					groupOrder = append(groupOrder, prefix)
 				}
-				t.AppendRow(table.Row{displayID, aliasesStr, status, task.Title})
-			} else {
-				t.AppendRow(table.Row{displayID, status, task.Title})
+				grouped[prefix] = append(grouped[prefix], task)
 			}
+
+			// Render a table for each prefix group
+			for i, prefix := range groupOrder {
+				if i > 0 {
+					fmt.Println() // Add blank line between tables
+				}
+				fmt.Printf("Prefix: %s\n", prefix)
+				renderTaskTable(grouped[prefix], taskIDs, showAliases, termWidth)
+			}
+
+		case "status":
+			// Group tasks by status
+			grouped := make(map[string][]*Task)
+			var groupOrder []string
+
+			for _, task := range tasks {
+				status := ""
+				if axis, ok := task.Axes["generic"]; ok {
+					status = axis.Effective
+				}
+				if status == "" {
+					status = "(no status)"
+				}
+
+				if _, exists := grouped[status]; !exists {
+					groupOrder = append(groupOrder, status)
+				}
+				grouped[status] = append(grouped[status], task)
+			}
+
+			// Render a table for each status group
+			for i, status := range groupOrder {
+				if i > 0 {
+					fmt.Println() // Add blank line between tables
+				}
+				fmt.Printf("Status: %s\n", colorizeStatus(status))
+				renderTaskTable(grouped[status], taskIDs, showAliases, termWidth)
+			}
+
+		case "none":
+			// No grouping - render single table
+			renderTaskTable(tasks, taskIDs, showAliases, termWidth)
+
+		default:
+			return fmt.Errorf("invalid --group value: %s (must be prefix, status, or none)", groupBy)
 		}
 
-		t.Render()
 		return nil
 	},
 }
@@ -543,6 +539,84 @@ func colorizeStatus(status string) string {
 	}
 }
 
+// extractPrefix extracts the prefix from a TaskID (format: prefix-number-node)
+func extractPrefix(taskID string) string {
+	parts := strings.Split(taskID, "-")
+	if len(parts) > 0 {
+		return parts[0]
+	}
+	return ""
+}
+
+// renderTaskTable renders a table of tasks with the specified configuration
+func renderTaskTable(tasks []*Task, taskIDs []string, showAliases bool, termWidth int) {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	if showAliases {
+		t.AppendHeader(table.Row{"ID", "Aliases", "Status", "Title"})
+	} else {
+		t.AppendHeader(table.Row{"ID", "Status", "Title"})
+	}
+
+	t.SetStyle(table.StyleLight)
+	t.Style().Options.SeparateRows = true
+	t.Style().Options.DrawBorder = false
+
+	// Configure column widths and wrapping
+	if showAliases {
+		// Reserve more space for aliases column
+		titleMaxWidth := termWidth - 60
+		if titleMaxWidth < 20 {
+			titleMaxWidth = 20 // minimum width
+		}
+		t.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 1, AutoMerge: false}, // ID column
+			{Number: 2, AutoMerge: false}, // Aliases column
+			{Number: 3, AutoMerge: false}, // Status column
+			{Number: 4, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
+		})
+	} else {
+		// Reserve space for ID (~10 chars), Status (~10 chars), separators (~10 chars)
+		titleMaxWidth := termWidth - 30
+		if titleMaxWidth < 20 {
+			titleMaxWidth = 20 // minimum width
+		}
+		t.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 1, AutoMerge: false}, // ID column
+			{Number: 2, AutoMerge: false}, // Status column
+			{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title column with wrapping
+		})
+	}
+
+	for _, task := range tasks {
+		displayID := FormatTaskID(task.TaskID, taskIDs)
+
+		// Get status from generic axis (or empty if not present)
+		status := ""
+		if axis, ok := task.Axes["generic"]; ok {
+			status = colorizeStatus(axis.Effective)
+		}
+
+		if showAliases {
+			// Format aliases
+			aliasesStr := ""
+			if len(task.Aliases) > 0 {
+				var shortAliases []string
+				for _, alias := range task.Aliases {
+					shortAliases = append(shortAliases, FormatTaskID(alias, taskIDs))
+				}
+				aliasesStr = strings.Join(shortAliases, ", ")
+			}
+			t.AppendRow(table.Row{displayID, aliasesStr, status, task.Title})
+		} else {
+			t.AppendRow(table.Row{displayID, status, task.Title})
+		}
+	}
+
+	t.Render()
+}
+
 func init() {
 	rootCmd.AddCommand(initCmd)
 
@@ -569,6 +643,7 @@ func init() {
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
 	lsCmd.Flags().StringSlice("prefix", []string{}, "Filter by prefix (can be specified multiple times)")
 	lsCmd.Flags().Bool("aliases", false, "Show task aliases")
+	lsCmd.Flags().String("group", "prefix", "Group tasks by: prefix, status, or none (default: prefix)")
 	rootCmd.AddCommand(lsCmd)
 
 	rootCmd.AddCommand(mvCmd)
