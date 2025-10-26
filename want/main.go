@@ -1338,7 +1338,7 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 	// Build the plan - different commands for commits vs branches
 	var cloneCmd string
 	if isCommitSHA {
-		cloneCmd = fmt.Sprintf("git clone --depth=1 https://github.com/neongreen/mono.git <tmpdir> && cd <tmpdir> && git fetch origin %s && git checkout %s", refSpec, refSpec)
+		cloneCmd = fmt.Sprintf("git clone https://github.com/neongreen/mono.git <tmpdir> && cd <tmpdir> && git checkout %s", refSpec)
 	} else {
 		cloneCmd = fmt.Sprintf("git clone --depth=1 --branch %s https://github.com/neongreen/mono.git <tmpdir>", refSpec)
 	}
@@ -1407,8 +1407,8 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 	fmt.Printf("Cloning neongreen/mono (%s)...\n", refDescription)
 	var cmd *exec.Cmd
 	if isCommitSHA {
-		// For commit SHAs, we need to clone first then checkout
-		cmd = exec.Command("git", "clone", "--depth=1", "https://github.com/neongreen/mono.git", tmpDir)
+		// For commit SHAs, we need a full clone (not shallow) to ensure the commit is available
+		cmd = exec.Command("git", "clone", "https://github.com/neongreen/mono.git", tmpDir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
@@ -1416,23 +1416,14 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 			os.Exit(1)
 		}
 
-		// Now fetch and checkout the specific commit
-		cmd = exec.Command("git", "fetch", "origin", refSpec)
-		cmd.Dir = tmpDir
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("\nError: Failed to fetch commit %s: %v\n", refSpec, err)
-			fmt.Printf("Note: Make sure the commit '%s' exists in neongreen/mono\n", refSpec)
-			os.Exit(1)
-		}
-
+		// Now checkout the specific commit
 		cmd = exec.Command("git", "checkout", refSpec)
 		cmd.Dir = tmpDir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
 			fmt.Printf("\nError: Failed to checkout commit %s: %v\n", refSpec, err)
+			fmt.Printf("Note: Make sure the commit '%s' exists in neongreen/mono\n", refSpec)
 			os.Exit(1)
 		}
 	} else {
