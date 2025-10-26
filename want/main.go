@@ -150,33 +150,34 @@ func printUsage() {
 	fmt.Println(`want - Interactive task fulfillment tool for macOS
 
 Usage:
-  want [--dry-run] [--plan-json] <requirement>  Get a tool, repository, or resource
-  want mono <project> [--list]                  Install tools from neongreen/mono repo
-  want mono <project@version>                   Install specific version or PR
-  want json <command>                           Convert command output to JSON
-  want md <url>                                 Convert URL to markdown
-  want list                                     Show what you have
-  want check                                    Check status of requirements
-  want forget <name>                            Remove from tracking (doesn't uninstall)
-  want version                                  Show version
-  want help                                     Show this help
+  want [--dry-run] [--plan-json] <requirement>          Get a tool, repository, or resource
+  want mono [--dry-run] [--plan-json] <project> [--list]  Install tools from neongreen/mono repo
+  want mono [--dry-run] [--plan-json] <project@version>   Install specific version or PR
+  want json <command>                                   Convert command output to JSON
+  want md <url>                                         Convert URL to markdown
+  want list                                             Show what you have
+  want check                                            Check status of requirements
+  want forget <name>                                    Remove from tracking (doesn't uninstall)
+  want version                                          Show version
+  want help                                             Show this help
 
 Flags:
   --dry-run                       Show what would be done without actually doing it
   --plan-json                     Output the fulfillment plan as JSON
 
 Examples:
-  want jujutsu                    # Install a tool (asks for confirmation)
-  want mise                       # Install mise itself
-  want --dry-run jujutsu          # Preview installation without confirmation
-  want --plan-json jujutsu        # Show installation plan as JSON
-  want json ps                    # Get running processes as JSON (uses jc)
-  want md https://example.com     # Convert webpage to markdown
-  want mono printpdf --list       # List all releases and open PRs of printpdf
-  want mono printpdf@main.1       # Install printpdf version main.1 from mono
-  want mono dissect@pr-42         # Install from PR #42 (builds if no release)
+  want jujutsu                         # Install a tool (asks for confirmation)
+  want mise                            # Install mise itself
+  want --dry-run jujutsu               # Preview installation without confirmation
+  want --plan-json jujutsu             # Show installation plan as JSON
+  want json ps                         # Get running processes as JSON (uses jc)
+  want md https://example.com          # Convert webpage to markdown
+  want mono printpdf --list            # List all releases and open PRs of printpdf
+  want mono printpdf@main.1            # Install printpdf version main.1 from mono
+  want mono --dry-run dissect@pr-42    # Preview building from PR #42
+  want mono --plan-json dissect@pr-42  # Show build plan as JSON for PR #42
   want https://github.com/org/repo/releases/tag/v1.0.0  # Download GitHub release
-  want github.com/user/repo       # Clone a repository (not yet implemented)
+  want github.com/user/repo            # Clone a repository (not yet implemented)
 
 Configuration is stored at ~/.config/want/
 
@@ -1106,21 +1107,31 @@ func handleGitHubAsset(url string, dryRun bool, planJson bool) {
 
 // handleMono handles installation of tools from the neongreen/mono repository
 func handleMono() {
-	if len(os.Args) < 3 {
+	// Parse flags
+	fs := flag.NewFlagSet("mono", flag.ExitOnError)
+	dryRun := fs.Bool("dry-run", false, "Show what would be done without doing it")
+	planJson := fs.Bool("plan-json", false, "Output the fulfillment plan as JSON")
+	listFlag := fs.Bool("list", false, "List all releases and open PRs")
+
+	// Parse remaining args (skip "mono" command)
+	fs.Parse(os.Args[2:])
+
+	if fs.NArg() == 0 {
 		fmt.Println("Error: no project specified")
-		fmt.Println("Usage: want mono <project> [--list]")
-		fmt.Println("       want mono <project@version>")
+		fmt.Println("Usage: want mono [--dry-run] [--plan-json] <project> [--list]")
+		fmt.Println("       want mono [--dry-run] [--plan-json] <project@version>")
 		fmt.Println("\nExamples:")
-		fmt.Println("  want mono printpdf --list     # List all releases and open PRs for printpdf")
-		fmt.Println("  want mono printpdf@main.1     # Install printpdf version main.1")
-		fmt.Println("  want mono dissect@pr-42       # Install from PR #42 (builds if no release)")
+		fmt.Println("  want mono printpdf --list              # List all releases and open PRs for printpdf")
+		fmt.Println("  want mono printpdf@main.1              # Install printpdf version main.1")
+		fmt.Println("  want mono --dry-run dissect@pr-42      # Preview building from PR #42")
+		fmt.Println("  want mono --plan-json printpdf@main.1  # Show installation plan as JSON")
 		os.Exit(1)
 	}
 
-	arg := os.Args[2]
+	arg := fs.Arg(0)
 
 	// Check for --list flag
-	if len(os.Args) == 4 && os.Args[3] == "--list" {
+	if *listFlag {
 		listMonoReleases(arg)
 		return
 	}
@@ -1146,7 +1157,7 @@ func handleMono() {
 	project := parts[0]
 	version := parts[1]
 
-	installMonoRelease(project, version)
+	installMonoRelease(project, version, *dryRun, *planJson)
 }
 
 // PRInfo holds information about a pull request
@@ -1297,8 +1308,74 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 }
 
 // buildMonoFromPR builds a project from a PR branch
-func buildMonoFromPR(project string, prNumber int) {
+func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
+	// Determine destination path
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error: Failed to get home directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	destDir := filepath.Join(homeDir, ".local", "bin")
+	destPath := filepath.Join(destDir, project)
+
+	// Build the plan first
+	plan := FulfillmentPlan{
+		Requirement: fmt.Sprintf("mono %s@pr-%d", project, prNumber),
+		Steps: []PlanStep{
+			{
+				Type:        "download",
+				Description: fmt.Sprintf("Fetch PR #%d information from GitHub", prNumber),
+				Command:     fmt.Sprintf("GET https://api.github.com/repos/neongreen/mono/pulls/%d", prNumber),
+				Automatic:   true,
+			},
+			{
+				Type:        "download",
+				Description: "Clone neongreen/mono repository (PR branch)",
+				Command:     "git clone --depth=1 --branch <pr-branch> https://github.com/neongreen/mono.git <tmpdir>",
+				Automatic:   true,
+			},
+			{
+				Type:        "install",
+				Description: fmt.Sprintf("Build %s from source", project),
+				Command:     fmt.Sprintf("go build -o %s .", destPath),
+				Automatic:   true,
+			},
+			{
+				Type:        "configure",
+				Description: "Make binary executable",
+				Command:     fmt.Sprintf("chmod +x %s", destPath),
+				Automatic:   true,
+			},
+		},
+	}
+
+	// Handle plan output modes
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(jsonStr)
+		return
+	}
+
+	if dryRun {
+		fmt.Printf("Building %s from PR #%d...\n", project, prNumber)
+		fmt.Println()
+		plan.PrintPlan()
+		return
+	}
+
+	// Execute the plan
 	fmt.Printf("Building %s from PR #%d...\n", project, prNumber)
+	fmt.Println()
+	plan.PrintPlan()
+	if !plan.ConfirmPlan() {
+		fmt.Println("Cancelled.")
+		os.Exit(0)
+	}
 	fmt.Println()
 
 	// Get PR info to find the branch
@@ -1319,16 +1396,6 @@ func buildMonoFromPR(project string, prNumber int) {
 	fmt.Printf("PR #%d: %s\n", prNumber, *pr.Title)
 	fmt.Printf("Branch: %s\n", branch)
 	fmt.Println()
-
-	// Determine destination path
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Printf("Error: Failed to get home directory: %v\n", err)
-		os.Exit(1)
-	}
-
-	destDir := filepath.Join(homeDir, ".local", "bin")
-	destPath := filepath.Join(destDir, project)
 
 	// Create a temporary directory for cloning
 	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-pr-%d-*", project, prNumber))
@@ -1395,7 +1462,7 @@ func buildMonoFromPR(project string, prNumber int) {
 }
 
 // installMonoRelease installs a specific version of a project from neongreen/mono
-func installMonoRelease(project, version string) {
+func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 	// Check if this is a PR reference (e.g., "pr-42" or "pr-42.1")
 	if strings.HasPrefix(version, "pr-") {
 		// Extract PR number
@@ -1414,19 +1481,16 @@ func installMonoRelease(project, version string) {
 		_, err = ghrelease.GetReleaseByTag("neongreen", "mono", tag)
 		if err != nil {
 			// No release found, build from PR
-			fmt.Printf("No release found for %s (would be tagged as %s)\n", version, tag)
-			fmt.Printf("Building from PR #%d instead...\n", prNumber)
-			fmt.Println()
-			buildMonoFromPR(project, prNumber)
+			if !planJson && !dryRun {
+				fmt.Printf("No release found for %s (would be tagged as %s)\n", version, tag)
+				fmt.Printf("Building from PR #%d instead...\n", prNumber)
+				fmt.Println()
+			}
+			buildMonoFromPR(project, prNumber, dryRun, planJson)
 			return
 		}
 		// Release exists, install it normally
 	}
-
-	tag := fmt.Sprintf("%s--%s", project, version)
-
-	fmt.Printf("Installing %s version %s from neongreen/mono...\n", project, version)
-	fmt.Println()
 
 	// Determine destination path
 	homeDir, err := os.UserHomeDir()
@@ -1437,9 +1501,65 @@ func installMonoRelease(project, version string) {
 
 	destDir := filepath.Join(homeDir, ".local", "bin")
 	destPath := filepath.Join(destDir, project)
+	tag := fmt.Sprintf("%s--%s", project, version)
 
-	// Check if already installed
+	// Build the plan
+	platform := ghrelease.GetCurrentPlatform()
+	plan := FulfillmentPlan{
+		Requirement: fmt.Sprintf("mono %s@%s", project, version),
+		Steps: []PlanStep{
+			{
+				Type:        "download",
+				Description: fmt.Sprintf("Fetch release information from GitHub (platform: %s-%s)", platform.OS, platform.Arch),
+				Command:     fmt.Sprintf("GET https://api.github.com/repos/neongreen/mono/releases/tags/%s", tag),
+				Automatic:   true,
+			},
+			{
+				Type:        "download",
+				Description: fmt.Sprintf("Download %s version %s to %s", project, version, destPath),
+				Command:     fmt.Sprintf("download asset matching platform to %s", destPath),
+				Automatic:   true,
+			},
+			{
+				Type:        "configure",
+				Description: "Make binary executable",
+				Command:     fmt.Sprintf("chmod +x %s", destPath),
+				Automatic:   true,
+			},
+		},
+	}
+
+	// Handle plan output modes
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(jsonStr)
+		return
+	}
+
+	if dryRun {
+		fmt.Printf("Installing %s version %s from neongreen/mono...\n", project, version)
+		fmt.Println()
+		plan.PrintPlan()
+		return
+	}
+
+	// Execute the plan
+	fmt.Printf("Installing %s version %s from neongreen/mono...\n", project, version)
+	fmt.Println()
+	plan.PrintPlan()
+
+	// Check if already installed and ask for confirmation
+	alreadyInstalled := false
 	if _, err := os.Stat(destPath); err == nil {
+		alreadyInstalled = true
+	}
+
+	if alreadyInstalled {
+		fmt.Println()
 		fmt.Printf("⚠ %s is already installed at %s\n", project, destPath)
 		fmt.Println()
 		fmt.Print("Overwrite? [y/N]: ")
@@ -1455,7 +1575,11 @@ func installMonoRelease(project, version string) {
 			os.Exit(0)
 		}
 		fmt.Println()
+	} else if !plan.ConfirmPlan() {
+		fmt.Println("Cancelled.")
+		os.Exit(0)
 	}
+	fmt.Println()
 
 	fmt.Println("Fetching release information...")
 	err = ghrelease.DownloadReleaseAsset("neongreen", "mono", tag, project, destPath)
