@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"conf/pkg/config"
+	tomlcp "github.com/neongreen/mono/lib/toml"
 	tomlv2 "github.com/pelletier/go-toml/v2"
 )
 
@@ -61,7 +61,7 @@ func (m *SyncMetadata) Save(configDir string) error {
 		return fmt.Errorf("failed to marshal sync metadata: %w", err)
 	}
 
-	if err := config.WriteTOMLPreserving(metadataPath, metadataMap); err != nil {
+	if err := tomlcp.WriteFile(metadataPath, metadataMap); err != nil {
 		return fmt.Errorf("failed to write sync metadata: %w", err)
 	}
 
