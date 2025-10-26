@@ -222,6 +222,9 @@ func parseMoveSpecs(args []string) ([]moveSpec, error) {
 	return specs, nil
 }
 
+// maxCollisionCheckIterations is the safety limit for finding collision-free numbers
+const maxCollisionCheckIterations = 10000
+
 // findCollisionFreeNumber finds a number for the given prefix that doesn't collide
 // with any existing task from any node. It starts with the local node's next number
 // and increments until it finds a free slot.
@@ -273,8 +276,8 @@ func findCollisionFreeNumber(db *DB, reducer *Reducer, prefix string, reserved m
 		}
 		candidate++
 		// Safety check to prevent infinite loop
-		if candidate > nextNum+10000 {
-			return 0, fmt.Errorf("could not find available number for prefix %s after checking 10000 candidates", prefix)
+		if candidate > nextNum+maxCollisionCheckIterations {
+			return 0, fmt.Errorf("could not find available number for prefix %s after checking %d candidates", prefix, maxCollisionCheckIterations)
 		}
 	}
 }

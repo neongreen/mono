@@ -583,8 +583,9 @@ func TestAutoNumberAvoidsCollision(t *testing.T) {
 		t.Fatalf("Failed to insert other task.created event: %v", err)
 	}
 
-	// Create some local tk tasks to advance the counter to 9
-	// This way, GetNextTaskNumberForPrefix will return 10
+	// Create local tk tasks 1-9 to advance counter to 9
+	// This ensures GetNextTaskNumberForPrefix will return 10,
+	// which will collide with tk-10-nodeB and trigger the fix
 	for i := 1; i <= 9; i++ {
 		localTkTaskUUID := GenerateTaskUUID()
 		localTkTaskID, err := GenerateTaskID(db, "tk")
