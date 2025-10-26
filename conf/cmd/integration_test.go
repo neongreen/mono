@@ -643,7 +643,7 @@ func TestApplyPreservesUnmanagedSettings(t *testing.T) {
 	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
-	
+
 	// Initial config has both [user] and [ui] settings
 	initialConfig := `# Existing jj config
 [user]
