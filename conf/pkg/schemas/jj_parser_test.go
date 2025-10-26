@@ -235,7 +235,6 @@ func TestJJSchemaParser_ValidatePath_QuotedKeys(t *testing.T) {
 	}
 }
 
-
 func TestJJSchemaParser_GetAllPaths(t *testing.T) {
 	parser, err := NewJJSchemaParser()
 	if err != nil {
