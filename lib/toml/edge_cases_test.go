@@ -596,30 +596,46 @@ func TestQuotedDotKey(t *testing.T) {
 	}
 
 	// Document that accessing via path-based API is a known limitation
-	// The key "." cannot be accessed via "aliases." because parseKeyPath
-	// splits on dots, creating ["aliases", ""] instead of ["aliases", "."]
-	val, err := doc.Get("aliases.")
-	if val != nil {
-		// If this ever works, it would be a great improvement!
-		t.Logf("Successfully retrieved value via path: %v", val)
+	// The key "." cannot be accessed because the path separator is also a dot,
+	// so there's no unambiguous way to represent it in a dotted path string.
+	// Various attempts are tested below to document the current behavior.
 
-		// Verify it's the expected array
-		arr, ok := val.([]interface{})
-		if !ok {
-			t.Errorf("Expected array, got %T", val)
-		} else if len(arr) != 2 {
-			t.Errorf("Expected array of length 2, got %d", len(arr))
+	testPaths := []string{
+		"aliases.",  // Trailing dot - might mean key "" in aliases section
+		"aliases..", // Double dot - might mean key "." but gets parsed as ["aliases", "", ""]
+		".",         // Just a dot - might mean top-level key "."
+		"aliases",   // Section name - returns nil for sections, not the key "."
+	}
+
+	foundValue := false
+	for _, path := range testPaths {
+		val, err := doc.Get(path)
+		if val != nil {
+			// If this ever works, it would be a great improvement!
+			t.Logf("Successfully retrieved value via Get(%q): %v", path, val)
+			foundValue = true
+
+			// Verify it's the expected array
+			arr, ok := val.([]interface{})
+			if !ok {
+				t.Errorf("Expected array, got %T", val)
+			} else if len(arr) != 2 {
+				t.Errorf("Expected array of length 2, got %d", len(arr))
+			} else {
+				if arr[0] != "ci" {
+					t.Errorf("Expected first element 'ci', got %v", arr[0])
+				}
+				if arr[1] != "-m." {
+					t.Errorf("Expected second element '-m.', got %v", arr[1])
+				}
+			}
 		} else {
-			if arr[0] != "ci" {
-				t.Errorf("Expected first element 'ci', got %v", arr[0])
-			}
-			if arr[1] != "-m." {
-				t.Errorf("Expected second element '-m.', got %v", arr[1])
-			}
+			t.Logf("Get(%q) returned: %v (err: %v)", path, val, err)
 		}
-	} else {
+	}
+
+	if !foundValue {
 		// Current expected behavior: value is not accessible via path API
-		t.Logf("Note: Value is not accessible via path-based API (known limitation)")
-		t.Logf("  Get(\"aliases.\") returned: %v (err: %v)", val, err)
+		t.Logf("Note: Value is not accessible via any path-based API approach (known limitation)")
 	}
 }
