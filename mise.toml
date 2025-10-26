@@ -15,6 +15,13 @@ act = "latest"
 description = "Count lines of Go code by file"
 run = "cloc --by-file --include-lang=Go ."
 
+[tasks.fmt-all]
+description = "Format everything"
+run = """
+mise run //...:fmt
+mise run //:lint:go-workspace --fix
+"""
+
 [tasks."go:tidy-all"]
 description = "Synchronize Go workspace dependencies"
 run = '''

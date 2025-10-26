@@ -11,6 +11,7 @@ Go workspace consistency linter.
 Validates that go.work replace directives match the versions required in go.mod files.
 """
 
+import argparse
 import re
 import sys
 from pathlib import Path
@@ -88,8 +89,35 @@ def parse_go_mod(mod_file: Path) -> list[Requirement]:
     return requirements
 
 
+def fix_go_mod_version(mod_file: Path, module: str, old_version: str, new_version: str) -> None:
+    """Fix version mismatch in a go.mod file."""
+    content = mod_file.read_text()
+
+    # Replace the version in the file
+    # Handle both single-line and multi-line require blocks
+    pattern = re.compile(
+        rf"({re.escape(module)})\s+{re.escape(old_version)}\b"
+    )
+
+    new_content = pattern.sub(rf"\1 {new_version}", content)
+
+    if new_content != content:
+        mod_file.write_text(new_content)
+        print(f"Fixed {mod_file}: {module} {old_version} -> {new_version}")
+
+
 def main() -> int:
     """Main linter logic."""
+    parser = argparse.ArgumentParser(
+        description="Lint and fix Go workspace consistency"
+    )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Automatically fix version mismatches",
+    )
+    args = parser.parse_args()
+
     repo_root = Path(__file__).parent.parent
     go_work = repo_root / "go.work"
 
@@ -101,6 +129,9 @@ def main() -> int:
     replaces = parse_go_work(go_work)
     replace_map = {(r.module, r.version): r.path for r in replaces}
 
+    # Create module -> version map for easier lookup
+    module_to_version = {m: v for (m, v), _ in replace_map.items()}
+
     # Find all go.mod files
     go_mods = list(repo_root.rglob("go.mod"))
 
@@ -108,6 +139,7 @@ def main() -> int:
     go_mods = [f for f in go_mods if f != go_work]
 
     errors = []
+    fixes = []
 
     # Check each go.mod file
     for mod_file in go_mods:
@@ -129,11 +161,15 @@ def main() -> int:
 
                 if matching_module_replaces:
                     for replace_version, replace_path in matching_module_replaces:
-                        errors.append(
+                        error_msg = (
                             f"{req.source_file.relative_to(repo_root)}: "
                             f"requires {req.module} {req.version}, "
                             f"but go.work replaces {replace_version}"
                         )
+                        errors.append(error_msg)
+
+                        if args.fix:
+                            fixes.append((req.source_file, req.module, req.version, replace_version))
                 else:
                     errors.append(
                         f"{req.source_file.relative_to(repo_root)}: "
@@ -141,12 +177,21 @@ def main() -> int:
                         f"but no replace directive found in go.work"
                     )
 
+    if args.fix and fixes:
+        print("Fixing version mismatches:\n")
+        for mod_file, module, old_version, new_version in fixes:
+            fix_go_mod_version(mod_file, module, old_version, new_version)
+        print("\nAll fixes applied. Re-running validation...\n")
+
+        # Re-validate
+        return main()
+
     if errors:
         print("Go workspace consistency errors found:\n", file=sys.stderr)
         for error in errors:
             print(f"  {error}", file=sys.stderr)
         print(
-            "\nRun 'go work sync' to fix these issues.",
+            "\nRun with --fix to automatically fix these issues.",
             file=sys.stderr
         )
         return 1
