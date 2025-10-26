@@ -303,7 +303,7 @@ var statusSetCmd = &cobra.Command{
 	Short: "Set task status",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskID := args[0]
+		taskRef := args[0]
 		state := args[1]
 
 		axis, _ := cmd.Flags().GetString("axis")
@@ -315,10 +315,14 @@ var statusSetCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
-		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		taskUUID, err := ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
+		}
+
+		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		if err != nil {
+			displayID = taskRef
 		}
 
 		currentUser, err := getCurrentUser()
@@ -339,7 +343,7 @@ var statusSetCmd = &cobra.Command{
 
 		payload := TaskStatusSetPayload{
 			TaskUUID: taskUUID,
-			TaskID:   taskID, // Use the input ID for legacy compatibility
+			TaskID:   taskRef,
 			Axis:     axis,
 			State:    state,
 			Role:     role,
@@ -364,7 +368,7 @@ var statusSetCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Set status for task %s: %s=%s\n", taskID, axis, state)
+		fmt.Printf("Set status for task %s: %s=%s\n", displayID, axis, state)
 		return nil
 	},
 }
@@ -374,7 +378,7 @@ var noteCmd = &cobra.Command{
 	Short: "Add a note to a task",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskID := args[0]
+		taskRef := args[0]
 		text := args[1]
 
 		db, err := openExistingDB()
@@ -383,10 +387,14 @@ var noteCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
-		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		taskUUID, err := ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
+		}
+
+		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		if err != nil {
+			displayID = taskRef
 		}
 
 		currentUser, err := getCurrentUser()
@@ -407,7 +415,7 @@ var noteCmd = &cobra.Command{
 
 		payload := TaskNoteAddPayload{
 			TaskUUID: taskUUID,
-			TaskID:   taskID, // Use the input ID for legacy compatibility
+			TaskID:   taskRef,
 			Markdown: text,
 		}
 		payloadJSON, err := json.Marshal(payload)
@@ -430,7 +438,7 @@ var noteCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Added note to task %s\n", taskID)
+		fmt.Printf("Added note to task %s\n", displayID)
 		return nil
 	},
 }
@@ -440,7 +448,7 @@ var viewCmd = &cobra.Command{
 	Short: "View task details",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskID := args[0]
+		taskRef := args[0]
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -466,18 +474,25 @@ var viewCmd = &cobra.Command{
 			return err
 		}
 
-		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
-		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		taskUUID, err := ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
 		}
 
 		task, ok := reducer.GetTask(taskUUID)
 		if !ok {
-			return fmt.Errorf("task not found: %s", taskID)
+			return fmt.Errorf("task not found: %s", taskRef)
 		}
 
-		output, err := json.MarshalIndent(task, "", "  ")
+		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		if err != nil {
+			displayID = taskRef
+		}
+
+		taskCopy := *task
+		taskCopy.TaskID = displayID
+
+		output, err := json.MarshalIndent(taskCopy, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal task: %w", err)
 		}
@@ -625,7 +640,7 @@ var lsCmd = &cobra.Command{
 					fmt.Println() // Add blank line between tables
 				}
 				fmt.Printf("Prefix: %s\n", prefix)
-				renderTaskTable(grouped[prefix], taskIDs, showAliases, termWidth)
+				renderTaskTable(db, grouped[prefix], taskIDs, showAliases, termWidth)
 			}
 
 		case "status":
@@ -654,12 +669,12 @@ var lsCmd = &cobra.Command{
 					fmt.Println() // Add blank line between tables
 				}
 				fmt.Printf("Status: %s\n", colorizeStatus(status))
-				renderTaskTable(grouped[status], taskIDs, showAliases, termWidth)
+				renderTaskTable(db, grouped[status], taskIDs, showAliases, termWidth)
 			}
 
 		case "none":
 			// No grouping - render single table
-			renderTaskTable(tasks, taskIDs, showAliases, termWidth)
+			renderTaskTable(db, tasks, taskIDs, showAliases, termWidth)
 
 		default:
 			return fmt.Errorf("invalid --group value: %s (must be prefix, status, or none)", groupBy)
@@ -717,7 +732,7 @@ func extractPrefix(taskID string) string {
 }
 
 // renderTaskTable renders a table of tasks with the specified configuration
-func renderTaskTable(tasks []*Task, taskIDs []string, showAliases bool, termWidth int) {
+func renderTaskTable(db *DB, tasks []*Task, taskIDs []string, showAliases bool, termWidth int) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
@@ -758,7 +773,10 @@ func renderTaskTable(tasks []*Task, taskIDs []string, showAliases bool, termWidt
 	}
 
 	for _, task := range tasks {
-		displayID := FormatTaskID(task.TaskID, taskIDs)
+		displayID, err := RenderTaskDisplayID(db, task.TaskUUID)
+		if err != nil {
+			displayID = task.TaskID
+		}
 
 		// Get status from generic axis (or empty if not present)
 		status := ""
@@ -817,7 +835,10 @@ func init() {
 	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
 	rootCmd.AddCommand(lsCmd)
 
+	rootCmd.AddCommand(editCmd)
 	rootCmd.AddCommand(mvCmd)
+	rootCmd.AddCommand(doctorCmd)
+	rootCmd.AddCommand(idCmd)
 	rootCmd.AddCommand(relateCmd)
 	rootCmd.AddCommand(dupCmd)
 	rootCmd.AddCommand(blockersCmd)
@@ -871,7 +892,16 @@ func openExistingDB() (*DB, error) {
 		}
 
 		fmt.Println("Migration to v4 complete!")
-		fmt.Println("Run 'tk doctor' to verify the migration")
+		fmt.Println("Running post-migration health check...")
+		report, err := runDoctor(db)
+		if err != nil {
+			fmt.Printf("Doctor check failed: %v\n", err)
+		} else {
+			printDoctorReport(os.Stdout, report)
+			if report.ProblemCount() > 0 {
+				fmt.Println("Resolve the issues above. You can rerun 'tk doctor' at any time.")
+			}
+		}
 	}
 
 	return db, nil

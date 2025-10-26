@@ -202,6 +202,65 @@ const (
 	EventKindTaskAliasAdded     EventKind = "task.alias.added"
 )
 
+type eventKindIndex int
+
+const (
+	eventKindProjectCreatedIndex eventKindIndex = iota
+	eventKindProjectAliasAddIndex
+	eventKindProjectAliasRemoveIndex
+	eventKindTaskCreatedIndex
+	eventKindTaskNumberSetIndex
+	eventKindTaskRelocateIndex
+	eventKindTaskStatusSetIndex
+	eventKindTaskNoteAddIndex
+	eventKindTaskTitleSetIndex
+	eventKindRelationAddIndex
+	eventKindRelationRemoveIndex
+	eventKindRelationNoteIndex
+	eventKindPrefixCreatedIndex
+	eventKindPrefixRemovedIndex
+	eventKindTaskReprefixLegacyIndex
+	eventKindTaskAliasAddedIndex
+	eventKindCount
+)
+
+var AllEventKinds = [...]EventKind{
+	eventKindProjectCreatedIndex:     EventKindProjectCreated,
+	eventKindProjectAliasAddIndex:    EventKindProjectAliasAdd,
+	eventKindProjectAliasRemoveIndex: EventKindProjectAliasRemove,
+	eventKindTaskCreatedIndex:        EventKindTaskCreated,
+	eventKindTaskNumberSetIndex:      EventKindTaskNumberSet,
+	eventKindTaskRelocateIndex:       EventKindTaskRelocate,
+	eventKindTaskStatusSetIndex:      EventKindTaskStatusSet,
+	eventKindTaskNoteAddIndex:        EventKindTaskNoteAdd,
+	eventKindTaskTitleSetIndex:       EventKindTaskTitleSet,
+	eventKindRelationAddIndex:        EventKindRelationAdd,
+	eventKindRelationRemoveIndex:     EventKindRelationRemove,
+	eventKindRelationNoteIndex:       EventKindRelationNote,
+	eventKindPrefixCreatedIndex:      EventKindPrefixCreated,
+	eventKindPrefixRemovedIndex:      EventKindPrefixRemoved,
+	eventKindTaskReprefixLegacyIndex: EventKindTaskReprefixLegacy,
+	eventKindTaskAliasAddedIndex:     EventKindTaskAliasAdded,
+}
+
+var (
+	_ [int(eventKindCount) - len(AllEventKinds)]struct{}
+	_ [len(AllEventKinds) - int(eventKindCount)]struct{}
+)
+
+var eventKindIndexLookup = func() map[EventKind]eventKindIndex {
+	m := make(map[EventKind]eventKindIndex, eventKindCount)
+	for i, kind := range AllEventKinds {
+		m[kind] = eventKindIndex(i)
+	}
+	return m
+}()
+
+func eventKindIndexOf(kind EventKind) (eventKindIndex, bool) {
+	idx, ok := eventKindIndexLookup[kind]
+	return idx, ok
+}
+
 // TaskLabel is a complete task reference including project and number
 type TaskLabel struct {
 	ProjectUID ProjectUID

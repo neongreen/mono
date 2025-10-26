@@ -22,6 +22,127 @@ const (
 	v3SpecVersion   = 3 // or could be 2 or 1
 )
 
+type v4MigrationContext struct {
+	db              *DB
+	nodeID          string
+	actor           string
+	prefixToProject map[string]string
+	legacyTaskUIDs  map[string]string
+	legacyTaskIDs   map[string]string
+	taskProjects    map[string]string
+}
+
+type migrationEventHandler func(*v4MigrationContext, Event) error
+
+var v4MigrationHandlers = [...]migrationEventHandler{
+	eventKindProjectCreatedIndex:     migrationSkip,
+	eventKindProjectAliasAddIndex:    migrationSkip,
+	eventKindProjectAliasRemoveIndex: migrationSkip,
+	eventKindTaskCreatedIndex:        migrateLegacyTaskCreated,
+	eventKindTaskNumberSetIndex:      migrationSkip,
+	eventKindTaskRelocateIndex:       migrationSkip,
+	eventKindTaskStatusSetIndex:      migrateTaskStatusSet,
+	eventKindTaskNoteAddIndex:        migrateTaskNoteAdd,
+	eventKindTaskTitleSetIndex:       migrateTaskTitleSet,
+	eventKindRelationAddIndex:        migrateRelationAdd,
+	eventKindRelationRemoveIndex:     migrateRelationRemove,
+	eventKindRelationNoteIndex:       migrateRelationNote,
+	eventKindPrefixCreatedIndex:      migrationSkip,
+	eventKindPrefixRemovedIndex:      migrationSkip,
+	eventKindTaskReprefixLegacyIndex: migrateTaskReprefix,
+	eventKindTaskAliasAddedIndex:     migrateTaskAliasAdded,
+}
+
+var (
+	_ [int(eventKindCount) - len(v4MigrationHandlers)]struct{}
+	_ [len(v4MigrationHandlers) - int(eventKindCount)]struct{}
+)
+
+func migrationHandlerForKind(kind EventKind) (migrationEventHandler, bool) {
+	idx, ok := eventKindIndexOf(kind)
+	if !ok {
+		return nil, false
+	}
+	return v4MigrationHandlers[idx], true
+}
+
+func migrationUnsupported(kind EventKind) migrationEventHandler {
+	return func(_ *v4MigrationContext, _ Event) error {
+		return fmt.Errorf("v4 migration: handler for %s not implemented", kind)
+	}
+}
+
+func migrationSkip(_ *v4MigrationContext, _ Event) error {
+	return nil
+}
+
+func (ctx *v4MigrationContext) registerTask(taskUID string, legacyUUID string, ids ...string) {
+	if ctx.legacyTaskUIDs == nil {
+		ctx.legacyTaskUIDs = make(map[string]string)
+	}
+	if ctx.legacyTaskIDs == nil {
+		ctx.legacyTaskIDs = make(map[string]string)
+	}
+
+	if taskUID != "" {
+		ctx.legacyTaskUIDs[taskUID] = taskUID
+	}
+
+	if legacyUUID != "" {
+		ctx.legacyTaskUIDs[legacyUUID] = taskUID
+	}
+
+	for _, id := range ids {
+		if id == "" {
+			continue
+		}
+		ctx.legacyTaskIDs[id] = taskUID
+	}
+}
+
+func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) (string, error) {
+	if legacyUUID != "" {
+		if uid, ok := ctx.legacyTaskUIDs[legacyUUID]; ok {
+			return uid, nil
+		}
+		if strings.HasPrefix(legacyUUID, "tsk_") {
+			// Already a v4 task UID
+			return legacyUUID, nil
+		}
+	}
+
+	if taskID != "" {
+		if uid, ok := ctx.legacyTaskIDs[taskID]; ok {
+			return uid, nil
+		}
+	}
+
+	return "", fmt.Errorf("v4 migration: unknown task reference (uuid=%q id=%q)", legacyUUID, taskID)
+}
+
+func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error) {
+	if projectUID, ok := ctx.prefixToProject[prefix]; ok {
+		return projectUID, nil
+	}
+
+	var projectUID string
+	err := ctx.db.db.QueryRow(`
+		SELECT project_uid 
+		FROM project_aliases 
+		WHERE alias = ? 
+		LIMIT 1
+	`, prefix).Scan(&projectUID)
+	if err == sql.ErrNoRows {
+		return "", fmt.Errorf("v4 migration: no project found for prefix %s", prefix)
+	}
+	if err != nil {
+		return "", fmt.Errorf("v4 migration: failed to resolve prefix %s: %w", prefix, err)
+	}
+
+	ctx.prefixToProject[prefix] = projectUID
+	return projectUID, nil
+}
+
 // GetDBVersion reads the version_major from metadata table
 func (d *DB) GetDBVersion() (int, error) {
 	var version int
@@ -163,12 +284,13 @@ func (d *DB) backfillV4Events() error {
 	}
 
 	// Migrate prefixes to projects
-	if err := d.migratePrefixesToProjects(nodeID, actor); err != nil {
+	prefixToProject, err := d.migratePrefixesToProjects(nodeID, actor)
+	if err != nil {
 		return fmt.Errorf("failed to migrate prefixes: %w", err)
 	}
 
 	// Migrate tasks
-	if err := d.migrateTasksToV4(nodeID, actor); err != nil {
+	if err := d.migrateTasksToV4(nodeID, actor, prefixToProject); err != nil {
 		return fmt.Errorf("failed to migrate tasks: %w", err)
 	}
 
@@ -176,7 +298,7 @@ func (d *DB) backfillV4Events() error {
 }
 
 // migratePrefixesToProjects converts prefix.created events to project.created + project.alias.add
-func (d *DB) migratePrefixesToProjects(nodeID string, actor string) error {
+func (d *DB) migratePrefixesToProjects(nodeID string, actor string) (map[string]string, error) {
 	// Query all prefixes
 	rows, err := d.db.Query(`
 		SELECT prefix, node, description, created_at, created_by 
@@ -185,26 +307,26 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) error {
 		ORDER BY created_at
 	`)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer rows.Close()
 
-	projectMap := make(map[string]string) // prefix -> project_uid
+	prefixToProject := make(map[string]string) // prefix -> project_uid
 
 	for rows.Next() {
 		var prefix, node, description, createdBy string
 		var createdAt int64
 
 		if err := rows.Scan(&prefix, &node, &description, &createdAt, &createdBy); err != nil {
-			return err
+			return nil, err
 		}
 
 		// Check if we already created a project for this prefix
-		projectUID, exists := projectMap[prefix]
+		projectUID, exists := prefixToProject[prefix]
 		if !exists {
 			// Create new project
 			projectUID = string(NewProjectUID())
-			projectMap[prefix] = projectUID
+			prefixToProject[prefix] = projectUID
 
 			// Create and insert project.created event
 			payload := ProjectCreatedPayload{
@@ -216,7 +338,7 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) error {
 			}
 			payloadJSON, err := json.Marshal(payload)
 			if err != nil {
-				return fmt.Errorf("failed to marshal project.created payload: %w", err)
+				return nil, fmt.Errorf("failed to marshal project.created payload: %w", err)
 			}
 
 			event := Event{
@@ -231,12 +353,12 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) error {
 
 			// Insert event
 			if err := d.InsertEvent(event); err != nil {
-				return fmt.Errorf("failed to insert project.created event: %w", err)
+				return nil, fmt.Errorf("failed to insert project.created event: %w", err)
 			}
 
 			// Project immediately
 			if err := d.ProjectProjectCreatedEvent(event); err != nil {
-				return fmt.Errorf("failed to project project.created event: %w", err)
+				return nil, fmt.Errorf("failed to project project.created event: %w", err)
 			}
 		}
 
@@ -249,7 +371,7 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) error {
 		}
 		aliasPayloadJSON, err := json.Marshal(aliasPayload)
 		if err != nil {
-			return fmt.Errorf("failed to marshal project.alias.add payload: %w", err)
+			return nil, fmt.Errorf("failed to marshal project.alias.add payload: %w", err)
 		}
 
 		aliasEvent := Event{
@@ -264,26 +386,33 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) error {
 
 		// Insert event
 		if err := d.InsertEvent(aliasEvent); err != nil {
-			return fmt.Errorf("failed to insert project.alias.add event: %w", err)
+			return nil, fmt.Errorf("failed to insert project.alias.add event: %w", err)
 		}
 
 		// Project immediately
 		if err := d.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-			return fmt.Errorf("failed to project project.alias.add event: %w", err)
+			return nil, fmt.Errorf("failed to project project.alias.add event: %w", err)
 		}
 	}
 
-	return rows.Err()
+	return prefixToProject, rows.Err()
 }
 
-// migrateTasksToV4 converts legacy task records to v4 task.created + task.number.set events
-func (d *DB) migrateTasksToV4(nodeID string, actor string) error {
-	// We need to reconstruct tasks from events
-	// Query all task.created events
+// migrateTasksToV4 converts legacy task records into v4 events
+func (d *DB) migrateTasksToV4(nodeID string, actor string, prefixToProject map[string]string) error {
+	ctx := &v4MigrationContext{
+		db:              d,
+		nodeID:          nodeID,
+		actor:           actor,
+		prefixToProject: prefixToProject,
+		legacyTaskUIDs:  make(map[string]string),
+		legacyTaskIDs:   make(map[string]string),
+		taskProjects:    make(map[string]string),
+	}
+
 	rows, err := d.db.Query(`
-		SELECT id, ts, created_at, actor, payload 
-		FROM events 
-		WHERE kind = 'task.created'
+		SELECT id, ts, created_at, actor, role, kind, payload
+		FROM events
 		ORDER BY ts, id
 	`)
 	if err != nil {
@@ -291,161 +420,500 @@ func (d *DB) migrateTasksToV4(nodeID string, actor string) error {
 	}
 	defer rows.Close()
 
-	// Track prefix -> project_uid mapping from project_aliases
-	prefixToProject := make(map[string]string)
-	aliasRows, err := d.db.Query(`SELECT project_uid, alias FROM project_aliases WHERE node = ?`, nodeID)
-	if err != nil {
-		return err
-	}
-	for aliasRows.Next() {
-		var projectUID, alias string
-		if err := aliasRows.Scan(&projectUID, &alias); err != nil {
-			aliasRows.Close()
-			return err
-		}
-		prefixToProject[alias] = projectUID
-	}
-	aliasRows.Close()
-
 	for rows.Next() {
-		var eventID string
-		var ts, createdAt int64
-		var eventActor string
-		var payload []byte
+		var event Event
+		var createdAtNano int64
 
-		if err := rows.Scan(&eventID, &ts, &createdAt, &eventActor, &payload); err != nil {
+		if err := rows.Scan(&event.ID, &event.TS, &createdAtNano, &event.Actor, &event.Role, &event.Kind, &event.Payload); err != nil {
 			return err
 		}
 
-		// Parse legacy task.created payload
-		var legacyPayload TaskCreatedPayload
-		if err := json.Unmarshal(payload, &legacyPayload); err != nil {
-			return fmt.Errorf("failed to parse task.created payload: %w", err)
-		}
+		event.CreatedAt = time.Unix(0, createdAtNano)
 
-		// Extract prefix and number from task_id (format: prefix-number-node)
-		prefix, number, _, err := parseTaskID(legacyPayload.TaskID)
-		if err != nil {
-			return fmt.Errorf("failed to parse task ID %s: %w", legacyPayload.TaskID, err)
-		}
-
-		// Find corresponding project
-		projectUID, ok := prefixToProject[prefix]
+		handler, ok := migrationHandlerForKind(EventKind(event.Kind))
 		if !ok {
-			return fmt.Errorf("no project found for prefix %s", prefix)
+			return fmt.Errorf("v4 migration: unknown event kind %s", event.Kind)
 		}
 
-		// The task_uuid from v1/v2 becomes the task_uid in v4
-		taskUID := legacyPayload.TaskUUID
-		if taskUID == "" {
-			// Generate new task UID if not present
-			taskUID = string(NewTaskUID())
+		if handler == nil {
+			return fmt.Errorf("v4 migration: nil handler for %s", event.Kind)
 		}
 
-		// Create and insert task.created (v4) event
-		taskPayload := TaskCreatedV4Payload{
-			TaskUID:        taskUID,
-			ProjectUID:     projectUID,
-			ProposedNumber: number,
-			CreatedNode:    nodeID,
-			Title:          legacyPayload.Title,
-			CreatedBy:      legacyPayload.CreatedBy,
-		}
-		taskPayloadJSON, err := json.Marshal(taskPayload)
-		if err != nil {
-			return fmt.Errorf("failed to marshal task.created payload: %w", err)
-		}
-
-		taskEvent := Event{
-			ID:        string(NewEventID()),
-			TS:        0,
-			CreatedAt: time.Unix(0, createdAt),
-			Actor:     legacyPayload.CreatedBy,
-			Role:      "human",
-			Kind:      string(EventKindTaskCreated),
-			Payload:   taskPayloadJSON,
-		}
-
-		// Insert event
-		if err := d.InsertEvent(taskEvent); err != nil {
-			return fmt.Errorf("failed to insert task.created event: %w", err)
-		}
-
-		// Project immediately
-		if err := d.ProjectTaskCreatedV4Event(taskEvent); err != nil {
-			return fmt.Errorf("failed to project task.created event: %w", err)
-		}
-
-		// Create and insert task.number.set event
-		numberPayload := TaskNumberSetPayload{
-			TaskUID:    taskUID,
-			ProjectUID: projectUID,
-			Number:     number,
-			Reason:     "migration",
-		}
-		numberPayloadJSON, err := json.Marshal(numberPayload)
-		if err != nil {
-			return fmt.Errorf("failed to marshal task.number.set payload: %w", err)
-		}
-
-		numberEvent := Event{
-			ID:        string(NewEventID()),
-			TS:        0,
-			CreatedAt: time.Unix(0, createdAt),
-			Actor:     legacyPayload.CreatedBy,
-			Role:      "human",
-			Kind:      string(EventKindTaskNumberSet),
-			Payload:   numberPayloadJSON,
-		}
-
-		// Insert event
-		if err := d.InsertEvent(numberEvent); err != nil {
-			return fmt.Errorf("failed to insert task.number.set event: %w", err)
-		}
-
-		// Project immediately
-		if err := d.ProjectTaskNumberSetEvent(numberEvent); err != nil {
-			return fmt.Errorf("failed to project task.number.set event: %w", err)
+		if err := handler(ctx, event); err != nil {
+			return fmt.Errorf("v4 migration: handler for %s failed: %w", event.Kind, err)
 		}
 	}
 
 	return rows.Err()
 }
 
-// Helper functions to emit v4 events during migration
+func migrateLegacyTaskCreated(ctx *v4MigrationContext, event Event) error {
+	var legacyPayload TaskCreatedPayload
+	if err := json.Unmarshal(event.Payload, &legacyPayload); err != nil {
+		return fmt.Errorf("failed to parse task.created payload: %w", err)
+	}
 
-func (d *DB) emitProjectCreatedEvent(projectUID, typ, name, description, createdBy string, createdAt int64) error {
-	// Create and insert the event
-	// For now, we'll add to events table and project the data into projects table
-	_, err := d.db.Exec(`
-		INSERT INTO projects (project_uid, type, name, description, created_at, created_by)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, projectUID, typ, name, description, createdAt, createdBy)
-	return err
+	prefix, number, node, err := parseTaskID(legacyPayload.TaskID)
+	if err != nil {
+		return fmt.Errorf("failed to parse task ID %s: %w", legacyPayload.TaskID, err)
+	}
+
+	projectUID, err := ctx.projectUIDForPrefix(prefix)
+	if err != nil {
+		return err
+	}
+
+	taskUID := ""
+	if legacyPayload.TaskUUID != "" {
+		if mapped, ok := ctx.legacyTaskUIDs[legacyPayload.TaskUUID]; ok {
+			taskUID = mapped
+		}
+	}
+	if taskUID == "" {
+		taskUID = string(NewTaskUID())
+	}
+
+	ctx.registerTask(taskUID, legacyPayload.TaskUUID, legacyPayload.TaskID)
+	ctx.taskProjects[taskUID] = projectUID
+
+	taskPayload := TaskCreatedV4Payload{
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: number,
+		CreatedNode:    node,
+		Title:          legacyPayload.Title,
+		CreatedBy:      legacyPayload.CreatedBy,
+	}
+
+	taskPayloadJSON, err := json.Marshal(taskPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task.created payload: %w", err)
+	}
+
+	role := event.Role
+	if role == "" {
+		role = "human"
+	}
+
+	taskEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     legacyPayload.CreatedBy,
+		Role:      role,
+		Kind:      string(EventKindTaskCreated),
+		Payload:   taskPayloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(taskEvent); err != nil {
+		return fmt.Errorf("failed to insert task.created event: %w", err)
+	}
+
+	if err := ctx.db.ProjectTaskCreatedV4Event(taskEvent); err != nil {
+		return fmt.Errorf("failed to project task.created event: %w", err)
+	}
+
+	numberPayload := TaskNumberSetPayload{
+		TaskUID:    taskUID,
+		ProjectUID: projectUID,
+		Number:     number,
+		Reason:     "migration",
+	}
+
+	numberPayloadJSON, err := json.Marshal(numberPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task.number.set payload: %w", err)
+	}
+
+	numberEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     legacyPayload.CreatedBy,
+		Role:      role,
+		Kind:      string(EventKindTaskNumberSet),
+		Payload:   numberPayloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(numberEvent); err != nil {
+		return fmt.Errorf("failed to insert task.number.set event: %w", err)
+	}
+
+	if err := ctx.db.ProjectTaskNumberSetEvent(numberEvent); err != nil {
+		return fmt.Errorf("failed to project task.number.set event: %w", err)
+	}
+
+	return nil
 }
 
-func (d *DB) emitProjectAliasAddEvent(projectUID, alias, node, addedBy string, createdAt int64) error {
-	_, err := d.db.Exec(`
-		INSERT OR REPLACE INTO project_aliases (project_uid, alias, node, added_by)
-		VALUES (?, ?, ?, ?)
-	`, projectUID, alias, node, addedBy)
-	return err
+func migrateTaskStatusSet(ctx *v4MigrationContext, event Event) error {
+	var payload TaskStatusSetPayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to parse task.status.set payload: %w", err)
+	}
+
+	taskUID, err := ctx.resolveTaskUID(payload.TaskUUID, payload.TaskID)
+	if err != nil {
+		return err
+	}
+
+	ctx.registerTask(taskUID, "", payload.TaskID)
+
+	role := payload.Role
+	if role == "" {
+		role = event.Role
+	}
+	if role == "" {
+		role = "human"
+	}
+
+	newPayload := TaskStatusSetPayload{
+		TaskUUID: taskUID,
+		TaskID:   payload.TaskID,
+		Axis:     payload.Axis,
+		State:    payload.State,
+		Role:     role,
+	}
+
+	payloadJSON, err := json.Marshal(newPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task.status.set payload: %w", err)
+	}
+
+	newEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      role,
+		Kind:      string(EventKindTaskStatusSet),
+		Payload:   payloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to insert migrated task.status.set event: %w", err)
+	}
+
+	return nil
 }
 
-func (d *DB) emitTaskCreatedV4Event(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string, createdAt int64) error {
-	_, err := d.db.Exec(`
-		INSERT OR REPLACE INTO tasks (task_uid, project_uid, created_node, title, created_at, created_by)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, taskUID, projectUID, createdNode, title, createdAt, createdBy)
-	return err
+func migrateTaskNoteAdd(ctx *v4MigrationContext, event Event) error {
+	var payload TaskNoteAddPayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to parse task.note.add payload: %w", err)
+	}
+
+	taskUID, err := ctx.resolveTaskUID(payload.TaskUUID, payload.TaskID)
+	if err != nil {
+		return err
+	}
+
+	ctx.registerTask(taskUID, "", payload.TaskID)
+
+	newPayload := TaskNoteAddPayload{
+		TaskUUID: taskUID,
+		TaskID:   payload.TaskID,
+		Markdown: payload.Markdown,
+	}
+
+	payloadJSON, err := json.Marshal(newPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task.note.add payload: %w", err)
+	}
+
+	newEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindTaskNoteAdd),
+		Payload:   payloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to insert migrated task.note.add event: %w", err)
+	}
+
+	return nil
 }
 
-func (d *DB) emitTaskNumberSetEvent(taskUID, projectUID string, number int64, reason string, createdAt int64) error {
-	_, err := d.db.Exec(`
-		INSERT INTO task_numbers (project_uid, number, task_uid)
-		VALUES (?, ?, ?)
-	`, projectUID, number, taskUID)
-	return err
+func migrateTaskTitleSet(ctx *v4MigrationContext, event Event) error {
+	var payload TaskTitleSetPayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to parse task.title.set payload: %w", err)
+	}
+
+	taskUID, err := ctx.resolveTaskUID(payload.TaskUID, "")
+	if err != nil {
+		return err
+	}
+
+	newPayload := TaskTitleSetPayload{
+		TaskUID: taskUID,
+		Title:   payload.Title,
+	}
+
+	payloadJSON, err := json.Marshal(newPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task.title.set payload: %w", err)
+	}
+
+	newEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindTaskTitleSet),
+		Payload:   payloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to insert migrated task.title.set event: %w", err)
+	}
+
+	if err := ctx.db.ProjectTaskTitleSetEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to project migrated task.title.set event: %w", err)
+	}
+
+	return nil
+}
+
+func migrateTaskAliasAdded(ctx *v4MigrationContext, event Event) error {
+	var payload TaskAliasAddedPayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to parse task.alias.added payload: %w", err)
+	}
+
+	taskUID, err := ctx.resolveTaskUID(payload.TaskUUID, "")
+	if err != nil {
+		return err
+	}
+
+	ctx.registerTask(taskUID, "", payload.AliasID)
+
+	newPayload := TaskAliasAddedPayload{
+		TaskUUID: taskUID,
+		AliasID:  payload.AliasID,
+	}
+
+	payloadJSON, err := json.Marshal(newPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task.alias.added payload: %w", err)
+	}
+
+	newEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindTaskAliasAdded),
+		Payload:   payloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to insert migrated task.alias.added event: %w", err)
+	}
+
+	return nil
+}
+
+func migrateRelationAdd(ctx *v4MigrationContext, event Event) error {
+	var payload RelationAddPayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to parse relation.add payload: %w", err)
+	}
+
+	srcUID, err := ctx.resolveTaskUID(payload.Src, "")
+	if err != nil {
+		return fmt.Errorf("failed to resolve relation.add src %s: %w", payload.Src, err)
+	}
+	dstUID, err := ctx.resolveTaskUID(payload.Dst, "")
+	if err != nil {
+		return fmt.Errorf("failed to resolve relation.add dst %s: %w", payload.Dst, err)
+	}
+
+	newPayload := RelationAddPayload{
+		Src:  srcUID,
+		Type: payload.Type,
+		Dst:  dstUID,
+		Note: payload.Note,
+	}
+
+	payloadJSON, err := json.Marshal(newPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal relation.add payload: %w", err)
+	}
+
+	newEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindRelationAdd),
+		Payload:   payloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to insert migrated relation.add event: %w", err)
+	}
+
+	return nil
+}
+
+func migrateRelationRemove(ctx *v4MigrationContext, event Event) error {
+	var payload RelationRemovePayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to parse relation.remove payload: %w", err)
+	}
+
+	srcUID, err := ctx.resolveTaskUID(payload.Src, "")
+	if err != nil {
+		return fmt.Errorf("failed to resolve relation.remove src %s: %w", payload.Src, err)
+	}
+	dstUID, err := ctx.resolveTaskUID(payload.Dst, "")
+	if err != nil {
+		return fmt.Errorf("failed to resolve relation.remove dst %s: %w", payload.Dst, err)
+	}
+
+	newPayload := RelationRemovePayload{
+		Src:  srcUID,
+		Type: payload.Type,
+		Dst:  dstUID,
+	}
+
+	payloadJSON, err := json.Marshal(newPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal relation.remove payload: %w", err)
+	}
+
+	newEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindRelationRemove),
+		Payload:   payloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to insert migrated relation.remove event: %w", err)
+	}
+
+	return nil
+}
+
+func migrateRelationNote(ctx *v4MigrationContext, event Event) error {
+	var payload RelationNotePayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to parse relation.note payload: %w", err)
+	}
+
+	srcUID, err := ctx.resolveTaskUID(payload.Src, "")
+	if err != nil {
+		return fmt.Errorf("failed to resolve relation.note src %s: %w", payload.Src, err)
+	}
+	dstUID, err := ctx.resolveTaskUID(payload.Dst, "")
+	if err != nil {
+		return fmt.Errorf("failed to resolve relation.note dst %s: %w", payload.Dst, err)
+	}
+
+	newPayload := RelationNotePayload{
+		Src:      srcUID,
+		Type:     payload.Type,
+		Dst:      dstUID,
+		Markdown: payload.Markdown,
+	}
+
+	payloadJSON, err := json.Marshal(newPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal relation.note payload: %w", err)
+	}
+
+	newEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindRelationNote),
+		Payload:   payloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to insert migrated relation.note event: %w", err)
+	}
+
+	return nil
+}
+
+func migrateTaskReprefix(ctx *v4MigrationContext, event Event) error {
+	var payload TaskReprefixPayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to parse task.reprefix payload: %w", err)
+	}
+
+	taskUID, err := ctx.resolveTaskUID(payload.TaskUUID, "")
+	if err != nil {
+		return err
+	}
+
+	fromProject := ctx.taskProjects[taskUID]
+	if fromProject == "" {
+		fromProject, err = ctx.projectUIDForPrefix(payload.OldPrefix)
+		if err != nil {
+			return err
+		}
+	}
+
+	toProject, err := ctx.projectUIDForPrefix(payload.NewPrefix)
+	if err != nil {
+		return err
+	}
+
+	newPayload := TaskRelocatePayload{
+		TaskUID:        taskUID,
+		FromProjectUID: fromProject,
+		ToProjectUID:   toProject,
+		NumberPolicy: NumberPolicyPayload{
+			Mode:   "force",
+			Number: payload.NewNumber,
+		},
+	}
+
+	payloadJSON, err := json.Marshal(newPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal task.relocate payload: %w", err)
+	}
+
+	newEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindTaskRelocate),
+		Payload:   payloadJSON,
+	}
+
+	if err := ctx.db.InsertEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to insert migrated task.relocate event: %w", err)
+	}
+
+	if err := ctx.db.ProjectTaskRelocateEvent(newEvent); err != nil {
+		return fmt.Errorf("failed to project migrated task.relocate event: %w", err)
+	}
+
+	ctx.taskProjects[taskUID] = toProject
+
+	newTaskID := fmt.Sprintf("%s-%d-%s", payload.NewPrefix, payload.NewNumber, payload.OldNode)
+	ctx.registerTask(taskUID, "", newTaskID)
+
+	return nil
 }
 
 // RollbackV4 restores the v3 backup

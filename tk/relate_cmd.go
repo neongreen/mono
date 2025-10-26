@@ -60,12 +60,12 @@ Examples:
 		defer db.Close()
 
 		// Resolve both task IDs to UUIDs
-		srcUUID, err := db.ResolveTaskIDToUUID(srcTaskID)
+		srcUUID, err := ResolveTaskReference(db, srcTaskID)
 		if err != nil {
 			return fmt.Errorf("failed to resolve source task %q: %w", srcTaskID, err)
 		}
 
-		dstUUID, err := db.ResolveTaskIDToUUID(dstTaskID)
+		dstUUID, err := ResolveTaskReference(db, dstTaskID)
 		if err != nil {
 			return fmt.Errorf("failed to resolve target task %q: %w", dstTaskID, err)
 		}
@@ -136,7 +136,16 @@ Examples:
 			return err
 		}
 
-		fmt.Printf("Added relation: %s %s %s\n", srcTaskID, relationType, dstTaskID)
+		srcDisplay, err := RenderTaskDisplayID(db, srcUUID)
+		if err != nil {
+			srcDisplay = srcTaskID
+		}
+		dstDisplay, err := RenderTaskDisplayID(db, dstUUID)
+		if err != nil {
+			dstDisplay = dstTaskID
+		}
+
+		fmt.Printf("Added relation: %s %s %s\n", srcDisplay, relationType, dstDisplay)
 		return nil
 	},
 }
@@ -157,12 +166,12 @@ var relateRemoveCmd = &cobra.Command{
 		defer db.Close()
 
 		// Resolve both task IDs to UUIDs
-		srcUUID, err := db.ResolveTaskIDToUUID(srcTaskID)
+		srcUUID, err := ResolveTaskReference(db, srcTaskID)
 		if err != nil {
 			return fmt.Errorf("failed to resolve source task %q: %w", srcTaskID, err)
 		}
 
-		dstUUID, err := db.ResolveTaskIDToUUID(dstTaskID)
+		dstUUID, err := ResolveTaskReference(db, dstTaskID)
 		if err != nil {
 			return fmt.Errorf("failed to resolve target task %q: %w", dstTaskID, err)
 		}
@@ -211,7 +220,16 @@ var relateRemoveCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Removed relation: %s %s %s\n", srcTaskID, relationType, dstTaskID)
+		srcDisplay, err := RenderTaskDisplayID(db, srcUUID)
+		if err != nil {
+			srcDisplay = srcTaskID
+		}
+		dstDisplay, err := RenderTaskDisplayID(db, dstUUID)
+		if err != nil {
+			dstDisplay = dstTaskID
+		}
+
+		fmt.Printf("Removed relation: %s %s %s\n", srcDisplay, relationType, dstDisplay)
 		return nil
 	},
 }

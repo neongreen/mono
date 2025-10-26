@@ -361,68 +361,9 @@ func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]Event, error) {
 	return events, rows.Err()
 }
 
-// ResolveTaskIDToUUID resolves a task ID (full or short, current or alias) to its UUID
+// ResolveTaskIDToUUID resolves a task reference to its UUID (legacy helper).
 func (d *DB) ResolveTaskIDToUUID(taskID string) (string, error) {
-	// Build reducer from all events to resolve ID to UUID
-	events, err := d.GetEvents()
-	if err != nil {
-		return "", fmt.Errorf("failed to get events: %w", err)
-	}
-
-	reducer, err := BuildFromEvents(events)
-	if err != nil {
-		return "", fmt.Errorf("failed to build reducer: %w", err)
-	}
-
-	// First try direct lookup by taskID (handles full IDs - current or aliases)
-	task, ok := reducer.GetTask(taskID)
-	if ok {
-		return task.TaskUUID, nil
-	}
-
-	// If not found, it might be a short form (e.g., "foo-1" instead of "foo-1-kdTlV2")
-	// Get all tasks and check for matching short forms
-	allTasks := reducer.GetAllTasks()
-	allTaskIDs := make([]string, 0, len(allTasks))
-	for _, t := range allTasks {
-		allTaskIDs = append(allTaskIDs, t.TaskID)
-		// Also add aliases
-		for _, alias := range t.Aliases {
-			allTaskIDs = append(allTaskIDs, alias)
-		}
-	}
-
-	// Use FormatTaskID logic to match short forms
-	var matches []string
-	var matchedUUIDs []string
-	for _, t := range allTasks {
-		// Check if taskID matches the short form of this task's current ID
-		shortForm := FormatTaskID(t.TaskID, allTaskIDs)
-		if shortForm == taskID {
-			matches = append(matches, t.TaskID)
-			matchedUUIDs = append(matchedUUIDs, t.TaskUUID)
-		}
-
-		// Also check aliases
-		for _, alias := range t.Aliases {
-			shortForm := FormatTaskID(alias, allTaskIDs)
-			if shortForm == taskID {
-				matches = append(matches, alias)
-				matchedUUIDs = append(matchedUUIDs, t.TaskUUID)
-				break
-			}
-		}
-	}
-
-	if len(matches) == 0 {
-		return "", fmt.Errorf("task not found: %s", taskID)
-	}
-
-	if len(matches) > 1 {
-		return "", fmt.Errorf("ambiguous task ID: %s (matches %v)", taskID, matches)
-	}
-
-	return matchedUUIDs[0], nil
+	return ResolveTaskReference(d, taskID)
 }
 
 // Close closes the database
