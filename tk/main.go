@@ -314,6 +314,12 @@ var viewCmd = &cobra.Command{
 		}
 		defer db.Close()
 
+		// Load config for relation processing
+		config, err := LoadConfig()
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		// Build reducer to get task and all its IDs (current + aliases)
 		// TODO: Consider caching reducer or adding task_index table for performance
 		events, err := db.GetEvents()
@@ -321,7 +327,7 @@ var viewCmd = &cobra.Command{
 			return err
 		}
 
-		reducer, err := BuildFromEvents(events)
+		reducer, err := BuildFromEventsWithConfig(events, config)
 		if err != nil {
 			return err
 		}
@@ -361,6 +367,8 @@ var lsCmd = &cobra.Command{
 		prefixFilter, _ := cmd.Flags().GetStringSlice("prefix")
 		showAliases, _ := cmd.Flags().GetBool("aliases")
 		groupBy, _ := cmd.Flags().GetString("group")
+		blockedOnly, _ := cmd.Flags().GetBool("blocked")
+		unblockedOnly, _ := cmd.Flags().GetBool("unblocked")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -368,12 +376,19 @@ var lsCmd = &cobra.Command{
 		}
 		defer db.Close()
 
+		// Load config for relation processing
+		config, err := LoadConfig()
+		if err != nil {
+			return fmt.Errorf("failed to load config: %w", err)
+		}
+
 		events, err := db.GetEvents()
 		if err != nil {
 			return err
 		}
 
-		reducer, err := BuildFromEvents(events)
+		// Use BuildFromEventsWithConfig to get relations
+		reducer, err := BuildFromEventsWithConfig(events, config)
 		if err != nil {
 			return err
 		}
@@ -422,6 +437,25 @@ var lsCmd = &cobra.Command{
 					if axis.Effective == stateName {
 						filtered = append(filtered, task)
 					}
+				}
+			}
+			tasks = filtered
+		}
+
+		// Filter by blocked status if specified
+		if blockedOnly {
+			var filtered []*Task
+			for _, task := range tasks {
+				if task.Blocked {
+					filtered = append(filtered, task)
+				}
+			}
+			tasks = filtered
+		} else if unblockedOnly {
+			var filtered []*Task
+			for _, task := range tasks {
+				if !task.Blocked {
+					filtered = append(filtered, task)
 				}
 			}
 			tasks = filtered
@@ -644,9 +678,16 @@ func init() {
 	lsCmd.Flags().StringSlice("prefix", []string{}, "Filter by prefix (can be specified multiple times)")
 	lsCmd.Flags().Bool("aliases", false, "Show task aliases")
 	lsCmd.Flags().String("group", "prefix", "Group tasks by: prefix, status, or none (default: prefix)")
+	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
+	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
 	rootCmd.AddCommand(lsCmd)
 
 	rootCmd.AddCommand(mvCmd)
+	rootCmd.AddCommand(relateCmd)
+	rootCmd.AddCommand(dupCmd)
+	rootCmd.AddCommand(blockersCmd)
+	rootCmd.AddCommand(blockedCmd)
+	rootCmd.AddCommand(graphCmd)
 	rootCmd.AddCommand(nodeCmd)
 	rootCmd.AddCommand(remoteCmd)
 	rootCmd.AddCommand(exportCmd)
