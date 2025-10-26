@@ -42,14 +42,11 @@ def git_output(*args: str) -> str:
     return result.stdout.strip()
 
 
-def resolve_changed_files(event: str, before_sha: str, pr_base: str, ref_sha: str) -> list[str]:
-    if event == "pull_request" and pr_base:
-        diff_args = ["diff", "--name-only", f"origin/{pr_base}...HEAD"]
+def resolve_changed_files(event: str, before_sha: str, ref_sha: str) -> list[str]:
+    if not before_sha or before_sha == "0" * 40:
+        diff_args = ["diff-tree", "--no-commit-id", "--name-only", "-r", ref_sha]
     else:
-        if not before_sha or before_sha == "0" * 40:
-            diff_args = ["diff-tree", "--no-commit-id", "--name-only", "-r", ref_sha]
-        else:
-            diff_args = ["diff", "--name-only", f"{before_sha}...{ref_sha}"]
+        diff_args = ["diff", "--name-only", f"{before_sha}...{ref_sha}"]
     changed = git_output(*diff_args)
     return [line for line in changed.splitlines() if line]
 
@@ -85,7 +82,6 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--event", required=True)
     parser.add_argument("--before-sha", default="")
-    parser.add_argument("--pr-base", default="")
     parser.add_argument("--ref-sha", required=True)
     parser.add_argument("--manual-projects", default="")
     parser.add_argument("--output", required=True)
@@ -95,7 +91,7 @@ def main() -> None:
     print(f"All Go projects: {', '.join(projects)}")
 
     changed_files = resolve_changed_files(
-        args.event, args.before_sha, args.pr_base, args.ref_sha
+        args.event, args.before_sha, args.ref_sha
     )
     if changed_files:
         print("Changed files:")

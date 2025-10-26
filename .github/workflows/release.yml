@@ -9,13 +9,6 @@ on:
       - "**/go.mod"
       - "**/go.sum"
       - ".github/workflows/release.yml"
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - "**/*.go"
-      - "**/go.mod"
-      - "**/go.sum"
-      - ".github/workflows/release.yml"
   workflow_dispatch:
     inputs:
       projects:
@@ -46,12 +39,10 @@ jobs:
           python3 scripts/detect_go_projects.py \
             --event "${{ github.event_name }}" \
             --before-sha "${{ github.event.before }}" \
-            --pr-base "${GITHUB_EVENT_PULL_REQUEST_BASE_REF}" \
             --ref-sha "${{ github.sha }}" \
             --manual-projects "${GITHUB_EVENT_INPUTS_PROJECTS}" \
             --output "$GITHUB_OUTPUT"
         env:
-          GITHUB_EVENT_PULL_REQUEST_BASE_REF: ${{ github.event.pull_request.base.ref }}
           GITHUB_EVENT_INPUTS_PROJECTS: ${{ github.event.inputs.projects }}
       - name: Load release mirror config
         id: mirror-config
@@ -111,17 +102,9 @@ jobs:
         run: |
           PROJECT="${MATRIX_PROJECT}"
 
-          # Determine branch/ref name
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            # For PRs, use pr-NUMBER format
-            REF="pr-${{ github.event.pull_request.number }}"
-          else
-            # For push to main
-            REF="main"
-          fi
-
-          # Sanitize ref name (replace / with -)
-          REF_SAFE="${REF//\//-}"
+          # For main branch releases
+          REF="main"
+          REF_SAFE="main"
 
           # Find existing tags for this project+ref combination
           TAG_PREFIX="${PROJECT}--${REF_SAFE}."
@@ -237,7 +220,7 @@ jobs:
           body: |
             Release of **${{ matrix.project }}** version `${{ steps.version.outputs.version }}`
 
-            Built from: ${{ github.event_name == 'pull_request' && format('PR #{0}', github.event.pull_request.number) || 'main branch' }}
+            Built from: main branch
             Commit: ${{ github.sha }}
 
             ## Installation
@@ -262,7 +245,7 @@ jobs:
             - macOS: amd64 (Intel), arm64 (Apple Silicon)
           files: dist/*
           draft: false
-          prerelease: ${{ github.event_name == 'pull_request' }}
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

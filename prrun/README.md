@@ -1,5 +1,9 @@
 # prrun - PR Binary Runner
 
+**⚠️ DEPRECATED**: This tool was designed to download and run binaries from GitHub pull request releases. As of 2025, PR releases are no longer being created in this repository, making this tool obsolete for its original purpose. The tool remains in the repository for historical reference.
+
+---
+
 A tool to transparently download and run binaries from GitHub pull request releases.
 
 ## What It Does

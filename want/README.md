@@ -20,7 +20,7 @@ Interactive task fulfillment tool for macOS.
 - [x] **Install from mono repository** - `want mono <project>@<version>`
   - List all releases for a project: `want mono printpdf --list`
   - Install specific version: `want mono printpdf@main.1`
-  - Supports both main and PR releases
+  - Supports main branch releases
 - [x] **Install tools via mise** - Request and install tools using `want <tool>`
   - Shows plan including mise installation if needed
   - Asks for confirmation before installation
@@ -115,25 +115,20 @@ want mono --dry-run printpdf@main.1
 # Get the fulfillment plan as JSON
 want mono --plan-json printpdf@main.1
 
-# Install a PR release (if available)
-want mono dissect@pr-42.1
+# Preview building from a branch (builds locally if no release)
+want mono --dry-run dissect@main
 
-# Preview building from a PR (builds locally if no release)
-want mono --dry-run dissect@pr-100
-
-# Install from a PR with plan output as JSON
-want mono --plan-json dissect@pr-100
+# Install from a branch with plan output as JSON
+want mono --plan-json dissect@main
 ```
 
 The tool will:
 - Build a fulfillment plan showing all steps before execution
 - Ask for confirmation before proceeding (unless using --dry-run or --plan-json)
 - Fetch all releases from neongreen/mono repository
-- Fetch all open PRs that modify the specified project
 - Filter releases for the specified project
 - For version strings:
-  - If it matches a release tag (e.g., `main.1`, `pr-42.1`): download the pre-built binary
-  - If it starts with `pr-` but has no release: build from the PR branch
+  - If it matches a release tag (e.g., `main.1`): download the pre-built binary
   - If it's a branch name (e.g., `main`, `feature-xyz`): build from the latest commit on that branch
   - If it's a commit SHA (7-40 hex chars): build from that specific commit
 - Download the binary matching your platform (OS and architecture)
@@ -141,44 +136,37 @@ The tool will:
 - Make it executable
 - Notify you if `~/.local/bin/` is not in your PATH
 
-Example output for listing releases and PRs:
+Example output for listing releases:
 
 ```bash
 $ want mono printpdf --list
 Fetching releases for printpdf from neongreen/mono...
-Fetching open PRs for printpdf...
 
 Available releases for printpdf:
   main.5
   main.4
   main.3
-  pr-42.1
-
-Open PRs for printpdf:
-  pr-100: Add new feature to printpdf
-  pr-95: Fix bug in PDF rendering
 
 To install a specific version:
   want mono printpdf@<version>
 
 Examples:
   want mono printpdf@main.5
-  want mono printpdf@pr-100
 ```
 
 Example using dry-run mode:
 
 ```bash
-$ want mono --dry-run dissect@pr-100
-Building dissect from PR #100...
+$ want mono --dry-run dissect@main
+Building dissect from main branch...
 
 Fulfillment plan:
 
-Step 1: Fetch PR #100 information from GitHub
-  $ GET https://api.github.com/repos/neongreen/mono/pulls/100
+Step 1: Fetch main branch information from GitHub
+  $ GET https://api.github.com/repos/neongreen/mono/branches/main
 
-Step 2: Clone neongreen/mono repository (PR branch)
-  $ git clone --depth=1 --branch <pr-branch> https://github.com/neongreen/mono.git <tmpdir>
+Step 2: Clone neongreen/mono repository (main branch)
+  $ git clone --depth=1 --branch main https://github.com/neongreen/mono.git <tmpdir>
 
 Step 3: Build dissect from source
   $ go build -o /home/user/.local/bin/dissect .
@@ -187,17 +175,17 @@ Step 4: Make binary executable
   $ chmod +x /home/user/.local/bin/dissect
 ```
 
-When installing from a PR without a release:
+When installing from a branch without a release:
 
 ```bash
-$ want mono dissect@pr-100
-No release found for pr-100 (would be tagged as dissect--pr-100)
-Building from PR #100 instead...
+$ want mono dissect@main
+No release found for main (would be tagged as dissect--main)
+Building from main branch instead...
 
 Fulfillment plan:
 
-Step 1: Fetch PR #100 information from GitHub
-  $ GET https://api.github.com/repos/neongreen/mono/pulls/100
+Step 1: Fetch main branch information from GitHub
+  $ GET https://api.github.com/repos/neongreen/mono/branches/main
 
 Step 2: Clone neongreen/mono repository (PR branch)
   $ git clone --depth=1 --branch <pr-branch> https://github.com/neongreen/mono.git <tmpdir>
