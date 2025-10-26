@@ -1,0 +1,51 @@
+[[project]]
+dir = "beads-merge"
+module = "github.com/neongreen/mono/beads-merge"
+
+[[project]]
+dir = "claude-trace"
+module = "claude-trace"
+
+[[project]]
+dir = "conf"
+module = "conf"
+
+[[project]]
+dir = "dissect"
+module = "dissect"
+
+[[project]]
+dir = "ingest"
+module = "ingest"
+
+[[project]]
+dir = "lib/ghclient"
+module = "github.com/neongreen/mono/lib/ghclient"
+
+[[project]]
+dir = "lib/ghrelease"
+module = "github.com/neongreen/mono/lib/ghrelease"
+
+[[project]]
+dir = "lib/toml"
+module = "github.com/neongreen/mono/lib/toml"
+
+[[project]]
+dir = "markdown-format"
+module = "github.com/neongreen/mono/markdown-format"
+
+[[project]]
+dir = "printpdf"
+module = "github.com/neongreen/mono/printpdf"
+
+[[project]]
+dir = "prrun"
+module = "github.com/neongreen/mono/prrun"
+
+[[project]]
+dir = "tk"
+module = "github.com/neongreen/mono/tk"
+
+[[project]]
+dir = "want"
+module = "github.com/neongreen/mono/want"
