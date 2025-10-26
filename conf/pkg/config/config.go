@@ -147,19 +147,18 @@ func convertNestedToFlat(nested map[string]interface{}, prefix string) map[strin
 	flat := make(map[string]interface{})
 
 	for key, value := range nested {
-		fullKey := key
+		quotedKey := quoteKeyIfNeeded(key)
+
+		fullKey := quotedKey
 		if prefix != "" {
-			fullKey = prefix + "." + key
+			fullKey = prefix + "." + quotedKey
 		}
 
-		// If value is a map, recurse
 		if nestedMap, ok := value.(map[string]interface{}); ok {
-			// Merge the flattened results
 			for k, v := range convertNestedToFlat(nestedMap, fullKey) {
 				flat[k] = v
 			}
 		} else {
-			// Leaf value, add to flat map
 			flat[fullKey] = value
 		}
 	}
@@ -218,26 +217,90 @@ func convertDottedToNested(flat map[string]interface{}) map[string]interface{} {
 	nested := make(map[string]interface{})
 
 	for key, value := range flat {
-		parts := strings.Split(key, ".")
+		parts := splitDottedKey(key)
+		if len(parts) == 0 {
+			continue
+		}
+
 		current := nested
 
-		// Navigate/create nested structure for all parts except the last
 		for i := 0; i < len(parts)-1; i++ {
 			part := parts[i]
 			if _, exists := current[part]; !exists {
 				current[part] = make(map[string]interface{})
 			}
-			// Type assert to map for next iteration
 			if nextMap, ok := current[part].(map[string]interface{}); ok {
 				current = nextMap
 			}
 		}
 
-		// Set the final value
 		current[parts[len(parts)-1]] = value
 	}
 
 	return nested
+}
+
+func splitDottedKey(path string) []string {
+	if path == "" {
+		return []string{""}
+	}
+
+	var (
+		parts    []string
+		current  strings.Builder
+		inQuotes bool
+	)
+
+	for i := 0; i < len(path); i++ {
+		ch := path[i]
+
+		switch ch {
+		case '"':
+			inQuotes = !inQuotes
+		case '.':
+			if inQuotes {
+				current.WriteByte(ch)
+			} else {
+				parts = append(parts, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteByte(ch)
+		}
+	}
+
+	if inQuotes {
+		return []string{path}
+	}
+
+	parts = append(parts, current.String())
+	return parts
+}
+
+func quoteKeyIfNeeded(key string) string {
+	needsQuoting := false
+
+	if len(key) == 0 {
+		needsQuoting = true
+	}
+
+	if len(key) > 0 && key[0] == '.' {
+		needsQuoting = true
+	}
+
+	if strings.Contains(key, " ") {
+		needsQuoting = true
+	}
+
+	if key == "." || key == ".." {
+		needsQuoting = true
+	}
+
+	if needsQuoting {
+		return `"` + key + `"`
+	}
+
+	return key
 }
 
 // Save saves the configuration to per-tool files

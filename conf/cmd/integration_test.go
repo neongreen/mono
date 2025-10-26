@@ -2,12 +2,33 @@ package main
 
 import (
 	"bytes"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func makeTreeWritableOnCleanup(t *testing.T, root string) {
+	t.Helper()
+
+	t.Cleanup(func() {
+		filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return nil
+			}
+
+			mode := os.FileMode(0o600)
+			if d.IsDir() {
+				mode = 0o700
+			}
+
+			_ = os.Chmod(path, mode)
+			return nil
+		})
+	})
+}
 
 // TestCLIIntegration tests end-to-end CLI functionality by running the actual binary
 func TestCLIIntegration(t *testing.T) {
@@ -138,6 +159,7 @@ func TestCLIIntegration(t *testing.T) {
 func TestCLIDryRunMode(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
+	makeTreeWritableOnCleanup(t, tempHome)
 	originalHome := os.Getenv("HOME")
 	os.Setenv("HOME", tempHome)
 	defer os.Setenv("HOME", originalHome)
@@ -243,6 +265,7 @@ add_newline = true
 func TestCLIListCommands(t *testing.T) {
 	// Create temporary home directory
 	tempHome := t.TempDir()
+	makeTreeWritableOnCleanup(t, tempHome)
 	originalHome := os.Getenv("HOME")
 	os.Setenv("HOME", tempHome)
 	defer os.Setenv("HOME", originalHome)
@@ -338,6 +361,7 @@ add_newline = true
 func TestCLIErrorHandling(t *testing.T) {
 	// Create temporary home directory with invalid configs
 	tempHome := t.TempDir()
+	makeTreeWritableOnCleanup(t, tempHome)
 	originalHome := os.Getenv("HOME")
 	os.Setenv("HOME", tempHome)
 	defer os.Setenv("HOME", originalHome)

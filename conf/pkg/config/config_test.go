@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -434,5 +435,72 @@ func TestPerToolConfigSaving(t *testing.T) {
 	configTomlStr := string(configTomlData)
 	if strings.Contains(configTomlStr, "Test User") {
 		t.Error("config.toml should not contain values (should be in per-tool file)")
+	}
+}
+
+func TestConvertNestedToFlatQuotedKeys(t *testing.T) {
+	nested := map[string]interface{}{
+		"aliases": map[string]interface{}{
+			".":  []interface{}{"ci", "-m."},
+			"..": []interface{}{"ci", "-m.."},
+			"s":  "status",
+		},
+	}
+
+	flat := convertNestedToFlat(nested, "")
+
+	if val, ok := flat[`aliases."."`]; !ok {
+		t.Fatalf("expected key aliases.\".\" to be present in flattened map, got keys %v", flat)
+	} else if !reflect.DeepEqual(val, []interface{}{"ci", "-m."}) {
+		t.Errorf("aliases.\".\" value = %v, want %v", val, []interface{}{"ci", "-m."})
+	}
+
+	if val, ok := flat[`aliases.".."`]; !ok {
+		t.Fatalf("expected key aliases.\"..\" to be present in flattened map, got keys %v", flat)
+	} else if !reflect.DeepEqual(val, []interface{}{"ci", "-m.."}) {
+		t.Errorf("aliases.\"..\" value = %v, want %v", val, []interface{}{"ci", "-m.."})
+	}
+
+	if val, ok := flat["aliases.s"]; !ok {
+		t.Fatalf("expected key aliases.s to be present in flattened map, got keys %v", flat)
+	} else if val != "status" {
+		t.Errorf("aliases.s value = %v, want %q", val, "status")
+	}
+}
+
+func TestConvertDottedToNestedQuotedKeys(t *testing.T) {
+	flat := map[string]interface{}{
+		`aliases."."`:  []interface{}{"ci", "-m."},
+		`aliases.".."`: []interface{}{"ci", "-m.."},
+		"aliases.s":    "status",
+	}
+
+	nested := convertDottedToNested(flat)
+
+	aliases, ok := nested["aliases"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected aliases map in nested structure, got %#v", nested["aliases"])
+	}
+
+	if val, ok := aliases["."]; !ok {
+		t.Fatalf("expected aliases map to contain '.' key, got keys %v", aliases)
+	} else if !reflect.DeepEqual(val, []interface{}{"ci", "-m."}) {
+		t.Errorf("aliases[\".\"] = %v, want %v", val, []interface{}{"ci", "-m."})
+	}
+
+	if val, ok := aliases[".."]; !ok {
+		t.Fatalf("expected aliases map to contain '..' key, got keys %v", aliases)
+	} else if !reflect.DeepEqual(val, []interface{}{"ci", "-m.."}) {
+		t.Errorf("aliases[\"..\"] = %v, want %v", val, []interface{}{"ci", "-m.."})
+	}
+
+	if val, ok := aliases["s"]; !ok {
+		t.Fatalf("expected aliases map to contain 's' key, got keys %v", aliases)
+	} else if val != "status" {
+		t.Errorf("aliases[\"s\"] = %v, want %q", val, "status")
+	}
+
+	if len(aliases) != 3 {
+		t.Errorf("expected aliases map to have exactly 3 entries, got %d", len(aliases))
 	}
 }
