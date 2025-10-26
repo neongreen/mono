@@ -688,6 +688,7 @@ func init() {
 	rootCmd.AddCommand(blockersCmd)
 	rootCmd.AddCommand(blockedCmd)
 	rootCmd.AddCommand(graphCmd)
+	rootCmd.AddCommand(conflictsCmd)
 	rootCmd.AddCommand(nodeCmd)
 	rootCmd.AddCommand(remoteCmd)
 	rootCmd.AddCommand(exportCmd)

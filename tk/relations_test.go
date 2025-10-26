@@ -42,7 +42,7 @@ func TestRelationGraph_AddRemove(t *testing.T) {
 func TestRelationGraph_ORSetSemantics(t *testing.T) {
 	graph := NewRelationsGraph()
 
-	// Add from two different nodes
+	// Add from two different nodes (two separate add events)
 	graph.AddRelation("task-a", "blocks", "task-b", "", "ev-1-node1", "node1", 1)
 	graph.AddRelation("task-a", "blocks", "task-b", "", "ev-2-node2", "node2", 2)
 
@@ -52,22 +52,22 @@ func TestRelationGraph_ORSetSemantics(t *testing.T) {
 		t.Fatalf("Expected 1 outgoing relation, got %d", len(out))
 	}
 
-	// Remove from node1 only
+	// Remove - this observes both adds and tombstones them
 	graph.RemoveRelation("task-a", "blocks", "task-b", "ev-3-node1", "node1", 3)
 
-	// Should still exist (node2's dot still present)
-	out = graph.GetOutgoingRelations("task-a", "blocks")
-	if len(out) != 1 {
-		t.Errorf("Expected 1 outgoing relation (node2 still has it), got %d", len(out))
-	}
-
-	// Remove from node2 too
-	graph.RemoveRelation("task-a", "blocks", "task-b", "ev-4-node2", "node2", 4)
-
-	// Now it should be removed
+	// Should be removed (all observed adds are tombstoned)
 	out = graph.GetOutgoingRelations("task-a", "blocks")
 	if len(out) != 0 {
-		t.Errorf("Expected 0 outgoing relations after both nodes removed, got %d", len(out))
+		t.Errorf("Expected 0 outgoing relations after remove (remove-wins), got %d", len(out))
+	}
+
+	// Add again after remove - this should resurrect the edge
+	graph.AddRelation("task-a", "blocks", "task-b", "", "ev-4-node2", "node2", 4)
+
+	// Should exist again (new add not observed by previous remove)
+	out = graph.GetOutgoingRelations("task-a", "blocks")
+	if len(out) != 1 {
+		t.Errorf("Expected 1 outgoing relation after add-after-remove, got %d", len(out))
 	}
 }
 

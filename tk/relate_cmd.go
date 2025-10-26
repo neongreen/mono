@@ -70,6 +70,27 @@ Examples:
 			return fmt.Errorf("failed to resolve target task %q: %w", dstTaskID, err)
 		}
 
+		// Normalize inverse relation types to canonical forms
+		// blocked_by(a,b) -> blocks(b,a)
+		// parent(a,b) -> subtask(a,b) (a is parent, b is child)
+		normalizedType := relationType
+		normalizedSrc := srcUUID
+		normalizedDst := dstUUID
+
+		if relationType == "blocked_by" {
+			normalizedType = "blocks"
+			normalizedSrc = dstUUID
+			normalizedDst = srcUUID
+		} else if relationType == "parent" {
+			normalizedType = "subtask"
+			// parent(a,b) means a is parent of b, which is subtask(a,b)
+			// Keep src and dst as-is
+		}
+
+		srcUUID = normalizedSrc
+		dstUUID = normalizedDst
+		relationType = normalizedType
+
 		// Get current user
 		currentUser, err := getCurrentUser()
 		if err != nil {

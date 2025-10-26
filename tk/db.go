@@ -107,21 +107,6 @@ func (d *DB) InitDB() error {
 		last_id INTEGER NOT NULL,
 		PRIMARY KEY (prefix, node)
 	);
-	
-	CREATE TABLE IF NOT EXISTS relations (
-		src TEXT NOT NULL,
-		type TEXT NOT NULL,
-		dst TEXT NOT NULL,
-		event_id TEXT NOT NULL,
-		node TEXT NOT NULL,
-		added INTEGER NOT NULL DEFAULT 1,
-		note TEXT,
-		created_at INTEGER NOT NULL,
-		PRIMARY KEY (src, type, dst)
-	);
-	CREATE INDEX IF NOT EXISTS idx_relations_src ON relations(src, type);
-	CREATE INDEX IF NOT EXISTS idx_relations_dst ON relations(dst, type);
-	CREATE INDEX IF NOT EXISTS idx_relations_event ON relations(event_id);
 	`
 
 	if _, err := d.db.Exec(schema); err != nil {

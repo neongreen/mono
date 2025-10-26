@@ -6,14 +6,14 @@ import (
 
 // RelationEdge represents an edge in the relation graph with OR-set semantics
 type RelationEdge struct {
-	Src       string            // Source task UUID
-	Type      string            // Relation type
-	Dst       string            // Destination task UUID
-	Note      string            // Optional note
-	Dots      map[string]string // Dots for OR-set: node -> event_id
-	Removed   bool              // Tombstone flag
-	EventID   string            // Last event ID that modified this edge
-	CreatedAt int64             // Lamport timestamp when created
+	Src       string          // Source task UUID
+	Type      string          // Relation type
+	Dst       string          // Destination task UUID
+	Note      string          // Optional note
+	Adds      map[string]bool // Set of add tags (event_id -> exists)
+	Removals  map[string]bool // Set of removed tags (event_id -> exists)
+	EventID   string          // Last event ID that modified this edge
+	CreatedAt int64           // Lamport timestamp when created
 }
 
 // RelationsGraph stores all relation edges with OR-set CRDT semantics
@@ -39,25 +39,22 @@ func (g *RelationsGraph) AddRelation(src, relType, dst, note, eventID, node stri
 			Type:      relType,
 			Dst:       dst,
 			Note:      note,
-			Dots:      make(map[string]string),
-			Removed:   false,
+			Adds:      make(map[string]bool),
+			Removals:  make(map[string]bool),
 			EventID:   eventID,
 			CreatedAt: ts,
 		}
 		g.edges[key] = edge
 	}
 
-	// Add dot for this node
-	edge.Dots[node] = eventID
+	// Add this event's tag to the adds set
+	edge.Adds[eventID] = true
 	edge.EventID = eventID
 
 	// Update note if provided
 	if note != "" {
 		edge.Note = note
 	}
-
-	// Clear removed flag (add wins over remove in concurrent case)
-	edge.Removed = false
 }
 
 // RemoveRelation removes a relation edge with OR-set semantics (remove-wins)
@@ -66,33 +63,42 @@ func (g *RelationsGraph) RemoveRelation(src, relType, dst, eventID, node string,
 
 	edge, exists := g.edges[key]
 	if !exists {
-		// Create tombstone
+		// Create edge structure to track the removal
 		edge = &RelationEdge{
 			Src:       src,
 			Type:      relType,
 			Dst:       dst,
-			Dots:      make(map[string]string),
-			Removed:   true,
+			Adds:      make(map[string]bool),
+			Removals:  make(map[string]bool),
 			EventID:   eventID,
 			CreatedAt: ts,
 		}
 		g.edges[key] = edge
 	}
 
-	// Remove dot for this node (remove-wins semantics)
-	delete(edge.Dots, node)
-	edge.EventID = eventID
-
-	// If no dots remain, mark as removed
-	if len(edge.Dots) == 0 {
-		edge.Removed = true
+	// Tombstone all currently observed add tags
+	for addTag := range edge.Adds {
+		edge.Removals[addTag] = true
 	}
+
+	edge.EventID = eventID
+}
+
+// isEdgePresent checks if an edge is present according to observed-remove semantics
+// An edge exists if there's at least one add tag that hasn't been removed
+func (g *RelationsGraph) isEdgePresent(edge *RelationEdge) bool {
+	for addTag := range edge.Adds {
+		if !edge.Removals[addTag] {
+			return true
+		}
+	}
+	return false
 }
 
 // SetRelationNote sets a note on a relation
 func (g *RelationsGraph) SetRelationNote(src, relType, dst, note string) {
 	key := makeEdgeKey(src, relType, dst)
-	if edge, exists := g.edges[key]; exists && !edge.Removed {
+	if edge, exists := g.edges[key]; exists && g.isEdgePresent(edge) {
 		edge.Note = note
 	}
 }
@@ -101,7 +107,7 @@ func (g *RelationsGraph) SetRelationNote(src, relType, dst, note string) {
 func (g *RelationsGraph) GetOutgoingRelations(taskUUID, relType string) []RelationTarget {
 	var targets []RelationTarget
 	for _, edge := range g.edges {
-		if edge.Src == taskUUID && edge.Type == relType && !edge.Removed {
+		if edge.Src == taskUUID && edge.Type == relType && g.isEdgePresent(edge) {
 			targets = append(targets, RelationTarget{
 				TaskUUID: edge.Dst,
 				Note:     edge.Note,
@@ -115,7 +121,7 @@ func (g *RelationsGraph) GetOutgoingRelations(taskUUID, relType string) []Relati
 func (g *RelationsGraph) GetIncomingRelations(taskUUID, relType string) []RelationTarget {
 	var targets []RelationTarget
 	for _, edge := range g.edges {
-		if edge.Dst == taskUUID && edge.Type == relType && !edge.Removed {
+		if edge.Dst == taskUUID && edge.Type == relType && g.isEdgePresent(edge) {
 			targets = append(targets, RelationTarget{
 				TaskUUID: edge.Src,
 				Note:     edge.Note,
@@ -132,7 +138,7 @@ func (g *RelationsGraph) DetectCycles(relType string) [][]string {
 	// Build adjacency list for this relation type
 	adj := make(map[string][]string)
 	for _, edge := range g.edges {
-		if edge.Type == relType && !edge.Removed {
+		if edge.Type == relType && g.isEdgePresent(edge) {
 			adj[edge.Src] = append(adj[edge.Src], edge.Dst)
 		}
 	}
