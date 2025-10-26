@@ -64,6 +64,11 @@ func (r *Reducer) applyTaskCreated(e Event) error {
 		taskUUID = payload.TaskID
 	}
 
+	// Guard against duplicate task.created for same UUID
+	if _, exists := r.tasks[taskUUID]; exists {
+		return nil
+	}
+
 	r.tasks[taskUUID] = &Task{
 		TaskUUID:  taskUUID,
 		TaskID:    payload.TaskID,
@@ -196,10 +201,19 @@ func (r *Reducer) applyTaskAliasAdded(e Event) error {
 		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
 	}
 
-	// Add alias to the task
-	task.Aliases = append(task.Aliases, payload.AliasID)
+	// Dedupe: only add alias if not already present
+	alreadyExists := false
+	for _, alias := range task.Aliases {
+		if alias == payload.AliasID {
+			alreadyExists = true
+			break
+		}
+	}
+	if !alreadyExists {
+		task.Aliases = append(task.Aliases, payload.AliasID)
+	}
 
-	// Register the alias in the lookup map
+	// Register the alias in the lookup map (idempotent)
 	r.taskByID[payload.AliasID] = payload.TaskUUID
 
 	return nil

@@ -125,19 +125,29 @@ func runMvCmd(cmd *cobra.Command, args []string) error {
 
 	// Process each move specification
 	var plan []movePlanEntry
+	reserved := make(map[string]struct{}) // Track reserved IDs in this batch
 	for _, spec := range specs {
-		// Resolve short ID to full ID first
-		fullID, err := db.ResolveTaskID(spec.oldID)
+		// Resolve to UUID first (handles aliases and reprefixed tasks)
+		taskUUID, err := db.ResolveTaskIDToUUID(spec.oldID)
 		if err != nil {
 			return fmt.Errorf("failed to resolve task ID %s: %w", spec.oldID, err)
 		}
-		spec.oldID = fullID
 
-		entry, err := planMove(db, reducer, nodeID, spec)
+		// Get current task ID from reducer
+		task, ok := reducer.GetTask(taskUUID)
+		if !ok {
+			return fmt.Errorf("task not found: %s", spec.oldID)
+		}
+		spec.oldID = task.TaskID
+
+		entry, err := planMove(db, reducer, nodeID, spec, reserved)
 		if err != nil {
 			return fmt.Errorf("failed to plan move for %s: %w", spec.oldID, err)
 		}
 		plan = append(plan, entry)
+
+		// Mark the new ID as reserved for subsequent plans
+		reserved[entry.newID] = struct{}{}
 	}
 
 	// Display plan
@@ -212,7 +222,7 @@ func parseMoveSpecs(args []string) ([]moveSpec, error) {
 	return specs, nil
 }
 
-func planMove(db *DB, reducer *Reducer, nodeID string, spec moveSpec) (movePlanEntry, error) {
+func planMove(db *DB, reducer *Reducer, nodeID string, spec moveSpec, reserved map[string]struct{}) (movePlanEntry, error) {
 	// Resolve old ID to task
 	task, ok := reducer.GetTask(spec.oldID)
 	if !ok {
@@ -232,9 +242,10 @@ func planMove(db *DB, reducer *Reducer, nodeID string, spec moveSpec) (movePlanE
 	}
 	oldNode := parts[2]
 
-	// Determine new number
+	// Determine new number - handle --keep-number vs --auto precedence
 	newNumber := spec.newNumber
 	if spec.keepNumber {
+		// --keep-number takes precedence
 		newNumber = oldNumber
 	} else if spec.autoNumber {
 		// Get next available number for the prefix
@@ -258,10 +269,16 @@ func planMove(db *DB, reducer *Reducer, nodeID string, spec moveSpec) (movePlanE
 	note := ""
 	conflict := false
 
-	// Check for collision (if new ID already exists)
-	if _, ok := reducer.GetTask(newID); ok {
+	// Check for collision (if new ID already exists in reducer or is reserved in this batch)
+	_, existsInReducer := reducer.GetTask(newID)
+	_, existsInReserved := reserved[newID]
+	if existsInReducer || existsInReserved {
 		conflict = true
-		note = fmt.Sprintf("collision with existing task %s", newID)
+		if existsInReserved {
+			note = fmt.Sprintf("collision with earlier move in batch to %s", newID)
+		} else {
+			note = fmt.Sprintf("collision with existing task %s", newID)
+		}
 		if spec.onCollision == "auto" {
 			// Auto-assign next number
 			newNumber, err = db.GetNextTaskNumberForPrefix(spec.newPrefix)

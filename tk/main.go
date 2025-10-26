@@ -315,6 +315,7 @@ var viewCmd = &cobra.Command{
 		defer db.Close()
 
 		// Build reducer to get task and all its IDs (current + aliases)
+		// TODO: Consider caching reducer or adding task_index table for performance
 		events, err := db.GetEvents()
 		if err != nil {
 			return err
