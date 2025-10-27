@@ -380,3 +380,183 @@ func TestGetBuildPath(t *testing.T) {
 		})
 	}
 }
+
+func TestToolRegistry(t *testing.T) {
+	tests := []struct {
+		name          string
+		toolName      string
+		wantExists    bool
+		wantAutomatic bool
+	}{
+		{
+			name:          "mise tool exists",
+			toolName:      "mise",
+			wantExists:    true,
+			wantAutomatic: true,
+		},
+		{
+			name:          "uv tool exists",
+			toolName:      "uv",
+			wantExists:    true,
+			wantAutomatic: false,
+		},
+		{
+			name:          "jc tool exists and is automatic",
+			toolName:      "jc",
+			wantExists:    true,
+			wantAutomatic: true,
+		},
+		{
+			name:          "markitdown tool exists",
+			toolName:      "markitdown",
+			wantExists:    true,
+			wantAutomatic: true,
+		},
+		{
+			name:       "nonexistent tool",
+			toolName:   "nonexistent-tool-xyz",
+			wantExists: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tool, exists := ToolRegistry[tt.toolName]
+			if exists != tt.wantExists {
+				t.Errorf("ToolRegistry[%q] exists = %v, want %v", tt.toolName, exists, tt.wantExists)
+			}
+			if exists && tool.InstallStep.Automatic != tt.wantAutomatic {
+				t.Errorf("ToolRegistry[%q].InstallStep.Automatic = %v, want %v", tt.toolName, tool.InstallStep.Automatic, tt.wantAutomatic)
+			}
+		})
+	}
+}
+
+func TestBuildToolInstallationPlan(t *testing.T) {
+	tests := []struct {
+		name            string
+		toolName        string
+		wantStepsMin    int
+		wantStepsMax    int
+		expectMiseSteps bool
+	}{
+		{
+			name:            "jc installation (requires mise)",
+			toolName:        "jc",
+			wantStepsMin:    1,
+			wantStepsMax:    4, // Could include mise installation steps
+			expectMiseSteps: true,
+		},
+		{
+			name:            "markitdown installation (requires mise)",
+			toolName:        "markitdown",
+			wantStepsMin:    1,
+			wantStepsMax:    4,
+			expectMiseSteps: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Skip if tool is already available (can't test installation plan)
+			if isToolAvailable(tt.toolName) {
+				t.Skipf("Tool %s is already available, skipping installation plan test", tt.toolName)
+			}
+
+			steps := buildToolInstallationPlan(tt.toolName)
+
+			if len(steps) < tt.wantStepsMin || len(steps) > tt.wantStepsMax {
+				t.Errorf("buildToolInstallationPlan(%q) returned %d steps, want between %d and %d",
+					tt.toolName, len(steps), tt.wantStepsMin, tt.wantStepsMax)
+			}
+
+			// Check that steps are properly structured
+			for i, step := range steps {
+				if step.Description == "" {
+					t.Errorf("Step %d has empty Description", i)
+				}
+				if step.Command == "" {
+					t.Errorf("Step %d has empty Command", i)
+				}
+			}
+		})
+	}
+}
+
+func TestBuildMiseInstallationSteps(t *testing.T) {
+	steps := buildMiseInstallationSteps()
+
+	// Should have at least 1 step (mise installation)
+	// May have more if shell activation is needed
+	if len(steps) < 1 {
+		t.Errorf("buildMiseInstallationSteps() returned %d steps, want at least 1", len(steps))
+	}
+
+	// First step should be mise installation
+	if steps[0].Type != "install" {
+		t.Errorf("First step type = %v, want 'install'", steps[0].Type)
+	}
+
+	// Check that all steps have proper structure
+	for i, step := range steps {
+		if step.Description == "" {
+			t.Errorf("Step %d has empty Description", i)
+		}
+		if step.Command == "" {
+			t.Errorf("Step %d has empty Command", i)
+		}
+		if step.Type == "" {
+			t.Errorf("Step %d has empty Type", i)
+		}
+	}
+}
+
+func TestBuildShellConfigStep(t *testing.T) {
+	step := buildShellConfigStep()
+
+	if step.Type != "configure" {
+		t.Errorf("buildShellConfigStep() Type = %v, want 'configure'", step.Type)
+	}
+
+	if step.Automatic != true {
+		t.Errorf("buildShellConfigStep() Automatic = %v, want true", step.Automatic)
+	}
+
+	if step.Description == "" {
+		t.Error("buildShellConfigStep() has empty Description")
+	}
+
+	if step.Command == "" {
+		t.Error("buildShellConfigStep() has empty Command")
+	}
+
+	// Command should contain "mise activate"
+	if !strings.Contains(step.Command, "mise activate") {
+		t.Errorf("buildShellConfigStep() Command should contain 'mise activate', got %q", step.Command)
+	}
+}
+
+func TestBuildManualActivationStep(t *testing.T) {
+	step := buildManualActivationStep()
+
+	if step.Type != "configure" {
+		t.Errorf("buildManualActivationStep() Type = %v, want 'configure'", step.Type)
+	}
+
+	if step.Automatic != false {
+		t.Errorf("buildManualActivationStep() Automatic = %v, want false", step.Automatic)
+	}
+
+	if step.Description == "" {
+		t.Error("buildManualActivationStep() has empty Description")
+	}
+
+	if step.Command == "" {
+		t.Error("buildManualActivationStep() has empty Command")
+	}
+
+	// Command should contain "mise activate"
+	if !strings.Contains(step.Command, "mise activate") {
+		t.Errorf("buildManualActivationStep() Command should contain 'mise activate', got %q", step.Command)
+	}
+}
