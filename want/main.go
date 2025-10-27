@@ -27,6 +27,8 @@ type Tool struct {
 	Name        string   // Name of the tool
 	CheckCmd    string   // Command to check if tool is available (usually just the tool name)
 	InstallStep PlanStep // Step to install the tool
+	// For tools installed via mise, this is the mise package name
+	MisePackage string
 }
 
 // ToolRegistry is a catalogue of installable tools and their installation methods
@@ -56,8 +58,30 @@ var ToolRegistry = map[string]Tool{
 		CheckCmd: "mise",
 		InstallStep: PlanStep{
 			Type:        "install",
-			Description: "Install mise",
+			Description: "Download and run mise installation script",
 			Command:     "curl https://mise.run | sh",
+			Automatic:   true,
+		},
+	},
+	"jc": {
+		Name:        "jc",
+		CheckCmd:    "jc",
+		MisePackage: "jc",
+		InstallStep: PlanStep{
+			Type:        "install",
+			Description: "Install jc via mise",
+			Command:     "mise use -g jc",
+			Automatic:   true,
+		},
+	},
+	"markitdown": {
+		Name:        "markitdown",
+		CheckCmd:    "markitdown",
+		MisePackage: "python:markitdown",
+		InstallStep: PlanStep{
+			Type:        "install",
+			Description: "Install markitdown via mise",
+			Command:     "mise use -g python:markitdown",
 			Automatic:   true,
 		},
 	},
@@ -78,6 +102,57 @@ func ensureToolAvailable(toolName string) (available bool, installSteps []PlanSt
 	return false, []PlanStep{tool.InstallStep}
 }
 
+// buildToolInstallationPlan creates a complete installation plan for a tool
+// It handles dependencies (like mise) automatically based on the registry
+func buildToolInstallationPlan(toolName string) []PlanStep {
+	var steps []PlanStep
+
+	// Check if tool is already available
+	if isToolAvailable(toolName) {
+		return steps
+	}
+
+	tool, exists := ToolRegistry[toolName]
+	if !exists {
+		// Tool not in registry, can't generate a plan
+		return steps
+	}
+
+	// If this tool is installed via mise, ensure mise is available first
+	if tool.MisePackage != "" && !isMiseAvailable() {
+		// Add mise installation steps
+		steps = append(steps, buildMiseInstallationSteps()...)
+	}
+
+	// Add the tool's installation step
+	steps = append(steps, tool.InstallStep)
+
+	return steps
+}
+
+// buildShellConfigStep creates a step to configure shell for mise activation
+func buildShellConfigStep() PlanStep {
+	configFile := getShellConfigFile()
+	shellName := getShellName()
+	return PlanStep{
+		Type:        "configure",
+		Description: fmt.Sprintf("Add mise activation to %s", configFile),
+		Command:     fmt.Sprintf("echo 'eval \"$(mise activate %s)\"' >> %s", shellName, configFile),
+		Automatic:   true,
+	}
+}
+
+// buildManualActivationStep creates a manual step for activating mise in current shell
+func buildManualActivationStep() PlanStep {
+	shellName := getShellName()
+	return PlanStep{
+		Type:        "configure",
+		Description: "Activate mise in current shell (or restart shell)",
+		Command:     fmt.Sprintf("eval \"$(mise activate %s)\"", shellName),
+		Automatic:   false,
+	}
+}
+
 // PlanStep represents a single step in a fulfillment plan
 type PlanStep struct {
 	Type        string `json:"type"`        // "install", "download", "execute", "configure"
@@ -95,31 +170,26 @@ type FulfillmentPlan struct {
 
 // buildMiseInstallationSteps returns the steps needed to install mise
 func buildMiseInstallationSteps() []PlanStep {
-	steps := []PlanStep{
-		{
+	var steps []PlanStep
+
+	// Get mise tool from registry
+	miseTool, exists := ToolRegistry["mise"]
+	if !exists {
+		// Fallback to hardcoded step if not in registry (shouldn't happen)
+		steps = append(steps, PlanStep{
 			Type:        "install",
 			Description: "Download and run mise installation script",
 			Command:     "curl https://mise.run | sh",
 			Automatic:   true,
-		},
+		})
+	} else {
+		steps = append(steps, miseTool.InstallStep)
 	}
 
 	// Check if mise activation is needed
 	if !isMiseActivated() {
-		configFile := getShellConfigFile()
-		shellName := getShellName()
-		steps = append(steps, PlanStep{
-			Type:        "configure",
-			Description: fmt.Sprintf("Add mise activation to %s", configFile),
-			Command:     fmt.Sprintf("echo 'eval \"$(mise activate %s)\"' >> %s", shellName, configFile),
-			Automatic:   true,
-		})
-		steps = append(steps, PlanStep{
-			Type:        "configure",
-			Description: "Activate mise in current shell (or restart shell)",
-			Command:     fmt.Sprintf("eval \"$(mise activate %s)\"", shellName),
-			Automatic:   false,
-		})
+		steps = append(steps, buildShellConfigStep())
+		steps = append(steps, buildManualActivationStep())
 	}
 
 	return steps
@@ -569,30 +639,13 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 
 	commandStr := strings.Join(args, " ")
 
-	// Check if we need to install jc
-	needsJcInstall := !isToolAvailable("jc")
-
-	// Build the plan
+	// Build the plan using the tool registry
 	plan := FulfillmentPlan{
 		Requirement: fmt.Sprintf("json %s", commandStr),
-		Steps:       []PlanStep{},
+		Steps:       buildToolInstallationPlan("jc"),
 	}
 
-	// Check if jc is available
-	if needsJcInstall {
-		// Check if mise is available - if not, add mise installation steps first
-		if !isMiseAvailable() {
-			plan.Steps = append(plan.Steps, buildMiseInstallationSteps()...)
-		}
-
-		plan.Steps = append(plan.Steps, PlanStep{
-			Type:        "install",
-			Description: "Install jc via mise",
-			Command:     "mise use -g jc",
-			Automatic:   true,
-		})
-	}
-
+	// Add execution step
 	plan.Steps = append(plan.Steps, PlanStep{
 		Type:        "execute",
 		Description: "Execute command with jc",
@@ -630,7 +683,7 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 	fmt.Println()
 
 	// Install jc if needed
-	if needsJcInstall {
+	if !isToolAvailable("jc") {
 		if !isMiseAvailable() {
 			if err := performMiseInstallation(); err != nil {
 				fmt.Printf("\nError: %v\n", err)
@@ -704,8 +757,9 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 	hasMise := isMiseAvailable()
 	hasUv := isToolAvailable("uv")
 
-	// Determine the best method and build the plan
+	// Determine the best method and build the plan using algorithm
 	if hasMarkitdown {
+		// Already installed, just execute
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Convert URL to markdown",
@@ -713,6 +767,7 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 			Automatic:   true,
 		})
 	} else if hasUvx {
+		// Use uvx to run without installation
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Run markitdown via uvx",
@@ -720,13 +775,8 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 			Automatic:   true,
 		})
 	} else if hasMise {
-		// mise is available, use it to install markitdown
-		plan.Steps = append(plan.Steps, PlanStep{
-			Type:        "install",
-			Description: "Install markitdown via mise",
-			Command:     "mise use -g python:markitdown",
-			Automatic:   true,
-		})
+		// mise is available, install markitdown via registry
+		plan.Steps = append(plan.Steps, buildToolInstallationPlan("markitdown")...)
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Convert URL to markdown",
@@ -734,6 +784,7 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 			Automatic:   true,
 		})
 	} else if hasUv {
+		// Use uv tool run without installation
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Run markitdown via uv",
@@ -741,9 +792,8 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 			Automatic:   true,
 		})
 	} else {
-		// Neither uvx nor mise available - need to install uv
-		_, uvSteps := ensureToolAvailable("uv")
-		plan.Steps = append(plan.Steps, uvSteps...)
+		// Neither uvx nor mise available - need to install uv via registry
+		plan.Steps = append(plan.Steps, buildToolInstallationPlan("uv")...)
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Run markitdown via uvx",
@@ -882,16 +932,10 @@ font.flavor = None
 font.save('%s')`
 	formattedPythonScript := fmt.Sprintf(pythonScript, woff2Path, ttfPath)
 
-	// Build the plan
+	// Build the plan using registry
 	plan := FulfillmentPlan{
 		Requirement: "excalifont",
-		Steps:       []PlanStep{},
-	}
-
-	// Ensure uv is available
-	hasUv, uvSteps := ensureToolAvailable("uv")
-	if !hasUv {
-		plan.Steps = append(plan.Steps, uvSteps...)
+		Steps:       buildToolInstallationPlan("uv"),
 	}
 
 	// Download the font
@@ -951,8 +995,8 @@ font.save('%s')`
 	}
 	fmt.Println()
 
-	// Check for uv
-	if !hasUv {
+	// Check for uv - use registry-based check
+	if !isToolAvailable("uv") {
 		fmt.Println("Error: uv is not installed")
 		fmt.Println()
 		fmt.Println("Please install uv first:")
@@ -1094,23 +1138,30 @@ func installToolViaMise(tool string, dryRun bool, planJson bool) {
 		return
 	}
 
-	// Build the plan
+	// Build the plan using registry if tool exists there, otherwise manual
 	plan := FulfillmentPlan{
 		Requirement: tool,
 		Steps:       []PlanStep{},
 	}
 
-	// Check if mise is available and add to plan if needed
-	if !isMiseAvailable() {
-		plan.Steps = append(plan.Steps, buildMiseInstallationSteps()...)
-	}
+	// Try to use registry for known tools
+	registryTool, inRegistry := ToolRegistry[tool]
+	if inRegistry && registryTool.MisePackage != "" {
+		// Use registry-based plan generation
+		plan.Steps = buildToolInstallationPlan(tool)
+	} else {
+		// Tool not in registry, build plan manually
+		if !isMiseAvailable() {
+			plan.Steps = append(plan.Steps, buildMiseInstallationSteps()...)
+		}
 
-	plan.Steps = append(plan.Steps, PlanStep{
-		Type:        "install",
-		Description: fmt.Sprintf("Install %s via mise", tool),
-		Command:     fmt.Sprintf("mise use -g %s", tool),
-		Automatic:   true,
-	})
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "install",
+			Description: fmt.Sprintf("Install %s via mise", tool),
+			Command:     fmt.Sprintf("mise use -g %s", tool),
+			Automatic:   true,
+		})
+	}
 
 	// Handle plan output modes
 	if planJson {
