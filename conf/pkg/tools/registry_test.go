@@ -11,6 +11,7 @@ func TestGetSupportedTools(t *testing.T) {
 		"jj":       true,
 		"mise":     true,
 		"starship": true,
+		"claude":   true,
 	}
 
 	if len(tools) != len(expectedTools) {
@@ -39,7 +40,7 @@ func TestGetSupportedTools(t *testing.T) {
 
 func TestGetTool(t *testing.T) {
 	// Test getting valid tools (some may fail in test environment)
-	validTools := []string{"jj", "mise", "starship"}
+	validTools := []string{"jj", "mise", "starship", "claude"}
 
 	for _, toolName := range validTools {
 		tool, err := GetTool(toolName)
@@ -93,7 +94,7 @@ func TestGetActualValue(t *testing.T) {
 
 func TestToolRegistryCompleteness(t *testing.T) {
 	// Ensure all expected tools are registered
-	expectedTools := []string{"jj", "mise", "starship"}
+	expectedTools := []string{"jj", "mise", "starship", "claude"}
 
 	for _, expectedTool := range expectedTools {
 		if _, exists := toolRegistry[expectedTool]; !exists {
