@@ -180,3 +180,13 @@ mise run //lib/fslog:test
 cd lib/fslog
 go test -v ./...
 ```
+
+## Example
+
+See [example/main.go](example/main.go) for a complete demonstration of the library's features.
+
+Run the example:
+```bash
+cd lib/fslog/example
+go run main.go
+```
