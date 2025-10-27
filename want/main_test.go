@@ -383,33 +383,33 @@ func TestGetBuildPath(t *testing.T) {
 
 func TestToolRegistry(t *testing.T) {
 	tests := []struct {
-		name         string
-		toolName     string
-		wantExists   bool
+		name          string
+		toolName      string
+		wantExists    bool
 		wantAutomatic bool
 	}{
 		{
-			name:         "mise tool exists",
-			toolName:     "mise",
-			wantExists:   true,
+			name:          "mise tool exists",
+			toolName:      "mise",
+			wantExists:    true,
 			wantAutomatic: true,
 		},
 		{
-			name:         "uv tool exists",
-			toolName:     "uv",
-			wantExists:   true,
+			name:          "uv tool exists",
+			toolName:      "uv",
+			wantExists:    true,
 			wantAutomatic: false,
 		},
 		{
-			name:         "jc tool exists and is automatic",
-			toolName:     "jc",
-			wantExists:   true,
+			name:          "jc tool exists and is automatic",
+			toolName:      "jc",
+			wantExists:    true,
 			wantAutomatic: true,
 		},
 		{
-			name:         "markitdown tool exists",
-			toolName:     "markitdown",
-			wantExists:   true,
+			name:          "markitdown tool exists",
+			toolName:      "markitdown",
+			wantExists:    true,
 			wantAutomatic: true,
 		},
 		{
@@ -434,11 +434,11 @@ func TestToolRegistry(t *testing.T) {
 
 func TestBuildToolInstallationPlan(t *testing.T) {
 	tests := []struct {
-		name             string
-		toolName         string
-		wantStepsMin     int
-		wantStepsMax     int
-		expectMiseSteps  bool
+		name            string
+		toolName        string
+		wantStepsMin    int
+		wantStepsMax    int
+		expectMiseSteps bool
 	}{
 		{
 			name:            "jc installation (requires mise)",
@@ -464,7 +464,7 @@ func TestBuildToolInstallationPlan(t *testing.T) {
 			}
 
 			steps := buildToolInstallationPlan(tt.toolName)
-			
+
 			if len(steps) < tt.wantStepsMin || len(steps) > tt.wantStepsMax {
 				t.Errorf("buildToolInstallationPlan(%q) returned %d steps, want between %d and %d",
 					tt.toolName, len(steps), tt.wantStepsMin, tt.wantStepsMax)

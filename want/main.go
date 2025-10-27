@@ -58,7 +58,7 @@ var ToolRegistry = map[string]Tool{
 		CheckCmd: "mise",
 		InstallStep: PlanStep{
 			Type:        "install",
-			Description: "Download and run mise installation script",
+			Description: "Install mise",
 			Command:     "curl https://mise.run | sh",
 			Automatic:   true,
 		},
@@ -175,16 +175,11 @@ func buildMiseInstallationSteps() []PlanStep {
 	// Get mise tool from registry
 	miseTool, exists := ToolRegistry["mise"]
 	if !exists {
-		// Fallback to hardcoded step if not in registry (shouldn't happen)
-		steps = append(steps, PlanStep{
-			Type:        "install",
-			Description: "Download and run mise installation script",
-			Command:     "curl https://mise.run | sh",
-			Automatic:   true,
-		})
-	} else {
-		steps = append(steps, miseTool.InstallStep)
+		// This should never happen - mise must be in registry
+		panic("mise tool not found in ToolRegistry - this is a bug")
 	}
+
+	steps = append(steps, miseTool.InstallStep)
 
 	// Check if mise activation is needed
 	if !isMiseActivated() {
@@ -995,7 +990,7 @@ font.save('%s')`
 	}
 	fmt.Println()
 
-	// Check for uv - use registry-based check
+	// Check if uv is available before execution
 	if !isToolAvailable("uv") {
 		fmt.Println("Error: uv is not installed")
 		fmt.Println()
@@ -1146,11 +1141,13 @@ func installToolViaMise(tool string, dryRun bool, planJson bool) {
 
 	// Try to use registry for known tools
 	registryTool, inRegistry := ToolRegistry[tool]
-	if inRegistry && registryTool.MisePackage != "" {
-		// Use registry-based plan generation
+	usesMise := inRegistry && registryTool.MisePackage != ""
+
+	if usesMise {
+		// Use registry-based plan generation for mise-installed tools
 		plan.Steps = buildToolInstallationPlan(tool)
 	} else {
-		// Tool not in registry, build plan manually
+		// Tool not in registry or doesn't use mise, build plan manually
 		if !isMiseAvailable() {
 			plan.Steps = append(plan.Steps, buildMiseInstallationSteps()...)
 		}
