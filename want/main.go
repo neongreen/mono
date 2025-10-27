@@ -176,7 +176,7 @@ func buildMiseInstallationSteps() []PlanStep {
 	miseTool, exists := ToolRegistry["mise"]
 	if !exists {
 		// This should never happen - mise must be in registry
-		panic("mise tool not found in ToolRegistry - this is a bug")
+		panic("BUG: 'mise' tool not found in ToolRegistry. Please ensure ToolRegistry includes a 'mise' entry with proper installation steps.")
 	}
 
 	steps = append(steps, miseTool.InstallStep)
@@ -1139,11 +1139,8 @@ func installToolViaMise(tool string, dryRun bool, planJson bool) {
 		Steps:       []PlanStep{},
 	}
 
-	// Try to use registry for known tools
-	registryTool, inRegistry := ToolRegistry[tool]
-	usesMise := inRegistry && registryTool.MisePackage != ""
-
-	if usesMise {
+	// Check if tool is in registry and uses mise
+	if registryTool, inRegistry := ToolRegistry[tool]; inRegistry && registryTool.MisePackage != "" {
 		// Use registry-based plan generation for mise-installed tools
 		plan.Steps = buildToolInstallationPlan(tool)
 	} else {
