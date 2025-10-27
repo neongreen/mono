@@ -622,25 +622,48 @@ var lsCmd = &cobra.Command{
 		// Group and render tasks based on groupBy flag
 		switch groupBy {
 		case "prefix":
-			// Group tasks by prefix
+			// Group tasks by prefix/project
 			grouped := make(map[string][]*Task)
 			var groupOrder []string // To maintain consistent order
 
-			for _, task := range tasks {
-				prefix := extractPrefix(task.TaskID)
-				if _, exists := grouped[prefix]; !exists {
-					groupOrder = append(groupOrder, prefix)
-				}
-				grouped[prefix] = append(grouped[prefix], task)
+			// Check DB version to determine grouping strategy
+			dbVersion, err := db.GetDBVersion()
+			if err != nil {
+				return fmt.Errorf("failed to get DB version: %w", err)
 			}
 
-			// Render a table for each prefix group
-			for i, prefix := range groupOrder {
+			for _, task := range tasks {
+				var groupKey string
+				if dbVersion >= 4 {
+					// V4: Group by project alias
+					projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
+					if err != nil {
+						groupKey = task.TaskUUID // Fallback to UID
+					} else {
+						groupKey = projectAlias
+					}
+				} else {
+					// V1/V2: Group by prefix from task ID
+					groupKey = extractPrefix(task.TaskID)
+				}
+
+				if _, exists := grouped[groupKey]; !exists {
+					groupOrder = append(groupOrder, groupKey)
+				}
+				grouped[groupKey] = append(grouped[groupKey], task)
+			}
+
+			// Render a table for each prefix/project group
+			for i, groupKey := range groupOrder {
 				if i > 0 {
 					fmt.Println() // Add blank line between tables
 				}
-				fmt.Printf("Prefix: %s\n", prefix)
-				renderTaskTable(db, grouped[prefix], taskIDs, showAliases, termWidth)
+				if dbVersion >= 4 {
+					fmt.Printf("Project: %s\n", groupKey)
+				} else {
+					fmt.Printf("Prefix: %s\n", groupKey)
+				}
+				renderTaskTable(db, grouped[groupKey], taskIDs, showAliases, termWidth)
 			}
 
 		case "status":
@@ -729,6 +752,31 @@ func extractPrefix(taskID string) string {
 		return parts[0]
 	}
 	return ""
+}
+
+// getProjectAliasForTask returns the preferred project alias for a task (v4)
+func getProjectAliasForTask(db *DB, taskUID string) (string, error) {
+	// Get project UID for this task
+	var projectUID string
+	err := db.db.QueryRow(`
+		SELECT project_uid FROM tasks WHERE task_uid = ?
+	`, taskUID).Scan(&projectUID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get project for task %s: %w", taskUID, err)
+	}
+
+	// Get preferred alias for this project
+	alias, err := preferredAliasForProject(db, projectUID)
+	if err != nil {
+		return "", err
+	}
+
+	if alias == "" {
+		// No alias, return project UID
+		return projectUID, nil
+	}
+
+	return alias, nil
 }
 
 // renderTaskTable renders a table of tasks with the specified configuration

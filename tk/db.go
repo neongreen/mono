@@ -695,6 +695,33 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 
 // GetAllTaskIDs returns all task IDs in the database
 func (d *DB) GetAllTaskIDs() ([]string, error) {
+	// Check if we're in v4 mode
+	version, err := d.GetDBVersion()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DB version: %w", err)
+	}
+
+	if version >= 4 {
+		// V4: Get task UIDs from tasks table
+		query := `SELECT DISTINCT task_uid FROM tasks ORDER BY created_at`
+		rows, err := d.db.Query(query)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query task UIDs: %w", err)
+		}
+		defer rows.Close()
+
+		var taskUIDs []string
+		for rows.Next() {
+			var taskUID string
+			if err := rows.Scan(&taskUID); err != nil {
+				return nil, fmt.Errorf("failed to scan task UID: %w", err)
+			}
+			taskUIDs = append(taskUIDs, taskUID)
+		}
+		return taskUIDs, rows.Err()
+	}
+
+	// V1/V2: Get task IDs from events
 	query := `
 		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
 		FROM events
@@ -709,11 +736,13 @@ func (d *DB) GetAllTaskIDs() ([]string, error) {
 
 	var taskIDs []string
 	for rows.Next() {
-		var taskID string
+		var taskID sql.NullString
 		if err := rows.Scan(&taskID); err != nil {
 			return nil, fmt.Errorf("failed to scan task ID: %w", err)
 		}
-		taskIDs = append(taskIDs, taskID)
+		if taskID.Valid {
+			taskIDs = append(taskIDs, taskID.String)
+		}
 	}
 
 	return taskIDs, rows.Err()
@@ -725,7 +754,56 @@ func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
 		return d.GetAllTaskIDs()
 	}
 
-	// Build SQL query with OR conditions for each prefix
+	// Check if we're in v4 mode
+	version, err := d.GetDBVersion()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DB version: %w", err)
+	}
+
+	if version >= 4 {
+		// V4: Get task UIDs by project aliases
+		// First, get node ID
+		nodeID, err := d.GetOrCreateNodeID()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get node ID: %w", err)
+		}
+
+		// Build query to find tasks by project alias
+		var conditions []string
+		var args []interface{}
+		for _, alias := range prefixes {
+			conditions = append(conditions, "project_aliases.alias = ?")
+			args = append(args, alias)
+		}
+		args = append(args, nodeID)
+
+		query := `
+			SELECT DISTINCT tasks.task_uid
+			FROM tasks
+			JOIN project_aliases ON tasks.project_uid = project_aliases.project_uid
+			WHERE (` + strings.Join(conditions, " OR ") + `)
+			  AND project_aliases.node = ?
+			ORDER BY tasks.created_at
+		`
+
+		rows, err := d.db.Query(query, args...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query task UIDs by prefix: %w", err)
+		}
+		defer rows.Close()
+
+		var taskUIDs []string
+		for rows.Next() {
+			var taskUID string
+			if err := rows.Scan(&taskUID); err != nil {
+				return nil, fmt.Errorf("failed to scan task UID: %w", err)
+			}
+			taskUIDs = append(taskUIDs, taskUID)
+		}
+		return taskUIDs, rows.Err()
+	}
+
+	// V1/V2: Build SQL query with OR conditions for each prefix
 	var conditions []string
 	var args []interface{}
 	for _, prefix := range prefixes {
@@ -747,11 +825,13 @@ func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
 
 	var taskIDs []string
 	for rows.Next() {
-		var taskID string
+		var taskID sql.NullString
 		if err := rows.Scan(&taskID); err != nil {
 			return nil, fmt.Errorf("failed to scan task ID: %w", err)
 		}
-		taskIDs = append(taskIDs, taskID)
+		if taskID.Valid {
+			taskIDs = append(taskIDs, taskID.String)
+		}
 	}
 
 	return taskIDs, rows.Err()
