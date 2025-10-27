@@ -236,3 +236,37 @@ func TestClaudeTool_DryRun(t *testing.T) {
 		t.Errorf("File should not exist in dry-run mode")
 	}
 }
+
+func TestClaudeTool_SchemaValidation(t *testing.T) {
+	_, cleanup := setupTestConfig(t)
+	defer cleanup()
+
+	tool, err := NewClaudeTool()
+	if err != nil {
+		t.Fatalf("Failed to create Claude tool: %v", err)
+	}
+
+	// Test invalid path should fail
+	err = tool.SetConfig("invalid.path", "value")
+	if err == nil {
+		t.Error("Expected error for invalid path")
+	}
+
+	// Test valid path should succeed
+	err = tool.SetConfig("model", "claude-3-5-sonnet-20241022")
+	if err != nil {
+		t.Errorf("SetConfig with valid path failed: %v", err)
+	}
+
+	// Test another invalid path
+	err = tool.SetConfig("api.invalid", "value")
+	if err == nil {
+		t.Error("Expected error for invalid nested path")
+	}
+
+	// Test valid nested path should succeed
+	err = tool.SetConfig("api.key", "sk-ant-test")
+	if err != nil {
+		t.Errorf("SetConfig with valid nested path failed: %v", err)
+	}
+}
