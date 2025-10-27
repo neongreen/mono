@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/neongreen/mono/lib/ghclient"
@@ -821,6 +822,13 @@ func handleExcalifontCommand(args []string, dryRun bool, planJson bool) {
 	woff2Path := filepath.Join(tmpDir, "Excalifont Regular.woff2")
 	ttfPath := filepath.Join(tmpDir, "Excalifont Regular.ttf")
 
+	// Python script for converting woff2 to ttf
+	pythonScript := `from fontTools.ttLib import TTFont
+font = TTFont('%s')
+font.flavor = None
+font.save('%s')`
+	formattedPythonScript := fmt.Sprintf(pythonScript, woff2Path, ttfPath)
+
 	// Build the plan
 	plan := FulfillmentPlan{
 		Requirement: "excalifont",
@@ -847,24 +855,29 @@ func handleExcalifontCommand(args []string, dryRun bool, planJson bool) {
 	})
 
 	// Convert woff2 to ttf using Python script with uv
-	pythonScript := `from fontTools.ttLib import TTFont
-font = TTFont('%s')
-font.flavor = None
-font.save('%s')`
 	plan.Steps = append(plan.Steps, PlanStep{
 		Type:        "execute",
 		Description: "Convert woff2 to ttf using fontTools",
-		Command:     fmt.Sprintf("uv run --with fonttools --with brotli python3 -c \"%s\"", fmt.Sprintf(pythonScript, woff2Path, ttfPath)),
+		Command:     fmt.Sprintf("uv run --with fonttools --with brotli python3 -c \"%s\"", formattedPythonScript),
 		Automatic:   true,
 	})
 
 	// On macOS, open the font to install it
-	plan.Steps = append(plan.Steps, PlanStep{
-		Type:        "execute",
-		Description: "Open the font file (macOS Font Book will handle installation)",
-		Command:     fmt.Sprintf("open '%s'", ttfPath),
-		Automatic:   true,
-	})
+	if runtime.GOOS == "darwin" {
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "execute",
+			Description: "Open the font file (macOS Font Book will handle installation)",
+			Command:     fmt.Sprintf("open '%s'", ttfPath),
+			Automatic:   true,
+		})
+	} else {
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "configure",
+			Description: "Font saved and ready to install",
+			Command:     fmt.Sprintf("Font saved to: %s", ttfPath),
+			Automatic:   false,
+		})
+	}
 
 	// Handle plan output modes
 	if planJson {
@@ -921,12 +934,7 @@ font.save('%s')`
 
 	// Convert woff2 to ttf
 	fmt.Println("Converting woff2 to ttf...")
-	pythonCode := fmt.Sprintf(`from fontTools.ttLib import TTFont
-font = TTFont('%s')
-font.flavor = None
-font.save('%s')`, woff2Path, ttfPath)
-
-	cmd = exec.Command("uv", "run", "--with", "fonttools", "--with", "brotli", "python3", "-c", pythonCode)
+	cmd = exec.Command("uv", "run", "--with", "fonttools", "--with", "brotli", "python3", "-c", formattedPythonScript)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -938,29 +946,43 @@ font.save('%s')`, woff2Path, ttfPath)
 	}
 	fmt.Println()
 
-	// Open the font on macOS
-	fmt.Println("Opening font in Font Book...")
-	cmd = exec.Command("open", ttfPath)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nWarning: Failed to open font: %v\n", err)
-		fmt.Printf("\nThe font has been converted and saved to: %s\n", ttfPath)
-		fmt.Println("You can manually double-click it to install.")
-		os.Exit(1)
-	}
+	// Open the font on macOS or show instructions for other platforms
+	if runtime.GOOS == "darwin" {
+		fmt.Println("Opening font in Font Book...")
+		cmd = exec.Command("open", ttfPath)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("\nWarning: Failed to open font: %v\n", err)
+			fmt.Printf("\nThe font has been converted and saved to: %s\n", ttfPath)
+			fmt.Println("You can manually double-click it to install.")
+			return
+		}
 
-	fmt.Println()
-	fmt.Printf("✓ Excalifont Regular has been opened in Font Book\n")
-	fmt.Println()
-	fmt.Println("Summary:")
-	fmt.Printf("  ✓ Downloaded from excalidraw.com\n")
-	fmt.Printf("  ✓ Converted woff2 to ttf\n")
-	fmt.Printf("  ✓ Font file saved to: %s\n", ttfPath)
-	fmt.Println()
-	fmt.Println("Next steps:")
-	fmt.Println("  • Font Book should now be open")
-	fmt.Println("  • Click 'Install Font' to add it to your system")
+		fmt.Println()
+		fmt.Printf("✓ Excalifont Regular has been opened in Font Book\n")
+		fmt.Println()
+		fmt.Println("Summary:")
+		fmt.Printf("  ✓ Downloaded from excalidraw.com\n")
+		fmt.Printf("  ✓ Converted woff2 to ttf\n")
+		fmt.Printf("  ✓ Font file saved to: %s\n", ttfPath)
+		fmt.Println()
+		fmt.Println("Next steps:")
+		fmt.Println("  • Font Book should now be open")
+		fmt.Println("  • Click 'Install Font' to add it to your system")
+	} else {
+		fmt.Println()
+		fmt.Printf("✓ Excalifont Regular has been converted successfully\n")
+		fmt.Println()
+		fmt.Println("Summary:")
+		fmt.Printf("  ✓ Downloaded from excalidraw.com\n")
+		fmt.Printf("  ✓ Converted woff2 to ttf\n")
+		fmt.Printf("  ✓ Font file saved to: %s\n", ttfPath)
+		fmt.Println()
+		fmt.Println("Next steps:")
+		fmt.Println("  • Double-click the font file to install it")
+		fmt.Printf("  • Or copy it to your system fonts directory\n")
+	}
 }
 
 // installToolViaMise installs a tool using mise
