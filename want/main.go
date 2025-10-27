@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/neongreen/mono/lib/ghclient"
@@ -20,6 +21,62 @@ const version = "0.1.0-mvp"
 
 // goVersion is the Go version to use when building projects via mise
 const goVersion = "1.24.7"
+
+// Tool represents an installable tool or dependency
+type Tool struct {
+	Name        string   // Name of the tool
+	CheckCmd    string   // Command to check if tool is available (usually just the tool name)
+	InstallStep PlanStep // Step to install the tool
+}
+
+// ToolRegistry is a catalogue of installable tools and their installation methods
+var ToolRegistry = map[string]Tool{
+	"uv": {
+		Name:     "uv",
+		CheckCmd: "uv",
+		InstallStep: PlanStep{
+			Type:        "install",
+			Description: "Install uv (Python package manager)",
+			Command:     "curl -LsSf https://astral.sh/uv/install.sh | sh",
+			Automatic:   false,
+		},
+	},
+	"uvx": {
+		Name:     "uvx",
+		CheckCmd: "uvx",
+		InstallStep: PlanStep{
+			Type:        "install",
+			Description: "Install uv (includes uvx)",
+			Command:     "curl -LsSf https://astral.sh/uv/install.sh | sh",
+			Automatic:   false,
+		},
+	},
+	"mise": {
+		Name:     "mise",
+		CheckCmd: "mise",
+		InstallStep: PlanStep{
+			Type:        "install",
+			Description: "Install mise",
+			Command:     "curl https://mise.run | sh",
+			Automatic:   true,
+		},
+	},
+}
+
+// ensureToolAvailable checks if a tool is available and returns installation steps if not
+func ensureToolAvailable(toolName string) (available bool, installSteps []PlanStep) {
+	if isToolAvailable(toolName) {
+		return true, nil
+	}
+
+	tool, exists := ToolRegistry[toolName]
+	if !exists {
+		// Tool not in registry, return empty steps
+		return false, nil
+	}
+
+	return false, []PlanStep{tool.InstallStep}
+}
 
 // PlanStep represents a single step in a fulfillment plan
 type PlanStep struct {
@@ -155,6 +212,7 @@ Usage:
   want mono [--dry-run] [--plan-json] <project@version>   Install specific version or PR
   want json <command>                                   Convert command output to JSON
   want md <url>                                         Convert URL to markdown
+  want excalifont                                       Download and install Excalifont
   want list                                             Show what you have
   want check                                            Check status of requirements
   want forget <name>                                    Remove from tracking (doesn't uninstall)
@@ -172,6 +230,7 @@ Examples:
   want --plan-json jujutsu             # Show installation plan as JSON
   want json ps                         # Get running processes as JSON (uses jc)
   want md https://example.com          # Convert webpage to markdown
+  want excalifont                      # Download and install Excalifont font
   want mono printpdf --list            # List all releases and open PRs of printpdf
   want mono printpdf@main.1            # Install printpdf version main.1 from mono
   want mono printpdf@main              # Build printpdf from latest commit on main branch
@@ -455,8 +514,9 @@ type CompoundHandler func(args []string, dryRun bool, planJson bool)
 // getCompoundHandler returns a handler for compound commands if one exists
 func getCompoundHandler(command string) (CompoundHandler, bool) {
 	handlers := map[string]CompoundHandler{
-		"json": handleJsonCommand,
-		"md":   handleMarkdownCommand,
+		"json":       handleJsonCommand,
+		"md":         handleMarkdownCommand,
+		"excalifont": handleExcalifontCommand,
 	}
 	handler, ok := handlers[command]
 	return handler, ok
@@ -681,12 +741,9 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 			Automatic:   true,
 		})
 	} else {
-		plan.Steps = append(plan.Steps, PlanStep{
-			Type:        "install",
-			Description: "Install uv (recommended)",
-			Command:     "curl -LsSf https://astral.sh/uv/install.sh | sh",
-			Automatic:   false,
-		})
+		// Neither uvx nor mise available - need to install uv
+		_, uvSteps := ensureToolAvailable("uv")
+		plan.Steps = append(plan.Steps, uvSteps...)
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Run markitdown via uvx",
@@ -795,6 +852,184 @@ func usePureMd(url string) {
 	if err != nil {
 		fmt.Printf("\nError: Failed to fetch from pure.md\n")
 		os.Exit(1)
+	}
+}
+
+// handleExcalifontCommand handles "want excalifont" - downloads and installs Excalifont
+func handleExcalifontCommand(args []string, dryRun bool, planJson bool) {
+	if len(args) > 0 {
+		fmt.Println("Error: excalifont command does not take arguments")
+		fmt.Println("Usage: want excalifont")
+		os.Exit(1)
+	}
+
+	// Determine destination directory
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error: Failed to get home directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Use a temporary directory for downloading
+	tmpDir := filepath.Join(homeDir, ".cache", "want")
+	woff2Path := filepath.Join(tmpDir, "Excalifont Regular.woff2")
+	ttfPath := filepath.Join(tmpDir, "Excalifont Regular.ttf")
+
+	// Python script for converting woff2 to ttf
+	pythonScript := `from fontTools.ttLib import TTFont
+font = TTFont('%s')
+font.flavor = None
+font.save('%s')`
+	formattedPythonScript := fmt.Sprintf(pythonScript, woff2Path, ttfPath)
+
+	// Build the plan
+	plan := FulfillmentPlan{
+		Requirement: "excalifont",
+		Steps:       []PlanStep{},
+	}
+
+	// Ensure uv is available
+	hasUv, uvSteps := ensureToolAvailable("uv")
+	if !hasUv {
+		plan.Steps = append(plan.Steps, uvSteps...)
+	}
+
+	// Download the font
+	plan.Steps = append(plan.Steps, PlanStep{
+		Type:        "download",
+		Description: "Download Excalifont Regular (woff2) from excalidraw.com",
+		Command:     fmt.Sprintf("curl -L -o '%s' https://excalidraw.com/Excalifont-Regular.woff2", woff2Path),
+		Automatic:   true,
+	})
+
+	// Convert woff2 to ttf using Python script with uv
+	plan.Steps = append(plan.Steps, PlanStep{
+		Type:        "execute",
+		Description: "Convert woff2 to ttf using fontTools",
+		Command:     fmt.Sprintf("uv run --with fonttools --with brotli python3 -c \"%s\"", formattedPythonScript),
+		Automatic:   true,
+	})
+
+	// On macOS, open the font to install it
+	if runtime.GOOS == "darwin" {
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "execute",
+			Description: "Open the font file (macOS Font Book will handle installation)",
+			Command:     fmt.Sprintf("open '%s'", ttfPath),
+			Automatic:   true,
+		})
+	} else {
+		plan.Steps = append(plan.Steps, PlanStep{
+			Type:        "configure",
+			Description: "Font saved and ready to install",
+			Command:     fmt.Sprintf("Font saved to: %s", ttfPath),
+			Automatic:   false,
+		})
+	}
+
+	// Handle plan output modes
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(jsonStr)
+		return
+	}
+
+	if dryRun {
+		plan.PrintPlan()
+		return
+	}
+
+	// Execute the plan
+	plan.PrintPlan()
+	if !plan.ConfirmPlan() {
+		fmt.Println("Cancelled.")
+		os.Exit(0)
+	}
+	fmt.Println()
+
+	// Check for uv
+	if !hasUv {
+		fmt.Println("Error: uv is not installed")
+		fmt.Println()
+		fmt.Println("Please install uv first:")
+		fmt.Println("  curl -LsSf https://astral.sh/uv/install.sh | sh")
+		fmt.Println()
+		fmt.Println("Then rerun:")
+		fmt.Println("  want excalifont")
+		os.Exit(1)
+	}
+
+	// Create cache directory
+	if err := os.MkdirAll(tmpDir, 0o755); err != nil {
+		fmt.Printf("Error: Failed to create cache directory %s: %v\n", tmpDir, err)
+		os.Exit(1)
+	}
+
+	// Download the font
+	fmt.Println("Downloading Excalifont Regular...")
+	cmd := exec.Command("curl", "-L", "-o", woff2Path, "https://excalidraw.com/Excalifont-Regular.woff2")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("\nError: Failed to download Excalifont: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println()
+
+	// Convert woff2 to ttf
+	fmt.Println("Converting woff2 to ttf...")
+	cmd = exec.Command("uv", "run", "--with", "fonttools", "--with", "brotli", "python3", "-c", formattedPythonScript)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("\nError: Failed to convert font: %v\n", err)
+		fmt.Println("\nTroubleshooting:")
+		fmt.Println("  • Make sure uv is installed and in PATH")
+		fmt.Println("  • The conversion uses fonttools and brotli Python packages")
+		os.Exit(1)
+	}
+	fmt.Println()
+
+	// Open the font on macOS or show instructions for other platforms
+	if runtime.GOOS == "darwin" {
+		fmt.Println("Opening font in Font Book...")
+		cmd = exec.Command("open", ttfPath)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("\nWarning: Failed to open font: %v\n", err)
+			fmt.Printf("\nThe font has been converted and saved to: %s\n", ttfPath)
+			fmt.Println("You can manually double-click it to install.")
+			return
+		}
+
+		fmt.Println()
+		fmt.Printf("✓ Excalifont Regular has been opened in Font Book\n")
+		fmt.Println()
+		fmt.Println("Summary:")
+		fmt.Printf("  ✓ Downloaded from excalidraw.com\n")
+		fmt.Printf("  ✓ Converted woff2 to ttf\n")
+		fmt.Printf("  ✓ Font file saved to: %s\n", ttfPath)
+		fmt.Println()
+		fmt.Println("Next steps:")
+		fmt.Println("  • Font Book should now be open")
+		fmt.Println("  • Click 'Install Font' to add it to your system")
+	} else {
+		fmt.Println()
+		fmt.Printf("✓ Excalifont Regular has been converted successfully\n")
+		fmt.Println()
+		fmt.Println("Summary:")
+		fmt.Printf("  ✓ Downloaded from excalidraw.com\n")
+		fmt.Printf("  ✓ Converted woff2 to ttf\n")
+		fmt.Printf("  ✓ Font file saved to: %s\n", ttfPath)
+		fmt.Println()
+		fmt.Println("Next steps:")
+		fmt.Println("  • Double-click the font file to install it")
+		fmt.Printf("  • Or copy it to your system fonts directory\n")
 	}
 }
 
