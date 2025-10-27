@@ -22,6 +22,62 @@ const version = "0.1.0-mvp"
 // goVersion is the Go version to use when building projects via mise
 const goVersion = "1.24.7"
 
+// Tool represents an installable tool or dependency
+type Tool struct {
+	Name        string   // Name of the tool
+	CheckCmd    string   // Command to check if tool is available (usually just the tool name)
+	InstallStep PlanStep // Step to install the tool
+}
+
+// ToolRegistry is a catalogue of installable tools and their installation methods
+var ToolRegistry = map[string]Tool{
+	"uv": {
+		Name:     "uv",
+		CheckCmd: "uv",
+		InstallStep: PlanStep{
+			Type:        "install",
+			Description: "Install uv (Python package manager)",
+			Command:     "curl -LsSf https://astral.sh/uv/install.sh | sh",
+			Automatic:   false,
+		},
+	},
+	"uvx": {
+		Name:     "uvx",
+		CheckCmd: "uvx",
+		InstallStep: PlanStep{
+			Type:        "install",
+			Description: "Install uv (includes uvx)",
+			Command:     "curl -LsSf https://astral.sh/uv/install.sh | sh",
+			Automatic:   false,
+		},
+	},
+	"mise": {
+		Name:     "mise",
+		CheckCmd: "mise",
+		InstallStep: PlanStep{
+			Type:        "install",
+			Description: "Install mise",
+			Command:     "curl https://mise.run | sh",
+			Automatic:   true,
+		},
+	},
+}
+
+// ensureToolAvailable checks if a tool is available and returns installation steps if not
+func ensureToolAvailable(toolName string) (available bool, installSteps []PlanStep) {
+	if isToolAvailable(toolName) {
+		return true, nil
+	}
+
+	tool, exists := ToolRegistry[toolName]
+	if !exists {
+		// Tool not in registry, return empty steps
+		return false, nil
+	}
+
+	return false, []PlanStep{tool.InstallStep}
+}
+
 // PlanStep represents a single step in a fulfillment plan
 type PlanStep struct {
 	Type        string `json:"type"`        // "install", "download", "execute", "configure"
@@ -685,12 +741,9 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 			Automatic:   true,
 		})
 	} else {
-		plan.Steps = append(plan.Steps, PlanStep{
-			Type:        "install",
-			Description: "Install uv (recommended)",
-			Command:     "curl -LsSf https://astral.sh/uv/install.sh | sh",
-			Automatic:   false,
-		})
+		// Neither uvx nor mise available - need to install uv
+		_, uvSteps := ensureToolAvailable("uv")
+		plan.Steps = append(plan.Steps, uvSteps...)
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Run markitdown via uvx",
@@ -835,15 +888,10 @@ font.save('%s')`
 		Steps:       []PlanStep{},
 	}
 
-	// Check if uv is available
-	hasUv := isToolAvailable("uv")
+	// Ensure uv is available
+	hasUv, uvSteps := ensureToolAvailable("uv")
 	if !hasUv {
-		plan.Steps = append(plan.Steps, PlanStep{
-			Type:        "install",
-			Description: "Install uv (required for font conversion)",
-			Command:     "curl -LsSf https://astral.sh/uv/install.sh | sh",
-			Automatic:   false,
-		})
+		plan.Steps = append(plan.Steps, uvSteps...)
 	}
 
 	// Download the font
