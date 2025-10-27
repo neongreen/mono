@@ -1,14 +1,16 @@
 package fslog
 
 import (
-	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // FileSystem provides ACID-ish semantics over filesystem operations.
@@ -408,64 +410,48 @@ func (op *Operation) Diff() string {
 	}
 }
 
-// OperationLog is an append-only, immutable log of filesystem operations.
+// OperationLog is an append-only, immutable log of filesystem operations stored in SQLite.
 type OperationLog struct {
-	mu      sync.RWMutex
-	logDir  string
-	logFile *os.File
-	nextID  int64
+	mu     sync.RWMutex
+	logDir string
+	db     *sql.DB
 }
 
 // OpenOperationLog opens or creates an operation log in the given directory.
 func OpenOperationLog(logDir string) (*OperationLog, error) {
-	logPath := filepath.Join(logDir, "operations.jsonl")
+	dbPath := filepath.Join(logDir, "operations.db")
 
-	// Try to open existing log
-	var nextID int64 = 1
-	if _, err := os.Stat(logPath); err == nil {
-		// Read existing log to find next ID
-		ops, err := readOperationLog(logPath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read existing log: %w", err)
-		}
-		for _, op := range ops {
-			if op.ID >= nextID {
-				nextID = op.ID + 1
-			}
-		}
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Open log file for appending
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %w", err)
+	// Create table if it doesn't exist
+	schema := `
+	CREATE TABLE IF NOT EXISTS operations (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		type TEXT NOT NULL,
+		path TEXT NOT NULL,
+		before_exists INTEGER NOT NULL,
+		before_content BLOB,
+		before_mode INTEGER,
+		after_content BLOB,
+		after_mode INTEGER,
+		timestamp TEXT NOT NULL,
+		metadata TEXT
+	);
+	CREATE INDEX IF NOT EXISTS idx_timestamp ON operations(timestamp);
+	`
+
+	if _, err := db.Exec(schema); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to create schema: %w", err)
 	}
 
 	return &OperationLog{
-		logDir:  logDir,
-		logFile: logFile,
-		nextID:  nextID,
+		logDir: logDir,
+		db:     db,
 	}, nil
-}
-
-// readOperationLog reads all operations from a log file.
-func readOperationLog(path string) ([]*Operation, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var ops []*Operation
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	for decoder.More() {
-		var op Operation
-		if err := decoder.Decode(&op); err != nil {
-			return nil, fmt.Errorf("failed to decode operation: %w", err)
-		}
-		ops = append(ops, &op)
-	}
-
-	return ops, nil
 }
 
 // Append adds an operation to the log.
@@ -473,21 +459,43 @@ func (ol *OperationLog) Append(op *Operation) error {
 	ol.mu.Lock()
 	defer ol.mu.Unlock()
 
-	op.ID = ol.nextID
-	ol.nextID++
+	// Marshal metadata to JSON
+	var metadataJSON []byte
+	var err error
+	if len(op.Metadata) > 0 {
+		metadataJSON, err = json.Marshal(op.Metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata: %w", err)
+		}
+	}
 
-	data, err := json.Marshal(op)
+	query := `
+	INSERT INTO operations (type, path, before_exists, before_content, before_mode, 
+	                        after_content, after_mode, timestamp, metadata)
+	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+
+	result, err := ol.db.Exec(query,
+		string(op.Type),
+		op.Path,
+		op.BeforeExists,
+		op.BeforeContent,
+		int64(op.BeforeMode),
+		op.AfterContent,
+		int64(op.AfterMode),
+		op.Timestamp.Format(time.RFC3339Nano),
+		metadataJSON,
+	)
 	if err != nil {
-		return fmt.Errorf("failed to marshal operation: %w", err)
+		return fmt.Errorf("failed to insert operation: %w", err)
 	}
 
-	if _, err := ol.logFile.Write(append(data, '\n')); err != nil {
-		return fmt.Errorf("failed to write to log: %w", err)
+	// Get the auto-incremented ID
+	id, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("failed to get operation ID: %w", err)
 	}
-
-	if err := ol.logFile.Sync(); err != nil {
-		return fmt.Errorf("failed to sync log: %w", err)
-	}
+	op.ID = id
 
 	return nil
 }
@@ -497,8 +505,71 @@ func (ol *OperationLog) All() ([]*Operation, error) {
 	ol.mu.RLock()
 	defer ol.mu.RUnlock()
 
-	logPath := filepath.Join(ol.logDir, "operations.jsonl")
-	return readOperationLog(logPath)
+	query := `
+	SELECT id, type, path, before_exists, before_content, before_mode,
+	       after_content, after_mode, timestamp, metadata
+	FROM operations
+	ORDER BY id ASC
+	`
+
+	rows, err := ol.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query operations: %w", err)
+	}
+	defer rows.Close()
+
+	var ops []*Operation
+	for rows.Next() {
+		op := &Operation{
+			Metadata: make(map[string]string),
+		}
+
+		var opType string
+		var beforeMode, afterMode int64
+		var timestampStr string
+		var metadataJSON []byte
+
+		err := rows.Scan(
+			&op.ID,
+			&opType,
+			&op.Path,
+			&op.BeforeExists,
+			&op.BeforeContent,
+			&beforeMode,
+			&op.AfterContent,
+			&afterMode,
+			&timestampStr,
+			&metadataJSON,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan operation: %w", err)
+		}
+
+		op.Type = OpType(opType)
+		op.BeforeMode = os.FileMode(beforeMode)
+		op.AfterMode = os.FileMode(afterMode)
+
+		// Parse timestamp
+		op.Timestamp, err = time.Parse(time.RFC3339Nano, timestampStr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse timestamp: %w", err)
+		}
+
+		// Unmarshal metadata
+		if len(metadataJSON) > 0 {
+			if err := json.Unmarshal(metadataJSON, &op.Metadata); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+			}
+		}
+
+		ops = append(ops, op)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating operations: %w", err)
+	}
+
+	return ops, nil
 }
 
 // Close closes the operation log.
@@ -506,8 +577,8 @@ func (ol *OperationLog) Close() error {
 	ol.mu.Lock()
 	defer ol.mu.Unlock()
 
-	if ol.logFile != nil {
-		return ol.logFile.Close()
+	if ol.db != nil {
+		return ol.db.Close()
 	}
 	return nil
 }

@@ -142,8 +142,8 @@ Represents a single filesystem change with complete before/after state:
 
 ### OperationLog
 
-Append-only, immutable log stored as JSON Lines format. Each operation includes:
-- Unique ID
+Append-only, immutable log stored in SQLite database. Each operation includes:
+- Unique ID (auto-incremented)
 - Operation type
 - Target path
 - Before state (content, mode, existence)

@@ -11,7 +11,7 @@ The library implements a layered architecture:
 1. **FileSystem** - Main entry point managing the operation log and providing transaction support
 2. **Transaction** - Groups multiple operations applied atomically with all-or-nothing semantics
 3. **Operation** - Single filesystem change with complete before/after state capture
-4. **OperationLog** - Persistent, append-only log in JSON Lines format
+4. **OperationLog** - Persistent, append-only log stored in SQLite database
 
 ## Key Features
 
@@ -69,18 +69,35 @@ Each operation provides a simple diff summary:
 
 ### Storage Format
 
-Operations are stored in JSON Lines format (`operations.jsonl`):
-```jsonl
-{"id":1,"type":"create","path":"config.txt","before_exists":false,"after_content":"...","after_mode":420,"timestamp":"..."}
-{"id":2,"type":"write","path":"config.txt","before_exists":true,"before_content":"...","after_content":"...","timestamp":"..."}
+Operations are stored in a SQLite database (`operations.db`):
+
+```sql
+CREATE TABLE operations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,
+    path TEXT NOT NULL,
+    before_exists INTEGER NOT NULL,
+    before_content BLOB,
+    before_mode INTEGER,
+    after_content BLOB,
+    after_mode INTEGER,
+    timestamp TEXT NOT NULL,
+    metadata TEXT
+);
 ```
+
+The database provides:
+- Efficient querying and indexing
+- ACID guarantees at the storage level
+- Compact storage with SQLite's compression
+- Fast sequential access for history retrieval
 
 ### File Layout
 
 ```
 /path/to/data/
   .fslog/
-    operations.jsonl  # Operation log
+    operations.db     # SQLite operation log
   config.txt          # Actual files
   data/
     file.txt
@@ -150,15 +167,16 @@ Storing complete before/after content in each operation:
 - **Con**: Log grows proportional to data size
 - **Decision**: Acceptable for target use case (small config files)
 
-### Why JSON Lines?
+### Why SQLite?
 
-JSON Lines format for the operation log:
-- **Pro**: Human-readable
-- **Pro**: Easy to debug
-- **Pro**: Simple to parse and append
-- **Pro**: Tool-friendly (grep, jq, etc.)
-- **Con**: Larger than binary format
-- **Decision**: Simplicity and debuggability over efficiency
+SQLite database for the operation log:
+- **Pro**: ACID guarantees at the storage level
+- **Pro**: Efficient indexing and querying
+- **Pro**: Compact storage with built-in compression
+- **Pro**: Fast sequential and random access
+- **Pro**: Standard, well-tested format
+- **Con**: Requires CGO for go-sqlite3
+- **Decision**: Performance and reliability over pure-Go simplicity
 
 ### Why No Log Compaction?
 
@@ -194,23 +212,24 @@ See `example/main.go` for a complete working demonstration showing:
 
 ## Performance Characteristics
 
+With SQLite storage:
 - **Transaction Begin**: O(1) - just allocates structure
 - **Add Operation**: O(1) - appends to in-memory list
-- **Transaction Commit**: O(n) where n = operations in transaction
+- **Transaction Commit**: O(n) where n = operations in transaction (includes SQL INSERT)
 - **Rollback**: O(m) where m = operations to reverse
-- **History**: O(k) where k = total operations in log
+- **History**: O(k) where k = total operations (efficient indexed query)
 
 ## Future Enhancements
 
 Potential additions (not currently implemented):
 - Log compaction and archival
-- Binary format option for efficiency
 - Streaming large files (chunks)
 - Multi-process locking
 - Remote operation log storage
 - Incremental snapshots
 - Diff visualization tools
 - Integration with version control systems
+- Query operations by path, time range, or type
 
 ## Status
 
