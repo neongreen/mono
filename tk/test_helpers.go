@@ -172,3 +172,88 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 	}
 	return json.RawMessage(data)
 }
+
+// Helper functions for creating v4 events without testing context
+
+func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) Event {
+	payload := ProjectCreatedPayload{
+		ProjectUID:  projectUID,
+		Type:        "local",
+		Name:        name,
+		Description: description,
+		CreatedBy:   createdBy,
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	
+	return Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     createdBy,
+		Role:      "human",
+		Kind:      string(EventKindProjectCreated),
+		Payload:   payloadJSON,
+	}
+}
+
+func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) Event {
+	payload := ProjectAliasAddPayload{
+		ProjectUID: projectUID,
+		Alias:      alias,
+		Node:       node,
+		AddedBy:    addedBy,
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	
+	return Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     addedBy,
+		Role:      "human",
+		Kind:      string(EventKindProjectAliasAdd),
+		Payload:   payloadJSON,
+	}
+}
+
+func createTaskCreatedV4Event(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) Event {
+	payload := TaskCreatedV4Payload{
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: proposedNumber,
+		CreatedNode:    createdNode,
+		Title:          title,
+		CreatedBy:      createdBy,
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	
+	return Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     createdBy,
+		Role:      "human",
+		Kind:      string(EventKindTaskCreated),
+		Payload:   payloadJSON,
+	}
+}
+
+func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason string) Event {
+	payload := TaskNumberSetPayload{
+		TaskUID:    taskUID,
+		ProjectUID: projectUID,
+		Number:     number,
+		Reason:     reason,
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	
+	return Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "system",
+		Role:      "human",
+		Kind:      string(EventKindTaskNumberSet),
+		Payload:   payloadJSON,
+	}
+}
