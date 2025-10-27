@@ -32,6 +32,7 @@ Interactive task fulfillment tool for macOS.
 - [x] **Compound commands with parameters** - Transform and execute commands
   - [x] **`want json <command>`** - Convert command output to JSON using `jc`
   - [x] **`want md <url>`** - Convert URL to markdown using `markitdown` or `pure.md`
+  - [x] **`want excalifont`** - Download and install Excalifont font
 - [x] **Basic CLI interface** - Help, version, and command structure
 - [x] **Command stubs** - `list`, `check`, `forget` commands (not functional yet)
 
@@ -56,6 +57,7 @@ want --dry-run jujutsu      # Preview what would be done (no confirmation)
 want --plan-json jujutsu    # Output fulfillment plan as JSON
 want json ps                # Get process list as JSON (installs jc if needed)
 want md https://example.com # Convert URL to markdown
+want excalifont             # Download and install Excalifont font
 want mono printpdf --list   # List all releases of printpdf from mono
 want mono printpdf@main.1   # Install printpdf version main.1 from mono
 want https://github.com/org/repo/releases/tag/v1.0.0  # Download GitHub release
@@ -379,6 +381,9 @@ want json df -h                 # Get disk usage as JSON
 # Convert URLs to markdown
 want md https://example.com     # Convert webpage to markdown
 want md https://news.ycombinator.com
+
+# Install Excalifont font
+want excalifont                 # Download and install Excalifont
 ```
 
 **How it works:**
@@ -388,7 +393,8 @@ want md https://news.ycombinator.com
   - Falls back to `mise` for installation
   - If neither available, suggests installing `uv`
   - Final fallback to `pure.md` web service
-- Both commands support `--dry-run` and `--plan-json` flags
+- `want excalifont` downloads Excalifont Regular from excalidraw.com, converts woff2 to ttf using fontTools (via uv), and opens it in Font Book (macOS)
+- All commands support `--dry-run` and `--plan-json` flags
 
 ### Commands not yet functional (❌ NOT IMPLEMENTED)
 
