@@ -164,7 +164,10 @@ func TestV4MigrationWithMultipleUnseenTasks(t *testing.T) {
 			Axis:   "completion",
 			State:  "todo",
 		}
-		statusPayloadJSON, _ := json.Marshal(statusPayload)
+		statusPayloadJSON, err := json.Marshal(statusPayload)
+		if err != nil {
+			t.Fatalf("failed to marshal status payload: %v", err)
+		}
 
 		statusEvent := Event{
 			ID:        string(NewEventID()),
@@ -190,7 +193,10 @@ func TestV4MigrationWithMultipleUnseenTasks(t *testing.T) {
 			Title:     "Task " + task.id,
 			CreatedBy: "alice",
 		}
-		taskPayloadJSON, _ := json.Marshal(taskPayload)
+		taskPayloadJSON, err := json.Marshal(taskPayload)
+		if err != nil {
+			t.Fatalf("failed to marshal task payload: %v", err)
+		}
 
 		taskEvent := Event{
 			ID:        string(NewEventID()),
@@ -271,7 +277,10 @@ func TestV4MigrationWithRelationBeforeTask(t *testing.T) {
 		Dst:  task2UUID,
 		Note: "",
 	}
-	relationPayloadJSON, _ := json.Marshal(relationPayload)
+	relationPayloadJSON, err := json.Marshal(relationPayload)
+	if err != nil {
+		t.Fatalf("failed to marshal relation payload: %v", err)
+	}
 
 	relationEvent := Event{
 		ID:        string(NewEventID()),
@@ -295,7 +304,10 @@ func TestV4MigrationWithRelationBeforeTask(t *testing.T) {
 		Title:     "Task 1",
 		CreatedBy: "alice",
 	}
-	task1PayloadJSON, _ := json.Marshal(task1Payload)
+	task1PayloadJSON, err := json.Marshal(task1Payload)
+	if err != nil {
+		t.Fatalf("failed to marshal task1 payload: %v", err)
+	}
 
 	task1Event := Event{
 		ID:        string(NewEventID()),
@@ -318,7 +330,10 @@ func TestV4MigrationWithRelationBeforeTask(t *testing.T) {
 		Title:     "Task 2",
 		CreatedBy: "alice",
 	}
-	task2PayloadJSON, _ := json.Marshal(task2Payload)
+	task2PayloadJSON, err := json.Marshal(task2Payload)
+	if err != nil {
+		t.Fatalf("failed to marshal task2 payload: %v", err)
+	}
 
 	task2Event := Event{
 		ID:        string(NewEventID()),

@@ -138,7 +138,8 @@ func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) 
 				if taskUID == "" {
 					taskUID = string(NewTaskUID())
 				}
-				ctx.registerTask(taskUID, taskCreated.TaskUUID, taskCreated.TaskID)
+				// Register with the resolved UUID consistently
+				ctx.registerTask(taskUID, taskUID, taskCreated.TaskID)
 				return taskUID, nil
 			}
 		}
@@ -162,7 +163,8 @@ func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) 
 				if taskUID == "" {
 					taskUID = string(NewTaskUID())
 				}
-				ctx.registerTask(taskUID, taskCreated.TaskUUID, taskCreated.TaskID)
+				// Register with the resolved UUID consistently
+				ctx.registerTask(taskUID, taskUID, taskCreated.TaskID)
 				return taskUID, nil
 			}
 		}
