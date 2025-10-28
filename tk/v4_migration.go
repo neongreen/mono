@@ -168,6 +168,30 @@ func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) 
 				return taskUID, nil
 			}
 		}
+
+		// Also try searching by task_id in case legacyUUID is actually a task ID
+		// This can happen when the TaskUUID field in old events contained task IDs
+		err = ctx.db.db.QueryRow(`
+			SELECT payload
+			FROM events
+			WHERE kind = 'task.created'
+			AND json_extract(payload, '$.task_id') = ?
+			LIMIT 1
+		`, legacyUUID).Scan(&payload)
+
+		if err == nil {
+			var taskCreated TaskCreatedPayload
+			if err := json.Unmarshal(payload, &taskCreated); err == nil {
+				// Found the task, register it and return the UUID
+				taskUID := taskCreated.TaskUUID
+				if taskUID == "" {
+					taskUID = string(NewTaskUID())
+				}
+				// Register with the original legacy UUID (even if empty) for consistency
+				ctx.registerTask(taskUID, taskCreated.TaskUUID, taskCreated.TaskID)
+				return taskUID, nil
+			}
+		}
 	}
 
 	return "", fmt.Errorf("v4 migration: unknown task reference (uuid=%q id=%q)", legacyUUID, taskID)
