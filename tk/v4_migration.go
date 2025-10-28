@@ -194,18 +194,18 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 		ctx.prefixToProject[prefix] = projectUID
 
 		// Find the earliest task creation time for this prefix to use as a deterministic timestamp
-		var earliestCreatedAt int64
+		var earliestCreatedAtNano int64
 		err := ctx.db.db.QueryRow(`
 			SELECT MIN(created_at)
 			FROM events
 			WHERE kind = 'task.created'
 			AND json_extract(payload, '$.task_id') LIKE ? || '-%'
-		`, prefix).Scan(&earliestCreatedAt)
+		`, prefix).Scan(&earliestCreatedAtNano)
 
 		createdAt := time.Now()
-		if err == nil && earliestCreatedAt > 0 {
-			// Use the earliest task creation time
-			createdAt = time.Unix(0, earliestCreatedAt)
+		if err == nil && earliestCreatedAtNano > 0 {
+			// Use the earliest task creation time (created_at is stored in nanoseconds)
+			createdAt = time.Unix(0, earliestCreatedAtNano)
 		}
 
 		// Create and insert project.created event
