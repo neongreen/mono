@@ -30,3 +30,4 @@ Thumbs.db
 ai-temp-*
 tmp_rovodev_*conf/main
 main
+*.new
