@@ -6,15 +6,25 @@ This directory contains JSON schemas for configuration validation.
 
 **Always use official schemas when available. Never write schemas by hand.**
 
+## ⚠️ ABSOLUTELY NOT ALLOWED ⚠️
+
+**Never claim a hand-written schema comes from an official source.**
+
+This is misleading and will cause users to trust incorrect information. If you write a schema by hand, you MUST:
+1. Clearly mark it as hand-written in ALL documentation
+2. Add prominent warnings in the metadata file and the schema itself
+3. Explain why an official schema couldn't be used
+4. Never claim it came from SchemaStore.org or any official source
+
 ### Priority Order
 1. **SchemaStore.org**: Check https://www.schemastore.org/ first
 2. **Official project schemas**: Use schemas from the official project documentation
-3. **Custom schemas**: Only as a last resort when no official schema exists
+3. **Custom schemas**: Only as a last resort when no official schema exists, and MUST be clearly marked
 
 ### Metadata Files
 
 Each schema file MUST have a corresponding `.meta` file documenting:
-- **Source URL**: Where the schema was downloaded from
+- **Source URL**: Where the schema was downloaded from (or "HAND-WRITTEN" if not downloaded)
 - **Download Date**: When it was downloaded (YYYY-MM-DD format)
 - **Modifications**: Any changes made, by whom, and why
 - **Update History**: Track of all updates and changes
@@ -26,8 +36,8 @@ Each schema file MUST have a corresponding `.meta` file documenting:
   - Source: https://jj-vcs.github.io/jj/latest/config-schema.json
   - See: jj.json.meta
 
-- **claude.json**: Schema from SchemaStore.org
-  - Source: https://www.schemastore.org/claude-code-settings.json
+- **claude.json**: ⚠️ HAND-WRITTEN (POLICY VIOLATION - TEMPORARY)
+  - Intended source: https://www.schemastore.org/claude-code-settings.json
   - See: claude.json.meta
 
 - **mise.schema**: Custom schema (no official schema available)

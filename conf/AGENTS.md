@@ -21,15 +21,34 @@
 
 **Policy**: Always use official schemas from SchemaStore.org (https://www.schemastore.org/) when available. Never write schemas by hand.
 
+### ⚠️ ABSOLUTELY NOT ALLOWED ⚠️
+
+**Never claim a hand-written schema comes from an official source.**
+
+This is misleading and will cause users to trust incorrect information. Examples of what is NOT allowed:
+- Writing a schema by hand and claiming it came from SchemaStore.org
+- Creating a schema based on documentation and calling it "official"
+- Modifying an official schema without clearly documenting all changes
+- Failing to track the actual provenance of a schema
+
+**If you write a schema by hand:**
+1. Clearly mark it as hand-written in all documentation
+2. Add prominent warnings in the metadata file
+3. Explain why an official schema couldn't be used
+4. Create a plan to replace it with an official schema ASAP
+
+### Schema Tracking Requirements
+
 For each schema file:
 - Track download date and source URL in `.meta` file alongside the schema
 - Document any modifications with date, author, and reason
 - Check for updates periodically
+- Be 100% truthful about the schema's actual origin
 
 **Current schemas**:
 - **jj**: Download from `https://jj-vcs.github.io/jj/latest/config-schema.json`
-- **mise**: Custom schema definition based on documentation
-- **claude**: From SchemaStore.org at `https://www.schemastore.org/claude-code-settings.json` (see `claude.json.meta` for details)
+- **mise**: Custom schema definition based on documentation (no official schema exists)
+- **claude**: ⚠️ HAND-WRITTEN (TEMPORARY) - intended source: `https://www.schemastore.org/claude-code-settings.json` (see `claude.json.meta` for details and warnings)
 - **Embedded**: Bundle schemas in binary for offline use
 
 ## CLI Interface Pattern
