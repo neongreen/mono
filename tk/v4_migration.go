@@ -117,6 +117,57 @@ func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) 
 		}
 	}
 
+	// Task not found in cache, try looking it up in the events table
+	// This can happen if a task.status.set or other event comes before task.created
+	// in the event ordering during migration
+	if taskID != "" {
+		var payload []byte
+		err := ctx.db.db.QueryRow(`
+			SELECT payload
+			FROM events
+			WHERE kind = 'task.created'
+			AND json_extract(payload, '$.task_id') = ?
+			LIMIT 1
+		`, taskID).Scan(&payload)
+		
+		if err == nil {
+			var taskCreated TaskCreatedPayload
+			if err := json.Unmarshal(payload, &taskCreated); err == nil {
+				// Found the task, register it and return the UUID
+				taskUID := taskCreated.TaskUUID
+				if taskUID == "" {
+					taskUID = string(NewTaskUID())
+				}
+				ctx.registerTask(taskUID, taskCreated.TaskUUID, taskCreated.TaskID)
+				return taskUID, nil
+			}
+		}
+	}
+
+	if legacyUUID != "" {
+		var payload []byte
+		err := ctx.db.db.QueryRow(`
+			SELECT payload
+			FROM events
+			WHERE kind = 'task.created'
+			AND json_extract(payload, '$.task_uuid') = ?
+			LIMIT 1
+		`, legacyUUID).Scan(&payload)
+		
+		if err == nil {
+			var taskCreated TaskCreatedPayload
+			if err := json.Unmarshal(payload, &taskCreated); err == nil {
+				// Found the task, register it and return the UUID
+				taskUID := taskCreated.TaskUUID
+				if taskUID == "" {
+					taskUID = string(NewTaskUID())
+				}
+				ctx.registerTask(taskUID, taskCreated.TaskUUID, taskCreated.TaskID)
+				return taskUID, nil
+			}
+		}
+	}
+
 	return "", fmt.Errorf("v4 migration: unknown task reference (uuid=%q id=%q)", legacyUUID, taskID)
 }
 
