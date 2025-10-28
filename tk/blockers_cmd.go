@@ -40,14 +40,18 @@ var blockersCmd = &cobra.Command{
 		}
 
 		// Resolve task ID to UUID
-		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		taskUUID, err := ResolveTaskReference(db, taskID)
 		if err != nil {
 			return err
 		}
 
-		task, ok := reducer.GetTask(taskUUID)
-		if !ok {
+		if _, ok := reducer.GetTask(taskUUID); !ok {
 			return fmt.Errorf("task not found: %s", taskID)
+		}
+
+		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		if err != nil {
+			displayID = taskID
 		}
 
 		// Get transitive blockers
@@ -55,11 +59,11 @@ var blockersCmd = &cobra.Command{
 		blockers := reducer.relations.GetTransitiveBlockers(taskUUID, reducer.tasks, config.Blocking.BlockingAxis, config.Blocking.DoneStates, maxDepth)
 
 		if len(blockers) == 0 {
-			fmt.Printf("Task %s has no blockers\n", task.TaskID)
+			fmt.Printf("Task %s has no blockers\n", displayID)
 			return nil
 		}
 
-		fmt.Printf("Blockers for %s:\n\n", task.TaskID)
+		fmt.Printf("Blockers for %s:\n\n", displayID)
 
 		// Print blockers in a table
 		t := table.NewWriter()
@@ -67,7 +71,11 @@ var blockersCmd = &cobra.Command{
 		t.SetStyle(table.StyleLight)
 
 		for _, blocker := range blockers {
-			t.AppendRow(table.Row{blocker.Distance, blocker.TaskID, blocker.Title})
+			blockerDisplay, err := RenderTaskDisplayID(db, blocker.TaskID)
+			if err != nil {
+				blockerDisplay = blocker.TaskID
+			}
+			t.AppendRow(table.Row{blocker.Distance, blockerDisplay, blocker.Title})
 		}
 
 		fmt.Println(t.Render())

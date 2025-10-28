@@ -1,116 +1,133 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
 
+type moveOptions struct {
+	Mode         string
+	ForceNumber  int64
+	OnCollision  string
+	TargetNumber *int64
+}
+
 var mvCmd = &cobra.Command{
-	Use:   "mv [old-id] [new-spec] [...]",
-	Short: "Move or renumber tasks",
-	Long: `Move tasks between prefixes or renumber them.
+	Use:   "mv <task> <target>",
+	Short: "Move a task to another project",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		taskRef := args[0]
+		targetSpec := args[1]
 
-Examples:
-  # Move task tak-11 to cnc-1
-  tk mv tak-11 cnc:1
+		db, err := openExistingDB()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
 
-  # Move task tak-11 to cnc, keeping the same number
-  tk mv tak-11 cnc --keep-number
+		opts, err := parseMoveOptions(cmd, targetSpec)
+		if err != nil {
+			return err
+		}
 
-  # Move task tak-11 to cnc, auto-assign next available number
-  tk mv tak-11 cnc --auto
-
-  # Move multiple tasks
-  tk mv tak-11 cnc:1 tk-28 want:1 tk-29 want:2
-
-  # Dry run to see what would happen
-  tk mv tak-11 cnc:1 -n`,
-	Args: cobra.MinimumNArgs(2),
-	RunE: runMvCmd,
+		return moveTask(db, taskRef, targetSpec, opts)
+	},
 }
 
-type moveSpec struct {
-	oldID       string
-	newPrefix   string
-	newNumber   int64
-	autoNumber  bool
-	keepNumber  bool
-	addAlias    bool
-	onCollision string // "fail", "auto", "swap"
-}
-
-func init() {
-	mvCmd.Flags().BoolP("dry-run", "n", false, "Show what would happen without making changes")
-	mvCmd.Flags().Bool("alias", true, "Create alias for old ID (default: true)")
-	mvCmd.Flags().Bool("no-alias", false, "Don't create alias for old ID")
-	mvCmd.Flags().Bool("auto", false, "Auto-assign next available number on collision")
-	mvCmd.Flags().Bool("keep-number", false, "Keep the same number in the new prefix")
-	mvCmd.Flags().String("on-collision", "fail", "What to do on collision: fail, auto, swap")
-}
-
-func runMvCmd(cmd *cobra.Command, args []string) error {
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
-	aliasFlag, _ := cmd.Flags().GetBool("alias")
-	noAliasFlag, _ := cmd.Flags().GetBool("no-alias")
-	autoFlag, _ := cmd.Flags().GetBool("auto")
-	keepNumberFlag, _ := cmd.Flags().GetBool("keep-number")
+func parseMoveOptions(cmd *cobra.Command, targetSpec string) (moveOptions, error) {
+	keep, _ := cmd.Flags().GetBool("keep")
+	auto, _ := cmd.Flags().GetBool("auto")
+	forceFlag, _ := cmd.Flags().GetInt64("force")
 	onCollision, _ := cmd.Flags().GetString("on-collision")
 
-	// Parse move specifications from args
-	specs, err := parseMoveSpecs(args)
-	if err != nil {
-		return err
+	if onCollision != "fail" && onCollision != "auto" {
+		return moveOptions{}, fmt.Errorf("invalid value for --on-collision: %s (expected fail or auto)", onCollision)
 	}
 
-	// Apply global flags to specs
-	for i := range specs {
-		if noAliasFlag {
-			specs[i].addAlias = false
-		} else {
-			specs[i].addAlias = aliasFlag
+	// Parse inline target number (alias:number syntax)
+	var inlineNumber *int64
+	if parts := strings.SplitN(targetSpec, ":", 2); len(parts) == 2 {
+		n, err := strconv.ParseInt(parts[1], 10, 64)
+		if err != nil || n <= 0 {
+			return moveOptions{}, fmt.Errorf("invalid number %q in target %s", parts[1], targetSpec)
 		}
-		if autoFlag {
-			specs[i].autoNumber = true
-			// When --auto is set, also set on-collision to auto unless explicitly specified
-			if !cmd.Flags().Changed("on-collision") {
-				specs[i].onCollision = "auto"
-			} else {
-				specs[i].onCollision = onCollision
-			}
-		} else {
-			specs[i].onCollision = onCollision
+		inlineNumber = &n
+	}
+
+	modeCount := 0
+	if keep {
+		modeCount++
+	}
+	if auto {
+		modeCount++
+	}
+	if cmd.Flags().Changed("force") || inlineNumber != nil {
+		modeCount++
+	}
+	if modeCount > 1 {
+		return moveOptions{}, fmt.Errorf("use only one of --keep, --auto, or --force")
+	}
+
+	opts := moveOptions{
+		Mode:         "keep",
+		OnCollision:  onCollision,
+		TargetNumber: inlineNumber,
+	}
+
+	if auto {
+		opts.Mode = "auto"
+	}
+
+	if keep {
+		opts.Mode = "keep"
+	}
+
+	if inlineNumber != nil {
+		opts.Mode = "force"
+		opts.ForceNumber = *inlineNumber
+	}
+
+	if cmd.Flags().Changed("force") {
+		if forceFlag <= 0 {
+			return moveOptions{}, fmt.Errorf("--force requires a positive integer")
 		}
-		if keepNumberFlag {
-			specs[i].keepNumber = true
-		}
+		opts.Mode = "force"
+		opts.ForceNumber = forceFlag
 	}
 
-	// Validate collision strategy
-	if onCollision != "fail" && onCollision != "auto" && onCollision != "swap" {
-		return fmt.Errorf("invalid on-collision value: %s (must be fail, auto, or swap)", onCollision)
-	}
+	return opts, nil
+}
 
-	db, err := openExistingDB()
+func moveTask(db *DB, taskRef string, targetSpec string, opts moveOptions) error {
+	taskUID, err := ResolveTaskReference(db, taskRef)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
-	// Build reducer to resolve task IDs to UUIDs
-	events, err := db.GetEvents()
+	fromProjectUID, oldNumber, err := taskProjectAndNumber(db, taskUID)
 	if err != nil {
 		return err
 	}
-	reducer, err := BuildFromEvents(events)
+
+	targetRef := targetSpec
+	if idx := strings.IndexRune(targetSpec, ':'); idx != -1 {
+		targetRef = targetSpec[:idx]
+	}
+
+	toProjectUID, err := resolveProjectByAlias(db, targetRef)
 	if err != nil {
 		return err
+	}
+
+	if fromProjectUID == toProjectUID && opts.Mode == "keep" && !cmdExplicitNumber(opts) {
+		return fmt.Errorf("task already in project %s", targetRef)
 	}
 
 	currentUser, err := getCurrentUser()
@@ -118,375 +135,120 @@ func runMvCmd(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	nodeID, err := db.GetOrCreateNodeID()
+	lamport, err := db.GetNextLamportTS()
 	if err != nil {
 		return err
 	}
 
-	// Process each move specification
-	var plan []movePlanEntry
-	reserved := make(map[string]struct{}) // Track reserved IDs in this batch
-	for _, spec := range specs {
-		// Resolve to UUID first (handles aliases and reprefixed tasks)
-		taskUUID, err := db.ResolveTaskIDToUUID(spec.oldID)
-		if err != nil {
-			return fmt.Errorf("failed to resolve task ID %s: %w", spec.oldID, err)
-		}
-
-		// Get current task ID from reducer
-		task, ok := reducer.GetTask(taskUUID)
-		if !ok {
-			return fmt.Errorf("task not found: %s", spec.oldID)
-		}
-		spec.oldID = task.TaskID
-
-		entry, err := planMove(db, reducer, nodeID, spec, reserved)
-		if err != nil {
-			return fmt.Errorf("failed to plan move for %s: %w", spec.oldID, err)
-		}
-		plan = append(plan, entry)
-
-		// Mark the new ID as reserved for subsequent plans
-		reserved[entry.newID] = struct{}{}
-	}
-
-	// Display plan
-	displayMovePlan(plan)
-
-	if dryRun {
-		fmt.Println("\nDry run - no changes made")
-		return nil
-	}
-
-	// Execute moves
-	for _, entry := range plan {
-		if err := executeMove(db, currentUser, entry); err != nil {
-			return fmt.Errorf("failed to execute move: %w", err)
-		}
-	}
-
-	fmt.Printf("\nSuccessfully moved %d task(s)\n", len(plan))
-	return nil
-}
-
-type movePlanEntry struct {
-	oldID     string
-	newID     string
-	taskUUID  string
-	oldPrefix string
-	oldNumber int64
-	oldNode   string
-	newPrefix string
-	newNumber int64
-	action    string // "move", "renumber", "reprefix"
-	note      string
-	addAlias  bool
-	conflict  bool
-}
-
-func parseMoveSpecs(args []string) ([]moveSpec, error) {
-	if len(args)%2 != 0 {
-		return nil, fmt.Errorf("arguments must come in pairs: <old-id> <new-spec>")
-	}
-
-	var specs []moveSpec
-	for i := 0; i < len(args); i += 2 {
-		oldID := args[i]
-		newSpec := args[i+1]
-
-		spec := moveSpec{
-			oldID:    oldID,
-			addAlias: true, // default
-		}
-
-		// Parse new spec: "prefix" or "prefix:number"
-		parts := strings.Split(newSpec, ":")
-		spec.newPrefix = parts[0]
-
-		if len(parts) == 1 {
-			// No number specified - will need to determine later
-			spec.autoNumber = true
-		} else if len(parts) == 2 {
-			num, err := strconv.ParseInt(parts[1], 10, 64)
+	numberPolicy := NumberPolicyPayload{Mode: opts.Mode}
+	switch opts.Mode {
+	case "keep":
+		numberPolicy.Number = oldNumber
+		if opts.OnCollision == "auto" {
+			collision, err := numberCollisionExists(db, toProjectUID, oldNumber, taskUID)
 			if err != nil {
-				return nil, fmt.Errorf("invalid number in spec %q: %w", newSpec, err)
+				return err
 			}
-			spec.newNumber = num
+			if collision {
+				numberPolicy.Mode = "auto"
+				numberPolicy.Number = 0
+			}
 		} else {
-			return nil, fmt.Errorf("invalid new spec format: %q (expected prefix or prefix:number)", newSpec)
-		}
-
-		specs = append(specs, spec)
-	}
-
-	return specs, nil
-}
-
-// maxCollisionCheckIterations is the safety limit for finding collision-free numbers
-const maxCollisionCheckIterations = 10000
-
-// findCollisionFreeNumber finds a number for the given prefix that doesn't collide
-// with any existing task from any node. It starts with the local node's next number
-// and increments until it finds a free slot.
-func findCollisionFreeNumber(db *DB, reducer *Reducer, prefix string, reserved map[string]struct{}) (int64, error) {
-	// Start with the next number from the local node's counter
-	nextNum, err := db.GetNextTaskNumberForPrefix(prefix)
-	if err != nil {
-		return 0, err
-	}
-
-	// Get all existing task IDs to check for collisions
-	allTasks := reducer.GetAllTasks()
-	usedNumbers := make(map[int64]bool)
-
-	// Check which numbers are already used for this prefix (from any node)
-	for _, task := range allTasks {
-		parts := strings.Split(task.TaskID, "-")
-		if len(parts) >= 2 && parts[0] == prefix {
-			if num, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
-				usedNumbers[num] = true
-			}
-		}
-		// Also check aliases
-		for _, alias := range task.Aliases {
-			parts := strings.Split(alias, "-")
-			if len(parts) >= 2 && parts[0] == prefix {
-				if num, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
-					usedNumbers[num] = true
-				}
-			}
-		}
-	}
-
-	// Also check reserved numbers from this batch
-	for reservedID := range reserved {
-		parts := strings.Split(reservedID, "-")
-		if len(parts) >= 2 && parts[0] == prefix {
-			if num, err := strconv.ParseInt(parts[1], 10, 64); err == nil {
-				usedNumbers[num] = true
-			}
-		}
-	}
-
-	// Find the first available number starting from nextNum
-	candidate := nextNum
-	for {
-		if !usedNumbers[candidate] {
-			return candidate, nil
-		}
-		candidate++
-		// Safety check to prevent infinite loop
-		if candidate > nextNum+maxCollisionCheckIterations {
-			return 0, fmt.Errorf("could not find available number for prefix %s after checking %d candidates", prefix, maxCollisionCheckIterations)
-		}
-	}
-}
-
-func planMove(db *DB, reducer *Reducer, nodeID string, spec moveSpec, reserved map[string]struct{}) (movePlanEntry, error) {
-	// Resolve old ID to task
-	task, ok := reducer.GetTask(spec.oldID)
-	if !ok {
-		return movePlanEntry{}, fmt.Errorf("task not found: %s", spec.oldID)
-	}
-
-	// Parse old ID parts
-	parts := strings.Split(task.TaskID, "-")
-	if len(parts) < 3 {
-		return movePlanEntry{}, fmt.Errorf("invalid task ID format: %s", task.TaskID)
-	}
-
-	oldPrefix := parts[0]
-	oldNumber, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return movePlanEntry{}, fmt.Errorf("invalid task number in ID %s: %w", task.TaskID, err)
-	}
-	oldNode := parts[2]
-
-	// Determine new number - handle --keep-number vs --auto precedence
-	newNumber := spec.newNumber
-	if spec.keepNumber {
-		// --keep-number takes precedence
-		newNumber = oldNumber
-	} else if spec.autoNumber {
-		// Get next available number that doesn't collide with any node
-		var err error
-		newNumber, err = findCollisionFreeNumber(db, reducer, spec.newPrefix, reserved)
-		if err != nil {
-			return movePlanEntry{}, fmt.Errorf("failed to find collision-free number for prefix %s: %w", spec.newPrefix, err)
-		}
-	}
-
-	// Construct new ID
-	newID := fmt.Sprintf("%s-%d-%s", spec.newPrefix, newNumber, oldNode)
-
-	// Determine action type
-	action := "move"
-	if oldPrefix != spec.newPrefix && oldNumber == newNumber {
-		action = "reprefix"
-	} else if oldPrefix == spec.newPrefix && oldNumber != newNumber {
-		action = "renumber"
-	}
-
-	note := ""
-	conflict := false
-
-	// Check for collision (if new ID already exists in reducer or is reserved in this batch)
-	_, existsInReducer := reducer.GetTask(newID)
-	_, existsInReserved := reserved[newID]
-	if existsInReducer || existsInReserved {
-		conflict = true
-		if existsInReserved {
-			note = fmt.Sprintf("collision with earlier move in batch to %s", newID)
-		} else {
-			note = fmt.Sprintf("collision with existing task %s", newID)
-		}
-		if spec.onCollision == "auto" {
-			// Auto-assign collision-free number
-			newNumber, err = findCollisionFreeNumber(db, reducer, spec.newPrefix, reserved)
+			collision, err := numberCollisionExists(db, toProjectUID, oldNumber, taskUID)
 			if err != nil {
-				return movePlanEntry{}, err
+				return err
 			}
-			newID = fmt.Sprintf("%s-%d-%s", spec.newPrefix, newNumber, oldNode)
-			note = fmt.Sprintf("auto-assigned to %s due to collision", newID)
-			conflict = false
-		}
-	}
-
-	return movePlanEntry{
-		oldID:     task.TaskID,
-		newID:     newID,
-		taskUUID:  task.TaskUUID,
-		oldPrefix: oldPrefix,
-		oldNumber: oldNumber,
-		oldNode:   oldNode,
-		newPrefix: spec.newPrefix,
-		newNumber: newNumber,
-		action:    action,
-		note:      note,
-		addAlias:  spec.addAlias,
-		conflict:  conflict,
-	}, nil
-}
-
-func displayMovePlan(plan []movePlanEntry) {
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Old ID", "→", "New ID", "Action", "Note"})
-	t.SetStyle(table.StyleLight)
-	t.Style().Options.SeparateRows = false
-	t.Style().Options.DrawBorder = false
-
-	for _, entry := range plan {
-		arrow := "→"
-		if entry.conflict {
-			arrow = "✗"
-		}
-		note := entry.note
-		if entry.addAlias {
-			if note != "" {
-				note += ", alias added"
-			} else {
-				note = "alias added"
+			if collision {
+				display, _ := RenderTaskDisplayID(db, taskUID)
+				return fmt.Errorf("task %s would collide with existing number %d in target project; rerun with --auto or --force", display, oldNumber)
 			}
 		}
-		t.AppendRow(table.Row{entry.oldID, arrow, entry.newID, entry.action, note})
+	case "auto":
+		numberPolicy.Number = 0
+	case "force":
+		numberPolicy.Number = opts.ForceNumber
+	default:
+		return fmt.Errorf("unsupported number policy mode %s", opts.Mode)
 	}
 
-	fmt.Println("\nMove Plan:")
-	t.Render()
-}
-
-func executeMove(db *DB, currentUser string, entry movePlanEntry) error {
-	if entry.conflict {
-		return fmt.Errorf("cannot move %s: collision with %s", entry.oldID, entry.newID)
+	payload := TaskRelocatePayload{
+		TaskUID:        taskUID,
+		FromProjectUID: fromProjectUID,
+		ToProjectUID:   toProjectUID,
+		NumberPolicy:   numberPolicy,
 	}
 
-	// Check if target prefix exists
-	exists, err := db.PrefixExists(entry.newPrefix)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("target prefix %q does not exist. Create it first with: tk prefix create %s <description>", entry.newPrefix, entry.newPrefix)
-	}
-
-	// Generate event ID
-	eventID, err := GenerateEventID(db)
-	if err != nil {
-		return err
-	}
-
-	// Get next Lamport timestamp
-	lamportTS, err := db.GetNextLamportTS()
-	if err != nil {
-		return err
-	}
-
-	// Create task.reprefix event
-	payload := TaskReprefixPayload{
-		TaskUUID:  entry.taskUUID,
-		OldPrefix: entry.oldPrefix,
-		NewPrefix: entry.newPrefix,
-		OldNumber: entry.oldNumber,
-		NewNumber: entry.newNumber,
-		OldNode:   entry.oldNode,
-		Reason:    "user requested move",
-	}
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
+		return fmt.Errorf("failed to marshal task.relocate payload: %w", err)
 	}
 
-	now := time.Now()
 	event := Event{
-		ID:        eventID,
-		TS:        lamportTS,
-		CreatedAt: now,
+		ID:        string(NewEventID()),
+		TS:        lamport,
+		CreatedAt: time.Now(),
 		Actor:     currentUser,
 		Role:      "human",
-		Kind:      "task.reprefix",
+		Kind:      string(EventKindTaskRelocate),
 		Payload:   payloadJSON,
 	}
 
 	if err := db.InsertEvent(event); err != nil {
+		return fmt.Errorf("failed to insert task.relocate event: %w", err)
+	}
+
+	if err := db.ProjectTaskRelocateEvent(event); err != nil {
+		return fmt.Errorf("failed to project task.relocate event: %w", err)
+	}
+
+	display, err := RenderTaskDisplayID(db, taskUID)
+	if err != nil {
 		return err
 	}
 
-	// Add alias if requested
-	if entry.addAlias {
-		aliasEventID, err := GenerateEventID(db)
-		if err != nil {
-			return err
-		}
+	fmt.Printf("Moved task %s to %s\n", taskRef, display)
+	return nil
+}
 
-		aliasLamportTS, err := db.GetNextLamportTS()
-		if err != nil {
-			return err
-		}
+func cmdExplicitNumber(opts moveOptions) bool {
+	return opts.Mode == "force" || (opts.TargetNumber != nil && *opts.TargetNumber > 0)
+}
 
-		aliasPayload := TaskAliasAddedPayload{
-			TaskUUID: entry.taskUUID,
-			AliasID:  entry.oldID,
+func taskProjectAndNumber(db *DB, taskUID string) (string, int64, error) {
+	var projectUID string
+	if err := db.db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, taskUID).Scan(&projectUID); err != nil {
+		if err == sql.ErrNoRows {
+			return "", 0, fmt.Errorf("task %s not found", taskUID)
 		}
-		aliasPayloadJSON, err := json.Marshal(aliasPayload)
-		if err != nil {
-			return fmt.Errorf("failed to marshal alias payload: %w", err)
-		}
+		return "", 0, fmt.Errorf("failed to lookup task %s: %w", taskUID, err)
+	}
 
-		aliasEvent := Event{
-			ID:        aliasEventID,
-			TS:        aliasLamportTS,
-			CreatedAt: now,
-			Actor:     currentUser,
-			Role:      "human",
-			Kind:      "task.alias.added",
-			Payload:   aliasPayloadJSON,
-		}
-
-		if err := db.InsertEvent(aliasEvent); err != nil {
-			return err
+	var number int64
+	if err := db.db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
+		if err == sql.ErrNoRows {
+			number = 0
+		} else {
+			return "", 0, fmt.Errorf("failed to lookup task number: %w", err)
 		}
 	}
 
-	return nil
+	return projectUID, number, nil
+}
+
+func numberCollisionExists(db *DB, projectUID string, number int64, taskUID string) (bool, error) {
+	var count int
+	if err := db.db.QueryRow(`
+		SELECT COUNT(*) FROM task_numbers
+		WHERE project_uid = ? AND number = ? AND task_uid != ?
+	`, projectUID, number, taskUID).Scan(&count); err != nil {
+		return false, fmt.Errorf("failed to check collisions: %w", err)
+	}
+	return count > 0, nil
+}
+
+func init() {
+	mvCmd.Flags().Bool("keep", false, "Keep the existing task number in the new project")
+	mvCmd.Flags().Bool("auto", false, "Auto-assign the next available number in the new project")
+	mvCmd.Flags().Int64("force", 0, "Force a specific number in the new project")
+	mvCmd.Flags().String("on-collision", "fail", "Collision handling strategy (fail|auto)")
 }

@@ -12,7 +12,7 @@ var graphCmd = &cobra.Command{
 	Long:  `Show an ASCII tree of task relations (blocks or subtasks).`,
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskID := args[0]
+		taskRef := args[0]
 		relationType, _ := cmd.Flags().GetString("type")
 		depth, _ := cmd.Flags().GetInt("depth")
 
@@ -40,41 +40,54 @@ var graphCmd = &cobra.Command{
 		}
 
 		// Resolve task ID to UUID
-		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		taskUUID, err := ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
 		}
 
 		task, ok := reducer.GetTask(taskUUID)
 		if !ok {
-			return fmt.Errorf("task not found: %s", taskID)
+			return fmt.Errorf("task not found: %s", taskRef)
 		}
 
-		fmt.Printf("Task: %s - %s\n\n", task.TaskID, task.Title)
+		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		if err != nil {
+			displayID = taskRef
+		}
+
+		fmt.Printf("Task: %s - %s\n\n", displayID, task.Title)
 
 		// Build and print the tree
 		visited := make(map[string]bool)
-		printRelationTree(reducer, task, relationType, 0, depth, "", visited)
+		printRelationTree(db, reducer, task, relationType, 0, depth, "", visited)
 
 		return nil
 	},
 }
 
-func printRelationTree(reducer *Reducer, task *Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
+func printRelationTree(db *DB, reducer *Reducer, task *Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
 	if currentDepth > maxDepth {
 		return
 	}
 
 	// Prevent infinite loops
 	if visited[task.TaskUUID] {
-		fmt.Printf("%s%s - %s (already shown above)\n", prefix, task.TaskID, task.Title)
+		display, err := RenderTaskDisplayID(db, task.TaskUUID)
+		if err != nil {
+			display = task.TaskID
+		}
+		fmt.Printf("%s%s - %s (already shown above)\n", prefix, display, task.Title)
 		return
 	}
 	visited[task.TaskUUID] = true
 
 	// Print current task
 	if currentDepth > 0 {
-		fmt.Printf("%s%s - %s", prefix, task.TaskID, task.Title)
+		display, err := RenderTaskDisplayID(db, task.TaskUUID)
+		if err != nil {
+			display = task.TaskID
+		}
+		fmt.Printf("%s%s - %s", prefix, display, task.Title)
 		if task.Blocked {
 			fmt.Printf(" ⛔")
 		}
@@ -115,18 +128,22 @@ func printRelationTree(reducer *Reducer, task *Task, relationType string, curren
 		// and newPrefix for its children
 		fullPrefix := prefix + connector
 		if !visited[childTask.TaskUUID] {
-			fmt.Printf("%s%s - %s", fullPrefix, childTask.TaskID, childTask.Title)
+			childDisplay, err := RenderTaskDisplayID(db, childTask.TaskUUID)
+			if err != nil {
+				childDisplay = childTask.TaskID
+			}
+			fmt.Printf("%s%s - %s", fullPrefix, childDisplay, childTask.Title)
 			if childTask.Blocked {
 				fmt.Printf(" ⛔")
 			}
 			fmt.Println()
 		}
-		printRelationTreeImpl(reducer, childTask, relationType, currentDepth+1, maxDepth, newPrefix, visited)
+		printRelationTreeImpl(db, reducer, childTask, relationType, currentDepth+1, maxDepth, newPrefix, visited)
 	}
 }
 
 // Helper function for recursive printing
-func printRelationTreeImpl(reducer *Reducer, task *Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
+func printRelationTreeImpl(db *DB, reducer *Reducer, task *Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
 	if currentDepth > maxDepth {
 		return
 	}
@@ -168,13 +185,17 @@ func printRelationTreeImpl(reducer *Reducer, task *Task, relationType string, cu
 		}
 
 		fullPrefix := prefix + connector
-		fmt.Printf("%s%s - %s", fullPrefix, childTask.TaskID, childTask.Title)
+		childDisplay, err := RenderTaskDisplayID(db, childTask.TaskUUID)
+		if err != nil {
+			childDisplay = childTask.TaskID
+		}
+		fmt.Printf("%s%s - %s", fullPrefix, childDisplay, childTask.Title)
 		if childTask.Blocked {
 			fmt.Printf(" ⛔")
 		}
 		fmt.Println()
 
-		printRelationTreeImpl(reducer, childTask, relationType, currentDepth+1, maxDepth, newPrefix, visited)
+		printRelationTreeImpl(db, reducer, childTask, relationType, currentDepth+1, maxDepth, newPrefix, visited)
 	}
 }
 

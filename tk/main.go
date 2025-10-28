@@ -83,7 +83,6 @@ var newCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title := args[0]
-		prefix, _ := cmd.Flags().GetString("prefix")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -91,72 +90,207 @@ var newCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Check if prefix exists
-		exists, err := db.PrefixExists(prefix)
-		if err != nil {
-			return err
-		}
-		if !exists {
-			return fmt.Errorf("prefix %q does not exist. Create it first with: tk prefix create %s <description>", prefix, prefix)
-		}
-
-		currentUser, err := getCurrentUser()
+		// Check database version
+		version, err := db.GetDBVersion()
 		if err != nil {
 			return err
 		}
 
-		taskUUID := GenerateTaskUUID()
-		taskID, err := GenerateTaskID(db, prefix)
-		if err != nil {
-			return err
+		if version >= v4SpecVersion {
+			// V4 path: use --project flag
+			return createTaskV4(db, cmd, title)
+		} else {
+			// V1/V2 path: use --prefix flag (legacy)
+			return createTaskLegacy(db, cmd, title)
 		}
-		eventID, err := GenerateEventID(db)
-		if err != nil {
-			return err
-		}
-
-		// Get next Lamport timestamp from DB
-		lamportTS, err := db.GetNextLamportTS()
-		if err != nil {
-			return err
-		}
-
-		payload := TaskCreatedPayload{
-			TaskUUID:  taskUUID,
-			TaskID:    taskID,
-			Title:     title,
-			CreatedBy: currentUser,
-		}
-		payloadJSON, err := json.Marshal(payload)
-		if err != nil {
-			return fmt.Errorf("failed to marshal payload: %w", err)
-		}
-
-		now := time.Now()
-		event := Event{
-			ID:        eventID,
-			TS:        lamportTS,
-			CreatedAt: now,
-			Actor:     currentUser,
-			Role:      "human",
-			Kind:      "task.created",
-			Payload:   payloadJSON,
-		}
-
-		if err := db.InsertEvent(event); err != nil {
-			return err
-		}
-
-		// Get all task IDs for formatting (including the one we just created)
-		allTaskIDs, err := db.GetAllTaskIDs()
-		if err != nil {
-			return err
-		}
-
-		displayID := FormatTaskID(taskID, allTaskIDs)
-		fmt.Printf("Created task %s: %s\n", displayID, title)
-		return nil
 	},
+}
+
+func createTaskV4(db *DB, cmd *cobra.Command, title string) error {
+	projectFlag, _ := cmd.Flags().GetString("project")
+
+	// Get current user and node
+	currentUser, err := getCurrentUser()
+	if err != nil {
+		return err
+	}
+
+	nodeID, err := db.GetOrCreateNodeID()
+	if err != nil {
+		return err
+	}
+
+	// Resolve project
+	var projectUID string
+
+	// Check if it's a project UID or alias
+	if strings.HasPrefix(projectFlag, "prj_") {
+		// It's a project UID
+		projectUID = projectFlag
+	} else {
+		// It's an alias, look it up
+		err = db.db.QueryRow(`
+			SELECT project_uid FROM project_aliases 
+			WHERE alias = ? AND node = ?
+		`, projectFlag, nodeID).Scan(&projectUID)
+		if err != nil {
+			return fmt.Errorf("project/alias %q not found. Create it first with: tk project create <name> --alias %s", projectFlag, projectFlag)
+		}
+	}
+
+	// Generate task UID
+	taskUID := NewTaskUID()
+
+	// Compute proposed number (max + 1)
+	var maxNumber int64
+	err = db.db.QueryRow(`
+		SELECT COALESCE(MAX(number), 0) FROM task_numbers 
+		WHERE project_uid = ?
+	`, projectUID).Scan(&maxNumber)
+	if err != nil {
+		return fmt.Errorf("failed to get max number: %w", err)
+	}
+	proposedNumber := maxNumber + 1
+
+	// Create task.created (v4) event
+	payload := TaskCreatedV4Payload{
+		TaskUID:        string(taskUID),
+		ProjectUID:     projectUID,
+		ProposedNumber: proposedNumber,
+		CreatedNode:    nodeID,
+		Title:          title,
+		CreatedBy:      currentUser,
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	event := Event{
+		ID:        generateEventID(db),
+		TS:        getNextLamportTimestamp(db),
+		CreatedAt: time.Now(),
+		Actor:     currentUser,
+		Role:      "human",
+		Kind:      string(EventKindTaskCreated),
+		Payload:   payloadJSON,
+	}
+
+	if err := db.InsertEvent(event); err != nil {
+		return err
+	}
+
+	// Project the event into tasks and task_numbers tables
+	if err := db.ProjectTaskCreatedV4Event(event); err != nil {
+		return fmt.Errorf("failed to project task: %w", err)
+	}
+
+	// Create task.number.set event
+	numberPayload := TaskNumberSetPayload{
+		TaskUID:    string(taskUID),
+		ProjectUID: projectUID,
+		Number:     proposedNumber,
+		Reason:     "initial",
+	}
+	numberPayloadJSON, err := json.Marshal(numberPayload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal number payload: %w", err)
+	}
+
+	numberEvent := Event{
+		ID:        generateEventID(db),
+		TS:        getNextLamportTimestamp(db),
+		CreatedAt: time.Now(),
+		Actor:     currentUser,
+		Role:      "human",
+		Kind:      string(EventKindTaskNumberSet),
+		Payload:   numberPayloadJSON,
+	}
+
+	if err := db.InsertEvent(numberEvent); err != nil {
+		return fmt.Errorf("failed to insert number event: %w", err)
+	}
+
+	// Project the number event
+	if err := db.ProjectTaskNumberSetEvent(numberEvent); err != nil {
+		return fmt.Errorf("failed to project task number: %w", err)
+	}
+
+	// Display the task
+	displayID := fmt.Sprintf("%s-%d", projectFlag, proposedNumber)
+	fmt.Printf("Created task %s: %s\n", displayID, title)
+	return nil
+}
+
+func createTaskLegacy(db *DB, cmd *cobra.Command, title string) error {
+	prefix, _ := cmd.Flags().GetString("prefix")
+
+	// Check if prefix exists
+	exists, err := db.PrefixExists(prefix)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return fmt.Errorf("prefix %q does not exist. Create it first with: tk prefix create %s <description>", prefix, prefix)
+	}
+
+	currentUser, err := getCurrentUser()
+	if err != nil {
+		return err
+	}
+
+	taskUUID := GenerateTaskUUID()
+	taskID, err := GenerateTaskID(db, prefix)
+	if err != nil {
+		return err
+	}
+	eventID, err := GenerateEventID(db)
+	if err != nil {
+		return err
+	}
+
+	// Get next Lamport timestamp from DB
+	lamportTS, err := db.GetNextLamportTS()
+	if err != nil {
+		return err
+	}
+
+	payload := TaskCreatedPayload{
+		TaskUUID:  taskUUID,
+		TaskID:    taskID,
+		Title:     title,
+		CreatedBy: currentUser,
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal payload: %w", err)
+	}
+
+	now := time.Now()
+	event := Event{
+		ID:        eventID,
+		TS:        lamportTS,
+		CreatedAt: now,
+		Actor:     currentUser,
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   payloadJSON,
+	}
+
+	if err := db.InsertEvent(event); err != nil {
+		return err
+	}
+
+	// Get all task IDs for formatting (including the one we just created)
+	allTaskIDs, err := db.GetAllTaskIDs()
+	if err != nil {
+		return err
+	}
+
+	displayID := FormatTaskID(taskID, allTaskIDs)
+	fmt.Printf("Created task %s: %s\n", displayID, title)
+	return nil
 }
 
 var statusCmd = &cobra.Command{
@@ -169,7 +303,7 @@ var statusSetCmd = &cobra.Command{
 	Short: "Set task status",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskID := args[0]
+		taskRef := args[0]
 		state := args[1]
 
 		axis, _ := cmd.Flags().GetString("axis")
@@ -181,10 +315,14 @@ var statusSetCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
-		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		taskUUID, err := ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
+		}
+
+		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		if err != nil {
+			displayID = taskRef
 		}
 
 		currentUser, err := getCurrentUser()
@@ -205,7 +343,7 @@ var statusSetCmd = &cobra.Command{
 
 		payload := TaskStatusSetPayload{
 			TaskUUID: taskUUID,
-			TaskID:   taskID, // Use the input ID for legacy compatibility
+			TaskID:   taskRef,
 			Axis:     axis,
 			State:    state,
 			Role:     role,
@@ -230,7 +368,7 @@ var statusSetCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Set status for task %s: %s=%s\n", taskID, axis, state)
+		fmt.Printf("Set status for task %s: %s=%s\n", displayID, axis, state)
 		return nil
 	},
 }
@@ -240,7 +378,7 @@ var noteCmd = &cobra.Command{
 	Short: "Add a note to a task",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskID := args[0]
+		taskRef := args[0]
 		text := args[1]
 
 		db, err := openExistingDB()
@@ -249,10 +387,14 @@ var noteCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
-		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		taskUUID, err := ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
+		}
+
+		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		if err != nil {
+			displayID = taskRef
 		}
 
 		currentUser, err := getCurrentUser()
@@ -273,7 +415,7 @@ var noteCmd = &cobra.Command{
 
 		payload := TaskNoteAddPayload{
 			TaskUUID: taskUUID,
-			TaskID:   taskID, // Use the input ID for legacy compatibility
+			TaskID:   taskRef,
 			Markdown: text,
 		}
 		payloadJSON, err := json.Marshal(payload)
@@ -296,7 +438,7 @@ var noteCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Added note to task %s\n", taskID)
+		fmt.Printf("Added note to task %s\n", displayID)
 		return nil
 	},
 }
@@ -306,7 +448,7 @@ var viewCmd = &cobra.Command{
 	Short: "View task details",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskID := args[0]
+		taskRef := args[0]
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -332,18 +474,25 @@ var viewCmd = &cobra.Command{
 			return err
 		}
 
-		// Resolve task ID to UUID (handles aliases and reprefixed tasks)
-		taskUUID, err := db.ResolveTaskIDToUUID(taskID)
+		taskUUID, err := ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
 		}
 
 		task, ok := reducer.GetTask(taskUUID)
 		if !ok {
-			return fmt.Errorf("task not found: %s", taskID)
+			return fmt.Errorf("task not found: %s", taskRef)
 		}
 
-		output, err := json.MarshalIndent(task, "", "  ")
+		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		if err != nil {
+			displayID = taskRef
+		}
+
+		taskCopy := *task
+		taskCopy.TaskID = displayID
+
+		output, err := json.MarshalIndent(taskCopy, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal task: %w", err)
 		}
@@ -473,25 +622,48 @@ var lsCmd = &cobra.Command{
 		// Group and render tasks based on groupBy flag
 		switch groupBy {
 		case "prefix":
-			// Group tasks by prefix
+			// Group tasks by prefix/project
 			grouped := make(map[string][]*Task)
 			var groupOrder []string // To maintain consistent order
 
-			for _, task := range tasks {
-				prefix := extractPrefix(task.TaskID)
-				if _, exists := grouped[prefix]; !exists {
-					groupOrder = append(groupOrder, prefix)
-				}
-				grouped[prefix] = append(grouped[prefix], task)
+			// Check DB version to determine grouping strategy
+			dbVersion, err := db.GetDBVersion()
+			if err != nil {
+				return fmt.Errorf("failed to get DB version: %w", err)
 			}
 
-			// Render a table for each prefix group
-			for i, prefix := range groupOrder {
+			for _, task := range tasks {
+				var groupKey string
+				if dbVersion >= 4 {
+					// V4: Group by project alias
+					projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
+					if err != nil {
+						groupKey = task.TaskUUID // Fallback to UID
+					} else {
+						groupKey = projectAlias
+					}
+				} else {
+					// V1/V2: Group by prefix from task ID
+					groupKey = extractPrefix(task.TaskID)
+				}
+
+				if _, exists := grouped[groupKey]; !exists {
+					groupOrder = append(groupOrder, groupKey)
+				}
+				grouped[groupKey] = append(grouped[groupKey], task)
+			}
+
+			// Render a table for each prefix/project group
+			for i, groupKey := range groupOrder {
 				if i > 0 {
 					fmt.Println() // Add blank line between tables
 				}
-				fmt.Printf("Prefix: %s\n", prefix)
-				renderTaskTable(grouped[prefix], taskIDs, showAliases, termWidth)
+				if dbVersion >= 4 {
+					fmt.Printf("Project: %s\n", groupKey)
+				} else {
+					fmt.Printf("Prefix: %s\n", groupKey)
+				}
+				renderTaskTable(db, grouped[groupKey], taskIDs, showAliases, termWidth)
 			}
 
 		case "status":
@@ -520,12 +692,12 @@ var lsCmd = &cobra.Command{
 					fmt.Println() // Add blank line between tables
 				}
 				fmt.Printf("Status: %s\n", colorizeStatus(status))
-				renderTaskTable(grouped[status], taskIDs, showAliases, termWidth)
+				renderTaskTable(db, grouped[status], taskIDs, showAliases, termWidth)
 			}
 
 		case "none":
 			// No grouping - render single table
-			renderTaskTable(tasks, taskIDs, showAliases, termWidth)
+			renderTaskTable(db, tasks, taskIDs, showAliases, termWidth)
 
 		default:
 			return fmt.Errorf("invalid --group value: %s (must be prefix, status, or none)", groupBy)
@@ -582,8 +754,33 @@ func extractPrefix(taskID string) string {
 	return ""
 }
 
+// getProjectAliasForTask returns the preferred project alias for a task (v4)
+func getProjectAliasForTask(db *DB, taskUID string) (string, error) {
+	// Get project UID for this task
+	var projectUID string
+	err := db.db.QueryRow(`
+		SELECT project_uid FROM tasks WHERE task_uid = ?
+	`, taskUID).Scan(&projectUID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get project for task %s: %w", taskUID, err)
+	}
+
+	// Get preferred alias for this project
+	alias, err := preferredAliasForProject(db, projectUID)
+	if err != nil {
+		return "", err
+	}
+
+	if alias == "" {
+		// No alias, return project UID
+		return projectUID, nil
+	}
+
+	return alias, nil
+}
+
 // renderTaskTable renders a table of tasks with the specified configuration
-func renderTaskTable(tasks []*Task, taskIDs []string, showAliases bool, termWidth int) {
+func renderTaskTable(db *DB, tasks []*Task, taskIDs []string, showAliases bool, termWidth int) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
@@ -624,7 +821,10 @@ func renderTaskTable(tasks []*Task, taskIDs []string, showAliases bool, termWidt
 	}
 
 	for _, task := range tasks {
-		displayID := FormatTaskID(task.TaskID, taskIDs)
+		displayID, err := RenderTaskDisplayID(db, task.TaskUUID)
+		if err != nil {
+			displayID = task.TaskID
+		}
 
 		// Get status from generic axis (or empty if not present)
 		status := ""
@@ -661,7 +861,8 @@ func init() {
 	dbCmd.AddCommand(dbPathCmd)
 	rootCmd.AddCommand(dbCmd)
 
-	newCmd.Flags().String("prefix", "tk", "Task prefix to use")
+	newCmd.Flags().String("prefix", "tk", "Task prefix to use (v1/v2)")
+	newCmd.Flags().String("project", "tk", "Project alias or UID to use (v4)")
 	rootCmd.AddCommand(newCmd)
 
 	statusSetCmd.Flags().String("axis", "generic", "Status axis")
@@ -682,7 +883,10 @@ func init() {
 	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
 	rootCmd.AddCommand(lsCmd)
 
+	rootCmd.AddCommand(editCmd)
 	rootCmd.AddCommand(mvCmd)
+	rootCmd.AddCommand(doctorCmd)
+	rootCmd.AddCommand(idCmd)
 	rootCmd.AddCommand(relateCmd)
 	rootCmd.AddCommand(dupCmd)
 	rootCmd.AddCommand(blockersCmd)
@@ -698,6 +902,8 @@ func init() {
 	rootCmd.AddCommand(syncCmd)
 	rootCmd.AddCommand(prefixCmd)
 	rootCmd.AddCommand(eventsCmd)
+	rootCmd.AddCommand(adminCmd)
+	rootCmd.AddCommand(projectCmd)
 }
 
 func openExistingDB() (*DB, error) {
@@ -715,6 +921,35 @@ func openExistingDB() (*DB, error) {
 	if err := db.InitDB(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
+	}
+
+	// Check if v4 migration is needed
+	needsMigration, err := db.NeedsMigrationToV4()
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to check migration status: %w", err)
+	}
+
+	if needsMigration {
+		fmt.Println("Migrating database to v4...")
+		fmt.Printf("Creating backup at %s%s\n", path, v4BackupSuffix)
+
+		if err := db.MigrateToV4(path); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("failed to migrate to v4: %w", err)
+		}
+
+		fmt.Println("Migration to v4 complete!")
+		fmt.Println("Running post-migration health check...")
+		report, err := runDoctor(db)
+		if err != nil {
+			fmt.Printf("Doctor check failed: %v\n", err)
+		} else {
+			printDoctorReport(os.Stdout, report)
+			if report.ProblemCount() > 0 {
+				fmt.Println("Resolve the issues above. You can rerun 'tk doctor' at any time.")
+			}
+		}
 	}
 
 	return db, nil

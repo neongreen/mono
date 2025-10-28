@@ -102,6 +102,38 @@ func ingestFile(db *DB, path string) error {
 			}
 		}
 
+		// Project v4 events into their respective tables
+		switch event.Kind {
+		case string(EventKindProjectCreated):
+			if err := db.ProjectProjectCreatedEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindProjectAliasAdd):
+			if err := db.ProjectProjectAliasAddEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindProjectAliasRemove):
+			if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindTaskCreated):
+			if err := db.ProjectTaskCreatedV4Event(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindTaskNumberSet):
+			if err := db.ProjectTaskNumberSetEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindTaskRelocate):
+			if err := db.ProjectTaskRelocateEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindTaskTitleSet):
+			if err := db.ProjectTaskTitleSetEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
+			}
+		}
+
 		ingested++
 	}
 
@@ -184,6 +216,38 @@ func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
 				if err := db.ProjectPrefixRemovedEvent(event); err != nil {
 					// Log but don't fail - projection errors are not critical
 					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.removed event %s: %v\n", event.ID, err)
+				}
+			}
+
+			// Project v4 events into their respective tables
+			switch event.Kind {
+			case string(EventKindProjectCreated):
+				if err := db.ProjectProjectCreatedEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindProjectAliasAdd):
+				if err := db.ProjectProjectAliasAddEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindProjectAliasRemove):
+				if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindTaskCreated):
+				if err := db.ProjectTaskCreatedV4Event(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindTaskNumberSet):
+				if err := db.ProjectTaskNumberSetEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindTaskRelocate):
+				if err := db.ProjectTaskRelocateEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindTaskTitleSet):
+				if err := db.ProjectTaskTitleSetEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
 				}
 			}
 

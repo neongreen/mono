@@ -361,68 +361,9 @@ func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]Event, error) {
 	return events, rows.Err()
 }
 
-// ResolveTaskIDToUUID resolves a task ID (full or short, current or alias) to its UUID
+// ResolveTaskIDToUUID resolves a task reference to its UUID (legacy helper).
 func (d *DB) ResolveTaskIDToUUID(taskID string) (string, error) {
-	// Build reducer from all events to resolve ID to UUID
-	events, err := d.GetEvents()
-	if err != nil {
-		return "", fmt.Errorf("failed to get events: %w", err)
-	}
-
-	reducer, err := BuildFromEvents(events)
-	if err != nil {
-		return "", fmt.Errorf("failed to build reducer: %w", err)
-	}
-
-	// First try direct lookup by taskID (handles full IDs - current or aliases)
-	task, ok := reducer.GetTask(taskID)
-	if ok {
-		return task.TaskUUID, nil
-	}
-
-	// If not found, it might be a short form (e.g., "foo-1" instead of "foo-1-kdTlV2")
-	// Get all tasks and check for matching short forms
-	allTasks := reducer.GetAllTasks()
-	allTaskIDs := make([]string, 0, len(allTasks))
-	for _, t := range allTasks {
-		allTaskIDs = append(allTaskIDs, t.TaskID)
-		// Also add aliases
-		for _, alias := range t.Aliases {
-			allTaskIDs = append(allTaskIDs, alias)
-		}
-	}
-
-	// Use FormatTaskID logic to match short forms
-	var matches []string
-	var matchedUUIDs []string
-	for _, t := range allTasks {
-		// Check if taskID matches the short form of this task's current ID
-		shortForm := FormatTaskID(t.TaskID, allTaskIDs)
-		if shortForm == taskID {
-			matches = append(matches, t.TaskID)
-			matchedUUIDs = append(matchedUUIDs, t.TaskUUID)
-		}
-
-		// Also check aliases
-		for _, alias := range t.Aliases {
-			shortForm := FormatTaskID(alias, allTaskIDs)
-			if shortForm == taskID {
-				matches = append(matches, alias)
-				matchedUUIDs = append(matchedUUIDs, t.TaskUUID)
-				break
-			}
-		}
-	}
-
-	if len(matches) == 0 {
-		return "", fmt.Errorf("task not found: %s", taskID)
-	}
-
-	if len(matches) > 1 {
-		return "", fmt.Errorf("ambiguous task ID: %s (matches %v)", taskID, matches)
-	}
-
-	return matchedUUIDs[0], nil
+	return ResolveTaskReference(d, taskID)
 }
 
 // Close closes the database
@@ -754,6 +695,33 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 
 // GetAllTaskIDs returns all task IDs in the database
 func (d *DB) GetAllTaskIDs() ([]string, error) {
+	// Check if we're in v4 mode
+	version, err := d.GetDBVersion()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DB version: %w", err)
+	}
+
+	if version >= 4 {
+		// V4: Get task UIDs from tasks table
+		query := `SELECT DISTINCT task_uid FROM tasks ORDER BY created_at`
+		rows, err := d.db.Query(query)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query task UIDs: %w", err)
+		}
+		defer rows.Close()
+
+		var taskUIDs []string
+		for rows.Next() {
+			var taskUID string
+			if err := rows.Scan(&taskUID); err != nil {
+				return nil, fmt.Errorf("failed to scan task UID: %w", err)
+			}
+			taskUIDs = append(taskUIDs, taskUID)
+		}
+		return taskUIDs, rows.Err()
+	}
+
+	// V1/V2: Get task IDs from events
 	query := `
 		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
 		FROM events
@@ -768,11 +736,13 @@ func (d *DB) GetAllTaskIDs() ([]string, error) {
 
 	var taskIDs []string
 	for rows.Next() {
-		var taskID string
+		var taskID sql.NullString
 		if err := rows.Scan(&taskID); err != nil {
 			return nil, fmt.Errorf("failed to scan task ID: %w", err)
 		}
-		taskIDs = append(taskIDs, taskID)
+		if taskID.Valid {
+			taskIDs = append(taskIDs, taskID.String)
+		}
 	}
 
 	return taskIDs, rows.Err()
@@ -784,7 +754,56 @@ func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
 		return d.GetAllTaskIDs()
 	}
 
-	// Build SQL query with OR conditions for each prefix
+	// Check if we're in v4 mode
+	version, err := d.GetDBVersion()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get DB version: %w", err)
+	}
+
+	if version >= 4 {
+		// V4: Get task UIDs by project aliases
+		// First, get node ID
+		nodeID, err := d.GetOrCreateNodeID()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get node ID: %w", err)
+		}
+
+		// Build query to find tasks by project alias
+		var conditions []string
+		var args []interface{}
+		for _, alias := range prefixes {
+			conditions = append(conditions, "project_aliases.alias = ?")
+			args = append(args, alias)
+		}
+		args = append(args, nodeID)
+
+		query := `
+			SELECT DISTINCT tasks.task_uid
+			FROM tasks
+			JOIN project_aliases ON tasks.project_uid = project_aliases.project_uid
+			WHERE (` + strings.Join(conditions, " OR ") + `)
+			  AND project_aliases.node = ?
+			ORDER BY tasks.created_at
+		`
+
+		rows, err := d.db.Query(query, args...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query task UIDs by prefix: %w", err)
+		}
+		defer rows.Close()
+
+		var taskUIDs []string
+		for rows.Next() {
+			var taskUID string
+			if err := rows.Scan(&taskUID); err != nil {
+				return nil, fmt.Errorf("failed to scan task UID: %w", err)
+			}
+			taskUIDs = append(taskUIDs, taskUID)
+		}
+		return taskUIDs, rows.Err()
+	}
+
+	// V1/V2: Build SQL query with OR conditions for each prefix
 	var conditions []string
 	var args []interface{}
 	for _, prefix := range prefixes {
@@ -806,11 +825,13 @@ func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
 
 	var taskIDs []string
 	for rows.Next() {
-		var taskID string
+		var taskID sql.NullString
 		if err := rows.Scan(&taskID); err != nil {
 			return nil, fmt.Errorf("failed to scan task ID: %w", err)
 		}
-		taskIDs = append(taskIDs, taskID)
+		if taskID.Valid {
+			taskIDs = append(taskIDs, taskID.String)
+		}
 	}
 
 	return taskIDs, rows.Err()
