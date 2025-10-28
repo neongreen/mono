@@ -38,25 +38,36 @@ func NewV4Reducer() *V4Reducer {
 }
 
 // ApplyV4Event applies a v4-specific event
-func (r *Reducer) ApplyV4Event(e Event) error {
+// Returns (handled=true, error) if the event was a v4 event that was handled
+// Returns (handled=false, nil) if the event was not a v4 event
+func (r *Reducer) ApplyV4Event(e Event) (bool, error) {
 	switch EventKind(e.Kind) {
 	case EventKindProjectCreated:
-		return r.applyProjectCreated(e)
+		return true, r.applyProjectCreated(e)
 	case EventKindProjectAliasAdd:
-		return r.applyProjectAliasAdd(e)
+		return true, r.applyProjectAliasAdd(e)
 	case EventKindProjectAliasRemove:
-		return r.applyProjectAliasRemove(e)
+		return true, r.applyProjectAliasRemove(e)
 	case EventKindTaskCreated:
-		return r.applyTaskCreatedV4(e)
+		// Check if this is a v4 task.created event by checking for project_uid field
+		var testPayload struct {
+			ProjectUID string `json:"project_uid"`
+		}
+		if err := json.Unmarshal(e.Payload, &testPayload); err == nil && testPayload.ProjectUID != "" {
+			// This is a v4 event
+			return true, r.applyTaskCreatedV4(e)
+		}
+		// This is a v1/v2 event, let the legacy handler process it
+		return false, nil
 	case EventKindTaskNumberSet:
-		return r.applyTaskNumberSet(e)
+		return true, r.applyTaskNumberSet(e)
 	case EventKindTaskRelocate:
-		return r.applyTaskRelocate(e)
+		return true, r.applyTaskRelocate(e)
 	case EventKindTaskTitleSet:
-		return r.applyTaskTitleSet(e)
+		return true, r.applyTaskTitleSet(e)
 	default:
 		// Not a v4 event, skip
-		return nil
+		return false, nil
 	}
 }
 

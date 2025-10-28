@@ -25,8 +25,13 @@ func NewReducer() *Reducer {
 // Apply applies an event to update the task state
 func (r *Reducer) Apply(e Event) error {
 	// Try v4 events first
-	if err := r.ApplyV4Event(e); err != nil {
+	handled, err := r.ApplyV4Event(e)
+	if err != nil {
 		return err
+	}
+	// If v4 handler processed this event, don't run v1/v2 handlers
+	if handled {
+		return nil
 	}
 
 	// Handle legacy v1/v2 events
