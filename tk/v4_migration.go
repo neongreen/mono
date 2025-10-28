@@ -193,6 +193,21 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 		projectUID = string(NewProjectUID())
 		ctx.prefixToProject[prefix] = projectUID
 
+		// Find the earliest task creation time for this prefix to use as a deterministic timestamp
+		var earliestCreatedAt int64
+		err := ctx.db.db.QueryRow(`
+			SELECT MIN(created_at)
+			FROM events
+			WHERE kind = 'task.created'
+			AND json_extract(payload, '$.task_id') LIKE ? || '-%'
+		`, prefix).Scan(&earliestCreatedAt)
+
+		createdAt := time.Now()
+		if err == nil && earliestCreatedAt > 0 {
+			// Use the earliest task creation time
+			createdAt = time.Unix(0, earliestCreatedAt)
+		}
+
 		// Create and insert project.created event
 		payload := ProjectCreatedPayload{
 			ProjectUID:  projectUID,
@@ -209,7 +224,7 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 		event := Event{
 			ID:        string(NewEventID()),
 			TS:        0,
-			CreatedAt: time.Now(), // Use current time since we don't have the original
+			CreatedAt: createdAt,
 			Actor:     ctx.actor,
 			Role:      "human",
 			Kind:      string(EventKindProjectCreated),
@@ -224,7 +239,7 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 			return "", fmt.Errorf("v4 migration: failed to project project.created event: %w", err)
 		}
 
-		// Create and insert project.alias.add event
+		// Create and insert project.alias.add event (use same timestamp)
 		aliasPayload := ProjectAliasAddPayload{
 			ProjectUID: projectUID,
 			Alias:      prefix,
@@ -239,7 +254,7 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 		aliasEvent := Event{
 			ID:        string(NewEventID()),
 			TS:        0,
-			CreatedAt: time.Now(),
+			CreatedAt: createdAt, // Use same timestamp as project.created
 			Actor:     ctx.actor,
 			Role:      "human",
 			Kind:      string(EventKindProjectAliasAdd),
