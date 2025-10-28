@@ -113,4 +113,252 @@ func TestV4MigrationWithUnseenTask(t *testing.T) {
 	if count != 1 {
 		t.Errorf("expected 1 task after migration, got %d", count)
 	}
+
+	// Verify the status was preserved
+	var eventCount int
+	err = db.db.QueryRow("SELECT COUNT(*) FROM events WHERE kind = ?", string(EventKindTaskStatusSet)).Scan(&eventCount)
+	if err != nil {
+		t.Fatalf("failed to count status events: %v", err)
+	}
+	if eventCount < 1 {
+		t.Errorf("expected at least 1 status event after migration, got %d", eventCount)
+	}
+}
+
+// TestV4MigrationWithMultipleUnseenTasks tests migration with multiple tasks
+// where events reference tasks before they are created
+func TestV4MigrationWithMultipleUnseenTasks(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "test.db")
+
+	// Initialize v1/v2 database
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+
+	// Create a prefix
+	if err := db.CreatePrefix("test", "Test tasks", "alice"); err != nil {
+		t.Fatalf("failed to create prefix: %v", err)
+	}
+
+	// Create multiple tasks with events out of order
+	tasks := []struct {
+		id   string
+		uuid string
+	}{
+		{"test-1-abc", string(NewTaskUID())},
+		{"test-2-abc", string(NewTaskUID())},
+		{"test-3-abc", string(NewTaskUID())},
+	}
+
+	ts := int64(1)
+
+	// Insert status events for all tasks BEFORE their creation events
+	for _, task := range tasks {
+		statusPayload := TaskStatusSetPayload{
+			TaskID: task.id,
+			Axis:   "completion",
+			State:  "todo",
+		}
+		statusPayloadJSON, _ := json.Marshal(statusPayload)
+
+		statusEvent := Event{
+			ID:        string(NewEventID()),
+			TS:        ts,
+			CreatedAt: time.Now(),
+			Actor:     "alice",
+			Role:      "human",
+			Kind:      string(EventKindTaskStatusSet),
+			Payload:   statusPayloadJSON,
+		}
+		ts++
+
+		if err := db.InsertEvent(statusEvent); err != nil {
+			t.Fatalf("failed to insert status event: %v", err)
+		}
+	}
+
+	// Now insert creation events
+	for _, task := range tasks {
+		taskPayload := TaskCreatedPayload{
+			TaskUUID:  task.uuid,
+			TaskID:    task.id,
+			Title:     "Task " + task.id,
+			CreatedBy: "alice",
+		}
+		taskPayloadJSON, _ := json.Marshal(taskPayload)
+
+		taskEvent := Event{
+			ID:        string(NewEventID()),
+			TS:        ts,
+			CreatedAt: time.Now(),
+			Actor:     "alice",
+			Role:      "human",
+			Kind:      string(EventKindTaskCreated),
+			Payload:   taskPayloadJSON,
+		}
+		ts++
+
+		if err := db.InsertEvent(taskEvent); err != nil {
+			t.Fatalf("failed to insert task event: %v", err)
+		}
+	}
+
+	db.Close()
+
+	// Migrate to v4
+	db, err = OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to reopen database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to reinit: %v", err)
+	}
+
+	if err := db.MigrateToV4(dbPath); err != nil {
+		t.Fatalf("migration failed: %v", err)
+	}
+
+	// Verify all tasks were migrated
+	var count int
+	err = db.db.QueryRow("SELECT COUNT(*) FROM tasks").Scan(&count)
+	if err != nil {
+		t.Fatalf("failed to count tasks: %v", err)
+	}
+	if count != len(tasks) {
+		t.Errorf("expected %d tasks after migration, got %d", len(tasks), count)
+	}
+}
+
+// TestV4MigrationWithRelationBeforeTask tests migration when a relation.add
+// event references tasks that haven't been seen yet
+func TestV4MigrationWithRelationBeforeTask(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "test.db")
+
+	// Initialize v1/v2 database
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+
+	// Create a prefix
+	if err := db.CreatePrefix("test", "Test tasks", "alice"); err != nil {
+		t.Fatalf("failed to create prefix: %v", err)
+	}
+
+	// Create two tasks
+	task1ID := "test-1-abc"
+	task1UUID := string(NewTaskUID())
+	task2ID := "test-2-abc"
+	task2UUID := string(NewTaskUID())
+
+	ts := int64(1)
+
+	// Insert relation.add event BEFORE task creation events
+	relationPayload := RelationAddPayload{
+		Src:  task1UUID,
+		Type: "blocks",
+		Dst:  task2UUID,
+		Note: "",
+	}
+	relationPayloadJSON, _ := json.Marshal(relationPayload)
+
+	relationEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        ts,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      string(EventKindRelationAdd),
+		Payload:   relationPayloadJSON,
+	}
+	ts++
+
+	if err := db.InsertEvent(relationEvent); err != nil {
+		t.Fatalf("failed to insert relation event: %v", err)
+	}
+
+	// Now insert task creation events
+	task1Payload := TaskCreatedPayload{
+		TaskUUID:  task1UUID,
+		TaskID:    task1ID,
+		Title:     "Task 1",
+		CreatedBy: "alice",
+	}
+	task1PayloadJSON, _ := json.Marshal(task1Payload)
+
+	task1Event := Event{
+		ID:        string(NewEventID()),
+		TS:        ts,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      string(EventKindTaskCreated),
+		Payload:   task1PayloadJSON,
+	}
+	ts++
+
+	if err := db.InsertEvent(task1Event); err != nil {
+		t.Fatalf("failed to insert task1 event: %v", err)
+	}
+
+	task2Payload := TaskCreatedPayload{
+		TaskUUID:  task2UUID,
+		TaskID:    task2ID,
+		Title:     "Task 2",
+		CreatedBy: "alice",
+	}
+	task2PayloadJSON, _ := json.Marshal(task2Payload)
+
+	task2Event := Event{
+		ID:        string(NewEventID()),
+		TS:        ts,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      string(EventKindTaskCreated),
+		Payload:   task2PayloadJSON,
+	}
+	ts++
+
+	if err := db.InsertEvent(task2Event); err != nil {
+		t.Fatalf("failed to insert task2 event: %v", err)
+	}
+
+	db.Close()
+
+	// Migrate to v4
+	db, err = OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to reopen database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to reinit: %v", err)
+	}
+
+	if err := db.MigrateToV4(dbPath); err != nil {
+		t.Fatalf("migration failed: %v", err)
+	}
+
+	// Verify both tasks were migrated
+	var count int
+	err = db.db.QueryRow("SELECT COUNT(*) FROM tasks").Scan(&count)
+	if err != nil {
+		t.Fatalf("failed to count tasks: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 tasks after migration, got %d", count)
+	}
 }

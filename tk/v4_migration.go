@@ -129,7 +129,7 @@ func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) 
 			AND json_extract(payload, '$.task_id') = ?
 			LIMIT 1
 		`, taskID).Scan(&payload)
-		
+
 		if err == nil {
 			var taskCreated TaskCreatedPayload
 			if err := json.Unmarshal(payload, &taskCreated); err == nil {
@@ -153,7 +153,7 @@ func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) 
 			AND json_extract(payload, '$.task_uuid') = ?
 			LIMIT 1
 		`, legacyUUID).Scan(&payload)
-		
+
 		if err == nil {
 			var taskCreated TaskCreatedPayload
 			if err := json.Unmarshal(payload, &taskCreated); err == nil {
