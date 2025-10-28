@@ -186,7 +186,75 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 		LIMIT 1
 	`, prefix).Scan(&projectUID)
 	if err == sql.ErrNoRows {
-		return "", fmt.Errorf("v4 migration: no project found for prefix %s", prefix)
+		// Prefix not found - create a project on-demand for this prefix
+		// This can happen if:
+		// 1. A task exists with a prefix that was removed (removed = 1)
+		// 2. A task exists with a prefix that was never created
+		projectUID = string(NewProjectUID())
+		ctx.prefixToProject[prefix] = projectUID
+
+		// Create and insert project.created event
+		payload := ProjectCreatedPayload{
+			ProjectUID:  projectUID,
+			Type:        "local",
+			Name:        prefix,
+			Description: "", // No description available for missing prefix
+			CreatedBy:   ctx.actor,
+		}
+		payloadJSON, err := json.Marshal(payload)
+		if err != nil {
+			return "", fmt.Errorf("v4 migration: failed to marshal project.created payload: %w", err)
+		}
+
+		event := Event{
+			ID:        string(NewEventID()),
+			TS:        0,
+			CreatedAt: time.Now(), // Use current time since we don't have the original
+			Actor:     ctx.actor,
+			Role:      "human",
+			Kind:      string(EventKindProjectCreated),
+			Payload:   payloadJSON,
+		}
+
+		if err := ctx.db.InsertEvent(event); err != nil {
+			return "", fmt.Errorf("v4 migration: failed to insert project.created event: %w", err)
+		}
+
+		if err := ctx.db.ProjectProjectCreatedEvent(event); err != nil {
+			return "", fmt.Errorf("v4 migration: failed to project project.created event: %w", err)
+		}
+
+		// Create and insert project.alias.add event
+		aliasPayload := ProjectAliasAddPayload{
+			ProjectUID: projectUID,
+			Alias:      prefix,
+			Node:       ctx.nodeID,
+			AddedBy:    ctx.actor,
+		}
+		aliasPayloadJSON, err := json.Marshal(aliasPayload)
+		if err != nil {
+			return "", fmt.Errorf("v4 migration: failed to marshal project.alias.add payload: %w", err)
+		}
+
+		aliasEvent := Event{
+			ID:        string(NewEventID()),
+			TS:        0,
+			CreatedAt: time.Now(),
+			Actor:     ctx.actor,
+			Role:      "human",
+			Kind:      string(EventKindProjectAliasAdd),
+			Payload:   aliasPayloadJSON,
+		}
+
+		if err := ctx.db.InsertEvent(aliasEvent); err != nil {
+			return "", fmt.Errorf("v4 migration: failed to insert project.alias.add event: %w", err)
+		}
+
+		if err := ctx.db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
+			return "", fmt.Errorf("v4 migration: failed to project project.alias.add event: %w", err)
+		}
+
+		return projectUID, nil
 	}
 	if err != nil {
 		return "", fmt.Errorf("v4 migration: failed to resolve prefix %s: %w", prefix, err)
