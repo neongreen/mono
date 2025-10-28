@@ -184,7 +184,7 @@ func createProjectCreatedEvent(projectUID, name, description, createdBy, node st
 		CreatedBy:   createdBy,
 	}
 	payloadJSON, _ := json.Marshal(payload)
-	
+
 	return Event{
 		ID:        string(NewEventID()),
 		TS:        0,
@@ -204,7 +204,7 @@ func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) Event {
 		AddedBy:    addedBy,
 	}
 	payloadJSON, _ := json.Marshal(payload)
-	
+
 	return Event{
 		ID:        string(NewEventID()),
 		TS:        0,
@@ -226,7 +226,7 @@ func createTaskCreatedV4Event(taskUID, projectUID string, proposedNumber int64, 
 		CreatedBy:      createdBy,
 	}
 	payloadJSON, _ := json.Marshal(payload)
-	
+
 	return Event{
 		ID:        string(NewEventID()),
 		TS:        0,
@@ -246,7 +246,7 @@ func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason s
 		Reason:     reason,
 	}
 	payloadJSON, _ := json.Marshal(payload)
-	
+
 	return Event{
 		ID:        string(NewEventID()),
 		TS:        0,
