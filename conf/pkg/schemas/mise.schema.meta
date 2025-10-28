@@ -1,0 +1,23 @@
+# Schema Metadata for mise.schema
+
+## Source Information
+- **Source**: Custom schema definition
+- **Based on**: https://mise.jdx.dev/configuration.html
+- **Created Date**: (See git history)
+- **License**: N/A (custom schema)
+
+## Modifications
+- **Date**: (See git history)
+- **Modified by**: (See git history)
+- **Reason**: Mise does not provide an official JSON schema; this is a custom definition
+- **Changes**: Created from mise documentation
+
+## Update History
+- Check git history for creation and update dates
+- To update: Review mise documentation at https://mise.jdx.dev/configuration.html
+
+## Notes
+- Custom schema created from mise documentation
+- Mise project does not publish an official JSON schema
+- Schema is maintained based on mise documentation updates
+- See AGENTS.md for schema source policy

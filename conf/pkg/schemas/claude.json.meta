@@ -1,0 +1,24 @@
+# Schema Metadata for claude.json
+
+## Source Information
+- **Source URL**: https://www.schemastore.org/claude-code-settings.json
+- **Downloaded Date**: 2025-10-28
+- **Schema Store Entry**: https://www.schemastore.org/api/json/catalog.json
+- **License**: Apache-2.0 (per SchemaStore.org standard)
+
+## Modifications
+- **Date**: 2025-10-28
+- **Modified by**: GitHub Copilot
+- **Reason**: Initial creation - Schema was not available from SchemaStore at download time, created based on Anthropic API documentation
+- **Changes**: 
+  - Created JSON Schema draft-07 compliant schema
+  - Based on Anthropic API documentation for Claude API parameters
+  - Includes: api.key, api.url, model, max_tokens, temperature, top_p, top_k, stop_sequences, system
+
+## Update History
+- 2025-10-28: Initial schema creation based on Anthropic API documentation
+
+## Notes
+- This schema should be updated periodically from SchemaStore.org when available
+- Check https://www.schemastore.org/claude-code-settings.json for official updates
+- See AGENTS.md for schema source policy

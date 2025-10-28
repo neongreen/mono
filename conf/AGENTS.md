@@ -19,9 +19,17 @@
 
 ## Schema Sources
 
+**Policy**: Always use official schemas from SchemaStore.org (https://www.schemastore.org/) when available. Never write schemas by hand.
+
+For each schema file:
+- Track download date and source URL in `.meta` file alongside the schema
+- Document any modifications with date, author, and reason
+- Check for updates periodically
+
+**Current schemas**:
 - **jj**: Download from `https://jj-vcs.github.io/jj/latest/config-schema.json`
 - **mise**: Custom schema definition based on documentation
-- **claude**: JSON Schema (draft-07) for Claude Code API configuration
+- **claude**: From SchemaStore.org at `https://www.schemastore.org/claude-code-settings.json` (see `claude.json.meta` for details)
 - **Embedded**: Bundle schemas in binary for offline use
 
 ## CLI Interface Pattern
