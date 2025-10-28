@@ -45,11 +45,10 @@ path = "` + claudeConfigPath + `"
 		path  string
 		value interface{}
 	}{
-		{"model", "claude-3-5-sonnet-20241022"},
-		{"max_tokens", float64(4096)},
-		{"temperature", float64(0.7)},
-		{"api.key", "sk-ant-test-key"},
-		{"api.url", "https://api.anthropic.com"},
+		{"model", "sonnet"},
+		{"alwaysThinkingEnabled", true},
+		{"outputStyle", "markdown"},
+		{"apiKeyHelper", "/path/to/helper.sh"},
 	}
 
 	for _, tc := range testCases {
@@ -70,29 +69,20 @@ path = "` + claudeConfigPath + `"
 	}
 
 	// Verify each value
-	if data["model"] != "claude-3-5-sonnet-20241022" {
-		t.Errorf("Expected model to be 'claude-3-5-sonnet-20241022', got %v", data["model"])
+	if data["model"] != "sonnet" {
+		t.Errorf("Expected model to be 'sonnet', got %v", data["model"])
 	}
 
-	if data["max_tokens"] != float64(4096) {
-		t.Errorf("Expected max_tokens to be 4096, got %v", data["max_tokens"])
+	if data["alwaysThinkingEnabled"] != true {
+		t.Errorf("Expected alwaysThinkingEnabled to be true, got %v", data["alwaysThinkingEnabled"])
 	}
 
-	if data["temperature"] != float64(0.7) {
-		t.Errorf("Expected temperature to be 0.7, got %v", data["temperature"])
+	if data["outputStyle"] != "markdown" {
+		t.Errorf("Expected outputStyle to be 'markdown', got %v", data["outputStyle"])
 	}
 
-	apiMap, ok := data["api"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("Expected api to be a map")
-	}
-
-	if apiMap["key"] != "sk-ant-test-key" {
-		t.Errorf("Expected api.key to be 'sk-ant-test-key', got %v", apiMap["key"])
-	}
-
-	if apiMap["url"] != "https://api.anthropic.com" {
-		t.Errorf("Expected api.url to be 'https://api.anthropic.com', got %v", apiMap["url"])
+	if data["apiKeyHelper"] != "/path/to/helper.sh" {
+		t.Errorf("Expected apiKeyHelper to be '/path/to/helper.sh', got %v", data["apiKeyHelper"])
 	}
 
 	// Test GetConfig
@@ -101,19 +91,19 @@ path = "` + claudeConfigPath + `"
 		t.Fatalf("GetConfig(model) failed: %v", err)
 	}
 
-	if modelValue != "claude-3-5-sonnet-20241022" {
-		t.Errorf("Expected model to be 'claude-3-5-sonnet-20241022', got %v", modelValue)
+	if modelValue != "sonnet" {
+		t.Errorf("Expected model to be 'sonnet', got %v", modelValue)
 	}
 
 	// Test UnsetConfig
-	if err := tool.UnsetConfig("temperature"); err != nil {
-		t.Fatalf("UnsetConfig(temperature) failed: %v", err)
+	if err := tool.UnsetConfig("outputStyle"); err != nil {
+		t.Fatalf("UnsetConfig(outputStyle) failed: %v", err)
 	}
 
-	// Verify temperature is gone
-	_, err = tool.GetConfig("temperature")
+	// Verify outputStyle is gone
+	_, err = tool.GetConfig("outputStyle")
 	if err == nil {
-		t.Errorf("Expected error for unset temperature value")
+		t.Errorf("Expected error for unset outputStyle value")
 	}
 
 	// Verify JSON is still well-formed
@@ -127,13 +117,13 @@ path = "` + claudeConfigPath + `"
 		t.Fatalf("Failed to parse JSON after unset: %v", err)
 	}
 
-	// Verify temperature is not present
-	if _, exists := finalData["temperature"]; exists {
-		t.Errorf("Expected temperature to be unset")
+	// Verify outputStyle is not present
+	if _, exists := finalData["outputStyle"]; exists {
+		t.Errorf("Expected outputStyle to be unset")
 	}
 
-	// Verify other values still exist
-	if finalData["model"] != "claude-3-5-sonnet-20241022" {
+	// Verify model still exists
+	if finalData["model"] != "sonnet" {
 		t.Errorf("Expected model to still exist, got %v", finalData["model"])
 	}
 }
@@ -170,8 +160,8 @@ path = "` + claudeConfigPath + `"
 	}
 
 	// Set values using conf state management
-	conf.SetToolValue("claude", "model", "claude-3-5-sonnet-20241022")
-	conf.SetToolValue("claude", "api.key", "sk-ant-test")
+	conf.SetToolValue("claude", "model", "sonnet")
+	conf.SetToolValue("claude", "alwaysThinkingEnabled", true)
 
 	// Save conf configuration
 	if err := conf.Save(); err != nil {
@@ -204,16 +194,11 @@ path = "` + claudeConfigPath + `"
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
 
-	if data["model"] != "claude-3-5-sonnet-20241022" {
-		t.Errorf("Expected model to be 'claude-3-5-sonnet-20241022', got %v", data["model"])
+	if data["model"] != "sonnet" {
+		t.Errorf("Expected model to be 'sonnet', got %v", data["model"])
 	}
 
-	apiMap, ok := data["api"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("Expected api to be a map")
-	}
-
-	if apiMap["key"] != "sk-ant-test" {
-		t.Errorf("Expected api.key to be 'sk-ant-test', got %v", apiMap["key"])
+	if data["alwaysThinkingEnabled"] != true {
+		t.Errorf("Expected alwaysThinkingEnabled to be true, got %v", data["alwaysThinkingEnabled"])
 	}
 }

@@ -213,34 +213,34 @@ func (c *ClaudeTool) ListAllSettings() ([]schemas.SettingInfo, error) {
 func (c *ClaudeTool) ListCommonSettings() []CommonSetting {
 	return []CommonSetting{
 		{
-			Path:        "api.key",
-			Description: "API key for Claude Code",
-			Type:        "string",
-			Example:     "sk-ant-...",
-		},
-		{
-			Path:        "api.url",
-			Description: "API endpoint URL",
-			Type:        "string",
-			Example:     "https://api.anthropic.com",
-		},
-		{
 			Path:        "model",
-			Description: "Default model to use",
+			Description: "Claude model to use (deprecated: use env.ANTHROPIC_MODEL instead)",
 			Type:        "string",
-			Example:     "claude-3-5-sonnet-20241022",
+			Example:     "sonnet",
 		},
 		{
-			Path:        "max_tokens",
-			Description: "Maximum number of tokens in response",
-			Type:        "number",
-			Example:     "4096",
+			Path:        "alwaysThinkingEnabled",
+			Description: "Always use extended thinking mode",
+			Type:        "boolean",
+			Example:     "true",
 		},
 		{
-			Path:        "temperature",
-			Description: "Sampling temperature (0-1)",
-			Type:        "number",
-			Example:     "0.7",
+			Path:        "outputStyle",
+			Description: "Output formatting style",
+			Type:        "string",
+			Example:     "markdown",
+		},
+		{
+			Path:        "apiKeyHelper",
+			Description: "Command to retrieve API key dynamically",
+			Type:        "string",
+			Example:     "/path/to/get-api-key.sh",
+		},
+		{
+			Path:        "spinnerTipsEnabled",
+			Description: "Show helpful tips in the spinner",
+			Type:        "boolean",
+			Example:     "true",
 		},
 	}
 }

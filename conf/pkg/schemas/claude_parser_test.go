@@ -36,23 +36,23 @@ func TestClaudeSchemaParser_ValidatePath(t *testing.T) {
 			expected: true,
 		},
 		{
-			name:     "valid top-level path",
+			name:     "valid top-level path - model",
 			path:     "model",
 			expected: true,
 		},
 		{
-			name:     "valid nested path",
-			path:     "api.key",
+			name:     "valid top-level path - hooks",
+			path:     "hooks",
 			expected: true,
 		},
 		{
-			name:     "another valid nested path",
-			path:     "api.url",
+			name:     "valid top-level path - env",
+			path:     "env",
 			expected: true,
 		},
 		{
-			name:     "valid simple path",
-			path:     "temperature",
+			name:     "valid path - alwaysThinkingEnabled",
+			path:     "alwaysThinkingEnabled",
 			expected: true,
 		},
 		{
@@ -61,8 +61,8 @@ func TestClaudeSchemaParser_ValidatePath(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "invalid nested path",
-			path:     "api.invalid",
+			name:     "invalid top-level path",
+			path:     "nonexistent",
 			expected: false,
 		},
 	}
@@ -86,26 +86,26 @@ func TestClaudeSchemaParser_GetCompletionOptions(t *testing.T) {
 	tests := []struct {
 		name           string
 		path           string
-		expectedCount  int
+		minCount       int  // Minimum expected count
 		expectedNames  []string
 		unexpectedName string
 	}{
 		{
 			name:          "top-level options",
 			path:          "",
-			expectedCount: 8, // api, model, max_tokens, temperature, top_p, top_k, stop_sequences, system
-			expectedNames: []string{"model", "temperature", "api"},
+			minCount:      15, // At least 15 top-level properties
+			expectedNames: []string{"model", "hooks", "env", "alwaysThinkingEnabled"},
 		},
 		{
-			name:          "api nested options",
-			path:          "api",
-			expectedCount: 2, // key, url
-			expectedNames: []string{"key", "url"},
+			name:           "hooks has no simple nested options",
+			path:           "hooks",
+			minCount:       0,
+			unexpectedName: "anything",
 		},
 		{
 			name:           "model has no nested options",
 			path:           "model",
-			expectedCount:  0,
+			minCount:       0,
 			unexpectedName: "anything",
 		},
 	}
@@ -114,8 +114,8 @@ func TestClaudeSchemaParser_GetCompletionOptions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			options := parser.GetCompletionOptions(tt.path)
 
-			if len(options) != tt.expectedCount {
-				t.Errorf("Expected %d options, got %d", tt.expectedCount, len(options))
+			if len(options) < tt.minCount {
+				t.Errorf("Expected at least %d options, got %d", tt.minCount, len(options))
 			}
 
 			// Check expected names are present
@@ -133,7 +133,7 @@ func TestClaudeSchemaParser_GetCompletionOptions(t *testing.T) {
 			}
 
 			// Check unexpected name is not present
-			if tt.unexpectedName != "" {
+			if tt.unexpectedName != "" && len(options) > 0 {
 				for _, option := range options {
 					if option.Name == tt.unexpectedName {
 						t.Errorf("Unexpected option %q found in results", tt.unexpectedName)
@@ -152,22 +152,18 @@ func TestClaudeSchemaParser_GetAllPaths(t *testing.T) {
 
 	paths := parser.GetAllPaths()
 
-	// Check that we have the expected paths
+	// Check that we have the expected paths from official schema
 	expectedPaths := []string{
 		"model",
-		"max_tokens",
-		"temperature",
-		"api",
-		"api.key",
-		"api.url",
-		"top_p",
-		"top_k",
-		"stop_sequences",
-		"system",
+		"hooks",
+		"env",
+		"alwaysThinkingEnabled",
+		"apiKeyHelper",
+		"outputStyle",
 	}
 
-	if len(paths) != len(expectedPaths) {
-		t.Errorf("Expected %d paths, got %d", len(expectedPaths), len(paths))
+	if len(paths) < 15 {
+		t.Errorf("Expected at least 15 paths from official schema, got %d", len(paths))
 	}
 
 	for _, expectedPath := range expectedPaths {
@@ -196,16 +192,16 @@ func TestClaudeSchemaParser_GetAllSettingsWithInfo(t *testing.T) {
 		t.Fatal("Expected settings to be non-empty")
 	}
 
-	// Check for specific settings
+	// Check for specific settings from official schema
 	var modelSetting *SettingInfo
-	var apiKeySetting *SettingInfo
+	var hooksSetting *SettingInfo
 
 	for i := range settings {
 		if settings[i].Path == "model" {
 			modelSetting = &settings[i]
 		}
-		if settings[i].Path == "api.key" {
-			apiKeySetting = &settings[i]
+		if settings[i].Path == "hooks" {
+			hooksSetting = &settings[i]
 		}
 	}
 
@@ -220,11 +216,11 @@ func TestClaudeSchemaParser_GetAllSettingsWithInfo(t *testing.T) {
 		}
 	}
 
-	if apiKeySetting == nil {
-		t.Error("Expected to find 'api.key' setting")
+	if hooksSetting == nil {
+		t.Error("Expected to find 'hooks' setting")
 	} else {
-		if apiKeySetting.Type != "string" {
-			t.Errorf("Expected api.key type to be 'string', got %q", apiKeySetting.Type)
+		if hooksSetting.Type != "object" {
+			t.Errorf("Expected hooks type to be 'object', got %q", hooksSetting.Type)
 		}
 	}
 }

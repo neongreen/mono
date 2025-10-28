@@ -36,11 +36,11 @@ Each schema file MUST have a corresponding `.meta` file documenting:
   - Source: https://jj-vcs.github.io/jj/latest/config-schema.json
   - See: jj.json.meta
 
-- **claude.json**: ⚠️ HAND-WRITTEN (POLICY VIOLATION - TEMPORARY)
-  - Intended source: https://www.schemastore.org/claude-code-settings.json
+- **claude.json**: Official schema from SchemaStore.org
+  - Source: https://json.schemastore.org/claude-code-settings.json
   - See: claude.json.meta
 
-- **mise.schema**: Custom schema (no official schema available)
+- **mise.schema**: Custom schema (official schema available at https://mise.jdx.dev/schema/mise.json but not yet integrated)
   - Based on: https://mise.jdx.dev/configuration.html
   - See: mise.schema.meta
 

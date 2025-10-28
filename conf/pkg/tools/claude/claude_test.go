@@ -52,7 +52,7 @@ func TestClaudeTool_SetConfig(t *testing.T) {
 	}
 
 	// Set a value
-	if err := tool.SetConfig("model", "claude-3-5-sonnet-20241022"); err != nil {
+	if err := tool.SetConfig("model", "sonnet"); err != nil {
 		t.Fatalf("SetConfig failed: %v", err)
 	}
 
@@ -67,8 +67,8 @@ func TestClaudeTool_SetConfig(t *testing.T) {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
 
-	if data["model"] != "claude-3-5-sonnet-20241022" {
-		t.Errorf("Expected model to be 'claude-3-5-sonnet-20241022', got %v", data["model"])
+	if data["model"] != "sonnet" {
+		t.Errorf("Expected model to be 'sonnet', got %v", data["model"])
 	}
 }
 
@@ -78,13 +78,10 @@ func TestClaudeTool_GetConfig(t *testing.T) {
 
 	// Create initial config
 	data := map[string]interface{}{
-		"model":       "claude-3-5-sonnet-20241022",
-		"max_tokens":  float64(4096),
-		"temperature": float64(0.7),
-		"api": map[string]interface{}{
-			"key": "sk-ant-test",
-			"url": "https://api.anthropic.com",
-		},
+		"model":                "sonnet",
+		"alwaysThinkingEnabled": true,
+		"outputStyle":          "markdown",
+		"apiKeyHelper":         "/path/to/helper.sh",
 	}
 
 	os.MkdirAll(filepath.Dir(claudeConfigPath), 0755)
@@ -105,17 +102,17 @@ func TestClaudeTool_GetConfig(t *testing.T) {
 		{
 			name:     "get model",
 			path:     "model",
-			expected: "claude-3-5-sonnet-20241022",
+			expected: "sonnet",
 		},
 		{
-			name:     "get max_tokens",
-			path:     "max_tokens",
-			expected: float64(4096),
+			name:     "get alwaysThinkingEnabled",
+			path:     "alwaysThinkingEnabled",
+			expected: true,
 		},
 		{
-			name:     "get nested api.key",
-			path:     "api.key",
-			expected: "sk-ant-test",
+			name:     "get outputStyle",
+			path:     "outputStyle",
+			expected: "markdown",
 		},
 	}
 
@@ -139,8 +136,8 @@ func TestClaudeTool_UnsetConfig(t *testing.T) {
 
 	// Create initial config
 	data := map[string]interface{}{
-		"model":      "claude-3-5-sonnet-20241022",
-		"max_tokens": float64(4096),
+		"model":                "sonnet",
+		"alwaysThinkingEnabled": true,
 	}
 
 	os.MkdirAll(filepath.Dir(claudeConfigPath), 0755)
@@ -152,13 +149,13 @@ func TestClaudeTool_UnsetConfig(t *testing.T) {
 		t.Fatalf("Failed to create Claude tool: %v", err)
 	}
 
-	// Unset max_tokens
-	if err := tool.UnsetConfig("max_tokens"); err != nil {
+	// Unset alwaysThinkingEnabled
+	if err := tool.UnsetConfig("alwaysThinkingEnabled"); err != nil {
 		t.Fatalf("UnsetConfig failed: %v", err)
 	}
 
 	// Verify it's gone
-	_, err = tool.GetConfig("max_tokens")
+	_, err = tool.GetConfig("alwaysThinkingEnabled")
 	if err == nil {
 		t.Errorf("Expected error for unset value")
 	}
@@ -168,7 +165,7 @@ func TestClaudeTool_UnsetConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetConfig failed: %v", err)
 	}
-	if value != "claude-3-5-sonnet-20241022" {
+	if value != "sonnet" {
 		t.Errorf("Expected model to still exist, got %v", value)
 	}
 }
@@ -183,12 +180,9 @@ func TestClaudeTool_SetAllValues(t *testing.T) {
 	}
 
 	values := map[string]interface{}{
-		"model":       "claude-3-5-sonnet-20241022",
-		"max_tokens":  float64(4096),
-		"temperature": float64(0.7),
-		"api": map[string]interface{}{
-			"key": "sk-ant-test",
-		},
+		"model":                "sonnet",
+		"alwaysThinkingEnabled": true,
+		"outputStyle":          "markdown",
 	}
 
 	if err := tool.SetAllValues(values); err != nil {
@@ -201,17 +195,12 @@ func TestClaudeTool_SetAllValues(t *testing.T) {
 		t.Fatalf("GetAllValues failed: %v", err)
 	}
 
-	if allValues["model"] != "claude-3-5-sonnet-20241022" {
-		t.Errorf("Expected model to be 'claude-3-5-sonnet-20241022', got %v", allValues["model"])
+	if allValues["model"] != "sonnet" {
+		t.Errorf("Expected model to be 'sonnet', got %v", allValues["model"])
 	}
 
-	apiMap, ok := allValues["api"].(map[string]interface{})
-	if !ok {
-		t.Fatalf("Expected api to be a map")
-	}
-
-	if apiMap["key"] != "sk-ant-test" {
-		t.Errorf("Expected api.key to be 'sk-ant-test', got %v", apiMap["key"])
+	if allValues["alwaysThinkingEnabled"] != true {
+		t.Errorf("Expected alwaysThinkingEnabled to be true, got %v", allValues["alwaysThinkingEnabled"])
 	}
 }
 
@@ -227,7 +216,7 @@ func TestClaudeTool_DryRun(t *testing.T) {
 	claudeConfigPath := tool.GetConfigPath()
 
 	// SetConfig in dry-run mode should not create the file
-	if err := tool.SetConfig("model", "claude-3-5-sonnet-20241022"); err != nil {
+	if err := tool.SetConfig("model", "sonnet"); err != nil {
 		t.Fatalf("SetConfig failed: %v", err)
 	}
 
@@ -253,20 +242,20 @@ func TestClaudeTool_SchemaValidation(t *testing.T) {
 	}
 
 	// Test valid path should succeed
-	err = tool.SetConfig("model", "claude-3-5-sonnet-20241022")
+	err = tool.SetConfig("model", "sonnet")
 	if err != nil {
 		t.Errorf("SetConfig with valid path failed: %v", err)
 	}
 
 	// Test another invalid path
-	err = tool.SetConfig("api.invalid", "value")
+	err = tool.SetConfig("nonexistent.setting", "value")
 	if err == nil {
 		t.Error("Expected error for invalid nested path")
 	}
 
-	// Test valid nested path should succeed
-	err = tool.SetConfig("api.key", "sk-ant-test")
+	// Test valid path should succeed
+	err = tool.SetConfig("alwaysThinkingEnabled", true)
 	if err != nil {
-		t.Errorf("SetConfig with valid nested path failed: %v", err)
+		t.Errorf("SetConfig with valid path failed: %v", err)
 	}
 }

@@ -1,36 +1,21 @@
 # Schema Metadata for claude.json
 
-## ⚠️ WARNING - HAND-WRITTEN SCHEMA ⚠️
-**This schema was HAND-WRITTEN and does NOT come from an official source.**
-This violates the schema policy and MUST be replaced with an official schema.
-
 ## Source Information
-- **Intended Source URL**: https://www.schemastore.org/claude-code-settings.json
-- **Actual Source**: HAND-WRITTEN based on Anthropic API documentation
-- **Created Date**: 2025-10-28
-- **Status**: ⚠️ TEMPORARY - Waiting for SchemaStore.org access to download official schema
-- **License**: N/A (hand-written, not official)
+- **Source URL**: https://json.schemastore.org/claude-code-settings.json
+- **Downloaded Date**: 2025-10-28
+- **Schema Store Entry**: Official schema from SchemaStore.org
+- **License**: Apache-2.0 (per SchemaStore.org standard)
 
 ## Modifications
 - **Date**: 2025-10-28
-- **Modified by**: GitHub Copilot
-- **Reason**: ⚠️ POLICY VIOLATION - Schema was hand-written instead of downloaded from official source
-- **Changes**: 
-  - Created JSON Schema draft-07 compliant schema
-  - Based on Anthropic API documentation for Claude API parameters
-  - Includes: api.key, api.url, model, max_tokens, temperature, top_p, top_k, stop_sequences, system
-  - **THIS IS NOT ACCEPTABLE** - Must be replaced with official schema
+- **Modified by**: N/A
+- **Reason**: Using official schema as-is, no modifications
+- **Changes**: None - official schema is used directly from SchemaStore.org
 
 ## Update History
-- 2025-10-28: ⚠️ Hand-written schema created (POLICY VIOLATION - must be corrected)
-
-## Action Required
-1. Download official schema from https://www.schemastore.org/claude-code-settings.json
-2. Replace this hand-written schema with the official one
-3. Update this metadata file with actual download information
-4. Remove warning markers once official schema is in place
+- 2025-10-28: Downloaded official schema from json.schemastore.org (replaced hand-written version)
 
 ## Notes
-- **CRITICAL**: Never claim a hand-written schema comes from an official source
-- This is an example of what NOT to do - see AGENTS.md
+- Official schema from SchemaStore.org
+- To update: Download from https://json.schemastore.org/claude-code-settings.json
 - See AGENTS.md for schema source policy

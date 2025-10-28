@@ -47,8 +47,8 @@ For each schema file:
 
 **Current schemas**:
 - **jj**: Download from `https://jj-vcs.github.io/jj/latest/config-schema.json`
-- **mise**: Custom schema definition based on documentation (no official schema exists)
-- **claude**: ⚠️ HAND-WRITTEN (TEMPORARY) - intended source: `https://www.schemastore.org/claude-code-settings.json` (see `claude.json.meta` for details and warnings)
+- **mise**: Mise has an official schema at `https://mise.jdx.dev/schema/mise.json` (to be integrated)
+- **claude**: Official schema from `https://json.schemastore.org/claude-code-settings.json` (see `claude.json.meta` for details)
 - **Embedded**: Bundle schemas in binary for offline use
 
 ## CLI Interface Pattern
