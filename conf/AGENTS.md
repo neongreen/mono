@@ -46,9 +46,9 @@ For each schema file:
 - Be 100% truthful about the schema's actual origin
 
 **Current schemas**:
-- **jj**: Download from `https://jj-vcs.github.io/jj/latest/config-schema.json`
-- **mise**: Mise has an official schema at `https://mise.jdx.dev/schema/mise.json` (to be integrated)
-- **claude**: Official schema from `https://json.schemastore.org/claude-code-settings.json` (see `claude.json.meta` for details)
+- **jj**: Official schema from `https://jj-vcs.github.io/jj/latest/config-schema.json` (updated 2025-10-28) - JSON Schema for TOML configs
+- **mise**: Custom TOML schema + official JSON schema from `https://mise.jdx.dev/schema/mise.json` (downloaded 2025-10-28 for reference) - Mise configs are TOML
+- **claude**: Official schema from `https://json.schemastore.org/claude-code-settings.json` (see `claude.json.meta` for details) - JSON Schema for JSON configs
 - **Embedded**: Bundle schemas in binary for offline use
 
 ## CLI Interface Pattern

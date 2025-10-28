@@ -1,0 +1,24 @@
+# Schema Metadata for mise.json
+
+## Source Information
+- **Source URL**: https://mise.jdx.dev/schema/mise.json
+- **Alternative URL**: https://raw.githubusercontent.com/jdx/mise/main/schema/mise.json
+- **Downloaded Date**: 2025-10-28
+- **Official Documentation**: https://mise.jdx.dev/
+- **License**: MIT (per Mise project)
+
+## Modifications
+- **Date**: 2025-10-28
+- **Modified by**: N/A
+- **Reason**: Using official schema as-is, no modifications
+- **Changes**: None - official schema is used directly
+
+## Update History
+- 2025-10-28: Initial download of official JSON schema (replaces custom mise.schema file)
+
+## Notes
+- Official JSON schema from Mise project
+- Uses JSON Schema draft 2019-09
+- Replaces custom TOML-based mise.schema file with proper JSON schema
+- To update: Download from https://mise.jdx.dev/schema/mise.json or GitHub repo
+- See AGENTS.md for schema source policy

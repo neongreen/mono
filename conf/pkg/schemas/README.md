@@ -34,14 +34,25 @@ Each schema file MUST have a corresponding `.meta` file documenting:
 
 - **jj.json**: Official schema from Jujutsu project
   - Source: https://jj-vcs.github.io/jj/latest/config-schema.json
+  - Updated: 2025-10-28
+  - Format: JSON Schema describing TOML configs
   - See: jj.json.meta
 
 - **claude.json**: Official schema from SchemaStore.org
   - Source: https://json.schemastore.org/claude-code-settings.json
+  - Format: JSON Schema describing JSON configs
   - See: claude.json.meta
 
-- **mise.schema**: Custom schema (official schema available at https://mise.jdx.dev/schema/mise.json but not yet integrated)
+- **mise.schema**: Custom TOML-based schema (used by parser)
   - Based on: https://mise.jdx.dev/configuration.html
+  - Format: Custom TOML schema format
+  - See: mise.schema.meta
+
+- **mise.json**: Official JSON schema from Mise project (reference)
+  - Source: https://mise.jdx.dev/schema/mise.json
+  - Downloaded: 2025-10-28
+  - Format: JSON Schema describing TOML configs
+  - Note: Mise configs are TOML; this JSON schema describes their structure
   - See: mise.schema.meta
 
 ### Adding New Schemas

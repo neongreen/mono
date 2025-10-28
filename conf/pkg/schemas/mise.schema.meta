@@ -1,23 +1,32 @@
-# Schema Metadata for mise.schema
+# Schema Metadata for mise.schema and mise.json
 
 ## Source Information
-- **Source**: Custom schema definition
-- **Based on**: https://mise.jdx.dev/configuration.html
-- **Created Date**: (See git history)
-- **License**: N/A (custom schema)
+- **Config Format**: TOML (mise configuration files are TOML)
+- **Schema Format**: JSON Schema (the schema describing the TOML config is in JSON)
+- **Schema URL**: https://mise.jdx.dev/schema/mise.json
+- **Alternative URL**: https://raw.githubusercontent.com/jdx/mise/main/schema/mise.json
+- **Downloaded Date**: 2025-10-28
+- **Official Documentation**: https://mise.jdx.dev/
+- **License**: MIT (per Mise project)
+
+## Files
+- **mise.schema**: Custom TOML-based schema definition (legacy, for internal use)
+- **mise.json**: Official JSON schema from Mise project (for reference and future integration)
 
 ## Modifications
-- **Date**: (See git history)
-- **Modified by**: (See git history)
-- **Reason**: Mise does not provide an official JSON schema; this is a custom definition
-- **Changes**: Created from mise documentation
+- **Date**: 2025-10-28
+- **Modified by**: N/A
+- **Reason**: Official JSON schema is used as-is for reference
+- **Changes**: None - official schema is used directly
 
 ## Update History
-- Check git history for creation and update dates
-- To update: Review mise documentation at https://mise.jdx.dev/configuration.html
+- 2025-10-28: Downloaded official JSON schema for reference (mise configs remain TOML)
+- Original: Custom TOML-based schema created from documentation
 
 ## Notes
-- Custom schema created from mise documentation
-- Mise project does not publish an official JSON schema
-- Schema is maintained based on mise documentation updates
+- **Important**: Mise configuration files use TOML format, not JSON
+- The JSON schema is metadata that describes the structure of TOML configs
+- Custom mise.schema is still used by the parser (mise.go)
+- Official mise.json is kept for reference and potential future migration
+- To update: Download latest from https://mise.jdx.dev/schema/mise.json
 - See AGENTS.md for schema source policy
