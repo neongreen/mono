@@ -8,24 +8,44 @@ import (
 )
 
 // JJSchemaParser handles parsing of jj JSON schema for completion data
+// It now wraps JSONSchemaParser which uses the jsonschema library properly
 type JJSchemaParser struct {
+	// Legacy field kept for compatibility, but not used
 	schema map[string]interface{}
+	// New field using proper jsonschema library
+	parser *JSONSchemaParser
 }
 
-// NewJJSchemaParser creates a new jj schema parser
+// NewJJSchemaParser creates a new jj schema parser using the jsonschema library
 func NewJJSchemaParser() (*JJSchemaParser, error) {
-	var schema map[string]interface{}
-	if err := json.Unmarshal([]byte(JJSchema), &schema); err != nil {
-		return nil, fmt.Errorf("failed to parse jj schema JSON: %w", err)
+	// Use the new jsonschema-based parser
+	parser, err := CompileJJSchema()
+	if err != nil {
+		// Fall back to manual parsing if compilation fails
+		var schema map[string]interface{}
+		if unmarshalErr := json.Unmarshal([]byte(JJSchema), &schema); unmarshalErr != nil {
+			return nil, fmt.Errorf("failed to parse jj schema JSON: %w (jsonschema error: %v)", unmarshalErr, err)
+		}
+		return &JJSchemaParser{
+			schema: schema,
+			parser: nil,
+		}, nil
 	}
 
 	return &JJSchemaParser{
-		schema: schema,
+		schema: nil,
+		parser: parser,
 	}, nil
 }
 
 // GetCompletionOptions returns completion options for a given dotted path
 func (p *JJSchemaParser) GetCompletionOptions(path string) []CompletionOption {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetCompletionOptions(path)
+	}
+
+	// Fallback to legacy implementation
 	var options []CompletionOption
 
 	// Get the properties from the schema
@@ -106,6 +126,12 @@ func (p *JJSchemaParser) getNestedCompletionOptions(properties map[string]interf
 
 // GetAllPaths returns all possible dotted paths in the schema
 func (p *JJSchemaParser) GetAllPaths() []string {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetAllPaths()
+	}
+
+	// Fallback to legacy implementation
 	var paths []string
 
 	properties, ok := p.schema["properties"].(map[string]interface{})
@@ -145,6 +171,12 @@ func (p *JJSchemaParser) collectAllPaths(properties map[string]interface{}, pref
 
 // ValidatePath checks if a given dotted path exists in the schema
 func (p *JJSchemaParser) ValidatePath(path string) bool {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.ValidatePath(path)
+	}
+
+	// Fallback to legacy implementation
 	if path == "" {
 		return true
 	}
@@ -257,6 +289,12 @@ func (p *JJSchemaParser) validateAgainstSchema(schema map[string]interface{}, pa
 
 // GetPropertyInfo returns detailed information about a specific property
 func (p *JJSchemaParser) GetPropertyInfo(path string) (PropertyInfo, error) {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetPropertyInfo(path)
+	}
+
+	// Fallback to legacy implementation
 	if path == "" {
 		return PropertyInfo{}, fmt.Errorf("empty path")
 	}
@@ -322,6 +360,12 @@ type SettingInfo struct {
 
 // GetAllSettingsWithInfo returns comprehensive information about all settings in the schema
 func (p *JJSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetAllSettingsWithInfo()
+	}
+
+	// Fallback to legacy implementation
 	var settings []SettingInfo
 
 	properties, ok := p.schema["properties"].(map[string]interface{})

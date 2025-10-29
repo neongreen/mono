@@ -8,24 +8,44 @@ import (
 )
 
 // ClaudeSchemaParser handles parsing of Claude JSON schema for completion data
+// It now wraps JSONSchemaParser which uses the jsonschema library properly
 type ClaudeSchemaParser struct {
+	// Legacy field kept for compatibility, but not used
 	schema map[string]interface{}
+	// New field using proper jsonschema library
+	parser *JSONSchemaParser
 }
 
-// NewClaudeSchemaParser creates a new Claude schema parser
+// NewClaudeSchemaParser creates a new Claude schema parser using the jsonschema library
 func NewClaudeSchemaParser() (*ClaudeSchemaParser, error) {
-	var schema map[string]interface{}
-	if err := json.Unmarshal([]byte(ClaudeSchema), &schema); err != nil {
-		return nil, fmt.Errorf("failed to parse Claude schema JSON: %w", err)
+	// Use the new jsonschema-based parser
+	parser, err := CompileClaudeSchema()
+	if err != nil {
+		// Fall back to manual parsing if compilation fails
+		var schema map[string]interface{}
+		if unmarshalErr := json.Unmarshal([]byte(ClaudeSchema), &schema); unmarshalErr != nil {
+			return nil, fmt.Errorf("failed to parse Claude schema JSON: %w (jsonschema error: %v)", unmarshalErr, err)
+		}
+		return &ClaudeSchemaParser{
+			schema: schema,
+			parser: nil,
+		}, nil
 	}
 
 	return &ClaudeSchemaParser{
-		schema: schema,
+		schema: nil,
+		parser: parser,
 	}, nil
 }
 
 // GetCompletionOptions returns completion options for a given dotted path
 func (p *ClaudeSchemaParser) GetCompletionOptions(path string) []CompletionOption {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetCompletionOptions(path)
+	}
+
+	// Fallback to legacy implementation
 	var options []CompletionOption
 
 	// Get the properties from the schema
@@ -106,6 +126,12 @@ func (p *ClaudeSchemaParser) getNestedCompletionOptions(properties map[string]in
 
 // ValidatePath checks if a configuration path exists in the schema
 func (p *ClaudeSchemaParser) ValidatePath(path string) bool {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.ValidatePath(path)
+	}
+
+	// Fallback to legacy implementation
 	if path == "" {
 		return true
 	}
@@ -147,6 +173,12 @@ func (p *ClaudeSchemaParser) ValidatePath(path string) bool {
 
 // GetAllPaths returns all valid configuration paths from the schema
 func (p *ClaudeSchemaParser) GetAllPaths() []string {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetAllPaths()
+	}
+
+	// Fallback to legacy implementation
 	var paths []string
 
 	properties, ok := p.schema["properties"].(map[string]interface{})
@@ -183,6 +215,12 @@ func (p *ClaudeSchemaParser) collectPaths(properties map[string]interface{}, pre
 
 // GetAllSettingsWithInfo returns all settings with their schema information
 func (p *ClaudeSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetAllSettingsWithInfo()
+	}
+
+	// Fallback to legacy implementation
 	var settings []SettingInfo
 
 	properties, ok := p.schema["properties"].(map[string]interface{})

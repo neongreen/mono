@@ -14,8 +14,9 @@ func TestNewMiseSchemaParser(t *testing.T) {
 		t.Fatal("Expected parser to be non-nil")
 	}
 
-	if parser.schema == nil {
-		t.Fatal("Expected schema to be non-nil")
+	// The parser should have either the new jsonschema-based parser or the legacy schema
+	if parser.parser == nil && parser.schema == nil {
+		t.Fatal("Parser should have either parser or schema initialized")
 	}
 }
 
