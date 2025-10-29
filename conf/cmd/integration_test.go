@@ -37,7 +37,7 @@ func TestCLIIntegration(t *testing.T) {
 	binaryPath := filepath.Join(tmpDir, "conf")
 
 	// Build conf binary
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./main.go")
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "." // Current directory is already cmd/
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
@@ -195,7 +195,7 @@ add_newline = true
 	tmpDir := t.TempDir()
 	binaryPath := filepath.Join(tmpDir, "conf")
 
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./main.go")
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "."
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
@@ -290,7 +290,7 @@ add_newline = true
 	tmpDir := t.TempDir()
 	binaryPath := filepath.Join(tmpDir, "conf")
 
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./main.go")
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "."
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
@@ -370,7 +370,7 @@ func TestCLIErrorHandling(t *testing.T) {
 	tmpDir := t.TempDir()
 	binaryPath := filepath.Join(tmpDir, "conf")
 
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./main.go")
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "."
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
@@ -447,7 +447,7 @@ func TestImportCommand(t *testing.T) {
 	binaryPath := filepath.Join(tmpDir, "conf")
 
 	// Build conf binary
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./main.go")
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "."
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
@@ -629,7 +629,7 @@ func TestApplyPreservesUnmanagedSettings(t *testing.T) {
 	binaryPath := filepath.Join(tmpDir, "conf")
 
 	// Build conf binary
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./main.go")
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "."
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
