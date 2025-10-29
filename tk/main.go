@@ -90,19 +90,8 @@ var newCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Check database version
-		version, err := db.GetDBVersion()
-		if err != nil {
-			return err
-		}
-
-		if version >= v4SpecVersion {
-			// V4 path: use --project flag
-			return createTaskV4(db, cmd, title)
-		} else {
-			// V1/V2 path: use --prefix flag (legacy)
-			return createTaskLegacy(db, cmd, title)
-		}
+		// Always use v4 path
+		return createTaskV4(db, cmd, title)
 	},
 }
 
@@ -152,7 +141,7 @@ func createTaskV4(db *DB, cmd *cobra.Command, title string) error {
 	}
 	proposedNumber := maxNumber + 1
 
-	// Create task.created (v4) event
+	// Create task.created event
 	payload := TaskCreatedV4Payload{
 		TaskUID:        string(taskUID),
 		ProjectUID:     projectUID,
@@ -223,78 +212,6 @@ func createTaskV4(db *DB, cmd *cobra.Command, title string) error {
 	return nil
 }
 
-func createTaskLegacy(db *DB, cmd *cobra.Command, title string) error {
-	prefix, _ := cmd.Flags().GetString("prefix")
-
-	// Check if prefix exists
-	exists, err := db.PrefixExists(prefix)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("prefix %q does not exist. Create it first with: tk prefix create %s <description>", prefix, prefix)
-	}
-
-	currentUser, err := getCurrentUser()
-	if err != nil {
-		return err
-	}
-
-	taskUUID, err := GenerateTaskUUID()
-	if err != nil {
-		return err
-	}
-	taskID, err := GenerateTaskID(db, prefix)
-	if err != nil {
-		return err
-	}
-	eventID, err := GenerateEventID(db)
-	if err != nil {
-		return err
-	}
-
-	// Get next Lamport timestamp from DB
-	lamportTS, err := db.GetNextLamportTS()
-	if err != nil {
-		return err
-	}
-
-	payload := TaskCreatedPayload{
-		TaskUUID:  taskUUID,
-		TaskID:    taskID,
-		Title:     title,
-		CreatedBy: currentUser,
-	}
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
-	}
-
-	now := time.Now()
-	event := Event{
-		ID:        eventID,
-		TS:        lamportTS,
-		CreatedAt: now,
-		Actor:     currentUser,
-		Role:      "human",
-		Kind:      "task.created",
-		Payload:   payloadJSON,
-	}
-
-	if err := db.InsertEvent(event); err != nil {
-		return err
-	}
-
-	// Get all task IDs for formatting (including the one we just created)
-	allTaskIDs, err := db.GetAllTaskIDs()
-	if err != nil {
-		return err
-	}
-
-	displayID := FormatTaskID(taskID, allTaskIDs)
-	fmt.Printf("Created task %s: %s\n", displayID, title)
-	return nil
-}
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
@@ -511,7 +428,7 @@ var lsCmd = &cobra.Command{
 
 		axisFilter, _ := cmd.Flags().GetString("axis")
 		sortBy, _ := cmd.Flags().GetString("sort")
-		prefixFilter, _ := cmd.Flags().GetStringSlice("prefix")
+		projectFilter, _ := cmd.Flags().GetStringSlice("project")
 		showAliases, _ := cmd.Flags().GetBool("aliases")
 		groupBy, _ := cmd.Flags().GetString("group")
 		blockedOnly, _ := cmd.Flags().GetBool("blocked")
@@ -539,20 +456,21 @@ var lsCmd = &cobra.Command{
 
 		// Get task IDs for filtering and formatting
 		var taskIDs []string
-		if len(prefixFilter) > 0 {
-			taskIDs, err = db.GetTaskIDsByPrefixes(prefixFilter)
+		if len(projectFilter) > 0 {
+			// GetTaskIDsByPrefixes already supports project aliases in v4 mode
+			taskIDs, err = db.GetTaskIDsByPrefixes(projectFilter)
 			if err != nil {
 				return err
 			}
 
-			// Filter tasks by prefix
+			// Filter tasks by project
 			var filtered []*Task
 			taskIDSet := make(map[string]bool)
 			for _, id := range taskIDs {
 				taskIDSet[id] = true
 			}
 			for _, task := range tasks {
-				if taskIDSet[task.TaskID] {
+				if taskIDSet[task.TaskUUID] {
 					filtered = append(filtered, task)
 				}
 			}
@@ -614,48 +532,29 @@ var lsCmd = &cobra.Command{
 
 		// Group and render tasks based on groupBy flag
 		switch groupBy {
-		case "prefix":
-			// Group tasks by prefix/project
+		case "project":
+			// Group tasks by project alias
 			grouped := make(map[string][]*Task)
 			var groupOrder []string // To maintain consistent order
 
-			// Check DB version to determine grouping strategy
-			dbVersion, err := db.GetDBVersion()
-			if err != nil {
-				return fmt.Errorf("failed to get DB version: %w", err)
-			}
-
 			for _, task := range tasks {
-				var groupKey string
-				if dbVersion >= 4 {
-					// V4: Group by project alias
-					projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
-					if err != nil {
-						groupKey = task.TaskUUID // Fallback to UID
-					} else {
-						groupKey = projectAlias
-					}
-				} else {
-					// V1/V2: Group by prefix from task ID
-					groupKey = extractPrefix(task.TaskID)
+				projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
+				if err != nil {
+					projectAlias = task.TaskUUID // Fallback to UID
 				}
 
-				if _, exists := grouped[groupKey]; !exists {
-					groupOrder = append(groupOrder, groupKey)
+				if _, exists := grouped[projectAlias]; !exists {
+					groupOrder = append(groupOrder, projectAlias)
 				}
-				grouped[groupKey] = append(grouped[groupKey], task)
+				grouped[projectAlias] = append(grouped[projectAlias], task)
 			}
 
-			// Render a table for each prefix/project group
+			// Render a table for each project group
 			for i, groupKey := range groupOrder {
 				if i > 0 {
 					fmt.Println() // Add blank line between tables
 				}
-				if dbVersion >= 4 {
-					fmt.Printf("Project: %s\n", groupKey)
-				} else {
-					fmt.Printf("Prefix: %s\n", groupKey)
-				}
+				fmt.Printf("Project: %s\n", groupKey)
 				renderTaskTable(db, grouped[groupKey], taskIDs, showAliases, termWidth)
 			}
 
@@ -693,7 +592,7 @@ var lsCmd = &cobra.Command{
 			renderTaskTable(db, tasks, taskIDs, showAliases, termWidth)
 
 		default:
-			return fmt.Errorf("invalid --group value: %s (must be prefix, status, or none)", groupBy)
+			return fmt.Errorf("invalid --group value: %s (must be project, status, or none)", groupBy)
 		}
 
 		return nil
@@ -747,7 +646,7 @@ func extractPrefix(taskID string) string {
 	return ""
 }
 
-// getProjectAliasForTask returns the preferred project alias for a task (v4)
+// getProjectAliasForTask returns the preferred project alias for a task
 func getProjectAliasForTask(db *DB, taskUID string) (string, error) {
 	// Get project UID for this task
 	var projectUID string
@@ -854,8 +753,7 @@ func init() {
 	dbCmd.AddCommand(dbPathCmd)
 	rootCmd.AddCommand(dbCmd)
 
-	newCmd.Flags().String("prefix", "tk", "Task prefix to use (v1/v2)")
-	newCmd.Flags().String("project", "tk", "Project alias or UID to use (v4)")
+	newCmd.Flags().StringP("project", "p", "tk", "Project alias or UID to use")
 	rootCmd.AddCommand(newCmd)
 
 	statusSetCmd.Flags().String("axis", "generic", "Status axis")
@@ -869,9 +767,9 @@ func init() {
 
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
-	lsCmd.Flags().StringSlice("prefix", []string{}, "Filter by prefix (can be specified multiple times)")
+	lsCmd.Flags().StringSliceP("project", "p", []string{}, "Filter by project alias (can be specified multiple times)")
 	lsCmd.Flags().Bool("aliases", false, "Show task aliases")
-	lsCmd.Flags().String("group", "prefix", "Group tasks by: prefix, status, or none (default: prefix)")
+	lsCmd.Flags().String("group", "project", "Group tasks by: project, status, or none (default: project)")
 	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
 	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
 	rootCmd.AddCommand(lsCmd)
@@ -893,63 +791,12 @@ func init() {
 	rootCmd.AddCommand(pushCmd)
 	rootCmd.AddCommand(pullCmd)
 	rootCmd.AddCommand(syncCmd)
-	rootCmd.AddCommand(prefixCmd)
 	rootCmd.AddCommand(eventsCmd)
 	rootCmd.AddCommand(adminCmd)
 	rootCmd.AddCommand(projectCmd)
 }
 
 func openExistingDB() (*DB, error) {
-	path, err := GetDBPath()
-	if err != nil {
-		return nil, err
-	}
-
-	db, err := OpenDB(path)
-	if err != nil {
-		return nil, err
-	}
-
-	// Always ensure schema is up to date (handles both new DBs and migrations)
-	if err := db.InitDB(); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
-	}
-
-	// Check if v4 migration is needed
-	needsMigration, err := db.NeedsMigrationToV4()
-	if err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to check migration status: %w", err)
-	}
-
-	if needsMigration {
-		fmt.Println("Migrating database to v4...")
-
-		if err := db.MigrateToV4(path); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("failed to migrate to v4: %w", err)
-		}
-
-		fmt.Println("Migration to v4 complete!")
-		fmt.Println("Running post-migration health check...")
-		report, err := runDoctor(db)
-		if err != nil {
-			fmt.Printf("Doctor check failed: %v\n", err)
-		} else {
-			printDoctorReport(os.Stdout, report)
-			if report.ProblemCount() > 0 {
-				fmt.Println("Resolve the issues above. You can rerun 'tk doctor' at any time.")
-			}
-		}
-	}
-
-	return db, nil
-}
-
-// openExistingDBSkipMigration opens the database without running migration
-// Used by ingest command which needs to ingest events before migrating
-func openExistingDBSkipMigration() (*DB, error) {
 	path, err := GetDBPath()
 	if err != nil {
 		return nil, err
@@ -968,6 +815,7 @@ func openExistingDBSkipMigration() (*DB, error) {
 
 	return db, nil
 }
+
 
 func getCurrentUser() (string, error) {
 	currentUser, err := user.Current()

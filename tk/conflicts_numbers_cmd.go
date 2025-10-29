@@ -57,6 +57,6 @@ var conflictsNumbersCmd = &cobra.Command{
 }
 
 func init() {
-	conflictsNumbersCmd.Flags().String("project", "", "Project alias or UID to inspect")
+	conflictsNumbersCmd.Flags().StringP("project", "p", "", "Project alias or UID to inspect")
 	conflictsCmd.AddCommand(conflictsNumbersCmd)
 }

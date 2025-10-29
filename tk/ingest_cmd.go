@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -27,8 +28,8 @@ Examples:
 
 		pathOrRemote := args[0]
 
-		// Open DB but skip migration (we'll migrate AFTER ingesting)
-		db, err := openExistingDBSkipMigration()
+		// Open DB
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -58,37 +59,6 @@ Examples:
 			return ingestErr
 		}
 
-		// Now check if migration is needed AFTER ingesting events
-		needsMigration, err := db.NeedsMigrationToV4()
-		if err != nil {
-			return fmt.Errorf("failed to check migration status: %w", err)
-		}
-
-		if needsMigration {
-			fmt.Println("\nMigrating database to v4...")
-
-			dbPath, err := GetDBPath()
-			if err != nil {
-				return err
-			}
-
-			if err := db.MigrateToV4(dbPath); err != nil {
-				return fmt.Errorf("failed to migrate to v4: %w", err)
-			}
-
-			fmt.Println("Migration to v4 complete!")
-			fmt.Println("Running post-migration health check...")
-			report, err := runDoctor(db)
-			if err != nil {
-				fmt.Printf("Doctor check failed: %v\n", err)
-			} else {
-				printDoctorReport(os.Stdout, report)
-				if report.ProblemCount() > 0 {
-					fmt.Println("Resolve the issues above. You can rerun 'tk doctor' at any time.")
-				}
-			}
-		}
-
 		return nil
 	},
 }
@@ -101,12 +71,6 @@ func ingestFile(db *DB, path string) error {
 		return fmt.Errorf("failed to read segment file: %w", err)
 	}
 
-	// Check database version to determine if we should project v4 events
-	dbVersion, err := db.GetDBVersion()
-	if err != nil {
-		return fmt.Errorf("failed to get database version: %w", err)
-	}
-
 	ingested := 0
 	duplicates := 0
 
@@ -117,7 +81,41 @@ func ingestFile(db *DB, path string) error {
 			return fmt.Errorf("failed to convert segment event %s: %w", segEvent.ID, err)
 		}
 
-		// Try to insert event (will fail if duplicate)
+		// Transform legacy events to v4 events BEFORE inserting
+		transformedEvents, err := TransformLegacyEvent(event, func(prefix, description, createdBy string, createdAt time.Time, nodeID string) (string, error) {
+			return getOrCreateProjectForPrefix(db, prefix, description, createdBy, createdAt, nodeID)
+		})
+		if err != nil {
+			return fmt.Errorf("failed to transform legacy event %s: %w", event.ID, err)
+		}
+
+		// If event was transformed, insert transformed events instead of original
+		if len(transformedEvents) > 0 {
+			for _, transformedEvent := range transformedEvents {
+				// Check for duplicates on transformed events
+				err = db.InsertEvent(transformedEvent)
+				if err != nil {
+					if isDuplicateError(err) {
+						duplicates++
+						continue
+					}
+					return fmt.Errorf("failed to insert transformed event %s: %w", transformedEvent.ID, err)
+				}
+				// Bump lamport if needed
+				if err := db.BumpLamport(transformedEvent.TS); err != nil {
+					return fmt.Errorf("failed to bump lamport: %w", err)
+				}
+				// Project v4 events
+				if err := projectV4Event(db, transformedEvent); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project v4 event %s: %v\n", transformedEvent.ID, err)
+				}
+				ingested++
+			}
+			// Skip the original legacy event - we've inserted transformed events instead
+			continue
+		}
+
+		// Event was not transformed, insert original event
 		err = db.InsertEvent(event)
 		if err != nil {
 			// Check if it's a duplicate error
@@ -128,58 +126,9 @@ func ingestFile(db *DB, path string) error {
 			return fmt.Errorf("failed to insert event %s: %w", event.ID, err)
 		}
 
-		// Bump lamport if needed
-		if err := db.BumpLamport(event.TS); err != nil {
-			return fmt.Errorf("failed to bump lamport: %w", err)
-		}
-
-		// Project prefix events into prefixes table (v3 compatible)
-		if event.Kind == "prefix.created" {
-			if err := db.ProjectPrefixCreatedEvent(event); err != nil {
-				// Log but don't fail - projection errors are not critical
-				fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.created event %s: %v\n", event.ID, err)
-			}
-		}
-		if event.Kind == "prefix.removed" {
-			if err := db.ProjectPrefixRemovedEvent(event); err != nil {
-				// Log but don't fail - projection errors are not critical
-				fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.removed event %s: %v\n", event.ID, err)
-			}
-		}
-
-		// Only project v4 events if database is v4 or higher
-		if dbVersion >= 4 {
-			// Project v4 events into their respective tables
-			switch event.Kind {
-			case string(EventKindProjectCreated):
-				if err := db.ProjectProjectCreatedEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindProjectAliasAdd):
-				if err := db.ProjectProjectAliasAddEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindProjectAliasRemove):
-				if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindTaskCreated):
-				if err := db.ProjectTaskCreatedV4Event(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindTaskNumberSet):
-				if err := db.ProjectTaskNumberSetEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindTaskRelocate):
-				if err := db.ProjectTaskRelocateEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindTaskTitleSet):
-				if err := db.ProjectTaskTitleSetEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
-				}
-			}
+		// Project v4 events (always v4 now)
+		if err := projectV4Event(db, event); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to project v4 event %s: %v\n", event.ID, err)
 		}
 
 		ingested++
@@ -234,12 +183,6 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 		return nil
 	}
 
-	// Check database version to determine if we should project v4 events
-	dbVersion, err := db.GetDBVersion()
-	if err != nil {
-		return fmt.Errorf("failed to get database version: %w", err)
-	}
-
 	totalIngested := 0
 	totalDuplicates := 0
 
@@ -258,7 +201,41 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 				return fmt.Errorf("failed to convert segment event %s: %w", segEvent.ID, err)
 			}
 
-			// Try to insert event (will fail if duplicate)
+			// Transform legacy events to v4 events BEFORE inserting
+			transformedEvents, err := TransformLegacyEvent(event, func(prefix, description, createdBy string, createdAt time.Time, nodeID string) (string, error) {
+				return getOrCreateProjectForPrefix(db, prefix, description, createdBy, createdAt, nodeID)
+			})
+			if err != nil {
+				return fmt.Errorf("failed to transform legacy event %s: %w", event.ID, err)
+			}
+
+			// If event was transformed, insert transformed events instead of original
+			if len(transformedEvents) > 0 {
+				for _, transformedEvent := range transformedEvents {
+					// Check for duplicates on transformed events
+					err = db.InsertEvent(transformedEvent)
+					if err != nil {
+						if isDuplicateError(err) {
+							totalDuplicates++
+							continue
+						}
+						return fmt.Errorf("failed to insert transformed event %s: %w", transformedEvent.ID, err)
+					}
+					// Bump lamport if needed
+					if err := db.BumpLamport(transformedEvent.TS); err != nil {
+						return fmt.Errorf("failed to bump lamport: %w", err)
+					}
+					// Project v4 events
+					if err := projectV4Event(db, transformedEvent); err != nil {
+						fmt.Fprintf(os.Stderr, "Warning: failed to project v4 event %s: %v\n", transformedEvent.ID, err)
+					}
+					totalIngested++
+				}
+				// Skip the original legacy event - we've inserted transformed events instead
+				continue
+			}
+
+			// Event was not transformed, insert original event
 			err = db.InsertEvent(event)
 			if err != nil {
 				// Check if it's a duplicate error
@@ -274,53 +251,9 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 				return fmt.Errorf("failed to bump lamport: %w", err)
 			}
 
-			// Project prefix events into prefixes table
-			if event.Kind == "prefix.created" {
-				if err := db.ProjectPrefixCreatedEvent(event); err != nil {
-					// Log but don't fail - projection errors are not critical
-					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.created event %s: %v\n", event.ID, err)
-				}
-			}
-			if event.Kind == "prefix.removed" {
-				if err := db.ProjectPrefixRemovedEvent(event); err != nil {
-					// Log but don't fail - projection errors are not critical
-					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.removed event %s: %v\n", event.ID, err)
-				}
-			}
-
-			// Only project v4 events if database is v4 or higher
-			if dbVersion >= 4 {
-				// Project v4 events into their respective tables
-				switch event.Kind {
-				case string(EventKindProjectCreated):
-					if err := db.ProjectProjectCreatedEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindProjectAliasAdd):
-					if err := db.ProjectProjectAliasAddEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindProjectAliasRemove):
-					if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindTaskCreated):
-					if err := db.ProjectTaskCreatedV4Event(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindTaskNumberSet):
-					if err := db.ProjectTaskNumberSetEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindTaskRelocate):
-					if err := db.ProjectTaskRelocateEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindTaskTitleSet):
-					if err := db.ProjectTaskTitleSetEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
-					}
-				}
+			// Project v4 events (always v4 now)
+			if err := projectV4Event(db, event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project v4 event %s: %v\n", event.ID, err)
 			}
 
 			totalIngested++
@@ -427,4 +360,341 @@ func saveIngestWatermark(path string, watermark *IngestWatermark) error {
 	}
 
 	return nil
+}
+
+// transformLegacyEvent transforms legacy v1/v2/v3 events into v4 events
+// Returns empty slice if event is not a legacy event that needs transformation
+func transformLegacyEvent(db *DB, event Event) ([]Event, error) {
+	switch event.Kind {
+	case "prefix.created":
+		return transformPrefixCreated(db, event)
+	case "task.created":
+		// Check if it's legacy format (has task_id field, not task_uid)
+		var payload TaskCreatedPayload
+		if err := json.Unmarshal(event.Payload, &payload); err != nil {
+			return nil, nil // Not a legacy task.created, return empty
+		}
+		// Legacy format has task_id field with format prefix-number-node
+		if payload.TaskID != "" && payload.TaskUUID == "" {
+			return transformLegacyTaskCreated(db, event)
+		}
+		return nil, nil // Already v4 format
+	case "task.reprefix":
+		return transformTaskReprefix(db, event)
+	default:
+		return nil, nil // Not a legacy event that needs transformation
+	}
+}
+
+// transformPrefixCreated transforms prefix.created → project.created + project.alias.add
+func transformPrefixCreated(db *DB, event Event) ([]Event, error) {
+	var payload PrefixCreatedPayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return nil, fmt.Errorf("failed to parse prefix.created payload: %w", err)
+	}
+
+	nodeID, err := db.GetOrCreateNodeID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	// Extract node from event ID if possible (format: ev-<number>-<node>)
+	parts := strings.Split(event.ID, "-")
+	if len(parts) >= 3 {
+		nodeID = parts[2]
+	}
+
+	// Get or create project UID for this prefix
+	projectUID, err := getOrCreateProjectForPrefix(db, payload.Prefix, payload.Description, payload.CreatedBy, event.CreatedAt, nodeID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create project for prefix %s: %w", payload.Prefix, err)
+	}
+
+	// Create project.created event
+	projectCreatedPayload := ProjectCreatedPayload{
+		ProjectUID:  projectUID,
+		Type:        "local",
+		Name:        payload.Prefix,
+		Description: payload.Description,
+		CreatedBy:   payload.CreatedBy,
+	}
+	projectCreatedJSON, err := json.Marshal(projectCreatedPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal project.created payload: %w", err)
+	}
+
+	projectCreatedEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        event.TS,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindProjectCreated),
+		Payload:   projectCreatedJSON,
+	}
+
+	// Create project.alias.add event
+	aliasPayload := ProjectAliasAddPayload{
+		ProjectUID: projectUID,
+		Alias:      payload.Prefix,
+		Node:       nodeID,
+		AddedBy:    payload.CreatedBy,
+	}
+	aliasJSON, err := json.Marshal(aliasPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal project.alias.add payload: %w", err)
+	}
+
+	aliasEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        event.TS + 1, // Slightly after project.created
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindProjectAliasAdd),
+		Payload:   aliasJSON,
+	}
+
+	return []Event{projectCreatedEvent, aliasEvent}, nil
+}
+
+// transformLegacyTaskCreated transforms legacy task.created → v4 task.created + task.number.set
+func transformLegacyTaskCreated(db *DB, event Event) ([]Event, error) {
+	var payload TaskCreatedPayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return nil, fmt.Errorf("failed to parse legacy task.created payload: %w", err)
+	}
+
+	// Parse task_id to extract prefix, number, node
+	prefix, number, node, err := ParseTaskIDLegacy(payload.TaskID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse task_id %s: %w", payload.TaskID, err)
+	}
+
+	// Get or create project UID for this prefix
+	projectUID, err := getOrCreateProjectForPrefix(db, prefix, "", payload.CreatedBy, event.CreatedAt, node)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create project for prefix %s: %w", prefix, err)
+	}
+
+	// Generate new task UID
+	taskUID := string(NewTaskUID())
+
+	// Create v4 task.created event
+	taskCreatedPayload := TaskCreatedV4Payload{
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: number,
+		CreatedNode:    node,
+		Title:          payload.Title,
+		CreatedBy:      payload.CreatedBy,
+	}
+	taskCreatedJSON, err := json.Marshal(taskCreatedPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal task.created payload: %w", err)
+	}
+
+	taskCreatedEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        event.TS,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindTaskCreated),
+		Payload:   taskCreatedJSON,
+	}
+
+	// Create task.number.set event
+	numberPayload := TaskNumberSetPayload{
+		TaskUID:    taskUID,
+		ProjectUID: projectUID,
+		Number:     number,
+		Reason:     "migrated from legacy",
+	}
+	numberJSON, err := json.Marshal(numberPayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal task.number.set payload: %w", err)
+	}
+
+	numberEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        event.TS + 1, // Slightly after task.created
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindTaskNumberSet),
+		Payload:   numberJSON,
+	}
+
+	return []Event{taskCreatedEvent, numberEvent}, nil
+}
+
+// transformTaskReprefix transforms task.reprefix → task.relocate
+func transformTaskReprefix(db *DB, event Event) ([]Event, error) {
+	var payload TaskReprefixPayload
+	if err := json.Unmarshal(event.Payload, &payload); err != nil {
+		return nil, fmt.Errorf("failed to parse task.reprefix payload: %w", err)
+	}
+
+	// Get project UIDs for old and new prefixes
+	fromProjectUID, err := getOrCreateProjectForPrefix(db, payload.OldPrefix, "", event.Actor, event.CreatedAt, payload.OldNode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create project for prefix %s: %w", payload.OldPrefix, err)
+	}
+
+	toProjectUID, err := getOrCreateProjectForPrefix(db, payload.NewPrefix, "", event.Actor, event.CreatedAt, payload.OldNode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get/create project for prefix %s: %w", payload.NewPrefix, err)
+	}
+
+	// Get task UID - need to resolve from legacy task
+	// For now, we'll need to resolve it from the task_id or task_uuid
+	// This is a simplified version - full implementation would need to track UUID mappings
+	taskUID := string(NewTaskUID())
+
+	// Create task.relocate event
+	relocatePayload := TaskRelocatePayload{
+		TaskUID:        taskUID,
+		FromProjectUID: fromProjectUID,
+		ToProjectUID:   toProjectUID,
+		NumberPolicy: NumberPolicyPayload{
+			Mode:   "force",
+			Number: payload.NewNumber,
+		},
+	}
+	relocateJSON, err := json.Marshal(relocatePayload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal task.relocate payload: %w", err)
+	}
+
+	relocateEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        event.TS,
+		CreatedAt: event.CreatedAt,
+		Actor:     event.Actor,
+		Role:      event.Role,
+		Kind:      string(EventKindTaskRelocate),
+		Payload:   relocateJSON,
+	}
+
+	return []Event{relocateEvent}, nil
+}
+
+// getOrCreateProjectForPrefix gets or creates a project UID for a given prefix
+func getOrCreateProjectForPrefix(db *DB, prefix, description, createdBy string, createdAt time.Time, nodeID string) (string, error) {
+	// Check if project already exists for this prefix alias
+	var projectUID string
+	err := db.db.QueryRow(`
+		SELECT project_uid FROM project_aliases 
+		WHERE alias = ? AND node = ?
+		LIMIT 1
+	`, prefix, nodeID).Scan(&projectUID)
+
+	if err == nil {
+		// Project exists, return it
+		return projectUID, nil
+	}
+
+	// Project doesn't exist, create it
+	projectUID = string(NewProjectUID())
+
+	// Create project.created event
+	projectPayload := ProjectCreatedPayload{
+		ProjectUID:  projectUID,
+		Type:        "local",
+		Name:        prefix,
+		Description: description,
+		CreatedBy:   createdBy,
+	}
+	projectJSON, err := json.Marshal(projectPayload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal project.created payload: %w", err)
+	}
+
+	projectEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0, // Will be set during insert
+		CreatedAt: createdAt,
+		Actor:     createdBy,
+		Role:      "human",
+		Kind:      string(EventKindProjectCreated),
+		Payload:   projectJSON,
+	}
+
+	// Insert and project the event
+	if err := db.InsertEvent(projectEvent); err != nil {
+		if !isDuplicateError(err) {
+			return "", fmt.Errorf("failed to insert project.created event: %w", err)
+		}
+		// If duplicate, try to read the existing project
+		err = db.db.QueryRow(`
+			SELECT project_uid FROM project_aliases 
+			WHERE alias = ? AND node = ?
+			LIMIT 1
+		`, prefix, nodeID).Scan(&projectUID)
+		if err != nil {
+			return "", fmt.Errorf("failed to read existing project: %w", err)
+		}
+		return projectUID, nil
+	}
+
+	if err := db.ProjectProjectCreatedEvent(projectEvent); err != nil {
+		return "", fmt.Errorf("failed to project project.created event: %w", err)
+	}
+
+	// Create project.alias.add event
+	aliasPayload := ProjectAliasAddPayload{
+		ProjectUID: projectUID,
+		Alias:      prefix,
+		Node:       nodeID,
+		AddedBy:    createdBy,
+	}
+	aliasJSON, err := json.Marshal(aliasPayload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal project.alias.add payload: %w", err)
+	}
+
+	aliasEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        0, // Will be set during insert
+		CreatedAt: createdAt,
+		Actor:     createdBy,
+		Role:      "human",
+		Kind:      string(EventKindProjectAliasAdd),
+		Payload:   aliasJSON,
+	}
+
+	if err := db.InsertEvent(aliasEvent); err != nil {
+		if !isDuplicateError(err) {
+			return "", fmt.Errorf("failed to insert project.alias.add event: %w", err)
+		}
+	}
+
+	if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
+		return "", fmt.Errorf("failed to project project.alias.add event: %w", err)
+	}
+
+	return projectUID, nil
+}
+
+// projectV4Event projects a v4 event into its respective table
+func projectV4Event(db *DB, event Event) error {
+	switch event.Kind {
+	case string(EventKindProjectCreated):
+		return db.ProjectProjectCreatedEvent(event)
+	case string(EventKindProjectAliasAdd):
+		return db.ProjectProjectAliasAddEvent(event)
+	case string(EventKindProjectAliasRemove):
+		return db.ProjectProjectAliasRemoveEvent(event)
+	case string(EventKindTaskCreated):
+		return db.ProjectTaskCreatedV4Event(event)
+	case string(EventKindTaskNumberSet):
+		return db.ProjectTaskNumberSetEvent(event)
+	case string(EventKindTaskRelocate):
+		return db.ProjectTaskRelocateEvent(event)
+	case string(EventKindTaskTitleSet):
+		return db.ProjectTaskTitleSetEvent(event)
+	default:
+		return nil // Not a v4 event that needs projection
+	}
 }

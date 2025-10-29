@@ -27,7 +27,7 @@ type ProjectAliasRemovePayload struct {
 	Node       string `json:"node"`
 }
 
-// TaskCreatedV4Payload is the payload for task.created events (v4)
+// TaskCreatedV4Payload is the payload for task.created events
 type TaskCreatedV4Payload struct {
 	TaskUID        string `json:"task_uid"`
 	ProjectUID     string `json:"project_uid"`

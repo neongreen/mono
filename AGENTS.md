@@ -734,3 +734,44 @@ func applyTool(conf *config.Config, toolName string) error {
 - Configuration file serialization: TOML, JSON, YAML
 
 **The key principle**: If you control both ends (caller and callee), use structured data. Only render to strings at the boundaries.
+
+------------------------------------------------------------
+
+## Database Schema Initialization
+
+**The entire database schema must be created by `InitDB()`.** This includes all tables, indexes, and other database objects required by the application.
+
+### Why This Matters
+
+1. **Single source of truth**: All schema definitions live in one place (`InitDB()`)
+2. **Testability**: Tests can create fresh databases without worrying about missing tables
+3. **Deployment**: New deployments create complete schemas automatically
+4. **Consistency**: No risk of partial schemas from incremental creation
+
+### Implementation
+
+The `InitDB()` function must create ALL tables used by the application, including:
+- Event storage tables (`events`, `event_id_map`)
+- Metadata tables (`metadata`)
+- Counter tables (`task_counter`, `event_counter`)
+- Projection tables (`projects`, `project_aliases`, `tasks`, `task_numbers`)
+- All indexes on these tables
+
+**Do NOT** create tables lazily in projection functions or other code paths. Tables must exist before any code tries to use them.
+
+### Example
+
+```go
+func (d *DB) InitDB() error {
+    schema := `
+        CREATE TABLE IF NOT EXISTS events (...);
+        CREATE TABLE IF NOT EXISTS projects (...);
+        CREATE TABLE IF NOT EXISTS tasks (...);
+        -- ... all other tables ...
+    `
+    if _, err := d.db.Exec(schema); err != nil {
+        return fmt.Errorf("failed to create schema: %w", err)
+    }
+    return nil
+}
+```

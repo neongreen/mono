@@ -12,7 +12,7 @@ import (
 var projectCmd = &cobra.Command{
 	Use:   "project",
 	Short: "Manage projects",
-	Long:  `Create and manage projects (v4).`,
+	Long:  `Create and manage projects.`,
 }
 
 var projectCreateCmd = &cobra.Command{
@@ -25,15 +25,6 @@ var projectCreateCmd = &cobra.Command{
 			return err
 		}
 		defer db.Close()
-
-		// Check database version - projects are v4+ only
-		version, err := db.GetDBVersion()
-		if err != nil {
-			return err
-		}
-		if version < v4SpecVersion {
-			return fmt.Errorf("projects require database v4 or higher (current: v%d). Run 'tk ls' to trigger migration.", version)
-		}
 
 		name := args[0]
 		description := ""

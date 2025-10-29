@@ -69,7 +69,7 @@ func (d *DB) ProjectProjectAliasRemoveEvent(e Event) error {
 	return err
 }
 
-// ProjectTaskCreatedV4Event projects a task.created (v4) event into the tasks table (idempotent)
+// ProjectTaskCreatedV4Event projects a task.created event into the tasks table (idempotent)
 func (d *DB) ProjectTaskCreatedV4Event(e Event) error {
 	if e.Kind != string(EventKindTaskCreated) {
 		return fmt.Errorf("expected task.created event, got %s", e.Kind)

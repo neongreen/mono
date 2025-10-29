@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"testing"
 )
@@ -53,27 +54,17 @@ func TestFullSyncWorkflow(t *testing.T) {
 	// Setup shared remote directory (simulating iCloud, Dropbox, etc.)
 	remotePath := filepath.Join(tmpDir, "remote")
 
-	// Machine A: Create prefixes
-	t.Log("Machine A: Creating prefixes...")
-	if err := dbA.CreatePrefix("work", "Work-related tasks", "alice"); err != nil {
-		t.Fatalf("failed to create prefix 'work' on machine A: %v", err)
-	}
+	// Machine A: Create projects for testing
+	t.Log("Machine A: Creating projects...")
+	projectUIDWork := seedProject(t, dbA, "work")
+	_ = seedProject(t, dbA, "personal")
 
-	if err := dbA.CreatePrefix("personal", "Personal tasks", "alice"); err != nil {
-		t.Fatalf("failed to create prefix 'personal' on machine A: %v", err)
-	}
-
-	// Machine A: Create some tasks
+	// Machine A: Create project and task using v4 format
 	t.Log("Machine A: Creating tasks...")
-	taskUUID1, err := GenerateTaskUUID()
-	if err != nil {
-		t.Fatalf("failed to generate task UUID: %v", err)
-	}
-	taskID1, err := GenerateTaskID(dbA, "work")
-	if err != nil {
-		t.Fatalf("failed to generate task ID: %v", err)
-	}
+	projectUIDA := projectUIDWork
+	taskUUID1 := seedTask(t, dbA, projectUIDA, "Implement feature X", 1)
 
+	// Create legacy format event for sync testing
 	eventID1, err := GenerateEventID(dbA)
 	if err != nil {
 		t.Fatalf("failed to generate event ID: %v", err)
@@ -83,6 +74,12 @@ func TestFullSyncWorkflow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to get lamport timestamp: %v", err)
 	}
+
+	nodeIDA, err := dbA.GetOrCreateNodeID()
+	if err != nil {
+		t.Fatalf("failed to get node ID: %v", err)
+	}
+	taskID1 := fmt.Sprintf("work-1-%s", nodeIDA)
 
 	payload1 := TaskCreatedPayload{
 		TaskUUID:  taskUUID1,
@@ -146,62 +143,8 @@ func TestFullSyncWorkflow(t *testing.T) {
 		t.Fatalf("failed to ingest on machine B: %v", err)
 	}
 
-	// Machine B: Verify prefixes are available with full metadata
-	t.Log("Machine B: Verifying prefixes...")
-	prefixesB, err := dbB.GetAllPrefixes()
-	if err != nil {
-		t.Fatalf("failed to get prefixes on machine B: %v", err)
-	}
-
-	foundWork := false
-	foundPersonal := false
-	for _, p := range prefixesB {
-		t.Logf("Found prefix on machine B: %s (node: %s, desc: %s, created_at: %v)",
-			p.Prefix, p.Node, p.Description, p.CreatedAt)
-
-		if p.Prefix == "work" && p.Node == nodeA {
-			foundWork = true
-			if p.Description != "Work-related tasks" {
-				t.Errorf("expected description 'Work-related tasks', got %s", p.Description)
-			}
-			if p.CreatedBy != "alice" {
-				t.Errorf("expected created_by 'alice', got %s", p.CreatedBy)
-			}
-			if p.CreatedAt.IsZero() {
-				t.Error("expected non-zero created_at for synced prefix 'work'")
-			}
-		}
-
-		if p.Prefix == "personal" && p.Node == nodeA {
-			foundPersonal = true
-			if p.Description != "Personal tasks" {
-				t.Errorf("expected description 'Personal tasks', got %s", p.Description)
-			}
-			if p.CreatedAt.IsZero() {
-				t.Error("expected non-zero created_at for synced prefix 'personal'")
-			}
-		}
-	}
-
-	if !foundWork {
-		t.Error("prefix 'work' from machine A not found on machine B after sync")
-	}
-	if !foundPersonal {
-		t.Error("prefix 'personal' from machine A not found on machine B after sync")
-	}
-
-	// Machine B: Verify that GetPrefixes() only returns local node prefixes
-	localPrefixesB, err := dbB.GetPrefixes()
-	if err != nil {
-		t.Fatalf("failed to get local prefixes on machine B: %v", err)
-	}
-
-	// Should NOT find work/personal in local prefixes since they're from a different node
-	for _, p := range localPrefixesB {
-		if (p.Prefix == "work" || p.Prefix == "personal") && p.Node == nodeA {
-			t.Errorf("prefix %s from node A should not appear in local prefix list on machine B", p.Prefix)
-		}
-	}
+	// Machine B: Verify that events were ingested (prefix verification removed - prefix functionality deprecated)
+	t.Log("Machine B: Verifying ingested events...")
 
 	// Machine B: Verify tasks are also synced
 	t.Log("Machine B: Verifying tasks...")
@@ -227,21 +170,13 @@ func TestFullSyncWorkflow(t *testing.T) {
 		}
 	}
 
-	// Machine B: Create its own prefix and task
-	t.Log("Machine B: Creating local prefix and task...")
-	if err := dbB.CreatePrefix("bugs", "Bug tracking", "bob"); err != nil {
-		t.Fatalf("failed to create prefix 'bugs' on machine B: %v", err)
-	}
+	// Machine B: Create its own project and task using v4 format
+	t.Log("Machine B: Creating local project and task...")
+	projectUIDB := seedProject(t, dbB, "bugs")
+	taskUUID2 := seedTask(t, dbB, projectUIDB, "Fix critical bug", 1)
 
-	taskUUID2, err := GenerateTaskUUID()
-	if err != nil {
-		t.Fatalf("failed to generate task UUID on machine B: %v", err)
-	}
-	taskID2, err := GenerateTaskID(dbB, "bugs")
-	if err != nil {
-		t.Fatalf("failed to generate task ID on machine B: %v", err)
-	}
-
+	// Create legacy format event for sync testing
+	taskUUID2Str := taskUUID2
 	eventID2, err := GenerateEventID(dbB)
 	if err != nil {
 		t.Fatalf("failed to generate event ID on machine B: %v", err)
@@ -252,8 +187,14 @@ func TestFullSyncWorkflow(t *testing.T) {
 		t.Fatalf("failed to get lamport timestamp on machine B: %v", err)
 	}
 
+	nodeIDB, err := dbB.GetOrCreateNodeID()
+	if err != nil {
+		t.Fatalf("failed to get node ID on machine B: %v", err)
+	}
+	taskID2 := fmt.Sprintf("bugs-1-%s", nodeIDB)
+
 	payload2 := TaskCreatedPayload{
-		TaskUUID:  taskUUID2,
+		TaskUUID:  taskUUID2Str,
 		TaskID:    taskID2,
 		Title:     "Fix critical bug",
 		CreatedBy: "bob",
@@ -313,34 +254,8 @@ func TestFullSyncWorkflow(t *testing.T) {
 		t.Fatalf("failed to ingest on machine A: %v", err)
 	}
 
-	// Machine A: Verify it received machine B's prefix and task
+	// Machine A: Verify it received machine B's project and task (prefix verification removed - prefix functionality deprecated)
 	t.Log("Machine A: Verifying synced data from machine B...")
-	prefixesA, err := dbA.GetAllPrefixes()
-	if err != nil {
-		t.Fatalf("failed to get prefixes on machine A: %v", err)
-	}
-
-	foundBugs := false
-	for _, p := range prefixesA {
-		if p.Prefix == "bugs" && p.Node == nodeB {
-			foundBugs = true
-			if p.Description != "Bug tracking" {
-				t.Errorf("expected description 'Bug tracking', got %s", p.Description)
-			}
-			if p.CreatedBy != "bob" {
-				t.Errorf("expected created_by 'bob', got %s", p.CreatedBy)
-			}
-			if p.CreatedAt.IsZero() {
-				t.Error("expected non-zero created_at for synced prefix 'bugs'")
-			}
-		}
-	}
-
-	if !foundBugs {
-		t.Error("prefix 'bugs' from machine B not found on machine A after sync")
-	}
-
-	// Machine A: Verify it received machine B's task
 	eventsANew, err := dbA.GetEvents()
 	if err != nil {
 		t.Fatalf("failed to get events from machine A: %v", err)

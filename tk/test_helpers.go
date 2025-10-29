@@ -23,18 +23,6 @@ func openTempDB(t *testing.T) *DB {
 	if err := db.InitDB(); err != nil {
 		t.Fatalf("failed to initialise db: %v", err)
 	}
-	if err := db.CreateV4Tables(); err != nil {
-		t.Fatalf("failed to create v4 tables: %v", err)
-	}
-	if err := db.SetDBVersion(v4SpecVersion); err != nil {
-		t.Fatalf("failed to set v4 version: %v", err)
-	}
-	if _, err := db.db.Exec(`
-		INSERT OR REPLACE INTO metadata (key, value)
-		VALUES ('remote_subdir', ?)
-	`, v4SegmentSubdir); err != nil {
-		t.Fatalf("failed to set remote_subdir: %v", err)
-	}
 	return db
 }
 

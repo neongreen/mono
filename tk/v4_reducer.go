@@ -105,7 +105,7 @@ func (r *Reducer) applyProjectAliasRemove(e Event) error {
 func (r *Reducer) applyTaskCreatedV4(e Event) error {
 	var payload TaskCreatedV4Payload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal task.created (v4) payload: %w", err)
+		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
 	}
 
 	taskUID := payload.TaskUID

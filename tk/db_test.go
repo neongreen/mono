@@ -106,19 +106,7 @@ func TestDB_GetNextLamportTS_and_BumpLamport(t *testing.T) {
 	}
 }
 
-func TestDB_GetAllPrefixes(t *testing.T) {
-	db := openTempDB(t)
-
-	// GetAllPrefixes returns legacy v1/v2 prefixes, not v4 projects
-	// Just test that it doesn't error
-	prefixes, err := db.GetAllPrefixes()
-	if err != nil {
-		t.Fatalf("GetAllPrefixes() error = %v", err)
-	}
-
-	// Should return empty list for new v4 database
-	_ = prefixes
-}
+// TestDB_GetAllPrefixes - removed - prefix functionality has been removed
 
 func TestDB_GetAllTaskIDs(t *testing.T) {
 	db := openTempDB(t)
