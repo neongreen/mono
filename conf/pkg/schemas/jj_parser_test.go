@@ -15,8 +15,9 @@ func TestNewJJSchemaParser(t *testing.T) {
 		t.Fatal("Parser should not be nil")
 	}
 
-	if parser.schema == nil {
-		t.Fatal("Parser schema should not be nil")
+	// The parser should have either the new jsonschema-based parser or the legacy schema
+	if parser.parser == nil && parser.schema == nil {
+		t.Fatal("Parser should have either parser or schema initialized")
 	}
 }
 

@@ -8,24 +8,44 @@ import (
 )
 
 // MiseSchemaParser handles parsing of Mise JSON schema for completion data
+// It now wraps JSONSchemaParser which uses the jsonschema library properly
 type MiseSchemaParser struct {
+	// Legacy field kept for compatibility, but not used
 	schema map[string]interface{}
+	// New field using proper jsonschema library
+	parser *JSONSchemaParser
 }
 
-// NewMiseSchemaParser creates a new Mise schema parser
+// NewMiseSchemaParser creates a new Mise schema parser using the jsonschema library
 func NewMiseSchemaParser() (*MiseSchemaParser, error) {
-	var schema map[string]interface{}
-	if err := json.Unmarshal([]byte(MiseJSONSchema), &schema); err != nil {
-		return nil, fmt.Errorf("failed to parse Mise schema JSON: %w", err)
+	// Use the new jsonschema-based parser
+	parser, err := CompileMiseSchema()
+	if err != nil {
+		// Fall back to manual parsing if compilation fails
+		var schema map[string]interface{}
+		if unmarshalErr := json.Unmarshal([]byte(MiseJSONSchema), &schema); unmarshalErr != nil {
+			return nil, fmt.Errorf("failed to parse Mise schema JSON: %w (jsonschema error: %v)", unmarshalErr, err)
+		}
+		return &MiseSchemaParser{
+			schema: schema,
+			parser: nil,
+		}, nil
 	}
 
 	return &MiseSchemaParser{
-		schema: schema,
+		schema: nil,
+		parser: parser,
 	}, nil
 }
 
 // GetCompletionOptions returns completion options for a given dotted path
 func (p *MiseSchemaParser) GetCompletionOptions(path string) []CompletionOption {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetCompletionOptions(path)
+	}
+
+	// Fallback to legacy implementation
 	var options []CompletionOption
 
 	// Get the properties from the schema
@@ -106,6 +126,12 @@ func (p *MiseSchemaParser) getNestedCompletionOptions(properties map[string]inte
 
 // ValidatePath checks if a configuration path exists in the schema
 func (p *MiseSchemaParser) ValidatePath(path string) bool {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.ValidatePath(path)
+	}
+
+	// Fallback to legacy implementation
 	if path == "" {
 		return true
 	}
@@ -147,6 +173,12 @@ func (p *MiseSchemaParser) ValidatePath(path string) bool {
 
 // GetAllPaths returns all valid configuration paths from the schema
 func (p *MiseSchemaParser) GetAllPaths() []string {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetAllPaths()
+	}
+
+	// Fallback to legacy implementation
 	var paths []string
 
 	properties, ok := p.schema["properties"].(map[string]interface{})
@@ -183,6 +215,12 @@ func (p *MiseSchemaParser) collectPaths(properties map[string]interface{}, prefi
 
 // GetAllSettingsWithInfo returns all settings with their schema information
 func (p *MiseSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
+	// Use the new parser if available
+	if p.parser != nil {
+		return p.parser.GetAllSettingsWithInfo()
+	}
+
+	// Fallback to legacy implementation
 	var settings []SettingInfo
 
 	properties, ok := p.schema["properties"].(map[string]interface{})
