@@ -109,6 +109,11 @@ func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) 
 			// Already a v4 task UID
 			return legacyUUID, nil
 		}
+		// Check if legacyUUID is actually a task ID (e.g., "tk-30-wiWhKW" in the uuid field)
+		// This happens when old events stored full task IDs in the task_uuid field
+		if uid, ok := ctx.legacyTaskIDs[legacyUUID]; ok {
+			return uid, nil
+		}
 	}
 
 	if taskID != "" {
@@ -168,6 +173,30 @@ func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) 
 				return taskUID, nil
 			}
 		}
+
+		// Also try searching by task_id in case legacyUUID is actually a task ID
+		// This can happen when the TaskUUID field in old events contained task IDs
+		err = ctx.db.db.QueryRow(`
+			SELECT payload
+			FROM events
+			WHERE kind = 'task.created'
+			AND json_extract(payload, '$.task_id') = ?
+			LIMIT 1
+		`, legacyUUID).Scan(&payload)
+
+		if err == nil {
+			var taskCreated TaskCreatedPayload
+			if err := json.Unmarshal(payload, &taskCreated); err == nil {
+				// Found the task, register it and return the UUID
+				taskUID := taskCreated.TaskUUID
+				if taskUID == "" {
+					taskUID = string(NewTaskUID())
+				}
+				// Register with the original legacy UUID (even if empty) for consistency
+				ctx.registerTask(taskUID, taskCreated.TaskUUID, taskCreated.TaskID)
+				return taskUID, nil
+			}
+		}
 	}
 
 	return "", fmt.Errorf("v4 migration: unknown task reference (uuid=%q id=%q)", legacyUUID, taskID)
@@ -186,7 +215,90 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 		LIMIT 1
 	`, prefix).Scan(&projectUID)
 	if err == sql.ErrNoRows {
-		return "", fmt.Errorf("v4 migration: no project found for prefix %s", prefix)
+		// Prefix not found - create a project on-demand for this prefix
+		// This can happen if:
+		// 1. A task exists with a prefix that was removed (removed = 1)
+		// 2. A task exists with a prefix that was never created
+		projectUID = string(NewProjectUID())
+		ctx.prefixToProject[prefix] = projectUID
+
+		// Find the earliest task creation time for this prefix to use as a deterministic timestamp
+		var earliestCreatedAtNano int64
+		err := ctx.db.db.QueryRow(`
+			SELECT MIN(created_at)
+			FROM events
+			WHERE kind = 'task.created'
+			AND json_extract(payload, '$.task_id') LIKE ? || '-%'
+		`, prefix).Scan(&earliestCreatedAtNano)
+
+		createdAt := time.Now()
+		if err == nil && earliestCreatedAtNano > 0 {
+			// Use the earliest task creation time (created_at is stored in nanoseconds)
+			createdAt = time.Unix(0, earliestCreatedAtNano)
+		}
+
+		// Create and insert project.created event
+		payload := ProjectCreatedPayload{
+			ProjectUID:  projectUID,
+			Type:        "local",
+			Name:        prefix,
+			Description: "", // No description available for missing prefix
+			CreatedBy:   ctx.actor,
+		}
+		payloadJSON, err := json.Marshal(payload)
+		if err != nil {
+			return "", fmt.Errorf("v4 migration: failed to marshal project.created payload: %w", err)
+		}
+
+		event := Event{
+			ID:        string(NewEventID()),
+			TS:        0,
+			CreatedAt: createdAt,
+			Actor:     ctx.actor,
+			Role:      "human",
+			Kind:      string(EventKindProjectCreated),
+			Payload:   payloadJSON,
+		}
+
+		if err := ctx.db.InsertEvent(event); err != nil {
+			return "", fmt.Errorf("v4 migration: failed to insert project.created event: %w", err)
+		}
+
+		if err := ctx.db.ProjectProjectCreatedEvent(event); err != nil {
+			return "", fmt.Errorf("v4 migration: failed to project project.created event: %w", err)
+		}
+
+		// Create and insert project.alias.add event (use same timestamp)
+		aliasPayload := ProjectAliasAddPayload{
+			ProjectUID: projectUID,
+			Alias:      prefix,
+			Node:       ctx.nodeID,
+			AddedBy:    ctx.actor,
+		}
+		aliasPayloadJSON, err := json.Marshal(aliasPayload)
+		if err != nil {
+			return "", fmt.Errorf("v4 migration: failed to marshal project.alias.add payload: %w", err)
+		}
+
+		aliasEvent := Event{
+			ID:        string(NewEventID()),
+			TS:        0,
+			CreatedAt: createdAt, // Use same timestamp as project.created
+			Actor:     ctx.actor,
+			Role:      "human",
+			Kind:      string(EventKindProjectAliasAdd),
+			Payload:   aliasPayloadJSON,
+		}
+
+		if err := ctx.db.InsertEvent(aliasEvent); err != nil {
+			return "", fmt.Errorf("v4 migration: failed to insert project.alias.add event: %w", err)
+		}
+
+		if err := ctx.db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
+			return "", fmt.Errorf("v4 migration: failed to project project.alias.add event: %w", err)
+		}
+
+		return projectUID, nil
 	}
 	if err != nil {
 		return "", fmt.Errorf("v4 migration: failed to resolve prefix %s: %w", prefix, err)
@@ -347,6 +459,18 @@ func (d *DB) backfillV4Events() error {
 		return fmt.Errorf("failed to migrate tasks: %w", err)
 	}
 
+	// Delete old v3 events (events with ts > 0)
+	// The migrated v4 events all have ts=0, so any event with ts > 0 is a legacy event
+	// that should be removed to avoid conflicts when the reducer runs
+	result, err := d.db.Exec(`DELETE FROM events WHERE ts > 0`)
+	if err != nil {
+		return fmt.Errorf("failed to delete legacy v3 events: %w", err)
+	}
+	rowsDeleted, _ := result.RowsAffected()
+	if rowsDeleted > 0 {
+		fmt.Printf("Deleted %d legacy v3 events\n", rowsDeleted)
+	}
+
 	return nil
 }
 
@@ -463,9 +587,52 @@ func (d *DB) migrateTasksToV4(nodeID string, actor string, prefixToProject map[s
 		taskProjects:    make(map[string]string),
 	}
 
+	// First pass: migrate all task.created events to establish task UID mappings
 	rows, err := d.db.Query(`
 		SELECT id, ts, created_at, actor, role, kind, payload
 		FROM events
+		WHERE ts > 0 AND kind = 'task.created'
+		ORDER BY ts, id
+	`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var event Event
+		var createdAtNano int64
+
+		if err := rows.Scan(&event.ID, &event.TS, &createdAtNano, &event.Actor, &event.Role, &event.Kind, &event.Payload); err != nil {
+			return err
+		}
+
+		event.CreatedAt = time.Unix(0, createdAtNano)
+
+		handler, ok := migrationHandlerForKind(EventKind(event.Kind))
+		if !ok {
+			return fmt.Errorf("v4 migration: unknown event kind %s", event.Kind)
+		}
+
+		if handler == nil {
+			return fmt.Errorf("v4 migration: nil handler for %s", event.Kind)
+		}
+
+		if err := handler(ctx, event); err != nil {
+			return fmt.Errorf("v4 migration: handler for %s failed: %w", event.Kind, err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	rows.Close()
+
+	// Second pass: migrate all other events
+	rows, err = d.db.Query(`
+		SELECT id, ts, created_at, actor, role, kind, payload
+		FROM events
+		WHERE ts > 0 AND kind != 'task.created'
 		ORDER BY ts, id
 	`)
 	if err != nil {

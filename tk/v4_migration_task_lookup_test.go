@@ -377,3 +377,118 @@ func TestV4MigrationWithRelationBeforeTask(t *testing.T) {
 		t.Errorf("expected 2 tasks after migration, got %d", count)
 	}
 }
+
+// TestV4MigrationWithTaskIDInUUIDField tests migration when TaskUUID field
+// contains a task ID instead of a UUID (legacy data issue)
+// This reproduces the error: unknown task reference (uuid="tk-30-wiWhKW" id="tk-30")
+func TestV4MigrationWithTaskIDInUUIDField(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "test.db")
+
+	// Initialize v1/v2 database
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+
+	// Create a prefix
+	if err := db.CreatePrefix("test", "Test tasks", "alice"); err != nil {
+		t.Fatalf("failed to create prefix: %v", err)
+	}
+
+	// Create a task where TaskUUID contains a task ID (legacy format)
+	taskID := "test-30-wiWhKW"
+
+	// Insert task.created event with task ID in TaskUUID field (legacy format)
+	taskPayload := TaskCreatedPayload{
+		TaskUUID:  taskID, // Using task ID in UUID field (legacy format)
+		TaskID:    taskID,
+		Title:     "Test task",
+		CreatedBy: "alice",
+	}
+	taskPayloadJSON, err := json.Marshal(taskPayload)
+	if err != nil {
+		t.Fatalf("failed to marshal task payload: %v", err)
+	}
+
+	taskEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      string(EventKindTaskCreated),
+		Payload:   taskPayloadJSON,
+	}
+
+	if err := db.InsertEvent(taskEvent); err != nil {
+		t.Fatalf("failed to insert task event: %v", err)
+	}
+
+	// Insert task.status.set event that references the task
+	statusPayload := TaskStatusSetPayload{
+		TaskUUID: taskID, // Referencing by the task ID in UUID field
+		TaskID:   "test-30",
+		Axis:     "completion",
+		State:    "done",
+	}
+	statusPayloadJSON, err := json.Marshal(statusPayload)
+	if err != nil {
+		t.Fatalf("failed to marshal status payload: %v", err)
+	}
+
+	statusEvent := Event{
+		ID:        string(NewEventID()),
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      string(EventKindTaskStatusSet),
+		Payload:   statusPayloadJSON,
+	}
+
+	if err := db.InsertEvent(statusEvent); err != nil {
+		t.Fatalf("failed to insert status event: %v", err)
+	}
+
+	db.Close()
+
+	// Now try to migrate - this should NOT fail
+	db, err = OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to reopen database: %v", err)
+	}
+	defer db.Close()
+
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to reinit: %v", err)
+	}
+
+	// This should succeed even though TaskUUID contains a task ID
+	if err := db.MigrateToV4(dbPath); err != nil {
+		t.Fatalf("migration failed: %v", err)
+	}
+
+	// Verify the task was migrated
+	var taskCount int
+	err = db.db.QueryRow("SELECT COUNT(*) FROM tasks").Scan(&taskCount)
+	if err != nil {
+		t.Fatalf("failed to count tasks: %v", err)
+	}
+	if taskCount != 1 {
+		t.Errorf("expected 1 task after migration, got %d", taskCount)
+	}
+
+	// Verify the status event was migrated
+	var statusCount int
+	err = db.db.QueryRow("SELECT COUNT(*) FROM events WHERE kind = ?", string(EventKindTaskStatusSet)).Scan(&statusCount)
+	if err != nil {
+		t.Fatalf("failed to count status events: %v", err)
+	}
+	if statusCount < 1 {
+		t.Errorf("expected at least 1 status event after migration, got %d", statusCount)
+	}
+}
