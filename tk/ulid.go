@@ -1,8 +1,12 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // GenerateTaskUUID generates a unique task UUID in the format task-<ulid>
@@ -49,13 +53,14 @@ func GenerateEventID(db *DB) (string, error) {
 }
 
 func generateULID() (string, error) {
-	// Use the same node ID generation logic for now (6 chars)
-	// In production, this would be a proper ULID
-	id, err := generateNodeID(20) // 20 chars for UUID
+	// Generate a proper ULID using the oklog/ulid library
+	// ULIDs are lexicographically sortable and contain a timestamp
+	entropy := ulid.Monotonic(rand.Reader, 0)
+	id, err := ulid.New(ulid.Timestamp(time.Now()), entropy)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate ULID: %w", err)
 	}
-	return id, nil
+	return id.String(), nil
 }
 
 // splitEventID splits an event ID into its components

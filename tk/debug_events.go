@@ -37,74 +37,87 @@ var debugEventsCmd = &cobra.Command{
 
 		fmt.Printf("Searching remote '%s' for events related to task '%s'\n\n", remoteName, taskID)
 
-		// Find all segment files
-		space := "personal"
-		segmentsDir := filepath.Join(remote.Path, space, "segments")
-		if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
-			return fmt.Errorf("no segments directory found")
+		// Use configured spaces, or default to "personal"
+		spaces := remote.Spaces
+		if len(spaces) == 0 {
+			spaces = []string{"personal"}
 		}
-
-		var segmentFiles []string
-		err = filepath.Walk(segmentsDir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.IsDir() && filepath.Ext(path) == ".zst" {
-				segmentFiles = append(segmentFiles, path)
-			}
-			return nil
-		})
-		if err != nil {
-			return fmt.Errorf("failed to scan segments directory: %w", err)
-		}
-
-		fmt.Printf("Scanning %d segment files...\n\n", len(segmentFiles))
 
 		foundCount := 0
-		for _, segmentFile := range segmentFiles {
-			reader := NewSegmentReader(segmentFile)
-			events, err := reader.ReadEvents()
-			if err != nil {
-				fmt.Printf("Warning: failed to read %s: %v\n", segmentFile, err)
+		for _, space := range spaces {
+			// Find all segment files for this space
+			segmentsDir := filepath.Join(remote.Path, space, "segments")
+			if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
+				fmt.Printf("No segments directory found for space '%s'\n", space)
 				continue
 			}
 
-			for _, event := range events {
-				// Convert payload to JSON bytes for searching
-				payloadBytes, err := json.Marshal(event.Payload)
+			var segmentFiles []string
+			err = filepath.Walk(segmentsDir, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
+					return err
+				}
+				if !info.IsDir() && filepath.Ext(path) == ".zst" {
+					segmentFiles = append(segmentFiles, path)
+				}
+				return nil
+			})
+			if err != nil {
+				return fmt.Errorf("failed to scan segments directory for space '%s': %w", space, err)
+			}
+
+			if len(segmentFiles) == 0 {
+				fmt.Printf("No segment files found in space '%s'\n", space)
+				continue
+			}
+
+			fmt.Printf("Scanning %d segment files in space '%s'...\n", len(segmentFiles), space)
+
+			for _, segmentFile := range segmentFiles {
+				reader := NewSegmentReader(segmentFile)
+				events, err := reader.ReadEvents()
+				if err != nil {
+					fmt.Printf("Warning: failed to read %s: %v\n", segmentFile, err)
 					continue
 				}
-				payloadStr := string(payloadBytes)
 
-				// Check if this event references our task
-				if containsTaskRef(payloadStr, taskID) {
-					foundCount++
-					fmt.Printf("=== Event #%d ===\n", foundCount)
-					fmt.Printf("ID:       %s\n", event.ID)
-					fmt.Printf("Lamport:  %d\n", event.Lamport)
-					fmt.Printf("Time:     %s\n", event.TS)
-					fmt.Printf("Actor:    %s\n", event.Actor)
-					fmt.Printf("Role:     %s\n", event.Role)
-					fmt.Printf("Kind:     %s\n", event.Kind)
-
-					// Pretty-print the payload
-					prettyJSON, _ := json.MarshalIndent(event.Payload, "  ", "  ")
-					fmt.Printf("Payload:  %s\n", string(prettyJSON))
-
-					if event.Ctx != nil {
-						fmt.Printf("Context:\n")
-						if event.Ctx.RepoUUID != nil {
-							fmt.Printf("  RepoUUID: %s\n", *event.Ctx.RepoUUID)
-						}
-						if event.Ctx.Branch != nil {
-							fmt.Printf("  Branch:   %s\n", *event.Ctx.Branch)
-						}
-						if event.Ctx.Commit != nil {
-							fmt.Printf("  Commit:   %s\n", *event.Ctx.Commit)
-						}
+				for _, event := range events {
+					// Convert payload to JSON bytes for searching
+					payloadBytes, err := json.Marshal(event.Payload)
+					if err != nil {
+						continue
 					}
-					fmt.Println()
+					payloadStr := string(payloadBytes)
+
+					// Check if this event references our task
+					if containsTaskRef(payloadStr, taskID) {
+						foundCount++
+						fmt.Printf("=== Event #%d ===\n", foundCount)
+						fmt.Printf("ID:       %s\n", event.ID)
+						fmt.Printf("Lamport:  %d\n", event.Lamport)
+						fmt.Printf("Time:     %s\n", event.TS)
+						fmt.Printf("Actor:    %s\n", event.Actor)
+						fmt.Printf("Role:     %s\n", event.Role)
+						fmt.Printf("Kind:     %s\n", event.Kind)
+
+						// Pretty-print the payload
+						prettyJSON, _ := json.MarshalIndent(event.Payload, "  ", "  ")
+						fmt.Printf("Payload:  %s\n", string(prettyJSON))
+
+						if event.Ctx != nil {
+							fmt.Printf("Context:\n")
+							if event.Ctx.RepoUUID != nil {
+								fmt.Printf("  RepoUUID: %s\n", *event.Ctx.RepoUUID)
+							}
+							if event.Ctx.Branch != nil {
+								fmt.Printf("  Branch:   %s\n", *event.Ctx.Branch)
+							}
+							if event.Ctx.Commit != nil {
+								fmt.Printf("  Commit:   %s\n", *event.Ctx.Commit)
+							}
+						}
+						fmt.Println()
+					}
 				}
 			}
 		}
