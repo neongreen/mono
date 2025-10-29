@@ -185,8 +185,9 @@ var rebuildFromRemoteCmd = &cobra.Command{
 
 This command:
 1. Deletes the local database (creates a backup first)
-2. Creates a fresh v4 database
+2. Creates a fresh v3 database
 3. Ingests all segments from the specified remote
+4. Migrates the database to v4
 
 This is useful when:
 - The local database is corrupted
@@ -231,7 +232,7 @@ Examples:
 			return fmt.Errorf("failed to remove database: %w", err)
 		}
 
-		fmt.Println("Creating fresh v4 database...")
+		fmt.Println("Creating fresh v3 database...")
 
 		// Create new database
 		db, err := OpenDB(dbPath)
@@ -239,37 +240,21 @@ Examples:
 			return fmt.Errorf("failed to create database: %w", err)
 		}
 
-		// Initialize with v4 schema
+		// Initialize with v3 schema (don't create v4 tables yet)
 		if err := db.InitDB(); err != nil {
 			db.Close()
 			return fmt.Errorf("failed to initialize database: %w", err)
 		}
 
-		// Create v4 tables
-		if err := db.CreateV4Tables(); err != nil {
-			db.Close()
-			return fmt.Errorf("failed to create v4 tables: %w", err)
-		}
-
-		// Set version to 4
-		if err := db.SetDBVersion(4); err != nil {
+		// Set version to 3 (pre-migration)
+		if err := db.SetDBVersion(3); err != nil {
 			db.Close()
 			return fmt.Errorf("failed to set version: %w", err)
 		}
 
-		// Set remote_subdir to v4
-		_, err = db.db.Exec(`
-INSERT OR REPLACE INTO metadata (key, value) 
-VALUES ('remote_subdir', 'v4')
-`)
-		if err != nil {
-			db.Close()
-			return fmt.Errorf("failed to set remote_subdir: %w", err)
-		}
-
 		fmt.Printf("Ingesting segments from remote '%s'...\n", remoteName)
 
-		// Ingest from remote
+		// Ingest from remote (v3 events)
 		if err := ingestRemote(db, remoteName, remote); err != nil {
 			db.Close()
 			return fmt.Errorf("failed to ingest from remote: %w", err)
@@ -278,25 +263,49 @@ VALUES ('remote_subdir', 'v4')
 		db.Close()
 
 		fmt.Println()
-		fmt.Println("✓ Database rebuilt successfully from remote!")
+		fmt.Println("✓ Events ingested successfully!")
 		fmt.Println()
-		fmt.Println("Running health check...")
 
-		// Reopen and run doctor
+		// Reopen database and run migration to v4
 		db, err = OpenDB(dbPath)
 		if err != nil {
 			return fmt.Errorf("failed to reopen database: %w", err)
 		}
-		defer db.Close()
 
 		if err := db.InitDB(); err != nil {
+			db.Close()
 			return fmt.Errorf("failed to initialize: %w", err)
 		}
 
+		// Check if v4 migration is needed (should be true since we set version to 3)
+		needsMigration, err := db.NeedsMigrationToV4()
+		if err != nil {
+			db.Close()
+			return fmt.Errorf("failed to check migration status: %w", err)
+		}
+
+		if needsMigration {
+			fmt.Println("Migrating database to v4...")
+			fmt.Printf("Creating migration backup at %s%s\n", dbPath, v4BackupSuffix)
+
+			if err := db.MigrateToV4(dbPath); err != nil {
+				db.Close()
+				return fmt.Errorf("failed to migrate to v4: %w", err)
+			}
+
+			fmt.Println("Migration to v4 complete!")
+		}
+
+		fmt.Println()
+		fmt.Println("Running health check...")
+
 		report, err := runDoctor(db)
 		if err != nil {
+			db.Close()
 			return fmt.Errorf("doctor check failed: %w", err)
 		}
+
+		db.Close()
 
 		printDoctorReport(os.Stdout, report)
 
