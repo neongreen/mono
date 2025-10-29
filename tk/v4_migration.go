@@ -402,17 +402,23 @@ func (d *DB) MigrateToV4(dbPath string) error {
 	lockFile.Close()
 	defer os.Remove(lockPath)
 
-	// Step 2: Add v4 tables
+	// Step 2: Create backup
+	backupPath := dbPath + v4BackupSuffix
+	if err := copyFile(dbPath, backupPath); err != nil {
+		return fmt.Errorf("failed to create backup: %w", err)
+	}
+
+	// Step 3: Add v4 tables
 	if err := d.CreateV4Tables(); err != nil {
 		return fmt.Errorf("failed to create v4 tables: %w", err)
 	}
 
-	// Step 3: Backfill v4 events from legacy data
+	// Step 4: Backfill v4 events from legacy data
 	if err := d.backfillV4Events(); err != nil {
 		return fmt.Errorf("failed to backfill events: %w", err)
 	}
 
-	// Step 4: Set version and config
+	// Step 5: Set version and config
 	if err := d.SetDBVersion(v4SpecVersion); err != nil {
 		return fmt.Errorf("failed to set version: %w", err)
 	}
@@ -1126,6 +1132,30 @@ func migrateTaskReprefix(ctx *v4MigrationContext, event Event) error {
 
 	newTaskID := fmt.Sprintf("%s-%d-%s", payload.NewPrefix, payload.NewNumber, payload.OldNode)
 	ctx.registerTask(taskUID, "", newTaskID)
+
+	return nil
+}
+
+// RollbackV4 restores the v3 backup
+func RollbackV4(dbPath string) error {
+	backupPath := dbPath + v4BackupSuffix
+
+	// Check if backup exists
+	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
+		return fmt.Errorf("no backup found at %s", backupPath)
+	}
+
+	// Close any open connections to the database
+	// (caller should handle this)
+
+	// Restore backup
+	if err := os.Remove(dbPath); err != nil {
+		return fmt.Errorf("failed to remove current database: %w", err)
+	}
+
+	if err := copyFile(backupPath, dbPath); err != nil {
+		return fmt.Errorf("failed to restore backup: %w", err)
+	}
 
 	return nil
 }
