@@ -27,30 +27,69 @@ Examples:
 
 		pathOrRemote := args[0]
 
-		db, err := openExistingDB()
+		// Open DB but skip migration (we'll migrate AFTER ingesting)
+		db, err := openExistingDBSkipMigration()
 		if err != nil {
 			return err
 		}
 		defer db.Close()
 
 		// Check if it's a file or a remote name
+		var ingestErr error
 		if _, err := os.Stat(pathOrRemote); err == nil {
 			// It's a file
-			return ingestFile(db, pathOrRemote)
+			ingestErr = ingestFile(db, pathOrRemote)
+		} else {
+			// Try as a remote name
+			config, err := LoadConfig()
+			if err != nil {
+				return err
+			}
+
+			remote, exists := config.Remotes[pathOrRemote]
+			if !exists {
+				return fmt.Errorf("'%s' is neither a file nor a configured remote", pathOrRemote)
+			}
+
+			ingestErr = ingestRemote(db, pathOrRemote, remote)
 		}
 
-		// Try as a remote name
-		config, err := LoadConfig()
+		if ingestErr != nil {
+			return ingestErr
+		}
+
+		// Now check if migration is needed AFTER ingesting events
+		needsMigration, err := db.NeedsMigrationToV4()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to check migration status: %w", err)
 		}
 
-		remote, exists := config.Remotes[pathOrRemote]
-		if !exists {
-			return fmt.Errorf("'%s' is neither a file nor a configured remote", pathOrRemote)
+		if needsMigration {
+			fmt.Println("\nMigrating database to v4...")
+
+			dbPath, err := GetDBPath()
+			if err != nil {
+				return err
+			}
+
+			if err := db.MigrateToV4(dbPath); err != nil {
+				return fmt.Errorf("failed to migrate to v4: %w", err)
+			}
+
+			fmt.Println("Migration to v4 complete!")
+			fmt.Println("Running post-migration health check...")
+			report, err := runDoctor(db)
+			if err != nil {
+				fmt.Printf("Doctor check failed: %v\n", err)
+			} else {
+				printDoctorReport(os.Stdout, report)
+				if report.ProblemCount() > 0 {
+					fmt.Println("Resolve the issues above. You can rerun 'tk doctor' at any time.")
+				}
+			}
 		}
 
-		return ingestRemote(db, pathOrRemote, remote)
+		return nil
 	},
 }
 

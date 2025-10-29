@@ -947,6 +947,28 @@ func openExistingDB() (*DB, error) {
 	return db, nil
 }
 
+// openExistingDBSkipMigration opens the database without running migration
+// Used by ingest command which needs to ingest events before migrating
+func openExistingDBSkipMigration() (*DB, error) {
+	path, err := GetDBPath()
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := OpenDB(path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Always ensure schema is up to date
+	if err := db.InitDB(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
+	}
+
+	return db, nil
+}
+
 func getCurrentUser() (string, error) {
 	currentUser, err := user.Current()
 	if err != nil {

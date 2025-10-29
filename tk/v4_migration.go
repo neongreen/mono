@@ -453,16 +453,21 @@ func (d *DB) backfillV4Events() error {
 		return fmt.Errorf("failed to migrate tasks: %w", err)
 	}
 
-	// Delete old v3 events (identified by ev-N-node ID format)
-	// V4 events use ULID format and never start with 'ev-'
-	// This preserves v4 events which now have the original v3 Lamport timestamps
-	result, err := d.db.Exec(`DELETE FROM events WHERE id LIKE 'ev-%'`)
+	// Delete old v1/v2/v3 events after successful migration
+	// V4 events use ULID format starting with '01'
+	// V3 events use 'ev-N-node' format
+	// V1/V2 events use other formats (random strings, etc.)
+
+	// Delete all non-v4 events (v1/v2/v3)
+	// V4 events have IDs starting with '01' (ULID format)
+	result, err := d.db.Exec(`DELETE FROM events WHERE id NOT LIKE '01%'`)
 	if err != nil {
-		return fmt.Errorf("failed to delete legacy v3 events: %w", err)
+		return fmt.Errorf("failed to delete legacy events: %w", err)
 	}
-	rowsDeleted, _ := result.RowsAffected()
-	if rowsDeleted > 0 {
-		fmt.Printf("Deleted %d legacy v3 events\n", rowsDeleted)
+	legacyDeleted, _ := result.RowsAffected()
+
+	if legacyDeleted > 0 {
+		fmt.Printf("Deleted %d legacy v1/v2/v3 events\n", legacyDeleted)
 	}
 
 	return nil
