@@ -175,8 +175,8 @@ SQLite database for the operation log:
 - **Pro**: Compact storage with built-in compression
 - **Pro**: Fast sequential and random access
 - **Pro**: Standard, well-tested format
-- **Con**: Requires CGO for go-sqlite3
-- **Decision**: Performance and reliability over pure-Go simplicity
+- **Pro**: Pure Go implementation (modernc.org/sqlite) - no CGO required
+- **Decision**: Performance and reliability with cross-platform portability
 
 ### Why No Log Compaction?
 
