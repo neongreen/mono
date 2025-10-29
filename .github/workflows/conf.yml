@@ -59,7 +59,7 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: conf
-        run: go test ./... -coverprofile=coverage.out -covermode=atomic 2>&1 | tee test-output.txt
+        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic 2>&1 | tee test-output.txt
 
       - name: Display coverage summary
         if: always()
