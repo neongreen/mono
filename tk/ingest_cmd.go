@@ -18,6 +18,7 @@ var ingestCmd = &cobra.Command{
 Examples:
   tk ingest /path/to/segment.jsonl.zst    # Ingest from a single file
   tk ingest icloud                         # Ingest from remote's segments
+  tk ingest --v1 icloud-v1                # Ingest v1 events and migrate to v4
 `,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -26,8 +27,9 @@ Examples:
 		}
 
 		pathOrRemote := args[0]
+		isV1, _ := cmd.Flags().GetBool("v1")
 
-		// Open DB but skip migration (we'll migrate AFTER ingesting)
+		// Open DB without migration (we'll migrate AFTER ingesting if --v1 is set)
 		db, err := openExistingDBSkipMigration()
 		if err != nil {
 			return err
@@ -38,7 +40,7 @@ Examples:
 		var ingestErr error
 		if _, err := os.Stat(pathOrRemote); err == nil {
 			// It's a file
-			ingestErr = ingestFile(db, pathOrRemote)
+			ingestErr = ingestFile(db, pathOrRemote, !isV1)
 		} else {
 			// Try as a remote name
 			config, err := LoadConfig()
@@ -51,20 +53,15 @@ Examples:
 				return fmt.Errorf("'%s' is neither a file nor a configured remote", pathOrRemote)
 			}
 
-			ingestErr = ingestRemote(db, pathOrRemote, remote)
+			ingestErr = ingestRemote(db, pathOrRemote, remote, !isV1)
 		}
 
 		if ingestErr != nil {
 			return ingestErr
 		}
 
-		// Now check if migration is needed AFTER ingesting events
-		needsMigration, err := db.NeedsMigrationToV4()
-		if err != nil {
-			return fmt.Errorf("failed to check migration status: %w", err)
-		}
-
-		if needsMigration {
+		// If --v1 flag is set, migrate to v4 after ingesting
+		if isV1 {
 			fmt.Println("\nMigrating database to v4...")
 
 			dbPath, err := GetDBPath()
@@ -93,8 +90,12 @@ Examples:
 	},
 }
 
+func init() {
+	ingestCmd.Flags().Bool("v1", false, "Treat incoming events as v1 format and migrate to v4")
+}
+
 // ingestFile ingests events from a single segment file
-func ingestFile(db *DB, path string) error {
+func ingestFile(db *DB, path string, assumeV4 bool) error {
 	reader := NewSegmentReader(path)
 	events, err := reader.ReadEvents()
 	if err != nil {
@@ -102,9 +103,18 @@ func ingestFile(db *DB, path string) error {
 	}
 
 	// Check database version to determine if we should project v4 events
-	dbVersion, err := db.GetDBVersion()
-	if err != nil {
-		return fmt.Errorf("failed to get database version: %w", err)
+	// Always assume v4 unless explicitly told otherwise (when ingesting v1 events)
+	var dbVersion int
+	if assumeV4 {
+		// Assume v4 events (default behavior)
+		dbVersion = 4
+	} else {
+		// When ingesting v1 events, check actual DB version
+		var err error
+		dbVersion, err = db.GetDBVersion()
+		if err != nil {
+			return fmt.Errorf("failed to get database version: %w", err)
+		}
 	}
 
 	ingested := 0
@@ -185,12 +195,19 @@ func ingestFile(db *DB, path string) error {
 		ingested++
 	}
 
+	// If we're assuming v4, ensure DB version is set to 4
+	if assumeV4 {
+		if err := db.SetDBVersion(4); err != nil {
+			return fmt.Errorf("failed to set DB version to 4: %w", err)
+		}
+	}
+
 	fmt.Printf("Ingested %d events (%d duplicates skipped)\n", ingested, duplicates)
 	return nil
 }
 
 // ingestRemote ingests events from all segments in a remote
-func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
+func ingestRemote(db *DB, remoteName string, remote RemoteConfig, assumeV4 bool) error {
 	// Use configured spaces, or default to "personal"
 	spaces := remote.Spaces
 	if len(spaces) == 0 {
@@ -198,7 +215,7 @@ func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
 	}
 
 	for _, space := range spaces {
-		if err := ingestRemoteSpace(db, remoteName, remote, space); err != nil {
+		if err := ingestRemoteSpace(db, remoteName, remote, space, assumeV4); err != nil {
 			return err
 		}
 	}
@@ -207,7 +224,7 @@ func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
 }
 
 // ingestRemoteSpace ingests events from a specific space in a remote
-func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space string) error {
+func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space string, assumeV4 bool) error {
 	// Find all segment files
 	segmentsDir := filepath.Join(remote.Path, space, "segments")
 	if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
@@ -235,9 +252,18 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 	}
 
 	// Check database version to determine if we should project v4 events
-	dbVersion, err := db.GetDBVersion()
-	if err != nil {
-		return fmt.Errorf("failed to get database version: %w", err)
+	// Always assume v4 unless explicitly told otherwise (when ingesting v1 events)
+	var dbVersion int
+	if assumeV4 {
+		// Assume v4 events (default behavior)
+		dbVersion = 4
+	} else {
+		// When ingesting v1 events, check actual DB version
+		var err error
+		dbVersion, err = db.GetDBVersion()
+		if err != nil {
+			return fmt.Errorf("failed to get database version: %w", err)
+		}
 	}
 
 	totalIngested := 0
@@ -324,6 +350,13 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 			}
 
 			totalIngested++
+		}
+	}
+
+	// If we're assuming v4, ensure DB version is set to 4
+	if assumeV4 {
+		if err := db.SetDBVersion(4); err != nil {
+			return fmt.Errorf("failed to set DB version to 4: %w", err)
 		}
 	}
 

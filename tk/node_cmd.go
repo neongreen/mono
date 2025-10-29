@@ -15,7 +15,7 @@ var nodeShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show the current node ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -44,7 +44,7 @@ WARNING: This will change the node ID, which means:
 
 Only use this command if you have a node ID collision with another machine.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}

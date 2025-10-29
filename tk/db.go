@@ -201,6 +201,11 @@ func (d *DB) InitDB() error {
 		}
 	}
 
+	// Always create v4 tables (projects, project_aliases, tasks, task_numbers)
+	if err := d.CreateV4Tables(); err != nil {
+		return fmt.Errorf("failed to create v4 tables: %w", err)
+	}
+
 	return nil
 }
 

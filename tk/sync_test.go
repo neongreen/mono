@@ -445,7 +445,7 @@ func TestPrefixSync(t *testing.T) {
 		Push: true,
 	}
 
-	if err := ingestRemote(dbB, "test-remote", remoteConfig); err != nil {
+	if err := ingestRemote(dbB, "test-remote", remoteConfig, false); err != nil {
 		t.Fatalf("failed to ingest on machine B: %v", err)
 	}
 
@@ -609,7 +609,7 @@ func TestPrefixRemovedSync(t *testing.T) {
 		Push: true,
 	}
 
-	if err := ingestRemote(dbB, "test-remote", remoteConfig); err != nil {
+	if err := ingestRemote(dbB, "test-remote", remoteConfig, false); err != nil {
 		t.Fatalf("failed to ingest on machine B: %v", err)
 	}
 

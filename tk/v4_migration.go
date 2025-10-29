@@ -237,6 +237,12 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 			createdAt = time.Unix(0, earliestCreatedAtNano)
 		}
 
+		// Get next lamport timestamp for migration events
+		lamportTS, err := ctx.db.GetNextLamportTS()
+		if err != nil {
+			return "", fmt.Errorf("failed to get lamport timestamp: %w", err)
+		}
+
 		// Create and insert project.created event
 		payload := ProjectCreatedPayload{
 			ProjectUID:  projectUID,
@@ -252,7 +258,7 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 
 		event := Event{
 			ID:        string(NewEventID()),
-			TS:        0,
+			TS:        lamportTS,
 			CreatedAt: createdAt,
 			Actor:     ctx.actor,
 			Role:      "human",
@@ -266,6 +272,12 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 
 		if err := ctx.db.ProjectProjectCreatedEvent(event); err != nil {
 			return "", fmt.Errorf("v4 migration: failed to project project.created event: %w", err)
+		}
+
+		// Get next lamport timestamp for project.alias.add event
+		aliasLamportTS, err := ctx.db.GetNextLamportTS()
+		if err != nil {
+			return "", fmt.Errorf("failed to get lamport timestamp: %w", err)
 		}
 
 		// Create and insert project.alias.add event (use same timestamp)
@@ -282,7 +294,7 @@ func (ctx *v4MigrationContext) projectUIDForPrefix(prefix string) (string, error
 
 		aliasEvent := Event{
 			ID:        string(NewEventID()),
-			TS:        0,
+			TS:        aliasLamportTS,
 			CreatedAt: createdAt, // Use same timestamp as project.created
 			Actor:     ctx.actor,
 			Role:      "human",
@@ -491,11 +503,13 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) (map[string]
 
 	for rows.Next() {
 		var prefix, node, description, createdBy string
-		var createdAt int64
+		var createdAtNano int64
 
-		if err := rows.Scan(&prefix, &node, &description, &createdAt, &createdBy); err != nil {
+		if err := rows.Scan(&prefix, &node, &description, &createdAtNano, &createdBy); err != nil {
 			return nil, err
 		}
+
+		createdAt := time.Unix(0, createdAtNano)
 
 		// Check if we already created a project for this prefix
 		projectUID, exists := prefixToProject[prefix]
@@ -503,6 +517,12 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) (map[string]
 			// Create new project
 			projectUID = string(NewProjectUID())
 			prefixToProject[prefix] = projectUID
+
+			// Get next lamport timestamp for project.created event
+			lamportTS, err := d.GetNextLamportTS()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get lamport timestamp: %w", err)
+			}
 
 			// Create and insert project.created event
 			payload := ProjectCreatedPayload{
@@ -519,8 +539,8 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) (map[string]
 
 			event := Event{
 				ID:        string(NewEventID()),
-				TS:        0, // Will be set during ingest/replay
-				CreatedAt: time.Unix(createdAt, 0),
+				TS:        lamportTS,
+				CreatedAt: createdAt,
 				Actor:     createdBy,
 				Role:      "human",
 				Kind:      string(EventKindProjectCreated),
@@ -536,38 +556,97 @@ func (d *DB) migratePrefixesToProjects(nodeID string, actor string) (map[string]
 			if err := d.ProjectProjectCreatedEvent(event); err != nil {
 				return nil, fmt.Errorf("failed to project project.created event: %w", err)
 			}
-		}
 
-		// Create and insert project.alias.add event for this node
-		aliasPayload := ProjectAliasAddPayload{
-			ProjectUID: projectUID,
-			Alias:      prefix,
-			Node:       node,
-			AddedBy:    createdBy,
-		}
-		aliasPayloadJSON, err := json.Marshal(aliasPayload)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal project.alias.add payload: %w", err)
-		}
+			// Get next lamport timestamp for project.alias.add event
+			aliasLamportTS, err := d.GetNextLamportTS()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get lamport timestamp: %w", err)
+			}
 
-		aliasEvent := Event{
-			ID:        string(NewEventID()),
-			TS:        0,
-			CreatedAt: time.Unix(createdAt, 0),
-			Actor:     createdBy,
-			Role:      "human",
-			Kind:      string(EventKindProjectAliasAdd),
-			Payload:   aliasPayloadJSON,
-		}
+			// Create and insert project.alias.add event for this node
+			aliasPayload := ProjectAliasAddPayload{
+				ProjectUID: projectUID,
+				Alias:      prefix,
+				Node:       node,
+				AddedBy:    createdBy,
+			}
+			aliasPayloadJSON, err := json.Marshal(aliasPayload)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal project.alias.add payload: %w", err)
+			}
 
-		// Insert event
-		if err := d.InsertEvent(aliasEvent); err != nil {
-			return nil, fmt.Errorf("failed to insert project.alias.add event: %w", err)
-		}
+			aliasEvent := Event{
+				ID:        string(NewEventID()),
+				TS:        aliasLamportTS,
+				CreatedAt: createdAt, // Use same timestamp as project.created
+				Actor:     createdBy,
+				Role:      "human",
+				Kind:      string(EventKindProjectAliasAdd),
+				Payload:   aliasPayloadJSON,
+			}
 
-		// Project immediately
-		if err := d.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-			return nil, fmt.Errorf("failed to project project.alias.add event: %w", err)
+			// Insert event
+			if err := d.InsertEvent(aliasEvent); err != nil {
+				return nil, fmt.Errorf("failed to insert project.alias.add event: %w", err)
+			}
+
+			// Project immediately
+			if err := d.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
+				return nil, fmt.Errorf("failed to project project.alias.add event: %w", err)
+			}
+		} else {
+			// Project already exists, but we need to add alias for this node if it doesn't exist
+			// Check if alias already exists for this node
+			var aliasExists bool
+			err := d.db.QueryRow(`
+				SELECT EXISTS(
+					SELECT 1 FROM project_aliases 
+					WHERE project_uid = ? AND node = ? AND alias = ?
+				)
+			`, projectUID, node, prefix).Scan(&aliasExists)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check alias existence: %w", err)
+			}
+
+			if !aliasExists {
+				// Get next lamport timestamp for project.alias.add event
+				aliasLamportTS, err := d.GetNextLamportTS()
+				if err != nil {
+					return nil, fmt.Errorf("failed to get lamport timestamp: %w", err)
+				}
+
+				// Create and insert project.alias.add event for this node
+				aliasPayload := ProjectAliasAddPayload{
+					ProjectUID: projectUID,
+					Alias:      prefix,
+					Node:       node,
+					AddedBy:    createdBy,
+				}
+				aliasPayloadJSON, err := json.Marshal(aliasPayload)
+				if err != nil {
+					return nil, fmt.Errorf("failed to marshal project.alias.add payload: %w", err)
+				}
+
+				aliasEvent := Event{
+					ID:        string(NewEventID()),
+					TS:        aliasLamportTS,
+					CreatedAt: createdAt,
+					Actor:     createdBy,
+					Role:      "human",
+					Kind:      string(EventKindProjectAliasAdd),
+					Payload:   aliasPayloadJSON,
+				}
+
+				// Insert event
+				if err := d.InsertEvent(aliasEvent); err != nil {
+					return nil, fmt.Errorf("failed to insert project.alias.add event: %w", err)
+				}
+
+				// Project immediately
+				if err := d.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
+					return nil, fmt.Errorf("failed to project project.alias.add event: %w", err)
+				}
+			}
 		}
 	}
 

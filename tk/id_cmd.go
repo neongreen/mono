@@ -28,7 +28,7 @@ var idCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}

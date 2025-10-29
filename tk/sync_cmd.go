@@ -282,7 +282,7 @@ Examples:
 			return fmt.Errorf("remote '%s' not found", remoteName)
 		}
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -305,7 +305,7 @@ Examples:
 
 		// 2. Ingest
 		fmt.Println("Ingesting events...")
-		if err := ingestRemote(db, remoteName, remote); err != nil {
+		if err := ingestRemote(db, remoteName, remote, false); err != nil {
 			return fmt.Errorf("ingest failed: %w", err)
 		}
 

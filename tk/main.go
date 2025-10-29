@@ -84,7 +84,7 @@ var newCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title := args[0]
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -312,7 +312,7 @@ var statusSetCmd = &cobra.Command{
 		axis, _ := cmd.Flags().GetString("axis")
 		role, _ := cmd.Flags().GetString("role")
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -384,7 +384,7 @@ var noteCmd = &cobra.Command{
 		taskRef := args[0]
 		text := args[1]
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -453,7 +453,7 @@ var viewCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -516,8 +516,9 @@ var lsCmd = &cobra.Command{
 		groupBy, _ := cmd.Flags().GetString("group")
 		blockedOnly, _ := cmd.Flags().GetBool("blocked")
 		unblockedOnly, _ := cmd.Flags().GetBool("unblocked")
+		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -605,6 +606,11 @@ var lsCmd = &cobra.Command{
 
 		// Sort tasks based on the --sort flag
 		sortTasks(tasks, sortBy)
+
+		// JSON output mode
+		if jsonOutput {
+			return outputTasksJSON(db, tasks, groupBy)
+		}
 
 		// Get terminal width for wrapping
 		termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
@@ -844,6 +850,114 @@ func renderTaskTable(db *DB, tasks []*Task, taskIDs []string, showAliases bool, 
 	t.Render()
 }
 
+// outputTasksJSON outputs tasks as JSON, respecting grouping
+func outputTasksJSON(db *DB, tasks []*Task, groupBy string) error {
+	// Ensure display IDs are set for all tasks
+	for _, task := range tasks {
+		displayID, err := RenderTaskDisplayID(db, task.TaskUUID)
+		if err != nil {
+			displayID = task.TaskID
+		}
+		task.TaskID = displayID
+	}
+
+	type GroupedOutput struct {
+		Group string  `json:"group"`
+		Tasks []*Task `json:"tasks"`
+	}
+
+	type Output struct {
+		Groups []GroupedOutput `json:"groups,omitempty"`
+		Tasks  []*Task         `json:"tasks,omitempty"`
+	}
+
+	dbVersion, err := db.GetDBVersion()
+	if err != nil {
+		return fmt.Errorf("failed to get DB version: %w", err)
+	}
+
+	var output Output
+
+	switch groupBy {
+	case "prefix":
+		// Group tasks by prefix/project
+		grouped := make(map[string][]*Task)
+		var groupOrder []string
+
+		for _, task := range tasks {
+			var groupKey string
+			if dbVersion >= 4 {
+				// V4: Group by project alias
+				projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
+				if err != nil {
+					groupKey = task.TaskUUID // Fallback to UID
+				} else {
+					groupKey = projectAlias
+				}
+			} else {
+				// V1/V2: Group by prefix from task ID
+				groupKey = extractPrefix(task.TaskID)
+			}
+
+			if _, exists := grouped[groupKey]; !exists {
+				groupOrder = append(groupOrder, groupKey)
+			}
+			grouped[groupKey] = append(grouped[groupKey], task)
+		}
+
+		output.Groups = make([]GroupedOutput, 0, len(groupOrder))
+		for _, groupKey := range groupOrder {
+			output.Groups = append(output.Groups, GroupedOutput{
+				Group: groupKey,
+				Tasks: grouped[groupKey],
+			})
+		}
+
+	case "status":
+		// Group tasks by status
+		grouped := make(map[string][]*Task)
+		var groupOrder []string
+
+		for _, task := range tasks {
+			status := ""
+			if axis, ok := task.Axes["generic"]; ok {
+				status = axis.Effective
+			}
+			if status == "" {
+				status = "(no status)"
+			}
+
+			if _, exists := grouped[status]; !exists {
+				groupOrder = append(groupOrder, status)
+			}
+			grouped[status] = append(grouped[status], task)
+		}
+
+		output.Groups = make([]GroupedOutput, 0, len(groupOrder))
+		for _, status := range groupOrder {
+			output.Groups = append(output.Groups, GroupedOutput{
+				Group: status,
+				Tasks: grouped[status],
+			})
+		}
+
+	case "none":
+		// No grouping - output flat list
+		output.Tasks = tasks
+
+	default:
+		return fmt.Errorf("invalid --group value: %s (must be prefix, status, or none)", groupBy)
+	}
+
+	jsonOutput, err := json.MarshalIndent(output, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal tasks: %w", err)
+	}
+
+	fmt.Println(string(jsonOutput))
+	return nil
+}
+
 func init() {
 	rootCmd.AddCommand(initCmd)
 
@@ -874,6 +988,7 @@ func init() {
 	lsCmd.Flags().String("group", "prefix", "Group tasks by: prefix, status, or none (default: prefix)")
 	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
 	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
+	lsCmd.Flags().Bool("json", false, "Output tasks as JSON")
 	rootCmd.AddCommand(lsCmd)
 
 	rootCmd.AddCommand(editCmd)
@@ -899,7 +1014,7 @@ func init() {
 	rootCmd.AddCommand(projectCmd)
 }
 
-func openExistingDB() (*DB, error) {
+func openExistingDB(skipMigration bool) (*DB, error) {
 	path, err := GetDBPath()
 	if err != nil {
 		return nil, err
@@ -910,38 +1025,10 @@ func openExistingDB() (*DB, error) {
 		return nil, err
 	}
 
-	// Always ensure schema is up to date (handles both new DBs and migrations)
+	// Always ensure schema is up to date (creates all tables including v4 tables)
 	if err := db.InitDB(); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
-	}
-
-	// Check if v4 migration is needed
-	needsMigration, err := db.NeedsMigrationToV4()
-	if err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to check migration status: %w", err)
-	}
-
-	if needsMigration {
-		fmt.Println("Migrating database to v4...")
-
-		if err := db.MigrateToV4(path); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("failed to migrate to v4: %w", err)
-		}
-
-		fmt.Println("Migration to v4 complete!")
-		fmt.Println("Running post-migration health check...")
-		report, err := runDoctor(db)
-		if err != nil {
-			fmt.Printf("Doctor check failed: %v\n", err)
-		} else {
-			printDoctorReport(os.Stdout, report)
-			if report.ProblemCount() > 0 {
-				fmt.Println("Resolve the issues above. You can rerun 'tk doctor' at any time.")
-			}
-		}
 	}
 
 	return db, nil

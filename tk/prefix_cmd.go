@@ -22,7 +22,7 @@ var prefixCreateCmd = &cobra.Command{
 		prefix := args[0]
 		description := args[1]
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -72,7 +72,7 @@ Examples:
 		all, _ := cmd.Flags().GetBool("all")
 		verbose, _ := cmd.Flags().GetBool("verbose")
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -156,7 +156,7 @@ var prefixDescribeCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		prefix := strings.ToLower(args[0])
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -212,7 +212,7 @@ var prefixRemoveCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		prefix := strings.ToLower(args[0])
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}

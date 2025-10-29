@@ -16,7 +16,7 @@ var blockersCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskID := args[0]
 
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -84,7 +84,7 @@ var blockedCmd = &cobra.Command{
 	Short: "List all blocked tasks",
 	Long:  `List all tasks that are currently blocked.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}

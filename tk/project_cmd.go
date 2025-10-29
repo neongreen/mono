@@ -20,7 +20,7 @@ var projectCreateCmd = &cobra.Command{
 	Short: "Create a new project",
 	Args:  cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ var projectListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all projects",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -214,7 +214,7 @@ var projectAliasAddCmd = &cobra.Command{
 	Short: "Add an alias for a project",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -276,7 +276,7 @@ var projectAliasRemoveCmd = &cobra.Command{
 	Short: "Remove an alias for a project",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}

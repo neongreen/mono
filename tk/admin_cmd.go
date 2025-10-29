@@ -36,7 +36,7 @@ in order of their CreatedAt time.
 
 This command is safe to run multiple times.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ This command checks for common issues that might cause migration to fail:
 
 Run this before attempting v4 migration to identify potential issues.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := openExistingDB(false)
 		if err != nil {
 			return err
 		}
@@ -342,7 +342,7 @@ Examples:
 		fmt.Printf("Ingesting segments from remote '%s'...\n", remoteName)
 
 		// Ingest from remote (v3 events)
-		if err := ingestRemote(db, remoteName, remote); err != nil {
+		if err := ingestRemote(db, remoteName, remote, false); err != nil {
 			db.Close()
 			return fmt.Errorf("failed to ingest from remote: %w", err)
 		}

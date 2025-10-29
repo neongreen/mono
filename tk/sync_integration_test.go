@@ -142,7 +142,7 @@ func TestFullSyncWorkflow(t *testing.T) {
 
 	// Machine B: Ingest from remote (simulating `tk sync`)
 	t.Log("Machine B: Ingesting events from remote...")
-	if err := ingestRemote(dbB, "test-remote", remoteConfig); err != nil {
+	if err := ingestRemote(dbB, "test-remote", remoteConfig, false); err != nil {
 		t.Fatalf("failed to ingest on machine B: %v", err)
 	}
 
@@ -309,7 +309,7 @@ func TestFullSyncWorkflow(t *testing.T) {
 
 	// Machine A: Ingest from remote (pull machine B's changes)
 	t.Log("Machine A: Ingesting new events from remote...")
-	if err := ingestRemote(dbA, "test-remote", remoteConfig); err != nil {
+	if err := ingestRemote(dbA, "test-remote", remoteConfig, false); err != nil {
 		t.Fatalf("failed to ingest on machine A: %v", err)
 	}
 
