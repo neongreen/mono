@@ -147,7 +147,7 @@ The tool provides:
 
 ## Implementation
 
-The smoke-test tool calls the `dissect split` command as an external binary for each Go file found in the project. This ensures it's testing the actual dissect functionality as users would experience it.
+The smoke-test tool calls the `dissect explode` command as an external binary for each Go file found in the project. This ensures it's testing the actual dissect functionality as users would experience it.
 
 **Requirements**: The `dissect` binary must be in your PATH or you must run this from the dissect project directory.
 

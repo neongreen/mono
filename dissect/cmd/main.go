@@ -20,10 +20,14 @@ var rootCmd = &cobra.Command{
 into their own files, following Go's best practices for code organization.`,
 }
 
-var splitCmd = &cobra.Command{
-	Use:   "split [paths]...",
-	Short: "Split Go files by extracting functions to separate files",
-	Long: `Split processes Go files and extracts each top-level function into its own file,
+var explodeCmd = &cobra.Command{
+	Use:   "explode [paths]...",
+	Short: "Extract each function into its own file (WARNING: usually you want 'move' instead)",
+	Long: `WARNING: This command puts each function into its own separate file, which is usually
+not what you want for refactoring. For most refactoring tasks, use the 'move' command instead
+to selectively move specific functions to target files.
+
+Explode processes Go files and extracts each top-level function into its own file,
 following Go's best practices for code organization.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -134,7 +138,7 @@ func initLogging() {
 
 func init() {
 	// Add subcommands
-	rootCmd.AddCommand(splitCmd)
+	rootCmd.AddCommand(explodeCmd)
 	rootCmd.AddCommand(moveCmd)
 }
 
@@ -142,11 +146,11 @@ func main() {
 	initLogging()
 
 	// For backward compatibility: if the first argument is not a known subcommand,
-	// prepend 'split' to the arguments
+	// prepend 'explode' to the arguments
 	args := os.Args[1:]
 	if len(args) > 0 {
 		knownCommands := map[string]bool{
-			"split":      true,
+			"explode":    true,
 			"move":       true,
 			"help":       true,
 			"completion": true,
@@ -155,8 +159,8 @@ func main() {
 		}
 
 		if !knownCommands[args[0]] && !strings.HasPrefix(args[0], "-") {
-			// Prepend 'split' to args for backward compatibility
-			newArgs := append([]string{"split"}, args...)
+			// Prepend 'explode' to args for backward compatibility
+			newArgs := append([]string{"explode"}, args...)
 			rootCmd.SetArgs(newArgs)
 		}
 	}
