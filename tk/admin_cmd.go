@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
@@ -61,6 +62,7 @@ The v4 segments in v4/ remain untouched and can be ignored.`,
 func init() {
 	adminCmd.AddCommand(rollbackV4Cmd)
 	adminCmd.AddCommand(validateMigrationCmd)
+	adminCmd.AddCommand(rebuildFromRemoteCmd)
 }
 
 var validateMigrationCmd = &cobra.Command{
@@ -173,5 +175,136 @@ ORDER BY ts
 		fmt.Println()
 		fmt.Println("These issues may cause migration to fail. Please review and fix them before migrating.")
 		return fmt.Errorf("validation found %d issue(s)", len(issues))
+	},
+}
+
+var rebuildFromRemoteCmd = &cobra.Command{
+	Use:   "rebuild-from-remote [remote-name]",
+	Short: "Rebuild local database from remote segments",
+	Long: `Rebuild the local database from scratch using segments from a remote.
+
+This command:
+1. Deletes the local database (creates a backup first)
+2. Creates a fresh v4 database
+3. Ingests all segments from the specified remote
+
+This is useful when:
+- The local database is corrupted
+- You want to start fresh from remote data
+- Migration from v3 failed and you want to retry
+
+Examples:
+  tk admin rebuild-from-remote icloud
+`,
+	Args: cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		remoteName := args[0]
+
+		// Get database path
+		dbPath, err := GetDBPath()
+		if err != nil {
+			return err
+		}
+
+		// Load config to verify remote exists
+		config, err := LoadConfig()
+		if err != nil {
+			return err
+		}
+
+		remote, exists := config.Remotes[remoteName]
+		if !exists {
+			return fmt.Errorf("remote '%s' not found in config", remoteName)
+		}
+
+		// Create backup of current database
+		backupPath := dbPath + ".pre-rebuild.bak"
+		if _, err := os.Stat(dbPath); err == nil {
+			fmt.Printf("Creating backup at %s\n", backupPath)
+			if err := copyFile(dbPath, backupPath); err != nil {
+				return fmt.Errorf("failed to create backup: %w", err)
+			}
+		}
+
+		// Delete current database
+		if err := os.Remove(dbPath); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to remove database: %w", err)
+		}
+
+		fmt.Println("Creating fresh v4 database...")
+
+		// Create new database
+		db, err := OpenDB(dbPath)
+		if err != nil {
+			return fmt.Errorf("failed to create database: %w", err)
+		}
+
+		// Initialize with v4 schema
+		if err := db.InitDB(); err != nil {
+			db.Close()
+			return fmt.Errorf("failed to initialize database: %w", err)
+		}
+
+		// Create v4 tables
+		if err := db.CreateV4Tables(); err != nil {
+			db.Close()
+			return fmt.Errorf("failed to create v4 tables: %w", err)
+		}
+
+		// Set version to 4
+		if err := db.SetDBVersion(4); err != nil {
+			db.Close()
+			return fmt.Errorf("failed to set version: %w", err)
+		}
+
+		// Set remote_subdir to v4
+		_, err = db.db.Exec(`
+INSERT OR REPLACE INTO metadata (key, value) 
+VALUES ('remote_subdir', 'v4')
+`)
+		if err != nil {
+			db.Close()
+			return fmt.Errorf("failed to set remote_subdir: %w", err)
+		}
+
+		fmt.Printf("Ingesting segments from remote '%s'...\n", remoteName)
+
+		// Ingest from remote
+		if err := ingestRemote(db, remoteName, remote); err != nil {
+			db.Close()
+			return fmt.Errorf("failed to ingest from remote: %w", err)
+		}
+
+		db.Close()
+
+		fmt.Println()
+		fmt.Println("✓ Database rebuilt successfully from remote!")
+		fmt.Println()
+		fmt.Println("Running health check...")
+
+		// Reopen and run doctor
+		db, err = OpenDB(dbPath)
+		if err != nil {
+			return fmt.Errorf("failed to reopen database: %w", err)
+		}
+		defer db.Close()
+
+		if err := db.InitDB(); err != nil {
+			return fmt.Errorf("failed to initialize: %w", err)
+		}
+
+		report, err := runDoctor(db)
+		if err != nil {
+			return fmt.Errorf("doctor check failed: %w", err)
+		}
+
+		printDoctorReport(os.Stdout, report)
+
+		if report.ProblemCount() > 0 {
+			fmt.Println()
+			fmt.Println("Note: You can resolve these issues and rerun 'tk doctor' at any time.")
+		}
+
+		return nil
 	},
 }
