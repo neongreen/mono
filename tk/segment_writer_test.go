@@ -101,7 +101,7 @@ func TestSegmentWriter_ShouldRotate_BySize(t *testing.T) {
 
 func TestSegmentWriter_ShouldRotate_ByAge(t *testing.T) {
 	sw := NewSegmentWriter("/tmp/test", "personal", "node123", 1, 1024*1024, 1)
-	
+
 	// Set start time to 2 seconds ago
 	sw.startTime = time.Now().Add(-2 * time.Second)
 
