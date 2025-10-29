@@ -1357,10 +1357,15 @@ func (d *DB) ProjectPrefixRemovedEvent(e Event) error {
 // GetCachedReducerWithConfig returns a cached reducer or builds a new one if needed.
 // The cache is invalidated when new events are inserted.
 // This significantly improves performance for operations that need to query task state.
+//
+// Note: The cache uses pointer identity for config comparison. This is safe because:
+// - Each command typically loads config once and reuses the same instance
+// - The DB instance is scoped to a single command execution
+// - Cache is invalidated on any event insertion
+// If config pointer doesn't match, we rebuild the reducer (safe but may miss some cache hits).
 func (d *DB) GetCachedReducerWithConfig(config *Config) (*Reducer, error) {
-	// Check if we have a valid cached reducer with the same config
-	// Note: We do a simple pointer comparison for the config. This works for the
-	// typical use case where the same config instance is used throughout a command.
+	// Check if we have a valid cached reducer with the same config pointer
+	// Using pointer comparison is conservative - we rebuild if in doubt
 	if d.reducerCache != nil && d.reducerConfig == config {
 		return d.reducerCache, nil
 	}
