@@ -240,7 +240,10 @@ func createTaskLegacy(db *DB, cmd *cobra.Command, title string) error {
 		return err
 	}
 
-	taskUUID := GenerateTaskUUID()
+	taskUUID, err := GenerateTaskUUID()
+	if err != nil {
+		return err
+	}
 	taskID, err := GenerateTaskID(db, prefix)
 	if err != nil {
 		return err

@@ -106,7 +106,10 @@ func TestV4Migration(t *testing.T) {
 	}
 
 	// Create a task (v1/v2 style)
-	taskUUID := GenerateTaskUUID()
+	taskUUID, err := GenerateTaskUUID()
+	if err != nil {
+		t.Fatalf("failed to generate task UUID: %v", err)
+	}
 	taskID := "test-1-" + nodeID
 
 	payload := TaskCreatedPayload{
@@ -442,7 +445,10 @@ func TestV4MigrationPreservesStatusAndNotes(t *testing.T) {
 		t.Fatalf("failed to insert prefix: %v", err)
 	}
 
-	legacyTaskUUID := GenerateTaskUUID()
+	legacyTaskUUID, err := GenerateTaskUUID()
+	if err != nil {
+		t.Fatalf("failed to generate task UUID: %v", err)
+	}
 	legacyTaskID := fmt.Sprintf("test-1-%s", nodeID)
 	baseTime := time.Now()
 
@@ -568,7 +574,10 @@ func TestV4MigrationConvertsReprefixToRelocate(t *testing.T) {
 		}
 	}
 
-	legacyTaskUUID := GenerateTaskUUID()
+	legacyTaskUUID, err := GenerateTaskUUID()
+	if err != nil {
+		t.Fatalf("failed to generate task UUID: %v", err)
+	}
 	taskID := fmt.Sprintf("src-1-%s", nodeID)
 	baseTime := time.Now()
 

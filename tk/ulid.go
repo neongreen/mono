@@ -6,8 +6,12 @@ import (
 )
 
 // GenerateTaskUUID generates a unique task UUID in the format task-<ulid>
-func GenerateTaskUUID() string {
-	return "task-" + strings.ToLower(generateULID())
+func GenerateTaskUUID() (string, error) {
+	ulid, err := generateULID()
+	if err != nil {
+		return "", err
+	}
+	return "task-" + strings.ToLower(ulid), nil
 }
 
 // GenerateTaskID generates a task ID in the format <prefix>-<number>-<node>
@@ -44,10 +48,14 @@ func GenerateEventID(db *DB) (string, error) {
 	return fmt.Sprintf("ev-%d-%s", eventNum, nodeID), nil
 }
 
-func generateULID() string {
+func generateULID() (string, error) {
 	// Use the same node ID generation logic for now (6 chars)
 	// In production, this would be a proper ULID
-	return generateNodeID(20) // 20 chars for UUID
+	id, err := generateNodeID(20) // 20 chars for UUID
+	if err != nil {
+		return "", fmt.Errorf("failed to generate ULID: %w", err)
+	}
+	return id, nil
 }
 
 // splitEventID splits an event ID into its components

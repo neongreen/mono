@@ -401,7 +401,10 @@ func (d *DB) GetOrCreateNodeID() (string, error) {
 	}
 
 	// Generate new node ID (6 random alphanumeric characters, mixed case)
-	nodeID = generateNodeID(6)
+	nodeID, err = generateNodeID(6)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate node ID: %w", err)
+	}
 
 	// Store it
 	_, err = d.db.Exec("INSERT INTO metadata (key, value) VALUES ('node_id', ?)", nodeID)
@@ -415,10 +418,13 @@ func (d *DB) GetOrCreateNodeID() (string, error) {
 // RegenerateNodeID generates a new node ID and updates the metadata
 func (d *DB) RegenerateNodeID() (string, error) {
 	// Generate new node ID
-	newNodeID := generateNodeID(6)
+	newNodeID, err := generateNodeID(6)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate node ID: %w", err)
+	}
 
 	// Update the metadata
-	_, err := d.db.Exec("UPDATE metadata SET value = ? WHERE key = 'node_id'", newNodeID)
+	_, err = d.db.Exec("UPDATE metadata SET value = ? WHERE key = 'node_id'", newNodeID)
 	if err != nil {
 		return "", fmt.Errorf("failed to update node ID: %w", err)
 	}
@@ -554,17 +560,17 @@ func (d *DB) GetNextEventNumber() (int64, error) {
 }
 
 // generateNodeID generates a random alphanumeric node ID with mixed case
-func generateNodeID(length int) string {
+func generateNodeID(length int) (string, error) {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, length)
 	for i := range b {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		if err != nil {
-			panic(err)
+			return "", fmt.Errorf("failed to generate random number: %w", err)
 		}
 		b[i] = charset[n.Int64()]
 	}
-	return string(b)
+	return string(b), nil
 }
 
 // ResolveTaskID resolves a short task ID to a full task ID

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -116,13 +117,8 @@ var debugEventsCmd = &cobra.Command{
 func containsTaskRef(payloadStr string, taskID string) bool {
 	// Simple string search - just check if the task ID appears anywhere
 	// This is intentionally naive for debugging purposes
-	return len(payloadStr) > 0 && (contains(payloadStr, `"`+taskID+`"`) ||
-		contains(payloadStr, taskID))
-}
-
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
-		(s[:len(substr)] == substr || contains(s[1:], substr)))
+	return len(payloadStr) > 0 && (strings.Contains(payloadStr, `"`+taskID+`"`) ||
+		strings.Contains(payloadStr, taskID))
 }
 
 func init() {
