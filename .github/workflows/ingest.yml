@@ -58,8 +58,44 @@ jobs:
       - name: Install mise
         uses: jdx/mise-action@e3d7b8d67a7958d1207f6ed871e83b1ea780e7b0 # v3.3.1
 
-      - name: Run unit tests
-        run: mise run //ingest:test
+      - name: Run unit tests with coverage
+        working-directory: ingest
+        run: go test ./... -coverprofile=coverage.out -covermode=atomic 2>&1 | tee test-output.txt
 
       - name: Run integration suites
         run: mise run //ingest:test:integration
+
+      - name: Display coverage summary
+        if: always()
+        working-directory: ingest
+        run: |
+          {
+            echo "## Code Coverage Summary"
+            echo ""
+            echo "### Per-Package Coverage"
+            echo "\`\`\`"
+            grep "^ok.*coverage:" test-output.txt | awk '{
+              pkg = $2
+              for (i = 1; i <= NF; i++) {
+                if ($i ~ /^[0-9.]+%$/) {
+                  cov = $i
+                  break
+                }
+              }
+              printf "%-65s %s\n", pkg, cov
+            }'
+            echo "\`\`\`"
+            echo ""
+            echo "### Overall Summary"
+            echo "\`\`\`"
+            go tool cover -func=coverage.out | tail -1
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ingest-coverage-report
+          path: ingest/coverage.out
+          retention-days: 30

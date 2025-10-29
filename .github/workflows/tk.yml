@@ -54,24 +54,37 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: tk
-        run: go test ./... -v -coverprofile=coverage.out -covermode=atomic
+        run: go test ./... -coverprofile=coverage.out -covermode=atomic 2>&1 | tee test-output.txt
 
       - name: Display coverage summary
+        if: always()
         working-directory: tk
         run: |
           {
             echo "## Code Coverage Summary"
+            echo ""
+            echo "### Per-Package Coverage"
             echo "\`\`\`"
-            go tool cover -func=coverage.out | tail -1
+            grep "^ok.*coverage:" test-output.txt | awk '{
+              pkg = $2
+              for (i = 1; i <= NF; i++) {
+                if ($i ~ /^[0-9.]+%$/) {
+                  cov = $i
+                  break
+                }
+              }
+              printf "%-65s %s\n", pkg, cov
+            }'
             echo "\`\`\`"
             echo ""
-            echo "### Detailed Coverage"
+            echo "### Overall Summary"
             echo "\`\`\`"
-            go tool cover -func=coverage.out
+            go tool cover -func=coverage.out | tail -1
             echo "\`\`\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload coverage report
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: tk-coverage-report

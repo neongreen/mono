@@ -52,6 +52,41 @@ jobs:
           go-version: "1.24.7"
           cache-dependency-path: go.sum
 
-      - name: Run tests
+      - name: Run tests with coverage
         working-directory: claude-trace
-        run: go test ./... -v
+        run: go test ./... -coverprofile=coverage.out -covermode=atomic 2>&1 | tee test-output.txt
+
+      - name: Display coverage summary
+        if: always()
+        working-directory: claude-trace
+        run: |
+          {
+            echo "## Code Coverage Summary"
+            echo ""
+            echo "### Per-Package Coverage"
+            echo "\`\`\`"
+            grep "^ok.*coverage:" test-output.txt | awk '{
+              pkg = $2
+              for (i = 1; i <= NF; i++) {
+                if ($i ~ /^[0-9.]+%$/) {
+                  cov = $i
+                  break
+                }
+              }
+              printf "%-65s %s\n", pkg, cov
+            }'
+            echo "\`\`\`"
+            echo ""
+            echo "### Overall Summary"
+            echo "\`\`\`"
+            go tool cover -func=coverage.out | tail -1
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: claude-trace-coverage-report
+          path: claude-trace/coverage.out
+          retention-days: 30
