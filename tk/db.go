@@ -22,7 +22,9 @@ const (
 
 // DB wraps a SQLite database for tk events
 type DB struct {
-	db *sql.DB
+	db            *sql.DB
+	reducerCache  *Reducer // Cached reducer built from all events
+	reducerConfig *Config  // Config used to build cached reducer
 }
 
 // OpenDB opens or creates a tk database at the given path
@@ -213,6 +215,10 @@ func (d *DB) InsertEvent(e Event) error {
 	if err != nil {
 		return fmt.Errorf("failed to insert event: %w", err)
 	}
+
+	// Invalidate reducer cache when a new event is added
+	d.reducerCache = nil
+	d.reducerConfig = nil
 
 	return nil
 }
@@ -1346,4 +1352,33 @@ func (d *DB) ProjectPrefixRemovedEvent(e Event) error {
 	}
 
 	return nil
+}
+
+// GetCachedReducerWithConfig returns a cached reducer or builds a new one if needed.
+// The cache is invalidated when new events are inserted.
+// This significantly improves performance for operations that need to query task state.
+func (d *DB) GetCachedReducerWithConfig(config *Config) (*Reducer, error) {
+	// Check if we have a valid cached reducer with the same config
+	// Note: We do a simple pointer comparison for the config. This works for the
+	// typical use case where the same config instance is used throughout a command.
+	if d.reducerCache != nil && d.reducerConfig == config {
+		return d.reducerCache, nil
+	}
+
+	// Build a new reducer from all events
+	events, err := d.GetEvents()
+	if err != nil {
+		return nil, err
+	}
+
+	reducer, err := BuildFromEventsWithConfig(events, config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the reducer
+	d.reducerCache = reducer
+	d.reducerConfig = config
+
+	return reducer, nil
 }
