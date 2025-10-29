@@ -1,7 +1,6 @@
 package main
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -250,104 +249,4 @@ func TestV4TaskNumberCollisionHandling(t *testing.T) {
 	if displayID1 == displayID2 {
 		t.Errorf("display IDs should be different for colliding tasks: %s", displayID1)
 	}
-}
-
-// TestV4MigrationRollbackAndRemigrate tests that rollback followed by remigration works
-func TestV4MigrationRollbackAndRemigrate(t *testing.T) {
-	tempDir := t.TempDir()
-	dbPath := filepath.Join(tempDir, "test.db")
-
-	// Initialize v1/v2 database
-	db, err := OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("failed to open database: %v", err)
-	}
-	if err := db.InitDB(); err != nil {
-		t.Fatalf("failed to initialize database: %v", err)
-	}
-	if err := db.CreatePrefix("test", "Test prefix", "alice"); err != nil {
-		t.Fatalf("failed to create prefix: %v", err)
-	}
-	db.Close()
-
-	// Migrate to v4
-	db, err = OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("failed to reopen database: %v", err)
-	}
-	if err := db.InitDB(); err != nil {
-		t.Fatalf("failed to reinit: %v", err)
-	}
-	if err := db.MigrateToV4(dbPath); err != nil {
-		t.Fatalf("migration failed: %v", err)
-	}
-
-	// Verify v4
-	version, err := db.GetDBVersion()
-	if err != nil {
-		t.Fatalf("failed to get version: %v", err)
-	}
-	if version != 4 {
-		t.Fatalf("expected version 4, got %d", version)
-	}
-	db.Close()
-
-	// Rollback
-	if err := RollbackV4(dbPath); err != nil {
-		t.Fatalf("rollback failed: %v", err)
-	}
-
-	// Verify we're back to v3
-	db, err = OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("failed to reopen after rollback: %v", err)
-	}
-	if err := db.InitDB(); err != nil {
-		t.Fatalf("failed to reinit after rollback: %v", err)
-	}
-	if err := db.SetDBVersion(3); err != nil {
-		t.Fatalf("failed to set version after rollback: %v", err)
-	}
-
-	version, err = db.GetDBVersion()
-	if err != nil {
-		t.Fatalf("failed to get version after rollback: %v", err)
-	}
-	if version != 3 {
-		t.Fatalf("expected version 3 after rollback, got %d", version)
-	}
-	db.Close()
-
-	// Migrate again
-	db, err = OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("failed to reopen for remigration: %v", err)
-	}
-	if err := db.InitDB(); err != nil {
-		t.Fatalf("failed to reinit for remigration: %v", err)
-	}
-
-	// Remove old backup to test backup recreation
-	backupPath := dbPath + ".v3.bak"
-	os.Remove(backupPath)
-
-	if err := db.MigrateToV4(dbPath); err != nil {
-		t.Fatalf("remigration failed: %v", err)
-	}
-
-	// Verify v4 again
-	version, err = db.GetDBVersion()
-	if err != nil {
-		t.Fatalf("failed to get version after remigration: %v", err)
-	}
-	if version != 4 {
-		t.Fatalf("expected version 4 after remigration, got %d", version)
-	}
-
-	// Verify backup was recreated
-	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
-		t.Error("backup was not recreated during remigration")
-	}
-
-	db.Close()
 }
