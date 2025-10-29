@@ -124,7 +124,6 @@ Issues are stored in `.beads/issues.jsonl` and tracked in a local SQLite databas
 
 - Each project has its own test workflow
 - All Go projects are automatically released via `.github/workflows/release.yml`
-- GitHub Copilot coding agent environment is configured via `.github/workflows/copilot-setup-steps.yml`
 - See [CI Guidelines](.github/CI_GUIDELINES.md) for workflow structure
 
 ## Contributing
