@@ -12,17 +12,19 @@ First, install [uv](https://docs.astral.sh/uv/), the best and greatest Python pa
 Then add to your jj config:
 
 ```shell
-jj config set --user aliases.x '["util", "exec", "--", "uvx", "git+https://github.com/neongreen/jj-run.git"]'
+jj config set --user aliases.x '["util", "exec", "--", "uvx", "--from", "git+https://github.com/neongreen/mono", "--from-path", "jj-run", "jj-run"]'
 ```
 
 Or in the file:
 
 ```toml
 [aliases]
-x = ["util", "exec", "--", "uvx", "git+https://github.com/neongreen/jj-run.git"]
+x = ["util", "exec", "--", "uvx", "--from", "git+https://github.com/neongreen/mono", "--from-path", "jj-run", "jj-run"]
 ```
 
 (Can't use `run` because it's already defined as a stub.)
+
+**Note:** jj-run is now part of the [neongreen/mono](https://github.com/neongreen/mono) monorepo.
 
 ## Usage
 
