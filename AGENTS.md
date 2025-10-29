@@ -112,6 +112,27 @@ The `go fmt` tool ensures consistent formatting across all Go code in the monore
 
 ------------------------------------------------------------
 
+## Go Style Guide
+
+**All Go code must follow the standards defined in [GO_STYLE_GUIDE.md](./GO_STYLE_GUIDE.md).**
+
+The style guide covers:
+- CLI framework usage (Cobra)
+- Error handling patterns
+- Project structure
+- Code organization
+- Testing patterns
+- Documentation conventions
+
+Key standards:
+- Use Cobra for all CLI applications
+- Use `RunE` for command handlers (return errors, main handles exit codes)
+- CLI applications must use `cmd/` subdirectory
+- Use `fmt.Fprintf(os.Stderr, "Error: %v\n", err)` for error output in main
+- See `GO_STYLE_GUIDE.md` for complete details and examples
+
+------------------------------------------------------------
+
 ## Error Handling Guidelines
 
 **All Go code must follow consistent error handling patterns.**

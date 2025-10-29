@@ -32,7 +32,7 @@ var projectCreateCmd = &cobra.Command{
 			return err
 		}
 		if version < 4 {
-			return fmt.Errorf("database version %d is too old, upgrade to v4 required", version)
+			return fmt.Errorf("projects require database v4 or higher, but current version is v%d", version)
 		}
 
 		name := args[0]
