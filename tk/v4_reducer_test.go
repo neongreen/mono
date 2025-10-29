@@ -99,7 +99,7 @@ func TestProjectProjectAliasAddEvent(t *testing.T) {
 	}
 }
 
-func TestProjectTaskCreatedV4Event(t *testing.T) {
+func TestProjectTaskCreatedEvent(t *testing.T) {
 	db := openTempDB(t)
 
 	// Create a project first
@@ -111,7 +111,7 @@ func TestProjectTaskCreatedV4Event(t *testing.T) {
 	}
 
 	taskUID := string(NewTaskUID())
-	payload := TaskCreatedV4Payload{
+	payload := TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
@@ -135,8 +135,8 @@ func TestProjectTaskCreatedV4Event(t *testing.T) {
 		Payload:   payloadJSON,
 	}
 
-	if err := db.ProjectTaskCreatedV4Event(event); err != nil {
-		t.Fatalf("ProjectTaskCreatedV4Event() error = %v", err)
+	if err := db.ProjectTaskCreatedEvent(event); err != nil {
+		t.Fatalf("ProjectTaskCreatedEvent() error = %v", err)
 	}
 
 	// Verify task was created

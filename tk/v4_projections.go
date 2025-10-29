@@ -6,8 +6,8 @@ import (
 	"fmt"
 )
 
-// V4 Projection Functions
-// These functions project v4 events from the events table into projection tables
+// Projection Functions
+// These functions project events from the events table into projection tables
 
 // ProjectProjectCreatedEvent projects a project.created event into the projects table (idempotent)
 func (d *DB) ProjectProjectCreatedEvent(e Event) error {
@@ -69,13 +69,13 @@ func (d *DB) ProjectProjectAliasRemoveEvent(e Event) error {
 	return err
 }
 
-// ProjectTaskCreatedV4Event projects a task.created (v4) event into the tasks table (idempotent)
-func (d *DB) ProjectTaskCreatedV4Event(e Event) error {
+// ProjectTaskCreatedEvent projects a task.created event into the tasks table (idempotent)
+func (d *DB) ProjectTaskCreatedEvent(e Event) error {
 	if e.Kind != string(EventKindTaskCreated) {
 		return fmt.Errorf("expected task.created event, got %s", e.Kind)
 	}
 
-	var payload TaskCreatedV4Payload
+	var payload TaskCreatedPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
 	}

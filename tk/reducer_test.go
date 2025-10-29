@@ -9,10 +9,15 @@ import (
 func TestReducer_TaskCreated(t *testing.T) {
 	reducer := NewReducer()
 
+	taskUID := string(NewTaskUID())
+	projectUID := string(NewProjectUID())
 	payload := TaskCreatedPayload{
-		TaskID:    "tk-1-test",
-		Title:     "Test task",
-		CreatedBy: "alice",
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: 1,
+		CreatedNode:    string(NewNodeID()),
+		Title:          "Test task",
+		CreatedBy:      "alice",
 	}
 	payloadJSON, _ := json.Marshal(payload)
 
@@ -32,13 +37,9 @@ func TestReducer_TaskCreated(t *testing.T) {
 		t.Fatalf("Failed to apply task.created event: %v", err)
 	}
 
-	task, ok := reducer.GetTask("tk-1-test")
+	task, ok := reducer.GetTask(taskUID)
 	if !ok {
 		t.Fatal("Task not found")
-	}
-
-	if task.TaskID != "tk-1-test" {
-		t.Errorf("Expected task ID tk-1-test, got %s", task.TaskID)
 	}
 
 	if task.Title != "Test task" {
@@ -58,10 +59,15 @@ func TestReducer_StatusSet(t *testing.T) {
 	reducer := NewReducer()
 
 	// Create task first
+	taskUID := string(NewTaskUID())
+	projectUID := string(NewProjectUID())
 	createPayload := TaskCreatedPayload{
-		TaskID:    "tk-1-test",
-		Title:     "Test task",
-		CreatedBy: "alice",
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: 1,
+		CreatedNode:    string(NewNodeID()),
+		Title:          "Test task",
+		CreatedBy:      "alice",
 	}
 	createPayloadJSON, _ := json.Marshal(createPayload)
 
@@ -79,10 +85,10 @@ func TestReducer_StatusSet(t *testing.T) {
 
 	// Set status
 	statusPayload := TaskStatusSetPayload{
-		TaskID: "tk-1-test",
-		Axis:   "generic",
-		State:  "in_progress",
-		Role:   "human",
+		TaskUUID: taskUID,
+		Axis:     "generic",
+		State:    "in_progress",
+		Role:     "human",
 	}
 	statusPayloadJSON, _ := json.Marshal(statusPayload)
 
@@ -101,7 +107,7 @@ func TestReducer_StatusSet(t *testing.T) {
 		t.Fatalf("Failed to apply task.status.set event: %v", err)
 	}
 
-	task, _ := reducer.GetTask("tk-1-test")
+	task, _ := reducer.GetTask(taskUID)
 
 	axis, ok := task.Axes["generic"]
 	if !ok {
@@ -129,10 +135,15 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	reducer := NewReducer()
 
 	// Create task
+	taskUID := string(NewTaskUID())
+	projectUID := string(NewProjectUID())
 	createPayload := TaskCreatedPayload{
-		TaskID:    "tk-1-test",
-		Title:     "Test task",
-		CreatedBy: "alice",
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: 1,
+		CreatedNode:    string(NewNodeID()),
+		Title:          "Test task",
+		CreatedBy:      "alice",
 	}
 	createPayloadJSON, _ := json.Marshal(createPayload)
 
@@ -150,10 +161,10 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 
 	// Agent sets status to done
 	agentPayload := TaskStatusSetPayload{
-		TaskID: "tk-1-test",
-		Axis:   "generic",
-		State:  "done",
-		Role:   "agent",
+		TaskUUID: taskUID,
+		Axis:     "generic",
+		State:    "done",
+		Role:     "agent",
 	}
 	agentPayloadJSON, _ := json.Marshal(agentPayload)
 
@@ -171,10 +182,10 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 
 	// Human sets status to in_progress (same timestamp for concurrent claim)
 	humanPayload := TaskStatusSetPayload{
-		TaskID: "tk-1-test",
-		Axis:   "generic",
-		State:  "in_progress",
-		Role:   "human",
+		TaskUUID: taskUID,
+		Axis:     "generic",
+		State:    "in_progress",
+		Role:     "human",
 	}
 	humanPayloadJSON, _ := json.Marshal(humanPayload)
 
@@ -190,7 +201,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 
 	reducer.Apply(humanEvent)
 
-	task, _ := reducer.GetTask("tk-1-test")
+	task, _ := reducer.GetTask(taskUID)
 	axis := task.Axes["generic"]
 
 	// Human claim should win due to higher authority
@@ -226,10 +237,15 @@ func TestReducer_NoteAdd(t *testing.T) {
 	reducer := NewReducer()
 
 	// Create task
+	taskUID := string(NewTaskUID())
+	projectUID := string(NewProjectUID())
 	createPayload := TaskCreatedPayload{
-		TaskID:    "tk-1-test",
-		Title:     "Test task",
-		CreatedBy: "alice",
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: 1,
+		CreatedNode:    string(NewNodeID()),
+		Title:          "Test task",
+		CreatedBy:      "alice",
 	}
 	createPayloadJSON, _ := json.Marshal(createPayload)
 
@@ -247,7 +263,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 
 	// Add note
 	notePayload := TaskNoteAddPayload{
-		TaskID:   "tk-1-test",
+		TaskUUID: taskUID,
 		Markdown: "This is a test note",
 	}
 	notePayloadJSON, _ := json.Marshal(notePayload)
@@ -267,7 +283,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 		t.Fatalf("Failed to apply task.note.add event: %v", err)
 	}
 
-	task, _ := reducer.GetTask("tk-1-test")
+	task, _ := reducer.GetTask(taskUID)
 
 	if len(task.Notes) != 1 {
 		t.Fatalf("Expected 1 note, got %d", len(task.Notes))

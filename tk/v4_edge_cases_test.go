@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-// TestV4EventProjectionIdempotency tests that projecting the same event twice is safe
-func TestV4EventProjectionIdempotency(t *testing.T) {
+// TestEventProjectionIdempotency tests that projecting the same event twice is safe
+func TestEventProjectionIdempotency(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
 
@@ -19,8 +19,8 @@ func TestV4EventProjectionIdempotency(t *testing.T) {
 	if err := db.InitDB(); err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	if err := db.CreateV4Tables(); err != nil {
-		t.Fatalf("failed to create v4 tables: %v", err)
+	if err := db.CreateProjectTables(); err != nil {
+		t.Fatalf("failed to create project tables: %v", err)
 	}
 	if err := db.SetDBVersion(4); err != nil {
 		t.Fatalf("failed to set version: %v", err)
@@ -59,87 +59,8 @@ func TestV4EventProjectionIdempotency(t *testing.T) {
 	}
 }
 
-// TestV4MigrationIdempotency tests that running migration twice is safe
-func TestV4MigrationIdempotency(t *testing.T) {
-	tempDir := t.TempDir()
-	dbPath := filepath.Join(tempDir, "test.db")
-
-	// Initialize v1/v2 database with a prefix
-	db, err := OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("failed to open database: %v", err)
-	}
-	if err := db.InitDB(); err != nil {
-		t.Fatalf("failed to initialize database: %v", err)
-	}
-
-	if err := db.CreatePrefix("test", "Test prefix", "alice"); err != nil {
-		t.Fatalf("failed to create prefix: %v", err)
-	}
-	db.Close()
-
-	// Run migration once
-	db, err = OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("failed to reopen database: %v", err)
-	}
-	if err := db.InitDB(); err != nil {
-		t.Fatalf("failed to reinit: %v", err)
-	}
-
-	needsMigration, err := db.NeedsMigrationToV4()
-	if err != nil {
-		t.Fatalf("failed to check migration: %v", err)
-	}
-	if !needsMigration {
-		t.Fatal("expected database to need migration")
-	}
-
-	if err := db.MigrateToV4(dbPath); err != nil {
-		t.Fatalf("first migration failed: %v", err)
-	}
-
-	// Count projects after first migration
-	var projectCount int
-	err = db.db.QueryRow("SELECT COUNT(*) FROM projects").Scan(&projectCount)
-	if err != nil {
-		t.Fatalf("failed to count projects: %v", err)
-	}
-
-	db.Close()
-
-	// Try to run migration again (should be skipped)
-	db, err = OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("failed to reopen database: %v", err)
-	}
-	if err := db.InitDB(); err != nil {
-		t.Fatalf("failed to reinit: %v", err)
-	}
-
-	needsMigration, err = db.NeedsMigrationToV4()
-	if err != nil {
-		t.Fatalf("failed to check migration: %v", err)
-	}
-	if needsMigration {
-		t.Error("database should not need migration after first run")
-	}
-
-	// Verify project count didn't change (no duplicates)
-	var newProjectCount int
-	err = db.db.QueryRow("SELECT COUNT(*) FROM projects").Scan(&newProjectCount)
-	if err != nil {
-		t.Fatalf("failed to count projects: %v", err)
-	}
-	if newProjectCount != projectCount {
-		t.Errorf("project count changed after second migration check: %d -> %d", projectCount, newProjectCount)
-	}
-
-	db.Close()
-}
-
-// TestV4TaskNumberCollisionHandling tests collision display logic
-func TestV4TaskNumberCollisionHandling(t *testing.T) {
+// TestTaskNumberCollisionHandling tests collision display logic
+func TestTaskNumberCollisionHandling(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
 
@@ -152,8 +73,8 @@ func TestV4TaskNumberCollisionHandling(t *testing.T) {
 	if err := db.InitDB(); err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	if err := db.CreateV4Tables(); err != nil {
-		t.Fatalf("failed to create v4 tables: %v", err)
+	if err := db.CreateProjectTables(); err != nil {
+		t.Fatalf("failed to create project tables: %v", err)
 	}
 	if err := db.SetDBVersion(4); err != nil {
 		t.Fatalf("failed to set version: %v", err)
@@ -184,11 +105,11 @@ func TestV4TaskNumberCollisionHandling(t *testing.T) {
 
 	// Create two tasks with the same number (collision)
 	task1UID := string(NewTaskUID())
-	task1Event := createTaskCreatedV4Event(task1UID, projectUID, 1, nodeA, "Task 1", "alice")
+	task1Event := createTaskCreatedEvent(task1UID, projectUID, 1, nodeA, "Task 1", "alice")
 	if err := db.InsertEvent(task1Event); err != nil {
 		t.Fatalf("failed to insert task1: %v", err)
 	}
-	if err := db.ProjectTaskCreatedV4Event(task1Event); err != nil {
+	if err := db.ProjectTaskCreatedEvent(task1Event); err != nil {
 		t.Fatalf("failed to project task1: %v", err)
 	}
 
@@ -203,11 +124,11 @@ func TestV4TaskNumberCollisionHandling(t *testing.T) {
 	// Simulate a different node creating another task with number 1
 	nodeB := "DifferentNode"
 	task2UID := string(NewTaskUID())
-	task2Event := createTaskCreatedV4Event(task2UID, projectUID, 1, nodeB, "Task 2", "bob")
+	task2Event := createTaskCreatedEvent(task2UID, projectUID, 1, nodeB, "Task 2", "bob")
 	if err := db.InsertEvent(task2Event); err != nil {
 		t.Fatalf("failed to insert task2: %v", err)
 	}
-	if err := db.ProjectTaskCreatedV4Event(task2Event); err != nil {
+	if err := db.ProjectTaskCreatedEvent(task2Event); err != nil {
 		t.Fatalf("failed to project task2: %v", err)
 	}
 

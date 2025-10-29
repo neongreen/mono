@@ -16,7 +16,7 @@ var graphCmd = &cobra.Command{
 		relationType, _ := cmd.Flags().GetString("type")
 		depth, _ := cmd.Flags().GetInt("depth")
 
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}

@@ -32,40 +32,6 @@ func TestGenerateTaskUUID(t *testing.T) {
 	}
 }
 
-func TestGenerateTaskID(t *testing.T) {
-	db := openTempDB(t)
-
-	// Create a prefix first
-	if err := db.CreatePrefix("test", "test prefix", "tester"); err != nil {
-		t.Fatalf("CreatePrefix() error = %v", err)
-	}
-
-	taskID, err := GenerateTaskID(db, "test")
-	if err != nil {
-		t.Fatalf("GenerateTaskID() error = %v", err)
-	}
-
-	// Should have format: prefix-number-node
-	parts := strings.Split(taskID, "-")
-	if len(parts) < 3 {
-		t.Errorf("GenerateTaskID() = %v, want format 'prefix-number-node'", taskID)
-	}
-
-	if parts[0] != "test" {
-		t.Errorf("GenerateTaskID() prefix = %v, want %v", parts[0], "test")
-	}
-
-	// Second call should increment the number
-	taskID2, err := GenerateTaskID(db, "test")
-	if err != nil {
-		t.Fatalf("GenerateTaskID() second call error = %v", err)
-	}
-
-	if taskID == taskID2 {
-		t.Errorf("GenerateTaskID() generated duplicate task IDs: %v", taskID)
-	}
-}
-
 func TestGenerateEventID(t *testing.T) {
 	db := openTempDB(t)
 

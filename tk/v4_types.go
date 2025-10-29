@@ -9,7 +9,7 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
-// V4 Type Definitions
+// Type Definitions
 // Based on tk/specs/v4-types.md
 
 // ProjectUID is a stable, immutable identifier for a project
@@ -194,12 +194,6 @@ const (
 	EventKindRelationAdd        EventKind = "relation.add"
 	EventKindRelationRemove     EventKind = "relation.remove"
 	EventKindRelationNote       EventKind = "relation.note"
-
-	// Legacy v1/v2 event kinds (for migration)
-	EventKindPrefixCreated      EventKind = "prefix.created"
-	EventKindPrefixRemoved      EventKind = "prefix.removed"
-	EventKindTaskReprefixLegacy EventKind = "task.reprefix"
-	EventKindTaskAliasAdded     EventKind = "task.alias.added"
 )
 
 type eventKindIndex int
@@ -217,10 +211,6 @@ const (
 	eventKindRelationAddIndex
 	eventKindRelationRemoveIndex
 	eventKindRelationNoteIndex
-	eventKindPrefixCreatedIndex
-	eventKindPrefixRemovedIndex
-	eventKindTaskReprefixLegacyIndex
-	eventKindTaskAliasAddedIndex
 	eventKindCount
 )
 
@@ -237,29 +227,12 @@ var AllEventKinds = [...]EventKind{
 	eventKindRelationAddIndex:        EventKindRelationAdd,
 	eventKindRelationRemoveIndex:     EventKindRelationRemove,
 	eventKindRelationNoteIndex:       EventKindRelationNote,
-	eventKindPrefixCreatedIndex:      EventKindPrefixCreated,
-	eventKindPrefixRemovedIndex:      EventKindPrefixRemoved,
-	eventKindTaskReprefixLegacyIndex: EventKindTaskReprefixLegacy,
-	eventKindTaskAliasAddedIndex:     EventKindTaskAliasAdded,
 }
 
 var (
 	_ [int(eventKindCount) - len(AllEventKinds)]struct{}
 	_ [len(AllEventKinds) - int(eventKindCount)]struct{}
 )
-
-var eventKindIndexLookup = func() map[EventKind]eventKindIndex {
-	m := make(map[EventKind]eventKindIndex, eventKindCount)
-	for i, kind := range AllEventKinds {
-		m[kind] = eventKindIndex(i)
-	}
-	return m
-}()
-
-func eventKindIndexOf(kind EventKind) (eventKindIndex, bool) {
-	idx, ok := eventKindIndexLookup[kind]
-	return idx, ok
-}
 
 // TaskLabel is a complete task reference including project and number
 type TaskLabel struct {

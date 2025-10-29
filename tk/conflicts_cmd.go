@@ -15,7 +15,7 @@ var conflictsCmd = &cobra.Command{
 If a task ID is provided, shows conflicts for that task only.
 Otherwise, shows all conflicts in the database.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}

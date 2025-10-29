@@ -33,7 +33,7 @@ Examples:
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -127,7 +127,7 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		eventID := args[0]
 
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -172,7 +172,7 @@ Examples:
   tk events stats
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}

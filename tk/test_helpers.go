@@ -23,16 +23,13 @@ func openTempDB(t *testing.T) *DB {
 	if err := db.InitDB(); err != nil {
 		t.Fatalf("failed to initialise db: %v", err)
 	}
-	if err := db.CreateV4Tables(); err != nil {
-		t.Fatalf("failed to create v4 tables: %v", err)
-	}
-	if err := db.SetDBVersion(v4SpecVersion); err != nil {
-		t.Fatalf("failed to set v4 version: %v", err)
+	if err := db.SetDBVersion(4); err != nil {
+		t.Fatalf("failed to set database version: %v", err)
 	}
 	if _, err := db.db.Exec(`
 		INSERT OR REPLACE INTO metadata (key, value)
 		VALUES ('remote_subdir', ?)
-	`, v4SegmentSubdir); err != nil {
+	`, "v4"); err != nil {
 		t.Fatalf("failed to set remote_subdir: %v", err)
 	}
 	return db
@@ -112,7 +109,7 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 	taskUID := string(NewTaskUID())
 	now := time.Now()
 
-	taskPayload := TaskCreatedV4Payload{
+	taskPayload := TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: number,
@@ -134,7 +131,7 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 	if err := db.InsertEvent(taskEvent); err != nil {
 		t.Fatalf("failed to insert task.created: %v", err)
 	}
-	if err := db.ProjectTaskCreatedV4Event(taskEvent); err != nil {
+	if err := db.ProjectTaskCreatedEvent(taskEvent); err != nil {
 		t.Fatalf("failed to project task.created: %v", err)
 	}
 
@@ -173,7 +170,7 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 	return json.RawMessage(data)
 }
 
-// Helper functions for creating v4 events without testing context
+// Helper functions for creating events without testing context
 
 func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) Event {
 	payload := ProjectCreatedPayload{
@@ -216,8 +213,8 @@ func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) Event {
 	}
 }
 
-func createTaskCreatedV4Event(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) Event {
-	payload := TaskCreatedV4Payload{
+func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) Event {
+	payload := TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: proposedNumber,
