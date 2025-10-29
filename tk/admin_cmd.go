@@ -63,6 +63,9 @@ func init() {
 	adminCmd.AddCommand(rollbackV4Cmd)
 	adminCmd.AddCommand(validateMigrationCmd)
 	adminCmd.AddCommand(rebuildFromRemoteCmd)
+
+	// Add flags to rebuild-from-remote command
+	rebuildFromRemoteCmd.Flags().Bool("debug", false, "Enable debug output with detailed information about each step")
 }
 
 var validateMigrationCmd = &cobra.Command{
@@ -196,15 +199,25 @@ This is useful when:
 
 Examples:
   tk admin rebuild-from-remote icloud
+  tk admin rebuild-from-remote icloud --debug
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		remoteName := args[0]
+		debug, _ := cmd.Flags().GetBool("debug")
+
+		if debug {
+			fmt.Println("Debug mode enabled")
+		}
 
 		// Get database path
 		dbPath, err := GetDBPath()
 		if err != nil {
 			return err
+		}
+
+		if debug {
+			fmt.Printf("Database path: %s\n", dbPath)
 		}
 
 		// Load config to verify remote exists
@@ -218,12 +231,20 @@ Examples:
 			return fmt.Errorf("remote '%s' not found in config", remoteName)
 		}
 
+		if debug {
+			fmt.Printf("Remote config: %+v\n", remote)
+		}
+
 		// Create backup of current database
 		backupPath := dbPath + ".pre-rebuild.bak"
 		if _, err := os.Stat(dbPath); err == nil {
 			fmt.Printf("Creating backup at %s\n", backupPath)
 			if err := copyFile(dbPath, backupPath); err != nil {
 				return fmt.Errorf("failed to create backup: %w", err)
+			}
+			if debug {
+				info, _ := os.Stat(backupPath)
+				fmt.Printf("Backup created: size=%d bytes\n", info.Size())
 			}
 		}
 
@@ -246,10 +267,33 @@ Examples:
 			return fmt.Errorf("failed to initialize database: %w", err)
 		}
 
+		if debug {
+			fmt.Println("Database initialized with v3 schema")
+		}
+
 		// Set version to 3 (pre-migration)
 		if err := db.SetDBVersion(3); err != nil {
 			db.Close()
 			return fmt.Errorf("failed to set version: %w", err)
+		}
+
+		if debug {
+			version, _ := db.GetDBVersion()
+			fmt.Printf("Database version set to: %d\n", version)
+
+			// Show database schema
+			rows, err := db.db.Query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+			if err == nil {
+				var tables []string
+				for rows.Next() {
+					var name string
+					if err := rows.Scan(&name); err == nil {
+						tables = append(tables, name)
+					}
+				}
+				rows.Close()
+				fmt.Printf("Database tables: %v\n", tables)
+			}
 		}
 
 		fmt.Printf("Ingesting segments from remote '%s'...\n", remoteName)
@@ -258,6 +302,13 @@ Examples:
 		if err := ingestRemote(db, remoteName, remote); err != nil {
 			db.Close()
 			return fmt.Errorf("failed to ingest from remote: %w", err)
+		}
+
+		if debug {
+			// Count events
+			var eventCount int
+			db.db.QueryRow("SELECT COUNT(*) FROM events").Scan(&eventCount)
+			fmt.Printf("Total events in database: %d\n", eventCount)
 		}
 
 		db.Close()
@@ -284,6 +335,10 @@ Examples:
 			return fmt.Errorf("failed to check migration status: %w", err)
 		}
 
+		if debug {
+			fmt.Printf("Needs migration to v4: %v\n", needsMigration)
+		}
+
 		if needsMigration {
 			fmt.Println("Migrating database to v4...")
 			fmt.Printf("Creating migration backup at %s%s\n", dbPath, v4BackupSuffix)
@@ -294,6 +349,25 @@ Examples:
 			}
 
 			fmt.Println("Migration to v4 complete!")
+
+			if debug {
+				version, _ := db.GetDBVersion()
+				fmt.Printf("Database version after migration: %d\n", version)
+
+				// Show database schema after migration
+				rows, err := db.db.Query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+				if err == nil {
+					var tables []string
+					for rows.Next() {
+						var name string
+						if err := rows.Scan(&name); err == nil {
+							tables = append(tables, name)
+						}
+					}
+					rows.Close()
+					fmt.Printf("Database tables after migration: %v\n", tables)
+				}
+			}
 		}
 
 		fmt.Println()
