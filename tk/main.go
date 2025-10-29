@@ -109,22 +109,10 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		return err
 	}
 
-	// Resolve project
-	var projectUID string
-
-	// Check if it's a project UID or alias
-	if strings.HasPrefix(projectFlag, "prj_") {
-		// It's a project UID
-		projectUID = projectFlag
-	} else {
-		// It's an alias, look it up
-		err = db.db.QueryRow(`
-			SELECT project_uid FROM project_aliases 
-			WHERE alias = ? AND node = ?
-		`, projectFlag, nodeID).Scan(&projectUID)
-		if err != nil {
-			return fmt.Errorf("project/alias %q not found. Create it first with: tk project create <name> --alias %s", projectFlag, projectFlag)
-		}
+	// Resolve project by UID, alias, or name
+	projectUID, err := resolveProjectByAlias(db, projectFlag)
+	if err != nil {
+		return fmt.Errorf("project/alias %q not found. Create it first with: tk project create <name> --alias %s", projectFlag, projectFlag)
 	}
 
 	// Generate task UID

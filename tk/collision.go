@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // NodeCollisionChecker checks for node ID collisions
@@ -20,8 +21,34 @@ func NewNodeCollisionChecker(localNodeID string) *NodeCollisionChecker {
 	}
 }
 
+// extractNodeIDFromSegmentFilename extracts the node ID from a segment filename.
+// Segment filename format: YYYY-MM-DDThh-mm-ssZ_<node>_v1_s<segment_seq>.jsonl.zst
+func extractNodeIDFromSegmentFilename(filename string) string {
+	// Remove directory path if present
+	base := filepath.Base(filename)
+	// Format: YYYY-MM-DDThh-mm-ssZ_<node>_v1_s<segment_seq>.jsonl.zst
+	// Find the parts: timestamp_nodeID_v1_s...
+	parts := strings.Split(base, "_")
+	if len(parts) < 3 {
+		return ""
+	}
+	// parts[1] should be the node ID (between timestamp and "v1")
+	return parts[1]
+}
+
 // CheckSegment checks a segment file for node ID collisions
+// It skips segments created by the local node (identified by node ID in filename)
 func (ncc *NodeCollisionChecker) CheckSegment(segmentPath string) error {
+	// Extract node ID from filename
+	segmentNodeID := extractNodeIDFromSegmentFilename(segmentPath)
+
+	// Skip segments created by the local node
+	// Both are 6-character node IDs, so compare directly
+	if segmentNodeID == ncc.localNodeID {
+		// This segment was created by the local node, skip it
+		return nil
+	}
+
 	reader := NewSegmentReader(segmentPath)
 	events, err := reader.ReadEvents()
 	if err != nil {
