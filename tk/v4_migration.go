@@ -109,6 +109,11 @@ func (ctx *v4MigrationContext) resolveTaskUID(legacyUUID string, taskID string) 
 			// Already a v4 task UID
 			return legacyUUID, nil
 		}
+		// Check if legacyUUID is actually a task ID (e.g., "tk-30-wiWhKW" in the uuid field)
+		// This happens when old events stored full task IDs in the task_uuid field
+		if uid, ok := ctx.legacyTaskIDs[legacyUUID]; ok {
+			return uid, nil
+		}
 	}
 
 	if taskID != "" {
@@ -454,6 +459,18 @@ func (d *DB) backfillV4Events() error {
 		return fmt.Errorf("failed to migrate tasks: %w", err)
 	}
 
+	// Delete old v3 events (events with ts > 0)
+	// The migrated v4 events all have ts=0, so any event with ts > 0 is a legacy event
+	// that should be removed to avoid conflicts when the reducer runs
+	result, err := d.db.Exec(`DELETE FROM events WHERE ts > 0`)
+	if err != nil {
+		return fmt.Errorf("failed to delete legacy v3 events: %w", err)
+	}
+	rowsDeleted, _ := result.RowsAffected()
+	if rowsDeleted > 0 {
+		fmt.Printf("Deleted %d legacy v3 events\n", rowsDeleted)
+	}
+
 	return nil
 }
 
@@ -570,9 +587,52 @@ func (d *DB) migrateTasksToV4(nodeID string, actor string, prefixToProject map[s
 		taskProjects:    make(map[string]string),
 	}
 
+	// First pass: migrate all task.created events to establish task UID mappings
 	rows, err := d.db.Query(`
 		SELECT id, ts, created_at, actor, role, kind, payload
 		FROM events
+		WHERE ts > 0 AND kind = 'task.created'
+		ORDER BY ts, id
+	`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var event Event
+		var createdAtNano int64
+
+		if err := rows.Scan(&event.ID, &event.TS, &createdAtNano, &event.Actor, &event.Role, &event.Kind, &event.Payload); err != nil {
+			return err
+		}
+
+		event.CreatedAt = time.Unix(0, createdAtNano)
+
+		handler, ok := migrationHandlerForKind(EventKind(event.Kind))
+		if !ok {
+			return fmt.Errorf("v4 migration: unknown event kind %s", event.Kind)
+		}
+
+		if handler == nil {
+			return fmt.Errorf("v4 migration: nil handler for %s", event.Kind)
+		}
+
+		if err := handler(ctx, event); err != nil {
+			return fmt.Errorf("v4 migration: handler for %s failed: %w", event.Kind, err)
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	rows.Close()
+
+	// Second pass: migrate all other events
+	rows, err = d.db.Query(`
+		SELECT id, ts, created_at, actor, role, kind, payload
+		FROM events
+		WHERE ts > 0 AND kind != 'task.created'
 		ORDER BY ts, id
 	`)
 	if err != nil {
