@@ -45,6 +45,13 @@ For each schema file:
 - Check for updates periodically
 - Be 100% truthful about the schema's actual origin
 
+## Schema Handling
+
+- **Schema handling**: Use `santhosh-tekuri/jsonschema/v5` for JSON schema parsing
+- **Current implementation**: Each tool (jj, claude, mise) has its own schema parser for extracting completion data and validation
+- **Future refactoring**: These custom parsers could be replaced with a universal JSON schema parser using the jsonschema library's introspection capabilities
+- **Trade-off**: Current approach is simpler but has code duplication; universal parser would be more maintainable but requires deeper integration with jsonschema library
+
 **Current schemas**:
 - **jj**: Official schema from `https://jj-vcs.github.io/jj/latest/config-schema.json` (updated 2025-10-28) - JSON Schema for TOML configs
 - **mise**: Custom TOML schema + official JSON schema from `https://mise.jdx.dev/schema/mise.json` (downloaded 2025-10-28 for reference) - Mise configs are TOML
