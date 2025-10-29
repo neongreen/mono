@@ -29,9 +29,7 @@ func (ncc *NodeCollisionChecker) CheckSegment(segmentPath string) error {
 	}
 
 	for _, event := range events {
-		if event.Node != ncc.localNodeID {
-			ncc.seenNodes[event.Node] = true
-		}
+		ncc.seenNodes[event.Node] = true
 	}
 
 	return nil
