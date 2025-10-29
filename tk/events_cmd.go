@@ -25,11 +25,13 @@ Examples:
   tk events list
   tk events list --limit 10
   tk events list --kind prefix.created
+  tk events list --json
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		limit, _ := cmd.Flags().GetInt("limit")
 		kindFilter, _ := cmd.Flags().GetString("kind")
 		verbose, _ := cmd.Flags().GetBool("verbose")
+		jsonOutput, _ := cmd.Flags().GetBool("json")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -59,7 +61,21 @@ Examples:
 		}
 
 		if len(events) == 0 {
-			fmt.Println("No events found")
+			if jsonOutput {
+				fmt.Println("[]")
+			} else {
+				fmt.Println("No events found")
+			}
+			return nil
+		}
+
+		// JSON output mode
+		if jsonOutput {
+			output, err := json.MarshalIndent(events, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal events: %w", err)
+			}
+			fmt.Println(string(output))
 			return nil
 		}
 
@@ -236,6 +252,7 @@ func init() {
 	eventsListCmd.Flags().Int("limit", 0, "Limit the number of events to show")
 	eventsListCmd.Flags().String("kind", "", "Filter events by kind")
 	eventsListCmd.Flags().Bool("verbose", false, "Show full event details including payload")
+	eventsListCmd.Flags().Bool("json", false, "Output events as JSON")
 
 	eventsCmd.AddCommand(eventsListCmd)
 	eventsCmd.AddCommand(eventsShowCmd)
