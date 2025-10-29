@@ -65,7 +65,10 @@ func TestFullSyncWorkflow(t *testing.T) {
 
 	// Machine A: Create some tasks
 	t.Log("Machine A: Creating tasks...")
-	taskUUID1 := GenerateTaskUUID()
+	taskUUID1, err := GenerateTaskUUID()
+	if err != nil {
+		t.Fatalf("failed to generate task UUID: %v", err)
+	}
 	taskID1, err := GenerateTaskID(dbA, "work")
 	if err != nil {
 		t.Fatalf("failed to generate task ID: %v", err)
@@ -230,7 +233,10 @@ func TestFullSyncWorkflow(t *testing.T) {
 		t.Fatalf("failed to create prefix 'bugs' on machine B: %v", err)
 	}
 
-	taskUUID2 := GenerateTaskUUID()
+	taskUUID2, err := GenerateTaskUUID()
+	if err != nil {
+		t.Fatalf("failed to generate task UUID on machine B: %v", err)
+	}
 	taskID2, err := GenerateTaskID(dbB, "bugs")
 	if err != nil {
 		t.Fatalf("failed to generate task ID on machine B: %v", err)

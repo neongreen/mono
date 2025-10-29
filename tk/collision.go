@@ -39,12 +39,16 @@ func (ncc *NodeCollisionChecker) CheckSegment(segmentPath string) error {
 
 // CheckForCollisions checks if there are any collisions
 func (ncc *NodeCollisionChecker) CheckForCollisions() error {
-	// For now, we just track seen nodes
-	// A real collision would require tracking machine fingerprints
-	// which is beyond the scope of v1
+	// Check if our local node ID appears in the remote
+	// This indicates a potential collision - the same node ID is being used by multiple machines
+	if ncc.seenNodes[ncc.localNodeID] {
+		return fmt.Errorf("node ID collision detected: local node ID %s also appears in remote events", ncc.localNodeID)
+	}
 
-	// In v1, we assume no collisions unless the same node ID appears
-	// from different sources (which we can't detect without fingerprints)
+	// Note: A more sophisticated collision detection would use machine fingerprints
+	// to detect if different machines are generating events with the same node ID.
+	// For now, we can only detect if we see our own node ID in remote events,
+	// which is a clear indicator of collision.
 	return nil
 }
 

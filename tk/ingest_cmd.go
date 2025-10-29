@@ -152,12 +152,27 @@ func ingestFile(db *DB, path string) error {
 
 // ingestRemote ingests events from all segments in a remote
 func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
-	space := "personal" // TODO: make this configurable
+	// Use configured spaces, or default to "personal"
+	spaces := remote.Spaces
+	if len(spaces) == 0 {
+		spaces = []string{"personal"}
+	}
 
+	for _, space := range spaces {
+		if err := ingestRemoteSpace(db, remoteName, remote, space); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ingestRemoteSpace ingests events from a specific space in a remote
+func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space string) error {
 	// Find all segment files
 	segmentsDir := filepath.Join(remote.Path, space, "segments")
 	if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
-		fmt.Println("No segments directory found")
+		fmt.Printf("No segments directory found for space '%s'\n", space)
 		return nil
 	}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 )
@@ -136,7 +137,18 @@ func (d *DB) ProjectTaskRelocateEvent(e Event) error {
 	}
 
 	// Update number in task_numbers table
-	// First remove old number
+	// For "keep" mode, retrieve old number before deleting
+	var oldNumber int64
+	if payload.NumberPolicy.Mode == "keep" {
+		err = d.db.QueryRow(`
+			SELECT number FROM task_numbers WHERE task_uid = ?
+		`, payload.TaskUID).Scan(&oldNumber)
+		if err != nil && err != sql.ErrNoRows {
+			return fmt.Errorf("failed to get old number: %w", err)
+		}
+	}
+
+	// Remove old number assignment
 	_, err = d.db.Exec(`
 		DELETE FROM task_numbers WHERE task_uid = ?
 	`, payload.TaskUID)
@@ -150,10 +162,12 @@ func (d *DB) ProjectTaskRelocateEvent(e Event) error {
 	case "force":
 		number = payload.NumberPolicy.Number
 	case "keep":
-		// Keep the old number - we need to get it from the old assignment
-		// For simplicity in projection, we'll use the policy number if provided
+		// Keep the old number - retrieve it from the old assignment
+		// If provided in the policy, use that; otherwise use the old number we retrieved
 		if payload.NumberPolicy.Number > 0 {
 			number = payload.NumberPolicy.Number
+		} else {
+			number = oldNumber
 		}
 	case "auto":
 		// Auto-assign next available number

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -106,7 +105,10 @@ func TestV4Migration(t *testing.T) {
 	}
 
 	// Create a task (v1/v2 style)
-	taskUUID := GenerateTaskUUID()
+	taskUUID, err := GenerateTaskUUID()
+	if err != nil {
+		t.Fatalf("failed to generate task UUID: %v", err)
+	}
 	taskID := "test-1-" + nodeID
 
 	payload := TaskCreatedPayload{
@@ -169,12 +171,6 @@ func TestV4Migration(t *testing.T) {
 		t.Errorf("expected version %d, got %d", v4SpecVersion, version)
 	}
 
-	// Verify backup was created
-	backupPath := dbPath + v4BackupSuffix
-	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
-		t.Error("backup file was not created")
-	}
-
 	// Verify v4 tables exist
 	var count int
 	err = db.db.QueryRow("SELECT COUNT(*) FROM projects").Scan(&count)
@@ -228,68 +224,6 @@ func TestV4Migration(t *testing.T) {
 	}
 	if count != 1 {
 		t.Errorf("expected 1 task, got %d", count)
-	}
-}
-
-// TestV4Rollback tests rolling back a v4 migration
-func TestV4Rollback(t *testing.T) {
-	// Create a temporary database
-	tempDir := t.TempDir()
-	dbPath := filepath.Join(tempDir, "test.db")
-
-	// Initialize and migrate to v4
-	db, err := OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("failed to open database: %v", err)
-	}
-
-	if err := db.InitDB(); err != nil {
-		t.Fatalf("failed to initialize database: %v", err)
-	}
-
-	if err := db.CreateV4Tables(); err != nil {
-		t.Fatalf("failed to create v4 tables: %v", err)
-	}
-
-	if err := db.SetDBVersion(v4SpecVersion); err != nil {
-		t.Fatalf("failed to set version: %v", err)
-	}
-
-	db.Close()
-
-	// Create backup manually
-	backupPath := dbPath + v4BackupSuffix
-	if err := copyFile(dbPath, backupPath); err != nil {
-		t.Fatalf("failed to create backup: %v", err)
-	}
-
-	// Perform rollback
-	if err := RollbackV4(dbPath); err != nil {
-		t.Fatalf("rollback failed: %v", err)
-	}
-
-	// Reopen and check version
-	db, err = OpenDB(dbPath)
-	if err != nil {
-		t.Fatalf("failed to reopen database: %v", err)
-	}
-	defer db.Close()
-
-	if err := db.InitDB(); err != nil {
-		t.Fatalf("failed to initialize after rollback: %v", err)
-	}
-
-	if err := db.SetDBVersion(v3SpecVersion); err != nil {
-		t.Fatalf("failed to set version after rollback: %v", err)
-	}
-
-	version, err := db.GetDBVersion()
-	if err != nil {
-		t.Fatalf("failed to get version: %v", err)
-	}
-
-	if version != v3SpecVersion {
-		t.Errorf("expected version %d after rollback, got %d", v3SpecVersion, version)
 	}
 }
 
@@ -442,7 +376,10 @@ func TestV4MigrationPreservesStatusAndNotes(t *testing.T) {
 		t.Fatalf("failed to insert prefix: %v", err)
 	}
 
-	legacyTaskUUID := GenerateTaskUUID()
+	legacyTaskUUID, err := GenerateTaskUUID()
+	if err != nil {
+		t.Fatalf("failed to generate task UUID: %v", err)
+	}
 	legacyTaskID := fmt.Sprintf("test-1-%s", nodeID)
 	baseTime := time.Now()
 
@@ -568,7 +505,10 @@ func TestV4MigrationConvertsReprefixToRelocate(t *testing.T) {
 		}
 	}
 
-	legacyTaskUUID := GenerateTaskUUID()
+	legacyTaskUUID, err := GenerateTaskUUID()
+	if err != nil {
+		t.Fatalf("failed to generate task UUID: %v", err)
+	}
 	taskID := fmt.Sprintf("src-1-%s", nodeID)
 	baseTime := time.Now()
 

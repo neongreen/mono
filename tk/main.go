@@ -240,7 +240,10 @@ func createTaskLegacy(db *DB, cmd *cobra.Command, title string) error {
 		return err
 	}
 
-	taskUUID := GenerateTaskUUID()
+	taskUUID, err := GenerateTaskUUID()
+	if err != nil {
+		return err
+	}
 	taskID, err := GenerateTaskID(db, prefix)
 	if err != nil {
 		return err
@@ -463,13 +466,8 @@ var viewCmd = &cobra.Command{
 		}
 
 		// Build reducer to get task and all its IDs (current + aliases)
-		// TODO: Consider caching reducer or adding task_index table for performance
-		events, err := db.GetEvents()
-		if err != nil {
-			return err
-		}
-
-		reducer, err := BuildFromEventsWithConfig(events, config)
+		// Use cached reducer for performance
+		reducer, err := db.GetCachedReducerWithConfig(config)
 		if err != nil {
 			return err
 		}
@@ -531,13 +529,8 @@ var lsCmd = &cobra.Command{
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		events, err := db.GetEvents()
-		if err != nil {
-			return err
-		}
-
-		// Use BuildFromEventsWithConfig to get relations
-		reducer, err := BuildFromEventsWithConfig(events, config)
+		// Use cached reducer for performance
+		reducer, err := db.GetCachedReducerWithConfig(config)
 		if err != nil {
 			return err
 		}

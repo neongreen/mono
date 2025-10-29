@@ -22,7 +22,9 @@ const (
 
 // DB wraps a SQLite database for tk events
 type DB struct {
-	db *sql.DB
+	db            *sql.DB
+	reducerCache  *Reducer // Cached reducer built from all events
+	reducerConfig *Config  // Config used to build cached reducer
 }
 
 // OpenDB opens or creates a tk database at the given path
@@ -214,6 +216,10 @@ func (d *DB) InsertEvent(e Event) error {
 		return fmt.Errorf("failed to insert event: %w", err)
 	}
 
+	// Invalidate reducer cache when a new event is added
+	d.reducerCache = nil
+	d.reducerConfig = nil
+
 	return nil
 }
 
@@ -401,7 +407,10 @@ func (d *DB) GetOrCreateNodeID() (string, error) {
 	}
 
 	// Generate new node ID (6 random alphanumeric characters, mixed case)
-	nodeID = generateNodeID(6)
+	nodeID, err = generateNodeID(6)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate node ID: %w", err)
+	}
 
 	// Store it
 	_, err = d.db.Exec("INSERT INTO metadata (key, value) VALUES ('node_id', ?)", nodeID)
@@ -415,10 +424,13 @@ func (d *DB) GetOrCreateNodeID() (string, error) {
 // RegenerateNodeID generates a new node ID and updates the metadata
 func (d *DB) RegenerateNodeID() (string, error) {
 	// Generate new node ID
-	newNodeID := generateNodeID(6)
+	newNodeID, err := generateNodeID(6)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate node ID: %w", err)
+	}
 
 	// Update the metadata
-	_, err := d.db.Exec("UPDATE metadata SET value = ? WHERE key = 'node_id'", newNodeID)
+	_, err = d.db.Exec("UPDATE metadata SET value = ? WHERE key = 'node_id'", newNodeID)
 	if err != nil {
 		return "", fmt.Errorf("failed to update node ID: %w", err)
 	}
@@ -554,17 +566,17 @@ func (d *DB) GetNextEventNumber() (int64, error) {
 }
 
 // generateNodeID generates a random alphanumeric node ID with mixed case
-func generateNodeID(length int) string {
+func generateNodeID(length int) (string, error) {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, length)
 	for i := range b {
 		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		if err != nil {
-			panic(err)
+			return "", fmt.Errorf("failed to generate random number: %w", err)
 		}
 		b[i] = charset[n.Int64()]
 	}
-	return string(b)
+	return string(b), nil
 }
 
 // ResolveTaskID resolves a short task ID to a full task ID
@@ -1340,4 +1352,38 @@ func (d *DB) ProjectPrefixRemovedEvent(e Event) error {
 	}
 
 	return nil
+}
+
+// GetCachedReducerWithConfig returns a cached reducer or builds a new one if needed.
+// The cache is invalidated when new events are inserted.
+// This significantly improves performance for operations that need to query task state.
+//
+// Note: The cache uses pointer identity for config comparison. This is safe because:
+// - Each command typically loads config once and reuses the same instance
+// - The DB instance is scoped to a single command execution
+// - Cache is invalidated on any event insertion
+// If config pointer doesn't match, we rebuild the reducer (safe but may miss some cache hits).
+func (d *DB) GetCachedReducerWithConfig(config *Config) (*Reducer, error) {
+	// Check if we have a valid cached reducer with the same config pointer
+	// Using pointer comparison is conservative - we rebuild if in doubt
+	if d.reducerCache != nil && d.reducerConfig == config {
+		return d.reducerCache, nil
+	}
+
+	// Build a new reducer from all events
+	events, err := d.GetEvents()
+	if err != nil {
+		return nil, err
+	}
+
+	reducer, err := BuildFromEventsWithConfig(events, config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the reducer
+	d.reducerCache = reducer
+	d.reducerConfig = config
+
+	return reducer, nil
 }
