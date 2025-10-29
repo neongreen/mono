@@ -86,7 +86,7 @@ func TestClaudeSchemaParser_GetCompletionOptions(t *testing.T) {
 	tests := []struct {
 		name           string
 		path           string
-		minCount       int  // Minimum expected count
+		minCount       int // Minimum expected count
 		expectedNames  []string
 		unexpectedName string
 	}{

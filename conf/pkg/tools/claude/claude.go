@@ -208,7 +208,6 @@ func (c *ClaudeTool) ListAllSettings() ([]schemas.SettingInfo, error) {
 	return schemaSettings, nil
 }
 
-
 // ListCommonSettings returns a list of commonly used Claude Code settings with descriptions
 func (c *ClaudeTool) ListCommonSettings() []CommonSetting {
 	return []CommonSetting{

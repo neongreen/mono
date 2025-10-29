@@ -78,10 +78,10 @@ func TestClaudeTool_GetConfig(t *testing.T) {
 
 	// Create initial config
 	data := map[string]interface{}{
-		"model":                "sonnet",
+		"model":                 "sonnet",
 		"alwaysThinkingEnabled": true,
-		"outputStyle":          "markdown",
-		"apiKeyHelper":         "/path/to/helper.sh",
+		"outputStyle":           "markdown",
+		"apiKeyHelper":          "/path/to/helper.sh",
 	}
 
 	os.MkdirAll(filepath.Dir(claudeConfigPath), 0755)
@@ -136,7 +136,7 @@ func TestClaudeTool_UnsetConfig(t *testing.T) {
 
 	// Create initial config
 	data := map[string]interface{}{
-		"model":                "sonnet",
+		"model":                 "sonnet",
 		"alwaysThinkingEnabled": true,
 	}
 
@@ -180,9 +180,9 @@ func TestClaudeTool_SetAllValues(t *testing.T) {
 	}
 
 	values := map[string]interface{}{
-		"model":                "sonnet",
+		"model":                 "sonnet",
 		"alwaysThinkingEnabled": true,
-		"outputStyle":          "markdown",
+		"outputStyle":           "markdown",
 	}
 
 	if err := tool.SetAllValues(values); err != nil {
