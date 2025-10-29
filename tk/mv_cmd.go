@@ -26,7 +26,7 @@ var mvCmd = &cobra.Command{
 		taskRef := args[0]
 		targetSpec := args[1]
 
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}

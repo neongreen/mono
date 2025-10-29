@@ -12,7 +12,7 @@ import (
 var projectCmd = &cobra.Command{
 	Use:   "project",
 	Short: "Manage projects",
-	Long:  `Create and manage projects (v4).`,
+	Long:  `Create and manage projects.`,
 }
 
 var projectCreateCmd = &cobra.Command{
@@ -20,7 +20,7 @@ var projectCreateCmd = &cobra.Command{
 	Short: "Create a new project",
 	Args:  cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -31,8 +31,8 @@ var projectCreateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if version < v4SpecVersion {
-			return fmt.Errorf("projects require database v4 or higher (current: v%d). Run 'tk ls' to trigger migration.", version)
+		if version < 4 {
+			return fmt.Errorf("database version %d is too old, upgrade to v4 required", version)
 		}
 
 		name := args[0]
@@ -136,7 +136,7 @@ var projectListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all projects",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -214,7 +214,7 @@ var projectAliasAddCmd = &cobra.Command{
 	Short: "Add an alias for a project",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -276,7 +276,7 @@ var projectAliasRemoveCmd = &cobra.Command{
 	Short: "Remove an alias for a project",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}

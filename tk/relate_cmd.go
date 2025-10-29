@@ -53,7 +53,7 @@ Examples:
 			return fmt.Errorf("invalid relation type %q, must be one of: %s", relationType, strings.Join(validTypes, ", "))
 		}
 
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -159,7 +159,7 @@ var relateRemoveCmd = &cobra.Command{
 		relationType := args[1]
 		dstTaskID := args[2]
 
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -243,7 +243,7 @@ var dupCmd = &cobra.Command{
 		taskA := args[0]
 		taskB := args[1]
 
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}

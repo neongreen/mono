@@ -5,42 +5,13 @@ import (
 	"fmt"
 )
 
-// V4 Reducer Functions
-// Handles v4 events (project.created, task.created, task.number.set, task.relocate, etc.)
+// Reducer Functions
+// Handles events (project.created, task.created, task.number.set, task.relocate, etc.)
 
-// V4Reducer extends Reducer with v4-specific state
-type V4Reducer struct {
-	projects       map[string]*V4Project         // Key: project_uid
-	projectAliases map[string]map[string]string  // Key: node -> alias -> project_uid
-	taskNumbers    map[string]map[int64][]string // Key: project_uid -> number -> []task_uid (for collisions)
-	taskProjects   map[string]string             // Key: task_uid -> project_uid
-}
-
-// V4Project represents project state
-type V4Project struct {
-	ProjectUID  string
-	Type        string
-	Name        string
-	Description string
-	CreatedBy   string
-	CreatedAt   int64
-	Aliases     map[string][]string // Key: node -> []alias
-}
-
-// NewV4Reducer creates a new v4 reducer
-func NewV4Reducer() *V4Reducer {
-	return &V4Reducer{
-		projects:       make(map[string]*V4Project),
-		projectAliases: make(map[string]map[string]string),
-		taskNumbers:    make(map[string]map[int64][]string),
-		taskProjects:   make(map[string]string),
-	}
-}
-
-// ApplyV4Event applies a v4-specific event
-// Returns (handled=true, error) if the event was a v4 event that was handled
-// Returns (handled=false, nil) if the event was not a v4 event
-func (r *Reducer) ApplyV4Event(e Event) (bool, error) {
+// ApplyProjectEvent applies an event-specific handler
+// Returns (handled=true, error) if the event was handled
+// Returns (handled=false, nil) if the event was not handled
+func (r *Reducer) ApplyProjectEvent(e Event) (bool, error) {
 	switch EventKind(e.Kind) {
 	case EventKindProjectCreated:
 		return true, r.applyProjectCreated(e)
@@ -49,16 +20,7 @@ func (r *Reducer) ApplyV4Event(e Event) (bool, error) {
 	case EventKindProjectAliasRemove:
 		return true, r.applyProjectAliasRemove(e)
 	case EventKindTaskCreated:
-		// Check if this is a v4 task.created event by checking for project_uid field
-		var testPayload struct {
-			ProjectUID string `json:"project_uid"`
-		}
-		if err := json.Unmarshal(e.Payload, &testPayload); err == nil && testPayload.ProjectUID != "" {
-			// This is a v4 event
-			return true, r.applyTaskCreatedV4(e)
-		}
-		// This is a v1/v2 event, let the legacy handler process it
-		return false, nil
+		return true, r.applyTaskCreated(e)
 	case EventKindTaskNumberSet:
 		return true, r.applyTaskNumberSet(e)
 	case EventKindTaskRelocate:
@@ -66,7 +28,7 @@ func (r *Reducer) ApplyV4Event(e Event) (bool, error) {
 	case EventKindTaskTitleSet:
 		return true, r.applyTaskTitleSet(e)
 	default:
-		// Not a v4 event, skip
+		// Not a handled event, skip
 		return false, nil
 	}
 }
@@ -102,10 +64,10 @@ func (r *Reducer) applyProjectAliasRemove(e Event) error {
 	return nil
 }
 
-func (r *Reducer) applyTaskCreatedV4(e Event) error {
-	var payload TaskCreatedV4Payload
+func (r *Reducer) applyTaskCreated(e Event) error {
+	var payload TaskCreatedPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal task.created (v4) payload: %w", err)
+		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
 	}
 
 	taskUID := payload.TaskUID
@@ -115,7 +77,7 @@ func (r *Reducer) applyTaskCreatedV4(e Event) error {
 		return nil
 	}
 
-	// In v4, task display ID is derived from project alias + number
+	// Task display ID is derived from project alias + number
 	// For now, we'll use the task_uid as the task_id until we compute the display ID
 	r.tasks[taskUID] = &Task{
 		TaskUUID:  taskUID,

@@ -24,85 +24,32 @@ func NewReducer() *Reducer {
 
 // Apply applies an event to update the task state
 func (r *Reducer) Apply(e Event) error {
-	// Try v4 events first
-	handled, err := r.ApplyV4Event(e)
+	// Try project events first
+	handled, err := r.ApplyProjectEvent(e)
 	if err != nil {
 		return err
 	}
-	// If v4 handler processed this event, don't run v1/v2 handlers
+	// If project handler processed this event, don't run legacy handlers
 	if handled {
 		return nil
 	}
 
-	// Handle legacy v1/v2 events
+	// Handle shared events (status, notes, relations)
 	switch e.Kind {
-	case "task.created":
-		return r.applyTaskCreated(e)
 	case "task.status.set":
 		return r.applyTaskStatusSet(e)
 	case "task.note.add":
 		return r.applyTaskNoteAdd(e)
-	case "task.reprefix":
-		return r.applyTaskReprefix(e)
-	case "task.alias.added":
-		return r.applyTaskAliasAdded(e)
 	case "relation.add":
 		return r.applyRelationAdd(e)
 	case "relation.remove":
 		return r.applyRelationRemove(e)
 	case "relation.note":
 		return r.applyRelationNote(e)
-	case "prefix.created":
-		// Prefix events are handled by the DB projector, not the reducer
-		return nil
-	case "prefix.description.set":
-		// Prefix events are handled by the DB projector, not the reducer
-		return nil
-	case "prefix.alias.added":
-		// Prefix events are handled by the DB projector, not the reducer
-		return nil
-	case "prefix.removed":
-		// Prefix events are handled by the DB projector, not the reducer
-		return nil
 	default:
 		// Unknown events are ignored for forward compatibility
 		return nil
 	}
-}
-
-func (r *Reducer) applyTaskCreated(e Event) error {
-	var payload TaskCreatedPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
-	}
-
-	// Support both old events (without task_uuid) and new events (with task_uuid)
-	taskUUID := payload.TaskUUID
-	if taskUUID == "" {
-		// Legacy event without UUID - use task_id as UUID
-		taskUUID = payload.TaskID
-	}
-
-	// Guard against duplicate task.created for same UUID
-	if _, exists := r.tasks[taskUUID]; exists {
-		return nil
-	}
-
-	r.tasks[taskUUID] = &Task{
-		TaskUUID:  taskUUID,
-		TaskID:    payload.TaskID,
-		Aliases:   []string{},
-		Title:     payload.Title,
-		Axes:      make(map[string]AxisStatus),
-		Notes:     []Note{},
-		CreatedBy: payload.CreatedBy,
-		CreatedAt: e.CreatedAt, // Use actual creation time from event
-	}
-
-	// Register the task ID in the lookup map
-	r.taskByID[payload.TaskID] = taskUUID
-
-	return nil
 }
 
 func (r *Reducer) applyTaskStatusSet(e Event) error {
@@ -180,60 +127,6 @@ func (r *Reducer) applyTaskNoteAdd(e Event) error {
 		Timestamp: e.CreatedAt, // Use actual creation time from event
 	}
 	task.Notes = append(task.Notes, note)
-
-	return nil
-}
-
-func (r *Reducer) applyTaskReprefix(e Event) error {
-	var payload TaskReprefixPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal task.reprefix payload: %w", err)
-	}
-
-	task, ok := r.tasks[payload.TaskUUID]
-	if !ok {
-		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
-	}
-
-	// Construct old and new task IDs
-	oldTaskID := fmt.Sprintf("%s-%d-%s", payload.OldPrefix, payload.OldNumber, payload.OldNode)
-	newTaskID := fmt.Sprintf("%s-%d-%s", payload.NewPrefix, payload.NewNumber, payload.OldNode)
-
-	// Update the task's current ID
-	task.TaskID = newTaskID
-
-	// Update the lookup map: remove old ID, add new ID
-	delete(r.taskByID, oldTaskID)
-	r.taskByID[newTaskID] = payload.TaskUUID
-
-	return nil
-}
-
-func (r *Reducer) applyTaskAliasAdded(e Event) error {
-	var payload TaskAliasAddedPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal task.alias.added payload: %w", err)
-	}
-
-	task, ok := r.tasks[payload.TaskUUID]
-	if !ok {
-		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
-	}
-
-	// Dedupe: only add alias if not already present
-	alreadyExists := false
-	for _, alias := range task.Aliases {
-		if alias == payload.AliasID {
-			alreadyExists = true
-			break
-		}
-	}
-	if !alreadyExists {
-		task.Aliases = append(task.Aliases, payload.AliasID)
-	}
-
-	// Register the alias in the lookup map (idempotent)
-	r.taskByID[payload.AliasID] = payload.TaskUUID
 
 	return nil
 }

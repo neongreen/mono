@@ -18,7 +18,6 @@ var ingestCmd = &cobra.Command{
 Examples:
   tk ingest /path/to/segment.jsonl.zst    # Ingest from a single file
   tk ingest icloud                         # Ingest from remote's segments
-  tk ingest --v1 icloud-v1                # Ingest v1 events and migrate to v4
 `,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -27,10 +26,8 @@ Examples:
 		}
 
 		pathOrRemote := args[0]
-		isV1, _ := cmd.Flags().GetBool("v1")
 
-		// Open DB without migration (we'll migrate AFTER ingesting if --v1 is set)
-		db, err := openExistingDBSkipMigration()
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -40,7 +37,7 @@ Examples:
 		var ingestErr error
 		if _, err := os.Stat(pathOrRemote); err == nil {
 			// It's a file
-			ingestErr = ingestFile(db, pathOrRemote, !isV1)
+			ingestErr = ingestFile(db, pathOrRemote)
 		} else {
 			// Try as a remote name
 			config, err := LoadConfig()
@@ -53,68 +50,19 @@ Examples:
 				return fmt.Errorf("'%s' is neither a file nor a configured remote", pathOrRemote)
 			}
 
-			ingestErr = ingestRemote(db, pathOrRemote, remote, !isV1)
+			ingestErr = ingestRemote(db, pathOrRemote, remote)
 		}
 
-		if ingestErr != nil {
-			return ingestErr
-		}
-
-		// If --v1 flag is set, migrate to v4 after ingesting
-		if isV1 {
-			fmt.Println("\nMigrating database to v4...")
-
-			dbPath, err := GetDBPath()
-			if err != nil {
-				return err
-			}
-
-			if err := db.MigrateToV4(dbPath); err != nil {
-				return fmt.Errorf("failed to migrate to v4: %w", err)
-			}
-
-			fmt.Println("Migration to v4 complete!")
-			fmt.Println("Running post-migration health check...")
-			report, err := runDoctor(db)
-			if err != nil {
-				fmt.Printf("Doctor check failed: %v\n", err)
-			} else {
-				printDoctorReport(os.Stdout, report)
-				if report.ProblemCount() > 0 {
-					fmt.Println("Resolve the issues above. You can rerun 'tk doctor' at any time.")
-				}
-			}
-		}
-
-		return nil
+		return ingestErr
 	},
 }
 
-func init() {
-	ingestCmd.Flags().Bool("v1", false, "Treat incoming events as v1 format and migrate to v4")
-}
-
 // ingestFile ingests events from a single segment file
-func ingestFile(db *DB, path string, assumeV4 bool) error {
+func ingestFile(db *DB, path string) error {
 	reader := NewSegmentReader(path)
 	events, err := reader.ReadEvents()
 	if err != nil {
 		return fmt.Errorf("failed to read segment file: %w", err)
-	}
-
-	// Check database version to determine if we should project v4 events
-	// Always assume v4 unless explicitly told otherwise (when ingesting v1 events)
-	var dbVersion int
-	if assumeV4 {
-		// Assume v4 events (default behavior)
-		dbVersion = 4
-	} else {
-		// When ingesting v1 events, check actual DB version
-		var err error
-		dbVersion, err = db.GetDBVersion()
-		if err != nil {
-			return fmt.Errorf("failed to get database version: %w", err)
-		}
 	}
 
 	ingested := 0
@@ -143,63 +91,44 @@ func ingestFile(db *DB, path string, assumeV4 bool) error {
 			return fmt.Errorf("failed to bump lamport: %w", err)
 		}
 
-		// Project prefix events into prefixes table (v3 compatible)
-		if event.Kind == "prefix.created" {
-			if err := db.ProjectPrefixCreatedEvent(event); err != nil {
-				// Log but don't fail - projection errors are not critical
-				fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.created event %s: %v\n", event.ID, err)
+		// Project events into their respective tables
+		switch event.Kind {
+		case string(EventKindProjectCreated):
+			if err := db.ProjectProjectCreatedEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
 			}
-		}
-		if event.Kind == "prefix.removed" {
-			if err := db.ProjectPrefixRemovedEvent(event); err != nil {
-				// Log but don't fail - projection errors are not critical
-				fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.removed event %s: %v\n", event.ID, err)
+		case string(EventKindProjectAliasAdd):
+			if err := db.ProjectProjectAliasAddEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
 			}
-		}
-
-		// Only project v4 events if database is v4 or higher
-		if dbVersion >= 4 {
-			// Project v4 events into their respective tables
-			switch event.Kind {
-			case string(EventKindProjectCreated):
-				if err := db.ProjectProjectCreatedEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindProjectAliasAdd):
-				if err := db.ProjectProjectAliasAddEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindProjectAliasRemove):
-				if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindTaskCreated):
-				if err := db.ProjectTaskCreatedV4Event(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindTaskNumberSet):
-				if err := db.ProjectTaskNumberSetEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindTaskRelocate):
-				if err := db.ProjectTaskRelocateEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
-				}
-			case string(EventKindTaskTitleSet):
-				if err := db.ProjectTaskTitleSetEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
-				}
+		case string(EventKindProjectAliasRemove):
+			if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindTaskCreated):
+			if err := db.ProjectTaskCreatedEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindTaskNumberSet):
+			if err := db.ProjectTaskNumberSetEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindTaskRelocate):
+			if err := db.ProjectTaskRelocateEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
+			}
+		case string(EventKindTaskTitleSet):
+			if err := db.ProjectTaskTitleSetEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
 			}
 		}
 
 		ingested++
 	}
 
-	// If we're assuming v4, ensure DB version is set to 4
-	if assumeV4 {
-		if err := db.SetDBVersion(4); err != nil {
-			return fmt.Errorf("failed to set DB version to 4: %w", err)
-		}
+	// Ensure DB version is set to 4
+	if err := db.SetDBVersion(4); err != nil {
+		return fmt.Errorf("failed to set DB version to 4: %w", err)
 	}
 
 	fmt.Printf("Ingested %d events (%d duplicates skipped)\n", ingested, duplicates)
@@ -207,7 +136,7 @@ func ingestFile(db *DB, path string, assumeV4 bool) error {
 }
 
 // ingestRemote ingests events from all segments in a remote
-func ingestRemote(db *DB, remoteName string, remote RemoteConfig, assumeV4 bool) error {
+func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
 	// Use configured spaces, or default to "personal"
 	spaces := remote.Spaces
 	if len(spaces) == 0 {
@@ -215,7 +144,7 @@ func ingestRemote(db *DB, remoteName string, remote RemoteConfig, assumeV4 bool)
 	}
 
 	for _, space := range spaces {
-		if err := ingestRemoteSpace(db, remoteName, remote, space, assumeV4); err != nil {
+		if err := ingestRemoteSpace(db, remoteName, remote, space); err != nil {
 			return err
 		}
 	}
@@ -224,7 +153,7 @@ func ingestRemote(db *DB, remoteName string, remote RemoteConfig, assumeV4 bool)
 }
 
 // ingestRemoteSpace ingests events from a specific space in a remote
-func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space string, assumeV4 bool) error {
+func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space string) error {
 	// Find all segment files
 	segmentsDir := filepath.Join(remote.Path, space, "segments")
 	if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
@@ -249,21 +178,6 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 	if len(segmentFiles) == 0 {
 		fmt.Println("No segment files found")
 		return nil
-	}
-
-	// Check database version to determine if we should project v4 events
-	// Always assume v4 unless explicitly told otherwise (when ingesting v1 events)
-	var dbVersion int
-	if assumeV4 {
-		// Assume v4 events (default behavior)
-		dbVersion = 4
-	} else {
-		// When ingesting v1 events, check actual DB version
-		var err error
-		dbVersion, err = db.GetDBVersion()
-		if err != nil {
-			return fmt.Errorf("failed to get database version: %w", err)
-		}
 	}
 
 	totalIngested := 0
@@ -300,52 +214,35 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 				return fmt.Errorf("failed to bump lamport: %w", err)
 			}
 
-			// Project prefix events into prefixes table
-			if event.Kind == "prefix.created" {
-				if err := db.ProjectPrefixCreatedEvent(event); err != nil {
-					// Log but don't fail - projection errors are not critical
-					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.created event %s: %v\n", event.ID, err)
+			// Project events into their respective tables
+			switch event.Kind {
+			case string(EventKindProjectCreated):
+				if err := db.ProjectProjectCreatedEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
 				}
-			}
-			if event.Kind == "prefix.removed" {
-				if err := db.ProjectPrefixRemovedEvent(event); err != nil {
-					// Log but don't fail - projection errors are not critical
-					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.removed event %s: %v\n", event.ID, err)
+			case string(EventKindProjectAliasAdd):
+				if err := db.ProjectProjectAliasAddEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
 				}
-			}
-
-			// Only project v4 events if database is v4 or higher
-			if dbVersion >= 4 {
-				// Project v4 events into their respective tables
-				switch event.Kind {
-				case string(EventKindProjectCreated):
-					if err := db.ProjectProjectCreatedEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindProjectAliasAdd):
-					if err := db.ProjectProjectAliasAddEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindProjectAliasRemove):
-					if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindTaskCreated):
-					if err := db.ProjectTaskCreatedV4Event(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindTaskNumberSet):
-					if err := db.ProjectTaskNumberSetEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindTaskRelocate):
-					if err := db.ProjectTaskRelocateEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
-					}
-				case string(EventKindTaskTitleSet):
-					if err := db.ProjectTaskTitleSetEvent(event); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
-					}
+			case string(EventKindProjectAliasRemove):
+				if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindTaskCreated):
+				if err := db.ProjectTaskCreatedEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindTaskNumberSet):
+				if err := db.ProjectTaskNumberSetEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindTaskRelocate):
+				if err := db.ProjectTaskRelocateEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
+				}
+			case string(EventKindTaskTitleSet):
+				if err := db.ProjectTaskTitleSetEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
 				}
 			}
 
@@ -353,11 +250,9 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 		}
 	}
 
-	// If we're assuming v4, ensure DB version is set to 4
-	if assumeV4 {
-		if err := db.SetDBVersion(4); err != nil {
-			return fmt.Errorf("failed to set DB version to 4: %w", err)
-		}
+	// Ensure DB version is set to 4
+	if err := db.SetDBVersion(4); err != nil {
+		return fmt.Errorf("failed to set DB version to 4: %w", err)
 	}
 
 	// Save watermark

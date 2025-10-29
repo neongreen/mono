@@ -30,7 +30,7 @@ Examples:
 			remoteName = args[0]
 		}
 
-		db, err := openExistingDB(false)
+		db, err := openExistingDB()
 		if err != nil {
 			return err
 		}
@@ -70,20 +70,11 @@ Examples:
 			return fmt.Errorf("remote '%s' not found", remoteName)
 		}
 
-		// Get all events (only v4 events - v4 events have IDs starting with '01')
+		// Get all events
 		events, err := db.GetEvents()
 		if err != nil {
 			return err
 		}
-
-		// Filter to only v4 events (IDs starting with '01')
-		var v4Events []Event
-		for _, e := range events {
-			if len(e.ID) >= 2 && e.ID[:2] == "01" {
-				v4Events = append(v4Events, e)
-			}
-		}
-		events = v4Events
 
 		// Get or create export state
 		stateDir, err := GetStateDir()

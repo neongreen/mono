@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -92,43 +91,15 @@ func (d *DB) InitDB() error {
 		rowid INTEGER PRIMARY KEY,
 		event_id TEXT UNIQUE NOT NULL
 	);
-	
-	CREATE TABLE IF NOT EXISTS prefixes (
-		prefix TEXT NOT NULL,
-		node TEXT NOT NULL,
-		description TEXT NOT NULL,
-		created_at INTEGER NOT NULL,
-		created_by TEXT NOT NULL,
-		removed INTEGER NOT NULL DEFAULT 0,
-		PRIMARY KEY (prefix, node)
-	);
-	
-	CREATE TABLE IF NOT EXISTS prefix_counters (
-		prefix TEXT NOT NULL,
-		node TEXT NOT NULL,
-		last_id INTEGER NOT NULL,
-		PRIMARY KEY (prefix, node)
-	);
 	`
 
 	if _, err := d.db.Exec(schema); err != nil {
 		return fmt.Errorf("failed to create schema: %w", err)
 	}
 
-	// Migration: Add removed column to prefixes table if it doesn't exist
-	// Check if the removed column exists
-	var columnCount int
-	err := d.db.QueryRow("SELECT COUNT(*) FROM pragma_table_info('prefixes') WHERE name = 'removed'").Scan(&columnCount)
-	if err == nil && columnCount == 0 {
-		_, err = d.db.Exec("ALTER TABLE prefixes ADD COLUMN removed INTEGER NOT NULL DEFAULT 0")
-		if err != nil {
-			return fmt.Errorf("failed to add removed column to prefixes table: %w", err)
-		}
-	}
-
 	// Initialize task counter if it doesn't exist (legacy support)
 	var count int
-	err = d.db.QueryRow("SELECT COUNT(*) FROM task_counter").Scan(&count)
+	err := d.db.QueryRow("SELECT COUNT(*) FROM task_counter").Scan(&count)
 	if err != nil {
 		return fmt.Errorf("failed to check task counter: %w", err)
 	}
@@ -149,63 +120,89 @@ func (d *DB) InitDB() error {
 		}
 	}
 
-	// Create default "tk" prefix if no prefixes exist
-	nodeID, err := d.GetOrCreateNodeID()
+	// Always create project tables (projects, project_aliases, tasks, task_numbers)
+	if err := d.CreateProjectTables(); err != nil {
+		return fmt.Errorf("failed to create project tables: %w", err)
+	}
+
+	return nil
+}
+
+// CreateProjectTables creates the projection tables for projects and tasks
+func (d *DB) CreateProjectTables() error {
+	schema := `
+	CREATE TABLE IF NOT EXISTS projects (
+		project_uid TEXT PRIMARY KEY,
+		type TEXT NOT NULL,
+		name TEXT NOT NULL,
+		description TEXT NOT NULL,
+		created_at INTEGER NOT NULL,
+		created_by TEXT NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS project_aliases (
+		project_uid TEXT NOT NULL,
+		alias TEXT NOT NULL,
+		node TEXT NOT NULL,
+		added_by TEXT NOT NULL,
+		PRIMARY KEY (alias, node)
+	);
+
+	CREATE TABLE IF NOT EXISTS tasks (
+		task_uid TEXT PRIMARY KEY,
+		project_uid TEXT NOT NULL,
+		created_node TEXT NOT NULL,
+		title TEXT NOT NULL,
+		created_at INTEGER NOT NULL,
+		created_by TEXT NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS task_numbers (
+		project_uid TEXT NOT NULL,
+		number INTEGER NOT NULL,
+		task_uid TEXT NOT NULL
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_task_numbers_task_uid ON task_numbers(task_uid);
+	CREATE INDEX IF NOT EXISTS idx_task_numbers_project_number ON task_numbers(project_uid, number);
+	`
+
+	if _, err := d.db.Exec(schema); err != nil {
+		return fmt.Errorf("failed to create project tables: %w", err)
+	}
+
+	return nil
+}
+
+// GetDBVersion returns the database version (always 4)
+func (d *DB) GetDBVersion() (int, error) {
+	var versionStr string
+	err := d.db.QueryRow("SELECT value FROM metadata WHERE key = 'db_version'").Scan(&versionStr)
+	if err == sql.ErrNoRows {
+		// No version set, default to 4
+		return 4, nil
+	}
 	if err != nil {
-		return fmt.Errorf("failed to get node ID: %w", err)
+		return 0, fmt.Errorf("failed to get DB version: %w", err)
 	}
 
-	var prefixCount int
-	err = d.db.QueryRow("SELECT COUNT(*) FROM prefixes WHERE node = ?", nodeID).Scan(&prefixCount)
+	version, err := strconv.Atoi(versionStr)
 	if err != nil {
-		return fmt.Errorf("failed to check prefixes: %w", err)
+		return 0, fmt.Errorf("invalid DB version format: %w", err)
 	}
 
-	if prefixCount == 0 {
-		// Migrate legacy counter to "tk" prefix
-		var legacyCounter int64
-		err = d.db.QueryRow("SELECT last_id FROM task_counter").Scan(&legacyCounter)
-		if err != nil {
-			return fmt.Errorf("failed to get legacy counter: %w", err)
-		}
+	return version, nil
+}
 
-		// Check if there are existing tasks that would indicate a legacy DB
-		var taskCount int
-		err = d.db.QueryRow("SELECT COUNT(*) FROM events WHERE kind = 'task.created'").Scan(&taskCount)
-		if err != nil {
-			return fmt.Errorf("failed to check task count: %w", err)
-		}
-
-		description := "Default task prefix"
-		if taskCount > 0 && legacyCounter > 0 {
-			// This is a legacy DB with existing tasks, adjust the description
-			description = "Imported from legacy (default)"
-		}
-
-		// Create default "tk" prefix
-		_, err = d.db.Exec(
-			"INSERT OR IGNORE INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
-			"tk", nodeID, description, time.Now().UnixNano(), "system",
-		)
-		if err != nil {
-			return fmt.Errorf("failed to create default prefix: %w", err)
-		}
-
-		// Initialize prefix counter with legacy value
-		_, err = d.db.Exec(
-			"INSERT OR IGNORE INTO prefix_counters (prefix, node, last_id) VALUES (?, ?, ?)",
-			"tk", nodeID, legacyCounter,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to initialize prefix counter: %w", err)
-		}
+// SetDBVersion sets the database version in metadata
+func (d *DB) SetDBVersion(version int) error {
+	_, err := d.db.Exec(`
+		INSERT OR REPLACE INTO metadata (key, value)
+		VALUES ('db_version', ?)
+	`, strconv.Itoa(version))
+	if err != nil {
+		return fmt.Errorf("failed to set DB version: %w", err)
 	}
-
-	// Always create v4 tables (projects, project_aliases, tasks, task_numbers)
-	if err := d.CreateV4Tables(); err != nil {
-		return fmt.Errorf("failed to create v4 tables: %w", err)
-	}
-
 	return nil
 }
 
@@ -712,146 +709,71 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 
 // GetAllTaskIDs returns all task IDs in the database
 func (d *DB) GetAllTaskIDs() ([]string, error) {
-	// Check if we're in v4 mode
-	version, err := d.GetDBVersion()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get DB version: %w", err)
-	}
-
-	if version >= 4 {
-		// V4: Get task UIDs from tasks table
-		query := `SELECT DISTINCT task_uid FROM tasks ORDER BY created_at`
-		rows, err := d.db.Query(query)
-		if err != nil {
-			return nil, fmt.Errorf("failed to query task UIDs: %w", err)
-		}
-		defer rows.Close()
-
-		var taskUIDs []string
-		for rows.Next() {
-			var taskUID string
-			if err := rows.Scan(&taskUID); err != nil {
-				return nil, fmt.Errorf("failed to scan task UID: %w", err)
-			}
-			taskUIDs = append(taskUIDs, taskUID)
-		}
-		return taskUIDs, rows.Err()
-	}
-
-	// V1/V2: Get task IDs from events
-	query := `
-		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
-		FROM events
-		WHERE kind = 'task.created'
-	`
-
+	// Get task UIDs from tasks table
+	query := `SELECT DISTINCT task_uid FROM tasks ORDER BY created_at`
 	rows, err := d.db.Query(query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query task IDs: %w", err)
+		return nil, fmt.Errorf("failed to query task UIDs: %w", err)
 	}
 	defer rows.Close()
 
-	var taskIDs []string
+	var taskUIDs []string
 	for rows.Next() {
-		var taskID sql.NullString
-		if err := rows.Scan(&taskID); err != nil {
-			return nil, fmt.Errorf("failed to scan task ID: %w", err)
+		var taskUID string
+		if err := rows.Scan(&taskUID); err != nil {
+			return nil, fmt.Errorf("failed to scan task UID: %w", err)
 		}
-		if taskID.Valid {
-			taskIDs = append(taskIDs, taskID.String)
-		}
+		taskUIDs = append(taskUIDs, taskUID)
 	}
-
-	return taskIDs, rows.Err()
+	return taskUIDs, rows.Err()
 }
 
-// GetTaskIDsByPrefixes returns task IDs filtered by prefix list
+// GetTaskIDsByPrefixes returns task IDs filtered by prefix list (project aliases)
 func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
 	if len(prefixes) == 0 {
 		return d.GetAllTaskIDs()
 	}
 
-	// Check if we're in v4 mode
-	version, err := d.GetDBVersion()
+	// Get task UIDs by project aliases
+	// First, get node ID
+	nodeID, err := d.GetOrCreateNodeID()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get DB version: %w", err)
+		return nil, fmt.Errorf("failed to get node ID: %w", err)
 	}
 
-	if version >= 4 {
-		// V4: Get task UIDs by project aliases
-		// First, get node ID
-		nodeID, err := d.GetOrCreateNodeID()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get node ID: %w", err)
-		}
-
-		// Build query to find tasks by project alias
-		var conditions []string
-		var args []interface{}
-		for _, alias := range prefixes {
-			conditions = append(conditions, "project_aliases.alias = ?")
-			args = append(args, alias)
-		}
-		args = append(args, nodeID)
-
-		query := `
-			SELECT DISTINCT tasks.task_uid
-			FROM tasks
-			JOIN project_aliases ON tasks.project_uid = project_aliases.project_uid
-			WHERE (` + strings.Join(conditions, " OR ") + `)
-			  AND project_aliases.node = ?
-			ORDER BY tasks.created_at
-		`
-
-		rows, err := d.db.Query(query, args...)
-		if err != nil {
-			return nil, fmt.Errorf("failed to query task UIDs by prefix: %w", err)
-		}
-		defer rows.Close()
-
-		var taskUIDs []string
-		for rows.Next() {
-			var taskUID string
-			if err := rows.Scan(&taskUID); err != nil {
-				return nil, fmt.Errorf("failed to scan task UID: %w", err)
-			}
-			taskUIDs = append(taskUIDs, taskUID)
-		}
-		return taskUIDs, rows.Err()
-	}
-
-	// V1/V2: Build SQL query with OR conditions for each prefix
+	// Build query to find tasks by project alias
 	var conditions []string
 	var args []interface{}
-	for _, prefix := range prefixes {
-		conditions = append(conditions, "json_extract(payload, '$.task_id') LIKE ?")
-		args = append(args, prefix+"-%")
+	for _, alias := range prefixes {
+		conditions = append(conditions, "project_aliases.alias = ?")
+		args = append(args, alias)
 	}
+	args = append(args, nodeID)
 
 	query := `
-		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
-		FROM events
-		WHERE kind = 'task.created' AND (` + strings.Join(conditions, " OR ") + `)
+		SELECT DISTINCT tasks.task_uid
+		FROM tasks
+		JOIN project_aliases ON tasks.project_uid = project_aliases.project_uid
+		WHERE (` + strings.Join(conditions, " OR ") + `)
+		  AND project_aliases.node = ?
+		ORDER BY tasks.created_at
 	`
 
 	rows, err := d.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query task IDs: %w", err)
+		return nil, fmt.Errorf("failed to query task UIDs by prefix: %w", err)
 	}
 	defer rows.Close()
 
-	var taskIDs []string
+	var taskUIDs []string
 	for rows.Next() {
-		var taskID sql.NullString
-		if err := rows.Scan(&taskID); err != nil {
-			return nil, fmt.Errorf("failed to scan task ID: %w", err)
+		var taskUID string
+		if err := rows.Scan(&taskUID); err != nil {
+			return nil, fmt.Errorf("failed to scan task UID: %w", err)
 		}
-		if taskID.Valid {
-			taskIDs = append(taskIDs, taskID.String)
-		}
+		taskUIDs = append(taskUIDs, taskUID)
 	}
-
-	return taskIDs, rows.Err()
+	return taskUIDs, rows.Err()
 }
 
 // FormatTaskID formats a task ID for display, hiding the suffix unless needed for disambiguation
@@ -884,479 +806,6 @@ func FormatTaskID(fullID string, allTaskIDs []string) string {
 		return fullID
 	}
 	return shortForm
-}
-
-// Prefix represents a task prefix definition
-type Prefix struct {
-	Prefix      string
-	Node        string
-	Description string
-	CreatedAt   time.Time
-	CreatedBy   string
-	Removed     bool
-}
-
-// CreatePrefix creates a new prefix and emits a prefix.created event
-func (d *DB) CreatePrefix(prefix, description, createdBy string) error {
-	// Normalize to lowercase first
-	prefix = strings.ToLower(prefix)
-
-	// Validate prefix format
-	if err := ValidatePrefixName(prefix); err != nil {
-		return err
-	}
-
-	nodeID, err := d.GetOrCreateNodeID()
-	if err != nil {
-		return fmt.Errorf("failed to get node ID: %w", err)
-	}
-
-	// Check if prefix already exists for this node
-	var count int
-	err = d.db.QueryRow("SELECT COUNT(*) FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&count)
-	if err != nil {
-		return fmt.Errorf("failed to check prefix existence: %w", err)
-	}
-
-	if count > 0 {
-		return fmt.Errorf("prefix %q already exists for this node", prefix)
-	}
-
-	// Generate event ID
-	eventID, err := GenerateEventID(d)
-	if err != nil {
-		return fmt.Errorf("failed to generate event ID: %w", err)
-	}
-
-	// Get next Lamport timestamp
-	lamportTS, err := d.GetNextLamportTS()
-	if err != nil {
-		return fmt.Errorf("failed to get lamport timestamp: %w", err)
-	}
-
-	// Create prefix.created event
-	payload := PrefixCreatedPayload{
-		Prefix:      prefix,
-		Description: description,
-		CreatedBy:   createdBy,
-	}
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
-	}
-
-	now := time.Now()
-	event := Event{
-		ID:        eventID,
-		TS:        lamportTS,
-		CreatedAt: now,
-		Actor:     createdBy,
-		Role:      "human",
-		Kind:      "prefix.created",
-		Payload:   payloadJSON,
-	}
-
-	// Insert event first (event-sourcing principle)
-	if err := d.InsertEvent(event); err != nil {
-		return fmt.Errorf("failed to insert prefix.created event: %w", err)
-	}
-
-	// Project into prefixes table (idempotent)
-	_, err = d.db.Exec(
-		"INSERT OR IGNORE INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
-		prefix, nodeID, description, now.UnixNano(), createdBy,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create prefix: %w", err)
-	}
-
-	// Initialize counter for this prefix (idempotent)
-	_, err = d.db.Exec(
-		"INSERT OR IGNORE INTO prefix_counters (prefix, node, last_id) VALUES (?, ?, ?)",
-		prefix, nodeID, 0,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to initialize prefix counter: %w", err)
-	}
-
-	return nil
-}
-
-// GetPrefixes returns all prefixes for this node
-func (d *DB) GetPrefixes() ([]Prefix, error) {
-	nodeID, err := d.GetOrCreateNodeID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get node ID: %w", err)
-	}
-
-	query := `
-		SELECT prefix, node, description, created_at, created_by, removed
-		FROM prefixes
-		WHERE node = ?
-		ORDER BY created_at
-	`
-
-	rows, err := d.db.Query(query, nodeID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query prefixes: %w", err)
-	}
-	defer rows.Close()
-
-	var prefixes []Prefix
-	for rows.Next() {
-		var p Prefix
-		var createdAtNano int64
-		var removed int
-		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy, &removed)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan prefix: %w", err)
-		}
-		p.CreatedAt = time.Unix(0, createdAtNano)
-		p.Removed = removed != 0
-		prefixes = append(prefixes, p)
-	}
-
-	return prefixes, rows.Err()
-}
-
-// GetAllPrefixes returns all prefixes from all nodes (event-backed)
-func (d *DB) GetAllPrefixes() ([]Prefix, error) {
-	// Get prefixes from the prefixes table (from prefix.created events)
-	query := `
-		SELECT prefix, node, description, created_at, created_by, removed
-		FROM prefixes
-		ORDER BY created_at
-	`
-
-	rows, err := d.db.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query prefixes: %w", err)
-	}
-	defer rows.Close()
-
-	prefixMap := make(map[string]Prefix) // key: prefix-node
-	for rows.Next() {
-		var p Prefix
-		var createdAtNano int64
-		var removed int
-		err := rows.Scan(&p.Prefix, &p.Node, &p.Description, &createdAtNano, &p.CreatedBy, &removed)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan prefix: %w", err)
-		}
-		p.CreatedAt = time.Unix(0, createdAtNano)
-		p.Removed = removed != 0
-		key := p.Prefix + "-" + p.Node
-		prefixMap[key] = p
-	}
-
-	// Also derive prefixes from task.created events (for prefixes that don't have metadata)
-	// We need to extract both prefix and node from each task ID
-	taskQuery := `
-		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id,
-		       json_extract(payload, '$.created_by') as created_by
-		FROM events
-		WHERE kind = 'task.created'
-	`
-
-	taskRows, err := d.db.Query(taskQuery)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query task prefixes: %w", err)
-	}
-	defer taskRows.Close()
-
-	for taskRows.Next() {
-		var taskID, createdBy string
-		if err := taskRows.Scan(&taskID, &createdBy); err != nil {
-			return nil, fmt.Errorf("failed to scan task: %w", err)
-		}
-
-		// Extract prefix and node from task ID (format: prefix-number-node)
-		parts := strings.Split(taskID, "-")
-		if len(parts) < 3 {
-			continue
-		}
-		prefix := parts[0]
-		node := parts[2]
-		key := prefix + "-" + node
-
-		// Only add if not already in map (from prefix.created events)
-		if _, exists := prefixMap[key]; !exists {
-			prefixMap[key] = Prefix{
-				Prefix:      prefix,
-				Node:        node,
-				Description: "(discovered from tasks, no metadata)",
-				CreatedBy:   createdBy,
-				CreatedAt:   time.Time{}, // Unknown creation time
-				Removed:     false,
-			}
-		}
-	}
-
-	// Convert map to slice
-	var prefixes []Prefix
-	for _, p := range prefixMap {
-		prefixes = append(prefixes, p)
-	}
-
-	// Sort by creation time
-	sort.Slice(prefixes, func(i, j int) bool {
-		// Put items with unknown time at the end
-		if prefixes[i].CreatedAt.IsZero() && !prefixes[j].CreatedAt.IsZero() {
-			return false
-		}
-		if !prefixes[i].CreatedAt.IsZero() && prefixes[j].CreatedAt.IsZero() {
-			return true
-		}
-		return prefixes[i].CreatedAt.Before(prefixes[j].CreatedAt)
-	})
-
-	return prefixes, nil
-}
-
-// RemovePrefix marks a prefix as removed by emitting a prefix.removed event
-func (d *DB) RemovePrefix(prefix, actor string) error {
-	nodeID, err := d.GetOrCreateNodeID()
-	if err != nil {
-		return fmt.Errorf("failed to get node ID: %w", err)
-	}
-
-	// Check if prefix exists for this node
-	var count int
-	err = d.db.QueryRow("SELECT COUNT(*) FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&count)
-	if err != nil {
-		return fmt.Errorf("failed to check prefix existence: %w", err)
-	}
-
-	if count == 0 {
-		return fmt.Errorf("prefix %q does not exist for this node", prefix)
-	}
-
-	// Check if already removed
-	var removed int
-	err = d.db.QueryRow("SELECT removed FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&removed)
-	if err != nil {
-		return fmt.Errorf("failed to check if prefix is removed: %w", err)
-	}
-
-	if removed != 0 {
-		return fmt.Errorf("prefix %q is already removed", prefix)
-	}
-
-	// Generate event ID
-	eventID, err := GenerateEventID(d)
-	if err != nil {
-		return fmt.Errorf("failed to generate event ID: %w", err)
-	}
-
-	// Get next Lamport timestamp
-	lamportTS, err := d.GetNextLamportTS()
-	if err != nil {
-		return fmt.Errorf("failed to get lamport timestamp: %w", err)
-	}
-
-	// Create prefix.removed event
-	payload := PrefixRemovedPayload{
-		Prefix: prefix,
-	}
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
-	}
-
-	now := time.Now()
-	event := Event{
-		ID:        eventID,
-		TS:        lamportTS,
-		CreatedAt: now,
-		Actor:     actor,
-		Role:      "human",
-		Kind:      "prefix.removed",
-		Payload:   payloadJSON,
-	}
-
-	// Insert event first (event-sourcing principle)
-	if err := d.InsertEvent(event); err != nil {
-		return fmt.Errorf("failed to insert prefix.removed event: %w", err)
-	}
-
-	// Project into prefixes table (mark as removed)
-	_, err = d.db.Exec(
-		"UPDATE prefixes SET removed = 1 WHERE prefix = ? AND node = ?",
-		prefix, nodeID,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to mark prefix as removed: %w", err)
-	}
-
-	return nil
-}
-
-// PrefixExists checks if a prefix exists for this node
-func (d *DB) PrefixExists(prefix string) (bool, error) {
-	nodeID, err := d.GetOrCreateNodeID()
-	if err != nil {
-		return false, fmt.Errorf("failed to get node ID: %w", err)
-	}
-
-	var count int
-	err = d.db.QueryRow("SELECT COUNT(*) FROM prefixes WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&count)
-	if err != nil {
-		return false, fmt.Errorf("failed to check prefix existence: %w", err)
-	}
-
-	return count > 0, nil
-}
-
-// GetNextTaskNumberForPrefix gets the next task number for a specific prefix and increments the counter
-func (d *DB) GetNextTaskNumberForPrefix(prefix string) (int64, error) {
-	nodeID, err := d.GetOrCreateNodeID()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get node ID: %w", err)
-	}
-
-	// Check if prefix exists
-	exists, err := d.PrefixExists(prefix)
-	if err != nil {
-		return 0, err
-	}
-	if !exists {
-		return 0, fmt.Errorf("prefix %q does not exist for this node", prefix)
-	}
-
-	tx, err := d.db.Begin()
-	if err != nil {
-		return 0, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	var lastID int64
-	err = tx.QueryRow("SELECT last_id FROM prefix_counters WHERE prefix = ? AND node = ?", prefix, nodeID).Scan(&lastID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get last task ID for prefix %q: %w", prefix, err)
-	}
-
-	nextID := lastID + 1
-	_, err = tx.Exec("UPDATE prefix_counters SET last_id = ? WHERE prefix = ? AND node = ?", nextID, prefix, nodeID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to update task counter for prefix %q: %w", prefix, err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return nextID, nil
-}
-
-// ValidatePrefixName validates a prefix name according to the spec
-func ValidatePrefixName(prefix string) error {
-	if len(prefix) < 2 || len(prefix) > 20 {
-		return fmt.Errorf("prefix must be 2-20 characters long")
-	}
-
-	// Must start with lowercase letter
-	if prefix[0] < 'a' || prefix[0] > 'z' {
-		return fmt.Errorf("prefix must start with a lowercase letter (a-z)")
-	}
-
-	// Must contain only lowercase letters, digits, and underscores (no hyphens)
-	for i, c := range prefix {
-		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_') {
-			return fmt.Errorf("prefix must contain only lowercase letters, digits, and underscores (char %d: %c)", i, c)
-		}
-	}
-
-	// Check for reserved prefixes
-	reserved := []string{"ev", "event", "task", "node", "remote", "sync"}
-	for _, r := range reserved {
-		if prefix == r {
-			return fmt.Errorf("prefix %q is reserved", prefix)
-		}
-	}
-
-	return nil
-}
-
-// ProjectPrefixCreatedEvent projects a prefix.created event into the prefixes table (idempotent)
-func (d *DB) ProjectPrefixCreatedEvent(e Event) error {
-	if e.Kind != "prefix.created" {
-		return fmt.Errorf("expected prefix.created event, got %s", e.Kind)
-	}
-
-	var payload PrefixCreatedPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal prefix.created payload: %w", err)
-	}
-
-	// Extract node from event (we need to determine which node created this)
-	// The event actor should match the creating node
-	nodeID, err := d.GetOrCreateNodeID()
-	if err != nil {
-		return fmt.Errorf("failed to get node ID: %w", err)
-	}
-
-	// For events from other nodes, we'd need to extract the node from the event ID
-	// Format: ev-<number>-<node>
-	parts := strings.Split(e.ID, "-")
-	if len(parts) >= 3 {
-		nodeID = parts[2]
-	}
-
-	// Project into prefixes table (idempotent)
-	_, err = d.db.Exec(
-		"INSERT OR IGNORE INTO prefixes (prefix, node, description, created_at, created_by) VALUES (?, ?, ?, ?, ?)",
-		payload.Prefix, nodeID, payload.Description, e.CreatedAt.UnixNano(), payload.CreatedBy,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to project prefix.created event: %w", err)
-	}
-
-	// Initialize counter if it doesn't exist (idempotent)
-	_, err = d.db.Exec(
-		"INSERT OR IGNORE INTO prefix_counters (prefix, node, last_id) VALUES (?, ?, ?)",
-		payload.Prefix, nodeID, 0,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to initialize prefix counter: %w", err)
-	}
-
-	return nil
-}
-
-// ProjectPrefixRemovedEvent projects a prefix.removed event into the prefixes table (idempotent)
-func (d *DB) ProjectPrefixRemovedEvent(e Event) error {
-	if e.Kind != "prefix.removed" {
-		return fmt.Errorf("expected prefix.removed event, got %s", e.Kind)
-	}
-
-	var payload PrefixRemovedPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal prefix.removed payload: %w", err)
-	}
-
-	// Extract node from event ID
-	// Format: ev-<number>-<node>
-	nodeID, err := d.GetOrCreateNodeID()
-	if err != nil {
-		return fmt.Errorf("failed to get node ID: %w", err)
-	}
-
-	parts := strings.Split(e.ID, "-")
-	if len(parts) >= 3 {
-		nodeID = parts[2]
-	}
-
-	// Mark prefix as removed in prefixes table (idempotent)
-	// Use UPDATE instead of INSERT OR REPLACE to avoid losing data
-	_, err = d.db.Exec(
-		"UPDATE prefixes SET removed = 1 WHERE prefix = ? AND node = ?",
-		payload.Prefix, nodeID,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to project prefix.removed event: %w", err)
-	}
-
-	return nil
 }
 
 // GetCachedReducerWithConfig returns a cached reducer or builds a new one if needed.

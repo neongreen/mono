@@ -21,14 +21,6 @@ type Event struct {
 	JJOpID    string          `json:"jj_op_id"`   // optional
 }
 
-// TaskCreatedPayload is the payload for task.created events
-type TaskCreatedPayload struct {
-	TaskUUID  string `json:"task_uuid"` // Canonical immutable UUID
-	TaskID    string `json:"task_id"`   // Display ID (prefix-number-node)
-	Title     string `json:"title"`
-	CreatedBy string `json:"created_by"`
-}
-
 // TaskStatusSetPayload is the payload for task.status.set events
 type TaskStatusSetPayload struct {
 	TaskUUID string `json:"task_uuid,omitempty"` // New field for UUID-based updates
@@ -43,47 +35,6 @@ type TaskNoteAddPayload struct {
 	TaskUUID string `json:"task_uuid,omitempty"` // New field for UUID-based updates
 	TaskID   string `json:"task_id"`             // Legacy field, still required for now
 	Markdown string `json:"markdown"`
-}
-
-// PrefixCreatedPayload is the payload for prefix.created events
-type PrefixCreatedPayload struct {
-	Prefix      string `json:"prefix"`
-	Description string `json:"description"`
-	CreatedBy   string `json:"created_by"`
-}
-
-// PrefixDescriptionSetPayload is the payload for prefix.description.set events
-type PrefixDescriptionSetPayload struct {
-	Prefix      string `json:"prefix"`
-	Description string `json:"description"`
-}
-
-// PrefixAliasAddedPayload is the payload for prefix.alias.added events
-type PrefixAliasAddedPayload struct {
-	Prefix string `json:"prefix"`
-	Alias  string `json:"alias"`
-}
-
-// PrefixRemovedPayload is the payload for prefix.removed events
-type PrefixRemovedPayload struct {
-	Prefix string `json:"prefix"`
-}
-
-// TaskReprefixPayload is the payload for task.reprefix events
-type TaskReprefixPayload struct {
-	TaskUUID  string `json:"task_uuid"`
-	OldPrefix string `json:"old_prefix"`
-	NewPrefix string `json:"new_prefix"`
-	OldNumber int64  `json:"old_number"`
-	NewNumber int64  `json:"new_number"`
-	OldNode   string `json:"old_node"`
-	Reason    string `json:"reason,omitempty"`
-}
-
-// TaskAliasAddedPayload is the payload for task.alias.added events
-type TaskAliasAddedPayload struct {
-	TaskUUID string `json:"task_uuid"`
-	AliasID  string `json:"alias_id"`
 }
 
 // RelationAddPayload is the payload for relation.add events
