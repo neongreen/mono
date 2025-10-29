@@ -44,6 +44,11 @@ func DefaultConfig() *Config {
 				Name:       "starship",
 				ConfigPath: "~/.config/starship.toml",
 			},
+			"claude": {
+				Name:       "claude",
+				ConfigPath: "~/.config/claude/config.json",
+				SchemaPath: "embedded://claude.json",
+			},
 		},
 	}
 }

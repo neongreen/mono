@@ -1,0 +1,23 @@
+# Schema Metadata for jj.json
+
+## Source Information
+- **Source URL**: https://jj-vcs.github.io/jj/latest/config-schema.json
+- **Alternative URL**: https://raw.githubusercontent.com/martinvonz/jj/main/cli/src/config-schema.json
+- **Downloaded Date**: 2025-10-28
+- **Official Documentation**: https://jj-vcs.github.io/jj/
+- **License**: Apache-2.0 (per Jujutsu project)
+
+## Modifications
+- **Date**: 2025-10-28
+- **Modified by**: N/A
+- **Reason**: Using official schema as-is, no modifications
+- **Changes**: None - official schema is used directly
+
+## Update History
+- 2025-10-28: Updated to latest version from Jujutsu repository
+
+## Notes
+- Official schema from Jujutsu project
+- Uses JSON Schema draft-04 for compatibility with taplo
+- To update: Download from https://jj-vcs.github.io/jj/latest/config-schema.json or GitHub repo
+- See AGENTS.md for schema source policy

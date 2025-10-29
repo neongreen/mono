@@ -3,6 +3,7 @@ package tools
 import (
 	"fmt"
 
+	claudetool "github.com/neongreen/mono/conf/pkg/tools/claude"
 	jjtool "github.com/neongreen/mono/conf/pkg/tools/jj"
 	misetool "github.com/neongreen/mono/conf/pkg/tools/mise"
 	starshiptool "github.com/neongreen/mono/conf/pkg/tools/starship"
@@ -30,6 +31,9 @@ var toolRegistry = map[string]ToolFactory{
 	},
 	"starship": func() (Tool, error) {
 		return starshiptool.NewStarshipTool()
+	},
+	"claude": func() (Tool, error) {
+		return claudetool.NewClaudeTool()
 	},
 }
 

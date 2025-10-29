@@ -14,8 +14,8 @@ func TestDefaultConfig(t *testing.T) {
 		t.Fatal("Default config should not be nil")
 	}
 
-	if len(config.Tools) != 3 {
-		t.Errorf("Default config should have 3 tools, got %d", len(config.Tools))
+	if len(config.Tools) != 4 {
+		t.Errorf("Default config should have 4 tools, got %d", len(config.Tools))
 	}
 
 	// Check jj tool config

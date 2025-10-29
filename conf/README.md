@@ -10,11 +10,12 @@ Smart configuration manager with autocompletion for command-line tools.
 
 - **Smart autocompletion**: Tab completion for all config options based on tool schemas
 - **Surgical editing**: Modifies config files without disturbing formatting or comments
+- **Multiple format support**: TOML and JSON target config files
 - **Schema-aware**: Uses JSON schemas to understand configuration options
 - **Import existing configs**: Import configurations from existing tool config files
 - **Declarative state management**: Track desired configuration state separately from actual files
 - **Drift detection**: Compare desired state with actual config files
-- **Multiple tools**: Supports jj, mise, and starship configurations
+- **Multiple tools**: Supports jj, mise, starship, and Claude Code configurations
 - **Global configs only**: Focuses on user-level configuration files
 
 ## Usage
@@ -30,9 +31,14 @@ conf jj user.email "alice@example.com"
 conf mise settings.experimental true
 conf mise settings.jobs 4
 
+# Set Claude Code configuration (JSON target)
+conf claude model "claude-3-5-sonnet-20241022"
+conf claude api.key "sk-ant-..."
+
 # Get current values
 conf jj user.name
 conf mise settings.experimental
+conf claude model
 ```
 
 ### Importing Existing Configurations
@@ -79,9 +85,10 @@ conf --completion fish > ~/.config/fish/completions/conf.fish
 
 ## Supported Tools
 
-- **jj (Jujutsu)**: `~/.config/jj/config.toml`
-- **mise**: `~/.config/mise/config.toml`
-- **starship**: `~/.config/starship.toml`
+- **jj (Jujutsu)**: `~/.config/jj/config.toml` (TOML format)
+- **mise**: `~/.config/mise/config.toml` (TOML format)
+- **starship**: `~/.config/starship.toml` (TOML format)
+- **claude**: `~/.config/claude/config.json` (JSON format)
 
 ## Configuration
 

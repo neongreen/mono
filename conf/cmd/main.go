@@ -12,6 +12,7 @@ import (
 	"github.com/neongreen/mono/conf/pkg/schemas"
 	"github.com/neongreen/mono/conf/pkg/sync"
 	"github.com/neongreen/mono/conf/pkg/tools"
+	claudetool "github.com/neongreen/mono/conf/pkg/tools/claude"
 	jjtool "github.com/neongreen/mono/conf/pkg/tools/jj"
 	misetool "github.com/neongreen/mono/conf/pkg/tools/mise"
 	shimstool "github.com/neongreen/mono/conf/pkg/tools/shims"
@@ -33,6 +34,7 @@ tool schemas and provides surgical TOML editing while preserving formatting.`,
 }
 
 var jjListFlag bool
+var claudeListFlag bool
 
 // jjCompletion provides schema-aware completion for jj commands
 func jjCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -79,6 +81,126 @@ func jjCompletion(cmd *cobra.Command, args []string, toComplete string) ([]strin
 
 		// Get property info for this path
 		settings, err := jjTool.ListAllSettings()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+
+		var targetSetting *schemas.SettingInfo
+		for _, setting := range settings {
+			if setting.Path == configPath {
+				targetSetting = &setting
+				break
+			}
+		}
+
+		if targetSetting == nil {
+			return nil, cobra.ShellCompDirectiveDefault
+		}
+
+		var completions []string
+
+		// If setting has enum values, complete with those
+		if len(targetSetting.Enum) > 0 {
+			for _, enumVal := range targetSetting.Enum {
+				if strings.HasPrefix(enumVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tValid enum value", enumVal))
+				}
+			}
+			return completions, cobra.ShellCompDirectiveDefault
+		}
+
+		// Provide type-based suggestions
+		switch targetSetting.Type {
+		case "boolean":
+			for _, val := range []string{"true", "false"} {
+				if strings.HasPrefix(val, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tBoolean value", val))
+				}
+			}
+		case "string":
+			// Show current value as suggestion if set
+			if targetSetting.IsSet && targetSetting.CurrentValue != nil {
+				currentVal := fmt.Sprintf("%v", targetSetting.CurrentValue)
+				if strings.HasPrefix(currentVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tCurrent value", currentVal))
+				}
+			}
+			// Show default value as suggestion if available
+			if targetSetting.Default != nil {
+				defaultVal := fmt.Sprintf("%v", targetSetting.Default)
+				if strings.HasPrefix(defaultVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tDefault value", defaultVal))
+				}
+			}
+		case "integer":
+			// Show current and default values for integers
+			if targetSetting.IsSet && targetSetting.CurrentValue != nil {
+				currentVal := fmt.Sprintf("%v", targetSetting.CurrentValue)
+				if strings.HasPrefix(currentVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tCurrent value", currentVal))
+				}
+			}
+			if targetSetting.Default != nil {
+				defaultVal := fmt.Sprintf("%v", targetSetting.Default)
+				if strings.HasPrefix(defaultVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tDefault value", defaultVal))
+				}
+			}
+		}
+
+		return completions, cobra.ShellCompDirectiveDefault
+
+	default:
+		// No completion for additional arguments
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+}
+
+// claudeCompletion provides schema-aware completion for claude commands
+func claudeCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	// Create claude tool to access schema
+	claudeTool, err := claudetool.NewClaudeTool()
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	switch len(args) {
+	case 0:
+		// First argument: complete config paths from schema
+		settings, err := claudeTool.ListAllSettings()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+
+		var completions []string
+		for _, setting := range settings {
+			// Filter by what user has typed so far
+			if strings.HasPrefix(setting.Path, toComplete) {
+				description := setting.Description
+				if description == "" {
+					description = fmt.Sprintf("Type: %s", setting.Type)
+				}
+
+				// Add current value info if set
+				valueInfo := ""
+				if setting.IsSet {
+					valueInfo = fmt.Sprintf(" (current: %v)", setting.CurrentValue)
+				}
+
+				// Format: path<tab>description + value info
+				completion := fmt.Sprintf("%s\t%s%s", setting.Path, description, valueInfo)
+				completions = append(completions, completion)
+			}
+		}
+
+		return completions, cobra.ShellCompDirectiveDefault
+
+	case 1:
+		// Second argument: complete values based on schema info for the given path
+		configPath := args[0]
+
+		// Get property info for this path
+		settings, err := claudeTool.ListAllSettings()
 		if err != nil {
 			return nil, cobra.ShellCompDirectiveError
 		}
@@ -312,6 +434,167 @@ Examples:
 		}
 
 		fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
+	},
+}
+
+var claudeCmd = &cobra.Command{
+	Use:   "claude [config.path] [value]",
+	Short: "Configure Claude Code settings",
+	Long: `Get or set configuration values in ~/.config/claude/config.json using dotted path notation.
+
+Examples:
+  conf claude --list                          # List all available settings with current values
+  conf claude model                           # Get current value
+  conf claude model "sonnet"                  # Set value
+  conf claude alwaysThinkingEnabled true      # Enable extended thinking`,
+	Args:              cobra.RangeArgs(0, 2),
+	ValidArgsFunction: claudeCompletion,
+	Run: func(cmd *cobra.Command, args []string) {
+		// Create claude tool
+		claudeTool, err := claudetool.NewClaudeToolWithDryRun(dryRun)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to initialize claude tool: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Handle --list flag
+		if claudeListFlag {
+			settings, err := claudeTool.ListAllSettings()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to list settings: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Println("All Claude Code configuration settings:")
+			fmt.Println()
+
+			for _, setting := range settings {
+				fmt.Printf("  %s\n", setting.Path)
+				fmt.Printf("    Type: %s\n", setting.Type)
+				if setting.Description != "" {
+					fmt.Printf("    Description: %s\n", setting.Description)
+				}
+				if setting.Default != nil {
+					fmt.Printf("    Default: %v\n", setting.Default)
+				}
+				if len(setting.Enum) > 0 {
+					fmt.Printf("    Valid values: %v\n", setting.Enum)
+				}
+
+				if setting.IsSet {
+					fmt.Printf("    Current value: %v ✓\n", setting.CurrentValue)
+				} else {
+					fmt.Printf("    Current value: (not set)\n")
+				}
+				fmt.Println()
+			}
+
+			fmt.Printf("Config file: %s\n", claudeTool.GetConfigPath())
+			return
+		}
+
+		// Require arguments when not listing
+		if len(args) == 0 {
+			fmt.Fprintf(os.Stderr, "Error: config path required (use --list to see available options)\n")
+			os.Exit(1)
+		}
+
+		configPath := args[0]
+
+		// Validate config path
+		if configPath == "" {
+			fmt.Fprintf(os.Stderr, "Error: invalid configuration path: %s\n", configPath)
+			os.Exit(1)
+		}
+
+		// GET operation: only config path provided
+		if len(args) == 1 {
+			// Load conf's state config to show desired state
+			conf, err := config.Load()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to load conf config: %v\n", err)
+				os.Exit(1)
+			}
+
+			// Get actual value from target file
+			actualValue, err := claudeTool.GetConfig(configPath)
+			if err != nil && !os.IsNotExist(err) {
+				fmt.Fprintf(os.Stderr, "Error reading config: %v\n", err)
+				os.Exit(1)
+			}
+
+			// Get desired value from conf state
+			desiredValue, hasDesired := conf.GetToolValue("claude", configPath)
+
+			// Show state comparison
+			if hasDesired {
+				fmt.Printf("Desired: %s = %v\n", configPath, desiredValue)
+				if actualValue == nil {
+					fmt.Printf("Actual:  %s = (not set)\n", configPath)
+					fmt.Printf("Status:  DRIFT - value not applied\n")
+				} else if fmt.Sprintf("%v", actualValue) == fmt.Sprintf("%v", desiredValue) {
+					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Status:  IN SYNC\n")
+				} else {
+					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Status:  DRIFT - values differ\n")
+				}
+			} else {
+				if actualValue == nil {
+					fmt.Printf("%s = (not set)\n", configPath)
+				} else {
+					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Status:  UNMANAGED - not in conf state\n")
+				}
+			}
+			return
+		}
+
+		// SET operation: config path and value provided
+		if configPath == "" {
+			fmt.Fprintf(os.Stderr, "Error: invalid configuration path: %s\n", configPath)
+			os.Exit(1)
+		}
+		value := args[1]
+		parsedValue := parseValue(value)
+
+		// Load conf's state config
+		conf, err := config.Load()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to load conf config: %v\n", err)
+			os.Exit(1)
+		}
+
+		if dryRun {
+			// Show preview of what would happen
+			preview, err := claudeTool.PreviewSetConfig(configPath, parsedValue)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Print("DRY RUN: ")
+			fmt.Print(preview)
+			fmt.Printf("Would also record in conf state: claude.%s = %v\n", configPath, parsedValue)
+		} else {
+			// 1. Record desired state in conf config
+			conf.SetToolValue("claude", configPath, parsedValue)
+			if err := conf.Save(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to save conf state: %v\n", err)
+				os.Exit(1)
+			}
+
+			// 2. Apply to target file
+			err = claudeTool.SetConfig(configPath, parsedValue)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("✓ Set claude config: %s = %v\n", configPath, parsedValue)
+			fmt.Printf("✓ Recorded in conf state\n")
+		}
+
+		fmt.Printf("Config file: %s\n", claudeTool.GetConfigPath())
 	},
 }
 
@@ -792,6 +1075,12 @@ func getTargetConfigValues(toolName string) (map[string]interface{}, error) {
 			return nil, err
 		}
 		return jjTool.GetAllValues()
+	case "claude":
+		claudeTool, err := claudetool.NewClaudeTool()
+		if err != nil {
+			return nil, err
+		}
+		return claudeTool.GetAllValues()
 	case "mise":
 		miseTool, err := misetool.NewMiseTool()
 		if err != nil {
@@ -813,8 +1102,9 @@ func init() {
 	// Add dry-run flag to root command
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would be changed without making any modifications")
 
-	// Add --list flag to jj command
+	// Add --list flags to commands
 	jjCmd.Flags().BoolVar(&jjListFlag, "list", false, "List all available jj configuration settings with current values")
+	claudeCmd.Flags().BoolVar(&claudeListFlag, "list", false, "List all available Claude Code configuration settings with current values")
 
 	miseCmd.AddCommand(miseListCmd)
 	starshipCmd.AddCommand(starshipListCmd)
@@ -825,6 +1115,7 @@ func init() {
 	shimsCmd.AddCommand(shimsListCmd)
 
 	rootCmd.AddCommand(jjCmd)
+	rootCmd.AddCommand(claudeCmd)
 	rootCmd.AddCommand(miseCmd)
 	rootCmd.AddCommand(starshipCmd)
 	rootCmd.AddCommand(shimsCmd)

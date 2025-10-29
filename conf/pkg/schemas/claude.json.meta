@@ -1,0 +1,21 @@
+# Schema Metadata for claude.json
+
+## Source Information
+- **Source URL**: https://json.schemastore.org/claude-code-settings.json
+- **Downloaded Date**: 2025-10-28
+- **Schema Store Entry**: Official schema from SchemaStore.org
+- **License**: Apache-2.0 (per SchemaStore.org standard)
+
+## Modifications
+- **Date**: 2025-10-28
+- **Modified by**: N/A
+- **Reason**: Using official schema as-is, no modifications
+- **Changes**: None - official schema is used directly from SchemaStore.org
+
+## Update History
+- 2025-10-28: Downloaded official schema from json.schemastore.org (replaced hand-written version)
+
+## Notes
+- Official schema from SchemaStore.org
+- To update: Download from https://json.schemastore.org/claude-code-settings.json
+- See AGENTS.md for schema source policy
