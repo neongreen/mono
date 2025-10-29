@@ -932,7 +932,6 @@ func openExistingDB() (*DB, error) {
 
 	if needsMigration {
 		fmt.Println("Migrating database to v4...")
-		fmt.Printf("Creating backup at %s%s\n", path, v4BackupSuffix)
 
 		if err := db.MigrateToV4(path); err != nil {
 			db.Close()
