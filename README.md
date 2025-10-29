@@ -18,6 +18,7 @@ This repository contains multiple independent projects.
 | [claude-trace](claude-trace/) | alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
 | [conf](conf/) | pre-alpha | Smart configuration manager; command coverage incomplete. |
 | [tk](tk/) | pre-alpha | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
+| [fslog](lib/fslog/) | pre-alpha | ACID-ish filesystem operations library with immutable operation log and rollback support. |
 | [ghrelease](lib/ghrelease/) | internal library | Shared helper for fetching release assets; API may change without notice. |
 
 ## Installing Tools
