@@ -1,0 +1,218 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
+)
+
+// sortTasks sorts tasks based on the specified sort order
+func sortTasks(tasks []*Task, sortBy string) {
+	switch sortBy {
+	case "created":
+
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
+		})
+	case "id":
+
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].TaskID < tasks[j].TaskID
+		})
+	case "title":
+
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].Title < tasks[j].Title
+		})
+	default:
+
+		sort.Slice(tasks, func(i, j int) bool {
+			return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
+		})
+	}
+}
+
+// colorizeStatus returns a colored status string based on the status value
+func colorizeStatus(status string) string {
+	switch status {
+	case "wip":
+		return yellowStatus(status)
+	case "done", "fixed":
+		return greenStatus(status)
+	default:
+		return status
+	}
+}
+
+// renderTaskTable renders a table of tasks with the specified configuration
+func renderTaskTable(db *DB, tasks []*Task, taskIDs []string, showAliases bool, termWidth int) {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	if showAliases {
+		t.AppendHeader(table.Row{"ID", "Aliases", "Status", "Title"})
+	} else {
+		t.AppendHeader(table.Row{"ID", "Status", "Title"})
+	}
+
+	t.SetStyle(table.StyleLight)
+	t.Style().Options.SeparateRows = true
+	t.Style().Options.DrawBorder = false
+
+	if showAliases {
+
+		titleMaxWidth := termWidth - 60
+		if titleMaxWidth < 20 {
+			titleMaxWidth = 20
+		}
+		t.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 1, AutoMerge: false},
+			{Number: 2, AutoMerge: false},
+			{Number: 3, AutoMerge: false},
+			{Number: 4, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft},
+		})
+	} else {
+
+		titleMaxWidth := termWidth - 30
+		if titleMaxWidth < 20 {
+			titleMaxWidth = 20
+		}
+		t.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 1, AutoMerge: false},
+			{Number: 2, AutoMerge: false},
+			{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft},
+		})
+	}
+
+	for _, task := range tasks {
+		displayID, err := RenderTaskDisplayID(db, task.TaskUUID)
+		if err != nil {
+			displayID = task.TaskID
+		}
+
+		status := ""
+		if axis, ok := task.Axes["generic"]; ok {
+			status = colorizeStatus(axis.Effective)
+		}
+
+		if showAliases {
+
+			aliasesStr := ""
+			if len(task.Aliases) > 0 {
+				var shortAliases []string
+				for _, alias := range task.Aliases {
+					shortAliases = append(shortAliases, FormatTaskID(alias, taskIDs))
+				}
+				aliasesStr = strings.Join(shortAliases, ", ")
+			}
+			t.AppendRow(table.Row{displayID, aliasesStr, status, task.Title})
+		} else {
+			t.AppendRow(table.Row{displayID, status, task.Title})
+		}
+	}
+
+	t.Render()
+}
+
+// outputTasksJSON outputs tasks as JSON, respecting grouping
+func outputTasksJSON(db *DB, tasks []*Task, groupBy string) error {
+
+	for _, task := range tasks {
+		displayID, err := RenderTaskDisplayID(db, task.TaskUUID)
+		if err != nil {
+			displayID = task.TaskID
+		}
+		task.TaskID = displayID
+	}
+
+	type GroupedOutput struct {
+		Group string  `json:"group"`
+		Tasks []*Task `json:"tasks"`
+	}
+
+	type Output struct {
+		Groups []GroupedOutput `json:"groups,omitempty"`
+		Tasks  []*Task         `json:"tasks,omitempty"`
+	}
+
+	var output Output
+
+	switch groupBy {
+	case "prefix":
+
+		grouped := make(map[string][]*Task)
+		var groupOrder []string
+
+		for _, task := range tasks {
+			var groupKey string
+
+			projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
+			if err != nil {
+				groupKey = task.TaskUUID
+			} else {
+				groupKey = projectAlias
+			}
+
+			if _, exists := grouped[groupKey]; !exists {
+				groupOrder = append(groupOrder, groupKey)
+			}
+			grouped[groupKey] = append(grouped[groupKey], task)
+		}
+
+		output.Groups = make([]GroupedOutput, 0, len(groupOrder))
+		for _, groupKey := range groupOrder {
+			output.Groups = append(output.Groups, GroupedOutput{
+				Group: groupKey,
+				Tasks: grouped[groupKey],
+			})
+		}
+
+	case "status":
+
+		grouped := make(map[string][]*Task)
+		var groupOrder []string
+
+		for _, task := range tasks {
+			status := ""
+			if axis, ok := task.Axes["generic"]; ok {
+				status = axis.Effective
+			}
+			if status == "" {
+				status = "(no status)"
+			}
+
+			if _, exists := grouped[status]; !exists {
+				groupOrder = append(groupOrder, status)
+			}
+			grouped[status] = append(grouped[status], task)
+		}
+
+		output.Groups = make([]GroupedOutput, 0, len(groupOrder))
+		for _, status := range groupOrder {
+			output.Groups = append(output.Groups, GroupedOutput{
+				Group: status,
+				Tasks: grouped[status],
+			})
+		}
+
+	case "none":
+
+		output.Tasks = tasks
+
+	default:
+		return fmt.Errorf("invalid --group value: %s (must be prefix, status, or none)", groupBy)
+	}
+
+	jsonOutput, err := json.MarshalIndent(output, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal tasks: %w", err)
+	}
+
+	fmt.Println(string(jsonOutput))
+	return nil
+}
