@@ -45,11 +45,6 @@ def demo(command):
 def main():
     os.environ["PAGER"] = "cat"
     script_dir = Path(__file__).parent
-    
-    # Set PYTHONPATH to include the src directory for module imports
-    src_dir = (script_dir / ".." / "src").resolve()
-    os.environ["PYTHONPATH"] = str(src_dir) + os.pathsep + os.environ.get("PYTHONPATH", "")
-    
     repo_dir = tempfile.mkdtemp()
     original_dir = os.getcwd()
     os.chdir(repo_dir)
@@ -66,8 +61,7 @@ def main():
         # Run jj-run with a command that fails if failme.txt exists
         jj_run_command = [
             "python3",
-            "-m",
-            "jj_run.main",
+            str((script_dir / ".." / "src" / "jj_run" / "main.py").resolve()),
             "-r",
             "::",
             "-e",
