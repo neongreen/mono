@@ -1,11 +1,18 @@
 [tools]
-"pipx:vermin" = "latest"
-python = "3.13.5"
+go = "1.24.7"
+
+[tasks.run]
+description = "Build and run jj-run"
+run = "go run ./cmd/main.go"
 
 [tasks.test]
 description = "Run all tests"
-run = "for f in tests/*.py; do mise x -- python \"$f\" || exit 1; done"
+run = "go test -v ./..."
 
-[tasks.vermin]
-description = "Determine minimum supported Python version"
-run = "vermin --backport argparse --backport dataclasses --backport typing -vv src/"
+[tasks.build]
+description = "Build jj-run binary"
+run = "go build -o jj-run ./cmd/main.go"
+
+[tasks.fmt]
+description = "Format Go code"
+run = "go fmt ./..."
