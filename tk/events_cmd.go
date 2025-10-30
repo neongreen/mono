@@ -175,7 +175,7 @@ Examples:
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
-		
+
 		db, err := openExistingDB()
 		if err != nil {
 			return err
@@ -190,10 +190,10 @@ Examples:
 		if len(events) == 0 {
 			if jsonOutput {
 				output := map[string]interface{}{
-					"total": 0,
-					"by_kind": map[string]int{},
+					"total":    0,
+					"by_kind":  map[string]int{},
 					"by_actor": map[string]int{},
-					"by_role": map[string]int{},
+					"by_role":  map[string]int{},
 				}
 				data, _ := json.MarshalIndent(output, "", "  ")
 				fmt.Println(string(data))
@@ -216,10 +216,10 @@ Examples:
 
 		if jsonOutput {
 			output := map[string]interface{}{
-				"total": len(events),
-				"by_kind": kindCounts,
+				"total":    len(events),
+				"by_kind":  kindCounts,
 				"by_actor": actorCounts,
-				"by_role": roleCounts,
+				"by_role":  roleCounts,
 			}
 			data, err := json.MarshalIndent(output, "", "  ")
 			if err != nil {
@@ -285,10 +285,10 @@ func init() {
 	eventsListCmd.Flags().Bool("json", false, "Output events as JSON")
 
 	eventsCmd.AddCommand(eventsListCmd)
-	
+
 	eventsShowCmd.Flags().Bool("json", false, "Output as JSON")
 	eventsCmd.AddCommand(eventsShowCmd)
-	
+
 	eventsStatsCmd.Flags().Bool("json", false, "Output as JSON")
 	eventsCmd.AddCommand(eventsStatsCmd)
 }

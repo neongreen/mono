@@ -32,7 +32,7 @@ var doctorCmd = &cobra.Command{
 	Short: "Verify database health and report issues",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
-		
+
 		db, err := openExistingDB()
 		if err != nil {
 			return err

@@ -61,7 +61,7 @@ var blockersCmd = &cobra.Command{
 				Distance int    `json:"distance"`
 				Title    string `json:"title"`
 			}
-			
+
 			output := struct {
 				TaskID   string          `json:"task_id"`
 				Blockers []BlockerOutput `json:"blockers"`
@@ -69,7 +69,7 @@ var blockersCmd = &cobra.Command{
 				TaskID:   displayID,
 				Blockers: []BlockerOutput{},
 			}
-			
+
 			for _, blocker := range blockers {
 				blockerDisplay, err := RenderTaskDisplayID(db, blocker.TaskID)
 				if err != nil {
@@ -81,7 +81,7 @@ var blockersCmd = &cobra.Command{
 					Title:    blocker.Title,
 				})
 			}
-			
+
 			data, err := json.MarshalIndent(output, "", "  ")
 			if err != nil {
 				return fmt.Errorf("failed to marshal output: %w", err)
@@ -122,7 +122,7 @@ var blockedCmd = &cobra.Command{
 	Long:  `List all tasks that are currently blocked.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
-		
+
 		db, err := openExistingDB()
 		if err != nil {
 			return err
@@ -156,7 +156,7 @@ var blockedCmd = &cobra.Command{
 				Title    string   `json:"title"`
 				Blockers []string `json:"blockers"`
 			}
-			
+
 			output := struct {
 				Count int                 `json:"count"`
 				Tasks []BlockedTaskOutput `json:"tasks"`
@@ -164,7 +164,7 @@ var blockedCmd = &cobra.Command{
 				Count: len(blockedTasks),
 				Tasks: []BlockedTaskOutput{},
 			}
-			
+
 			for _, task := range blockedTasks {
 				var blockerIDs []string
 				for _, b := range task.Blockers {
@@ -176,7 +176,7 @@ var blockedCmd = &cobra.Command{
 					Blockers: blockerIDs,
 				})
 			}
-			
+
 			data, err := json.MarshalIndent(output, "", "  ")
 			if err != nil {
 				return fmt.Errorf("failed to marshal output: %w", err)
@@ -216,6 +216,6 @@ var blockedCmd = &cobra.Command{
 }
 
 func init() {
-blockersCmd.Flags().Bool("json", false, "Output as JSON")
-blockedCmd.Flags().Bool("json", false, "Output as JSON")
+	blockersCmd.Flags().Bool("json", false, "Output as JSON")
+	blockedCmd.Flags().Bool("json", false, "Output as JSON")
 }

@@ -77,7 +77,7 @@ var remoteLsCmd = &cobra.Command{
 	Short: "List configured remotes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
-		
+
 		config, err := LoadConfig()
 		if err != nil {
 			return err
@@ -152,9 +152,9 @@ Examples:
 
 func init() {
 	remoteCmd.AddCommand(remoteAddCmd)
-	
+
 	remoteLsCmd.Flags().Bool("json", false, "Output as JSON")
 	remoteCmd.AddCommand(remoteLsCmd)
-	
+
 	remoteCmd.AddCommand(remoteRmCmd)
 }

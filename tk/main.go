@@ -67,12 +67,12 @@ var dbPathCmd = &cobra.Command{
 	Short: "Print the current database path",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
-		
+
 		path, err := GetDBPath()
 		if err != nil {
 			return err
 		}
-		
+
 		if jsonOutput {
 			output := map[string]string{"path": path}
 			data, err := json.MarshalIndent(output, "", "  ")
@@ -526,7 +526,7 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 
 	rootCmd.AddCommand(noteCmd)
-	
+
 	viewCmd.Flags().Bool("json", false, "Output as JSON")
 	rootCmd.AddCommand(viewCmd)
 

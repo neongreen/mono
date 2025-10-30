@@ -17,7 +17,7 @@ var nodeShowCmd = &cobra.Command{
 	Short: "Show the current node ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
-		
+
 		db, err := openExistingDB()
 		if err != nil {
 			return err

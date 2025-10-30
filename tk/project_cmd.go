@@ -137,7 +137,7 @@ var projectListCmd = &cobra.Command{
 	Short: "List all projects",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
-		
+
 		db, err := openExistingDB()
 		if err != nil {
 			return err
@@ -399,10 +399,10 @@ func getNextLamportTimestamp(db *DB) int64 {
 
 func init() {
 	projectCmd.AddCommand(projectCreateCmd)
-	
+
 	projectListCmd.Flags().Bool("json", false, "Output as JSON")
 	projectCmd.AddCommand(projectListCmd)
-	
+
 	projectCmd.AddCommand(projectAliasCmd)
 
 	projectAliasCmd.AddCommand(projectAliasAddCmd)

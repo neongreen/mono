@@ -15,7 +15,7 @@ var statusSyncCmd = &cobra.Command{
 	Short: "Show sync status for all remotes",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
-		
+
 		config, err := LoadConfig()
 		if err != nil {
 			return err
@@ -36,14 +36,14 @@ var statusSyncCmd = &cobra.Command{
 		}
 
 		type SyncStatusOutput struct {
-			Remote      string `json:"remote"`
-			Space       string `json:"space"`
-			LocalSegs   int    `json:"local_segments"`
-			RemoteSegs  int    `json:"remote_segments"`
-			Diverged    bool   `json:"diverged"`
-			LocalOnly   int    `json:"local_only_segments"`
-			RemoteOnly  int    `json:"remote_only_segments"`
-			LastSync    string `json:"last_sync"`
+			Remote     string `json:"remote"`
+			Space      string `json:"space"`
+			LocalSegs  int    `json:"local_segments"`
+			RemoteSegs int    `json:"remote_segments"`
+			Diverged   bool   `json:"diverged"`
+			LocalOnly  int    `json:"local_only_segments"`
+			RemoteOnly int    `json:"remote_only_segments"`
+			LastSync   string `json:"last_sync"`
 		}
 
 		var statuses []SyncStatusOutput

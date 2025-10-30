@@ -60,7 +60,7 @@ var graphCmd = &cobra.Command{
 				Blocked  bool         `json:"blocked"`
 				Children []*GraphNode `json:"children,omitempty"`
 			}
-			
+
 			visited := make(map[string]bool)
 			var buildGraph func(t *Task, currentDepth, maxDepth int) *GraphNode
 			buildGraph = func(t *Task, currentDepth, maxDepth int) *GraphNode {
@@ -68,18 +68,18 @@ var graphCmd = &cobra.Command{
 					return nil
 				}
 				visited[t.TaskUUID] = true
-				
+
 				taskDisplay, err := RenderTaskDisplayID(db, t.TaskUUID)
 				if err != nil {
 					taskDisplay = t.TaskID
 				}
-				
+
 				node := &GraphNode{
 					TaskID:  taskDisplay,
 					Title:   t.Title,
 					Blocked: t.Blocked,
 				}
-				
+
 				var targets []RelationTarget
 				switch relationType {
 				case "blocks":
@@ -89,7 +89,7 @@ var graphCmd = &cobra.Command{
 				default:
 					targets = reducer.relations.GetOutgoingRelations(t.TaskUUID, relationType)
 				}
-				
+
 				for _, target := range targets {
 					if childTask, ok := reducer.GetTask(target.TaskUUID); ok {
 						if childNode := buildGraph(childTask, currentDepth+1, maxDepth); childNode != nil {
@@ -97,10 +97,10 @@ var graphCmd = &cobra.Command{
 						}
 					}
 				}
-				
+
 				return node
 			}
-			
+
 			graph := buildGraph(task, 0, depth)
 			data, err := json.MarshalIndent(graph, "", "  ")
 			if err != nil {
