@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -11,6 +12,7 @@ var conflictsNumbersCmd = &cobra.Command{
 	Short: "List task number collisions",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		projectFlag, _ := cmd.Flags().GetString("project")
+		jsonOutput, _ := cmd.Flags().GetBool("json")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -30,6 +32,15 @@ var conflictsNumbersCmd = &cobra.Command{
 		collisions, err := getNumberCollisions(db, projectUID)
 		if err != nil {
 			return err
+		}
+
+		if jsonOutput {
+			output, err := json.MarshalIndent(collisions, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal collisions: %w", err)
+			}
+			fmt.Println(string(output))
+			return nil
 		}
 
 		if len(collisions) == 0 {
@@ -58,5 +69,6 @@ var conflictsNumbersCmd = &cobra.Command{
 
 func init() {
 	conflictsNumbersCmd.Flags().String("project", "", "Project alias or UID to inspect")
+	conflictsNumbersCmd.Flags().Bool("json", false, "Output as JSON")
 	conflictsCmd.AddCommand(conflictsNumbersCmd)
 }

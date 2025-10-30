@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -15,6 +16,7 @@ var graphCmd = &cobra.Command{
 		taskRef := args[0]
 		relationType, _ := cmd.Flags().GetString("type")
 		depth, _ := cmd.Flags().GetInt("depth")
+		jsonOutput, _ := cmd.Flags().GetBool("json")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -48,6 +50,64 @@ var graphCmd = &cobra.Command{
 		displayID, err := RenderTaskDisplayID(db, taskUUID)
 		if err != nil {
 			displayID = taskRef
+		}
+
+		if jsonOutput {
+			// Build graph structure
+			type GraphNode struct {
+				TaskID   string       `json:"task_id"`
+				Title    string       `json:"title"`
+				Blocked  bool         `json:"blocked"`
+				Children []*GraphNode `json:"children,omitempty"`
+			}
+
+			visited := make(map[string]bool)
+			var buildGraph func(t *Task, currentDepth, maxDepth int) *GraphNode
+			buildGraph = func(t *Task, currentDepth, maxDepth int) *GraphNode {
+				if currentDepth > maxDepth || visited[t.TaskUUID] {
+					return nil
+				}
+				visited[t.TaskUUID] = true
+
+				taskDisplay, err := RenderTaskDisplayID(db, t.TaskUUID)
+				if err != nil {
+					taskDisplay = t.TaskID
+				}
+
+				node := &GraphNode{
+					TaskID:  taskDisplay,
+					Title:   t.Title,
+					Blocked: t.Blocked,
+				}
+
+				var targets []RelationTarget
+				switch relationType {
+				case "blocks":
+					targets = reducer.relations.GetOutgoingRelations(t.TaskUUID, "blocks")
+				case "subtask":
+					targets = reducer.relations.GetOutgoingRelations(t.TaskUUID, "subtask")
+				default:
+					targets = reducer.relations.GetOutgoingRelations(t.TaskUUID, relationType)
+				}
+
+				for _, target := range targets {
+					if childTask, ok := reducer.GetTask(target.TaskUUID); ok {
+						if childNode := buildGraph(childTask, currentDepth+1, maxDepth); childNode != nil {
+							node.Children = append(node.Children, childNode)
+						}
+					}
+				}
+
+				return node
+			}
+
+			graph := buildGraph(task, 0, depth)
+			data, err := json.MarshalIndent(graph, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal graph: %w", err)
+			}
+			fmt.Println(string(data))
+			return nil
 		}
 
 		fmt.Printf("Task: %s - %s\n\n", displayID, task.Title)
@@ -197,4 +257,5 @@ func printRelationTreeImpl(db *DB, reducer *Reducer, task *Task, relationType st
 func init() {
 	graphCmd.Flags().String("type", "blocks", "Relation type to graph (blocks, subtask, related)")
 	graphCmd.Flags().Int("depth", 10, "Maximum depth to traverse")
+	graphCmd.Flags().Bool("json", false, "Output as JSON")
 }

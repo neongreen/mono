@@ -50,7 +50,7 @@ func colorizeStatus(status string) string {
 }
 
 // renderTaskTable renders a table of tasks with the specified configuration
-func renderTaskTable(db *DB, tasks []*Task, taskIDs []string, showAliases bool, termWidth int) {
+func renderTaskTable(db *DB, tasks []*Task, showAliases bool, termWidth int) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
@@ -106,7 +106,7 @@ func renderTaskTable(db *DB, tasks []*Task, taskIDs []string, showAliases bool, 
 			if len(task.Aliases) > 0 {
 				var shortAliases []string
 				for _, alias := range task.Aliases {
-					shortAliases = append(shortAliases, FormatTaskID(alias, taskIDs))
+					shortAliases = append(shortAliases, FormatTaskID(db, alias))
 				}
 				aliasesStr = strings.Join(shortAliases, ", ")
 			}
