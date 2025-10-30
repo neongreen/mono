@@ -119,13 +119,13 @@ func main() {
 func runSmokeTest(config externaltest.ProjectConfig) *externaltest.TestResult {
 	// Inject a ProcessFile function that calls dissect binary
 	config.ProcessFile = func(absPath string) (int, string, error) {
-		// Call dissect split command on the file
-		cmd := exec.Command("dissect", "split", absPath)
+		// Call dissect explode command on the file
+		cmd := exec.Command("dissect", "explode", absPath)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			return 1, "", fmt.Errorf("dissect split failed: %w\nOutput: %s", err, output)
+			return 1, "", fmt.Errorf("dissect explode failed: %w\nOutput: %s", err, output)
 		}
-		// Return success - dissect split succeeded
+		// Return success - dissect explode succeeded
 		return 0, "", nil
 	}
 

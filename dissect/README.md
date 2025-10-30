@@ -28,7 +28,7 @@ The `move` command supports the following Go declarations:
 | Constants | ✅ Implemented | Const declarations |
 | Variables | ✅ Implemented | Var declarations |
 
-The `split` command currently only extracts **functions** automatically. Support for automatically splitting types and other declarations is not yet implemented.
+The `explode` command currently only extracts **functions** automatically. Support for automatically splitting types and other declarations is not yet implemented.
 
 ## Installation
 
@@ -63,29 +63,31 @@ Or add to your `.mise.toml`:
 
 `dissect` has two main commands:
 
-1. **split** - Automatically extracts all functions from files
+1. **explode** - Automatically extracts all functions from files (WARNING: usually you want `move` instead)
 2. **move** - Selectively moves specific functions to a target file
 
-### Split Command
+### Explode Command
 
-The `split` command automatically extracts each function from a file into its own separate file.
+**WARNING:** The `explode` command puts each function into its own separate file. For most refactoring tasks, you should use the `move` command instead to selectively move specific functions to target files.
+
+The `explode` command automatically extracts each function from a file into its own separate file.
 
 Extract functions from a single file:
 
 ```bash
-dissect split path/to/file.go
+dissect explode path/to/file.go
 ```
 
 Extract functions from multiple files:
 
 ```bash
-dissect split file1.go file2.go file3.go
+dissect explode file1.go file2.go file3.go
 ```
 
 Extract functions from all Go files in a directory:
 
 ```bash
-dissect split path/to/directory
+dissect explode path/to/directory
 ```
 
 ### Move Command
