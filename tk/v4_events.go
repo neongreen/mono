@@ -1,6 +1,6 @@
 package main
 
-// Event Payload Definitions
+// V4 Event Payload Definitions
 // Based on tk/specs/v4.md
 
 // ProjectCreatedPayload is the payload for project.created events
@@ -27,8 +27,8 @@ type ProjectAliasRemovePayload struct {
 	Node       string `json:"node"`
 }
 
-// TaskCreatedPayload is the payload for task.created events
-type TaskCreatedPayload struct {
+// TaskCreatedV4Payload is the payload for task.created events (v4)
+type TaskCreatedV4Payload struct {
 	TaskUID        string `json:"task_uid"`
 	ProjectUID     string `json:"project_uid"`
 	ProposedNumber int64  `json:"proposed_number,omitempty"` // best-effort number

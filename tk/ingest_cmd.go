@@ -34,26 +34,23 @@ Examples:
 		defer db.Close()
 
 		// Check if it's a file or a remote name
-		var ingestErr error
 		if _, err := os.Stat(pathOrRemote); err == nil {
 			// It's a file
-			ingestErr = ingestFile(db, pathOrRemote)
-		} else {
-			// Try as a remote name
-			config, err := LoadConfig()
-			if err != nil {
-				return err
-			}
-
-			remote, exists := config.Remotes[pathOrRemote]
-			if !exists {
-				return fmt.Errorf("'%s' is neither a file nor a configured remote", pathOrRemote)
-			}
-
-			ingestErr = ingestRemote(db, pathOrRemote, remote)
+			return ingestFile(db, pathOrRemote)
 		}
 
-		return ingestErr
+		// Try as a remote name
+		config, err := LoadConfig()
+		if err != nil {
+			return err
+		}
+
+		remote, exists := config.Remotes[pathOrRemote]
+		if !exists {
+			return fmt.Errorf("'%s' is neither a file nor a configured remote", pathOrRemote)
+		}
+
+		return ingestRemote(db, pathOrRemote, remote)
 	},
 }
 
@@ -91,7 +88,21 @@ func ingestFile(db *DB, path string) error {
 			return fmt.Errorf("failed to bump lamport: %w", err)
 		}
 
-		// Project events into their respective tables
+		// Project prefix events into prefixes table
+		if event.Kind == "prefix.created" {
+			if err := db.ProjectPrefixCreatedEvent(event); err != nil {
+				// Log but don't fail - projection errors are not critical
+				fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.created event %s: %v\n", event.ID, err)
+			}
+		}
+		if event.Kind == "prefix.removed" {
+			if err := db.ProjectPrefixRemovedEvent(event); err != nil {
+				// Log but don't fail - projection errors are not critical
+				fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.removed event %s: %v\n", event.ID, err)
+			}
+		}
+
+		// Project v4 events into their respective tables
 		switch event.Kind {
 		case string(EventKindProjectCreated):
 			if err := db.ProjectProjectCreatedEvent(event); err != nil {
@@ -106,7 +117,7 @@ func ingestFile(db *DB, path string) error {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
 			}
 		case string(EventKindTaskCreated):
-			if err := db.ProjectTaskCreatedEvent(event); err != nil {
+			if err := db.ProjectTaskCreatedV4Event(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
 			}
 		case string(EventKindTaskNumberSet):
@@ -126,38 +137,18 @@ func ingestFile(db *DB, path string) error {
 		ingested++
 	}
 
-	// Ensure DB version is set to 4
-	if err := db.SetDBVersion(4); err != nil {
-		return fmt.Errorf("failed to set DB version to 4: %w", err)
-	}
-
 	fmt.Printf("Ingested %d events (%d duplicates skipped)\n", ingested, duplicates)
 	return nil
 }
 
 // ingestRemote ingests events from all segments in a remote
 func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
-	// Use configured spaces, or default to "personal"
-	spaces := remote.Spaces
-	if len(spaces) == 0 {
-		spaces = []string{"personal"}
-	}
+	space := "personal" // TODO: make this configurable
 
-	for _, space := range spaces {
-		if err := ingestRemoteSpace(db, remoteName, remote, space); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// ingestRemoteSpace ingests events from a specific space in a remote
-func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space string) error {
 	// Find all segment files
 	segmentsDir := filepath.Join(remote.Path, space, "segments")
 	if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
-		fmt.Printf("No segments directory found for space '%s'\n", space)
+		fmt.Println("No segments directory found")
 		return nil
 	}
 
@@ -214,7 +205,21 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 				return fmt.Errorf("failed to bump lamport: %w", err)
 			}
 
-			// Project events into their respective tables
+			// Project prefix events into prefixes table
+			if event.Kind == "prefix.created" {
+				if err := db.ProjectPrefixCreatedEvent(event); err != nil {
+					// Log but don't fail - projection errors are not critical
+					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.created event %s: %v\n", event.ID, err)
+				}
+			}
+			if event.Kind == "prefix.removed" {
+				if err := db.ProjectPrefixRemovedEvent(event); err != nil {
+					// Log but don't fail - projection errors are not critical
+					fmt.Fprintf(os.Stderr, "Warning: failed to project prefix.removed event %s: %v\n", event.ID, err)
+				}
+			}
+
+			// Project v4 events into their respective tables
 			switch event.Kind {
 			case string(EventKindProjectCreated):
 				if err := db.ProjectProjectCreatedEvent(event); err != nil {
@@ -229,7 +234,7 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
 				}
 			case string(EventKindTaskCreated):
-				if err := db.ProjectTaskCreatedEvent(event); err != nil {
+				if err := db.ProjectTaskCreatedV4Event(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
 				}
 			case string(EventKindTaskNumberSet):
@@ -248,11 +253,6 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 
 			totalIngested++
 		}
-	}
-
-	// Ensure DB version is set to 4
-	if err := db.SetDBVersion(4); err != nil {
-		return fmt.Errorf("failed to set DB version to 4: %w", err)
 	}
 
 	// Save watermark

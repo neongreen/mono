@@ -153,7 +153,6 @@ func resolveProjectByAlias(db *DB, alias string) (string, error) {
 		return "", err
 	}
 
-	// First try to resolve by alias
 	var projectUID string
 	err = db.db.QueryRow(`
 		SELECT project_uid FROM project_aliases
@@ -161,25 +160,11 @@ func resolveProjectByAlias(db *DB, alias string) (string, error) {
 		ORDER BY CASE WHEN node = ? THEN 0 ELSE 1 END
 		LIMIT 1
 	`, alias, nodeID).Scan(&projectUID)
-	if err == nil {
-		return projectUID, nil
-	}
-	if err != sql.ErrNoRows {
-		return "", fmt.Errorf("failed to resolve project alias %s: %w", alias, err)
-	}
-
-	// If no alias found, try to resolve by project name
-	err = db.db.QueryRow(`
-		SELECT project_uid FROM projects
-		WHERE name = ?
-		ORDER BY created_at
-		LIMIT 1
-	`, alias).Scan(&projectUID)
 	if err == sql.ErrNoRows {
-		return "", fmt.Errorf("project/alias %s not found (checked aliases and project names)", alias)
+		return "", fmt.Errorf("project alias %s not found", alias)
 	}
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve project name %s: %w", alias, err)
+		return "", fmt.Errorf("failed to resolve project alias %s: %w", alias, err)
 	}
 	return projectUID, nil
 }

@@ -202,36 +202,17 @@ Examples:
 
 		fmt.Printf("Found %d segments on remote\n", len(remoteIndex.Segments))
 
-		// Verify segments exist - if any are missing, regenerate index from actual files
-		missingSegments := 0
-		for _, seg := range remoteIndex.Segments {
-			segPath := filepath.Join(remote.Path, seg.Rel)
-			if _, err := os.Stat(segPath); err != nil {
-				missingSegments++
-			}
-		}
-
-		// If any segments are missing, regenerate index from actual files
-		if missingSegments > 0 {
-			fmt.Printf("Index out of sync (%d missing segments), regenerating from disk...\n", missingSegments)
-			remoteIndex, err = reconstructIndex(remote.Path, space)
-			if err != nil {
-				return fmt.Errorf("failed to reconstruct index: %w", err)
-			}
-			// Save regenerated index to remote
-			if err := saveIndexFile(remoteIndexPath, remoteIndex); err != nil {
-				fmt.Printf("Warning: failed to save regenerated index: %v\n", err)
-			}
-		}
-
 		// For folder remotes, segments are already accessible locally
-		// Count segments that actually exist
+		// We just verify they exist and update our local index mirror
+
 		segmentCount := 0
 		for _, seg := range remoteIndex.Segments {
 			segPath := filepath.Join(remote.Path, seg.Rel)
-			if _, err := os.Stat(segPath); err == nil {
-				segmentCount++
+			if _, err := os.Stat(segPath); err != nil {
+				fmt.Printf("Warning: segment not found: %s\n", seg.Rel)
+				continue
 			}
+			segmentCount++
 		}
 
 		// Save local index mirror

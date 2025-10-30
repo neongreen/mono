@@ -27,8 +27,13 @@ Otherwise, shows all conflicts in the database.`,
 			return fmt.Errorf("failed to load config: %w", err)
 		}
 
-		// Use cached reducer for performance
-		reducer, err := db.GetCachedReducerWithConfig(config)
+		// Get all events and build reducer
+		events, err := db.GetEvents()
+		if err != nil {
+			return err
+		}
+
+		reducer, err := BuildFromEventsWithConfig(events, config)
 		if err != nil {
 			return err
 		}

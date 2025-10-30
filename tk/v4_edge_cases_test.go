@@ -1,12 +1,13 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 )
 
-// TestEventProjectionIdempotency tests that projecting the same event twice is safe
-func TestEventProjectionIdempotency(t *testing.T) {
+// TestV4EventProjectionIdempotency tests that projecting the same event twice is safe
+func TestV4EventProjectionIdempotency(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
 
@@ -19,8 +20,8 @@ func TestEventProjectionIdempotency(t *testing.T) {
 	if err := db.InitDB(); err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	if err := db.CreateProjectTables(); err != nil {
-		t.Fatalf("failed to create project tables: %v", err)
+	if err := db.CreateV4Tables(); err != nil {
+		t.Fatalf("failed to create v4 tables: %v", err)
 	}
 	if err := db.SetDBVersion(4); err != nil {
 		t.Fatalf("failed to set version: %v", err)
@@ -34,7 +35,7 @@ func TestEventProjectionIdempotency(t *testing.T) {
 	// Create a project event
 	projectUID := string(NewProjectUID())
 	projectEvent := createProjectCreatedEvent(projectUID, "Test Project", "A test", "alice", nodeA)
-
+	
 	// Insert and project once
 	if err := db.InsertEvent(projectEvent); err != nil {
 		t.Fatalf("failed to insert project event: %v", err)
@@ -59,8 +60,87 @@ func TestEventProjectionIdempotency(t *testing.T) {
 	}
 }
 
-// TestTaskNumberCollisionHandling tests collision display logic
-func TestTaskNumberCollisionHandling(t *testing.T) {
+// TestV4MigrationIdempotency tests that running migration twice is safe
+func TestV4MigrationIdempotency(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "test.db")
+
+	// Initialize v1/v2 database with a prefix
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+
+	if err := db.CreatePrefix("test", "Test prefix", "alice"); err != nil {
+		t.Fatalf("failed to create prefix: %v", err)
+	}
+	db.Close()
+
+	// Run migration once
+	db, err = OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to reopen database: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to reinit: %v", err)
+	}
+
+	needsMigration, err := db.NeedsMigrationToV4()
+	if err != nil {
+		t.Fatalf("failed to check migration: %v", err)
+	}
+	if !needsMigration {
+		t.Fatal("expected database to need migration")
+	}
+
+	if err := db.MigrateToV4(dbPath); err != nil {
+		t.Fatalf("first migration failed: %v", err)
+	}
+
+	// Count projects after first migration
+	var projectCount int
+	err = db.db.QueryRow("SELECT COUNT(*) FROM projects").Scan(&projectCount)
+	if err != nil {
+		t.Fatalf("failed to count projects: %v", err)
+	}
+
+	db.Close()
+
+	// Try to run migration again (should be skipped)
+	db, err = OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to reopen database: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to reinit: %v", err)
+	}
+
+	needsMigration, err = db.NeedsMigrationToV4()
+	if err != nil {
+		t.Fatalf("failed to check migration: %v", err)
+	}
+	if needsMigration {
+		t.Error("database should not need migration after first run")
+	}
+
+	// Verify project count didn't change (no duplicates)
+	var newProjectCount int
+	err = db.db.QueryRow("SELECT COUNT(*) FROM projects").Scan(&newProjectCount)
+	if err != nil {
+		t.Fatalf("failed to count projects: %v", err)
+	}
+	if newProjectCount != projectCount {
+		t.Errorf("project count changed after second migration check: %d -> %d", projectCount, newProjectCount)
+	}
+
+	db.Close()
+}
+
+// TestV4TaskNumberCollisionHandling tests collision display logic
+func TestV4TaskNumberCollisionHandling(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
 
@@ -73,8 +153,8 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	if err := db.InitDB(); err != nil {
 		t.Fatalf("failed to initialize database: %v", err)
 	}
-	if err := db.CreateProjectTables(); err != nil {
-		t.Fatalf("failed to create project tables: %v", err)
+	if err := db.CreateV4Tables(); err != nil {
+		t.Fatalf("failed to create v4 tables: %v", err)
 	}
 	if err := db.SetDBVersion(4); err != nil {
 		t.Fatalf("failed to set version: %v", err)
@@ -105,11 +185,11 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 
 	// Create two tasks with the same number (collision)
 	task1UID := string(NewTaskUID())
-	task1Event := createTaskCreatedEvent(task1UID, projectUID, 1, nodeA, "Task 1", "alice")
+	task1Event := createTaskCreatedV4Event(task1UID, projectUID, 1, nodeA, "Task 1", "alice")
 	if err := db.InsertEvent(task1Event); err != nil {
 		t.Fatalf("failed to insert task1: %v", err)
 	}
-	if err := db.ProjectTaskCreatedEvent(task1Event); err != nil {
+	if err := db.ProjectTaskCreatedV4Event(task1Event); err != nil {
 		t.Fatalf("failed to project task1: %v", err)
 	}
 
@@ -124,11 +204,11 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	// Simulate a different node creating another task with number 1
 	nodeB := "DifferentNode"
 	task2UID := string(NewTaskUID())
-	task2Event := createTaskCreatedEvent(task2UID, projectUID, 1, nodeB, "Task 2", "bob")
+	task2Event := createTaskCreatedV4Event(task2UID, projectUID, 1, nodeB, "Task 2", "bob")
 	if err := db.InsertEvent(task2Event); err != nil {
 		t.Fatalf("failed to insert task2: %v", err)
 	}
-	if err := db.ProjectTaskCreatedEvent(task2Event); err != nil {
+	if err := db.ProjectTaskCreatedV4Event(task2Event); err != nil {
 		t.Fatalf("failed to project task2: %v", err)
 	}
 
@@ -170,4 +250,104 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	if displayID1 == displayID2 {
 		t.Errorf("display IDs should be different for colliding tasks: %s", displayID1)
 	}
+}
+
+// TestV4MigrationRollbackAndRemigrate tests that rollback followed by remigration works
+func TestV4MigrationRollbackAndRemigrate(t *testing.T) {
+	tempDir := t.TempDir()
+	dbPath := filepath.Join(tempDir, "test.db")
+
+	// Initialize v1/v2 database
+	db, err := OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to open database: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to initialize database: %v", err)
+	}
+	if err := db.CreatePrefix("test", "Test prefix", "alice"); err != nil {
+		t.Fatalf("failed to create prefix: %v", err)
+	}
+	db.Close()
+
+	// Migrate to v4
+	db, err = OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to reopen database: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to reinit: %v", err)
+	}
+	if err := db.MigrateToV4(dbPath); err != nil {
+		t.Fatalf("migration failed: %v", err)
+	}
+
+	// Verify v4
+	version, err := db.GetDBVersion()
+	if err != nil {
+		t.Fatalf("failed to get version: %v", err)
+	}
+	if version != 4 {
+		t.Fatalf("expected version 4, got %d", version)
+	}
+	db.Close()
+
+	// Rollback
+	if err := RollbackV4(dbPath); err != nil {
+		t.Fatalf("rollback failed: %v", err)
+	}
+
+	// Verify we're back to v3
+	db, err = OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to reopen after rollback: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to reinit after rollback: %v", err)
+	}
+	if err := db.SetDBVersion(3); err != nil {
+		t.Fatalf("failed to set version after rollback: %v", err)
+	}
+
+	version, err = db.GetDBVersion()
+	if err != nil {
+		t.Fatalf("failed to get version after rollback: %v", err)
+	}
+	if version != 3 {
+		t.Fatalf("expected version 3 after rollback, got %d", version)
+	}
+	db.Close()
+
+	// Migrate again
+	db, err = OpenDB(dbPath)
+	if err != nil {
+		t.Fatalf("failed to reopen for remigration: %v", err)
+	}
+	if err := db.InitDB(); err != nil {
+		t.Fatalf("failed to reinit for remigration: %v", err)
+	}
+
+	// Remove old backup to test backup recreation
+	backupPath := dbPath + ".v3.bak"
+	os.Remove(backupPath)
+
+	if err := db.MigrateToV4(dbPath); err != nil {
+		t.Fatalf("remigration failed: %v", err)
+	}
+
+	// Verify v4 again
+	version, err = db.GetDBVersion()
+	if err != nil {
+		t.Fatalf("failed to get version after remigration: %v", err)
+	}
+	if version != 4 {
+		t.Fatalf("expected version 4 after remigration, got %d", version)
+	}
+
+	// Verify backup was recreated
+	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
+		t.Error("backup was not recreated during remigration")
+	}
+
+	db.Close()
 }

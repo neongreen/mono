@@ -171,7 +171,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "task.created",
-		Payload:   marshalPayload(TaskCreatedPayload{TaskUID: "task-a", ProjectUID: string(NewProjectUID()), ProposedNumber: 1, CreatedNode: string(NewNodeID()), Title: "Task A", CreatedBy: "alice"}),
+		Payload:   marshalPayload(TaskCreatedPayload{TaskUUID: "task-a", TaskID: "tk-1", Title: "Task A", CreatedBy: "alice"}),
 	}
 	createTaskB := Event{
 		ID:        "ev-2-node1",
@@ -180,7 +180,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "task.created",
-		Payload:   marshalPayload(TaskCreatedPayload{TaskUID: "task-b", ProjectUID: string(NewProjectUID()), ProposedNumber: 1, CreatedNode: string(NewNodeID()), Title: "Task B", CreatedBy: "alice"}),
+		Payload:   marshalPayload(TaskCreatedPayload{TaskUUID: "task-b", TaskID: "tk-2", Title: "Task B", CreatedBy: "alice"}),
 	}
 
 	if err := reducer.Apply(createTaskA); err != nil {
