@@ -10,6 +10,9 @@ on:
       - "jj-run/**"
       - ".github/workflows/jj-run.yml"
 
+env:
+  MISE_EXPERIMENTAL: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
