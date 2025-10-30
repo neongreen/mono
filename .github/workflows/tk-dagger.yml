@@ -1,0 +1,38 @@
+name: tk (Dagger)
+
+on:
+  push:
+    paths:
+      - "tk/**"
+      - ".github/workflows/tk-dagger.yml"
+  pull_request:
+    paths:
+      - "tk/**"
+      - ".github/workflows/tk-dagger.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install Dagger
+        run: |
+          curl -L https://dl.dagger.io/dagger/install.sh | sh
+          sudo mv ./bin/dagger /usr/local/bin/
+
+      - name: Run tests via Dagger
+        working-directory: tk/.dagger
+        run: dagger call test
+
+      - name: Check formatting via Dagger
+        if: always()
+        working-directory: tk/.dagger
+        run: dagger call fmt-check
+        continue-on-error: true
