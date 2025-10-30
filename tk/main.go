@@ -335,11 +335,10 @@ var lsCmd = &cobra.Command{
 
 		tasks := reducer.GetAllTasks()
 
-		// Get task IDs for filtering and formatting
-		var taskIDs []string
+		// Filter by project alias if specified
 		if len(prefixFilter) > 0 {
 			// Filter by project alias (--prefix flag filters by project alias)
-			taskIDs, err = db.GetTaskIDsByPrefixes(prefixFilter)
+			taskIDs, err := db.GetTaskIDsByPrefixes(prefixFilter)
 			if err != nil {
 				return err
 			}
@@ -356,11 +355,6 @@ var lsCmd = &cobra.Command{
 				}
 			}
 			tasks = filtered
-		} else {
-			taskIDs, err = db.GetAllTaskIDs()
-			if err != nil {
-				return err
-			}
 		}
 
 		// Filter by axis if specified
@@ -445,7 +439,7 @@ var lsCmd = &cobra.Command{
 					fmt.Println() // Add blank line between tables
 				}
 				fmt.Printf("Project: %s\n", groupKey)
-				renderTaskTable(db, grouped[groupKey], taskIDs, showAliases, termWidth)
+				renderTaskTable(db, grouped[groupKey], showAliases, termWidth)
 			}
 
 		case "status":
@@ -474,12 +468,12 @@ var lsCmd = &cobra.Command{
 					fmt.Println() // Add blank line between tables
 				}
 				fmt.Printf("Status: %s\n", colorizeStatus(status))
-				renderTaskTable(db, grouped[status], taskIDs, showAliases, termWidth)
+				renderTaskTable(db, grouped[status], showAliases, termWidth)
 			}
 
 		case "none":
 			// No grouping - render single table
-			renderTaskTable(db, tasks, taskIDs, showAliases, termWidth)
+			renderTaskTable(db, tasks, showAliases, termWidth)
 
 		default:
 			return fmt.Errorf("invalid --group value: %s (must be prefix, status, or none)", groupBy)
