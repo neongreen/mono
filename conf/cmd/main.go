@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
+
 	"strings"
 
 	"github.com/neongreen/mono/conf/pkg/config"
@@ -949,27 +949,6 @@ After adding to your shell config, restart your shell or source the file.`,
 			os.Exit(1)
 		}
 	},
-}
-
-// parseValue attempts to parse a string value into the appropriate type
-func parseValue(value string) interface{} {
-	// Try boolean first
-	if value == "true" || value == "false" {
-		return value == "true"
-	}
-
-	// Try integer
-	if intVal, err := strconv.Atoi(value); err == nil {
-		return intVal
-	}
-
-	// Try float
-	if floatVal, err := strconv.ParseFloat(value, 64); err == nil {
-		return floatVal
-	}
-
-	// Default to string
-	return value
 }
 
 var importCmd = &cobra.Command{

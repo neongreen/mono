@@ -58,6 +58,14 @@ Or add to your `.mise.toml`:
 
 - Go 1.24.4 or later
 - `gopls` (Go language server) must be installed and available in PATH
+- `goimports` must be installed and available in PATH
+
+To install the required tools:
+
+```bash
+go install golang.org/x/tools/gopls@latest
+go install golang.org/x/tools/cmd/goimports@latest
+```
 
 ## Usage
 

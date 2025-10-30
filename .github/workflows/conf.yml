@@ -98,4 +98,4 @@ jobs:
 
       - name: Build
         working-directory: conf
-        run: go build -v ./cmd/main.go
+        run: go build -v -o conf-binary ./cmd
