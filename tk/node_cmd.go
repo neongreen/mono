@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -15,6 +16,8 @@ var nodeShowCmd = &cobra.Command{
 	Use:   "show",
 	Short: "Show the current node ID",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+
 		db, err := openExistingDB()
 		if err != nil {
 			return err
@@ -26,7 +29,16 @@ var nodeShowCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println(nodeID)
+		if jsonOutput {
+			output := map[string]string{"node_id": nodeID}
+			data, err := json.MarshalIndent(output, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal output: %w", err)
+			}
+			fmt.Println(string(data))
+		} else {
+			fmt.Println(nodeID)
+		}
 		return nil
 	},
 }
@@ -88,6 +100,7 @@ Only use this command if you have a node ID collision with another machine.`,
 }
 
 func init() {
+	nodeShowCmd.Flags().Bool("json", false, "Output as JSON")
 	nodeCmd.AddCommand(nodeShowCmd)
 	nodeCmd.AddCommand(nodeRegenCmd)
 }

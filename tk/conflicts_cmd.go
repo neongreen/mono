@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -15,6 +16,8 @@ var conflictsCmd = &cobra.Command{
 If a task ID is provided, shows conflicts for that task only.
 Otherwise, shows all conflicts in the database.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+
 		db, err := openExistingDB()
 		if err != nil {
 			return err
@@ -36,6 +39,73 @@ Otherwise, shows all conflicts in the database.`,
 		// Check for cycles in blocks and subtasks
 		blocksCycles := reducer.relations.DetectCycles("blocks")
 		subtaskCycles := reducer.relations.DetectCycles("subtask")
+
+		if jsonOutput {
+			type CycleOutput struct {
+				Type    string   `json:"type"`
+				TaskIDs []string `json:"task_ids"`
+				Fix     string   `json:"fix"`
+			}
+
+			output := struct {
+				Conflicts []CycleOutput `json:"conflicts"`
+			}{
+				Conflicts: []CycleOutput{},
+			}
+
+			for _, cycle := range blocksCycles {
+				var taskIDs []string
+				for _, uuid := range cycle {
+					task, ok := reducer.GetTask(uuid)
+					if ok {
+						taskIDs = append(taskIDs, task.TaskID)
+					} else {
+						taskIDs = append(taskIDs, uuid)
+					}
+				}
+
+				fix := ""
+				if len(taskIDs) > 0 {
+					fix = fmt.Sprintf("tk relate remove %s blocks %s", taskIDs[len(taskIDs)-1], taskIDs[0])
+				}
+
+				output.Conflicts = append(output.Conflicts, CycleOutput{
+					Type:    "blocks",
+					TaskIDs: taskIDs,
+					Fix:     fix,
+				})
+			}
+
+			for _, cycle := range subtaskCycles {
+				var taskIDs []string
+				for _, uuid := range cycle {
+					task, ok := reducer.GetTask(uuid)
+					if ok {
+						taskIDs = append(taskIDs, task.TaskID)
+					} else {
+						taskIDs = append(taskIDs, uuid)
+					}
+				}
+
+				fix := ""
+				if len(taskIDs) > 0 {
+					fix = fmt.Sprintf("tk relate remove %s subtask %s", taskIDs[len(taskIDs)-1], taskIDs[0])
+				}
+
+				output.Conflicts = append(output.Conflicts, CycleOutput{
+					Type:    "subtask",
+					TaskIDs: taskIDs,
+					Fix:     fix,
+				})
+			}
+
+			data, err := json.MarshalIndent(output, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal output: %w", err)
+			}
+			fmt.Println(string(data))
+			return nil
+		}
 
 		if len(blocksCycles) == 0 && len(subtaskCycles) == 0 {
 			fmt.Println("No conflicts detected")
@@ -97,4 +167,8 @@ Otherwise, shows all conflicts in the database.`,
 
 		return nil
 	},
+}
+
+func init() {
+	conflictsCmd.Flags().Bool("json", false, "Output as JSON")
 }

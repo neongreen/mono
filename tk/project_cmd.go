@@ -136,6 +136,8 @@ var projectListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all projects",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+
 		db, err := openExistingDB()
 		if err != nil {
 			return err
@@ -159,8 +161,17 @@ var projectListCmd = &cobra.Command{
 			return err
 		}
 
-		t := table.NewWriter()
-		t.AppendHeader(table.Row{"UID", "Name", "Type", "Aliases", "Description", "Created By"})
+		type ProjectOutput struct {
+			UID         string   `json:"uid"`
+			Name        string   `json:"name"`
+			Type        string   `json:"type"`
+			Aliases     []string `json:"aliases"`
+			Description string   `json:"description"`
+			CreatedBy   string   `json:"created_by"`
+			CreatedAt   int64    `json:"created_at"`
+		}
+
+		var projects []ProjectOutput
 
 		for rows.Next() {
 			var projectUID, typ, name, description, createdBy string
@@ -190,16 +201,43 @@ var projectListCmd = &cobra.Command{
 			}
 			aliasRows.Close()
 
-			aliasStr := ""
-			if len(aliases) > 0 {
-				aliasStr = fmt.Sprintf("%v", aliases)
-			}
-
-			t.AppendRow(table.Row{projectUID, name, typ, aliasStr, description, createdBy})
+			projects = append(projects, ProjectOutput{
+				UID:         projectUID,
+				Name:        name,
+				Type:        typ,
+				Aliases:     aliases,
+				Description: description,
+				CreatedBy:   createdBy,
+				CreatedAt:   createdAt,
+			})
 		}
 
-		fmt.Println(t.Render())
-		return rows.Err()
+		if err := rows.Err(); err != nil {
+			return err
+		}
+
+		if jsonOutput {
+			output, err := json.MarshalIndent(projects, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal projects: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			t := table.NewWriter()
+			t.AppendHeader(table.Row{"UID", "Name", "Type", "Aliases", "Description", "Created By"})
+
+			for _, project := range projects {
+				aliasStr := ""
+				if len(project.Aliases) > 0 {
+					aliasStr = fmt.Sprintf("%v", project.Aliases)
+				}
+				t.AppendRow(table.Row{project.UID, project.Name, project.Type, aliasStr, project.Description, project.CreatedBy})
+			}
+
+			fmt.Println(t.Render())
+		}
+
+		return nil
 	},
 }
 
@@ -361,7 +399,10 @@ func getNextLamportTimestamp(db *DB) int64 {
 
 func init() {
 	projectCmd.AddCommand(projectCreateCmd)
+
+	projectListCmd.Flags().Bool("json", false, "Output as JSON")
 	projectCmd.AddCommand(projectListCmd)
+
 	projectCmd.AddCommand(projectAliasCmd)
 
 	projectAliasCmd.AddCommand(projectAliasAddCmd)

@@ -27,6 +27,7 @@ var idCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
+		jsonOutput, _ := cmd.Flags().GetBool("json")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -39,6 +40,9 @@ var idCmd = &cobra.Command{
 			return err
 		}
 
+		// Always output JSON for now (backward compatibility)
+		// TODO: Add human-readable format if needed
+		_ = jsonOutput
 		output, err := json.MarshalIndent(identity, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal task identity: %w", err)
@@ -47,6 +51,10 @@ var idCmd = &cobra.Command{
 		fmt.Println(string(output))
 		return nil
 	},
+}
+
+func init() {
+	idCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
 func describeTask(db *DB, ref string) (*taskIdentity, error) {
