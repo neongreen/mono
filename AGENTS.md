@@ -54,17 +54,6 @@ When you are asked to do something "always" or "never", you must also record thi
 
 ------------------------------------------------------------
 
-## Pull Request Template
-
-All pull requests must include a code block at the very start showing how to run the PR with the `prrun` tool. This is handled automatically via the pull request template at `.github/pull_request_template.md`. The template should:
-
-- Be at the very start of the PR description
-- Show the `prrun` command with placeholders for PR number and project name
-- Provide clear examples of how to use it
-- Assume the user already has `prrun` installed
-
-------------------------------------------------------------
-
 ## Build and Run Guidelines
 
 **Always use `mise` for building and running Go projects. Never use `go build` or `go run` directly.**
