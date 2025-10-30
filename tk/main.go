@@ -110,8 +110,8 @@ var statusCmd = &cobra.Command{
 	Short: "Manage task status and sync status",
 }
 
-var statusSetCmd = &cobra.Command{
-	Use:   "set [task-id] [state]",
+var markCmd = &cobra.Command{
+	Use:   "mark [task-id] [state]",
 	Short: "Set task status",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -513,9 +513,9 @@ func init() {
 	newCmd.Flags().String("project", "tk", "Project alias or UID to use")
 	rootCmd.AddCommand(newCmd)
 
-	statusSetCmd.Flags().String("axis", "generic", "Status axis")
-	statusSetCmd.Flags().String("role", "human", "Actor role")
-	statusCmd.AddCommand(statusSetCmd)
+	markCmd.Flags().String("axis", "generic", "Status axis")
+	markCmd.Flags().String("role", "human", "Actor role")
+	rootCmd.AddCommand(markCmd)
 	statusCmd.AddCommand(statusSyncCmd)
 	rootCmd.AddCommand(statusCmd)
 
