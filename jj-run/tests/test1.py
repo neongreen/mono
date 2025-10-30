@@ -102,7 +102,7 @@ def main():
         actual_before_lines = [
             line
             for line in result_before.stdout.splitlines()
-            if not line.startswith(("@", "○", "◆")) and line.strip()
+            if line.strip() and line.strip().startswith("│")
         ]
         actual_before = "\n".join(actual_before_lines)
 
@@ -148,7 +148,7 @@ def main():
         actual_after_lines = [
             line
             for line in result_after.stdout.splitlines()
-            if not line.startswith(("@", "○", "◆")) and line.strip()
+            if line.strip() and line.strip().startswith("│")
         ]
         actual_after = "\n".join(actual_after_lines)
 
