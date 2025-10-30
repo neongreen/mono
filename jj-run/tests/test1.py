@@ -102,7 +102,7 @@ def main():
         actual_before_lines = [
             line
             for line in result_before.stdout.splitlines()
-            if not line.startswith(("@", "○", "◆")) and line.strip()
+            if line.strip() and line.strip().startswith("│")
         ]
         actual_before = "\n".join(actual_before_lines)
 
@@ -118,7 +118,7 @@ def main():
         # Use jj-run to merge all .txt files
         jj_run_command = [
             "python3",
-            str((script_dir / ".." / "jj-run.py").resolve()),
+            str((script_dir / ".." / "src" / "jj_run" / "main.py").resolve()),
             "-r",
             "::",
             'for f in *.txt; do cat "$f" >> merged.txt; rm "$f"; done',
@@ -148,7 +148,7 @@ def main():
         actual_after_lines = [
             line
             for line in result_after.stdout.splitlines()
-            if not line.startswith(("@", "○", "◆")) and line.strip()
+            if line.strip() and line.strip().startswith("│")
         ]
         actual_after = "\n".join(actual_after_lines)
 

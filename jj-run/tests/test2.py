@@ -52,10 +52,10 @@ def main():
         demo("jj commit -m 'another single .txt file' third.txt")
         # Show commit contents before running jj-run
         demo("jj log -p -r '::'")
-        # Run jj-run.py with a command that fails if failme.txt exists
+        # Run jj-run with a command that fails if failme.txt exists
         jj_run_command = [
             "python3",
-            str((script_dir / ".." / "jj-run.py").resolve()),
+            str((script_dir / ".." / "src" / "jj_run" / "main.py").resolve()),
             "-r",
             "::",
             "-e",
@@ -76,7 +76,7 @@ def main():
         # Now test -e stop (should exit nonzero)
         jj_run_command_stop = [
             "python3",
-            str((script_dir / ".." / "jj-run.py").resolve()),
+            str((script_dir / ".." / "src" / "jj_run" / "main.py").resolve()),
             "-r",
             "::",
             "-e",
