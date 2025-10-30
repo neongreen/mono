@@ -776,36 +776,45 @@ func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
 	return taskUIDs, rows.Err()
 }
 
-// FormatTaskID formats a task ID for display, hiding the suffix unless needed for disambiguation
-func FormatTaskID(fullID string, allTaskIDs []string) string {
-	// Extract parts: <prefix>-<number>-<suffix>
-	parts := strings.Split(fullID, "-")
-	if len(parts) < 3 {
-		return fullID // Malformed ID, return as-is
-	}
-
-	shortForm := strings.Join(parts[:2], "-") // <prefix>-<number>
-
-	// Check if any other task has the same short form but different suffix
-	needsSuffix := false
-	for _, otherID := range allTaskIDs {
-		if otherID == fullID {
-			continue
-		}
-		otherParts := strings.Split(otherID, "-")
-		if len(otherParts) >= 2 {
-			otherShortForm := strings.Join(otherParts[:2], "-")
-			if otherShortForm == shortForm {
-				needsSuffix = true
-				break
-			}
-		}
-	}
-
-	if needsSuffix {
+// FormatTaskID formats a task ID for display, hiding the suffix unless needed for disambiguation.
+//
+// The function returns the full ID unchanged in the following error cases:
+//   - Malformed ID that cannot be parsed
+//   - Alias that cannot be resolved to a project UID
+//   - Database error when checking for collisions
+//
+// This ensures that task IDs are always displayable even when errors occur,
+// at the cost of potentially showing longer IDs than necessary.
+func FormatTaskID(db *DB, fullID string) string {
+	// Parse the display ID to extract alias and number
+	displayID := DisplayID(fullID)
+	alias, number, _, err := displayID.Parse()
+	if err != nil {
+		// Malformed ID, return as-is
 		return fullID
 	}
-	return shortForm
+
+	// Resolve the alias to get project_uid
+	projectUID, err := resolveProjectByAlias(db, alias)
+	if err != nil {
+		// Cannot resolve alias, return as-is
+		return fullID
+	}
+
+	// Check if there's a collision for this project/number combination
+	collision, err := hasNumberCollision(db, projectUID, number)
+	if err != nil {
+		// Error checking collision, return as-is
+		return fullID
+	}
+
+	// If collision exists, return full ID with suffix
+	if collision {
+		return fullID
+	}
+
+	// No collision, return short form (alias-number)
+	return fmt.Sprintf("%s-%d", alias, number)
 }
 
 // GetCachedReducerWithConfig returns a cached reducer or builds a new one if needed.
