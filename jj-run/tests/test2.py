@@ -38,6 +38,11 @@ def demo(command):
 def main():
     os.environ["PAGER"] = "cat"
     script_dir = Path(__file__).parent
+    
+    # Set PYTHONPATH to include the src directory for module imports
+    src_dir = (script_dir / ".." / "src").resolve()
+    os.environ["PYTHONPATH"] = str(src_dir) + os.pathsep + os.environ.get("PYTHONPATH", "")
+    
     repo_dir = tempfile.mkdtemp()
     original_dir = os.getcwd()
     os.chdir(repo_dir)
@@ -52,10 +57,11 @@ def main():
         demo("jj commit -m 'another single .txt file' third.txt")
         # Show commit contents before running jj-run
         demo("jj log -p -r '::'")
-        # Run jj-run.py with a command that fails if failme.txt exists
+        # Run jj-run with a command that fails if failme.txt exists
         jj_run_command = [
             "python3",
-            str((script_dir / ".." / "jj-run.py").resolve()),
+            "-m",
+            "jj_run.main",
             "-r",
             "::",
             "-e",
@@ -76,7 +82,8 @@ def main():
         # Now test -e stop (should exit nonzero)
         jj_run_command_stop = [
             "python3",
-            str((script_dir / ".." / "jj-run.py").resolve()),
+            "-m",
+            "jj_run.main",
             "-r",
             "::",
             "-e",

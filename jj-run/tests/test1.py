@@ -62,6 +62,10 @@ def main():
 
     # Determine the directory containing this script for relative paths
     script_dir = Path(__file__).parent
+    
+    # Set PYTHONPATH to include the src directory for module imports
+    src_dir = (script_dir / ".." / "src").resolve()
+    os.environ["PYTHONPATH"] = str(src_dir) + os.pathsep + os.environ.get("PYTHONPATH", "")
 
     # Create a new jj repository in a temporary directory
     repo_dir = tempfile.mkdtemp()
@@ -118,7 +122,8 @@ def main():
         # Use jj-run to merge all .txt files
         jj_run_command = [
             "python3",
-            str((script_dir / ".." / "jj-run.py").resolve()),
+            "-m",
+            "jj_run.main",
             "-r",
             "::",
             'for f in *.txt; do cat "$f" >> merged.txt; rm "$f"; done',
