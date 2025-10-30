@@ -47,7 +47,7 @@ When concurrent claims exist (same Lamport timestamp), the claim with highest au
 - `tk init` - Initialize a new database (optional, auto-created on first use)
 - `tk db path` - Show database path (defaults to `~/.tk/tk.db`)
 - `tk new "title"` - Create a new task
-- `tk status set <id> <state>` - Set task status (supports --axis and --role flags)
+- `tk mark <id> <state>` - Set task status (supports --axis and --role flags)
 - `tk note <id> "text"` - Add a note to a task
 - `tk view <id>` - View task with all claims (JSON output)
 - `tk ls` - List all tasks (supports --axis filter and --sort)
@@ -147,10 +147,10 @@ Created task tk-1: Implement authentication
 $ tk db path
 /home/user/.tk/tk.db
 
-$ tk status set tk-1 in_progress
+$ tk mark tk-1 in_progress
 Set status for task tk-1: generic=in_progress
 
-$ tk status set tk-1 done --role agent
+$ tk mark tk-1 done --role agent
 Set status for task tk-1: generic=done
 
 $ tk view tk-1

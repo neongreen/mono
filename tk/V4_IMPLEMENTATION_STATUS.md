@@ -46,7 +46,7 @@ The tk v4 specification has been fully implemented with automatic migration, com
 - [x] `tk ls` (v4-aware grouping by project)
 - [x] `tk view <task-ref>` (supports UIDs and display IDs)
 - [x] `tk edit <task> <field> <value>`
-- [x] `tk status set <task> <status>`
+- [x] `tk mark <task> <status>`
 - [x] `tk id <task>` (shows v4 metadata)
 
 **Relations:**

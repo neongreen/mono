@@ -218,14 +218,14 @@ This creates a task like `foo-1-abc123`.
 ### Set task status
 
 ```bash
-tk status set tk-1 in_progress
-tk status set foo-1 done
+tk mark tk-1 in_progress
+tk mark foo-1 done
 ```
 
 You can specify the axis and role:
 
 ```bash
-tk status set tk-1 done --axis generic --role agent
+tk mark tk-1 done --axis generic --role agent
 ```
 
 ### Add a note to a task
