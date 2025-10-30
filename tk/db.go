@@ -776,7 +776,15 @@ func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
 	return taskUIDs, rows.Err()
 }
 
-// FormatTaskID formats a task ID for display, hiding the suffix unless needed for disambiguation
+// FormatTaskID formats a task ID for display, hiding the suffix unless needed for disambiguation.
+//
+// The function returns the full ID unchanged in the following error cases:
+//   - Malformed ID that cannot be parsed
+//   - Alias that cannot be resolved to a project UID
+//   - Database error when checking for collisions
+//
+// This ensures that task IDs are always displayable even when errors occur,
+// at the cost of potentially showing longer IDs than necessary.
 func FormatTaskID(db *DB, fullID string) string {
 	// Parse the display ID to extract alias and number
 	displayID := DisplayID(fullID)
