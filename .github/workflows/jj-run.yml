@@ -28,9 +28,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install mise
-        uses: jdx/mise-action@f8dfbcc150159126838e44b882bf34bd98fd90f3 # v2.1.0
-        with:
-          version: 2024.1.0
+        uses: jdx/mise-action@e3d7b8d67a7958d1207f6ed871e83b1ea780e7b0 # v3.3.1
 
       - name: Install jujutsu
         run: |
