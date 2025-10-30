@@ -54,6 +54,12 @@ Example:
 }
 
 func runMove(cmd *cobra.Command, args []string) {
+	// Check for required dependencies
+	if err := checkDependencies(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
 	// Parse arguments
 	// Last argument is the target file
 	targetFile := args[len(args)-1]
