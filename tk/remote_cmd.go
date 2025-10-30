@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -75,24 +76,38 @@ var remoteLsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "List configured remotes",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+		
 		config, err := LoadConfig()
 		if err != nil {
 			return err
 		}
 
 		if len(config.Remotes) == 0 {
-			fmt.Println("No remotes configured.")
+			if jsonOutput {
+				fmt.Println("[]")
+			} else {
+				fmt.Println("No remotes configured.")
+			}
 			return nil
 		}
 
-		for name, remote := range config.Remotes {
-			fmt.Printf("%s:\n", name)
-			fmt.Printf("  Type: %s\n", remote.Type)
-			fmt.Printf("  Path: %s\n", remote.Path)
-			fmt.Printf("  Spaces: %v\n", remote.Spaces)
-			fmt.Printf("  Push: %v\n", remote.Push)
-			fmt.Printf("  Pull: %v\n", remote.Pull)
-			fmt.Println()
+		if jsonOutput {
+			output, err := json.MarshalIndent(config.Remotes, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal remotes: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			for name, remote := range config.Remotes {
+				fmt.Printf("%s:\n", name)
+				fmt.Printf("  Type: %s\n", remote.Type)
+				fmt.Printf("  Path: %s\n", remote.Path)
+				fmt.Printf("  Spaces: %v\n", remote.Spaces)
+				fmt.Printf("  Push: %v\n", remote.Push)
+				fmt.Printf("  Pull: %v\n", remote.Pull)
+				fmt.Println()
+			}
 		}
 
 		return nil
@@ -137,6 +152,9 @@ Examples:
 
 func init() {
 	remoteCmd.AddCommand(remoteAddCmd)
+	
+	remoteLsCmd.Flags().Bool("json", false, "Output as JSON")
 	remoteCmd.AddCommand(remoteLsCmd)
+	
 	remoteCmd.AddCommand(remoteRmCmd)
 }

@@ -126,6 +126,7 @@ Examples:
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		eventID := args[0]
+		jsonOutput, _ := cmd.Flags().GetBool("json")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -150,7 +151,8 @@ Examples:
 			return fmt.Errorf("event not found: %s", eventID)
 		}
 
-		// Pretty print the event as JSON
+		// Always output JSON for now (backward compatibility)
+		_ = jsonOutput
 		output, err := json.MarshalIndent(found, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal event: %w", err)
@@ -172,6 +174,8 @@ Examples:
   tk events stats
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+		
 		db, err := openExistingDB()
 		if err != nil {
 			return err
@@ -184,7 +188,18 @@ Examples:
 		}
 
 		if len(events) == 0 {
-			fmt.Println("No events found")
+			if jsonOutput {
+				output := map[string]interface{}{
+					"total": 0,
+					"by_kind": map[string]int{},
+					"by_actor": map[string]int{},
+					"by_role": map[string]int{},
+				}
+				data, _ := json.MarshalIndent(output, "", "  ")
+				fmt.Println(string(data))
+			} else {
+				fmt.Println("No events found")
+			}
 			return nil
 		}
 
@@ -197,6 +212,21 @@ Examples:
 			kindCounts[e.Kind]++
 			actorCounts[e.Actor]++
 			roleCounts[e.Role]++
+		}
+
+		if jsonOutput {
+			output := map[string]interface{}{
+				"total": len(events),
+				"by_kind": kindCounts,
+				"by_actor": actorCounts,
+				"by_role": roleCounts,
+			}
+			data, err := json.MarshalIndent(output, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal stats: %w", err)
+			}
+			fmt.Println(string(data))
+			return nil
 		}
 
 		// Display statistics
@@ -255,6 +285,10 @@ func init() {
 	eventsListCmd.Flags().Bool("json", false, "Output events as JSON")
 
 	eventsCmd.AddCommand(eventsListCmd)
+	
+	eventsShowCmd.Flags().Bool("json", false, "Output as JSON")
 	eventsCmd.AddCommand(eventsShowCmd)
+	
+	eventsStatsCmd.Flags().Bool("json", false, "Output as JSON")
 	eventsCmd.AddCommand(eventsStatsCmd)
 }

@@ -31,6 +31,8 @@ var doctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Verify database health and report issues",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+		
 		db, err := openExistingDB()
 		if err != nil {
 			return err
@@ -42,7 +44,15 @@ var doctorCmd = &cobra.Command{
 			return err
 		}
 
-		printDoctorReport(os.Stdout, report)
+		if jsonOutput {
+			output, err := json.MarshalIndent(report, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal report: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			printDoctorReport(os.Stdout, report)
+		}
 
 		if report.ProblemCount() > 0 {
 			return fmt.Errorf("doctor found %d issue(s)", report.ProblemCount())
@@ -50,6 +60,10 @@ var doctorCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func init() {
+	doctorCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
 func runDoctor(db *DB) (*DoctorReport, error) {

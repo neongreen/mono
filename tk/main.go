@@ -66,11 +66,23 @@ var dbPathCmd = &cobra.Command{
 	Use:   "path",
 	Short: "Print the current database path",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+		
 		path, err := GetDBPath()
 		if err != nil {
 			return err
 		}
-		fmt.Println(path)
+		
+		if jsonOutput {
+			output := map[string]string{"path": path}
+			data, err := json.MarshalIndent(output, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal output: %w", err)
+			}
+			fmt.Println(string(data))
+		} else {
+			fmt.Println(path)
+		}
 		return nil
 	},
 }
@@ -249,6 +261,7 @@ var viewCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
+		jsonOutput, _ := cmd.Flags().GetBool("json")
 
 		db, err := openExistingDB()
 		if err != nil {
@@ -287,6 +300,9 @@ var viewCmd = &cobra.Command{
 		taskCopy := *task
 		taskCopy.TaskID = displayID
 
+		// Always output JSON for now (backward compatibility)
+		// TODO: Add human-readable format if needed
+		_ = jsonOutput
 		output, err := json.MarshalIndent(taskCopy, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal task: %w", err)
@@ -496,6 +512,7 @@ func init() {
 		Use:   "db",
 		Short: "Database commands",
 	}
+	dbPathCmd.Flags().Bool("json", false, "Output as JSON")
 	dbCmd.AddCommand(dbPathCmd)
 	rootCmd.AddCommand(dbCmd)
 
@@ -509,6 +526,8 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 
 	rootCmd.AddCommand(noteCmd)
+	
+	viewCmd.Flags().Bool("json", false, "Output as JSON")
 	rootCmd.AddCommand(viewCmd)
 
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")

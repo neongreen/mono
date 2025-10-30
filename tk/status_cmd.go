@@ -14,13 +14,19 @@ var statusSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Show sync status for all remotes",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+		
 		config, err := LoadConfig()
 		if err != nil {
 			return err
 		}
 
 		if len(config.Remotes) == 0 {
-			fmt.Println("No remotes configured.")
+			if jsonOutput {
+				fmt.Println("[]")
+			} else {
+				fmt.Println("No remotes configured.")
+			}
 			return nil
 		}
 
@@ -28,6 +34,19 @@ var statusSyncCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		type SyncStatusOutput struct {
+			Remote      string `json:"remote"`
+			Space       string `json:"space"`
+			LocalSegs   int    `json:"local_segments"`
+			RemoteSegs  int    `json:"remote_segments"`
+			Diverged    bool   `json:"diverged"`
+			LocalOnly   int    `json:"local_only_segments"`
+			RemoteOnly  int    `json:"remote_only_segments"`
+			LastSync    string `json:"last_sync"`
+		}
+
+		var statuses []SyncStatusOutput
 
 		for remoteName, remote := range config.Remotes {
 			for _, space := range remote.Spaces {
@@ -48,7 +67,6 @@ var statusSyncCmd = &cobra.Command{
 				}
 
 				// Check for divergence
-				diverged := "no"
 				localOnly := 0
 				remoteOnly := 0
 
@@ -71,10 +89,6 @@ var statusSyncCmd = &cobra.Command{
 							localOnly++
 						}
 					}
-
-					if localOnly > 0 || remoteOnly > 0 {
-						diverged = "yes"
-					}
 				}
 
 				// Get last sync time
@@ -88,16 +102,45 @@ var statusSyncCmd = &cobra.Command{
 					}
 				}
 
+				statuses = append(statuses, SyncStatusOutput{
+					Remote:     remoteName,
+					Space:      space,
+					LocalSegs:  localSegCount,
+					RemoteSegs: remoteSegCount,
+					Diverged:   localOnly > 0 || remoteOnly > 0,
+					LocalOnly:  localOnly,
+					RemoteOnly: remoteOnly,
+					LastSync:   lastSync,
+				})
+			}
+		}
+
+		if jsonOutput {
+			output, err := json.MarshalIndent(statuses, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal status: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			for _, status := range statuses {
+				diverged := "no"
+				if status.Diverged {
+					diverged = "yes"
+				}
 				fmt.Printf("%s/%s: local %d segs, remote %d segs, diverged: %s, last_sync: %s\n",
-					remoteName, space, localSegCount, remoteSegCount, diverged, lastSync)
-				if localOnly > 0 || remoteOnly > 0 {
-					fmt.Printf("  local +%d seg, remote +%d seg\n", localOnly, remoteOnly)
+					status.Remote, status.Space, status.LocalSegs, status.RemoteSegs, diverged, status.LastSync)
+				if status.LocalOnly > 0 || status.RemoteOnly > 0 {
+					fmt.Printf("  local +%d seg, remote +%d seg\n", status.LocalOnly, status.RemoteOnly)
 				}
 			}
 		}
 
 		return nil
 	},
+}
+
+func init() {
+	statusSyncCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
 // formatDuration formats a duration in human-readable form
