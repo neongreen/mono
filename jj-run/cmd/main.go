@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -172,12 +171,17 @@ func forgetWorkspace(workspaceName string) {
 }
 
 func getChangeList(revset string, cwd string) ([]*Change, error) {
+	// Use a custom template format instead of json() which doesn't exist in older jj versions
+	// Use ASCII record separator (0x1E) as field delimiter
+	// Use ASCII unit separator (0x1F) as record delimiter to avoid conflicts with newlines in descriptions
+	// Use if() to handle empty fields since jj outputs nothing when fields are empty/null
+	template := `commit_id ++ "\x1E" ++ change_id ++ "\x1E" ++ if(description, description, "") ++ "\x1E" ++ if(parents, parents.map(|p| p.commit_id()).join(","), "") ++ "\x1F"`
 	args := []string{
 		"log",
 		"-r", revset,
-		"--template=json(self)",
+		"-T", template,
 		"--no-graph",
-		"--config=ui.log-word-wrap=false",
+		"--config-toml=ui.log-word-wrap=false",
 	}
 
 	out, err := runJJOutput(args, cwd)
@@ -189,15 +193,32 @@ func getChangeList(revset string, cwd string) ([]*Change, error) {
 		return []*Change{}, nil
 	}
 
-	// Parse concatenated JSON objects
+	// Parse record-separator-delimited output
 	var changes []*Change
-	decoder := json.NewDecoder(strings.NewReader(out))
-	for decoder.More() {
-		var change Change
-		if err := decoder.Decode(&change); err != nil {
-			return nil, fmt.Errorf("failed to decode change: %w", err)
+	records := strings.Split(strings.TrimSpace(out), "\x1F")
+	for _, record := range records {
+		if record == "" {
+			continue
 		}
-		changes = append(changes, &change)
+
+		parts := strings.SplitN(record, "\x1E", 4)
+		if len(parts) < 4 {
+			return nil, fmt.Errorf("invalid change format (expected 4 parts, got %d): %q", len(parts), record)
+		}
+
+		parents := []string{}
+		if parts[3] != "" {
+			parents = strings.Split(parts[3], ",")
+		}
+
+		// jj's description field includes trailing newlines, keep them as-is
+		change := &Change{
+			CommitID:    parts[0],
+			ChangeID:    parts[1],
+			Description: parts[2],
+			Parents:     parents,
+		}
+		changes = append(changes, change)
 	}
 
 	return changes, nil
@@ -256,24 +277,14 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 }
 
 func getChangeMetadata(changeID string, cwd string) (*Change, error) {
-	args := []string{
-		"log",
-		"-T", "json(self)",
-		"-r", changeID,
-		"--no-graph",
-	}
-
-	out, err := runJJOutput(args, cwd)
+	changes, err := getChangeList(changeID, cwd)
 	if err != nil {
 		return nil, err
 	}
-
-	var change Change
-	if err := json.Unmarshal([]byte(out), &change); err != nil {
-		return nil, fmt.Errorf("failed to decode change metadata: %w", err)
+	if len(changes) == 0 {
+		return nil, fmt.Errorf("no change found for ID: %s", changeID)
 	}
-
-	return &change, nil
+	return changes[0], nil
 }
 
 func isChangeEmpty(workspacePath string, changeID string) (bool, error) {

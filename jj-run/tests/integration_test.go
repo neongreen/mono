@@ -8,6 +8,21 @@ import (
 	"testing"
 )
 
+var jjRunBinary string
+
+func init() {
+	// Build the jj-run binary before running tests
+	cmd := exec.Command("go", "build", "-o", "../jj-run", "../cmd/main.go")
+	if err := cmd.Run(); err != nil {
+		panic("Failed to build jj-run binary: " + err.Error())
+	}
+	absPath, err := filepath.Abs("../jj-run")
+	if err != nil {
+		panic("Failed to get absolute path: " + err.Error())
+	}
+	jjRunBinary = absPath
+}
+
 // runCommand executes a command and returns its output
 func runCommand(t *testing.T, dir string, command string, args ...string) (string, string, int) {
 	cmd := exec.Command(command, args...)
@@ -93,9 +108,8 @@ func TestBasicFunctionality(t *testing.T) {
 	}
 
 	// Use jj-run to merge all .txt files
-	jjRunPath := filepath.Join("..", "jj-run")
-	_, stderr, exitCode := runCommand(t, repoDir, jjRunPath, "-r", "::", `for f in *.txt; do cat "$f" >> merged.txt; rm "$f"; done`)
-	
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "-r", "::", `for f in *.txt; do cat "$f" >> merged.txt; rm "$f"; done`)
+
 	if exitCode != 0 {
 		t.Logf("jj-run stderr: %s", stderr)
 		t.Fatalf("jj-run failed with exit code %d", exitCode)
@@ -150,8 +164,7 @@ func TestErrorHandlingContinue(t *testing.T) {
 	runCommand(t, repoDir, "jj", "commit", "-m", "another single .txt file", "third.txt")
 
 	// Run jj-run with a command that fails if failme.txt exists
-	jjRunPath := filepath.Join("..", "jj-run")
-	_, stderr, exitCode := runCommand(t, repoDir, jjRunPath, "-r", "::", "-e", "continue", "test -f failme.txt && exit 1")
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "-r", "::", "-e", "continue", "test -f failme.txt && exit 1")
 
 	// Should exit 0 with -e continue
 	if exitCode != 0 {
@@ -201,8 +214,7 @@ func TestErrorHandlingStop(t *testing.T) {
 	runCommand(t, repoDir, "jj", "commit", "-m", "another single .txt file", "third.txt")
 
 	// Run jj-run with a command that fails if failme.txt exists
-	jjRunPath := filepath.Join("..", "jj-run")
-	_, stderr, exitCode := runCommand(t, repoDir, jjRunPath, "-r", "::", "-e", "stop", "test -f failme.txt && exit 1")
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "-r", "::", "-e", "stop", "test -f failme.txt && exit 1")
 
 	// Should exit nonzero with -e stop
 	if exitCode == 0 {
@@ -251,8 +263,7 @@ func TestErrorHandlingFatal(t *testing.T) {
 	runCommand(t, repoDir, "jj", "commit", "-m", "another single .txt file", "third.txt")
 
 	// Run jj-run with a command that fails if failme.txt exists
-	jjRunPath := filepath.Join("..", "jj-run")
-	_, stderr, exitCode := runCommand(t, repoDir, jjRunPath, "-r", "::", "-e", "fatal", "test -f failme.txt && exit 1")
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "-r", "::", "-e", "fatal", "test -f failme.txt && exit 1")
 
 	// Should exit nonzero with -e fatal
 	if exitCode == 0 {
