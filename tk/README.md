@@ -594,9 +594,18 @@ All v1 features plus:
 
 ## Testing
 
+Run tests using Go:
 ```bash
 go test ./...
 ```
+
+Run tests using Dagger (ensures consistent CI environment):
+```bash
+cd .dagger
+dagger call test
+```
+
+See [.dagger/README.md](.dagger/README.md) for more Dagger functions.
 
 ## Development
 
