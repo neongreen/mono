@@ -1,0 +1,232 @@
+package main
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
+// ResolveTaskIDToUUID resolves a task reference to its UUID (legacy helper).
+func (d *DB) ResolveTaskIDToUUID(taskID string) (string, error) {
+	return ResolveTaskReference(d, taskID)
+}
+
+// ResolveTaskID resolves a short task ID to a full task ID
+// Accepts formats: "1", "tk-1", "foo-2", "tk-1-abc123"
+// Returns an error if the ID is ambiguous or doesn't exist
+func (d *DB) ResolveTaskID(shortID string) (string, error) {
+
+	hyphenCount := strings.Count(shortID, "-")
+	if hyphenCount >= 2 {
+		// Verify it exists
+		var count int
+		err := d.db.QueryRow(`
+			SELECT COUNT(*)
+			FROM events
+			WHERE kind = 'task.created' AND json_extract(payload, '$.task_id') = ?
+		`, shortID).Scan(&count)
+		if err != nil {
+			return "", fmt.Errorf("failed to query task ID: %w", err)
+		}
+		if count > 0 {
+			return shortID, nil
+		}
+		return "", fmt.Errorf("task not found: %s", shortID)
+	}
+
+	if _, err := strconv.Atoi(shortID); err == nil {
+
+		query := `
+			SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
+			FROM events
+			WHERE kind = 'task.created'
+			  AND json_extract(payload, '$.task_id') LIKE '%-' || ? || '-%'
+		`
+
+		rows, err := d.db.Query(query, shortID)
+		if err != nil {
+			return "", fmt.Errorf("failed to query task IDs: %w", err)
+		}
+		defer rows.Close()
+
+		var matches []string
+		for rows.Next() {
+			var taskID string
+			if err := rows.Scan(&taskID); err != nil {
+				return "", fmt.Errorf("failed to scan task ID: %w", err)
+			}
+			matches = append(matches, taskID)
+		}
+
+		if len(matches) == 0 {
+			return "", fmt.Errorf("task not found: %s", shortID)
+		}
+
+		prefixNumberMap := make(map[string][]string)
+		for _, taskID := range matches {
+			parts := strings.Split(taskID, "-")
+			if len(parts) >= 2 {
+				prefixNumber := strings.Join(parts[:2], "-")
+				prefixNumberMap[prefixNumber] = append(prefixNumberMap[prefixNumber], taskID)
+			}
+		}
+
+		if len(prefixNumberMap) > 1 {
+			prefixes := make([]string, 0, len(prefixNumberMap))
+			for pn := range prefixNumberMap {
+				prefixes = append(prefixes, pn)
+			}
+			return "", fmt.Errorf("ambiguous task ID %s (matches %v) — use <prefix>-%s instead", shortID, prefixes, shortID)
+		}
+
+		if len(matches) == 1 {
+			return matches[0], nil
+		}
+
+		// Multiple matches with same prefix-number but different nodes - this is ambiguous
+		// Extract the prefix-number for error message
+		var prefixNumber string
+		for pn := range prefixNumberMap {
+			prefixNumber = pn
+			break
+		}
+		return "", fmt.Errorf("ambiguous task ID %s (multiple nodes created %s) — use full ID like %s", shortID, prefixNumber, matches[0])
+	}
+
+	query := `
+		SELECT DISTINCT json_extract(payload, '$.task_id') as task_id
+		FROM events
+		WHERE kind = 'task.created'
+		  AND json_extract(payload, '$.task_id') LIKE ? || '-%'
+	`
+
+	rows, err := d.db.Query(query, shortID)
+	if err != nil {
+		return "", fmt.Errorf("failed to query task IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var matches []string
+	for rows.Next() {
+		var taskID string
+		if err := rows.Scan(&taskID); err != nil {
+			return "", fmt.Errorf("failed to scan task ID: %w", err)
+		}
+
+		parts := strings.Split(taskID, "-")
+		if len(parts) >= 2 {
+			shortForm := strings.Join(parts[:2], "-")
+			if shortForm == shortID {
+				matches = append(matches, taskID)
+			}
+		}
+	}
+
+	if len(matches) == 0 {
+		return "", fmt.Errorf("task not found: %s", shortID)
+	}
+
+	if len(matches) > 1 {
+		return "", fmt.Errorf("ambiguous task ID %s (multiple nodes created %s) — use full ID like %s", shortID, shortID, matches[0])
+	}
+
+	return matches[0], nil
+}
+
+// GetAllTaskIDs returns all task IDs in the database
+func (d *DB) GetAllTaskIDs() ([]string, error) {
+
+	query := `SELECT DISTINCT task_uid FROM tasks ORDER BY created_at`
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query task UIDs: %w", err)
+	}
+	defer rows.Close()
+
+	var taskUIDs []string
+	for rows.Next() {
+		var taskUID string
+		if err := rows.Scan(&taskUID); err != nil {
+			return nil, fmt.Errorf("failed to scan task UID: %w", err)
+		}
+		taskUIDs = append(taskUIDs, taskUID)
+	}
+	return taskUIDs, rows.Err()
+}
+
+// GetTaskIDsByPrefixes returns task IDs filtered by prefix list (project aliases)
+func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
+	if len(prefixes) == 0 {
+		return d.GetAllTaskIDs()
+	}
+
+	nodeID, err := d.GetOrCreateNodeID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node ID: %w", err)
+	}
+
+	// Build query to find tasks by project alias
+	var conditions []string
+	var args []interface{}
+	for _, alias := range prefixes {
+		conditions = append(conditions, "project_aliases.alias = ?")
+		args = append(args, alias)
+	}
+	args = append(args, nodeID)
+
+	query := `
+		SELECT DISTINCT tasks.task_uid
+		FROM tasks
+		JOIN project_aliases ON tasks.project_uid = project_aliases.project_uid
+		WHERE (` + strings.Join(conditions, " OR ") + `)
+		  AND project_aliases.node = ?
+		ORDER BY tasks.created_at
+	`
+
+	rows, err := d.db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query task UIDs by prefix: %w", err)
+	}
+	defer rows.Close()
+
+	var taskUIDs []string
+	for rows.Next() {
+		var taskUID string
+		if err := rows.Scan(&taskUID); err != nil {
+			return nil, fmt.Errorf("failed to scan task UID: %w", err)
+		}
+		taskUIDs = append(taskUIDs, taskUID)
+	}
+	return taskUIDs, rows.Err()
+}
+
+// FormatTaskID formats a task ID for display, hiding the suffix unless needed for disambiguation
+func FormatTaskID(fullID string, allTaskIDs []string) string {
+
+	parts := strings.Split(fullID, "-")
+	if len(parts) < 3 {
+		return fullID
+	}
+
+	shortForm := strings.Join(parts[:2], "-")
+
+	needsSuffix := false
+	for _, otherID := range allTaskIDs {
+		if otherID == fullID {
+			continue
+		}
+		otherParts := strings.Split(otherID, "-")
+		if len(otherParts) >= 2 {
+			otherShortForm := strings.Join(otherParts[:2], "-")
+			if otherShortForm == shortForm {
+				needsSuffix = true
+				break
+			}
+		}
+	}
+
+	if needsSuffix {
+		return fullID
+	}
+	return shortForm
+}
