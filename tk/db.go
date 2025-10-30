@@ -1,16 +1,12 @@
 package main
 
 import (
-	
 	"database/sql"
-	
+
 	"fmt"
-	
+
 	"os"
 	"path/filepath"
-	
-	
-	
 
 	_ "modernc.org/sqlite"
 )
@@ -149,4 +145,3 @@ func DBExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
-

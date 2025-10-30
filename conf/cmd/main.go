@@ -3,15 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
-	
-	
-	
 
 	"github.com/neongreen/mono/conf/pkg/config"
-	
-	
-	
-	
+
 	claudetool "github.com/neongreen/mono/conf/pkg/tools/claude"
 	jjtool "github.com/neongreen/mono/conf/pkg/tools/jj"
 	misetool "github.com/neongreen/mono/conf/pkg/tools/mise"
@@ -894,4 +888,3 @@ Examples:
 		}
 	},
 }
-

@@ -2,19 +2,15 @@ package main
 
 import (
 	"bufio"
-	
+
 	"encoding/json"
-	
+
 	"fmt"
 	"os"
-	
-	"path/filepath"
-	
-	
-	"strings"
 
-	
-	
+	"path/filepath"
+
+	"strings"
 )
 
 const version = "0.1.0-mvp"
@@ -246,4 +242,3 @@ type PRInfo struct {
 	Title  string
 	Branch string
 }
-

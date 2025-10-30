@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	
+
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -456,4 +456,3 @@ func (d *Database) Query(query string) ([]map[string]interface{}, error) {
 
 	return results, nil
 }
-
