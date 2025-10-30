@@ -38,5 +38,4 @@ jobs:
           jj --version
 
       - name: Run tests
-        working-directory: jj-run
-        run: mise run test
+        run: mise run //jj-run:test
