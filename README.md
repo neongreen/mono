@@ -18,6 +18,7 @@ This repository contains multiple independent projects.
 | [claude-trace](claude-trace/) | alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
 | [conf](conf/) | pre-alpha | Smart configuration manager; command coverage incomplete. |
 | [tk](tk/) | pre-alpha | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
+| [tk-vscode](tk-vscode/) | experimental | VS Code extension that lists tk tasks by running `tk ls --json`. |
 | [jj-run](jj-run/) | alpha | Script to execute shell commands across multiple repository changes in isolated workspaces using jj. |
 | [ghrelease](lib/ghrelease/) | internal library | Shared helper for fetching release assets; API may change without notice. |
 
