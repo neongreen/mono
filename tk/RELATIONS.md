@@ -98,7 +98,7 @@ tk ls --blocked
 tk ls --unblocked
 
 # Combine with other filters
-tk ls --prefix foo --blocked
+tk ls -p foo --blocked
 tk ls --axis generic:in_progress --unblocked
 ```
 

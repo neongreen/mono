@@ -258,22 +258,22 @@ Filter by status:
 tk ls --axis generic:in_progress
 ```
 
-Filter by prefix:
+Filter by project:
 
 ```bash
-tk ls --prefix foo
+tk ls -p foo
 ```
 
-Filter by multiple prefixes:
+Filter by multiple projects:
 
 ```bash
-tk ls --prefix foo --prefix bar
+tk ls -p foo -p bar
 ```
 
 Combine filters:
 
 ```bash
-tk ls --prefix foo --axis generic:in_progress
+tk ls -p foo --axis generic:in_progress
 ```
 
 Show task aliases:

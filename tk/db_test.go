@@ -143,7 +143,7 @@ func TestDB_GetAllTaskIDs(t *testing.T) {
 	}
 }
 
-func TestDB_GetTaskIDsByPrefixes(t *testing.T) {
+func TestDB_GetTaskIDsByProjects(t *testing.T) {
 	db := openTempDB(t)
 
 	// Create projects with tasks
@@ -153,13 +153,13 @@ func TestDB_GetTaskIDsByPrefixes(t *testing.T) {
 	taskUID2 := seedTask(t, db, projectUID2, "Task 2", 1)
 
 	// Get tasks for proj1
-	taskUIDs, err := db.GetTaskIDsByPrefixes([]string{"proj1"})
+	taskUIDs, err := db.GetTaskIDsByProjects([]string{"proj1"})
 	if err != nil {
-		t.Fatalf("GetTaskIDsByPrefixes() error = %v", err)
+		t.Fatalf("GetTaskIDsByProjects() error = %v", err)
 	}
 
 	if len(taskUIDs) == 0 {
-		t.Error("GetTaskIDsByPrefixes() returned no task UIDs")
+		t.Error("GetTaskIDsByProjects() returned no task UIDs")
 	}
 
 	// Should include task1 but not task2
@@ -175,10 +175,35 @@ func TestDB_GetTaskIDsByPrefixes(t *testing.T) {
 	}
 
 	if !foundTask1 {
-		t.Errorf("GetTaskIDsByPrefixes() did not return task from proj1: %v", taskUID1)
+		t.Errorf("GetTaskIDsByProjects() did not return task from proj1: %v", taskUID1)
 	}
 	if foundTask2 {
-		t.Errorf("GetTaskIDsByPrefixes() unexpectedly returned task from proj2: %v", taskUID2)
+		t.Errorf("GetTaskIDsByProjects() unexpectedly returned task from proj2: %v", taskUID2)
+	}
+}
+
+func TestDB_GetTaskIDsByProjects_AcceptsProjectUID(t *testing.T) {
+	db := openTempDB(t)
+
+	projectUID := seedProject(t, db, "proj1")
+	taskUID := seedTask(t, db, projectUID, "Task 1", 1)
+	seedTask(t, db, seedProject(t, db, "proj2"), "Task 2", 1)
+
+	taskUIDs, err := db.GetTaskIDsByProjects([]string{projectUID})
+	if err != nil {
+		t.Fatalf("GetTaskIDsByProjects() error = %v", err)
+	}
+
+	found := false
+	for _, uid := range taskUIDs {
+		if uid == taskUID {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Errorf("GetTaskIDsByProjects() did not return task for project UID %s", projectUID)
 	}
 }
 
