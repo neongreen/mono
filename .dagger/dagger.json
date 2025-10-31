@@ -1,0 +1,14 @@
+{
+  "name": "dagger",
+  "engineVersion": "v0.19.4",
+  "sdk": {
+    "source": "go"
+  },
+  "include": [
+    "../go.mod",
+    "../go.sum",
+    "../tk/**",
+    "../dissect/**",
+    "../lib/**"
+  ]
+}

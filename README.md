@@ -20,6 +20,7 @@ This repository contains multiple independent projects.
 | [tk](tk/) | pre-alpha | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
 | [jj-run](jj-run/) | alpha | Script to execute shell commands across multiple repository changes in isolated workspaces using jj. |
 | [ghrelease](lib/ghrelease/) | internal library | Shared helper for fetching release assets; API may change without notice. |
+| [.dagger](.dagger/) | pre-alpha | Dagger module with disposable Go toolchains for running tk and dissect test suites. |
 
 ## Installing Tools
 
