@@ -510,7 +510,7 @@ func init() {
 	dbCmd.AddCommand(dbPathCmd)
 	rootCmd.AddCommand(dbCmd)
 
-	newCmd.Flags().String("project", "tk", "Project alias or UID to use")
+	newCmd.Flags().StringP("project", "p", "tk", "Project alias or UID to use")
 	rootCmd.AddCommand(newCmd)
 
 	markCmd.Flags().String("axis", "generic", "Status axis")
