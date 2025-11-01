@@ -14,7 +14,7 @@ import (
 	"github.com/neongreen/mono/dissect/pkg/commands"
 	"github.com/neongreen/mono/dissect/pkg/gopls"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
-	"github.com/neongreen/mono/dissect/pkg/utils"
+	"github.com/neongreen/mono/dissect/pkg/refactor"
 	"go/ast"
 	"go/printer"
 	"go/token"
@@ -33,8 +33,12 @@ var moveCmd = &cobra.Command{
 	Short: "Move/rename files or move specific identifiers between files",
 	Long: `Move supports two modes of operation:
 
-1. File mode: Move or rename an entire file
+1. File mode: Move or rename entire files with refactoring support
    dissect move source.go destination.go
+   - Moves the physical file
+   - Updates package declaration to match new directory
+   - Updates all import statements in the codebase
+   - Updates package qualifiers in code (e.g., old.Func() → new.Func())
 
 2. Symbol mode: Move specific identifiers (functions, types, interfaces) between files
    dissect move source.go:Foo target.go
@@ -114,15 +118,23 @@ func runMove(cmd *cobra.Command, args []string) {
 			os.Exit(1)
 		}
 
-		// Use utils.MoveFile to move the file
-		slog.Info("Moving file", "from", sourceFile, "to", targetFile)
-		if err := utils.MoveFile(absSourceFile, absTargetFile); err != nil {
+		// Find module root
+		moduleRoot, err := commands.FindGoModuleRoot(absSourceFile)
+		if err != nil {
+			slog.Error("Error finding Go module root", "error", err, "file", absSourceFile)
+			fmt.Fprintf(os.Stderr, "Error: Cannot find Go module root: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Use refactor.MoveFileWithImportUpdates to move the file and update imports
+		slog.Info("Moving file with import updates", "from", sourceFile, "to", targetFile)
+		if err := refactor.MoveFileWithImportUpdates(absSourceFile, absTargetFile, moduleRoot); err != nil {
 			slog.Error("Error moving file", "error", err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
 		}
 
-		slog.Info("Successfully moved file", "from", sourceFile, "to", targetFile)
+		slog.Info("Successfully moved file and updated imports", "from", sourceFile, "to", targetFile)
 		return
 	}
 
