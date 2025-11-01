@@ -32,6 +32,7 @@ const (
 var (
 	revset      string
 	errStrategy string
+	directMode  bool
 )
 
 var rootCmd = &cobra.Command{
@@ -40,7 +41,10 @@ var rootCmd = &cobra.Command{
 	Long: `A script to execute shell commands across multiple repository changes in isolated workspaces using jj.
 
 Runs arbitrary shell commands for each change in a revset, in isolation.
-Uses a temporary workspace for each run, so your main repo doesn't change while the script is running.`,
+Uses a temporary workspace for each run, so your main repo doesn't change while the script is running.
+
+Direct mode (--direct): Instead of using temporary workspaces, directly edits each revision in place.
+Useful for metadata changes (e.g., changing commit descriptions, authors) that don't require file isolation.`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: runCommand,
 }
@@ -48,6 +52,7 @@ Uses a temporary workspace for each run, so your main repo doesn't change while 
 func init() {
 	rootCmd.Flags().StringVarP(&revset, "revset", "r", "reachable(@, mutable())", "Revset to process")
 	rootCmd.Flags().StringVarP(&errStrategy, "err-strategy", "e", "continue", "Error handling strategy (continue|stop|fatal)")
+	rootCmd.Flags().BoolVarP(&directMode, "direct", "d", false, "Direct mode: edit each revision in place without worktrees")
 }
 
 func main() {
@@ -74,6 +79,11 @@ func runCommand(cmd *cobra.Command, args []string) error {
 
 	fmt.Fprintf(os.Stderr, "Current operation: %s. To revert, run:\n", beforeOp[:12])
 	fmt.Fprintf(os.Stderr, "  jj op restore %s\n\n", beforeOp[:12])
+
+	// Use direct mode if requested
+	if directMode {
+		return runDirectMode(command, strategy, beforeOp)
+	}
 
 	// Create and manage workspace
 	workspacePath, workspaceName, err := createWorkspace()
@@ -140,6 +150,83 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	// Return error from processChanges if one occurred (stop/fatal)
 	if processErr != nil {
 		return processErr
+	}
+
+	return nil
+}
+
+func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) error {
+	// Get changes to process
+	changes, err := getChangeList(revset, ".")
+	if err != nil {
+		return fmt.Errorf("failed to get change list: %w", err)
+	}
+
+	totalChanges := len(changes)
+	if totalChanges == 0 {
+		fmt.Fprintf(os.Stderr, "No changes found to process.\n")
+		return nil
+	}
+
+	fmt.Fprintf(os.Stderr, "Processing %d changes in direct mode...\n", totalChanges)
+
+	allSuccessful := true
+	processedCount := 0
+
+	for idx, change := range changes {
+		message := strings.TrimSpace(change.Description)
+		if message == "" {
+			message = "(no description set)"
+		}
+
+		changeID := change.ChangeID
+		fmt.Fprintf(os.Stderr, "Processing change %d/%d %s: %s\n", idx+1, totalChanges, changeID[:12], message)
+
+		// Edit this change (make it the working copy)
+		if _, err := runJJOutput([]string{"edit", changeID}, "."); err != nil {
+			fmt.Fprintf(os.Stderr, "Error editing change: %v\n", err)
+			allSuccessful = false
+			exitEarly, handlerErr := handleError(strategy, changeID[:12], err)
+			if exitEarly {
+				return handlerErr
+			}
+			continue
+		}
+
+		// Run the command in the main repository
+		result, err := runShellCommand(command, ".")
+		printCommandResult(result, err)
+
+		if err != nil {
+			allSuccessful = false
+			exitEarly, handlerErr := handleError(strategy, changeID[:12], err)
+			if exitEarly {
+				return handlerErr
+			}
+		} else {
+			processedCount++
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "Processed %d/%d changes.\n", processedCount, totalChanges)
+	if !allSuccessful {
+		fmt.Fprintf(os.Stderr, "Not all changes were processed successfully.\n")
+	}
+
+	// Get after operation ID
+	afterOp, err := getCurrentOpID()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Couldn't get current operation ID. Likely a bug in jj-run.\n")
+		return fmt.Errorf("failed to get after operation ID: %w", err)
+	}
+
+	if processedCount > 0 {
+		fmt.Fprintf(os.Stderr, "To compare the changes between the 'before' and 'after' repo states, run:\n")
+		fmt.Fprintf(os.Stderr, "  jj operation diff --from %s --to %s -p\n\n", beforeOp[:12], afterOp[:12])
+	}
+
+	if !allSuccessful {
+		return fmt.Errorf("some changes failed to process")
 	}
 
 	return nil

@@ -457,3 +457,196 @@ func TestWorkspaceCleanupOnFatal(t *testing.T) {
 
 	t.Logf("Test passed: workspace cleanup on fatal error works")
 }
+
+// TestDirectModeBasic tests basic direct mode functionality
+func TestDirectModeBasic(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create several commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
+
+	twoFile := filepath.Join(repoDir, "two.txt")
+	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0644); err != nil {
+		t.Fatalf("Failed to write two.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "second commit", "two.txt")
+
+	// Use direct mode to add a marker file to each commit
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--direct", "-r", "::", "echo 'processed' > .processed")
+
+	if exitCode != 0 {
+		t.Logf("jj-run stderr: %s", stderr)
+		t.Fatalf("jj-run failed with exit code %d", exitCode)
+	}
+
+	// Verify the marker file was added to the commits
+	logOutput, _, _ := runCommand(t, repoDir, "jj", "log", "-p", "-r", "::")
+
+	if !strings.Contains(logOutput, ".processed") {
+		t.Errorf("Expected .processed file in commits, got: %s", logOutput)
+	}
+
+	if !strings.Contains(logOutput, "processed") {
+		t.Errorf("Expected 'processed' content in commits, got: %s", logOutput)
+	}
+
+	// Check that direct mode message appears
+	if !strings.Contains(stderr, "direct mode") {
+		t.Errorf("Expected 'direct mode' message in stderr, got: %s", stderr)
+	}
+
+	t.Logf("Test passed: direct mode basic functionality works")
+}
+
+// TestDirectModeErrorHandling tests error handling in direct mode
+func TestDirectModeErrorHandling(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
+
+	failmeFile := filepath.Join(repoDir, "failme.txt")
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+		t.Fatalf("Failed to write failme.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
+
+	twoFile := filepath.Join(repoDir, "two.txt")
+	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0644); err != nil {
+		t.Fatalf("Failed to write two.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "second commit", "two.txt")
+
+	// Run direct mode with a command that fails if failme.txt exists (continue strategy)
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--direct", "-r", "::", "-e", "continue", "test -f failme.txt && exit 1")
+
+	// Should report error but continue
+	if exitCode == 0 {
+		t.Errorf("Expected nonzero exit code due to failed command")
+	}
+
+	if !strings.Contains(stderr, "Command failed with return code 1") {
+		t.Errorf("Expected 'Command failed with return code 1' in stderr, got: %s", stderr)
+	}
+
+	// Should process all changes despite the error
+	if !strings.Contains(stderr, "Processed") {
+		t.Errorf("Expected 'Processed' message in stderr, got: %s", stderr)
+	}
+
+	t.Logf("Test passed: direct mode error handling works")
+}
+
+// TestDirectModeStop tests stop error strategy in direct mode
+func TestDirectModeStop(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
+
+	failmeFile := filepath.Join(repoDir, "failme.txt")
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+		t.Fatalf("Failed to write failme.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
+
+	// Run direct mode with stop strategy
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--direct", "-r", "::", "-e", "stop", "test -f failme.txt && exit 1")
+
+	// Should exit nonzero with -e stop
+	if exitCode == 0 {
+		t.Errorf("Expected nonzero exit code with -e stop on failure")
+	}
+
+	if !strings.Contains(stderr, "Stopped on change") {
+		t.Errorf("Expected 'Stopped on change' in stderr, got: %s", stderr)
+	}
+
+	t.Logf("Test passed: direct mode stop strategy works")
+}
+
+// TestDirectModeNoWorkspaces tests that direct mode doesn't create workspaces
+func TestDirectModeNoWorkspaces(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create a commit
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
+
+	// Get initial workspace list
+	workspacesBefore, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces before: %s", workspacesBefore)
+
+	// Run direct mode command
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--direct", "-r", "::", "echo 'test' > .test")
+
+	if exitCode != 0 {
+		t.Logf("jj-run stderr: %s", stderr)
+		t.Fatalf("jj-run failed with exit code %d", exitCode)
+	}
+
+	// Get workspace list after direct mode
+	workspacesAfter, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces after: %s", workspacesAfter)
+
+	// Verify that no temporary workspaces were created
+	workspaceLinesBefore := strings.Split(strings.TrimSpace(workspacesBefore), "\n")
+	workspaceLinesAfter := strings.Split(strings.TrimSpace(workspacesAfter), "\n")
+
+	if len(workspaceLinesAfter) != len(workspaceLinesBefore) {
+		t.Errorf("Expected same number of workspaces in direct mode. Before: %d, After: %d",
+			len(workspaceLinesBefore), len(workspaceLinesAfter))
+		t.Logf("Before: %s", workspacesBefore)
+		t.Logf("After: %s", workspacesAfter)
+	}
+
+	// Check that no jj-run temporary workspaces were created
+	if strings.Contains(workspacesAfter, "jj-run-") {
+		t.Errorf("Found temporary jj-run workspace in direct mode: %s", workspacesAfter)
+	}
+
+	t.Logf("Test passed: direct mode doesn't create workspaces")
+}
