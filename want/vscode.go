@@ -148,6 +148,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	fmt.Println("\nInstalling dependencies...")
 	cmd = createPnpmCommand("install")
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -158,6 +159,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	fmt.Println("\nCompiling TypeScript...")
 	cmd = createPnpmCommand("run", "compile")
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -168,6 +170,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	fmt.Println("\nPackaging extension...")
 	cmd = createPnpmCommand("run", "package")
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -322,6 +325,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	fmt.Println("\nInstalling dependencies...")
 	cmd = createPnpmCommand("install")
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -332,6 +336,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	fmt.Println("\nCompiling TypeScript...")
 	cmd = createPnpmCommand("run", "compile")
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -342,6 +347,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	fmt.Println("\nPackaging extension...")
 	cmd = createPnpmCommand("run", "package")
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

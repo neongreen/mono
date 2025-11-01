@@ -292,6 +292,7 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 	buildPath := getBuildPath(projectDir)
 	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -437,6 +438,7 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 	buildPath := getBuildPath(projectDir)
 	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {

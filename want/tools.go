@@ -104,19 +104,18 @@ func isMiseAvailable() bool {
 }
 
 // createMiseCommand creates a command to run 'mise' with the given arguments.
-// It sets MISE_TRUSTED_CONFIG_PATHS to avoid trust prompts.
 func createMiseCommand(args ...string) *exec.Cmd {
 	cmd := exec.Command("mise", args...)
-
-	// Set MISE_TRUSTED_CONFIG_PATHS to trust all configs under home directory
-	homeDir, err := os.UserHomeDir()
-	if err == nil {
-		env := os.Environ()
-		env = append(env, fmt.Sprintf("MISE_TRUSTED_CONFIG_PATHS=%s", homeDir))
-		cmd.Env = env
-	}
-
 	return cmd
+}
+
+// setMiseTrustedPath sets MISE_TRUSTED_CONFIG_PATHS on a command to avoid trust prompts.
+// This should be called with the repository root directory.
+func setMiseTrustedPath(cmd *exec.Cmd, repoDir string) {
+	if cmd.Env == nil {
+		cmd.Env = os.Environ()
+	}
+	cmd.Env = append(cmd.Env, fmt.Sprintf("MISE_TRUSTED_CONFIG_PATHS=%s", repoDir))
 }
 
 // getShellConfigFile returns the shell configuration file path based on the current shell
