@@ -10,6 +10,25 @@ import (
 	"github.com/neongreen/mono/lib/ghclient"
 )
 
+const pnpmVersion = "9.15.4"
+
+// createPnpmCommand creates a command to run 'pnpm' with the given arguments.
+// If 'pnpm' is not in PATH, it uses 'mise exec pnpm@<version> -- pnpm' instead.
+func createPnpmCommand(args ...string) *exec.Cmd {
+	if isToolAvailable("pnpm") {
+		return exec.Command("pnpm", args...)
+	}
+
+	if !isMiseAvailable() {
+		// If mise is not available, fall back to pnpm anyway (will fail with a helpful error)
+		return exec.Command("pnpm", args...)
+	}
+
+	miseArgs := []string{"exec", fmt.Sprintf("pnpm@%s", pnpmVersion), "--", "pnpm"}
+	miseArgs = append(miseArgs, args...)
+	return exec.Command("mise", miseArgs...)
+}
+
 // buildVSCodeExtensionFromSource builds a VS Code extension from a branch or commit
 func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isCommitSHA bool, dryRun bool, planJson bool) {
 	var cloneCmd string
@@ -127,7 +146,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Println("\nInstalling dependencies...")
-	cmd = exec.Command("pnpm", "install")
+	cmd = createPnpmCommand("install")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -137,7 +156,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Println("\nCompiling TypeScript...")
-	cmd = exec.Command("pnpm", "run", "compile")
+	cmd = createPnpmCommand("run", "compile")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -147,7 +166,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Println("\nPackaging extension...")
-	cmd = exec.Command("pnpm", "run", "package")
+	cmd = createPnpmCommand("run", "package")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -301,7 +320,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Println("\nInstalling dependencies...")
-	cmd = exec.Command("pnpm", "install")
+	cmd = createPnpmCommand("install")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -311,7 +330,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Println("\nCompiling TypeScript...")
-	cmd = exec.Command("pnpm", "run", "compile")
+	cmd = createPnpmCommand("run", "compile")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -321,7 +340,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Println("\nPackaging extension...")
-	cmd = exec.Command("pnpm", "run", "package")
+	cmd = createPnpmCommand("run", "package")
 	cmd.Dir = projectDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
