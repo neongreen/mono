@@ -192,9 +192,12 @@ class TkDragAndDropController implements vscode.TreeDragAndDropController<TkTree
       return;
     }
 
+    // Store target group for use in closures (avoids non-null assertions)
+    const targetGroupRef = targetGroup;
+
     // Move each task to the target group, collecting results
     const results = await Promise.allSettled(
-      tasks.map(task => moveTaskToGroup(task, targetGroup!))
+      tasks.map(task => moveTaskToGroup(task, targetGroupRef))
     );
 
     // Report results to user
@@ -204,9 +207,9 @@ class TkDragAndDropController implements vscode.TreeDragAndDropController<TkTree
     if (failures.length === 0) {
       // All succeeded
       if (tasks.length === 1) {
-        void vscode.window.showInformationMessage(`Moved ${tasks[0].task.task_id} to ${targetGroup!.groupName}`);
+        void vscode.window.showInformationMessage(`Moved ${tasks[0].task.task_id} to ${targetGroupRef.groupName}`);
       } else {
-        void vscode.window.showInformationMessage(`Moved ${successCount} task(s) to ${targetGroup!.groupName}`);
+        void vscode.window.showInformationMessage(`Moved ${successCount} task(s) to ${targetGroupRef.groupName}`);
       }
     } else if (successCount === 0) {
       // All failed
@@ -216,7 +219,7 @@ class TkDragAndDropController implements vscode.TreeDragAndDropController<TkTree
     } else {
       // Partial success
       void vscode.window.showWarningMessage(
-        `Moved ${successCount} task(s) to ${targetGroup!.groupName}, but ${failures.length} failed`
+        `Moved ${successCount} task(s) to ${targetGroupRef.groupName}, but ${failures.length} failed`
       );
     }
 
