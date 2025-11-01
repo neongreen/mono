@@ -256,6 +256,22 @@ func (g *RelationsGraph) BuildTaskRelations(taskUUID string) *types.Relations {
 	return rel
 }
 
+// RemoveTaskRelations removes all relations involving the given task
+func (g *RelationsGraph) RemoveTaskRelations(taskUUID string) {
+	// Collect keys to delete
+	var keysToDelete []string
+	for key, edge := range g.edges {
+		if edge.Src == taskUUID || edge.Dst == taskUUID {
+			keysToDelete = append(keysToDelete, key)
+		}
+	}
+
+	// Delete the edges
+	for _, key := range keysToDelete {
+		delete(g.edges, key)
+	}
+}
+
 // makeEdgeKey creates a unique key for an edge
 func makeEdgeKey(src, relType, dst string) string {
 	return fmt.Sprintf("%s:%s:%s", src, relType, dst)
