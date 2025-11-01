@@ -70,12 +70,23 @@ func markdownToHTMLBody(markdown []byte) ([]byte, error) {
 
 // generatePageCSS generates the @page CSS rules based on page options
 func generatePageCSS(options PageOptions) string {
-	margin := options.cssMarginValue()
 	var pageCSS strings.Builder
+	orientation := "portrait"
 	if options.Orientation == "landscape" {
-		fmt.Fprintf(&pageCSS, "@page { size: A4 landscape; margin: %s; }\n", margin)
+		orientation = "landscape"
+	}
+
+	if options.isBookletMode() {
+		// Booklet mode: generate separate rules for :left and :right pages
+		topRight, outerRight, bottomRight, innerRight, topLeft, innerLeft, bottomLeft, outerLeft, _ := options.resolveBookletMargins()
+
+		fmt.Fprintf(&pageCSS, "@page { size: A4 %s; }\n", orientation)
+		fmt.Fprintf(&pageCSS, "@page :right { margin: %s %s %s %s; }\n", topRight, outerRight, bottomRight, innerRight)
+		fmt.Fprintf(&pageCSS, "@page :left { margin: %s %s %s %s; }\n", topLeft, outerLeft, bottomLeft, innerLeft)
 	} else {
-		fmt.Fprintf(&pageCSS, "@page { size: A4 portrait; margin: %s; }\n", margin)
+		// Normal mode: use standard margin
+		margin := options.cssMarginValue()
+		fmt.Fprintf(&pageCSS, "@page { size: A4 %s; margin: %s; }\n", orientation, margin)
 	}
 
 	if guide := strings.TrimSpace(options.FirstPageGuide); guide != "" {

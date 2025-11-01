@@ -57,6 +57,32 @@ func TestTypstConverterWithCustomMargin(t *testing.T) {
 			},
 			expectedMargin: "margin: (top: 3cm, right: 1.5cm, bottom: 2.5cm, left: 2cm)",
 		},
+		{
+			name: "booklet margins",
+			options: PageOptions{
+				Columns:     1,
+				Orientation: "portrait",
+				Margin:      "2cm",
+				MarginInner: "3cm",
+				MarginOuter: "1.5cm",
+				Zoom:        100,
+			},
+			expectedMargin: "margin: (top: 2cm, outside: 1.5cm, bottom: 2cm, inside: 3cm)",
+		},
+		{
+			name: "booklet margins with top/bottom",
+			options: PageOptions{
+				Columns:      1,
+				Orientation:  "portrait",
+				Margin:       "2cm",
+				MarginTop:    "3cm",
+				MarginBottom: "2.5cm",
+				MarginInner:  "4cm",
+				MarginOuter:  "1cm",
+				Zoom:         100,
+			},
+			expectedMargin: "margin: (top: 3cm, outside: 1cm, bottom: 2.5cm, inside: 4cm)",
+		},
 	}
 
 	for _, tt := range tests {
@@ -193,6 +219,32 @@ func TestHTMLConverterWithCustomMargin(t *testing.T) {
 				Zoom:         100,
 			},
 			expectedMargin: "margin: 3cm 1.25in 2.5cm 2cm",
+		},
+		{
+			name: "booklet margins",
+			options: PageOptions{
+				Columns:     1,
+				Orientation: "portrait",
+				Margin:      "2cm",
+				MarginInner: "3cm",
+				MarginOuter: "1.5cm",
+				Zoom:        100,
+			},
+			expectedMargin: "@page :right { margin: 2cm 1.5cm 2cm 3cm; }",
+		},
+		{
+			name: "booklet margins with top/bottom",
+			options: PageOptions{
+				Columns:      1,
+				Orientation:  "portrait",
+				Margin:       "2cm",
+				MarginTop:    "3cm",
+				MarginBottom: "2.5cm",
+				MarginInner:  "4cm",
+				MarginOuter:  "1cm",
+				Zoom:         100,
+			},
+			expectedMargin: "@page :right { margin: 3cm 1cm 2.5cm 4cm; }",
 		},
 	}
 
