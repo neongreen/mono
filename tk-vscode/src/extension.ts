@@ -192,9 +192,21 @@ class TkDragAndDropController implements vscode.TreeDragAndDropController<TkTree
       return;
     }
 
-    // Move each task to the target group
-    for (const task of tasks) {
-      await moveTaskToGroup(this.provider, task, targetGroup);
+    // Move each task to the target group, collecting results
+    const results = await Promise.allSettled(
+      tasks.map(task => moveTaskToGroup(this.provider, task, targetGroup!))
+    );
+
+    // Check for failures
+    const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+    if (failures.length > 0) {
+      const failureCount = failures.length;
+      const successCount = tasks.length - failureCount;
+      if (successCount > 0) {
+        void vscode.window.showWarningMessage(
+          `Moved ${successCount} task(s), but ${failureCount} failed. Check the output for details.`
+        );
+      }
     }
 
     // Refresh the tree view
@@ -271,10 +283,14 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   }
 }
 
-async function fetchTk(): Promise<{ groups: TkGroup[]; tasks: TkTask[] }> {
+interface TkConfig {
+  binary: string;
+  cwd: string;
+}
+
+function getTkConfig(): TkConfig {
   const configuration = vscode.workspace.getConfiguration('tk');
   const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
-  const group = configuration.get<string>('group', 'prefix') || 'prefix';
   const configuredCwd = configuration.get<string>('workingDirectory');
 
   let cwd: string | undefined;
@@ -288,6 +304,14 @@ async function fetchTk(): Promise<{ groups: TkGroup[]; tasks: TkTask[] }> {
   if (!cwd) {
     throw new Error('No workspace folder is open.');
   }
+
+  return { binary, cwd };
+}
+
+async function fetchTk(): Promise<{ groups: TkGroup[]; tasks: TkTask[] }> {
+  const configuration = vscode.workspace.getConfiguration('tk');
+  const group = configuration.get<string>('group', 'prefix') || 'prefix';
+  const { binary, cwd } = getTkConfig();
 
   const args = ['ls', '--json', '--group', group];
 
@@ -350,22 +374,7 @@ async function rotateStatus(provider: TkProvider, item: TaskTreeItem): Promise<v
   }
 
   try {
-    const configuration = vscode.workspace.getConfiguration('tk');
-    const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
-    const configuredCwd = configuration.get<string>('workingDirectory');
-
-    let cwd: string | undefined;
-
-    if (configuredCwd && configuredCwd.trim().length > 0) {
-      cwd = configuredCwd;
-    } else {
-      cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    }
-
-    if (!cwd) {
-      void vscode.window.showErrorMessage('No workspace folder is open.');
-      return;
-    }
+    const { binary, cwd } = getTkConfig();
 
     // Use tk mark command to update the status
     const args = nextStatus === ''
@@ -408,22 +417,7 @@ async function editTitle(provider: TkProvider, item: TaskTreeItem): Promise<void
   }
 
   try {
-    const configuration = vscode.workspace.getConfiguration('tk');
-    const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
-    const configuredCwd = configuration.get<string>('workingDirectory');
-
-    let cwd: string | undefined;
-
-    if (configuredCwd && configuredCwd.trim().length > 0) {
-      cwd = configuredCwd;
-    } else {
-      cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    }
-
-    if (!cwd) {
-      void vscode.window.showErrorMessage('No workspace folder is open.');
-      return;
-    }
+    const { binary, cwd } = getTkConfig();
 
     const args = ['describe', taskId, newTitle];
 
@@ -457,22 +451,7 @@ async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<vo
   }
 
   try {
-    const configuration = vscode.workspace.getConfiguration('tk');
-    const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
-    const configuredCwd = configuration.get<string>('workingDirectory');
-
-    let cwd: string | undefined;
-
-    if (configuredCwd && configuredCwd.trim().length > 0) {
-      cwd = configuredCwd;
-    } else {
-      cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    }
-
-    if (!cwd) {
-      void vscode.window.showErrorMessage('No workspace folder is open.');
-      return;
-    }
+    const { binary, cwd } = getTkConfig();
 
     // Create task with project matching the group name
     const args = ['new', '-p', groupName, taskTitle];
@@ -499,22 +478,7 @@ async function moveTaskToGroup(provider: TkProvider, task: TaskTreeItem, targetG
   const targetGroupName = targetGroup.groupName;
 
   try {
-    const configuration = vscode.workspace.getConfiguration('tk');
-    const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
-    const configuredCwd = configuration.get<string>('workingDirectory');
-
-    let cwd: string | undefined;
-
-    if (configuredCwd && configuredCwd.trim().length > 0) {
-      cwd = configuredCwd;
-    } else {
-      cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-    }
-
-    if (!cwd) {
-      void vscode.window.showErrorMessage('No workspace folder is open.');
-      return;
-    }
+    const { binary, cwd } = getTkConfig();
 
     // Use tk mv command to move the task to the target project/group
     // Use --auto to automatically assign a new number in the target project if needed
