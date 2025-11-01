@@ -45,5 +45,5 @@ jobs:
             echo "- Test runner: \`gotestsum\`"
             echo "- Format: \`testname\`"
             echo "- Dagger version: \`0.19.4\`"
-            echo "- jj version: \`v0.28.0\`"
+            echo "- jj version: \`v0.34.0\`"
           } >> "$GITHUB_STEP_SUMMARY"

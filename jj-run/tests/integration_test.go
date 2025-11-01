@@ -280,3 +280,52 @@ func TestErrorHandlingFatal(t *testing.T) {
 
 	t.Logf("Test passed: error handling with fatal strategy works")
 }
+
+// TestParentRewriting tests that parent rewriting works correctly
+func TestParentRewriting(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create a simple commit
+	file1 := filepath.Join(repoDir, "file1.txt")
+	if err := os.WriteFile(file1, []byte("content1\n"), 0644); err != nil {
+		t.Fatalf("Failed to write file1.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "file1.txt")
+
+	// Run jj-run with a command that modifies the file
+	stdout, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "-r", "::", "echo 'modified' > file1.txt")
+
+	if exitCode != 0 {
+		t.Logf("jj-run stderr: %s", stderr)
+		t.Fatalf("jj-run failed with exit code %d", exitCode)
+	}
+
+	t.Logf("jj-run stdout: %s", stdout)
+	t.Logf("jj-run stderr: %s", stderr)
+
+	// Check that the command reported rewrites
+	if !strings.Contains(stderr, "Rewrote") {
+		t.Errorf("Expected 'Rewrote' in stderr")
+	}
+
+	// Parse the rewrite count - should be "Rewrote 1/1 commits" or similar
+	if strings.Contains(stderr, "Rewrote 0/") {
+		t.Errorf("Expected at least 1 commit to be rewritten, but got 0")
+	}
+
+	// Verify the file was actually modified in the commit
+	logOutput, _, _ := runCommand(t, repoDir, "jj", "log", "-p", "-r", "::")
+
+	if !strings.Contains(logOutput, "modified") {
+		t.Errorf("Expected 'modified' in the commit content, got: %s", logOutput)
+	}
+
+	t.Logf("Test passed: parent rewriting works correctly")
+}
