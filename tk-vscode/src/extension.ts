@@ -485,17 +485,19 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
 
   public findGroupForTask(task: TaskTreeItem): GroupTreeItem | undefined {
     // Find the group containing this task in the raw data
+    // We check both task_uuid and task_id for robustness, as different tk commands may return different ID fields
+    const taskUuid = task.task.task_uuid;
+    const taskId = task.task.task_id;
+    
     for (const rawGroup of this.rawGroups) {
       const taskFound = rawGroup.tasks.some(t => 
-        t.task_uuid === task.task.task_uuid || 
-        t.task_id === task.task.task_id
+        (taskUuid && t.task_uuid === taskUuid) || 
+        (taskId && t.task_id === taskId)
       );
       if (taskFound) {
-        // Return a GroupTreeItem for this group
-        return new GroupTreeItem(
-          rawGroup.group ?? 'unnamed',
-          rawGroup.tasks.map((t) => new TaskTreeItem(t))
-        );
+        // Return a lightweight GroupTreeItem for drag-and-drop operations
+        // We only need the group name for the move operation
+        return new GroupTreeItem(rawGroup.group ?? 'unnamed', []);
       }
     }
     return undefined;
@@ -508,21 +510,21 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   getChildren(element?: TkTreeItem): vscode.ProviderResult<TkTreeItem[]> {
     if (!element) {
       // Apply filtering when getting root children
-      const filteredGroups = this.rawGroups.map(group => ({
-        ...group,
-        tasks: this.filterTasksByStatus(group.tasks)
-      })).filter(group => group.tasks.length > 0); // Only show groups with tasks after filtering
-      
-      const filteredUngrouped = this.filterTasksByStatus(this.rawUngrouped);
-
-      const groups = filteredGroups.map(
-        (group) =>
-          new GroupTreeItem(
+      // Filter groups first, then create TreeItems to avoid unnecessary object creation
+      const groups = this.rawGroups
+        .map(group => {
+          const filteredTasks = this.filterTasksByStatus(group.tasks);
+          if (filteredTasks.length === 0) {
+            return null; // Skip groups with no tasks after filtering
+          }
+          return new GroupTreeItem(
             group.group ?? 'unnamed',
-            group.tasks.map((task) => new TaskTreeItem(task)),
-          ),
-      );
+            filteredTasks.map((task) => new TaskTreeItem(task)),
+          );
+        })
+        .filter((group): group is GroupTreeItem => group !== null);
 
+      const filteredUngrouped = this.filterTasksByStatus(this.rawUngrouped);
       const ungrouped = filteredUngrouped.map((task) => new TaskTreeItem(task));
 
       return [...groups, ...ungrouped];
