@@ -45,7 +45,7 @@ jj-run <command>    # run a command on all mutable&reachable changes
 Full form:
 
 ```sh
-jj-run -r <revset> [-e <error_strategy>] <command>
+jj-run -r <revset> [-e <error_strategy>] [-d] <command>
 ```
 
 - `-r`, `--revset`: The revset of changes to process. If not provided, defaults to `reachable(@, mutable())` (same as `jj fix`).
@@ -53,15 +53,42 @@ jj-run -r <revset> [-e <error_strategy>] <command>
   - `continue` (default): Log errors and continue to next change.
   - `stop`: Stop on the first error, but finish already started changes.
   - `fatal`: Abort immediately on any error.
-- `<command>`: **Required positional argument.** The shell command to execute for each change (runs in the temp workspace).
+- `-d`, `--direct`: Enable direct mode (see below).
+- `<command>`: **Required positional argument.** The shell command to execute for each change (runs in the temp workspace, or in main repo in direct mode).
+
+## Direct Mode
+
+Direct mode (`--direct` or `-d`) provides a simpler execution model that doesn't use temporary workspaces:
+
+- For each change in the revset, `jj edit` is run to make that change the working copy
+- The command is executed in the main repository's working directory
+- No temporary workspaces are created or cleaned up
+- No parent rewriting or change squashing is performed
+
+**Use cases for direct mode:**
+- Changing commit metadata (descriptions, authors, etc.)
+- Running operations that don't require file isolation
+- Batch operations that need to work directly with the repository
+
+**Example:**
+```sh
+# Change the description of all mutable commits
+jj-run --direct -r 'mutable()' 'jj describe -m "$(jj log -r @ --no-graph -T description) [updated]"'
+
+# Add a co-author to recent commits
+jj-run --direct -r '::@' 'jj describe -m "$(jj log -r @ --no-graph -T description)\n\nCo-authored-by: Name <email>"'
+```
 
 ## Limitations
 
 - jj-run can't encapsulate its changes into a single operation, so to undo the changes you will have to use `jj op restore`.
 - Doesn't support `--ignore-immutable` yet, so it will fail if the revset contains immutable changes.
-- Can't change descriptions of existing commits (it's "for-each-run-and-squash", not "for-each-run").
+- In workspace mode (default): Can't change descriptions of existing commits (it's "for-each-run-and-squash", not "for-each-run").
+- In direct mode: Commands that modify the working copy will affect your main repository directly.
 
 ## How it works
+
+### Workspace Mode (default)
 
 - For each run, a unique temporary directory is created and a new `jj` workspace is added there.
 - The script finds the set of changes matching the revset (excluding the workspace's own change and root).
@@ -72,6 +99,15 @@ jj-run -r <revset> [-e <error_strategy>] <command>
 - After all changes are processed:
   - The script attempts to rewrite parent snapshots for the new changes.
   - The temp workspace is forgotten and all created changes are abandoned.
+
+### Direct Mode (`--direct`)
+
+- The script finds the set of changes matching the revset.
+- For each change:
+  1. `jj edit <change>` is run in the main repository to make it the working copy.
+  2. The provided command is run in the main repository's working directory.
+  3. Output and errors are printed.
+- No workspace creation, cleanup, or parent rewriting is performed.
 
 ## Error Handling
 
