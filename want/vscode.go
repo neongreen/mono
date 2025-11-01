@@ -48,19 +48,19 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 			{
 				Type:        "install",
 				Description: "Install dependencies",
-				Command:     "mise run //tk-vscode:install-deps",
+				Command:     "cd tk-vscode && mise run install-deps",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Build extension (compile & package)",
-				Command:     "mise run //tk-vscode:build",
+				Command:     "cd tk-vscode && mise run build",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Install VS Code extension",
-				Command:     "mise run //tk-vscode:install",
+				Command:     "cd tk-vscode && mise run install",
 				Automatic:   true,
 			},
 		},
@@ -138,8 +138,8 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Println("\nInstalling dependencies...")
-	cmd = createMiseRunCommand("//tk-vscode:install-deps")
-	cmd.Dir = tmpDir
+	cmd = createMiseRunCommand("install-deps")
+	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -149,8 +149,8 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Println("\nBuilding extension (compile & package)...")
-	cmd = createMiseRunCommand("//tk-vscode:build")
-	cmd.Dir = tmpDir
+	cmd = createMiseRunCommand("build")
+	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -180,8 +180,8 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Printf("\nInstalling extension from %s...\n", filepath.Base(vsixFile))
-	cmd = createMiseRunCommand("//tk-vscode:install")
-	cmd.Dir = tmpDir
+	cmd = createMiseRunCommand("install")
+	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -214,19 +214,19 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 			{
 				Type:        "install",
 				Description: "Install dependencies",
-				Command:     "mise run //tk-vscode:install-deps",
+				Command:     "cd tk-vscode && mise run install-deps",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Build extension (compile & package)",
-				Command:     "mise run //tk-vscode:build",
+				Command:     "cd tk-vscode && mise run build",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Install VS Code extension",
-				Command:     "mise run //tk-vscode:install",
+				Command:     "cd tk-vscode && mise run install",
 				Automatic:   true,
 			},
 		},
@@ -300,8 +300,8 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Println("\nInstalling dependencies...")
-	cmd = createMiseRunCommand("//tk-vscode:install-deps")
-	cmd.Dir = tmpDir
+	cmd = createMiseRunCommand("install-deps")
+	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -311,8 +311,8 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Println("\nBuilding extension (compile & package)...")
-	cmd = createMiseRunCommand("//tk-vscode:build")
-	cmd.Dir = tmpDir
+	cmd = createMiseRunCommand("build")
+	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -342,8 +342,8 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Printf("\nInstalling extension from %s...\n", filepath.Base(vsixFile))
-	cmd = createMiseRunCommand("//tk-vscode:install")
-	cmd.Dir = tmpDir
+	cmd = createMiseRunCommand("install")
+	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
