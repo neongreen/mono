@@ -44,12 +44,14 @@ class TaskTreeItem extends vscode.TreeItem {
     const label = task.task_id ?? task.title ?? 'unnamed task';
     super(label, vscode.TreeItemCollapsibleState.None);
 
-    if (task.title && task.title !== label) {
-      this.description = task.title;
-    }
-
     const genericAxis = task.axes?.['generic'];
     const state = genericAxis?.effective ?? 'unknown';
+
+    if (task.title && task.title !== label) {
+      this.description = `${task.title} [${state}]`;
+    } else {
+      this.description = `[${state}]`;
+    }
     const blocked = task.blocked ? 'yes' : 'no';
 
     const tooltip = new vscode.MarkdownString();
