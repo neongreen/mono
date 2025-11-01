@@ -26,42 +26,65 @@ import (
 type Dagger struct{}
 
 // TkTests runs the tk package tests and returns the standard output.
-func (m *Dagger) TkTests(ctx context.Context) (string, error) {
-	return m.goTest(ctx, "tk", "./tk/...")
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) TkTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "tk", format, "./tk/...")
 }
 
 // DissectTests runs the dissect package tests and returns the standard output.
-func (m *Dagger) DissectTests(ctx context.Context) (string, error) {
-	return m.goTest(ctx, "dissect", "./dissect/...")
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) DissectTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "dissect", format, "./dissect/...")
 }
 
 // TomlTests runs the lib/toml package tests and returns the standard output.
-func (m *Dagger) TomlTests(ctx context.Context) (string, error) {
-	return m.goTest(ctx, "toml", "./lib/toml/...")
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) TomlTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "toml", format, "./lib/toml/...")
 }
 
 // `All` runs the tk, dissect, and toml test suites concurrently.
-func (m *Dagger) All(ctx context.Context) error {
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) All(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
 	p.Go(func(ctx context.Context) error {
-		_, err := m.TkTests(ctx)
+		_, err := m.TkTests(ctx, format)
 		return err
 	})
 	p.Go(func(ctx context.Context) error {
-		_, err := m.DissectTests(ctx)
+		_, err := m.DissectTests(ctx, format)
 		return err
 	})
 	p.Go(func(ctx context.Context) error {
-		_, err := m.TomlTests(ctx)
+		_, err := m.TomlTests(ctx, format)
 		return err
 	})
 
 	return p.Wait()
 }
 
-func (m *Dagger) goTest(ctx context.Context, label string, patterns ...string) (string, error) {
-	args := append([]string{"gotestsum", "--format", "pkgname", "--"}, patterns...)
+func (m *Dagger) goTest(ctx context.Context, label string, format string, patterns ...string) (string, error) {
+	// Use the specified format for gotestsum output
+	// Include -v flag for verbose test output when using testname format for better visibility
+	var args []string
+	if format == "testname" {
+		args = append([]string{"gotestsum", "--format", format, "--", "-v"}, patterns...)
+	} else {
+		args = append([]string{"gotestsum", "--format", format, "--"}, patterns...)
+	}
 	return m.testContainer().
 		WithLabel("suite", fmt.Sprintf("%s-tests", label)).
 		WithExec(args).

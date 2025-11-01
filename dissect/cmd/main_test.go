@@ -75,6 +75,20 @@ func loadTestFilesFromTOML(t *testing.T, tomlPath string) testFiles { // Change 
 func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 	t.Helper()
 
+	// Set up shared Go cache directories for faster subsequent test runs
+	// This allows all tests to share downloaded dependencies and build artifacts
+	cacheDir := filepath.Join(os.TempDir(), "dissect_test_cache")
+	goModCache := filepath.Join(cacheDir, "mod")
+	goBuildCache := filepath.Join(cacheDir, "build")
+
+	// Create cache directories if they don't exist
+	if err := os.MkdirAll(goModCache, 0755); err != nil {
+		t.Fatalf("Failed to create Go module cache directory: %v", err)
+	}
+	if err := os.MkdirAll(goBuildCache, 0755); err != nil {
+		t.Fatalf("Failed to create Go build cache directory: %v", err)
+	}
+
 	// Create a temporary directory for the test project
 	tmpProjectDir, err := os.MkdirTemp("", "dissect_"+tomlFileName+"_")
 	if err != nil {
@@ -102,10 +116,14 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 		slog.Debug("Created file from test data", "file", fullPath)
 	}
 
-	// Run go mod tidy to initialize the module
+	// Run go mod tidy to initialize the module with shared cache
 	slog.Debug("Running go mod tidy in temporary project directory...", "dir", tmpProjectDir)
 	tidyCmd := exec.Command("go", "mod", "tidy")
 	tidyCmd.Dir = tmpProjectDir
+	tidyCmd.Env = append(os.Environ(),
+		"GOMODCACHE="+goModCache,
+		"GOCACHE="+goBuildCache,
+	)
 	tidyOutput, tidyErr := tidyCmd.CombinedOutput()
 	if tidyErr != nil {
 		t.Fatalf("go mod tidy failed: %v\nOutput: %s", tidyErr, tidyOutput)
@@ -125,6 +143,10 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 	slog.Debug("Running go fmt on temporary project directory...", "dir", tmpProjectDir)
 	fmtCmd := exec.Command("go", "fmt", "./...")
 	fmtCmd.Dir = tmpProjectDir
+	fmtCmd.Env = append(os.Environ(),
+		"GOMODCACHE="+goModCache,
+		"GOCACHE="+goBuildCache,
+	)
 	fmtOutput, fmtErr := fmtCmd.CombinedOutput()
 	if fmtErr != nil {
 		t.Fatalf("go fmt failed: %v\nOutput: %s", fmtErr, fmtOutput)
@@ -195,9 +217,13 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 		slog.Debug("--- End of output directory state ---")
 	}()
 
-	// Verify that the project still builds
+	// Verify that the project still builds with shared cache
 	buildCmd := exec.Command("go", "build", "-o", "/dev/null", "./...") // Declare buildCmd with :=
 	buildCmd.Dir = tmpProjectDir
+	buildCmd.Env = append(os.Environ(),
+		"GOMODCACHE="+goModCache,
+		"GOCACHE="+goBuildCache,
+	)
 	buildOutput, buildErr := buildCmd.CombinedOutput() // Declare buildOutput, buildErr with :=
 	if buildErr != nil {
 		t.Fatalf("go build failed: %v\nOutput: %s", buildErr, buildOutput)
@@ -246,6 +272,7 @@ func TestExternalProjects(t *testing.T) {
 	// Run test for each known project
 	for projectName := range externaltest.KnownProjects {
 		t.Run(projectName, func(t *testing.T) {
+			t.Parallel() // Run external project tests concurrently
 			config, ok := externaltest.GetProject(projectName)
 			if !ok {
 				t.Fatalf("Project %s not found", projectName)
