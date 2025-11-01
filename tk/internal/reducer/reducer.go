@@ -49,12 +49,14 @@ func (r *Reducer) Apply(e types.Event) error {
 		return nil
 	}
 
-	// Handle shared events (status, notes, relations)
+	// Handle shared events (status, notes, relations, delete)
 	switch e.Kind {
 	case "task.status.set":
 		return r.applyTaskStatusSet(e)
 	case "task.note.add":
 		return r.applyTaskNoteAdd(e)
+	case "task.delete":
+		return r.applyTaskDelete(e)
 	case "relation.add":
 		return r.applyRelationAdd(e)
 	case "relation.remove":
@@ -142,6 +144,30 @@ func (r *Reducer) applyTaskNoteAdd(e types.Event) error {
 		Timestamp: e.CreatedAt, // Use actual creation time from event
 	}
 	task.Notes = append(task.Notes, note)
+
+	return nil
+}
+
+func (r *Reducer) applyTaskDelete(e types.Event) error {
+	var payload types.TaskDeletePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.delete payload: %w", err)
+	}
+
+	taskUUID := payload.TaskUUID
+
+	// Remove task from tasks map
+	delete(r.tasks, taskUUID)
+
+	// Remove all task ID mappings that point to this UUID
+	for taskID, uuid := range r.taskByID {
+		if uuid == taskUUID {
+			delete(r.taskByID, taskID)
+		}
+	}
+
+	// Remove all relations involving this task
+	r.relations.RemoveTaskRelations(taskUUID)
 
 	return nil
 }

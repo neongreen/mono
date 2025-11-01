@@ -124,6 +124,10 @@ func ingestFile(db *DB, path string) error {
 			if err := db.ProjectTaskTitleSetEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
 			}
+		case string(types.EventKindTaskDelete):
+			if err := db.ProjectTaskDeleteEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project task.delete event %s: %v\n", event.ID, err)
+			}
 		}
 
 		ingested++
@@ -246,6 +250,10 @@ func ingestRemoteSpace(db *DB, remoteName string, remote sync.RemoteConfig, spac
 			case string(types.EventKindTaskTitleSet):
 				if err := db.ProjectTaskTitleSetEvent(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
+				}
+			case string(types.EventKindTaskDelete):
+				if err := db.ProjectTaskDeleteEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project task.delete event %s: %v\n", event.ID, err)
 				}
 			}
 

@@ -16,6 +16,11 @@ type TaskNoteAddPayload struct {
 	Markdown string `json:"markdown"`
 }
 
+// TaskDeletePayload is the payload for task.delete events
+type TaskDeletePayload struct {
+	TaskUUID string `json:"task_uuid"`
+}
+
 // RelationAddPayload is the payload for relation.add events
 type RelationAddPayload struct {
 	Src  string `json:"src"`  // Source task UUID

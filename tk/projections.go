@@ -212,3 +212,29 @@ func (d *DB) ProjectTaskTitleSetEvent(e types.Event) error {
 
 	return err
 }
+
+// ProjectTaskDeleteEvent projects a task.delete event by removing the task from tables (idempotent)
+func (d *DB) ProjectTaskDeleteEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindTaskDelete) {
+		return fmt.Errorf("expected task.delete event, got %s", e.Kind)
+	}
+
+	var payload types.TaskDeletePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.delete payload: %w", err)
+	}
+
+	// Delete from task_numbers table
+	_, err := d.db.Exec(`DELETE FROM task_numbers WHERE task_uid = ?`, payload.TaskUUID)
+	if err != nil {
+		return fmt.Errorf("failed to delete from task_numbers: %w", err)
+	}
+
+	// Delete from tasks table (idempotent)
+	_, err = d.db.Exec(`DELETE FROM tasks WHERE task_uid = ?`, payload.TaskUUID)
+	if err != nil {
+		return fmt.Errorf("failed to delete from tasks: %w", err)
+	}
+
+	return nil
+}
