@@ -19,7 +19,8 @@
     "onView:tkExplorer",
     "onCommand:tk.refresh",
     "onCommand:tk.editTitle",
-    "onCommand:tk.rotateStatus"
+    "onCommand:tk.rotateStatus",
+    "onCommand:tk.createTask"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -34,8 +35,12 @@
       },
       {
         "command": "tk.rotateStatus",
-        "title": "Rotate Status",
-        "icon": "$(sync)"
+        "title": "Status"
+      },
+      {
+        "command": "tk.createTask",
+        "title": "Create Task",
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -44,6 +49,17 @@
           "command": "tk.editTitle",
           "when": "view == tkExplorer && viewItem == tkTask"
         },
+        {
+          "command": "tk.rotateStatus",
+          "when": "view == tkExplorer && viewItem == tkTask"
+        },
+        {
+          "command": "tk.createTask",
+          "when": "view == tkExplorer && viewItem == tkGroup",
+          "group": "inline"
+        }
+      ],
+      "view/item/inline": [
         {
           "command": "tk.rotateStatus",
           "when": "view == tkExplorer && viewItem == tkTask"
