@@ -60,7 +60,7 @@ var projectCreateCmd = &cobra.Command{
 		projectUID := types.NewProjectUID()
 
 		// Create project.created event
-		payload := ProjectCreatedPayload{
+		payload := types.ProjectCreatedPayload{
 			ProjectUID:  string(projectUID),
 			Type:        "local",
 			Name:        name,
@@ -98,7 +98,7 @@ var projectCreateCmd = &cobra.Command{
 		alias, _ := cmd.Flags().GetString("alias")
 		if alias != "" {
 			// Create project.alias.add event
-			aliasPayload := ProjectAliasAddPayload{
+			aliasPayload := types.ProjectAliasAddPayload{
 				ProjectUID: string(projectUID),
 				Alias:      alias,
 				Node:       nodeID,
@@ -282,7 +282,7 @@ var projectAliasAddCmd = &cobra.Command{
 		}
 
 		// Create project.alias.add event
-		payload := ProjectAliasAddPayload{
+		payload := types.ProjectAliasAddPayload{
 			ProjectUID: projectUID,
 			Alias:      alias,
 			Node:       nodeID,
@@ -354,7 +354,7 @@ var projectAliasRemoveCmd = &cobra.Command{
 		}
 
 		// Create project.alias.remove event
-		payload := ProjectAliasRemovePayload{
+		payload := types.ProjectAliasRemovePayload{
 			ProjectUID: projectUID,
 			Alias:      alias,
 			Node:       nodeID,

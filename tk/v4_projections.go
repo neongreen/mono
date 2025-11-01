@@ -17,7 +17,7 @@ func (d *DB) ProjectProjectCreatedEvent(e types.Event) error {
 		return fmt.Errorf("expected project.created event, got %s", e.Kind)
 	}
 
-	var payload ProjectCreatedPayload
+	var payload types.ProjectCreatedPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.created payload: %w", err)
 	}
@@ -37,7 +37,7 @@ func (d *DB) ProjectProjectAliasAddEvent(e types.Event) error {
 		return fmt.Errorf("expected project.alias.add event, got %s", e.Kind)
 	}
 
-	var payload ProjectAliasAddPayload
+	var payload types.ProjectAliasAddPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.alias.add payload: %w", err)
 	}
@@ -57,7 +57,7 @@ func (d *DB) ProjectProjectAliasRemoveEvent(e types.Event) error {
 		return fmt.Errorf("expected project.alias.remove event, got %s", e.Kind)
 	}
 
-	var payload ProjectAliasRemovePayload
+	var payload types.ProjectAliasRemovePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.alias.remove payload: %w", err)
 	}
@@ -77,7 +77,7 @@ func (d *DB) ProjectTaskCreatedEvent(e types.Event) error {
 		return fmt.Errorf("expected task.created event, got %s", e.Kind)
 	}
 
-	var payload TaskCreatedPayload
+	var payload types.TaskCreatedPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
 	}
@@ -97,7 +97,7 @@ func (d *DB) ProjectTaskNumberSetEvent(e types.Event) error {
 		return fmt.Errorf("expected task.number.set event, got %s", e.Kind)
 	}
 
-	var payload TaskNumberSetPayload
+	var payload types.TaskNumberSetPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.number.set payload: %w", err)
 	}
@@ -125,7 +125,7 @@ func (d *DB) ProjectTaskRelocateEvent(e types.Event) error {
 		return fmt.Errorf("expected task.relocate event, got %s", e.Kind)
 	}
 
-	var payload TaskRelocatePayload
+	var payload types.TaskRelocatePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.relocate payload: %w", err)
 	}
@@ -200,7 +200,7 @@ func (d *DB) ProjectTaskTitleSetEvent(e types.Event) error {
 		return fmt.Errorf("expected task.title.set event, got %s", e.Kind)
 	}
 
-	var payload TaskTitleSetPayload
+	var payload types.TaskTitleSetPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.title.set payload: %w", err)
 	}

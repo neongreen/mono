@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"strconv"
 	"strings"
 	"time"
@@ -65,7 +64,7 @@ func editTaskStatus(db *DB, taskUID string, value string, actor string) error {
 		return err
 	}
 
-	payload := payloads.TaskStatusSetPayload{
+	payload := types.TaskStatusSetPayload{
 		TaskUUID: taskUID,
 		Axis:     "generic",
 		State:    value,
@@ -120,7 +119,7 @@ func editTaskNumber(db *DB, taskUID string, value string, actor string) error {
 		return err
 	}
 
-	payload := TaskNumberSetPayload{
+	payload := types.TaskNumberSetPayload{
 		TaskUID:    taskUID,
 		ProjectUID: projectUID,
 		Number:     number,
@@ -175,7 +174,7 @@ func editTaskTitle(db *DB, taskRef string, value string, actor string) error {
 		return err
 	}
 
-	payload := TaskTitleSetPayload{
+	payload := types.TaskTitleSetPayload{
 		TaskUID: taskUID,
 		Title:   value,
 	}

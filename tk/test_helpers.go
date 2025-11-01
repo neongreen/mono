@@ -42,7 +42,7 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 	projectUID := string(types.NewProjectUID())
 	now := time.Now()
 
-	projectPayload := ProjectCreatedPayload{
+	projectPayload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        "local",
 		Name:        alias,
@@ -72,7 +72,7 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 		t.Fatalf("failed to get node id: %v", err)
 	}
 
-	aliasPayload := ProjectAliasAddPayload{
+	aliasPayload := types.ProjectAliasAddPayload{
 		ProjectUID: projectUID,
 		Alias:      alias,
 		Node:       nodeID,
@@ -103,7 +103,7 @@ func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
 	projectUID := string(types.NewProjectUID())
 	now := time.Now()
 
-	projectPayload := ProjectCreatedPayload{
+	projectPayload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        "local",
 		Name:        name,
@@ -145,7 +145,7 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 	taskUID := string(types.NewTaskUID())
 	now := time.Now()
 
-	taskPayload := TaskCreatedPayload{
+	taskPayload := types.TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: number,
@@ -171,7 +171,7 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 		t.Fatalf("failed to project task.created: %v", err)
 	}
 
-	numberPayload := TaskNumberSetPayload{
+	numberPayload := types.TaskNumberSetPayload{
 		TaskUID:    taskUID,
 		ProjectUID: projectUID,
 		Number:     number,
@@ -209,7 +209,7 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 // Helper functions for creating events without testing context
 
 func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) types.Event {
-	payload := ProjectCreatedPayload{
+	payload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        "local",
 		Name:        name,
@@ -230,7 +230,7 @@ func createProjectCreatedEvent(projectUID, name, description, createdBy, node st
 }
 
 func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) types.Event {
-	payload := ProjectAliasAddPayload{
+	payload := types.ProjectAliasAddPayload{
 		ProjectUID: projectUID,
 		Alias:      alias,
 		Node:       node,
@@ -250,7 +250,7 @@ func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) types.E
 }
 
 func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) types.Event {
-	payload := TaskCreatedPayload{
+	payload := types.TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: proposedNumber,
@@ -272,7 +272,7 @@ func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, cr
 }
 
 func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason string) types.Event {
-	payload := TaskNumberSetPayload{
+	payload := types.TaskNumberSetPayload{
 		TaskUID:    taskUID,
 		ProjectUID: projectUID,
 		Number:     number,

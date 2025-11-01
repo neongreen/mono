@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"os"
 	"strings"
 	"time"
@@ -170,7 +169,7 @@ var markCmd = &cobra.Command{
 			return err
 		}
 
-		payload := payloads.TaskStatusSetPayload{
+		payload := types.TaskStatusSetPayload{
 			TaskUUID: taskUUID,
 			TaskID:   taskRef,
 			Axis:     axis,
@@ -246,7 +245,7 @@ var noteCmd = &cobra.Command{
 			return err
 		}
 
-		payload := payloads.TaskNoteAddPayload{
+		payload := types.TaskNoteAddPayload{
 			TaskUUID: taskUUID,
 			TaskID:   taskRef,
 			Markdown: text,

@@ -1,4 +1,4 @@
-package main
+package types
 
 // types.Event Payload Definitions
 // Based on tk/specs/v4.md

@@ -41,7 +41,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 	}
 	proposedNumber := maxNumber + 1
 
-	payload := TaskCreatedPayload{
+	payload := types.TaskCreatedPayload{
 		TaskUID:        string(taskUID),
 		ProjectUID:     projectUID,
 		ProposedNumber: proposedNumber,
@@ -73,7 +73,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		return fmt.Errorf("failed to project task: %w", err)
 	}
 
-	numberPayload := TaskNumberSetPayload{
+	numberPayload := types.TaskNumberSetPayload{
 		TaskUID:    string(taskUID),
 		ProjectUID: projectUID,
 		Number:     proposedNumber,

@@ -79,7 +79,7 @@ func TestEvents(t *testing.T) {
 
 	// Test project.created event
 	t.Run("project.created", func(t *testing.T) {
-		payload := ProjectCreatedPayload{
+		payload := types.ProjectCreatedPayload{
 			ProjectUID:  string(types.NewProjectUID()),
 			Type:        "local",
 			Name:        "Test Project",
@@ -108,7 +108,7 @@ func TestEvents(t *testing.T) {
 		taskUID := types.NewTaskUID()
 		projectUID := types.NewProjectUID()
 
-		payload := TaskCreatedPayload{
+		payload := types.TaskCreatedPayload{
 			TaskUID:        string(taskUID),
 			ProjectUID:     string(projectUID),
 			ProposedNumber: 1,
@@ -143,7 +143,7 @@ func TestEvents(t *testing.T) {
 		taskUID := types.NewTaskUID()
 
 		// First create the task
-		createPayload := TaskCreatedPayload{
+		createPayload := types.TaskCreatedPayload{
 			TaskUID:        string(taskUID),
 			ProjectUID:     string(types.NewProjectUID()),
 			ProposedNumber: 1,
@@ -168,7 +168,7 @@ func TestEvents(t *testing.T) {
 		}
 
 		// Now change the title
-		titlePayload := TaskTitleSetPayload{
+		titlePayload := types.TaskTitleSetPayload{
 			TaskUID: string(taskUID),
 			Title:   "Updated Title",
 		}

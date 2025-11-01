@@ -36,7 +36,7 @@ func (r *Reducer) ApplyProjectEvent(e types.Event) (bool, error) {
 }
 
 func (r *Reducer) applyProjectCreated(e types.Event) error {
-	var payload ProjectCreatedPayload
+	var payload types.ProjectCreatedPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.created payload: %w", err)
 	}
@@ -47,7 +47,7 @@ func (r *Reducer) applyProjectCreated(e types.Event) error {
 }
 
 func (r *Reducer) applyProjectAliasAdd(e types.Event) error {
-	var payload ProjectAliasAddPayload
+	var payload types.ProjectAliasAddPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.alias.add payload: %w", err)
 	}
@@ -57,7 +57,7 @@ func (r *Reducer) applyProjectAliasAdd(e types.Event) error {
 }
 
 func (r *Reducer) applyProjectAliasRemove(e types.Event) error {
-	var payload ProjectAliasRemovePayload
+	var payload types.ProjectAliasRemovePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.alias.remove payload: %w", err)
 	}
@@ -67,7 +67,7 @@ func (r *Reducer) applyProjectAliasRemove(e types.Event) error {
 }
 
 func (r *Reducer) applyTaskCreated(e types.Event) error {
-	var payload TaskCreatedPayload
+	var payload types.TaskCreatedPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
 	}
@@ -99,7 +99,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 }
 
 func (r *Reducer) applyTaskNumberSet(e types.Event) error {
-	var payload TaskNumberSetPayload
+	var payload types.TaskNumberSetPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.number.set payload: %w", err)
 	}
@@ -110,7 +110,7 @@ func (r *Reducer) applyTaskNumberSet(e types.Event) error {
 }
 
 func (r *Reducer) applyTaskRelocate(e types.Event) error {
-	var payload TaskRelocatePayload
+	var payload types.TaskRelocatePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.relocate payload: %w", err)
 	}
@@ -121,7 +121,7 @@ func (r *Reducer) applyTaskRelocate(e types.Event) error {
 }
 
 func (r *Reducer) applyTaskTitleSet(e types.Event) error {
-	var payload TaskTitleSetPayload
+	var payload types.TaskTitleSetPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.title.set payload: %w", err)
 	}

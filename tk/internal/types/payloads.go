@@ -1,4 +1,4 @@
-package payloads
+package types
 
 // TaskStatusSetPayload is the payload for task.status.set events
 type TaskStatusSetPayload struct {

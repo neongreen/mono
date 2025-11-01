@@ -12,7 +12,7 @@ func TestProjectProjectCreatedEvent(t *testing.T) {
 	db := openTempDB(t)
 
 	projectUID := string(types.NewProjectUID())
-	payload := ProjectCreatedPayload{
+	payload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        "local",
 		Name:        "test-project",
@@ -63,7 +63,7 @@ func TestProjectProjectAliasAddEvent(t *testing.T) {
 		t.Fatalf("failed to get node ID: %v", err)
 	}
 
-	payload := ProjectAliasAddPayload{
+	payload := types.ProjectAliasAddPayload{
 		ProjectUID: projectUID,
 		Alias:      "newalias",
 		Node:       nodeID,
@@ -113,7 +113,7 @@ func TestProjectTaskCreatedEvent(t *testing.T) {
 	}
 
 	taskUID := string(types.NewTaskUID())
-	payload := TaskCreatedPayload{
+	payload := types.TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
@@ -161,7 +161,7 @@ func TestProjectTaskNumberSetEvent(t *testing.T) {
 	taskUID := seedTask(t, db, projectUID, "Test task", 1)
 
 	// Update the number
-	payload := TaskNumberSetPayload{
+	payload := types.TaskNumberSetPayload{
 		TaskUID:    taskUID,
 		ProjectUID: projectUID,
 		Number:     42,
@@ -207,7 +207,7 @@ func TestProjectTaskTitleSetEvent(t *testing.T) {
 	taskUID := seedTask(t, db, projectUID, "Old title", 1)
 
 	// Update the title
-	payload := TaskTitleSetPayload{
+	payload := types.TaskTitleSetPayload{
 		TaskUID: taskUID,
 		Title:   "New title",
 	}

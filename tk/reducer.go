@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -58,7 +57,7 @@ func (r *Reducer) Apply(e types.Event) error {
 }
 
 func (r *Reducer) applyTaskStatusSet(e types.Event) error {
-	var payload payloads.TaskStatusSetPayload
+	var payload types.TaskStatusSetPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.status.set payload: %w", err)
 	}
@@ -105,7 +104,7 @@ func (r *Reducer) applyTaskStatusSet(e types.Event) error {
 }
 
 func (r *Reducer) applyTaskNoteAdd(e types.Event) error {
-	var payload payloads.TaskNoteAddPayload
+	var payload types.TaskNoteAddPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.note.add payload: %w", err)
 	}
@@ -214,7 +213,7 @@ func (r *Reducer) GetAllTasks() []*types.Task {
 
 // applyRelationAdd adds a relation edge
 func (r *Reducer) applyRelationAdd(e types.Event) error {
-	var payload payloads.RelationAddPayload
+	var payload types.RelationAddPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal relation.add payload: %w", err)
 	}
@@ -234,7 +233,7 @@ func (r *Reducer) applyRelationAdd(e types.Event) error {
 
 // applyRelationRemove removes a relation edge
 func (r *Reducer) applyRelationRemove(e types.Event) error {
-	var payload payloads.RelationRemovePayload
+	var payload types.RelationRemovePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal relation.remove payload: %w", err)
 	}
@@ -254,7 +253,7 @@ func (r *Reducer) applyRelationRemove(e types.Event) error {
 
 // applyRelationNote sets a note on a relation
 func (r *Reducer) applyRelationNote(e types.Event) error {
-	var payload payloads.RelationNotePayload
+	var payload types.RelationNotePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal relation.note payload: %w", err)
 	}

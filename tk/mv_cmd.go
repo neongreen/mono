@@ -142,7 +142,7 @@ func moveTask(db *DB, taskRef string, targetSpec string, opts moveOptions) error
 		return err
 	}
 
-	numberPolicy := NumberPolicyPayload{Mode: opts.Mode}
+	numberPolicy := types.NumberPolicyPayload{Mode: opts.Mode}
 	switch opts.Mode {
 	case "keep":
 		numberPolicy.Number = oldNumber
@@ -173,7 +173,7 @@ func moveTask(db *DB, taskRef string, targetSpec string, opts moveOptions) error
 		return fmt.Errorf("unsupported number policy mode %s", opts.Mode)
 	}
 
-	payload := TaskRelocatePayload{
+	payload := types.TaskRelocatePayload{
 		TaskUID:        taskUID,
 		FromProjectUID: fromProjectUID,
 		ToProjectUID:   toProjectUID,

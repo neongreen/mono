@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -175,7 +174,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "task.created",
-		Payload:   marshalPayload(TaskCreatedPayload{TaskUID: "task-a", ProjectUID: string(types.NewProjectUID()), ProposedNumber: 1, CreatedNode: string(types.NewNodeID()), Title: "Task A", CreatedBy: "alice"}),
+		Payload:   marshalPayload(types.TaskCreatedPayload{TaskUID: "task-a", ProjectUID: string(types.NewProjectUID()), ProposedNumber: 1, CreatedNode: string(types.NewNodeID()), Title: "Task A", CreatedBy: "alice"}),
 	}
 	createTaskB := types.Event{
 		ID:        "ev-2-node1",
@@ -184,7 +183,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "task.created",
-		Payload:   marshalPayload(TaskCreatedPayload{TaskUID: "task-b", ProjectUID: string(types.NewProjectUID()), ProposedNumber: 1, CreatedNode: string(types.NewNodeID()), Title: "Task B", CreatedBy: "alice"}),
+		Payload:   marshalPayload(types.TaskCreatedPayload{TaskUID: "task-b", ProjectUID: string(types.NewProjectUID()), ProposedNumber: 1, CreatedNode: string(types.NewNodeID()), Title: "Task B", CreatedBy: "alice"}),
 	}
 
 	if err := reducer.Apply(createTaskA); err != nil {
@@ -202,7 +201,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "relation.add",
-		Payload:   marshalPayload(payloads.RelationAddPayload{Src: "task-a", Type: "blocks", Dst: "task-b", Note: "test"}),
+		Payload:   marshalPayload(types.RelationAddPayload{Src: "task-a", Type: "blocks", Dst: "task-b", Note: "test"}),
 	}
 
 	if err := reducer.Apply(relationAddEvent); err != nil {
@@ -223,7 +222,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "relation.remove",
-		Payload:   marshalPayload(payloads.RelationRemovePayload{Src: "task-a", Type: "blocks", Dst: "task-b"}),
+		Payload:   marshalPayload(types.RelationRemovePayload{Src: "task-a", Type: "blocks", Dst: "task-b"}),
 	}
 
 	if err := reducer.Apply(relationRemoveEvent); err != nil {

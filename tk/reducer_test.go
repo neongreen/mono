@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -14,7 +13,7 @@ func TestReducer_TaskCreated(t *testing.T) {
 
 	taskUID := string(types.NewTaskUID())
 	projectUID := string(types.NewProjectUID())
-	payload := TaskCreatedPayload{
+	payload := types.TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
@@ -64,7 +63,7 @@ func TestReducer_StatusSet(t *testing.T) {
 	// Create task first
 	taskUID := string(types.NewTaskUID())
 	projectUID := string(types.NewProjectUID())
-	createPayload := TaskCreatedPayload{
+	createPayload := types.TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
@@ -87,7 +86,7 @@ func TestReducer_StatusSet(t *testing.T) {
 	reducer.Apply(createEvent)
 
 	// Set status
-	statusPayload := payloads.TaskStatusSetPayload{
+	statusPayload := types.TaskStatusSetPayload{
 		TaskUUID: taskUID,
 		Axis:     "generic",
 		State:    "in_progress",
@@ -140,7 +139,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	// Create task
 	taskUID := string(types.NewTaskUID())
 	projectUID := string(types.NewProjectUID())
-	createPayload := TaskCreatedPayload{
+	createPayload := types.TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
@@ -163,7 +162,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	reducer.Apply(createEvent)
 
 	// Agent sets status to done
-	agentPayload := payloads.TaskStatusSetPayload{
+	agentPayload := types.TaskStatusSetPayload{
 		TaskUUID: taskUID,
 		Axis:     "generic",
 		State:    "done",
@@ -184,7 +183,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	reducer.Apply(agentEvent)
 
 	// Human sets status to in_progress (same timestamp for concurrent claim)
-	humanPayload := payloads.TaskStatusSetPayload{
+	humanPayload := types.TaskStatusSetPayload{
 		TaskUUID: taskUID,
 		Axis:     "generic",
 		State:    "in_progress",
@@ -242,7 +241,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 	// Create task
 	taskUID := string(types.NewTaskUID())
 	projectUID := string(types.NewProjectUID())
-	createPayload := TaskCreatedPayload{
+	createPayload := types.TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
@@ -265,7 +264,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 	reducer.Apply(createEvent)
 
 	// Add note
-	notePayload := payloads.TaskNoteAddPayload{
+	notePayload := types.TaskNoteAddPayload{
 		TaskUUID: taskUID,
 		Markdown: "This is a test note",
 	}

@@ -6,9 +6,9 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/types"
 
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // TestRelationsIntegration tests a realistic workflow with multiple tasks and relations
@@ -45,7 +45,7 @@ func TestRelationsIntegration(t *testing.T) {
 			Actor:     "alice",
 			Role:      "human",
 			Kind:      "task.created",
-			Payload:   marshalPayload(TaskCreatedPayload{TaskUID: task.uuid, ProjectUID: projectUID, ProposedNumber: int64(ts), CreatedNode: string(types.NewNodeID()), Title: task.title, CreatedBy: "alice"}),
+			Payload:   marshalPayload(types.TaskCreatedPayload{TaskUID: task.uuid, ProjectUID: projectUID, ProposedNumber: int64(ts), CreatedNode: string(types.NewNodeID()), Title: task.title, CreatedBy: "alice"}),
 		}
 		if err := reducer.Apply(event); err != nil {
 			t.Fatalf("Failed to create task %s: %v", task.id, err)
@@ -77,7 +77,7 @@ func TestRelationsIntegration(t *testing.T) {
 			Actor:     "alice",
 			Role:      "human",
 			Kind:      "relation.add",
-			Payload:   marshalPayload(payloads.RelationAddPayload{Src: rel.src, Type: rel.relType, Dst: rel.dst}),
+			Payload:   marshalPayload(types.RelationAddPayload{Src: rel.src, Type: rel.relType, Dst: rel.dst}),
 		}
 		if err := reducer.Apply(event); err != nil {
 			t.Fatalf("Failed to add relation %s %s %s: %v", rel.src, rel.relType, rel.dst, err)
@@ -103,7 +103,7 @@ func TestRelationsIntegration(t *testing.T) {
 			Actor:     "alice",
 			Role:      "human",
 			Kind:      "task.status.set",
-			Payload:   marshalPayload(payloads.TaskStatusSetPayload{TaskUUID: status.task, Axis: "generic", State: status.state, Role: "human"}),
+			Payload:   marshalPayload(types.TaskStatusSetPayload{TaskUUID: status.task, Axis: "generic", State: status.state, Role: "human"}),
 		}
 		if err := reducer.Apply(event); err != nil {
 			t.Fatalf("Failed to set status for %s: %v", status.task, err)
@@ -170,7 +170,7 @@ func TestRelationsIntegration(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "task.status.set",
-		Payload:   marshalPayload(payloads.TaskStatusSetPayload{TaskUUID: "task-a", Axis: "generic", State: "done", Role: "human"}),
+		Payload:   marshalPayload(types.TaskStatusSetPayload{TaskUUID: "task-a", Axis: "generic", State: "done", Role: "human"}),
 	}
 	if err := reducer.Apply(event); err != nil {
 		t.Fatalf("Failed to set status for task-a: %v", err)
@@ -205,7 +205,7 @@ func TestRelationsIntegration(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "task.status.set",
-		Payload:   marshalPayload(payloads.TaskStatusSetPayload{TaskUUID: "task-c", Axis: "generic", State: "done", Role: "human"}),
+		Payload:   marshalPayload(types.TaskStatusSetPayload{TaskUUID: "task-c", Axis: "generic", State: "done", Role: "human"}),
 	}
 	if err := reducer.Apply(event); err != nil {
 		t.Fatalf("Failed to set status for task-c: %v", err)
@@ -277,7 +277,7 @@ func TestRelationRemovalIntegration(t *testing.T) {
 			Actor:     "alice",
 			Role:      "human",
 			Kind:      "task.created",
-			Payload:   marshalPayload(TaskCreatedPayload{TaskUID: task.uuid, ProjectUID: string(types.NewProjectUID()), ProposedNumber: 1, CreatedNode: string(types.NewNodeID()), Title: task.title, CreatedBy: "alice"}),
+			Payload:   marshalPayload(types.TaskCreatedPayload{TaskUID: task.uuid, ProjectUID: string(types.NewProjectUID()), ProposedNumber: 1, CreatedNode: string(types.NewNodeID()), Title: task.title, CreatedBy: "alice"}),
 		}
 		reducer.Apply(event)
 	}
@@ -290,7 +290,7 @@ func TestRelationRemovalIntegration(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "relation.add",
-		Payload:   marshalPayload(payloads.RelationAddPayload{Src: "task-a", Type: "blocks", Dst: "task-b"}),
+		Payload:   marshalPayload(types.RelationAddPayload{Src: "task-a", Type: "blocks", Dst: "task-b"}),
 	}
 	reducer.Apply(addEvent)
 
@@ -316,7 +316,7 @@ func TestRelationRemovalIntegration(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "relation.remove",
-		Payload:   marshalPayload(payloads.RelationRemovePayload{Src: "task-a", Type: "blocks", Dst: "task-b"}),
+		Payload:   marshalPayload(types.RelationRemovePayload{Src: "task-a", Type: "blocks", Dst: "task-b"}),
 	}
 	reducer.Apply(removeEvent)
 
