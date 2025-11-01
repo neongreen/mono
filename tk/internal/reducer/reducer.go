@@ -158,8 +158,12 @@ func (r *Reducer) applyTaskDelete(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.delete payload: %w", err)
 	}
 
-	taskUUID := payload.TaskUUID
+	r.removeTaskFromMaps(payload.TaskUUID)
+	return nil
+}
 
+// removeTaskFromMaps removes a task from all internal maps and relations
+func (r *Reducer) removeTaskFromMaps(taskUUID string) {
 	// Remove task from tasks map
 	delete(r.tasks, taskUUID)
 
@@ -175,8 +179,6 @@ func (r *Reducer) applyTaskDelete(e types.Event) error {
 
 	// Remove all relations involving this task
 	r.relations.RemoveTaskRelations(taskUUID)
-
-	return nil
 }
 
 func (r *Reducer) applyProjectDelete(e types.Event) error {
@@ -195,23 +197,9 @@ func (r *Reducer) applyProjectDelete(e types.Event) error {
 		}
 	}
 
-	// Delete each task
+	// Delete each task using the helper
 	for _, taskUUID := range tasksToDelete {
-		// Remove task from tasks map
-		delete(r.tasks, taskUUID)
-
-		// Remove all task ID mappings that point to this UUID
-		for taskID, uuid := range r.taskByID {
-			if uuid == taskUUID {
-				delete(r.taskByID, taskID)
-			}
-		}
-
-		// Remove project association
-		delete(r.taskProjects, taskUUID)
-
-		// Remove all relations involving this task
-		r.relations.RemoveTaskRelations(taskUUID)
+		r.removeTaskFromMaps(taskUUID)
 	}
 
 	return nil
