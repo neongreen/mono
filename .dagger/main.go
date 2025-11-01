@@ -100,9 +100,12 @@ func (m *Dagger) testContainer() *dagger.Container {
 		WithMountedDirectory("/src", repo).
 		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod")).
 		WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
+		WithMountedCache("/go/bin", dag.CacheVolume("go-bin")).
 		WithWorkdir("/src").
 		WithEnvVariable("GOPRIVATE", "github.com/neongreen/mono").
 		WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono").
 		WithEnvVariable("GOWORK", "off").
-		WithExec([]string{"go", "install", "gotest.tools/gotestsum@latest"})
+		// Install gotestsum with pinned version
+		// Cached in /go/bin volume, so it won't be rebuilt on every run
+		WithExec([]string{"go", "install", "gotest.tools/gotestsum@v1.13.0"})
 }
