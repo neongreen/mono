@@ -206,6 +206,7 @@ const (
 	EventKindProjectCreated     EventKind = "project.created"
 	EventKindProjectAliasAdd    EventKind = "project.alias.add"
 	EventKindProjectAliasRemove EventKind = "project.alias.remove"
+	EventKindProjectDelete      EventKind = "project.delete"
 	EventKindTaskCreated        EventKind = "task.created"
 	EventKindTaskNumberSet      EventKind = "task.number.set"
 	EventKindTaskRelocate       EventKind = "task.relocate"
@@ -224,6 +225,7 @@ const (
 	eventKindProjectCreatedIndex eventKindIndex = iota
 	eventKindProjectAliasAddIndex
 	eventKindProjectAliasRemoveIndex
+	eventKindProjectDeleteIndex
 	eventKindTaskCreatedIndex
 	eventKindTaskNumberSetIndex
 	eventKindTaskRelocateIndex
@@ -241,6 +243,7 @@ var AllEventKinds = [...]EventKind{
 	eventKindProjectCreatedIndex:     EventKindProjectCreated,
 	eventKindProjectAliasAddIndex:    EventKindProjectAliasAdd,
 	eventKindProjectAliasRemoveIndex: EventKindProjectAliasRemove,
+	eventKindProjectDeleteIndex:      EventKindProjectDelete,
 	eventKindTaskCreatedIndex:        EventKindTaskCreated,
 	eventKindTaskNumberSetIndex:      EventKindTaskNumberSet,
 	eventKindTaskRelocateIndex:       EventKindTaskRelocate,

@@ -71,6 +71,51 @@ func (d *DB) ProjectProjectAliasRemoveEvent(e types.Event) error {
 	return err
 }
 
+// ProjectProjectDeleteEvent projects a project.delete event by removing from projects, project_aliases, and all tasks in the project (idempotent)
+func (d *DB) ProjectProjectDeleteEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindProjectDelete) {
+		return fmt.Errorf("expected project.delete event, got %s", e.Kind)
+	}
+
+	var payload types.ProjectDeletePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal project.delete payload: %w", err)
+	}
+
+	// Use a transaction to ensure atomicity
+	tx, err := d.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Delete all tasks in this project from task_numbers table
+	_, err = tx.Exec(`DELETE FROM task_numbers WHERE project_uid = ?`, payload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to delete task_numbers for project: %w", err)
+	}
+
+	// Delete all tasks in this project from tasks table
+	_, err = tx.Exec(`DELETE FROM tasks WHERE project_uid = ?`, payload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to delete tasks for project: %w", err)
+	}
+
+	// Delete from project_aliases table
+	_, err = tx.Exec(`DELETE FROM project_aliases WHERE project_uid = ?`, payload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to delete from project_aliases: %w", err)
+	}
+
+	// Delete from projects table (idempotent)
+	_, err = tx.Exec(`DELETE FROM projects WHERE project_uid = ?`, payload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to delete from projects: %w", err)
+	}
+
+	return tx.Commit()
+}
+
 // ProjectTaskCreatedEvent projects a task.created event into the tasks table (idempotent)
 func (d *DB) ProjectTaskCreatedEvent(e types.Event) error {
 	if e.Kind != string(types.EventKindTaskCreated) {

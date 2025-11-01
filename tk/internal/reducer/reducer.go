@@ -13,17 +13,19 @@ import (
 
 // Reducer reconstructs task state from events
 type Reducer struct {
-	tasks     map[string]*types.Task    // Key: task UUID
-	taskByID  map[string]string         // Key: task ID (current or alias) -> Value: task UUID
-	relations *relations.RelationsGraph // Relations graph
+	tasks        map[string]*types.Task    // Key: task UUID
+	taskByID     map[string]string         // Key: task ID (current or alias) -> Value: task UUID
+	taskProjects map[string]string         // Key: task UUID -> Value: project UID
+	relations    *relations.RelationsGraph // Relations graph
 }
 
 // NewReducer creates a new reducer
 func NewReducer() *Reducer {
 	return &Reducer{
-		tasks:     make(map[string]*types.Task),
-		taskByID:  make(map[string]string),
-		relations: relations.NewRelationsGraph(),
+		tasks:        make(map[string]*types.Task),
+		taskByID:     make(map[string]string),
+		taskProjects: make(map[string]string),
+		relations:    relations.NewRelationsGraph(),
 	}
 }
 
@@ -57,6 +59,8 @@ func (r *Reducer) Apply(e types.Event) error {
 		return r.applyTaskNoteAdd(e)
 	case "task.delete":
 		return r.applyTaskDelete(e)
+	case "project.delete":
+		return r.applyProjectDelete(e)
 	case "relation.add":
 		return r.applyRelationAdd(e)
 	case "relation.remove":
@@ -154,8 +158,12 @@ func (r *Reducer) applyTaskDelete(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.delete payload: %w", err)
 	}
 
-	taskUUID := payload.TaskUUID
+	r.removeTaskFromMaps(payload.TaskUUID)
+	return nil
+}
 
+// removeTaskFromMaps removes a task from all internal maps and relations
+func (r *Reducer) removeTaskFromMaps(taskUUID string) {
 	// Remove task from tasks map
 	delete(r.tasks, taskUUID)
 
@@ -166,8 +174,33 @@ func (r *Reducer) applyTaskDelete(e types.Event) error {
 		}
 	}
 
+	// Remove project association
+	delete(r.taskProjects, taskUUID)
+
 	// Remove all relations involving this task
 	r.relations.RemoveTaskRelations(taskUUID)
+}
+
+func (r *Reducer) applyProjectDelete(e types.Event) error {
+	var payload types.ProjectDeletePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal project.delete payload: %w", err)
+	}
+
+	projectUID := payload.ProjectUID
+
+	// Find all tasks in this project and delete them
+	tasksToDelete := make([]string, 0)
+	for taskUUID, taskProjectUID := range r.taskProjects {
+		if taskProjectUID == projectUID {
+			tasksToDelete = append(tasksToDelete, taskUUID)
+		}
+	}
+
+	// Delete each task using the helper
+	for _, taskUUID := range tasksToDelete {
+		r.removeTaskFromMaps(taskUUID)
+	}
 
 	return nil
 }
@@ -420,6 +453,9 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 
 	// Register task by UID
 	r.taskByID[taskUID] = taskUID
+
+	// Track which project this task belongs to
+	r.taskProjects[taskUID] = payload.ProjectUID
 
 	return nil
 }
