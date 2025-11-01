@@ -39,6 +39,9 @@ jobs:
           go fmt ./tk/...
           go fmt ./want/...
 
+      - name: Tidy Go modules
+        run: go mod tidy
+
       - name: Format Rust code
         working-directory: mdbook-comments
         run: cargo fmt
