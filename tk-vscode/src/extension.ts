@@ -123,105 +123,221 @@ class TaskTreeItem extends vscode.TreeItem {
   }
 }
 
-// Detail view tree items
-type DetailTreeItem = DetailSectionItem | DetailContentItem;
-
-class DetailSectionItem extends vscode.TreeItem {
-  constructor(
-    public readonly label: string,
-    public readonly children: DetailContentItem[],
-  ) {
-    super(label, vscode.TreeItemCollapsibleState.Expanded);
-    this.iconPath = new vscode.ThemeIcon('list-flat');
-    this.contextValue = 'detailSection';
-  }
-}
-
-class DetailContentItem extends vscode.TreeItem {
-  constructor(
-    public readonly content: string,
-    public readonly isMultiline: boolean = false,
-  ) {
-    super(content, vscode.TreeItemCollapsibleState.None);
-    this.contextValue = 'detailContent';
-    this.iconPath = new vscode.ThemeIcon('note');
-    
-    // For multiline content, show it in description and tooltip
-    if (isMultiline) {
-      this.tooltip = content;
-    }
-  }
-}
-
-class TaskDetailProvider implements vscode.TreeDataProvider<DetailTreeItem> {
-  private readonly _onDidChangeTreeData = new vscode.EventEmitter<DetailTreeItem | undefined>();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
-
+// Detail view using WebView
+class TaskDetailProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'tkDetailView';
+  
+  private _view?: vscode.WebviewView;
   private currentTask: TkTask | undefined;
-  private sections: DetailSectionItem[] = [];
 
-  getTreeItem(element: DetailTreeItem): vscode.TreeItem {
-    return element;
-  }
+  resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    _context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken,
+  ): void {
+    this._view = webviewView;
 
-  getChildren(element?: DetailTreeItem): vscode.ProviderResult<DetailTreeItem[]> {
-    if (!element) {
-      // Root level - return sections or a message if no task is selected
-      if (!this.currentTask) {
-        return [new DetailContentItem('No task selected', false)];
-      }
-      return this.sections;
+    webviewView.webview.options = {
+      enableScripts: false,
+    };
+
+    if (this.currentTask) {
+      this.updateView();
+    } else {
+      this.showEmptyState();
     }
-
-    if (element instanceof DetailSectionItem) {
-      return element.children;
-    }
-
-    return [];
   }
 
   showTask(task: TkTask): void {
     this.currentTask = task;
-    this.sections = [];
-
-    // Add task title section
-    if (task.title) {
-      const titleItems = [new DetailContentItem(task.title, true)];
-      this.sections.push(new DetailSectionItem('Title', titleItems));
-    }
-
-    // Add notes section if there are notes
-    if (task.notes && task.notes.length > 0) {
-      const noteItems = task.notes.map(note => {
-        const noteText = note.markdown || '(empty note)';
-        const actor = note.actor || 'Unknown';
-        const timestamp = note.timestamp ? new Date(note.timestamp).toLocaleString() : '';
-        
-        // Build label with metadata
-        const parts = [noteText];
-        if (timestamp) {
-          parts.push(timestamp);
-        }
-        if (actor) {
-          parts.push(`by ${actor}`);
-        }
-        const label = parts.join(' - ');
-        
-        return new DetailContentItem(label, true);
-      });
-      this.sections.push(new DetailSectionItem('Notes', noteItems));
-    } else {
-      // Show "No notes" message
-      this.sections.push(new DetailSectionItem('Notes', [new DetailContentItem('No notes', false)]));
-    }
-
-    this._onDidChangeTreeData.fire(undefined);
+    this.updateView();
   }
 
   clear(): void {
     this.currentTask = undefined;
-    this.sections = [];
-    this._onDidChangeTreeData.fire(undefined);
+    this.showEmptyState();
+  }
+
+  private showEmptyState(): void {
+    if (this._view) {
+      this._view.webview.html = this.getHtmlForEmptyState();
+    }
+  }
+
+  private updateView(): void {
+    if (this._view && this.currentTask) {
+      this._view.webview.html = this.getHtmlForTask(this.currentTask);
+    }
+  }
+
+  private getHtmlForEmptyState(): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            padding: 12px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+        }
+        .empty-state {
+            color: var(--vscode-descriptionForeground);
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="empty-state">No task selected</div>
+</body>
+</html>`;
+  }
+
+  private getHtmlForTask(task: TkTask): string {
+    const taskId = task.task_id ?? 'unknown';
+    const title = task.title ?? 'No title';
+    const genericAxis = task.axes?.['generic'];
+    const status = genericAxis?.effective ?? 'none';
+    const blocked = task.blocked ? 'yes' : 'no';
+
+    let notesHtml = '';
+    if (task.notes && task.notes.length > 0) {
+      notesHtml = task.notes.map(note => {
+        const noteText = this.escapeHtml(note.markdown || '(empty note)');
+        const actor = this.escapeHtml(note.actor || 'Unknown');
+        const timestamp = note.timestamp ? new Date(note.timestamp).toLocaleString() : '';
+        
+        return `
+          <div class="note">
+            <div class="note-content">${noteText}</div>
+            <div class="note-meta">
+              ${timestamp ? `<span class="note-time">${this.escapeHtml(timestamp)}</span>` : ''}
+              <span class="note-actor">by ${actor}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      notesHtml = '<div class="empty-section">No notes</div>';
+    }
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            padding: 12px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            line-height: 1.5;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section-title {
+            font-weight: 600;
+            color: var(--vscode-foreground);
+            margin-bottom: 8px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+        }
+        .section-content {
+            color: var(--vscode-foreground);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .task-id {
+            font-family: var(--vscode-editor-font-family);
+            color: var(--vscode-textLink-foreground);
+            font-weight: 500;
+        }
+        .note {
+            background-color: var(--vscode-textBlockQuote-background);
+            border-left: 3px solid var(--vscode-textBlockQuote-border);
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 3px;
+        }
+        .note-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-bottom: 6px;
+        }
+        .note-meta {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground);
+            display: flex;
+            gap: 8px;
+        }
+        .note-time::after {
+            content: "•";
+            margin-left: 8px;
+        }
+        .empty-section {
+            color: var(--vscode-descriptionForeground);
+            font-style: italic;
+        }
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px 12px;
+            margin-bottom: 16px;
+        }
+        .metadata-label {
+            font-weight: 500;
+            color: var(--vscode-descriptionForeground);
+        }
+        .metadata-value {
+            color: var(--vscode-foreground);
+        }
+    </style>
+</head>
+<body>
+    <div class="section">
+        <div class="section-title">Task</div>
+        <div class="section-content task-id">${this.escapeHtml(taskId)}</div>
+    </div>
+    
+    <div class="section">
+        <div class="section-title">Title</div>
+        <div class="section-content">${this.escapeHtml(title)}</div>
+    </div>
+
+    <div class="section">
+        <div class="metadata-grid">
+            <div class="metadata-label">Status:</div>
+            <div class="metadata-value">${this.escapeHtml(status)}</div>
+            <div class="metadata-label">Blocked:</div>
+            <div class="metadata-value">${this.escapeHtml(blocked)}</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Notes</div>
+        ${notesHtml}
+    </div>
+</body>
+</html>`;
+  }
+
+  private escapeHtml(text: string): string {
+    const map: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, (m) => map[m]);
   }
 }
 
@@ -596,6 +712,48 @@ async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<vo
   }
 }
 
+async function createProject(provider: TkProvider): Promise<void> {
+  const projectName = await vscode.window.showInputBox({
+    prompt: 'Create new project',
+    placeHolder: 'Enter project name',
+  });
+
+  if (projectName === undefined) {
+    return;
+  }
+
+  if (projectName.trim() === '') {
+    void vscode.window.showErrorMessage('Project name cannot be empty');
+    return;
+  }
+
+  const projectDescription = await vscode.window.showInputBox({
+    prompt: `Description for project "${projectName}"`,
+    placeHolder: 'Enter project description (optional)',
+  });
+
+  try {
+    const { binary, cwd } = getTkConfig();
+
+    // Create project using tk project create command
+    const args = ['project', 'create', projectName];
+    if (projectDescription && projectDescription.trim() !== '') {
+      args.push(projectDescription);
+    }
+
+    await execFileAsync(binary, args, {
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    });
+
+    void vscode.window.showInformationMessage(`Created project: ${projectName}`);
+    await provider.refresh();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`Failed to create project: ${message}`);
+  }
+}
+
 async function moveTaskToGroup(task: TaskTreeItem, targetGroup: GroupTreeItem): Promise<void> {
   const taskId = task.task.task_id;
   if (!taskId) {
@@ -626,18 +784,15 @@ export function activate(context: vscode.ExtensionContext): void {
     dragAndDropController: dragAndDropController,
   });
 
-  const detailView = vscode.window.createTreeView('tkDetailView', {
-    treeDataProvider: detailProvider,
-  });
-
   context.subscriptions.push(
     vscode.window.registerFileDecorationProvider(decorationProvider),
     treeView,
-    detailView,
+    vscode.window.registerWebviewViewProvider(TaskDetailProvider.viewType, detailProvider),
     vscode.commands.registerCommand('tk.refresh', () => provider.refresh()),
     vscode.commands.registerCommand('tk.editTitle', (item: TaskTreeItem) => editTitle(provider, item)),
     vscode.commands.registerCommand('tk.rotateStatus', (item: TaskTreeItem) => rotateStatus(provider, item)),
     vscode.commands.registerCommand('tk.createTask', (item: GroupTreeItem) => createTask(provider, item)),
+    vscode.commands.registerCommand('tk.createProject', () => createProject(provider)),
     vscode.commands.registerCommand('tk.showTaskDetails', (task: TkTask) => {
       detailProvider.showTask(task);
     }),

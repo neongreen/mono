@@ -21,7 +21,8 @@
     "onCommand:tk.refresh",
     "onCommand:tk.editTitle",
     "onCommand:tk.rotateStatus",
-    "onCommand:tk.createTask"
+    "onCommand:tk.createTask",
+    "onCommand:tk.createProject"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -48,9 +49,21 @@
       {
         "command": "tk.showTaskDetails",
         "title": "Show Task Details"
+      },
+      {
+        "command": "tk.createProject",
+        "title": "Create Project",
+        "icon": "$(new-folder)"
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "tk.createProject",
+          "when": "view == tkExplorer",
+          "group": "navigation"
+        }
+      ],
       "view/item/context": [
         {
           "command": "tk.editTitle",
@@ -86,7 +99,8 @@
         },
         {
           "id": "tkDetailView",
-          "name": "Task Details"
+          "name": "Task Details",
+          "type": "webview"
         }
       ]
     },

@@ -11,9 +11,10 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 - Edit task titles via context menu (uses `tk describe`).
 - Rotate task status using the "Status" button on each task (cycles through: next → wip → done → unset).
 - Create new tasks in a group using the add button on group headers.
+- **Create new projects** using the add button in the view toolbar (uses `tk project create`).
 - Task text color matches the status icon color for easy visual identification.
 - **Drag and drop tasks between groups** to move them to different projects (uses `tk mv`).
-- **Click on any task** to view its details in the Task Details panel, including the full title and notes.
+- **Click on any task** to view its details in the Task Details panel, including the full title and notes in a clean, readable format.
 
 ## Usage
 
@@ -24,13 +25,14 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 5. Click the **Status** button on any task to rotate its status (next → wip → done → unset).
 6. Right-click on any task to edit its title.
 7. Click the add button on a group header to create a new task in that group.
-8. **Click on any task** to view its details in the **Task Details** panel below the task list. The panel shows the task title (which may be multiline) and all notes associated with the task.
-9. Hover over any task to see its full details in a tooltip, including title, status, and blockers.
-10. **Drag and drop** a task onto a different group to move it to that project.
+8. **Click the "Create Project" button** in the view toolbar to create a new project.
+9. **Click on any task** to view its details in the **Task Details** panel below the task list. The panel shows the task ID, title (which may be multiline), status, and all notes associated with the task in a clean, readable format.
+10. Hover over any task to see its full details in a tooltip, including title, status, and blockers.
+11. **Drag and drop** a task onto a different group to move it to that project.
 
 ## Design Notes
 
-This extension uses VS Code's native TreeView API, which provides excellent integration with themes, keyboard navigation, accessibility features, and context menus. Like other popular VS Code extensions (GitLens, GitHub Pull Requests, Todo Tree), we accept that TreeView truncates long text - full content is available in tooltips on hover. See [VS Code issue #68806](https://github.com/microsoft/vscode/issues/68806) for background on TreeView limitations.
+This extension uses VS Code's native TreeView API for the task list, which provides excellent integration with themes, keyboard navigation, accessibility features, and context menus. The Task Details panel uses a WebView to provide a clean, readable display of task information without the truncation limitations of TreeView. This design is similar to other popular VS Code extensions like GitHub Pull Requests and Review.
 
 ## Development
 
