@@ -1,18 +1,9 @@
 import * as vscode from 'vscode';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { encode as encodeHtml } from 'he';
 
 const execFileAsync = promisify(execFile);
-
-// Simple HTML encoding function to escape special characters
-function encodeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 interface AxisStatus {
   effective?: string;
