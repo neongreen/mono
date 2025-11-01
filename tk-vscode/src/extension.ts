@@ -247,7 +247,7 @@ async function rotateStatus(provider: TkProvider, item: TaskTreeItem): Promise<v
 
     // Use tk mark command to update the status
     const args = nextStatus === ''
-      ? ['mark', taskId, '--unset']
+      ? ['mark', '--unset', taskId]
       : ['mark', taskId, nextStatus];
 
     await execFileAsync(binary, args, {

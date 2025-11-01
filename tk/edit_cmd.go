@@ -55,9 +55,7 @@ func editTask(db *DB, taskRef, field, value string) error {
 
 func editTaskStatus(db *DB, taskUID string, value string, actor string) error {
 	value = strings.TrimSpace(value)
-	if value == "" {
-		return fmt.Errorf("status cannot be empty")
-	}
+	// Allow empty status to unset it
 
 	lamport, err := db.GetNextLamportTS()
 	if err != nil {
@@ -95,7 +93,11 @@ func editTaskStatus(db *DB, taskUID string, value string, actor string) error {
 		displayID = taskUID
 	}
 
-	fmt.Printf("Updated status for %s to %s\n", displayID, value)
+	if value == "" {
+		fmt.Printf("Unset status for %s\n", displayID)
+	} else {
+		fmt.Printf("Updated status for %s to %s\n", displayID, value)
+	}
 	return nil
 }
 
