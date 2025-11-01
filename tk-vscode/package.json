@@ -18,7 +18,8 @@
   "activationEvents": [
     "onView:tkExplorer",
     "onCommand:tk.refresh",
-    "onCommand:tk.editTitle"
+    "onCommand:tk.editTitle",
+    "onCommand:tk.rotateStatus"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -30,10 +31,20 @@
       {
         "command": "tk.editTitle",
         "title": "Edit Title"
+      },
+      {
+        "command": "tk.rotateStatus",
+        "title": "Rotate Status",
+        "icon": "$(sync)"
       }
     ],
     "menus": {
       "view/item/context": [
+        {
+          "command": "tk.rotateStatus",
+          "when": "view == tkExplorer && viewItem == tkTask",
+          "group": "inline"
+        },
         {
           "command": "tk.editTitle",
           "when": "view == tkExplorer && viewItem == tkTask",
