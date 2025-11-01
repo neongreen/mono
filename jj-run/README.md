@@ -7,22 +7,63 @@ A tool to execute shell commands across multiple repository changes in isolated 
 
 ## Installation
 
-### Quick Install
+### Standard Installation
 
-Use the install script to easily download and install the latest version:
+Install using Go:
+
+```bash
+go install github.com/neongreen/mono/jj-run/cmd@main
+```
+
+This installs the `jj-run` binary. To use it as `jj x`, add the following to your Jujutsu config (`~/.config/jj/config.toml`):
+
+```toml
+[aliases]
+x = ["run"]
+```
+
+Then set up the `run` command to point to `jj-run`:
+
+```toml
+[aliases]
+run = ["!jj-run"]
+```
+
+Or combine them:
+
+```toml
+[aliases]
+x = ["!jj-run"]
+```
+
+### Installation with `want` and `conf`
+
+If you have [`want`](https://github.com/neongreen/mono/tree/main/want) and [`conf`](https://github.com/neongreen/mono/tree/main/conf) installed:
+
+```bash
+# Install jj-run
+want mono jj-run@main
+
+# Configure the jj alias
+conf jj 'aliases.x' '["!jj-run"]'
+```
+
+### Other Installation Methods
+
+#### Quick Install Script
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | bash -s jj-run
 ```
 
-### Via Homebrew
+#### Via Homebrew
 
 ```bash
 brew tap neongreen/mono
 brew install jj-run
 ```
 
-### Manual Install
+#### Manual Install
 
 1. Go to the [Releases](https://github.com/neongreen/mono/releases) page
 2. Find the release you want (e.g., `jj-run--main.1`)
