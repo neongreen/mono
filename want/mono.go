@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -235,10 +234,6 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 	fmt.Printf("Building %s from %s...\n", project, refDescription)
 	fmt.Println()
 	plan.PrintPlan()
-	if !plan.ConfirmPlan() {
-		fmt.Println("Cancelled.")
-		os.Exit(0)
-	}
 	fmt.Println()
 
 	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-*", project))
@@ -387,10 +382,6 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 	fmt.Printf("Building %s from PR #%d...\n", project, prNumber)
 	fmt.Println()
 	plan.PrintPlan()
-	if !plan.ConfirmPlan() {
-		fmt.Println("Cancelled.")
-		os.Exit(0)
-	}
 	fmt.Println()
 
 	ctx := context.Background()
@@ -608,34 +599,6 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 	fmt.Printf("Installing %s version %s from neongreen/mono...\n", project, version)
 	fmt.Println()
 	plan.PrintPlan()
-
-	alreadyInstalled := false
-	if _, err := os.Stat(destPath); err == nil {
-		alreadyInstalled = true
-	}
-
-	if alreadyInstalled {
-		fmt.Println()
-		fmt.Printf("⚠ %s is already installed at %s\n", project, destPath)
-		fmt.Println()
-		fmt.Print("Overwrite? [y/N]: ")
-		reader := bufio.NewReader(os.Stdin)
-		response, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Println("Error reading response")
-			os.Exit(1)
-		}
-		response = strings.TrimSpace(strings.ToLower(response))
-		if response != "y" && response != "yes" {
-			fmt.Println("Cancelled.")
-			os.Exit(0)
-		}
-		fmt.Println()
-	} else if !plan.ConfirmPlan() {
-		fmt.Println("Cancelled.")
-		os.Exit(0)
-	}
-	fmt.Println()
 
 	fmt.Println("Fetching release information...")
 	err = ghrelease.DownloadReleaseAsset("neongreen", "mono", tag, project, destPath)
