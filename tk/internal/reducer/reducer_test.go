@@ -512,3 +512,204 @@ func TestReducer_TaskDelete_Idempotency(t *testing.T) {
 		t.Error("Task should remain deleted after idempotent delete")
 	}
 }
+
+func TestReducer_TaskRelocate_UpdatesProjectTracking(t *testing.T) {
+	r := NewReducer()
+
+	// Create project A
+	projectA := string(types.NewProjectUID())
+
+	// Create project B
+	projectB := string(types.NewProjectUID())
+
+	// Create task in project A
+	taskUID := string(types.NewTaskUID())
+	createPayload := types.TaskCreatedPayload{
+		TaskUID:        taskUID,
+		ProjectUID:     projectA,
+		ProposedNumber: 1,
+		CreatedNode:    string(types.NewNodeID()),
+		Title:          "Test task",
+		CreatedBy:      "alice",
+	}
+	createPayloadJSON, _ := json.Marshal(createPayload)
+
+	createEvent := types.Event{
+		ID:        "event_01",
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   createPayloadJSON,
+	}
+
+	err := r.Apply(createEvent)
+	if err != nil {
+		t.Fatalf("Failed to create task: %v", err)
+	}
+
+	// Verify task exists and is in project A
+	task, ok := r.GetTask(taskUID)
+	if !ok {
+		t.Fatal("Task should exist after creation")
+	}
+	if task.Title != "Test task" {
+		t.Errorf("Expected task title 'Test task', got %s", task.Title)
+	}
+
+	// Relocate task from project A to project B
+	relocatePayload := types.TaskRelocatePayload{
+		TaskUID:        taskUID,
+		FromProjectUID: projectA,
+		ToProjectUID:   projectB,
+		NumberPolicy: types.NumberPolicyPayload{
+			Mode: "keep",
+		},
+	}
+	relocatePayloadJSON, _ := json.Marshal(relocatePayload)
+
+	relocateEvent := types.Event{
+		ID:        "event_02",
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.relocate",
+		Payload:   relocatePayloadJSON,
+	}
+
+	err = r.Apply(relocateEvent)
+	if err != nil {
+		t.Fatalf("Failed to relocate task: %v", err)
+	}
+
+	// Verify task still exists
+	task, ok = r.GetTask(taskUID)
+	if !ok {
+		t.Fatal("Task should exist after relocation")
+	}
+
+	// Delete project B (the task's new home)
+	deleteProjectBPayload := types.ProjectDeletePayload{
+		ProjectUID: projectB,
+	}
+	deleteProjectBPayloadJSON, _ := json.Marshal(deleteProjectBPayload)
+
+	deleteProjectBEvent := types.Event{
+		ID:        "event_03",
+		TS:        3,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "project.delete",
+		Payload:   deleteProjectBPayloadJSON,
+	}
+
+	err = r.Apply(deleteProjectBEvent)
+	if err != nil {
+		t.Fatalf("Failed to delete project B: %v", err)
+	}
+
+	// BUG: Task should be deleted because it belongs to project B now,
+	// but applyTaskRelocate doesn't update taskProjects, so the task
+	// is still mapped to project A and won't be deleted
+	_, ok = r.GetTask(taskUID)
+	if ok {
+		t.Error("Task should be deleted when its current project (B) is deleted, but it still exists because applyTaskRelocate doesn't update taskProjects")
+	}
+}
+
+func TestReducer_TaskRelocate_DeletesFromCorrectProject(t *testing.T) {
+	r := NewReducer()
+
+	// Create project A
+	projectA := string(types.NewProjectUID())
+
+	// Create project B
+	projectB := string(types.NewProjectUID())
+
+	// Create task in project A
+	taskUID := string(types.NewTaskUID())
+	createPayload := types.TaskCreatedPayload{
+		TaskUID:        taskUID,
+		ProjectUID:     projectA,
+		ProposedNumber: 1,
+		CreatedNode:    string(types.NewNodeID()),
+		Title:          "Test task",
+		CreatedBy:      "alice",
+	}
+	createPayloadJSON, _ := json.Marshal(createPayload)
+
+	createEvent := types.Event{
+		ID:        "event_01",
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   createPayloadJSON,
+	}
+
+	err := r.Apply(createEvent)
+	if err != nil {
+		t.Fatalf("Failed to create task: %v", err)
+	}
+
+	// Relocate task from project A to project B
+	relocatePayload := types.TaskRelocatePayload{
+		TaskUID:        taskUID,
+		FromProjectUID: projectA,
+		ToProjectUID:   projectB,
+		NumberPolicy: types.NumberPolicyPayload{
+			Mode: "keep",
+		},
+	}
+	relocatePayloadJSON, _ := json.Marshal(relocatePayload)
+
+	relocateEvent := types.Event{
+		ID:        "event_02",
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.relocate",
+		Payload:   relocatePayloadJSON,
+	}
+
+	err = r.Apply(relocateEvent)
+	if err != nil {
+		t.Fatalf("Failed to relocate task: %v", err)
+	}
+
+	// Delete project A (the task's original home)
+	deleteProjectAPayload := types.ProjectDeletePayload{
+		ProjectUID: projectA,
+	}
+	deleteProjectAPayloadJSON, _ := json.Marshal(deleteProjectAPayload)
+
+	deleteProjectAEvent := types.Event{
+		ID:        "event_03",
+		TS:        3,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "project.delete",
+		Payload:   deleteProjectAPayloadJSON,
+	}
+
+	err = r.Apply(deleteProjectAEvent)
+	if err != nil {
+		t.Fatalf("Failed to delete project A: %v", err)
+	}
+
+	// BUG: Task should still exist because it was moved to project B,
+	// but applyTaskRelocate doesn't update taskProjects, so the task
+	// is still mapped to project A and will be incorrectly deleted
+	task, ok := r.GetTask(taskUID)
+	if !ok {
+		t.Error("Task should still exist after deleting its original project (A), because it was relocated to project B, but applyTaskRelocate doesn't update taskProjects")
+	} else if task.Title != "Test task" {
+		t.Errorf("Expected task title 'Test task', got %s", task.Title)
+	}
+}

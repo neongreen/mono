@@ -477,8 +477,10 @@ func (r *Reducer) applyTaskRelocate(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.relocate payload: %w", err)
 	}
 
-	// types.Task relocations are managed by DB projections
-	// The task itself doesn't change in the in-memory reducer
+	// Update the task's project mapping so project.delete can correctly
+	// remove tasks that belong to the deleted project
+	r.taskProjects[payload.TaskUID] = payload.ToProjectUID
+
 	return nil
 }
 
