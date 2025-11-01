@@ -41,9 +41,13 @@
     "menus": {
       "view/item/context": [
         {
-          "command": "tk.editTitle",
+          "command": "tk.rotateStatus",
           "when": "view == tkExplorer && viewItem == tkTask",
           "group": "inline"
+        },
+        {
+          "command": "tk.editTitle",
+          "when": "view == tkExplorer && viewItem == tkTask"
         }
       ]
     },
