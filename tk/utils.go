@@ -32,8 +32,16 @@ func getProjectAliasForTask(db *DB, taskUID string) (string, error) {
 	}
 
 	if alias == "" {
-
-		return projectUID, nil
+		// If no alias exists, fall back to project name
+		var projectName string
+		err := db.db.QueryRow(`
+			SELECT name FROM projects WHERE project_uid = ?
+		`, projectUID).Scan(&projectName)
+		if err != nil {
+			// If we can't get the name, fall back to UID
+			return projectUID, nil
+		}
+		return projectName, nil
 	}
 
 	return alias, nil
