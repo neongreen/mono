@@ -74,7 +74,27 @@ class TaskTreeItem extends vscode.TreeItem {
 
     this.tooltip = tooltip;
     this.contextValue = 'tkTask';
-    this.iconPath = task.blocked ? new vscode.ThemeIcon('circle-slash') : new vscode.ThemeIcon('check');
+
+    // Set icon based on status and blocked state
+    if (task.blocked) {
+      this.iconPath = new vscode.ThemeIcon('circle-slash');
+    } else {
+      // Icon based on status
+      switch (state) {
+        case 'next':
+          this.iconPath = new vscode.ThemeIcon('arrow-right');
+          break;
+        case 'wip':
+          this.iconPath = new vscode.ThemeIcon('sync');
+          break;
+        case 'done':
+          this.iconPath = new vscode.ThemeIcon('check');
+          break;
+        default:
+          this.iconPath = new vscode.ThemeIcon('circle-outline');
+          break;
+      }
+    }
   }
 }
 
@@ -180,6 +200,70 @@ async function fetchTk(): Promise<{ groups: TkGroup[]; tasks: TkTask[] }> {
   return { groups, tasks };
 }
 
+async function rotateStatus(provider: TkProvider, item: TaskTreeItem): Promise<void> {
+  const taskId = item.task.task_id;
+  if (!taskId) {
+    void vscode.window.showErrorMessage('Cannot rotate status: task has no ID');
+    return;
+  }
+
+  const genericAxis = item.task.axes?.['generic'];
+  const currentStatus = genericAxis?.effective ?? '';
+
+  // Determine next status: no status -> next -> wip -> done -> no status
+  let nextStatus: string;
+  switch (currentStatus) {
+    case 'next':
+      nextStatus = 'wip';
+      break;
+    case 'wip':
+      nextStatus = 'done';
+      break;
+    case 'done':
+      nextStatus = '';
+      break;
+    default:
+      nextStatus = 'next';
+      break;
+  }
+
+  try {
+    const configuration = vscode.workspace.getConfiguration('tk');
+    const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
+    const configuredCwd = configuration.get<string>('workingDirectory');
+
+    let cwd: string | undefined;
+
+    if (configuredCwd && configuredCwd.trim().length > 0) {
+      cwd = configuredCwd;
+    } else {
+      cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    }
+
+    if (!cwd) {
+      void vscode.window.showErrorMessage('No workspace folder is open.');
+      return;
+    }
+
+    // Use tk mark command to update the status
+    const args = nextStatus === ''
+      ? ['mark', '--unset', taskId]
+      : ['mark', taskId, nextStatus];
+
+    await execFileAsync(binary, args, {
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    });
+
+    const statusText = nextStatus === '' ? 'no status' : nextStatus;
+    void vscode.window.showInformationMessage(`Updated status for ${taskId} to ${statusText}`);
+    await provider.refresh();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`Failed to update status: ${message}`);
+  }
+}
+
 async function editTitle(provider: TkProvider, item: TaskTreeItem): Promise<void> {
   const taskId = item.task.task_id;
   if (!taskId) {
@@ -243,6 +327,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerTreeDataProvider('tkExplorer', provider),
     vscode.commands.registerCommand('tk.refresh', () => provider.refresh()),
     vscode.commands.registerCommand('tk.editTitle', (item: TaskTreeItem) => editTitle(provider, item)),
+    vscode.commands.registerCommand('tk.rotateStatus', (item: TaskTreeItem) => rotateStatus(provider, item)),
   );
 }
 

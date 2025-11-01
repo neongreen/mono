@@ -113,10 +113,25 @@ var statusCmd = &cobra.Command{
 var markCmd = &cobra.Command{
 	Use:   "mark [task-id] [state]",
 	Short: "Set task status",
-	Args:  cobra.ExactArgs(2),
+	Args: func(cmd *cobra.Command, args []string) error {
+		unset, _ := cmd.Flags().GetBool("unset")
+		if unset {
+			// When --unset is true, expect exactly 1 arg (task-id)
+			return cobra.ExactArgs(1)(cmd, args)
+		}
+		// Otherwise, expect exactly 2 args (task-id and state)
+		return cobra.ExactArgs(2)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
-		state := args[1]
+		unset, _ := cmd.Flags().GetBool("unset")
+
+		var state string
+		if unset {
+			state = ""
+		} else {
+			state = args[1]
+		}
 
 		axis, _ := cmd.Flags().GetString("axis")
 		role, _ := cmd.Flags().GetString("role")
@@ -180,7 +195,11 @@ var markCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Set status for task %s: %s=%s\n", displayID, axis, state)
+		if unset {
+			fmt.Printf("Unset status for task %s (axis: %s)\n", displayID, axis)
+		} else {
+			fmt.Printf("Set status for task %s: %s=%s\n", displayID, axis, state)
+		}
 		return nil
 	},
 }
@@ -514,6 +533,7 @@ func init() {
 
 	markCmd.Flags().String("axis", "generic", "Status axis")
 	markCmd.Flags().String("role", "human", "Actor role")
+	markCmd.Flags().Bool("unset", false, "Unset the status (clear it)")
 	rootCmd.AddCommand(markCmd)
 	statusCmd.AddCommand(statusSyncCmd)
 	rootCmd.AddCommand(statusCmd)
