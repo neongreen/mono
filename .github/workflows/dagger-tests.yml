@@ -19,24 +19,6 @@ on:
       - "want/**"
       - ".dagger/**"
       - ".github/workflows/dagger-tests.yml"
-  pull_request:
-    paths:
-      - "beads-merge/**"
-      - "claude-trace/**"
-      - "conf/**"
-      - "dissect/**"
-      - "ingest/**"
-      - "jj-run/**"
-      - "lib/ghclient/**"
-      - "lib/ghrelease/**"
-      - "lib/toml/**"
-      - "markdown-format/**"
-      - "printpdf/**"
-      - "prrun/**"
-      - "tk/**"
-      - "want/**"
-      - ".dagger/**"
-      - ".github/workflows/dagger-tests.yml"
 
 jobs:
   detect-changes:
