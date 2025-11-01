@@ -452,6 +452,19 @@ var lsCmd = &cobra.Command{
 			grouped := make(map[string][]*types.Task)
 			var groupOrder []string // To maintain consistent order
 
+			// First, get all projects to ensure we include empty ones
+			allProjects, err := getAllProjectDisplayNames(db)
+			if err != nil {
+				return fmt.Errorf("failed to get projects: %w", err)
+			}
+
+			// Initialize all projects in the grouped map
+			for _, displayName := range allProjects {
+				grouped[displayName] = []*types.Task{}
+				groupOrder = append(groupOrder, displayName)
+			}
+
+			// Now add tasks to their respective groups
 			for _, task := range tasks {
 				// Group by project alias
 				projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
@@ -462,6 +475,7 @@ var lsCmd = &cobra.Command{
 					groupKey = projectAlias
 				}
 
+				// If this is a new group (shouldn't happen if we got all projects), add it
 				if _, exists := grouped[groupKey]; !exists {
 					groupOrder = append(groupOrder, groupKey)
 				}

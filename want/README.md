@@ -99,7 +99,7 @@ The `want mono` command now supports the same fulfillment plan machinery as othe
 # List all available releases and open PRs for a project
 want mono printpdf --list
 
-# Install a specific version (asks for confirmation)
+# Install a specific version
 want mono printpdf@main.1
 
 # Build from the latest commit on main branch
@@ -126,7 +126,7 @@ want mono --plan-json dissect@main
 
 The tool will:
 - Build a fulfillment plan showing all steps before execution
-- Ask for confirmation before proceeding (unless using --dry-run or --plan-json)
+- Execute automatically without asking for confirmation (use --dry-run to preview)
 - Fetch all releases from neongreen/mono repository
 - Filter releases for the specified project
 - For version strings:
@@ -198,8 +198,6 @@ Step 3: Build dissect from source
 Step 4: Make binary executable
   $ chmod +x /home/user/.local/bin/dissect
 
-Proceed with this plan? [Y/n]: y
-
 PR #100: Add support for new syntax
 Branch: feature-branch
 
@@ -231,8 +229,6 @@ Step 2: Build printpdf from source
 
 Step 3: Make binary executable
   $ chmod +x /home/user/.local/bin/printpdf
-
-Proceed with this plan? [Y/n]: y
 
 Cloning neongreen/mono (latest commit on main branch)...
 [clone output]

@@ -1,15 +1,19 @@
+# NOTE: Build tasks defined here are also used by want/vscode.go for 'want mono tk-vscode'
+# If you update these tasks, ensure want/vscode.go stays in sync (it calls these tasks via mise).
+# Task names referenced in want/vscode.go: "install-deps", "build", "install"
+
 [tools]
-pnpm = "latest"
+node = "latest"
 
 [tasks.install-deps]
 description = "Install dependencies"
-run = "pnpm install"
+run = "npm install"
 
 [tasks.build]
 description = "Compile & package the VS Code extension"
 run = """
-pnpm run compile
-pnpm run package
+npm run compile
+npm run package
 """
 
 [tasks.install]
@@ -18,4 +22,4 @@ run = "code --install-extension tk-0.0.1.vsix --force"
 
 [tasks.watch]
 description = "Recompile on source changes"
-run = "pnpm run watch"
+run = "npm run watch"
