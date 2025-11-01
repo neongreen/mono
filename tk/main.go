@@ -1,10 +1,12 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/neongreen/mono/tk/internal/payloads"
+	"github.com/neongreen/mono/tk/internal/types"
 
 	"strings"
 	"time"
@@ -182,7 +184,7 @@ var markCmd = &cobra.Command{
 		}
 
 		now := time.Now()
-		event := Event{
+		event := types.Event{
 			ID:        eventID,
 			TS:        lamportTS,
 			CreatedAt: now,
@@ -256,7 +258,7 @@ var noteCmd = &cobra.Command{
 		}
 
 		now := time.Now()
-		event := Event{
+		event := types.Event{
 			ID:        eventID,
 			TS:        lamportTS,
 			CreatedAt: now,
@@ -379,7 +381,7 @@ var lsCmd = &cobra.Command{
 			}
 
 			// Filter tasks by project
-			var filtered []*Task
+			var filtered []*types.Task
 			taskUIDSet := make(map[string]bool)
 			for _, id := range taskIDs {
 				taskUIDSet[id] = true
@@ -401,7 +403,7 @@ var lsCmd = &cobra.Command{
 			axisName := parts[0]
 			stateName := parts[1]
 
-			var filtered []*Task
+			var filtered []*types.Task
 			for _, task := range tasks {
 				if axis, ok := task.Axes[axisName]; ok {
 					if axis.Effective == stateName {
@@ -414,7 +416,7 @@ var lsCmd = &cobra.Command{
 
 		// Filter by blocked status if specified
 		if blockedOnly {
-			var filtered []*Task
+			var filtered []*types.Task
 			for _, task := range tasks {
 				if task.Blocked {
 					filtered = append(filtered, task)
@@ -422,7 +424,7 @@ var lsCmd = &cobra.Command{
 			}
 			tasks = filtered
 		} else if unblockedOnly {
-			var filtered []*Task
+			var filtered []*types.Task
 			for _, task := range tasks {
 				if !task.Blocked {
 					filtered = append(filtered, task)
@@ -449,7 +451,7 @@ var lsCmd = &cobra.Command{
 		switch groupBy {
 		case "project", "prefix":
 			// Group tasks by project
-			grouped := make(map[string][]*Task)
+			grouped := make(map[string][]*types.Task)
 			var groupOrder []string // To maintain consistent order
 
 			for _, task := range tasks {
@@ -479,7 +481,7 @@ var lsCmd = &cobra.Command{
 
 		case "status":
 			// Group tasks by status
-			grouped := make(map[string][]*Task)
+			grouped := make(map[string][]*types.Task)
 			var groupOrder []string
 
 			for _, task := range tasks {

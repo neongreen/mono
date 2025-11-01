@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/types"
+
 	"github.com/neongreen/mono/tk/internal/payloads"
 	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/sync"
@@ -36,7 +38,7 @@ func TestRelationsIntegration(t *testing.T) {
 	ts := int64(1)
 	projectUID := string(NewProjectUID())
 	for _, task := range tasks {
-		event := Event{
+		event := types.Event{
 			ID:        "ev-" + task.uuid,
 			TS:        ts,
 			CreatedAt: time.Now(),
@@ -68,7 +70,7 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	for _, rel := range relations {
-		event := Event{
+		event := types.Event{
 			ID:        "ev-rel-" + rel.src + "-" + rel.dst,
 			TS:        ts,
 			CreatedAt: time.Now(),
@@ -94,7 +96,7 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	for _, status := range statuses {
-		event := Event{
+		event := types.Event{
 			ID:        "ev-status-" + status.task,
 			TS:        ts,
 			CreatedAt: time.Now(),
@@ -161,7 +163,7 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	// Now mark A as done
-	event := Event{
+	event := types.Event{
 		ID:        "ev-status-a-done",
 		TS:        ts,
 		CreatedAt: time.Now(),
@@ -196,7 +198,7 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	// Mark C as done
-	event = Event{
+	event = types.Event{
 		ID:        "ev-status-c-done",
 		TS:        ts,
 		CreatedAt: time.Now(),
@@ -268,7 +270,7 @@ func TestRelationRemovalIntegration(t *testing.T) {
 	}
 
 	for _, task := range taskData {
-		event := Event{
+		event := types.Event{
 			ID:        "ev-" + task.uuid,
 			TS:        1,
 			CreatedAt: time.Now(),
@@ -281,7 +283,7 @@ func TestRelationRemovalIntegration(t *testing.T) {
 	}
 
 	// Add a blocks relation
-	addEvent := Event{
+	addEvent := types.Event{
 		ID:        "ev-add",
 		TS:        2,
 		CreatedAt: time.Now(),
@@ -307,7 +309,7 @@ func TestRelationRemovalIntegration(t *testing.T) {
 	}
 
 	// Remove the relation
-	removeEvent := Event{
+	removeEvent := types.Event{
 		ID:        "ev-remove",
 		TS:        3,
 		CreatedAt: time.Now(),

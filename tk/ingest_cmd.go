@@ -9,6 +9,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
 
@@ -71,7 +72,7 @@ func ingestFile(db *DB, path string) error {
 	duplicates := 0
 
 	for _, segEvent := range events {
-		// Convert segment event to Event
+		// Convert segment event to types.Event
 		event, err := segmentEventToEvent(segEvent)
 		if err != nil {
 			return fmt.Errorf("failed to convert segment event %s: %w", segEvent.ID, err)
@@ -194,7 +195,7 @@ func ingestRemoteSpace(db *DB, remoteName string, remote sync.RemoteConfig, spac
 		}
 
 		for _, segEvent := range events {
-			// Convert segment event to Event
+			// Convert segment event to types.Event
 			event, err := segmentEventToEvent(segEvent)
 			if err != nil {
 				return fmt.Errorf("failed to convert segment event %s: %w", segEvent.ID, err)
@@ -278,25 +279,25 @@ func ingestRemoteSpace(db *DB, remoteName string, remote sync.RemoteConfig, spac
 	return nil
 }
 
-// segmentEventToEvent converts a SegmentEvent to an Event
-func segmentEventToEvent(se sync.SegmentEvent) (Event, error) {
+// segmentEventToEvent converts a SegmentEvent to an types.Event
+func segmentEventToEvent(se sync.SegmentEvent) (types.Event, error) {
 	// Parse timestamp
 	createdAt, err := time.Parse(time.RFC3339Nano, se.TS)
 	if err != nil {
 		// Try RFC3339 without nano
 		createdAt, err = time.Parse(time.RFC3339, se.TS)
 		if err != nil {
-			return Event{}, fmt.Errorf("failed to parse timestamp: %w", err)
+			return types.Event{}, fmt.Errorf("failed to parse timestamp: %w", err)
 		}
 	}
 
 	// Marshal payload back to JSON
 	payloadJSON, err := json.Marshal(se.Payload)
 	if err != nil {
-		return Event{}, fmt.Errorf("failed to marshal payload: %w", err)
+		return types.Event{}, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        se.ID,
 		TS:        se.Lamport,
 		CreatedAt: createdAt,

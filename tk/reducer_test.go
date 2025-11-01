@@ -25,7 +25,7 @@ func TestReducer_TaskCreated(t *testing.T) {
 	payloadJSON, _ := json.Marshal(payload)
 
 	now := time.Now()
-	event := Event{
+	event := types.Event{
 		ID:        "event_01",
 		TS:        1,
 		CreatedAt: now,
@@ -74,7 +74,7 @@ func TestReducer_StatusSet(t *testing.T) {
 	}
 	createPayloadJSON, _ := json.Marshal(createPayload)
 
-	createEvent := Event{
+	createEvent := types.Event{
 		ID:        "event_01",
 		TS:        1,
 		CreatedAt: time.Now(),
@@ -95,7 +95,7 @@ func TestReducer_StatusSet(t *testing.T) {
 	}
 	statusPayloadJSON, _ := json.Marshal(statusPayload)
 
-	statusEvent := Event{
+	statusEvent := types.Event{
 		ID:        "event_02",
 		TS:        2,
 		CreatedAt: time.Now(),
@@ -150,7 +150,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	}
 	createPayloadJSON, _ := json.Marshal(createPayload)
 
-	createEvent := Event{
+	createEvent := types.Event{
 		ID:        "event_01",
 		TS:        1,
 		CreatedAt: time.Now(),
@@ -171,7 +171,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	}
 	agentPayloadJSON, _ := json.Marshal(agentPayload)
 
-	agentEvent := Event{
+	agentEvent := types.Event{
 		ID:        "event_02",
 		TS:        2,
 		CreatedAt: time.Now(),
@@ -192,7 +192,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	}
 	humanPayloadJSON, _ := json.Marshal(humanPayload)
 
-	humanEvent := Event{
+	humanEvent := types.Event{
 		ID:        "event_03",
 		TS:        2, // Same timestamp as agent
 		CreatedAt: time.Now(),
@@ -252,7 +252,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 	}
 	createPayloadJSON, _ := json.Marshal(createPayload)
 
-	createEvent := Event{
+	createEvent := types.Event{
 		ID:        "event_01",
 		TS:        1,
 		CreatedAt: time.Now(),
@@ -271,7 +271,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 	}
 	notePayloadJSON, _ := json.Marshal(notePayload)
 
-	noteEvent := Event{
+	noteEvent := types.Event{
 		ID:        "event_02",
 		TS:        2,
 		CreatedAt: time.Now(),

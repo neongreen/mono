@@ -1,13 +1,15 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/payloads"
+	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/spf13/cobra"
 )
@@ -75,7 +77,7 @@ func editTaskStatus(db *DB, taskUID string, value string, actor string) error {
 		return fmt.Errorf("failed to marshal task.status.set payload: %w", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        lamport,
 		CreatedAt: time.Now(),
@@ -130,7 +132,7 @@ func editTaskNumber(db *DB, taskUID string, value string, actor string) error {
 		return fmt.Errorf("failed to marshal task.number.set payload: %w", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        lamport,
 		CreatedAt: time.Now(),
@@ -183,7 +185,7 @@ func editTaskTitle(db *DB, taskRef string, value string, actor string) error {
 		return fmt.Errorf("failed to marshal task.title.set payload: %w", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        lamport,
 		CreatedAt: time.Now(),

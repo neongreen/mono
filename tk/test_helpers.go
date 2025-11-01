@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func openTempDB(t *testing.T) *DB {
@@ -49,7 +51,7 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 	}
 
 	payloadJSON := mustJSON(t, projectPayload)
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: now,
@@ -77,7 +79,7 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 		AddedBy:    "tester",
 	}
 	aliasJSON := mustJSON(t, aliasPayload)
-	aliasEvent := Event{
+	aliasEvent := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: now,
@@ -110,7 +112,7 @@ func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
 	}
 
 	payloadJSON := mustJSON(t, projectPayload)
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: now,
@@ -153,7 +155,7 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 	}
 
 	taskJSON := mustJSON(t, taskPayload)
-	taskEvent := Event{
+	taskEvent := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: now,
@@ -176,7 +178,7 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 		Reason:     "seed",
 	}
 	numberJSON := mustJSON(t, numberPayload)
-	numberEvent := Event{
+	numberEvent := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: now,
@@ -206,7 +208,7 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 
 // Helper functions for creating events without testing context
 
-func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) Event {
+func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) types.Event {
 	payload := ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        "local",
@@ -216,7 +218,7 @@ func createProjectCreatedEvent(projectUID, name, description, createdBy, node st
 	}
 	payloadJSON, _ := json.Marshal(payload)
 
-	return Event{
+	return types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
@@ -227,7 +229,7 @@ func createProjectCreatedEvent(projectUID, name, description, createdBy, node st
 	}
 }
 
-func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) Event {
+func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) types.Event {
 	payload := ProjectAliasAddPayload{
 		ProjectUID: projectUID,
 		Alias:      alias,
@@ -236,7 +238,7 @@ func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) Event {
 	}
 	payloadJSON, _ := json.Marshal(payload)
 
-	return Event{
+	return types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
@@ -247,7 +249,7 @@ func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) Event {
 	}
 }
 
-func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) Event {
+func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) types.Event {
 	payload := TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
@@ -258,7 +260,7 @@ func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, cr
 	}
 	payloadJSON, _ := json.Marshal(payload)
 
-	return Event{
+	return types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
@@ -269,7 +271,7 @@ func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, cr
 	}
 }
 
-func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason string) Event {
+func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason string) types.Event {
 	payload := TaskNumberSetPayload{
 		TaskUID:    taskUID,
 		ProjectUID: projectUID,
@@ -278,7 +280,7 @@ func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason s
 	}
 	payloadJSON, _ := json.Marshal(payload)
 
-	return Event{
+	return types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),

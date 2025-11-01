@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/types"
+
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +55,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        generateEventID(db),
 		TS:        getNextLamportTimestamp(db),
 		CreatedAt: time.Now(),
@@ -82,7 +84,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		return fmt.Errorf("failed to marshal number payload: %w", err)
 	}
 
-	numberEvent := Event{
+	numberEvent := types.Event{
 		ID:        generateEventID(db),
 		TS:        getNextLamportTimestamp(db),
 		CreatedAt: time.Now(),

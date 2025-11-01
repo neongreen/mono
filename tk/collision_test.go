@@ -36,7 +36,7 @@ func TestCollisionDetection_LocalNodeInRemote(t *testing.T) {
 			ID:      "event1",
 			Lamport: 1,
 			TS:      time.Now().Format(time.RFC3339),
-			Node:    localNodeID, // Event from local node
+			Node:    localNodeID, // types.Event from local node
 			Space:   "personal",
 			Actor:   "test-user",
 			Role:    "human",
@@ -48,7 +48,7 @@ func TestCollisionDetection_LocalNodeInRemote(t *testing.T) {
 			ID:      "event2",
 			Lamport: 2,
 			TS:      time.Now().Format(time.RFC3339),
-			Node:    "node-xyz789", // Event from different node
+			Node:    "node-xyz789", // types.Event from different node
 			Space:   "personal",
 			Actor:   "test-user",
 			Role:    "human",

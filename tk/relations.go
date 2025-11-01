@@ -22,7 +22,7 @@ import (
 
 // ComputeBlocked computes which tasks are blocked based on the blocks relation
 // and the blocking axis configuration
-func ComputeBlocked(g *relations.RelationsGraph, tasks map[string]*Task, blockingAxis string, doneStates []string) {
+func ComputeBlocked(g *relations.RelationsGraph, tasks map[string]*types.Task, blockingAxis string, doneStates []string) {
 	// Build set of done states for quick lookup
 	doneSet := make(map[string]bool)
 	for _, state := range doneStates {
@@ -78,7 +78,7 @@ func ComputeBlocked(g *relations.RelationsGraph, tasks map[string]*Task, blockin
 }
 
 // GetTransitiveBlockers returns all transitive blockers for a task
-func GetTransitiveBlockers(g *relations.RelationsGraph, taskUUID string, tasks map[string]*Task, blockingAxis string, doneStates []string, maxDepth int) []types.Blocker {
+func GetTransitiveBlockers(g *relations.RelationsGraph, taskUUID string, tasks map[string]*types.Task, blockingAxis string, doneStates []string, maxDepth int) []types.Blocker {
 	// Build set of done states for quick lookup
 	doneSet := make(map[string]bool)
 	for _, state := range doneStates {
@@ -130,4 +130,3 @@ func GetTransitiveBlockers(g *relations.RelationsGraph, taskUUID string, tasks m
 	dfs(taskUUID, 1)
 	return result
 }
-

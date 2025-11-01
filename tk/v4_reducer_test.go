@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestProjectProjectCreatedEvent(t *testing.T) {
@@ -23,7 +25,7 @@ func TestProjectProjectCreatedEvent(t *testing.T) {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
@@ -73,7 +75,7 @@ func TestProjectProjectAliasAddEvent(t *testing.T) {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
@@ -125,7 +127,7 @@ func TestProjectTaskCreatedEvent(t *testing.T) {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
@@ -171,7 +173,7 @@ func TestProjectTaskNumberSetEvent(t *testing.T) {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
@@ -215,7 +217,7 @@ func TestProjectTaskTitleSetEvent(t *testing.T) {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),

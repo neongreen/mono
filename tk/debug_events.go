@@ -94,7 +94,7 @@ var debugEventsCmd = &cobra.Command{
 					// Check if this event references our task
 					if containsTaskRef(payloadStr, taskID) {
 						foundCount++
-						fmt.Printf("=== Event #%d ===\n", foundCount)
+						fmt.Printf("=== types.Event #%d ===\n", foundCount)
 						fmt.Printf("ID:       %s\n", event.ID)
 						fmt.Printf("Lamport:  %d\n", event.Lamport)
 						fmt.Printf("Time:     %s\n", event.TS)

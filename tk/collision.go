@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/tk/internal/segment"
-	"github.com/neongreen/mono/tk/internal/sync"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/neongreen/mono/tk/internal/segment"
+	"github.com/neongreen/mono/tk/internal/sync"
 )
 
 // NodeCollisionChecker checks for node ID collisions

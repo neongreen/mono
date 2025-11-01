@@ -64,8 +64,8 @@ var graphCmd = &cobra.Command{
 			}
 
 			visited := make(map[string]bool)
-			var buildGraph func(t *Task, currentDepth, maxDepth int) *GraphNode
-			buildGraph = func(t *Task, currentDepth, maxDepth int) *GraphNode {
+			var buildGraph func(t *types.Task, currentDepth, maxDepth int) *GraphNode
+			buildGraph = func(t *types.Task, currentDepth, maxDepth int) *GraphNode {
 				if currentDepth > maxDepth || visited[t.TaskUUID] {
 					return nil
 				}
@@ -122,7 +122,7 @@ var graphCmd = &cobra.Command{
 	},
 }
 
-func printRelationTree(db *DB, reducer *Reducer, task *Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
+func printRelationTree(db *DB, reducer *Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
 	if currentDepth > maxDepth {
 		return
 	}
@@ -200,7 +200,7 @@ func printRelationTree(db *DB, reducer *Reducer, task *Task, relationType string
 }
 
 // Helper function for recursive printing
-func printRelationTreeImpl(db *DB, reducer *Reducer, task *Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
+func printRelationTreeImpl(db *DB, reducer *Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
 	if currentDepth > maxDepth {
 		return
 	}

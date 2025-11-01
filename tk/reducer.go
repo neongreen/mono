@@ -13,22 +13,22 @@ import (
 
 // Reducer reconstructs task state from events
 type Reducer struct {
-	tasks     map[string]*Task           // Key: task UUID
-	taskByID  map[string]string          // Key: task ID (current or alias) -> Value: task UUID
-	relations *relations.RelationsGraph  // Relations graph
+	tasks     map[string]*types.Task    // Key: task UUID
+	taskByID  map[string]string         // Key: task ID (current or alias) -> Value: task UUID
+	relations *relations.RelationsGraph // Relations graph
 }
 
 // NewReducer creates a new reducer
 func NewReducer() *Reducer {
 	return &Reducer{
-		tasks:     make(map[string]*Task),
+		tasks:     make(map[string]*types.Task),
 		taskByID:  make(map[string]string),
 		relations: relations.NewRelationsGraph(),
 	}
 }
 
 // Apply applies an event to update the task state
-func (r *Reducer) Apply(e Event) error {
+func (r *Reducer) Apply(e types.Event) error {
 	// Try project events first
 	handled, err := r.ApplyProjectEvent(e)
 	if err != nil {
@@ -57,7 +57,7 @@ func (r *Reducer) Apply(e Event) error {
 	}
 }
 
-func (r *Reducer) applyTaskStatusSet(e Event) error {
+func (r *Reducer) applyTaskStatusSet(e types.Event) error {
 	var payload payloads.TaskStatusSetPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.status.set payload: %w", err)
@@ -104,7 +104,7 @@ func (r *Reducer) applyTaskStatusSet(e Event) error {
 	return nil
 }
 
-func (r *Reducer) applyTaskNoteAdd(e Event) error {
+func (r *Reducer) applyTaskNoteAdd(e types.Event) error {
 	var payload payloads.TaskNoteAddPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.note.add payload: %w", err)
@@ -186,7 +186,7 @@ func (r *Reducer) resolveEffectiveStatus(axis *types.AxisStatus) {
 }
 
 // GetTask returns the current state of a task by ID (supports task ID or UUID)
-func (r *Reducer) GetTask(idOrUUID string) (*Task, bool) {
+func (r *Reducer) GetTask(idOrUUID string) (*types.Task, bool) {
 	// Try direct UUID lookup first
 	task, ok := r.tasks[idOrUUID]
 	if ok {
@@ -204,8 +204,8 @@ func (r *Reducer) GetTask(idOrUUID string) (*Task, bool) {
 }
 
 // GetAllTasks returns all tasks
-func (r *Reducer) GetAllTasks() []*Task {
-	tasks := make([]*Task, 0, len(r.tasks))
+func (r *Reducer) GetAllTasks() []*types.Task {
+	tasks := make([]*types.Task, 0, len(r.tasks))
 	for _, task := range r.tasks {
 		tasks = append(tasks, task)
 	}
@@ -213,7 +213,7 @@ func (r *Reducer) GetAllTasks() []*Task {
 }
 
 // applyRelationAdd adds a relation edge
-func (r *Reducer) applyRelationAdd(e Event) error {
+func (r *Reducer) applyRelationAdd(e types.Event) error {
 	var payload payloads.RelationAddPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal relation.add payload: %w", err)
@@ -233,7 +233,7 @@ func (r *Reducer) applyRelationAdd(e Event) error {
 }
 
 // applyRelationRemove removes a relation edge
-func (r *Reducer) applyRelationRemove(e Event) error {
+func (r *Reducer) applyRelationRemove(e types.Event) error {
 	var payload payloads.RelationRemovePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal relation.remove payload: %w", err)
@@ -253,7 +253,7 @@ func (r *Reducer) applyRelationRemove(e Event) error {
 }
 
 // applyRelationNote sets a note on a relation
-func (r *Reducer) applyRelationNote(e Event) error {
+func (r *Reducer) applyRelationNote(e types.Event) error {
 	var payload payloads.RelationNotePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal relation.note payload: %w", err)
@@ -275,7 +275,7 @@ func (r *Reducer) FinalizeRelations(config *sync.Config) {
 }
 
 // BuildFromEvents builds the current state from a list of events
-func BuildFromEvents(events []Event) (*Reducer, error) {
+func BuildFromEvents(events []types.Event) (*Reducer, error) {
 	reducer := NewReducer()
 	for _, e := range events {
 		if err := reducer.Apply(e); err != nil {
@@ -286,7 +286,7 @@ func BuildFromEvents(events []Event) (*Reducer, error) {
 }
 
 // BuildFromEventsWithConfig builds the current state from events and finalizes relations
-func BuildFromEventsWithConfig(events []Event, config *sync.Config) (*Reducer, error) {
+func BuildFromEventsWithConfig(events []types.Event, config *sync.Config) (*Reducer, error) {
 	reducer := NewReducer()
 	for _, e := range events {
 		if err := reducer.Apply(e); err != nil {

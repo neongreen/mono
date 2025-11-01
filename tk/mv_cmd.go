@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/types"
+
 	"github.com/spf13/cobra"
 )
 
@@ -183,7 +185,7 @@ func moveTask(db *DB, taskRef string, targetSpec string, opts moveOptions) error
 		return fmt.Errorf("failed to marshal task.relocate payload: %w", err)
 	}
 
-	event := Event{
+	event := types.Event{
 		ID:        string(NewEventID()),
 		TS:        lamport,
 		CreatedAt: time.Now(),

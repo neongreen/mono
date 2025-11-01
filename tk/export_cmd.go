@@ -9,6 +9,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
 
@@ -99,7 +100,7 @@ Examples:
 		}
 
 		// Filter events to export
-		var eventsToExport []Event
+		var eventsToExport []types.Event
 		if exportAll {
 			eventsToExport = events
 		} else {
@@ -201,8 +202,8 @@ Examples:
 	},
 }
 
-// eventToSegmentEvent converts an Event to a SegmentEvent
-func eventToSegmentEvent(e Event, space, nodeID string) (sync.SegmentEvent, error) {
+// eventToSegmentEvent converts an types.Event to a SegmentEvent
+func eventToSegmentEvent(e types.Event, space, nodeID string) (sync.SegmentEvent, error) {
 	// Parse payload to the right type
 	var payload interface{}
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {

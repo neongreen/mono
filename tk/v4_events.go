@@ -1,6 +1,6 @@
 package main
 
-// Event Payload Definitions
+// types.Event Payload Definitions
 // Based on tk/specs/v4.md
 
 // ProjectCreatedPayload is the payload for project.created events

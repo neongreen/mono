@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/payloads"
+	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/spf13/cobra"
 )
@@ -123,7 +125,7 @@ Examples:
 		}
 
 		now := time.Now()
-		event := Event{
+		event := types.Event{
 			ID:        eventID,
 			TS:        lamportTS,
 			CreatedAt: now,
@@ -207,7 +209,7 @@ var relateRemoveCmd = &cobra.Command{
 		}
 
 		now := time.Now()
-		event := Event{
+		event := types.Event{
 			ID:        eventID,
 			TS:        lamportTS,
 			CreatedAt: now,
@@ -290,7 +292,7 @@ var dupCmd = &cobra.Command{
 			}
 
 			now := time.Now()
-			event := Event{
+			event := types.Event{
 				ID:        eventID,
 				TS:        lamportTS,
 				CreatedAt: now,

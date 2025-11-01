@@ -13,7 +13,7 @@ import (
 // ApplyProjectEvent applies an event-specific handler
 // Returns (handled=true, error) if the event was handled
 // Returns (handled=false, nil) if the event was not handled
-func (r *Reducer) ApplyProjectEvent(e Event) (bool, error) {
+func (r *Reducer) ApplyProjectEvent(e types.Event) (bool, error) {
 	switch EventKind(e.Kind) {
 	case EventKindProjectCreated:
 		return true, r.applyProjectCreated(e)
@@ -35,7 +35,7 @@ func (r *Reducer) ApplyProjectEvent(e Event) (bool, error) {
 	}
 }
 
-func (r *Reducer) applyProjectCreated(e Event) error {
+func (r *Reducer) applyProjectCreated(e types.Event) error {
 	var payload ProjectCreatedPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.created payload: %w", err)
@@ -46,7 +46,7 @@ func (r *Reducer) applyProjectCreated(e Event) error {
 	return nil
 }
 
-func (r *Reducer) applyProjectAliasAdd(e Event) error {
+func (r *Reducer) applyProjectAliasAdd(e types.Event) error {
 	var payload ProjectAliasAddPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.alias.add payload: %w", err)
@@ -56,7 +56,7 @@ func (r *Reducer) applyProjectAliasAdd(e Event) error {
 	return nil
 }
 
-func (r *Reducer) applyProjectAliasRemove(e Event) error {
+func (r *Reducer) applyProjectAliasRemove(e types.Event) error {
 	var payload ProjectAliasRemovePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.alias.remove payload: %w", err)
@@ -66,7 +66,7 @@ func (r *Reducer) applyProjectAliasRemove(e Event) error {
 	return nil
 }
 
-func (r *Reducer) applyTaskCreated(e Event) error {
+func (r *Reducer) applyTaskCreated(e types.Event) error {
 	var payload TaskCreatedPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
@@ -79,9 +79,9 @@ func (r *Reducer) applyTaskCreated(e Event) error {
 		return nil
 	}
 
-	// Task display ID is derived from project alias + number
+	// types.Task display ID is derived from project alias + number
 	// For now, we'll use the task_uid as the task_id until we compute the display ID
-	r.tasks[taskUID] = &Task{
+	r.tasks[taskUID] = &types.Task{
 		TaskUUID:  taskUID,
 		TaskID:    taskUID, // Placeholder, will be replaced by display ID
 		Aliases:   []string{},
@@ -98,7 +98,7 @@ func (r *Reducer) applyTaskCreated(e Event) error {
 	return nil
 }
 
-func (r *Reducer) applyTaskNumberSet(e Event) error {
+func (r *Reducer) applyTaskNumberSet(e types.Event) error {
 	var payload TaskNumberSetPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.number.set payload: %w", err)
@@ -109,18 +109,18 @@ func (r *Reducer) applyTaskNumberSet(e Event) error {
 	return nil
 }
 
-func (r *Reducer) applyTaskRelocate(e Event) error {
+func (r *Reducer) applyTaskRelocate(e types.Event) error {
 	var payload TaskRelocatePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.relocate payload: %w", err)
 	}
 
-	// Task relocations are managed by DB projections
+	// types.Task relocations are managed by DB projections
 	// The task itself doesn't change in the in-memory reducer
 	return nil
 }
 
-func (r *Reducer) applyTaskTitleSet(e Event) error {
+func (r *Reducer) applyTaskTitleSet(e types.Event) error {
 	var payload TaskTitleSetPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.title.set payload: %w", err)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/types"
+
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
@@ -69,7 +71,7 @@ var projectCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
-		event := Event{
+		event := types.Event{
 			ID:        generateEventID(db),
 			TS:        getNextLamportTimestamp(db),
 			CreatedAt: time.Now(),
@@ -106,7 +108,7 @@ var projectCreateCmd = &cobra.Command{
 				return fmt.Errorf("failed to marshal alias payload: %w", err)
 			}
 
-			aliasEvent := Event{
+			aliasEvent := types.Event{
 				ID:        generateEventID(db),
 				TS:        getNextLamportTimestamp(db),
 				CreatedAt: time.Now(),
@@ -285,7 +287,7 @@ var projectAliasAddCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
-		event := Event{
+		event := types.Event{
 			ID:        generateEventID(db),
 			TS:        getNextLamportTimestamp(db),
 			CreatedAt: time.Now(),
@@ -356,7 +358,7 @@ var projectAliasRemoveCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
-		event := Event{
+		event := types.Event{
 			ID:        generateEventID(db),
 			TS:        getNextLamportTimestamp(db),
 			CreatedAt: time.Now(),

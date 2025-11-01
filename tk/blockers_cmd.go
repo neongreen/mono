@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/types"
+
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
@@ -143,7 +145,7 @@ var blockedCmd = &cobra.Command{
 
 		// Filter blocked tasks
 		allTasks := reducer.GetAllTasks()
-		var blockedTasks []*Task
+		var blockedTasks []*types.Task
 		for _, task := range allTasks {
 			if task.Blocked {
 				blockedTasks = append(blockedTasks, task)

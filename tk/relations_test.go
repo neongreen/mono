@@ -103,10 +103,10 @@ func TestRelationGraph_CycleDetection(t *testing.T) {
 
 func TestRelationGraph_ComputeBlocked(t *testing.T) {
 	graph := relations.NewRelationsGraph()
-	tasks := make(map[string]*Task)
+	tasks := make(map[string]*types.Task)
 
 	// Create tasks
-	tasks["task-a"] = &Task{
+	tasks["task-a"] = &types.Task{
 		TaskUUID: "task-a",
 		TaskID:   "tk-1",
 		Title:    "Task A",
@@ -114,7 +114,7 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 			"generic": {Effective: "in_progress"},
 		},
 	}
-	tasks["task-b"] = &Task{
+	tasks["task-b"] = &types.Task{
 		TaskUUID: "task-b",
 		TaskID:   "tk-2",
 		Title:    "Task B",
@@ -122,7 +122,7 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 			"generic": {Effective: "in_progress"},
 		},
 	}
-	tasks["task-c"] = &Task{
+	tasks["task-c"] = &types.Task{
 		TaskUUID: "task-c",
 		TaskID:   "tk-3",
 		Title:    "Task C",
@@ -168,7 +168,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 	reducer := NewReducer()
 
 	// Create tasks first
-	createTaskA := Event{
+	createTaskA := types.Event{
 		ID:        "ev-1-node1",
 		TS:        1,
 		CreatedAt: time.Now(),
@@ -177,7 +177,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 		Kind:      "task.created",
 		Payload:   marshalPayload(TaskCreatedPayload{TaskUID: "task-a", ProjectUID: string(NewProjectUID()), ProposedNumber: 1, CreatedNode: string(NewNodeID()), Title: "Task A", CreatedBy: "alice"}),
 	}
-	createTaskB := Event{
+	createTaskB := types.Event{
 		ID:        "ev-2-node1",
 		TS:        2,
 		CreatedAt: time.Now(),
@@ -195,7 +195,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 	}
 
 	// Add a relation
-	relationAddEvent := Event{
+	relationAddEvent := types.Event{
 		ID:        "ev-3-node1",
 		TS:        3,
 		CreatedAt: time.Now(),
@@ -216,7 +216,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 	}
 
 	// Remove the relation
-	relationRemoveEvent := Event{
+	relationRemoveEvent := types.Event{
 		ID:        "ev-4-node1",
 		TS:        4,
 		CreatedAt: time.Now(),

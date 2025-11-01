@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/neongreen/mono/tk/internal/types"
+
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +48,7 @@ Examples:
 
 		// Filter by kind if specified
 		if kindFilter != "" {
-			var filtered []Event
+			var filtered []types.Event
 			for _, e := range events {
 				if e.Kind == kindFilter {
 					filtered = append(filtered, e)
@@ -139,7 +141,7 @@ Examples:
 			return err
 		}
 
-		var found *Event
+		var found *types.Event
 		for i, e := range events {
 			if e.ID == eventID {
 				found = &events[i]

@@ -9,10 +9,11 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // sortTasks sorts tasks based on the specified sort order
-func sortTasks(tasks []*Task, sortBy string) {
+func sortTasks(tasks []*types.Task, sortBy string) {
 	switch sortBy {
 	case "created":
 
@@ -50,7 +51,7 @@ func colorizeStatus(status string) string {
 }
 
 // renderTaskTable renders a table of tasks with the specified configuration
-func renderTaskTable(db *DB, tasks []*Task, showAliases bool, termWidth int) {
+func renderTaskTable(db *DB, tasks []*types.Task, showAliases bool, termWidth int) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
@@ -120,7 +121,7 @@ func renderTaskTable(db *DB, tasks []*Task, showAliases bool, termWidth int) {
 }
 
 // outputTasksJSON outputs tasks as JSON, respecting grouping
-func outputTasksJSON(db *DB, tasks []*Task, groupBy string) error {
+func outputTasksJSON(db *DB, tasks []*types.Task, groupBy string) error {
 
 	for _, task := range tasks {
 		displayID, err := RenderTaskDisplayID(db, task.TaskUUID)
@@ -131,13 +132,13 @@ func outputTasksJSON(db *DB, tasks []*Task, groupBy string) error {
 	}
 
 	type GroupedOutput struct {
-		Group string  `json:"group"`
-		Tasks []*Task `json:"tasks"`
+		Group string        `json:"group"`
+		Tasks []*types.Task `json:"tasks"`
 	}
 
 	type Output struct {
 		Groups []GroupedOutput `json:"groups,omitempty"`
-		Tasks  []*Task         `json:"tasks,omitempty"`
+		Tasks  []*types.Task   `json:"tasks,omitempty"`
 	}
 
 	var output Output
@@ -145,7 +146,7 @@ func outputTasksJSON(db *DB, tasks []*Task, groupBy string) error {
 	switch groupBy {
 	case "prefix":
 
-		grouped := make(map[string][]*Task)
+		grouped := make(map[string][]*types.Task)
 		var groupOrder []string
 
 		for _, task := range tasks {
@@ -174,7 +175,7 @@ func outputTasksJSON(db *DB, tasks []*Task, groupBy string) error {
 
 	case "status":
 
-		grouped := make(map[string][]*Task)
+		grouped := make(map[string][]*types.Task)
 		var groupOrder []string
 
 		for _, task := range tasks {

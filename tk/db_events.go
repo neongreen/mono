@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // InsertEvent adds an event to the database
-func (d *DB) InsertEvent(e Event) error {
+func (d *DB) InsertEvent(e types.Event) error {
 	query := `
 		INSERT INTO events (id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -26,7 +28,7 @@ func (d *DB) InsertEvent(e Event) error {
 }
 
 // GetEvents retrieves all events in chronological order
-func (d *DB) GetEvents() ([]Event, error) {
+func (d *DB) GetEvents() ([]types.Event, error) {
 	query := `SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
 	          FROM events ORDER BY created_at, id`
 
@@ -36,9 +38,9 @@ func (d *DB) GetEvents() ([]Event, error) {
 	}
 	defer rows.Close()
 
-	var events []Event
+	var events []types.Event
 	for rows.Next() {
-		var e Event
+		var e types.Event
 		var ctx, repoUUID, branch, commit, jjOpID sql.NullString
 		var createdAtNano int64
 
@@ -71,7 +73,7 @@ func (d *DB) GetEvents() ([]Event, error) {
 }
 
 // GetEventsByTaskID retrieves events for a specific task
-func (d *DB) GetEventsByTaskID(taskID string) ([]Event, error) {
+func (d *DB) GetEventsByTaskID(taskID string) ([]types.Event, error) {
 	query := `
 		SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
 		FROM events
@@ -85,9 +87,9 @@ func (d *DB) GetEventsByTaskID(taskID string) ([]Event, error) {
 	}
 	defer rows.Close()
 
-	var events []Event
+	var events []types.Event
 	for rows.Next() {
-		var e Event
+		var e types.Event
 		var ctx, repoUUID, branch, commit, jjOpID sql.NullString
 		var createdAtNano int64
 
@@ -120,7 +122,7 @@ func (d *DB) GetEventsByTaskID(taskID string) ([]Event, error) {
 }
 
 // GetEventsByTaskUUID retrieves events for a specific task UUID
-func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]Event, error) {
+func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]types.Event, error) {
 	query := `
 		SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
 		FROM events
@@ -135,9 +137,9 @@ func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]Event, error) {
 	}
 	defer rows.Close()
 
-	var events []Event
+	var events []types.Event
 	for rows.Next() {
-		var e Event
+		var e types.Event
 		var ctx, repoUUID, branch, commit, jjOpID sql.NullString
 		var createdAtNano int64
 

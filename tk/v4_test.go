@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // TestTypeValidation tests type validation
@@ -86,7 +88,7 @@ func TestEvents(t *testing.T) {
 		}
 		payloadJSON, _ := json.Marshal(payload)
 
-		event := Event{
+		event := types.Event{
 			ID:        string(NewEventID()),
 			TS:        1,
 			CreatedAt: time.Now(),
@@ -116,7 +118,7 @@ func TestEvents(t *testing.T) {
 		}
 		payloadJSON, _ := json.Marshal(payload)
 
-		event := Event{
+		event := types.Event{
 			ID:        string(NewEventID()),
 			TS:        2,
 			CreatedAt: time.Now(),
@@ -151,7 +153,7 @@ func TestEvents(t *testing.T) {
 		}
 		createPayloadJSON, _ := json.Marshal(createPayload)
 
-		createEvent := Event{
+		createEvent := types.Event{
 			ID:        string(NewEventID()),
 			TS:        3,
 			CreatedAt: time.Now(),
@@ -172,7 +174,7 @@ func TestEvents(t *testing.T) {
 		}
 		titlePayloadJSON, _ := json.Marshal(titlePayload)
 
-		titleEvent := Event{
+		titleEvent := types.Event{
 			ID:        string(NewEventID()),
 			TS:        4,
 			CreatedAt: time.Now(),

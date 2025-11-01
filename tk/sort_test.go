@@ -3,11 +3,13 @@ package main
 import (
 	"testing"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestSortTasks_ByCreated(t *testing.T) {
 	now := time.Now()
-	tasks := []*Task{
+	tasks := []*types.Task{
 		{TaskID: "tk-3", Title: "Third", CreatedAt: now.Add(2 * time.Second)},
 		{TaskID: "tk-1", Title: "First", CreatedAt: now},
 		{TaskID: "tk-2", Title: "Second", CreatedAt: now.Add(1 * time.Second)},
@@ -28,7 +30,7 @@ func TestSortTasks_ByCreated(t *testing.T) {
 
 func TestSortTasks_ByID(t *testing.T) {
 	now := time.Now()
-	tasks := []*Task{
+	tasks := []*types.Task{
 		{TaskID: "tk-3", Title: "Third", CreatedAt: now},
 		{TaskID: "tk-1", Title: "First", CreatedAt: now},
 		{TaskID: "tk-2", Title: "Second", CreatedAt: now},
@@ -49,7 +51,7 @@ func TestSortTasks_ByID(t *testing.T) {
 
 func TestSortTasks_ByTitle(t *testing.T) {
 	now := time.Now()
-	tasks := []*Task{
+	tasks := []*types.Task{
 		{TaskID: "tk-1", Title: "Zebra", CreatedAt: now},
 		{TaskID: "tk-2", Title: "Apple", CreatedAt: now},
 		{TaskID: "tk-3", Title: "Banana", CreatedAt: now},
@@ -70,7 +72,7 @@ func TestSortTasks_ByTitle(t *testing.T) {
 
 func TestSortTasks_DefaultToCreated(t *testing.T) {
 	now := time.Now()
-	tasks := []*Task{
+	tasks := []*types.Task{
 		{TaskID: "tk-3", Title: "Third", CreatedAt: now.Add(2 * time.Second)},
 		{TaskID: "tk-1", Title: "First", CreatedAt: now},
 		{TaskID: "tk-2", Title: "Second", CreatedAt: now.Add(1 * time.Second)},
@@ -92,7 +94,7 @@ func TestSortTasks_DefaultToCreated(t *testing.T) {
 
 func TestSortTasks_UnknownSortType(t *testing.T) {
 	now := time.Now()
-	tasks := []*Task{
+	tasks := []*types.Task{
 		{TaskID: "tk-3", Title: "Third", CreatedAt: now.Add(2 * time.Second)},
 		{TaskID: "tk-1", Title: "First", CreatedAt: now},
 		{TaskID: "tk-2", Title: "Second", CreatedAt: now.Add(1 * time.Second)},
@@ -115,7 +117,7 @@ func TestSortTasks_UnknownSortType(t *testing.T) {
 func TestSortTasks_StableSorting(t *testing.T) {
 	// Test that sorting is stable - tasks with same sort key maintain relative order
 	now := time.Now()
-	tasks := []*Task{
+	tasks := []*types.Task{
 		{TaskID: "tk-1", Title: "Task A", CreatedAt: now},
 		{TaskID: "tk-2", Title: "Task A", CreatedAt: now},
 		{TaskID: "tk-3", Title: "Task B", CreatedAt: now},
