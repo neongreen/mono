@@ -14,6 +14,7 @@ import (
 	"github.com/neongreen/mono/dissect/pkg/commands"
 	"github.com/neongreen/mono/dissect/pkg/gopls"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/utils"
 	"go/ast"
 	"go/printer"
 	"go/token"
@@ -28,12 +29,18 @@ import (
 )
 
 var moveCmd = &cobra.Command{
-	Use:   "move <source_file:identifier> [identifiers...] <target_file>",
-	Short: "Move specific identifiers (functions, types, interfaces) to a target file",
-	Long: `Move extracts specific identifiers (functions, methods, types, interfaces) from a source file 
-and moves them to a target file. The target file will be created if it doesn't exist.
+	Use:   "move <source> <target>",
+	Short: "Move/rename files or move specific identifiers between files",
+	Long: `Move supports two modes of operation:
 
-Both source files and identifiers support glob patterns:
+1. File mode: Move or rename an entire file
+   dissect move source.go destination.go
+
+2. Symbol mode: Move specific identifiers (functions, types, interfaces) between files
+   dissect move source.go:Foo target.go
+   dissect move source.go:Foo,Bar,Baz target.go
+
+Symbol mode supports glob patterns:
   - File patterns: *.go, pkg/**/*.go
   - Identifier patterns: Test*, *Helper, Benchmark*
 
@@ -42,9 +49,13 @@ Glob behavior:
   - An error is only shown if no identifiers match across all files
   - File globs expand first, then identifier globs match within each file
 
-Example:
+Examples:
+  # File mode
+  dissect move source.go destination.go
+  dissect move tk/admin_cmd.go tk/cmd/admin.go
+
+  # Symbol mode
   dissect move source.go:Foo source.go:Bar target.go
-  dissect move source.go:Foo,Bar,Baz target.go
   dissect move *.go:Helper target.go
   dissect move pkg/**/*.go:Test* target.go
   dissect move file.go:*Helper,Test* target.go
@@ -60,6 +71,62 @@ func runMove(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Detect mode: file mode (no colons) vs symbol mode (colons present)
+	hasColons := false
+	for _, arg := range args {
+		if strings.Contains(arg, ":") {
+			hasColons = true
+			break
+		}
+	}
+
+	// File mode: move/rename entire file
+	if !hasColons {
+		if len(args) != 2 {
+			slog.Error("File mode requires exactly 2 arguments", "args", len(args))
+			fmt.Fprintf(os.Stderr, "Error: File mode requires exactly 2 arguments: <source> <target>\n")
+			fmt.Fprintf(os.Stderr, "Got %d arguments. Use 'file:identifier' format to move symbols.\n", len(args))
+			os.Exit(1)
+		}
+
+		sourceFile := args[0]
+		targetFile := args[1]
+
+		// Get absolute paths
+		absSourceFile, err := filepath.Abs(sourceFile)
+		if err != nil {
+			slog.Error("Error getting absolute path", "file", sourceFile, "error", err)
+			fmt.Fprintf(os.Stderr, "Error: Cannot resolve source file path: %v\n", err)
+			os.Exit(1)
+		}
+
+		absTargetFile, err := filepath.Abs(targetFile)
+		if err != nil {
+			slog.Error("Error getting absolute path", "file", targetFile, "error", err)
+			fmt.Fprintf(os.Stderr, "Error: Cannot resolve target file path: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Check if source file exists
+		if _, err := os.Stat(absSourceFile); os.IsNotExist(err) {
+			slog.Error("Source file does not exist", "file", absSourceFile)
+			fmt.Fprintf(os.Stderr, "Error: Source file does not exist: %s\n", sourceFile)
+			os.Exit(1)
+		}
+
+		// Use utils.MoveFile to move the file
+		slog.Info("Moving file", "from", sourceFile, "to", targetFile)
+		if err := utils.MoveFile(absSourceFile, absTargetFile); err != nil {
+			slog.Error("Error moving file", "error", err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		slog.Info("Successfully moved file", "from", sourceFile, "to", targetFile)
+		return
+	}
+
+	// Symbol mode: move specific identifiers between files
 	// Parse arguments
 	// Last argument is the target file
 	targetFile := args[len(args)-1]

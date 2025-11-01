@@ -48,14 +48,14 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 	t.Helper()
 
 	result := &TestResult{}
-	
+
 	// Timing tracking
 	type timing struct {
 		operation string
 		duration  time.Duration
 	}
 	var timings []timing
-	
+
 	logTiming := func(op string, start time.Time) {
 		duration := time.Since(start)
 		timings = append(timings, timing{operation: op, duration: duration})
@@ -230,7 +230,7 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 	result.TestsPassed = true
 	slog.Debug("Tests passed after dissect", "output", string(testAfterOutput))
 	logTiming("go test (after)", testAfterStart)
-	
+
 	// Log timing summary
 	t.Logf("[TIMING SUMMARY] %s:", config.Name)
 	var total time.Duration

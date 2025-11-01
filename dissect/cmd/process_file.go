@@ -184,7 +184,7 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 				}
 				slog.Debug("[TIMING] commands.FindGoFiles", "duration", time.Since(findFilesStart), "fileCount", len(allGoFiles))
 				slog.Debug("Found Go files to rename in", "moduleRoot", moduleRoot, "files", allGoFiles)
-				
+
 				replaceStart := time.Now()
 				for _, goFile := range allGoFiles {
 					// Use search and replace to rename the function back
