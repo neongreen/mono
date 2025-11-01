@@ -34,6 +34,21 @@ func (p ProjectUID) Validate() error {
 
 func (p ProjectUID) String() string { return string(p) }
 
+// ProjectRef is an unresolved project reference that could be a ProjectUID, alias, or project name
+type ProjectRef string
+
+// NewProjectRef creates an unresolved project reference from a string
+func NewProjectRef(s string) ProjectRef {
+	return ProjectRef(s)
+}
+
+// IsProjectUID checks if this reference looks like a ProjectUID (starts with "prj_")
+func (r ProjectRef) IsProjectUID() bool {
+	return strings.HasPrefix(string(r), "prj_")
+}
+
+func (r ProjectRef) String() string { return string(r) }
+
 // Alias is a per-node short name for projects
 type Alias string
 

@@ -23,7 +23,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		return err
 	}
 
-	projectUID, err := resolveProjectByAlias(db, projectFlag)
+	projectUID, err := ResolveProjectRef(db, types.NewProjectRef(projectFlag))
 	if err != nil {
 		return fmt.Errorf("project/alias %q not found. Create it first with: tk project create <name> --alias %s", projectFlag, projectFlag)
 	}
@@ -33,9 +33,9 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 	// Compute proposed number (max + 1)
 	var maxNumber int64
 	err = db.db.QueryRow(`
-		SELECT COALESCE(MAX(number), 0) FROM task_numbers 
+		SELECT COALESCE(MAX(number), 0) FROM task_numbers
 		WHERE project_uid = ?
-	`, projectUID).Scan(&maxNumber)
+	`, projectUID.String()).Scan(&maxNumber)
 	if err != nil {
 		return fmt.Errorf("failed to get max number: %w", err)
 	}
@@ -43,7 +43,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 
 	payload := types.TaskCreatedPayload{
 		TaskUID:        string(taskUID),
-		ProjectUID:     projectUID,
+		ProjectUID:     projectUID.String(),
 		ProposedNumber: proposedNumber,
 		CreatedNode:    nodeID,
 		Title:          title,
@@ -75,7 +75,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 
 	numberPayload := types.TaskNumberSetPayload{
 		TaskUID:    string(taskUID),
-		ProjectUID: projectUID,
+		ProjectUID: projectUID.String(),
 		Number:     proposedNumber,
 		Reason:     "initial",
 	}
@@ -102,7 +102,24 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		return fmt.Errorf("failed to project task number: %w", err)
 	}
 
-	displayID := fmt.Sprintf("%s-%d", projectFlag, proposedNumber)
+	// Get a friendly display name (preferred alias, or project name, or UID as fallback)
+	displayPrefix, err := preferredAliasForProject(db, projectUID)
+	if err != nil {
+		return fmt.Errorf("failed to get display prefix: %w", err)
+	}
+	if displayPrefix == "" {
+		// No alias found, try to get project name
+		var projectName string
+		err = db.db.QueryRow(`SELECT name FROM projects WHERE project_uid = ?`, projectUID.String()).Scan(&projectName)
+		if err == nil && projectName != "" {
+			displayPrefix = projectName
+		} else {
+			// Fallback to UID
+			displayPrefix = projectUID.String()
+		}
+	}
+
+	displayID := fmt.Sprintf("%s-%d", displayPrefix, proposedNumber)
 	fmt.Printf("Created task %s: %s\n", displayID, title)
 	return nil
 }
