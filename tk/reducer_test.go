@@ -12,13 +12,13 @@ import (
 func TestReducer_TaskCreated(t *testing.T) {
 	reducer := NewReducer()
 
-	taskUID := string(NewTaskUID())
-	projectUID := string(NewProjectUID())
+	taskUID := string(types.NewTaskUID())
+	projectUID := string(types.NewProjectUID())
 	payload := TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
-		CreatedNode:    string(NewNodeID()),
+		CreatedNode:    string(types.NewNodeID()),
 		Title:          "Test task",
 		CreatedBy:      "alice",
 	}
@@ -62,13 +62,13 @@ func TestReducer_StatusSet(t *testing.T) {
 	reducer := NewReducer()
 
 	// Create task first
-	taskUID := string(NewTaskUID())
-	projectUID := string(NewProjectUID())
+	taskUID := string(types.NewTaskUID())
+	projectUID := string(types.NewProjectUID())
 	createPayload := TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
-		CreatedNode:    string(NewNodeID()),
+		CreatedNode:    string(types.NewNodeID()),
 		Title:          "Test task",
 		CreatedBy:      "alice",
 	}
@@ -138,13 +138,13 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	reducer := NewReducer()
 
 	// Create task
-	taskUID := string(NewTaskUID())
-	projectUID := string(NewProjectUID())
+	taskUID := string(types.NewTaskUID())
+	projectUID := string(types.NewProjectUID())
 	createPayload := TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
-		CreatedNode:    string(NewNodeID()),
+		CreatedNode:    string(types.NewNodeID()),
 		Title:          "Test task",
 		CreatedBy:      "alice",
 	}
@@ -240,13 +240,13 @@ func TestReducer_NoteAdd(t *testing.T) {
 	reducer := NewReducer()
 
 	// Create task
-	taskUID := string(NewTaskUID())
-	projectUID := string(NewProjectUID())
+	taskUID := string(types.NewTaskUID())
+	projectUID := string(types.NewProjectUID())
 	createPayload := TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
 		ProposedNumber: 1,
-		CreatedNode:    string(NewNodeID()),
+		CreatedNode:    string(types.NewNodeID()),
 		Title:          "Test task",
 		CreatedBy:      "alice",
 	}

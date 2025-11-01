@@ -39,7 +39,7 @@ func openTempDB(t *testing.T) *DB {
 
 func seedProject(t *testing.T, db *DB, alias string) string {
 	t.Helper()
-	projectUID := string(NewProjectUID())
+	projectUID := string(types.NewProjectUID())
 	now := time.Now()
 
 	projectPayload := ProjectCreatedPayload{
@@ -52,12 +52,12 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 
 	payloadJSON := mustJSON(t, projectPayload)
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: now,
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindProjectCreated),
+		Kind:      string(types.EventKindProjectCreated),
 		Payload:   payloadJSON,
 	}
 	if err := db.InsertEvent(event); err != nil {
@@ -80,12 +80,12 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 	}
 	aliasJSON := mustJSON(t, aliasPayload)
 	aliasEvent := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: now,
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindProjectAliasAdd),
+		Kind:      string(types.EventKindProjectAliasAdd),
 		Payload:   aliasJSON,
 	}
 	if err := db.InsertEvent(aliasEvent); err != nil {
@@ -100,7 +100,7 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 
 func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
 	t.Helper()
-	projectUID := string(NewProjectUID())
+	projectUID := string(types.NewProjectUID())
 	now := time.Now()
 
 	projectPayload := ProjectCreatedPayload{
@@ -113,12 +113,12 @@ func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
 
 	payloadJSON := mustJSON(t, projectPayload)
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: now,
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindProjectCreated),
+		Kind:      string(types.EventKindProjectCreated),
 		Payload:   payloadJSON,
 	}
 	if err := db.InsertEvent(event); err != nil {
@@ -142,7 +142,7 @@ func seedTask(t *testing.T, db *DB, projectUID string, title string, number int6
 
 func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, number int64, nodeID string) string {
 	t.Helper()
-	taskUID := string(NewTaskUID())
+	taskUID := string(types.NewTaskUID())
 	now := time.Now()
 
 	taskPayload := TaskCreatedPayload{
@@ -156,12 +156,12 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 
 	taskJSON := mustJSON(t, taskPayload)
 	taskEvent := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: now,
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindTaskCreated),
+		Kind:      string(types.EventKindTaskCreated),
 		Payload:   taskJSON,
 	}
 	if err := db.InsertEvent(taskEvent); err != nil {
@@ -179,12 +179,12 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 	}
 	numberJSON := mustJSON(t, numberPayload)
 	numberEvent := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: now,
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindTaskNumberSet),
+		Kind:      string(types.EventKindTaskNumberSet),
 		Payload:   numberJSON,
 	}
 	if err := db.InsertEvent(numberEvent); err != nil {
@@ -219,12 +219,12 @@ func createProjectCreatedEvent(projectUID, name, description, createdBy, node st
 	payloadJSON, _ := json.Marshal(payload)
 
 	return types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
 		Actor:     createdBy,
 		Role:      "human",
-		Kind:      string(EventKindProjectCreated),
+		Kind:      string(types.EventKindProjectCreated),
 		Payload:   payloadJSON,
 	}
 }
@@ -239,12 +239,12 @@ func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) types.E
 	payloadJSON, _ := json.Marshal(payload)
 
 	return types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
 		Actor:     addedBy,
 		Role:      "human",
-		Kind:      string(EventKindProjectAliasAdd),
+		Kind:      string(types.EventKindProjectAliasAdd),
 		Payload:   payloadJSON,
 	}
 }
@@ -261,12 +261,12 @@ func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, cr
 	payloadJSON, _ := json.Marshal(payload)
 
 	return types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
 		Actor:     createdBy,
 		Role:      "human",
-		Kind:      string(EventKindTaskCreated),
+		Kind:      string(types.EventKindTaskCreated),
 		Payload:   payloadJSON,
 	}
 }
@@ -281,12 +281,12 @@ func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason s
 	payloadJSON, _ := json.Marshal(payload)
 
 	return types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
 		Actor:     "system",
 		Role:      "human",
-		Kind:      string(EventKindTaskNumberSet),
+		Kind:      string(types.EventKindTaskNumberSet),
 		Payload:   payloadJSON,
 	}
 }

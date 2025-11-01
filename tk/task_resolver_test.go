@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"github.com/neongreen/mono/tk/internal/types"
+	"testing"
+)
 
 func TestResolveTaskReferenceByAlias(t *testing.T) {
 	db := openTempDB(t)
@@ -33,7 +36,7 @@ func TestResolveTaskReferenceCollisionRequiresHint(t *testing.T) {
 		t.Fatalf("expected ambiguity error, got none")
 	}
 
-	hintB := NodeID(nodeB).Short()
+	hintB := types.NodeID(nodeB).Short()
 	resolvedB, err := ResolveTaskReference(db, "proj-5-"+hintB)
 	if err != nil {
 		t.Fatalf("resolve with hint failed: %v", err)
@@ -42,7 +45,7 @@ func TestResolveTaskReferenceCollisionRequiresHint(t *testing.T) {
 		t.Fatalf("expected %s, got %s", taskB, resolvedB)
 	}
 
-	hintA := NodeID(nodeA).Short()
+	hintA := types.NodeID(nodeA).Short()
 	resolvedA, err := ResolveTaskReference(db, "proj-5-"+hintA)
 	if err != nil {
 		t.Fatalf("resolve with hint failed: %v", err)
@@ -73,8 +76,8 @@ func TestRenderTaskDisplayIDWithCollision(t *testing.T) {
 		t.Fatalf("render failed: %v", err)
 	}
 
-	hintA := NodeID(nodeA).Short()
-	hintB := NodeID(nodeB).Short()
+	hintA := types.NodeID(nodeA).Short()
+	hintB := types.NodeID(nodeB).Short()
 
 	if displayA != "proj-2-"+hintA {
 		t.Fatalf("expected display with hint %s, got %s", hintA, displayA)

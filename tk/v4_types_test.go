@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/neongreen/mono/tk/internal/types"
 	"strings"
 	"testing"
 )
@@ -9,27 +10,27 @@ import (
 func TestProjectUID_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		uid     ProjectUID
+		uid     types.ProjectUID
 		wantErr bool
 	}{
 		{
 			name:    "valid project UID",
-			uid:     NewProjectUID(),
+			uid:     types.NewProjectUID(),
 			wantErr: false,
 		},
 		{
 			name:    "invalid prefix",
-			uid:     ProjectUID("task_01HQWX3YGPKQVWDXQH7J8FMYZE"),
+			uid:     types.ProjectUID("task_01HQWX3YGPKQVWDXQH7J8FMYZE"),
 			wantErr: true,
 		},
 		{
 			name:    "invalid ULID",
-			uid:     ProjectUID("prj_INVALID"),
+			uid:     types.ProjectUID("prj_INVALID"),
 			wantErr: true,
 		},
 		{
 			name:    "empty",
-			uid:     ProjectUID(""),
+			uid:     types.ProjectUID(""),
 			wantErr: true,
 		},
 	}
@@ -45,7 +46,7 @@ func TestProjectUID_Validate(t *testing.T) {
 }
 
 func TestProjectUID_String(t *testing.T) {
-	uid := NewProjectUID()
+	uid := types.NewProjectUID()
 	s := uid.String()
 	if !strings.HasPrefix(s, "prj_") {
 		t.Errorf("ProjectUID.String() = %v, want prefix 'prj_'", s)
@@ -56,42 +57,42 @@ func TestProjectUID_String(t *testing.T) {
 func TestAlias_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		alias   Alias
+		alias   types.Alias
 		wantErr bool
 	}{
 		{
 			name:    "valid alias",
-			alias:   Alias("myproject"),
+			alias:   types.Alias("myproject"),
 			wantErr: false,
 		},
 		{
 			name:    "valid with dash",
-			alias:   Alias("my-project"),
+			alias:   types.Alias("my-project"),
 			wantErr: false,
 		},
 		{
 			name:    "valid with underscore",
-			alias:   Alias("my_project"),
+			alias:   types.Alias("my_project"),
 			wantErr: false,
 		},
 		{
 			name:    "too short",
-			alias:   Alias("x"),
+			alias:   types.Alias("x"),
 			wantErr: true,
 		},
 		{
 			name:    "too long",
-			alias:   Alias("verylongaliasnameover"),
+			alias:   types.Alias("verylongaliasnameover"),
 			wantErr: true,
 		},
 		{
 			name:    "invalid characters",
-			alias:   Alias("my project"),
+			alias:   types.Alias("my project"),
 			wantErr: true,
 		},
 		{
 			name:    "invalid special chars",
-			alias:   Alias("my@project"),
+			alias:   types.Alias("my@project"),
 			wantErr: true,
 		},
 	}
@@ -107,7 +108,7 @@ func TestAlias_Validate(t *testing.T) {
 }
 
 func TestAlias_String(t *testing.T) {
-	alias := Alias("test")
+	alias := types.Alias("test")
 	if alias.String() != "test" {
 		t.Errorf("Alias.String() = %v, want %v", alias.String(), "test")
 	}
@@ -117,32 +118,32 @@ func TestAlias_String(t *testing.T) {
 func TestProjectType_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		ptype   ProjectType
+		ptype   types.ProjectType
 		wantErr bool
 	}{
 		{
 			name:    "local",
-			ptype:   ProjectTypeLocal,
+			ptype:   types.ProjectTypeLocal,
 			wantErr: false,
 		},
 		{
 			name:    "github",
-			ptype:   ProjectTypeGithub,
+			ptype:   types.ProjectTypeGithub,
 			wantErr: false,
 		},
 		{
 			name:    "linear",
-			ptype:   ProjectTypeLinear,
+			ptype:   types.ProjectTypeLinear,
 			wantErr: false,
 		},
 		{
 			name:    "jira",
-			ptype:   ProjectTypeJira,
+			ptype:   types.ProjectTypeJira,
 			wantErr: false,
 		},
 		{
 			name:    "invalid",
-			ptype:   ProjectType("invalid"),
+			ptype:   types.ProjectType("invalid"),
 			wantErr: true,
 		},
 	}
@@ -161,27 +162,27 @@ func TestProjectType_Validate(t *testing.T) {
 func TestTaskUID_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		uid     TaskUID
+		uid     types.TaskUID
 		wantErr bool
 	}{
 		{
 			name:    "valid task UID",
-			uid:     NewTaskUID(),
+			uid:     types.NewTaskUID(),
 			wantErr: false,
 		},
 		{
 			name:    "invalid prefix",
-			uid:     TaskUID("prj_01HQWX3YGPKQVWDXQH7J8FMYZE"),
+			uid:     types.TaskUID("prj_01HQWX3YGPKQVWDXQH7J8FMYZE"),
 			wantErr: true,
 		},
 		{
 			name:    "invalid ULID",
-			uid:     TaskUID("tsk_INVALID"),
+			uid:     types.TaskUID("tsk_INVALID"),
 			wantErr: true,
 		},
 		{
 			name:    "empty",
-			uid:     TaskUID(""),
+			uid:     types.TaskUID(""),
 			wantErr: true,
 		},
 	}
@@ -197,7 +198,7 @@ func TestTaskUID_Validate(t *testing.T) {
 }
 
 func TestTaskUID_String(t *testing.T) {
-	uid := NewTaskUID()
+	uid := types.NewTaskUID()
 	s := uid.String()
 	if !strings.HasPrefix(s, "tsk_") {
 		t.Errorf("TaskUID.String() = %v, want prefix 'tsk_'", s)
@@ -208,27 +209,27 @@ func TestTaskUID_String(t *testing.T) {
 func TestTaskNumber_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		number  TaskNumber
+		number  types.TaskNumber
 		wantErr bool
 	}{
 		{
 			name:    "valid positive",
-			number:  TaskNumber(1),
+			number:  types.TaskNumber(1),
 			wantErr: false,
 		},
 		{
 			name:    "valid large",
-			number:  TaskNumber(1000),
+			number:  types.TaskNumber(1000),
 			wantErr: false,
 		},
 		{
 			name:    "zero",
-			number:  TaskNumber(0),
+			number:  types.TaskNumber(0),
 			wantErr: true,
 		},
 		{
 			name:    "negative",
-			number:  TaskNumber(-1),
+			number:  types.TaskNumber(-1),
 			wantErr: true,
 		},
 	}
@@ -244,7 +245,7 @@ func TestTaskNumber_Validate(t *testing.T) {
 }
 
 func TestTaskNumber_String(t *testing.T) {
-	num := TaskNumber(42)
+	num := types.TaskNumber(42)
 	if num.String() != "42" {
 		t.Errorf("TaskNumber.String() = %v, want %v", num.String(), "42")
 	}
@@ -254,22 +255,22 @@ func TestTaskNumber_String(t *testing.T) {
 func TestNodeID_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		nodeID  NodeID
+		nodeID  types.NodeID
 		wantErr bool
 	}{
 		{
 			name:    "valid node ID",
-			nodeID:  NewNodeID(),
+			nodeID:  types.NewNodeID(),
 			wantErr: false,
 		},
 		{
 			name:    "invalid ULID",
-			nodeID:  NodeID("INVALID"),
+			nodeID:  types.NodeID("INVALID"),
 			wantErr: true,
 		},
 		{
 			name:    "empty",
-			nodeID:  NodeID(""),
+			nodeID:  types.NodeID(""),
 			wantErr: true,
 		},
 	}
@@ -285,7 +286,7 @@ func TestNodeID_Validate(t *testing.T) {
 }
 
 func TestNodeID_String(t *testing.T) {
-	nodeID := NewNodeID()
+	nodeID := types.NewNodeID()
 	s := nodeID.String()
 	if len(s) != 26 { // ULID length
 		t.Errorf("NodeID.String() length = %v, want %v", len(s), 26)
@@ -293,14 +294,14 @@ func TestNodeID_String(t *testing.T) {
 }
 
 func TestNodeID_Short(t *testing.T) {
-	nodeID := NodeID("01HQWX3YGPKQVWDXQH7J8FMYZE")
+	nodeID := types.NodeID("01HQWX3YGPKQVWDXQH7J8FMYZE")
 	short := nodeID.Short()
 	if short != "8FMYZE" {
 		t.Errorf("NodeID.Short() = %v, want %v", short, "8FMYZE")
 	}
 
 	// Test short ID (less than 6 chars)
-	shortID := NodeID("ABC")
+	shortID := types.NodeID("ABC")
 	if shortID.Short() != "ABC" {
 		t.Errorf("NodeID.Short() = %v, want %v", shortID.Short(), "ABC")
 	}
@@ -310,7 +311,7 @@ func TestNodeID_Short(t *testing.T) {
 func TestDisplayID_Parse(t *testing.T) {
 	tests := []struct {
 		name         string
-		displayID    DisplayID
+		displayID    types.DisplayID
 		wantAlias    string
 		wantNumber   int64
 		wantNodeHint string
@@ -318,7 +319,7 @@ func TestDisplayID_Parse(t *testing.T) {
 	}{
 		{
 			name:         "simple format",
-			displayID:    DisplayID("proj-42"),
+			displayID:    types.DisplayID("proj-42"),
 			wantAlias:    "proj",
 			wantNumber:   42,
 			wantNodeHint: "",
@@ -326,7 +327,7 @@ func TestDisplayID_Parse(t *testing.T) {
 		},
 		{
 			name:         "with node hint",
-			displayID:    DisplayID("proj-42-abc123"),
+			displayID:    types.DisplayID("proj-42-abc123"),
 			wantAlias:    "proj",
 			wantNumber:   42,
 			wantNodeHint: "abc123",
@@ -334,17 +335,17 @@ func TestDisplayID_Parse(t *testing.T) {
 		},
 		{
 			name:      "invalid - too few parts",
-			displayID: DisplayID("proj"),
+			displayID: types.DisplayID("proj"),
 			wantErr:   true,
 		},
 		{
 			name:      "invalid - too many parts",
-			displayID: DisplayID("proj-42-hint-extra"),
+			displayID: types.DisplayID("proj-42-hint-extra"),
 			wantErr:   true,
 		},
 		{
 			name:      "invalid number",
-			displayID: DisplayID("proj-abc"),
+			displayID: types.DisplayID("proj-abc"),
 			wantErr:   true,
 		},
 	}
@@ -372,7 +373,7 @@ func TestDisplayID_Parse(t *testing.T) {
 }
 
 func TestDisplayID_String(t *testing.T) {
-	displayID := DisplayID("proj-42")
+	displayID := types.DisplayID("proj-42")
 	if displayID.String() != "proj-42" {
 		t.Errorf("DisplayID.String() = %v, want %v", displayID.String(), "proj-42")
 	}
@@ -382,22 +383,22 @@ func TestDisplayID_String(t *testing.T) {
 func TestEventID_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		eventID EventID
+		eventID types.EventID
 		wantErr bool
 	}{
 		{
 			name:    "valid event ID",
-			eventID: NewEventID(),
+			eventID: types.NewEventID(),
 			wantErr: false,
 		},
 		{
 			name:    "invalid ULID",
-			eventID: EventID("INVALID"),
+			eventID: types.EventID("INVALID"),
 			wantErr: true,
 		},
 		{
 			name:    "empty",
-			eventID: EventID(""),
+			eventID: types.EventID(""),
 			wantErr: true,
 		},
 	}
@@ -413,7 +414,7 @@ func TestEventID_Validate(t *testing.T) {
 }
 
 func TestEventID_String(t *testing.T) {
-	eventID := NewEventID()
+	eventID := types.NewEventID()
 	s := eventID.String()
 	if len(s) != 26 { // ULID length
 		t.Errorf("EventID.String() length = %v, want %v", len(s), 26)
@@ -424,30 +425,30 @@ func TestEventID_String(t *testing.T) {
 func TestTaskLabel_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		label   TaskLabel
+		label   types.TaskLabel
 		wantErr bool
 	}{
 		{
 			name: "valid label",
-			label: TaskLabel{
-				ProjectUID: NewProjectUID(),
-				Number:     TaskNumber(42),
+			label: types.TaskLabel{
+				ProjectUID: types.NewProjectUID(),
+				Number:     types.TaskNumber(42),
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid project UID",
-			label: TaskLabel{
-				ProjectUID: ProjectUID("invalid"),
-				Number:     TaskNumber(42),
+			label: types.TaskLabel{
+				ProjectUID: types.ProjectUID("invalid"),
+				Number:     types.TaskNumber(42),
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid number",
-			label: TaskLabel{
-				ProjectUID: NewProjectUID(),
-				Number:     TaskNumber(0),
+			label: types.TaskLabel{
+				ProjectUID: types.NewProjectUID(),
+				Number:     types.TaskNumber(0),
 			},
 			wantErr: true,
 		},
@@ -467,49 +468,49 @@ func TestTaskLabel_Validate(t *testing.T) {
 func TestNumberPolicy_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		policy  NumberPolicy
+		policy  types.NumberPolicy
 		wantErr bool
 	}{
 		{
 			name: "keep mode",
-			policy: NumberPolicy{
+			policy: types.NumberPolicy{
 				Mode: "keep",
 			},
 			wantErr: false,
 		},
 		{
 			name: "auto mode",
-			policy: NumberPolicy{
+			policy: types.NumberPolicy{
 				Mode: "auto",
 			},
 			wantErr: false,
 		},
 		{
 			name: "force mode with valid number",
-			policy: NumberPolicy{
+			policy: types.NumberPolicy{
 				Mode:   "force",
-				Number: TaskNumber(42),
+				Number: types.TaskNumber(42),
 			},
 			wantErr: false,
 		},
 		{
 			name: "force mode with invalid number",
-			policy: NumberPolicy{
+			policy: types.NumberPolicy{
 				Mode:   "force",
-				Number: TaskNumber(0),
+				Number: types.TaskNumber(0),
 			},
 			wantErr: true,
 		},
 		{
 			name: "fail mode",
-			policy: NumberPolicy{
+			policy: types.NumberPolicy{
 				Mode: "fail",
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid mode",
-			policy: NumberPolicy{
+			policy: types.NumberPolicy{
 				Mode: "invalid",
 			},
 			wantErr: true,

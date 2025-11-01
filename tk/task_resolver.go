@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/types"
 	"strconv"
 	"strings"
 )
@@ -32,7 +33,7 @@ func ResolveTaskReference(db *DB, ref string) (string, error) {
 		return "", fmt.Errorf("ambiguous task reference %s: numeric references are not supported", ref)
 	}
 
-	displayID := DisplayID(ref)
+	displayID := types.DisplayID(ref)
 	alias, number, nodeHint, err := displayID.Parse()
 	if err != nil {
 		return "", fmt.Errorf("invalid task reference %s: %w", ref, err)
@@ -237,5 +238,5 @@ func taskNodeHint(db *DB, taskUID string) (string, error) {
 	if err := db.db.QueryRow(`SELECT created_node FROM tasks WHERE task_uid = ?`, taskUID).Scan(&createdNode); err != nil {
 		return "", fmt.Errorf("failed to lookup node for task %s: %w", taskUID, err)
 	}
-	return NodeID(createdNode).Short(), nil
+	return types.NodeID(createdNode).Short(), nil
 }

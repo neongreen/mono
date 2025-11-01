@@ -13,7 +13,7 @@ import (
 
 // ProjectProjectCreatedEvent projects a project.created event into the projects table (idempotent)
 func (d *DB) ProjectProjectCreatedEvent(e types.Event) error {
-	if e.Kind != string(EventKindProjectCreated) {
+	if e.Kind != string(types.EventKindProjectCreated) {
 		return fmt.Errorf("expected project.created event, got %s", e.Kind)
 	}
 
@@ -33,7 +33,7 @@ func (d *DB) ProjectProjectCreatedEvent(e types.Event) error {
 
 // ProjectProjectAliasAddEvent projects a project.alias.add event into the project_aliases table (idempotent)
 func (d *DB) ProjectProjectAliasAddEvent(e types.Event) error {
-	if e.Kind != string(EventKindProjectAliasAdd) {
+	if e.Kind != string(types.EventKindProjectAliasAdd) {
 		return fmt.Errorf("expected project.alias.add event, got %s", e.Kind)
 	}
 
@@ -53,7 +53,7 @@ func (d *DB) ProjectProjectAliasAddEvent(e types.Event) error {
 
 // ProjectProjectAliasRemoveEvent projects a project.alias.remove event by removing from project_aliases table (idempotent)
 func (d *DB) ProjectProjectAliasRemoveEvent(e types.Event) error {
-	if e.Kind != string(EventKindProjectAliasRemove) {
+	if e.Kind != string(types.EventKindProjectAliasRemove) {
 		return fmt.Errorf("expected project.alias.remove event, got %s", e.Kind)
 	}
 
@@ -73,7 +73,7 @@ func (d *DB) ProjectProjectAliasRemoveEvent(e types.Event) error {
 
 // ProjectTaskCreatedEvent projects a task.created event into the tasks table (idempotent)
 func (d *DB) ProjectTaskCreatedEvent(e types.Event) error {
-	if e.Kind != string(EventKindTaskCreated) {
+	if e.Kind != string(types.EventKindTaskCreated) {
 		return fmt.Errorf("expected task.created event, got %s", e.Kind)
 	}
 
@@ -93,7 +93,7 @@ func (d *DB) ProjectTaskCreatedEvent(e types.Event) error {
 
 // ProjectTaskNumberSetEvent projects a task.number.set event into the task_numbers table (idempotent)
 func (d *DB) ProjectTaskNumberSetEvent(e types.Event) error {
-	if e.Kind != string(EventKindTaskNumberSet) {
+	if e.Kind != string(types.EventKindTaskNumberSet) {
 		return fmt.Errorf("expected task.number.set event, got %s", e.Kind)
 	}
 
@@ -121,7 +121,7 @@ func (d *DB) ProjectTaskNumberSetEvent(e types.Event) error {
 
 // ProjectTaskRelocateEvent projects a task.relocate event by updating project and number (idempotent)
 func (d *DB) ProjectTaskRelocateEvent(e types.Event) error {
-	if e.Kind != string(EventKindTaskRelocate) {
+	if e.Kind != string(types.EventKindTaskRelocate) {
 		return fmt.Errorf("expected task.relocate event, got %s", e.Kind)
 	}
 
@@ -196,7 +196,7 @@ func (d *DB) ProjectTaskRelocateEvent(e types.Event) error {
 
 // ProjectTaskTitleSetEvent projects a task.title.set event by updating the title (idempotent)
 func (d *DB) ProjectTaskTitleSetEvent(e types.Event) error {
-	if e.Kind != string(EventKindTaskTitleSet) {
+	if e.Kind != string(types.EventKindTaskTitleSet) {
 		return fmt.Errorf("expected task.title.set event, got %s", e.Kind)
 	}
 

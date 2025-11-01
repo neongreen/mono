@@ -36,7 +36,7 @@ func TestRelationsIntegration(t *testing.T) {
 
 	// Create all tasks
 	ts := int64(1)
-	projectUID := string(NewProjectUID())
+	projectUID := string(types.NewProjectUID())
 	for _, task := range tasks {
 		event := types.Event{
 			ID:        "ev-" + task.uuid,
@@ -45,7 +45,7 @@ func TestRelationsIntegration(t *testing.T) {
 			Actor:     "alice",
 			Role:      "human",
 			Kind:      "task.created",
-			Payload:   marshalPayload(TaskCreatedPayload{TaskUID: task.uuid, ProjectUID: projectUID, ProposedNumber: int64(ts), CreatedNode: string(NewNodeID()), Title: task.title, CreatedBy: "alice"}),
+			Payload:   marshalPayload(TaskCreatedPayload{TaskUID: task.uuid, ProjectUID: projectUID, ProposedNumber: int64(ts), CreatedNode: string(types.NewNodeID()), Title: task.title, CreatedBy: "alice"}),
 		}
 		if err := reducer.Apply(event); err != nil {
 			t.Fatalf("Failed to create task %s: %v", task.id, err)
@@ -277,7 +277,7 @@ func TestRelationRemovalIntegration(t *testing.T) {
 			Actor:     "alice",
 			Role:      "human",
 			Kind:      "task.created",
-			Payload:   marshalPayload(TaskCreatedPayload{TaskUID: task.uuid, ProjectUID: string(NewProjectUID()), ProposedNumber: 1, CreatedNode: string(NewNodeID()), Title: task.title, CreatedBy: "alice"}),
+			Payload:   marshalPayload(TaskCreatedPayload{TaskUID: task.uuid, ProjectUID: string(types.NewProjectUID()), ProposedNumber: 1, CreatedNode: string(types.NewNodeID()), Title: task.title, CreatedBy: "alice"}),
 		}
 		reducer.Apply(event)
 	}

@@ -186,12 +186,12 @@ func moveTask(db *DB, taskRef string, targetSpec string, opts moveOptions) error
 	}
 
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        lamport,
 		CreatedAt: time.Now(),
 		Actor:     currentUser,
 		Role:      "human",
-		Kind:      string(EventKindTaskRelocate),
+		Kind:      string(types.EventKindTaskRelocate),
 		Payload:   payloadJSON,
 	}
 

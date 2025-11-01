@@ -96,31 +96,31 @@ func ingestFile(db *DB, path string) error {
 
 		// Project events into their respective tables
 		switch event.Kind {
-		case string(EventKindProjectCreated):
+		case string(types.EventKindProjectCreated):
 			if err := db.ProjectProjectCreatedEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
 			}
-		case string(EventKindProjectAliasAdd):
+		case string(types.EventKindProjectAliasAdd):
 			if err := db.ProjectProjectAliasAddEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
 			}
-		case string(EventKindProjectAliasRemove):
+		case string(types.EventKindProjectAliasRemove):
 			if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
 			}
-		case string(EventKindTaskCreated):
+		case string(types.EventKindTaskCreated):
 			if err := db.ProjectTaskCreatedEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
 			}
-		case string(EventKindTaskNumberSet):
+		case string(types.EventKindTaskNumberSet):
 			if err := db.ProjectTaskNumberSetEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
 			}
-		case string(EventKindTaskRelocate):
+		case string(types.EventKindTaskRelocate):
 			if err := db.ProjectTaskRelocateEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
 			}
-		case string(EventKindTaskTitleSet):
+		case string(types.EventKindTaskTitleSet):
 			if err := db.ProjectTaskTitleSetEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
 			}
@@ -219,31 +219,31 @@ func ingestRemoteSpace(db *DB, remoteName string, remote sync.RemoteConfig, spac
 
 			// Project events into their respective tables
 			switch event.Kind {
-			case string(EventKindProjectCreated):
+			case string(types.EventKindProjectCreated):
 				if err := db.ProjectProjectCreatedEvent(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
 				}
-			case string(EventKindProjectAliasAdd):
+			case string(types.EventKindProjectAliasAdd):
 				if err := db.ProjectProjectAliasAddEvent(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
 				}
-			case string(EventKindProjectAliasRemove):
+			case string(types.EventKindProjectAliasRemove):
 				if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
 				}
-			case string(EventKindTaskCreated):
+			case string(types.EventKindTaskCreated):
 				if err := db.ProjectTaskCreatedEvent(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
 				}
-			case string(EventKindTaskNumberSet):
+			case string(types.EventKindTaskNumberSet):
 				if err := db.ProjectTaskNumberSetEvent(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
 				}
-			case string(EventKindTaskRelocate):
+			case string(types.EventKindTaskRelocate):
 				if err := db.ProjectTaskRelocateEvent(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
 				}
-			case string(EventKindTaskTitleSet):
+			case string(types.EventKindTaskTitleSet):
 				if err := db.ProjectTaskTitleSetEvent(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
 				}

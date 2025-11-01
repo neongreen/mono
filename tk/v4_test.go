@@ -12,12 +12,12 @@ import (
 func TestTypeValidation(t *testing.T) {
 	// Test ProjectUID
 	t.Run("ProjectUID validation", func(t *testing.T) {
-		validUID := NewProjectUID()
+		validUID := types.NewProjectUID()
 		if err := validUID.Validate(); err != nil {
 			t.Errorf("valid ProjectUID failed validation: %v", err)
 		}
 
-		invalidUID := ProjectUID("invalid")
+		invalidUID := types.ProjectUID("invalid")
 		if err := invalidUID.Validate(); err == nil {
 			t.Error("invalid ProjectUID passed validation")
 		}
@@ -25,12 +25,12 @@ func TestTypeValidation(t *testing.T) {
 
 	// Test TaskUID
 	t.Run("TaskUID validation", func(t *testing.T) {
-		validUID := NewTaskUID()
+		validUID := types.NewTaskUID()
 		if err := validUID.Validate(); err != nil {
 			t.Errorf("valid TaskUID failed validation: %v", err)
 		}
 
-		invalidUID := TaskUID("invalid")
+		invalidUID := types.TaskUID("invalid")
 		if err := invalidUID.Validate(); err == nil {
 			t.Error("invalid TaskUID passed validation")
 		}
@@ -38,17 +38,17 @@ func TestTypeValidation(t *testing.T) {
 
 	// Test Alias
 	t.Run("Alias validation", func(t *testing.T) {
-		validAlias := Alias("tk")
+		validAlias := types.Alias("tk")
 		if err := validAlias.Validate(); err != nil {
 			t.Errorf("valid alias failed validation: %v", err)
 		}
 
-		tooShort := Alias("x")
+		tooShort := types.Alias("x")
 		if err := tooShort.Validate(); err == nil {
 			t.Error("too short alias passed validation")
 		}
 
-		tooLong := Alias("this-is-way-too-long-for-an-alias")
+		tooLong := types.Alias("this-is-way-too-long-for-an-alias")
 		if err := tooLong.Validate(); err == nil {
 			t.Error("too long alias passed validation")
 		}
@@ -56,17 +56,17 @@ func TestTypeValidation(t *testing.T) {
 
 	// Test TaskNumber
 	t.Run("TaskNumber validation", func(t *testing.T) {
-		validNum := TaskNumber(1)
+		validNum := types.TaskNumber(1)
 		if err := validNum.Validate(); err != nil {
 			t.Errorf("valid TaskNumber failed validation: %v", err)
 		}
 
-		invalidNum := TaskNumber(0)
+		invalidNum := types.TaskNumber(0)
 		if err := invalidNum.Validate(); err == nil {
 			t.Error("zero TaskNumber passed validation")
 		}
 
-		negativeNum := TaskNumber(-1)
+		negativeNum := types.TaskNumber(-1)
 		if err := negativeNum.Validate(); err == nil {
 			t.Error("negative TaskNumber passed validation")
 		}
@@ -80,7 +80,7 @@ func TestEvents(t *testing.T) {
 	// Test project.created event
 	t.Run("project.created", func(t *testing.T) {
 		payload := ProjectCreatedPayload{
-			ProjectUID:  string(NewProjectUID()),
+			ProjectUID:  string(types.NewProjectUID()),
 			Type:        "local",
 			Name:        "Test Project",
 			Description: "A test project",
@@ -89,12 +89,12 @@ func TestEvents(t *testing.T) {
 		payloadJSON, _ := json.Marshal(payload)
 
 		event := types.Event{
-			ID:        string(NewEventID()),
+			ID:        string(types.NewEventID()),
 			TS:        1,
 			CreatedAt: time.Now(),
 			Actor:     "testuser",
 			Role:      "human",
-			Kind:      string(EventKindProjectCreated),
+			Kind:      string(types.EventKindProjectCreated),
 			Payload:   payloadJSON,
 		}
 
@@ -105,26 +105,26 @@ func TestEvents(t *testing.T) {
 
 	// Test task.created event
 	t.Run("task.created", func(t *testing.T) {
-		taskUID := NewTaskUID()
-		projectUID := NewProjectUID()
+		taskUID := types.NewTaskUID()
+		projectUID := types.NewProjectUID()
 
 		payload := TaskCreatedPayload{
 			TaskUID:        string(taskUID),
 			ProjectUID:     string(projectUID),
 			ProposedNumber: 1,
-			CreatedNode:    string(NewNodeID()),
+			CreatedNode:    string(types.NewNodeID()),
 			Title:          "Test Task",
 			CreatedBy:      "testuser",
 		}
 		payloadJSON, _ := json.Marshal(payload)
 
 		event := types.Event{
-			ID:        string(NewEventID()),
+			ID:        string(types.NewEventID()),
 			TS:        2,
 			CreatedAt: time.Now(),
 			Actor:     "testuser",
 			Role:      "human",
-			Kind:      string(EventKindTaskCreated),
+			Kind:      string(types.EventKindTaskCreated),
 			Payload:   payloadJSON,
 		}
 
@@ -140,26 +140,26 @@ func TestEvents(t *testing.T) {
 
 	// Test task.title.set event
 	t.Run("task.title.set", func(t *testing.T) {
-		taskUID := NewTaskUID()
+		taskUID := types.NewTaskUID()
 
 		// First create the task
 		createPayload := TaskCreatedPayload{
 			TaskUID:        string(taskUID),
-			ProjectUID:     string(NewProjectUID()),
+			ProjectUID:     string(types.NewProjectUID()),
 			ProposedNumber: 1,
-			CreatedNode:    string(NewNodeID()),
+			CreatedNode:    string(types.NewNodeID()),
 			Title:          "Original Title",
 			CreatedBy:      "testuser",
 		}
 		createPayloadJSON, _ := json.Marshal(createPayload)
 
 		createEvent := types.Event{
-			ID:        string(NewEventID()),
+			ID:        string(types.NewEventID()),
 			TS:        3,
 			CreatedAt: time.Now(),
 			Actor:     "testuser",
 			Role:      "human",
-			Kind:      string(EventKindTaskCreated),
+			Kind:      string(types.EventKindTaskCreated),
 			Payload:   createPayloadJSON,
 		}
 
@@ -175,12 +175,12 @@ func TestEvents(t *testing.T) {
 		titlePayloadJSON, _ := json.Marshal(titlePayload)
 
 		titleEvent := types.Event{
-			ID:        string(NewEventID()),
+			ID:        string(types.NewEventID()),
 			TS:        4,
 			CreatedAt: time.Now(),
 			Actor:     "testuser",
 			Role:      "human",
-			Kind:      string(EventKindTaskTitleSet),
+			Kind:      string(types.EventKindTaskTitleSet),
 			Payload:   titlePayloadJSON,
 		}
 

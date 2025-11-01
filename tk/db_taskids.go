@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/types"
 	"strconv"
 	"strings"
 )
@@ -224,7 +225,7 @@ func (d *DB) GetTaskIDsByProjects(projects []string) ([]string, error) {
 // at the cost of potentially showing longer IDs than necessary.
 func FormatTaskID(db *DB, fullID string) string {
 	// Parse the display ID to extract alias and number
-	displayID := DisplayID(fullID)
+	displayID := types.DisplayID(fullID)
 	alias, number, _, err := displayID.Parse()
 	if err != nil {
 		// Malformed ID, return as-is

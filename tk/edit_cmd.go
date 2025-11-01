@@ -78,12 +78,12 @@ func editTaskStatus(db *DB, taskUID string, value string, actor string) error {
 	}
 
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        lamport,
 		CreatedAt: time.Now(),
 		Actor:     actor,
 		Role:      "human",
-		Kind:      string(EventKindTaskStatusSet),
+		Kind:      string(types.EventKindTaskStatusSet),
 		Payload:   payloadJSON,
 	}
 
@@ -133,12 +133,12 @@ func editTaskNumber(db *DB, taskUID string, value string, actor string) error {
 	}
 
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        lamport,
 		CreatedAt: time.Now(),
 		Actor:     actor,
 		Role:      "human",
-		Kind:      string(EventKindTaskNumberSet),
+		Kind:      string(types.EventKindTaskNumberSet),
 		Payload:   payloadJSON,
 	}
 
@@ -186,12 +186,12 @@ func editTaskTitle(db *DB, taskRef string, value string, actor string) error {
 	}
 
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        lamport,
 		CreatedAt: time.Now(),
 		Actor:     actor,
 		Role:      "human",
-		Kind:      string(EventKindTaskTitleSet),
+		Kind:      string(types.EventKindTaskTitleSet),
 		Payload:   payloadJSON,
 	}
 

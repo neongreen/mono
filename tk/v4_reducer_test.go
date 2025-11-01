@@ -11,7 +11,7 @@ import (
 func TestProjectProjectCreatedEvent(t *testing.T) {
 	db := openTempDB(t)
 
-	projectUID := string(NewProjectUID())
+	projectUID := string(types.NewProjectUID())
 	payload := ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        "local",
@@ -26,12 +26,12 @@ func TestProjectProjectCreatedEvent(t *testing.T) {
 	}
 
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindProjectCreated),
+		Kind:      string(types.EventKindProjectCreated),
 		Payload:   payloadJSON,
 	}
 
@@ -76,12 +76,12 @@ func TestProjectProjectAliasAddEvent(t *testing.T) {
 	}
 
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindProjectAliasAdd),
+		Kind:      string(types.EventKindProjectAliasAdd),
 		Payload:   payloadJSON,
 	}
 
@@ -112,7 +112,7 @@ func TestProjectTaskCreatedEvent(t *testing.T) {
 		t.Fatalf("failed to get node ID: %v", err)
 	}
 
-	taskUID := string(NewTaskUID())
+	taskUID := string(types.NewTaskUID())
 	payload := TaskCreatedPayload{
 		TaskUID:        taskUID,
 		ProjectUID:     projectUID,
@@ -128,12 +128,12 @@ func TestProjectTaskCreatedEvent(t *testing.T) {
 	}
 
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindTaskCreated),
+		Kind:      string(types.EventKindTaskCreated),
 		Payload:   payloadJSON,
 	}
 
@@ -174,12 +174,12 @@ func TestProjectTaskNumberSetEvent(t *testing.T) {
 	}
 
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindTaskNumberSet),
+		Kind:      string(types.EventKindTaskNumberSet),
 		Payload:   payloadJSON,
 	}
 
@@ -218,12 +218,12 @@ func TestProjectTaskTitleSetEvent(t *testing.T) {
 	}
 
 	event := types.Event{
-		ID:        string(NewEventID()),
+		ID:        string(types.NewEventID()),
 		TS:        0,
 		CreatedAt: time.Now(),
 		Actor:     "tester",
 		Role:      "human",
-		Kind:      string(EventKindTaskTitleSet),
+		Kind:      string(types.EventKindTaskTitleSet),
 		Payload:   payloadJSON,
 	}
 

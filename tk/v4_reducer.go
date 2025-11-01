@@ -14,20 +14,20 @@ import (
 // Returns (handled=true, error) if the event was handled
 // Returns (handled=false, nil) if the event was not handled
 func (r *Reducer) ApplyProjectEvent(e types.Event) (bool, error) {
-	switch EventKind(e.Kind) {
-	case EventKindProjectCreated:
+	switch types.EventKind(e.Kind) {
+	case types.EventKindProjectCreated:
 		return true, r.applyProjectCreated(e)
-	case EventKindProjectAliasAdd:
+	case types.EventKindProjectAliasAdd:
 		return true, r.applyProjectAliasAdd(e)
-	case EventKindProjectAliasRemove:
+	case types.EventKindProjectAliasRemove:
 		return true, r.applyProjectAliasRemove(e)
-	case EventKindTaskCreated:
+	case types.EventKindTaskCreated:
 		return true, r.applyTaskCreated(e)
-	case EventKindTaskNumberSet:
+	case types.EventKindTaskNumberSet:
 		return true, r.applyTaskNumberSet(e)
-	case EventKindTaskRelocate:
+	case types.EventKindTaskRelocate:
 		return true, r.applyTaskRelocate(e)
-	case EventKindTaskTitleSet:
+	case types.EventKindTaskTitleSet:
 		return true, r.applyTaskTitleSet(e)
 	default:
 		// Not a handled event, skip

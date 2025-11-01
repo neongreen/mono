@@ -55,7 +55,7 @@ var projectCreateCmd = &cobra.Command{
 		}
 
 		// Generate new project UID
-		projectUID := NewProjectUID()
+		projectUID := types.NewProjectUID()
 
 		// Create project.created event
 		payload := ProjectCreatedPayload{
@@ -77,7 +77,7 @@ var projectCreateCmd = &cobra.Command{
 			CreatedAt: time.Now(),
 			Actor:     actor,
 			Role:      "human",
-			Kind:      string(EventKindProjectCreated),
+			Kind:      string(types.EventKindProjectCreated),
 			Payload:   payloadJSON,
 		}
 
@@ -114,7 +114,7 @@ var projectCreateCmd = &cobra.Command{
 				CreatedAt: time.Now(),
 				Actor:     actor,
 				Role:      "human",
-				Kind:      string(EventKindProjectAliasAdd),
+				Kind:      string(types.EventKindProjectAliasAdd),
 				Payload:   aliasPayloadJSON,
 			}
 
@@ -293,7 +293,7 @@ var projectAliasAddCmd = &cobra.Command{
 			CreatedAt: time.Now(),
 			Actor:     actor,
 			Role:      "human",
-			Kind:      string(EventKindProjectAliasAdd),
+			Kind:      string(types.EventKindProjectAliasAdd),
 			Payload:   payloadJSON,
 		}
 
@@ -364,7 +364,7 @@ var projectAliasRemoveCmd = &cobra.Command{
 			CreatedAt: time.Now(),
 			Actor:     actor,
 			Role:      "human",
-			Kind:      string(EventKindProjectAliasRemove),
+			Kind:      string(types.EventKindProjectAliasRemove),
 			Payload:   payloadJSON,
 		}
 
@@ -386,7 +386,7 @@ var projectAliasRemoveCmd = &cobra.Command{
 
 func generateEventID(db *DB) string {
 	// Use the ULID-based event ID
-	return string(NewEventID())
+	return string(types.NewEventID())
 }
 
 func getNextLamportTimestamp(db *DB) int64 {

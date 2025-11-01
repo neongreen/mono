@@ -28,7 +28,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		return fmt.Errorf("project/alias %q not found. Create it first with: tk project create <name> --alias %s", projectFlag, projectFlag)
 	}
 
-	taskUID := NewTaskUID()
+	taskUID := types.NewTaskUID()
 
 	// Compute proposed number (max + 1)
 	var maxNumber int64
@@ -61,7 +61,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		CreatedAt: time.Now(),
 		Actor:     currentUser,
 		Role:      "human",
-		Kind:      string(EventKindTaskCreated),
+		Kind:      string(types.EventKindTaskCreated),
 		Payload:   payloadJSON,
 	}
 
@@ -90,7 +90,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		CreatedAt: time.Now(),
 		Actor:     currentUser,
 		Role:      "human",
-		Kind:      string(EventKindTaskNumberSet),
+		Kind:      string(types.EventKindTaskNumberSet),
 		Payload:   numberPayloadJSON,
 	}
 

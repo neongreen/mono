@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/neongreen/mono/tk/internal/types"
 	"strings"
 	"testing"
 )
@@ -49,7 +50,7 @@ func TestDescribeTaskCollisionDisplay(t *testing.T) {
 	taskA := seedTaskWithNode(t, db, projectUID, "Task A", 5, nodeA)
 	taskB := seedTaskWithNode(t, db, projectUID, "Task B", 5, nodeB)
 
-	info, err := describeTask(db, "alpha-5-"+NodeID(nodeB).Short())
+	info, err := describeTask(db, "alpha-5-"+types.NodeID(nodeB).Short())
 	if err != nil {
 		t.Fatalf("describeTask failed: %v", err)
 	}
@@ -59,11 +60,11 @@ func TestDescribeTaskCollisionDisplay(t *testing.T) {
 	if !info.Collides {
 		t.Fatalf("expected collision detected")
 	}
-	if !strings.Contains(info.DisplayID, NodeID(nodeB).Short()) {
+	if !strings.Contains(info.DisplayID, types.NodeID(nodeB).Short()) {
 		t.Fatalf("expected display to include hint, got %s", info.DisplayID)
 	}
 
-	infoA, err := describeTask(db, "alpha-5-"+NodeID(nodeA).Short())
+	infoA, err := describeTask(db, "alpha-5-"+types.NodeID(nodeA).Short())
 	if err != nil {
 		t.Fatalf("describeTask failed: %v", err)
 	}
