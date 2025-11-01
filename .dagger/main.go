@@ -88,7 +88,7 @@ func (m *Dagger) jjRunTestContainer() *dagger.Container {
 		WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono").
 		WithEnvVariable("GOWORK", "off").
 		// Install jj (jujutsu) from GitHub releases
-		WithExec([]string{"sh", "-c", "curl -L https://github.com/martinvonz/jj/releases/download/v0.34.0/jj-v0.34.0-x86_64-unknown-linux-gnu.tar.gz | tar xz && mv jj /usr/local/bin/"}).
+		WithExec([]string{"sh", "-c", "curl -L https://github.com/jj-vcs/jj/releases/download/v0.34.0/jj-v0.34.0-x86_64-unknown-linux-musl.tar.gz | tar xz && mv jj /usr/local/bin/"}).
 		WithExec([]string{"jj", "--version"}).
 		// Install gotestsum with pinned version
 		WithExec([]string{"go", "install", "gotest.tools/gotestsum@v1.13.0"})

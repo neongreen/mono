@@ -2,7 +2,7 @@
 
 ## Source Information
 - **Source URL**: https://jj-vcs.github.io/jj/latest/config-schema.json
-- **Alternative URL**: https://raw.githubusercontent.com/martinvonz/jj/main/cli/src/config-schema.json
+- **Alternative URL**: https://raw.githubusercontent.com/jj-vcs/jj/main/cli/src/config-schema.json
 - **Downloaded Date**: 2025-10-28
 - **Official Documentation**: https://jj-vcs.github.io/jj/
 - **License**: Apache-2.0 (per Jujutsu project)
