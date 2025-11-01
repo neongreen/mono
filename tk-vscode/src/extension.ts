@@ -429,12 +429,7 @@ class TkDragAndDropController implements vscode.TreeDragAndDropController<TkTree
     const successCount = tasks.length - failures.length;
     
     if (failures.length === 0) {
-      // All succeeded
-      if (tasks.length === 1) {
-        void vscode.window.showInformationMessage(`Moved ${tasks[0].task.task_id} to ${targetGroupRef.groupName}`);
-      } else {
-        void vscode.window.showInformationMessage(`Moved ${successCount} task(s) to ${targetGroupRef.groupName}`);
-      }
+      // All succeeded - no notification
     } else if (successCount === 0) {
       // All failed
       const firstError = failures[0].reason;
@@ -458,9 +453,34 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
 
   private groups: GroupTreeItem[] = [];
   private ungrouped: TaskTreeItem[] = [];
+  private statusFilters: Set<string> = new Set();
 
   constructor(private readonly decorationProvider: TkDecorationProvider) {
     void this.refresh();
+  }
+
+  public toggleStatusFilter(status: string): void {
+    if (this.statusFilters.has(status)) {
+      this.statusFilters.delete(status);
+    } else {
+      this.statusFilters.add(status);
+    }
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public getStatusFilters(): Set<string> {
+    return this.statusFilters;
+  }
+
+  private filterTasksByStatus(tasks: TkTask[]): TkTask[] {
+    if (this.statusFilters.size === 0) {
+      return tasks;
+    }
+    return tasks.filter(task => {
+      const genericAxis = task.axes?.['generic'];
+      const status = genericAxis?.effective ?? '';
+      return this.statusFilters.has(status);
+    });
   }
 
   public findGroupForTask(task: TaskTreeItem): GroupTreeItem | undefined {
@@ -492,7 +512,14 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
     try {
       const tasks = await fetchTk();
 
-      this.groups = tasks.groups.map(
+      // Apply status filters
+      const filteredGroups = tasks.groups.map(group => ({
+        ...group,
+        tasks: this.filterTasksByStatus(group.tasks)
+      }));
+      const filteredUngrouped = this.filterTasksByStatus(tasks.tasks);
+
+      this.groups = filteredGroups.map(
         (group) =>
           new GroupTreeItem(
             group.group ?? 'unnamed',
@@ -500,7 +527,7 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
           ),
       );
 
-      this.ungrouped = tasks.tasks.map((task) => new TaskTreeItem(task));
+      this.ungrouped = filteredUngrouped.map((task) => new TaskTreeItem(task));
 
       // Collect all task items for decoration provider
       const allTaskItems: TaskTreeItem[] = [];
@@ -740,11 +767,75 @@ async function createProject(provider: TkProvider): Promise<void> {
       env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
     });
 
-    void vscode.window.showInformationMessage(`Created project: ${projectName}`);
     await provider.refresh();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     void vscode.window.showErrorMessage(`Failed to create project: ${message}`);
+  }
+}
+
+async function deleteTask(provider: TkProvider, item: TaskTreeItem): Promise<void> {
+  const taskId = item.task.task_id;
+  if (!taskId) {
+    void vscode.window.showErrorMessage('Cannot delete task: task has no ID');
+    return;
+  }
+
+  const taskTitle = item.task.title ?? taskId;
+  const confirmation = await vscode.window.showWarningMessage(
+    `Delete task ${taskId}${taskTitle !== taskId ? ` (${taskTitle})` : ''}?`,
+    { modal: true },
+    'Delete'
+  );
+
+  if (confirmation !== 'Delete') {
+    return;
+  }
+
+  try {
+    const { binary, cwd } = getTkConfig();
+
+    const args = ['rm', taskId];
+
+    await execFileAsync(binary, args, {
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    });
+
+    await provider.refresh();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`Failed to delete task: ${message}`);
+  }
+}
+
+async function deleteProject(provider: TkProvider, item: GroupTreeItem): Promise<void> {
+  const projectName = item.groupName;
+
+  const confirmation = await vscode.window.showWarningMessage(
+    `Delete project ${projectName}? This will also delete all tasks in this project.`,
+    { modal: true },
+    'Delete'
+  );
+
+  if (confirmation !== 'Delete') {
+    return;
+  }
+
+  try {
+    const { binary, cwd } = getTkConfig();
+
+    const args = ['project', 'rm', projectName];
+
+    await execFileAsync(binary, args, {
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    });
+
+    await provider.refresh();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`Failed to delete project: ${message}`);
   }
 }
 
@@ -787,6 +878,12 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('tk.rotateStatus', (item: TaskTreeItem) => rotateStatus(provider, item)),
     vscode.commands.registerCommand('tk.createTask', (item: GroupTreeItem) => createTask(provider, item)),
     vscode.commands.registerCommand('tk.createProject', () => createProject(provider)),
+    vscode.commands.registerCommand('tk.deleteTask', (item: TaskTreeItem) => deleteTask(provider, item)),
+    vscode.commands.registerCommand('tk.deleteProject', (item: GroupTreeItem) => deleteProject(provider, item)),
+    vscode.commands.registerCommand('tk.filterNext', () => provider.toggleStatusFilter('next')),
+    vscode.commands.registerCommand('tk.filterWip', () => provider.toggleStatusFilter('wip')),
+    vscode.commands.registerCommand('tk.filterDone', () => provider.toggleStatusFilter('done')),
+    vscode.commands.registerCommand('tk.filterNone', () => provider.toggleStatusFilter('')),
     vscode.commands.registerCommand('tk.showTaskDetails', (task: TkTask) => {
       detailProvider.showTask(task);
     }),

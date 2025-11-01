@@ -22,7 +22,13 @@
     "onCommand:tk.editTitle",
     "onCommand:tk.rotateStatus",
     "onCommand:tk.createTask",
-    "onCommand:tk.createProject"
+    "onCommand:tk.createProject",
+    "onCommand:tk.deleteTask",
+    "onCommand:tk.deleteProject",
+    "onCommand:tk.filterNext",
+    "onCommand:tk.filterWip",
+    "onCommand:tk.filterDone",
+    "onCommand:tk.filterNone"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -54,14 +60,64 @@
         "command": "tk.createProject",
         "title": "Create Project",
         "icon": "$(add)"
+      },
+      {
+        "command": "tk.deleteTask",
+        "title": "Delete Task",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "tk.deleteProject",
+        "title": "Delete Project",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "tk.filterNext",
+        "title": "Filter: Next",
+        "icon": "$(arrow-right)"
+      },
+      {
+        "command": "tk.filterWip",
+        "title": "Filter: WIP",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "tk.filterDone",
+        "title": "Filter: Done",
+        "icon": "$(check)"
+      },
+      {
+        "command": "tk.filterNone",
+        "title": "Filter: None",
+        "icon": "$(circle-outline)"
       }
     ],
     "menus": {
       "view/title": [
         {
+          "command": "tk.filterNext",
+          "when": "view == tkExplorer",
+          "group": "navigation@1"
+        },
+        {
+          "command": "tk.filterWip",
+          "when": "view == tkExplorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "tk.filterDone",
+          "when": "view == tkExplorer",
+          "group": "navigation@3"
+        },
+        {
+          "command": "tk.filterNone",
+          "when": "view == tkExplorer",
+          "group": "navigation@4"
+        },
+        {
           "command": "tk.createProject",
           "when": "view == tkExplorer",
-          "group": "navigation"
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
@@ -76,7 +132,17 @@
           "group": "inline"
         },
         {
+          "command": "tk.deleteTask",
+          "when": "view == tkExplorer && viewItem == tkTask",
+          "group": "inline"
+        },
+        {
           "command": "tk.createTask",
+          "when": "view == tkExplorer && viewItem == tkGroup",
+          "group": "inline"
+        },
+        {
+          "command": "tk.deleteProject",
           "when": "view == tkExplorer && viewItem == tkGroup",
           "group": "inline"
         }

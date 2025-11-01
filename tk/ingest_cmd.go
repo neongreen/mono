@@ -108,6 +108,10 @@ func ingestFile(db *DB, path string) error {
 			if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
 			}
+		case string(types.EventKindProjectDelete):
+			if err := db.ProjectProjectDeleteEvent(event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project project.delete event %s: %v\n", event.ID, err)
+			}
 		case string(types.EventKindTaskCreated):
 			if err := db.ProjectTaskCreatedEvent(event); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
@@ -234,6 +238,10 @@ func ingestRemoteSpace(db *DB, remoteName string, remote sync.RemoteConfig, spac
 			case string(types.EventKindProjectAliasRemove):
 				if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
+				}
+			case string(types.EventKindProjectDelete):
+				if err := db.ProjectProjectDeleteEvent(event); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to project project.delete event %s: %v\n", event.ID, err)
 				}
 			case string(types.EventKindTaskCreated):
 				if err := db.ProjectTaskCreatedEvent(event); err != nil {

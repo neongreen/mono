@@ -10,10 +10,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var deleteCmd = &cobra.Command{
-	Use:   "delete [task-id]",
-	Short: "Delete a task",
-	Args:  cobra.ExactArgs(1),
+var rmCmd = &cobra.Command{
+	Use:     "rm [task-id]",
+	Aliases: []string{"delete", "del", "remove"},
+	Short:   "Delete a task",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
 

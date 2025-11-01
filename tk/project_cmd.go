@@ -389,6 +389,87 @@ var projectAliasRemoveCmd = &cobra.Command{
 	},
 }
 
+var projectRmCmd = &cobra.Command{
+	Use:   "rm <project-uid-or-alias>",
+	Short: "Delete a project",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db, err := OpenExistingDB()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		projectRef := args[0]
+
+		// Try to resolve the project UID from alias or UID
+		var projectUID string
+		nodeID, err := db.GetOrCreateNodeID()
+		if err != nil {
+			return err
+		}
+
+		// First try as alias
+		err = db.db.QueryRow(`
+			SELECT project_uid FROM project_aliases 
+			WHERE alias = ? AND node = ?
+		`, projectRef, nodeID).Scan(&projectUID)
+
+		if err != nil {
+			// Try as project UID directly
+			var exists bool
+			err = db.db.QueryRow(`
+				SELECT EXISTS(SELECT 1 FROM projects WHERE project_uid = ?)
+			`, projectRef).Scan(&exists)
+			if err != nil {
+				return fmt.Errorf("failed to query project: %w", err)
+			}
+			if !exists {
+				return fmt.Errorf("project not found: %s", projectRef)
+			}
+			projectUID = projectRef
+		}
+
+		// Get current user
+		actor, err := getCurrentUser()
+		if err != nil {
+			return err
+		}
+
+		// Create project.delete event
+		payload := types.ProjectDeletePayload{
+			ProjectUID: projectUID,
+		}
+
+		payloadJSON, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal payload: %w", err)
+		}
+
+		event := types.Event{
+			ID:        generateEventID(db),
+			TS:        getNextLamportTimestamp(db),
+			CreatedAt: time.Now(),
+			Actor:     actor,
+			Role:      "human",
+			Kind:      string(types.EventKindProjectDelete),
+			Payload:   payloadJSON,
+		}
+
+		if err := db.InsertEvent(event); err != nil {
+			return fmt.Errorf("failed to insert event: %w", err)
+		}
+
+		// Project the event (removes the project from the table)
+		if err := db.ProjectProjectDeleteEvent(event); err != nil {
+			return fmt.Errorf("failed to project project deletion: %w", err)
+		}
+
+		fmt.Printf("Deleted project %s\n", projectUID)
+		return nil
+	},
+}
+
 // Helper functions
 
 func generateEventID(db *DB) string {
@@ -411,6 +492,8 @@ func init() {
 
 	projectLsCmd.Flags().Bool("json", false, "Output as JSON")
 	projectCmd.AddCommand(projectLsCmd)
+
+	projectCmd.AddCommand(projectRmCmd)
 
 	projectCmd.AddCommand(projectAliasCmd)
 

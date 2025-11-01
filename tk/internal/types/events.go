@@ -27,6 +27,11 @@ type ProjectAliasRemovePayload struct {
 	Node       string `json:"node"`
 }
 
+// ProjectDeletePayload is the payload for project.delete events
+type ProjectDeletePayload struct {
+	ProjectUID string `json:"project_uid"`
+}
+
 // TaskCreatedPayload is the payload for task.created events
 type TaskCreatedPayload struct {
 	TaskUID        string `json:"task_uid"`
