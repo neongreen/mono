@@ -72,7 +72,7 @@ func UpdateUser(u *models.User) {
 
 	// Move the file from models/ to entities/
 	targetFile := filepath.Join(tmpDir, "entities", "user.go")
-	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}
@@ -180,7 +180,7 @@ func main() {
 
 	// Move the file from help/ to support/
 	targetFile := filepath.Join(tmpDir, "support", "util.go")
-	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}
@@ -298,7 +298,7 @@ func processSettings(s *config.Settings) {
 
 	// Move config/ to options/
 	targetFile := filepath.Join(tmpDir, "options", "settings.go")
-	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}
@@ -395,7 +395,7 @@ func main() {
 
 	// Move from a/b/c/ to x/y/z/
 	targetFile := filepath.Join(tmpDir, "x", "y", "z", "deep.go")
-	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}
@@ -462,7 +462,7 @@ func main() {
 
 	// Move to subdirectory
 	targetFile := filepath.Join(tmpDir, "cmd", "app.go")
-	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}
@@ -515,7 +515,7 @@ func Foo() {
 
 	// Rename in same directory
 	targetFile := filepath.Join(tmpDir, "new_name.go")
-	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}
@@ -593,7 +593,7 @@ func merge(c1, c2 data.Config) {}
 
 	// Move from data/ to settings/
 	targetFile := filepath.Join(tmpDir, "settings", "types.go")
-	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}
@@ -720,7 +720,7 @@ func TestBar(t *testing.T) {
 
 	// Move types.go to internal/types/types.go
 	targetFile := filepath.Join(pkgDir, "internal", "types", "types.go")
-	err = MoveFileWithImportUpdates(typesFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(typesFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("Failed to move file: %v", err)
 	}
@@ -831,7 +831,7 @@ go 1.21
 
 	// Move source.go to internal/types/
 	targetFile := filepath.Join(typesDir, "source.go")
-	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}
@@ -950,7 +950,7 @@ go 1.21
 
 	// Move source.go from foo to bar
 	targetFile := filepath.Join(barDir, "source.go")
-	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}

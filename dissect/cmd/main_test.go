@@ -4,6 +4,9 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/golang-cz/devslog"
@@ -104,7 +107,8 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 	for filePath := range testData.FilesIn {
 		if strings.HasSuffix(filePath, ".go") {
 			slog.Debug("Found Go file for dissect", "file", filePath)
-			main.ProcessFile(filepath.Join(tmpProjectDir, filePath))
+			// Use hardcoded tool names for tests - tools will be installed automatically if needed
+			main.ProcessFile(filepath.Join(tmpProjectDir, filePath), "gopls", "goimports")
 		} else {
 			slog.Debug("Skipping non-Go file for dissect", "file", filePath)
 		}
@@ -256,7 +260,8 @@ func TestExternalProjects(t *testing.T) {
 
 			// Inject ProcessFile dependency
 			config.ProcessFile = func(absPath string) (int, string, error) {
-				status, exclusionReason, err := main.ProcessFile(absPath)
+				// Use hardcoded tool names for tests - tools will be installed automatically if needed
+				status, exclusionReason, err := main.ProcessFile(absPath, "gopls", "goimports")
 				return int(status), exclusionReason, err
 			}
 

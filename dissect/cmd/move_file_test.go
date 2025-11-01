@@ -403,7 +403,7 @@ func main() {
 	targetFile := filepath.Join(tmpDir, "subdir", "caller.go")
 
 	// Call the refactor function directly to get the error
-	err = refactor.MoveFileWithImportUpdates(callerFile, targetFile, tmpDir)
+	err = refactor.MoveFileWithImportUpdates(callerFile, targetFile, tmpDir, "goimports")
 
 	// Assert: Error contains "cannot move" and "unexported"
 	if err == nil {
@@ -477,7 +477,7 @@ func main() {
 	targetFile := filepath.Join(tmpDir, "cmd", "main.go")
 
 	// Call refactor function directly
-	err = refactor.MoveFileWithImportUpdates(mainFile, targetFile, tmpDir)
+	err = refactor.MoveFileWithImportUpdates(mainFile, targetFile, tmpDir, "goimports")
 
 	// Assert: Error mentions "dbPath" variable
 	if err == nil {
@@ -541,7 +541,7 @@ func dial() *connection {
 	targetFile := filepath.Join(tmpDir, "pkg", "client.go")
 
 	// Call refactor function directly
-	err = refactor.MoveFileWithImportUpdates(clientFile, targetFile, tmpDir)
+	err = refactor.MoveFileWithImportUpdates(clientFile, targetFile, tmpDir, "goimports")
 
 	// Assert: Error mentions "connection" type
 	if err == nil {
@@ -619,7 +619,7 @@ func main() {
 	targetFile := filepath.Join(tmpDir, "subdir", "utils.go")
 
 	// Call refactor function directly
-	err = refactor.MoveFileWithImportUpdates(utilsFile, targetFile, tmpDir)
+	err = refactor.MoveFileWithImportUpdates(utilsFile, targetFile, tmpDir, "goimports")
 
 	// Assert: Move succeeds (exported symbols are fine to reference across packages)
 	if err != nil {
@@ -684,7 +684,7 @@ func main() {
 	targetFile := filepath.Join(tmpDir, "pkg", "caller.go")
 
 	// Call refactor function directly
-	err = refactor.MoveFileWithImportUpdates(callerFile, targetFile, tmpDir)
+	err = refactor.MoveFileWithImportUpdates(callerFile, targetFile, tmpDir, "goimports")
 
 	// Assert: Error lists all 3 dependencies
 	if err == nil {
@@ -742,7 +742,7 @@ func main() {
 	targetFile := filepath.Join(tmpDir, "renamed.go")
 
 	// Call refactor function directly
-	err = refactor.MoveFileWithImportUpdates(callerFile, targetFile, tmpDir)
+	err = refactor.MoveFileWithImportUpdates(callerFile, targetFile, tmpDir, "goimports")
 
 	// Assert: Move succeeds (same package = OK)
 	if err != nil {

@@ -240,7 +240,7 @@ var AdminCmd = "admin command"
 
 	// Move admin_cmd.go to cmd/admin.go
 	targetFile := filepath.Join(cmdDir, "admin.go")
-	err := refactor.MoveFileWithImportUpdates(adminCmdFile, targetFile, tmpDir)
+	err := refactor.MoveFileWithImportUpdates(adminCmdFile, targetFile, tmpDir, "goimports")
 	if err != nil {
 		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
 	}
