@@ -30,7 +30,7 @@ Examples:
 			remoteName = args[0]
 		}
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}

@@ -15,7 +15,7 @@ var describeCmd = &cobra.Command{
 		taskRef := args[0]
 		title := strings.Join(args[1:], " ")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}

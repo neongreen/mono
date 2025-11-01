@@ -27,7 +27,7 @@ Examples:
 
 		pathOrRemote := args[0]
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -50,7 +50,7 @@ Examples:
 				return fmt.Errorf("'%s' is neither a file nor a configured remote", pathOrRemote)
 			}
 
-			ingestErr = ingestRemote(db, pathOrRemote, remote)
+			ingestErr = IngestRemote(db, pathOrRemote, remote)
 		}
 
 		return ingestErr
@@ -135,8 +135,8 @@ func ingestFile(db *DB, path string) error {
 	return nil
 }
 
-// ingestRemote ingests events from all segments in a remote
-func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
+// IngestRemote ingests events from all segments in a remote
+func IngestRemote(db *DB, remoteName string, remote RemoteConfig) error {
 	// Use configured spaces, or default to "personal"
 	spaces := remote.Spaces
 	if len(spaces) == 0 {

@@ -33,13 +33,13 @@ var doctorCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
 		defer db.Close()
 
-		report, err := runDoctor(db)
+		report, err := RunDoctor(db)
 		if err != nil {
 			return err
 		}
@@ -51,7 +51,7 @@ var doctorCmd = &cobra.Command{
 			}
 			fmt.Println(string(output))
 		} else {
-			printDoctorReport(os.Stdout, report)
+			PrintDoctorReport(os.Stdout, report)
 		}
 
 		if report.ProblemCount() > 0 {
@@ -66,7 +66,7 @@ func init() {
 	doctorCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
-func runDoctor(db *DB) (*DoctorReport, error) {
+func RunDoctor(db *DB) (*DoctorReport, error) {
 	report := &DoctorReport{}
 
 	if err := checkOrphanTasks(db, report); err != nil {
@@ -97,7 +97,7 @@ func runDoctor(db *DB) (*DoctorReport, error) {
 	return report, nil
 }
 
-func printDoctorReport(w io.Writer, report *DoctorReport) {
+func PrintDoctorReport(w io.Writer, report *DoctorReport) {
 	if report.ProblemCount() == 0 {
 		fmt.Fprintln(w, "✓ Doctor found no issues")
 		return

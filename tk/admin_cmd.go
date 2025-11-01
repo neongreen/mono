@@ -31,7 +31,7 @@ in order of their CreatedAt time.
 
 This command is safe to run multiple times.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -40,7 +40,7 @@ This command is safe to run multiple times.`,
 		fmt.Println("Reassigning Lamport timestamps based on creation time...")
 
 		// Get all events ordered by CreatedAt, then by ID for deterministic ordering
-		rows, err := db.db.Query(`
+		rows, err := db.Query(`
 			SELECT id FROM events
 			ORDER BY created_at ASC, id ASC
 		`)
@@ -67,7 +67,7 @@ This command is safe to run multiple times.`,
 		fmt.Printf("Updating %d events...\n", len(eventIDs))
 
 		// Begin transaction
-		tx, err := db.db.Begin()
+		tx, err := db.Begin()
 		if err != nil {
 			return fmt.Errorf("failed to begin transaction: %w", err)
 		}
@@ -204,7 +204,7 @@ Examples:
 			fmt.Println("Database initialized")
 
 			// Show database schema
-			rows, err := db.db.Query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+			rows, err := db.Query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
 			if err == nil {
 				var tables []string
 				for rows.Next() {
@@ -221,7 +221,7 @@ Examples:
 		fmt.Printf("Ingesting segments from remote '%s'...\n", remoteName)
 
 		// Ingest from remote
-		if err := ingestRemote(db, remoteName, remote); err != nil {
+		if err := IngestRemote(db, remoteName, remote); err != nil {
 			db.Close()
 			return fmt.Errorf("failed to ingest from remote: %w", err)
 		}
@@ -229,7 +229,7 @@ Examples:
 		if debug {
 			// Count events
 			var eventCount int
-			db.db.QueryRow("SELECT COUNT(*) FROM events").Scan(&eventCount)
+			db.QueryRow("SELECT COUNT(*) FROM events").Scan(&eventCount)
 			fmt.Printf("Total events in database: %d\n", eventCount)
 		}
 
@@ -239,7 +239,7 @@ Examples:
 
 		fmt.Println("Running health check...")
 
-		report, err := runDoctor(db)
+		report, err := RunDoctor(db)
 		if err != nil {
 			db.Close()
 			return fmt.Errorf("doctor check failed: %w", err)
@@ -247,7 +247,7 @@ Examples:
 
 		db.Close()
 
-		printDoctorReport(os.Stdout, report)
+		PrintDoctorReport(os.Stdout, report)
 
 		if report.ProblemCount() > 0 {
 			fmt.Println()

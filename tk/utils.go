@@ -39,7 +39,7 @@ func getProjectAliasForTask(db *DB, taskUID string) (string, error) {
 	return alias, nil
 }
 
-func openExistingDB() (*DB, error) {
+func OpenExistingDB() (*DB, error) {
 	path, err := GetDBPath()
 	if err != nil {
 		return nil, err

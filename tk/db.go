@@ -145,3 +145,23 @@ func DBExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
 }
+
+// Query executes a query that returns rows
+func (d *DB) Query(query string, args ...any) (*sql.Rows, error) {
+	return d.db.Query(query, args...)
+}
+
+// QueryRow executes a query that is expected to return at most one row
+func (d *DB) QueryRow(query string, args ...any) *sql.Row {
+	return d.db.QueryRow(query, args...)
+}
+
+// Begin starts a transaction
+func (d *DB) Begin() (*sql.Tx, error) {
+	return d.db.Begin()
+}
+
+// Exec executes a query without returning any rows
+func (d *DB) Exec(query string, args ...any) (sql.Result, error) {
+	return d.db.Exec(query, args...)
+}

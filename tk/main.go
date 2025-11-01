@@ -94,7 +94,7 @@ var newCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title := args[0]
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ var markCmd = &cobra.Command{
 		axis, _ := cmd.Flags().GetString("axis")
 		role, _ := cmd.Flags().GetString("role")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -212,7 +212,7 @@ var noteCmd = &cobra.Command{
 		taskRef := args[0]
 		text := args[1]
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -282,7 +282,7 @@ var viewCmd = &cobra.Command{
 		taskRef := args[0]
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -350,7 +350,7 @@ var lsCmd = &cobra.Command{
 		unblockedOnly, _ := cmd.Flags().GetBool("unblocked")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
