@@ -11,6 +11,7 @@ import (
 // TestBatchMove_WithPackageNameCollision tests the tk scenario where
 // the target package name conflicts with a variable name
 func TestBatchMove_WithPackageNameCollision(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Create main package with a variable named "db"
@@ -46,7 +47,7 @@ func NewUser(name string) *User {
 `)
 
 	// Run batch move to move types to db package
-	cmd := exec.Command("dissect", "move", "--batch", "types.go -> db/")
+	cmd := exec.Command(dissect, "move", "--batch", "types.go -> db/")
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -105,6 +106,18 @@ func NewUser(name string) *User {
 }
 
 // createTempModule creates a temporary Go module for testing
+// buildDissectBinary builds the dissect binary for testing and returns its path
+func buildDissectBinary(t *testing.T) string {
+	// Build dissect to a temp location
+	tmpBinary := filepath.Join(t.TempDir(), "dissect")
+	cmd := exec.Command("go", "build", "-o", tmpBinary, ".")
+	cmd.Dir = filepath.Join(".") // Current directory (dissect/cmd)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)
+	}
+	return tmpBinary
+}
+
 func createTempModuleForBatch(t *testing.T) string {
 	tmpDir := t.TempDir()
 
@@ -133,6 +146,7 @@ func createFileForBatch(t *testing.T, path, content string) {
 
 // TestBatchMove_BasicDirectory tests moving multiple files to a directory
 func TestBatchMove_BasicDirectory(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Create test files
@@ -158,7 +172,7 @@ func FuncC() string {
 `)
 
 	// Run batch move
-	cmd := exec.Command("dissect", "move", "--batch", "a.go,b.go,c.go -> target/")
+	cmd := exec.Command(dissect, "move", "--batch", "a.go,b.go,c.go -> target/")
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -198,6 +212,7 @@ func FuncC() string {
 
 // TestBatchMove_FileRename tests renaming a single file
 func TestBatchMove_FileRename(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Create source file
@@ -217,7 +232,7 @@ func main() {
 `)
 
 	// Run batch move (rename)
-	cmd := exec.Command("dissect", "move", "--batch", "old.go -> new.go")
+	cmd := exec.Command(dissect, "move", "--batch", "old.go -> new.go")
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -246,6 +261,7 @@ func main() {
 
 // TestBatchMove_MultipleGroups tests multiple groups in one command
 func TestBatchMove_MultipleGroups(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Create test files
@@ -264,7 +280,7 @@ func Helper() string {
 `)
 
 	// Run batch move with multiple groups
-	cmd := exec.Command("dissect", "move", "--batch",
+	cmd := exec.Command(dissect, "move", "--batch",
 		"db.go -> internal/db/",
 		"util.go -> internal/utils/")
 	cmd.Dir = tmpDir
@@ -311,6 +327,7 @@ func Helper() string {
 
 // TestBatchMove_WithMutualReferences tests files that reference each other
 func TestBatchMove_WithMutualReferences(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Create files that reference each other
@@ -329,7 +346,7 @@ func B() {
 `)
 
 	// Run batch move
-	cmd := exec.Command("dissect", "move", "--batch", "a.go,b.go -> internal/pkg/")
+	cmd := exec.Command(dissect, "move", "--batch", "a.go,b.go -> internal/pkg/")
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -363,6 +380,7 @@ func B() {
 
 // TestBatchMove_GlobExpansion tests using glob patterns in sources
 func TestBatchMove_GlobExpansion(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Create test files
@@ -382,7 +400,7 @@ func main() {}
 `)
 
 	// Run batch move with glob
-	cmd := exec.Command("dissect", "move", "--batch", "db*.go -> internal/db/")
+	cmd := exec.Command(dissect, "move", "--batch", "db*.go -> internal/db/")
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -413,10 +431,11 @@ func main() {}
 
 // TestBatchMove_Rollback_SourceNotFound tests validation failure
 func TestBatchMove_Rollback_SourceNotFound(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Try to move non-existent file
-	cmd := exec.Command("dissect", "move", "--batch", "nonexistent.go -> target/")
+	cmd := exec.Command(dissect, "move", "--batch", "nonexistent.go -> target/")
 	cmd.Dir = tmpDir
 	_, err := cmd.CombinedOutput()
 	if err == nil {
@@ -432,6 +451,7 @@ func TestBatchMove_Rollback_SourceNotFound(t *testing.T) {
 
 // TestBatchMove_Rollback_MultipleToFile tests validation failure for multiple sources to file
 func TestBatchMove_Rollback_MultipleToFile(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Create test files
@@ -446,7 +466,7 @@ func B() {}
 `)
 
 	// Try to move multiple files to a single file
-	cmd := exec.Command("dissect", "move", "--batch", "a.go,b.go -> single.go")
+	cmd := exec.Command(dissect, "move", "--batch", "a.go,b.go -> single.go")
 	cmd.Dir = tmpDir
 	_, err := cmd.CombinedOutput()
 	if err == nil {
@@ -464,6 +484,7 @@ func B() {}
 
 // TestBatchMove_PreservesComments tests that comments are preserved
 func TestBatchMove_UpdatesSymbolReferences(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Create main package with types
@@ -494,7 +515,7 @@ func main() {
 `)
 
 	// Move types to internal/models/
-	cmd := exec.Command("dissect", "move", "--batch", "types.go -> internal/models/")
+	cmd := exec.Command(dissect, "move", "--batch", "types.go -> internal/models/")
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -532,6 +553,7 @@ func main() {
 }
 
 func TestBatchMove_PreservesComments(t *testing.T) {
+	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 
 	// Create file with doc comments
@@ -545,7 +567,7 @@ func MyFunc() string {
 `)
 
 	// Run batch move
-	cmd := exec.Command("dissect", "move", "--batch", "doc.go -> internal/pkg/")
+	cmd := exec.Command(dissect, "move", "--batch", "doc.go -> internal/pkg/")
 	cmd.Dir = tmpDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -573,5 +595,115 @@ func MyFunc() string {
 	buildCmd.Dir = tmpDir
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Errorf("Code doesn't build after move: %v\nOutput: %s", err, output)
+	}
+}
+
+func TestBatchMove_UnexportedSymbolError(t *testing.T) {
+	dissect := buildDissectBinary(t)
+	tmpDir := createTempModuleForBatch(t)
+
+	// Create util file with unexported function
+	createFileForBatch(t, filepath.Join(tmpDir, "util.go"), `package main
+
+func helper() string {
+	return "help"
+}
+
+func PublicFunc() string {
+	return helper()
+}
+`)
+
+	// Create main file that calls the unexported helper function
+	createFileForBatch(t, filepath.Join(tmpDir, "main.go"), `package main
+
+import "fmt"
+
+func main() {
+	result := helper()
+	fmt.Println(result)
+}
+`)
+
+	// Attempt to move util.go to a different package
+	// This should fail because helper() is unexported but referenced from main.go
+	cmd := exec.Command(dissect, "move", "--batch", "util.go -> internal/util/")
+	cmd.Dir = tmpDir
+	output, err := cmd.CombinedOutput()
+
+	// Should fail with an error about unexported symbols
+	if err == nil {
+		t.Fatalf("Expected dissect move to fail with unexported symbol error, but it succeeded.\nOutput: %s", string(output))
+	}
+
+	outputStr := string(output)
+
+	// Verify error message contains the expected parts
+	expectedParts := []string{
+		"Error: Cannot move files - unexported symbols are referenced from other packages",
+		"helper",
+		"util.go",
+		"main.go",
+		"dissect move util.go:helper util.go:Helper",
+	}
+
+	for _, part := range expectedParts {
+		if !strings.Contains(outputStr, part) {
+			t.Errorf("Error message missing expected part: %q\nFull output: %s", part, outputStr)
+		}
+	}
+}
+
+func TestBatchMove_UnexportedFieldError(t *testing.T) {
+	t.Skip("Field-level unexported symbol detection not yet implemented")
+	dissect := buildDissectBinary(t)
+	tmpDir := createTempModuleForBatch(t)
+
+	// Create db file with unexported field
+	createFileForBatch(t, filepath.Join(tmpDir, "db.go"), `package main
+
+type DB struct {
+	data string
+}
+
+func NewDB() *DB {
+	return &DB{data: "test"}
+}
+`)
+
+	// Create cmd file that accesses the unexported field
+	createFileForBatch(t, filepath.Join(tmpDir, "cmd.go"), `package main
+
+func PrintDBData(db *DB) {
+	println(db.data)
+}
+`)
+
+	// Attempt to move db.go to a different package
+	// This should fail because db.data is unexported but referenced from cmd.go
+	cmd := exec.Command(dissect, "move", "--batch", "db.go -> internal/db/")
+	cmd.Dir = tmpDir
+	output, err := cmd.CombinedOutput()
+
+	// Should fail with an error about unexported symbols
+	if err == nil {
+		t.Fatalf("Expected dissect move to fail with unexported field error, but it succeeded.\nOutput: %s", string(output))
+	}
+
+	outputStr := string(output)
+
+	// Verify error message contains the expected parts
+	expectedParts := []string{
+		"Error: Cannot move files - unexported symbols are referenced from other packages",
+		"data",
+		"db.go",
+		"cmd.go",
+		"dissect move db.go:DB.data db.go:DB.Data",
+	}
+
+	for _, part := range expectedParts {
+		if !strings.Contains(outputStr, part) {
+			t.Errorf("Error message missing expected part: %q\nFull output: %s", part, outputStr)
+		}
 	}
 }

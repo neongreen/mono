@@ -522,6 +522,58 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string) error {
 		targetPackages[op.To] = targetPackage
 	}
 
+	// Phase 3.5: Check for unexported symbols BEFORE moving
+	// Load all packages in module to check for cross-package references
+	slog.Info("Checking for unexported symbol references", "moduleRoot", moduleRoot)
+	allPkgs, err := typeinfo.LoadPackages([]string{"./..."}, moduleRoot)
+	if err != nil {
+		return fmt.Errorf("failed to load packages for unexported symbol check: %w", err)
+	}
+
+	// Group moves by source directory and check each group
+	movesBySourceDir := make(map[string][]MoveOp)
+	for _, op := range moveOps {
+		sourceDir := filepath.Dir(op.From)
+		movesBySourceDir[sourceDir] = append(movesBySourceDir[sourceDir], op)
+	}
+
+	for sourceDir, ops := range movesBySourceDir {
+		// Collect ALL symbols (exported and unexported) from files in this group
+		allSymbols := []string{}
+		for _, op := range ops {
+			syms, err := symbols.ExtractAllSymbols(op.From)
+			if err != nil {
+				slog.Warn("Failed to extract symbols for unexported check", "file", op.From, "error", err)
+				continue
+			}
+			allSymbols = append(allSymbols, syms...)
+		}
+
+		if len(allSymbols) == 0 {
+			continue // No symbols to check
+		}
+
+		// Get the source package
+		pkg, ok := sourcePackages[sourceDir]
+		if !ok {
+			slog.Warn("Source package not loaded, skipping unexported symbol check", "dir", sourceDir)
+			continue
+		}
+
+		// Find all references to these symbols across the module
+		refs, err := references.FindReferences(allSymbols, allPkgs)
+		if err != nil {
+			slog.Warn("Failed to find references for unexported check", "symbols", allSymbols, "error", err)
+			continue
+		}
+
+		// Check for unexported symbols referenced from other packages
+		unexportedRefs := detectUnexportedExternalRefs(refs, ops, allPkgs, pkg.PkgPath)
+		if len(unexportedRefs) > 0 {
+			return buildUnexportedSymbolError(unexportedRefs)
+		}
+	}
+
 	// Phase 4: Physical moves
 	movedFiles := make(map[string]string) // from -> to mapping for rollback
 	for _, op := range moveOps {
@@ -549,8 +601,8 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string) error {
 	}
 
 	// Phase 6: Update references to moved symbols in the old package
-	// Use the pre-loaded source packages
-	if err := updateReferencesToMovedSymbols(moveOps, exportedSymbolsByFile, sourcePackages, moduleRoot); err != nil {
+	// Use the pre-loaded source packages and all packages
+	if err := updateReferencesToMovedSymbols(moveOps, exportedSymbolsByFile, sourcePackages, allPkgs, moduleRoot); err != nil {
 		slog.Error("Failed to update references to moved symbols", "error", err)
 		// Don't rollback - files are moved and may be partially fixed
 		return fmt.Errorf("failed to update symbol references: %w", err)
@@ -725,7 +777,7 @@ func updateImportsForBatch(moduleRoot string, mappings map[string]string) error 
 
 // updateReferencesToMovedSymbols finds all references to moved symbols in the original package
 // and updates them to use qualified references with the new package.
-func updateReferencesToMovedSymbols(moveOps []MoveOp, exportedSymbolsByFile map[string][]string, sourcePackages map[string]*packages.Package, moduleRoot string) error {
+func updateReferencesToMovedSymbols(moveOps []MoveOp, exportedSymbolsByFile map[string][]string, sourcePackages map[string]*packages.Package, allPackages []*packages.Package, moduleRoot string) error {
 	// Group moves by source directory (original package)
 	movesBySourceDir := make(map[string][]MoveOp) // source dir -> move ops
 	for _, op := range moveOps {
@@ -761,16 +813,15 @@ func updateReferencesToMovedSymbols(moveOps []MoveOp, exportedSymbolsByFile map[
 			continue // No exported symbols to process
 		}
 
-		// Get the pre-loaded source package
-		pkg, ok := sourcePackages[sourceDir]
-		if !ok {
+		// Check that the source package was loaded
+		if _, ok := sourcePackages[sourceDir]; !ok {
 			slog.Warn("Source package not loaded, skipping reference updates", "dir", sourceDir)
 			continue
 		}
 
-		// Find all references to the moved symbols in the remaining files
+		// Find all references to the moved symbols across the entire module
 		slog.Info("Looking for references to moved symbols", "symbols", allSymbols, "sourceDir", sourceDir)
-		refs, err := references.FindReferences(allSymbols, []*packages.Package{pkg})
+		refs, err := references.FindReferences(allSymbols, allPackages)
 		if err != nil {
 			slog.Warn("Failed to find references", "symbols", allSymbols, "error", err)
 			continue
@@ -825,4 +876,159 @@ func updateReferencesToMovedSymbols(moveOps []MoveOp, exportedSymbolsByFile map[
 	}
 
 	return nil
+}
+
+// UnexportedRef represents an unexported symbol being referenced from another package
+type UnexportedRef struct {
+	SymbolName     string
+	FileName       string   // File containing the symbol
+	ReferencedFrom []string // Files referencing it
+}
+
+// detectUnexportedExternalRefs detects unexported symbols that are referenced from other packages.
+// These would cause build failures after the move.
+func detectUnexportedExternalRefs(refs []references.Reference, ops []MoveOp, allPkgs []*packages.Package, sourcePkgPath string) []UnexportedRef {
+	// Build a map of files being moved
+	movedFiles := make(map[string]bool)
+	for _, op := range ops {
+		movedFiles[op.From] = true
+	}
+
+	// Track unexported symbols referenced from other packages
+	unexportedMap := make(map[string]*UnexportedRef)
+
+	for _, ref := range refs {
+		// Check if the symbol is unexported (starts with lowercase or is a field)
+		isUnexported := false
+		symbolName := ref.Ident.Name
+
+		// Check if it's a selector (e.g., "Type.field")
+		parts := strings.Split(ref.Ident.Name, ".")
+		if len(parts) > 1 {
+			// It's a field or method access - check the last part
+			lastPart := parts[len(parts)-1]
+			if len(lastPart) > 0 && lastPart[0] >= 'a' && lastPart[0] <= 'z' {
+				isUnexported = true
+				symbolName = ref.Ident.Name // Keep the full qualified name
+			}
+		} else {
+			// It's a simple identifier
+			if len(symbolName) > 0 && symbolName[0] >= 'a' && symbolName[0] <= 'z' {
+				isUnexported = true
+			}
+		}
+
+		if !isUnexported {
+			continue // Only care about unexported symbols
+		}
+
+		// Skip if the reference file is also being moved (they'll stay in the same package)
+		if movedFiles[ref.File] {
+			continue
+		}
+
+		// If the reference file is NOT being moved, it will stay in its current package.
+		// Since we're moving files to a different package, any reference from a non-moved file
+		// to an unexported symbol will become a cross-package reference after the move.
+
+		// Find which file defines this symbol (one of the moved files)
+		var definingFile string
+		for _, op := range ops {
+			// For now, we'll assume the symbol is in one of the moved files
+			// In a more sophisticated implementation, we'd parse the moved files to check
+			definingFile = op.From
+			break
+		}
+
+		// Track this unexported symbol reference
+		key := symbolName + ":" + definingFile
+		if existing, ok := unexportedMap[key]; ok {
+			existing.ReferencedFrom = append(existing.ReferencedFrom, ref.File)
+		} else {
+			unexportedMap[key] = &UnexportedRef{
+				SymbolName:     symbolName,
+				FileName:       definingFile,
+				ReferencedFrom: []string{ref.File},
+			}
+		}
+	}
+
+	// Convert map to slice
+	var result []UnexportedRef
+	for _, ref := range unexportedMap {
+		result = append(result, *ref)
+	}
+
+	return result
+}
+
+// buildUnexportedSymbolError creates a user-friendly error message with copy-pasteable commands
+// to fix unexported symbol issues.
+func buildUnexportedSymbolError(unexportedRefs []UnexportedRef) error {
+	var msg strings.Builder
+	msg.WriteString("Error: Cannot move files - unexported symbols are referenced from other packages\n\n")
+	msg.WriteString("The following symbols in files being moved are unexported but referenced externally:\n")
+
+	// Get current working directory to make paths relative
+	cwd, _ := os.Getwd()
+
+	for _, ref := range unexportedRefs {
+		msg.WriteString(fmt.Sprintf("  • %s (%s) - referenced in %s\n",
+			ref.SymbolName,
+			filepath.Base(ref.FileName),
+			strings.Join(mapBasenames(ref.ReferencedFrom), ", ")))
+	}
+
+	msg.WriteString("\nTo fix, first export these symbols by running:\n\n")
+
+	for _, ref := range unexportedRefs {
+		// Generate the dissect move command with relative paths
+		// Format: dissect move file.go:oldName file.go:NewName
+		exportedName := exportSymbolName(ref.SymbolName)
+		relPath := ref.FileName
+		if cwd != "" {
+			if rel, err := filepath.Rel(cwd, ref.FileName); err == nil {
+				relPath = rel
+			}
+		}
+		msg.WriteString(fmt.Sprintf("  dissect move %s:%s %s:%s\n",
+			relPath,
+			ref.SymbolName,
+			relPath,
+			exportedName))
+	}
+
+	msg.WriteString("\nThen retry the batch move.")
+
+	return fmt.Errorf("%s", msg.String())
+}
+
+// exportSymbolName capitalizes the first letter of a symbol name (or the last part if it's a field)
+func exportSymbolName(symbolName string) string {
+	parts := strings.Split(symbolName, ".")
+	lastPart := parts[len(parts)-1]
+
+	if len(lastPart) == 0 {
+		return symbolName
+	}
+
+	// Capitalize the first letter
+	exported := strings.ToUpper(string(lastPart[0])) + lastPart[1:]
+
+	if len(parts) > 1 {
+		// It's a field - reconstruct the full path
+		parts[len(parts)-1] = exported
+		return strings.Join(parts, ".")
+	}
+
+	return exported
+}
+
+// mapBasenames converts a slice of file paths to their basenames
+func mapBasenames(paths []string) []string {
+	result := make([]string, len(paths))
+	for i, path := range paths {
+		result[i] = filepath.Base(path)
+	}
+	return result
 }
