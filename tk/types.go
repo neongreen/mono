@@ -23,42 +23,6 @@ type Event struct {
 	JJOpID    string          `json:"jj_op_id"`   // optional
 }
 
-// TaskStatusSetPayload is the payload for task.status.set events
-
-// New field for UUID-based updates
-// Legacy field, still required for now
-// e.g. "generic"
-// e.g. "in_progress", "done", "blocked"
-// human / agent / bot / qa / rel
-
-// TaskNoteAddPayload is the payload for task.note.add events
-
-// New field for UUID-based updates
-// Legacy field, still required for now
-
-// RelationAddPayload is the payload for relation.add events
-
-// Source task UUID
-// blocks|blocked_by|subtask|parent|related|duplicate_of|supersedes
-// Destination task UUID
-
-// RelationRemovePayload is the payload for relation.remove events
-
-// Source task UUID
-// Relation type
-// Destination task UUID
-
-// RelationNotePayload is the payload for relation.note events
-
-// Source task UUID
-// Relation type
-// Destination task UUID
-// Note text
-
-// Claim represents a status assertion by an actor
-
-// AxisStatus represents the status claims for a single axis
-
 // Task represents the current state of a task, derived from events
 type Task struct {
 	TaskUUID  string                      `json:"task_uuid"`         // Canonical immutable UUID
@@ -72,19 +36,4 @@ type Task struct {
 	Relations *types.Relations            `json:"relations,omitempty"` // Task relations
 	Blocked   bool                        `json:"blocked,omitempty"`   // Is this task blocked
 	Blockers  []types.Blocker             `json:"blockers,omitempty"`  // List of blocking tasks
-}
-
-// Blocker represents a task that blocks another
-
-// Distance in dependency graph
-
-// Note represents a note on a task
-
-// Role authority levels (higher is more authoritative)
-var roleAuthority = map[string]int{
-	"human": 5,
-	"qa":    4,
-	"rel":   3,
-	"agent": 2,
-	"bot":   1,
 }
