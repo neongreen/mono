@@ -103,6 +103,22 @@ func isMiseAvailable() bool {
 	return err == nil
 }
 
+// createMiseCommand creates a command to run 'mise' with the given arguments.
+// It sets MISE_TRUSTED_CONFIG_PATHS to avoid trust prompts.
+func createMiseCommand(args ...string) *exec.Cmd {
+	cmd := exec.Command("mise", args...)
+
+	// Set MISE_TRUSTED_CONFIG_PATHS to trust all configs under home directory
+	homeDir, err := os.UserHomeDir()
+	if err == nil {
+		env := os.Environ()
+		env = append(env, fmt.Sprintf("MISE_TRUSTED_CONFIG_PATHS=%s", homeDir))
+		cmd.Env = env
+	}
+
+	return cmd
+}
+
 // getShellConfigFile returns the shell configuration file path based on the current shell
 func getShellConfigFile() string {
 	shell := os.Getenv("SHELL")
@@ -379,7 +395,7 @@ func installToolViaMise(tool string, dryRun bool, planJson bool) {
 	}
 
 	fmt.Printf("Installing %s via mise...\n", tool)
-	cmd := exec.Command("mise", "use", "-g", tool)
+	cmd := createMiseCommand("use", "-g", tool)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

@@ -145,7 +145,7 @@ func handleJsonCommand(args []string, dryRun bool, planJson bool) {
 		}
 
 		fmt.Println("Installing jc via mise...")
-		cmd := exec.Command("mise", "use", "-g", "jc")
+		cmd := createMiseCommand("use", "-g", "jc")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {

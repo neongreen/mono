@@ -26,7 +26,7 @@ func createPnpmCommand(args ...string) *exec.Cmd {
 
 	miseArgs := []string{"exec", fmt.Sprintf("pnpm@%s", pnpmVersion), "--", "pnpm"}
 	miseArgs = append(miseArgs, args...)
-	return exec.Command("mise", miseArgs...)
+	return createMiseCommand(miseArgs...)
 }
 
 // buildVSCodeExtensionFromSource builds a VS Code extension from a branch or commit

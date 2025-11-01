@@ -144,7 +144,7 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 
 	miseArgs := []string{"exec", fmt.Sprintf("go@%s", goVersion), "--", "go"}
 	miseArgs = append(miseArgs, args...)
-	return exec.Command("mise", miseArgs...)
+	return createMiseCommand(miseArgs...)
 }
 
 // getBuildPath determines the correct build path for a Go project.
