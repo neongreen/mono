@@ -31,34 +31,16 @@ If you have [`want`](https://github.com/neongreen/mono/tree/main/want) and [`con
 want mono jj-run@main
 
 # Configure the jj alias
-conf jj 'aliases.x' '["util", "exec", "--", "jj-run"]'
+conf jj aliases.x '["util", "exec", "--", "jj-run"]'
 ```
 
-### Other Installation Methods
+### Installation with Homebrew
 
-#### Quick Install Script
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | bash -s jj-run
-```
-
-#### Via Homebrew
+(Nov 1, 2025: Not sure if this still works, if it doesn't please yell)
 
 ```bash
 brew tap neongreen/mono
 brew install jj-run
-```
-
-#### Manual Install
-
-1. Go to the [Releases](https://github.com/neongreen/mono/releases) page
-2. Find the release you want (e.g., `jj-run--main.1`)
-3. Download the binary for your platform
-4. Make it executable and move to your PATH:
-
-```bash
-chmod +x jj-run
-sudo mv jj-run /usr/local/bin/
 ```
 
 ## Usage
@@ -66,13 +48,13 @@ sudo mv jj-run /usr/local/bin/
 Simplest form:
 
 ```sh
-jj-run <command>    # run a command on all mutable&reachable changes
+jj x <command>    # run a command on all mutable&reachable changes
 ```
 
 Full form:
 
 ```sh
-jj-run -r <revset> [-e <error_strategy>] [-d] <command>
+jj x -r <revset> [-e <error_strategy>] [-d] <command>
 ```
 
 - `-r`, `--revset`: The revset of changes to process. If not provided, defaults to `reachable(@, mutable())` (same as `jj fix`).
@@ -100,10 +82,10 @@ Direct mode (`--direct` or `-d`) provides a simpler execution model that doesn't
 **Example:**
 ```sh
 # Change the description of all mutable commits
-jj-run --direct -r 'mutable()' 'jj describe -m "$(jj log -r @ --no-graph -T description) [updated]"'
+jj x --direct -r 'mutable()' 'jj describe -m "$(jj log -r @ --no-graph -T description) [updated]"'
 
 # Add a co-author to recent commits
-jj-run --direct -r '::@' 'jj describe -m "$(jj log -r @ --no-graph -T description)\n\nCo-authored-by: Name <email>"'
+jj x --direct -r '::@' 'jj describe -m "$(jj log -r @ --no-graph -T description)\n\nCo-authored-by: Name <email>"'
 ```
 
 ## Limitations
