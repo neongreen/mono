@@ -71,7 +71,7 @@ func (d *DB) ProjectProjectAliasRemoveEvent(e types.Event) error {
 	return err
 }
 
-// ProjectProjectDeleteEvent projects a project.delete event by removing from projects and project_aliases tables (idempotent)
+// ProjectProjectDeleteEvent projects a project.delete event by removing from projects, project_aliases, and all tasks in the project (idempotent)
 func (d *DB) ProjectProjectDeleteEvent(e types.Event) error {
 	if e.Kind != string(types.EventKindProjectDelete) {
 		return fmt.Errorf("expected project.delete event, got %s", e.Kind)
@@ -82,8 +82,20 @@ func (d *DB) ProjectProjectDeleteEvent(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.delete payload: %w", err)
 	}
 
+	// Delete all tasks in this project from task_numbers table
+	_, err := d.db.Exec(`DELETE FROM task_numbers WHERE project_uid = ?`, payload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to delete task_numbers for project: %w", err)
+	}
+
+	// Delete all tasks in this project from tasks table
+	_, err = d.db.Exec(`DELETE FROM tasks WHERE project_uid = ?`, payload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to delete tasks for project: %w", err)
+	}
+
 	// Delete from project_aliases table
-	_, err := d.db.Exec(`DELETE FROM project_aliases WHERE project_uid = ?`, payload.ProjectUID)
+	_, err = d.db.Exec(`DELETE FROM project_aliases WHERE project_uid = ?`, payload.ProjectUID)
 	if err != nil {
 		return fmt.Errorf("failed to delete from project_aliases: %w", err)
 	}
