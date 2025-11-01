@@ -144,7 +144,7 @@ func outputTasksJSON(db *DB, tasks []*types.Task, groupBy string) error {
 	var output Output
 
 	switch groupBy {
-	case "prefix":
+	case "prefix", "project":
 
 		grouped := make(map[string][]*types.Task)
 		var groupOrder []string
@@ -222,7 +222,7 @@ func outputTasksJSON(db *DB, tasks []*types.Task, groupBy string) error {
 		output.Tasks = tasks
 
 	default:
-		return fmt.Errorf("invalid --group value: %s (must be prefix, status, or none)", groupBy)
+		return fmt.Errorf("invalid --group value: %s (must be project, status, or none)", groupBy)
 	}
 
 	jsonOutput, err := json.MarshalIndent(output, "", "  ")
