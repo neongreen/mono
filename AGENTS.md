@@ -101,6 +101,41 @@ The `go fmt` tool ensures consistent formatting across all Go code in the monore
 
 ------------------------------------------------------------
 
+## Table Display Library
+
+**All Go code that displays ASCII-style tables must use `github.com/jedib0t/go-pretty/v6/table`.**
+
+The standard table configuration should use:
+- `table.NewWriter()` to create a table
+- `t.SetOutputMirror(os.Stdout)` to output directly to stdout
+- `t.SetStyle(table.StyleLight)` for consistent styling
+- `t.Style().Options.SeparateRows = true` to separate rows
+- `t.Style().Options.DrawBorder = false` to hide outer borders
+- `t.Render()` to render the table
+
+Example:
+```go
+import (
+    "os"
+    "github.com/jedib0t/go-pretty/v6/table"
+)
+
+t := table.NewWriter()
+t.SetOutputMirror(os.Stdout)
+t.AppendHeader(table.Row{"ID", "Status", "Title"})
+
+t.SetStyle(table.StyleLight)
+t.Style().Options.SeparateRows = true
+t.Style().Options.DrawBorder = false
+
+t.AppendRow(table.Row{"1", "done", "Example task"})
+t.Render()
+```
+
+See `tk/display.go` (renderTaskTable function) for a reference implementation.
+
+------------------------------------------------------------
+
 ## Go Style Guide
 
 **All Go code must follow the standards defined in [GO_STYLE_GUIDE.md](./GO_STYLE_GUIDE.md).**

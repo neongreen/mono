@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/types"
@@ -134,8 +136,8 @@ var projectCreateCmd = &cobra.Command{
 	},
 }
 
-var projectListCmd = &cobra.Command{
-	Use:   "list",
+var projectLsCmd = &cobra.Command{
+	Use:   "ls",
 	Short: "List all projects",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
@@ -185,7 +187,7 @@ var projectListCmd = &cobra.Command{
 
 			// Get aliases for this project
 			aliasRows, err := db.db.Query(`
-				SELECT alias FROM project_aliases 
+				SELECT alias FROM project_aliases
 				WHERE project_uid = ? AND node = ?
 			`, projectUID, nodeID)
 			if err != nil {
@@ -226,17 +228,22 @@ var projectListCmd = &cobra.Command{
 			fmt.Println(string(output))
 		} else {
 			t := table.NewWriter()
+			t.SetOutputMirror(os.Stdout)
 			t.AppendHeader(table.Row{"UID", "Name", "Type", "Aliases", "Description", "Created By"})
+
+			t.SetStyle(table.StyleLight)
+			t.Style().Options.SeparateRows = true
+			t.Style().Options.DrawBorder = false
 
 			for _, project := range projects {
 				aliasStr := ""
 				if len(project.Aliases) > 0 {
-					aliasStr = fmt.Sprintf("%v", project.Aliases)
+					aliasStr = strings.Join(project.Aliases, ", ")
 				}
 				t.AppendRow(table.Row{project.UID, project.Name, project.Type, aliasStr, project.Description, project.CreatedBy})
 			}
 
-			fmt.Println(t.Render())
+			t.Render()
 		}
 
 		return nil
@@ -402,8 +409,8 @@ func getNextLamportTimestamp(db *DB) int64 {
 func init() {
 	projectCmd.AddCommand(projectCreateCmd)
 
-	projectListCmd.Flags().Bool("json", false, "Output as JSON")
-	projectCmd.AddCommand(projectListCmd)
+	projectLsCmd.Flags().Bool("json", false, "Output as JSON")
+	projectCmd.AddCommand(projectLsCmd)
 
 	projectCmd.AddCommand(projectAliasCmd)
 
