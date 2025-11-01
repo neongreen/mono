@@ -53,7 +53,7 @@
       {
         "command": "tk.createProject",
         "title": "Create Project",
-        "icon": "$(new-folder)"
+        "icon": "$(add)"
       }
     ],
     "menus": {

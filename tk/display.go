@@ -149,6 +149,21 @@ func outputTasksJSON(db *DB, tasks []*types.Task, groupBy string) error {
 		grouped := make(map[string][]*types.Task)
 		var groupOrder []string
 
+		// First, get all projects to ensure we include empty ones
+		allProjects, err := getAllProjectDisplayNames(db)
+		if err != nil {
+			return fmt.Errorf("failed to get projects: %w", err)
+		}
+
+		// Initialize all projects in the grouped map
+		projectUIDToName := make(map[string]string)
+		for projectUID, displayName := range allProjects {
+			grouped[displayName] = []*types.Task{}
+			groupOrder = append(groupOrder, displayName)
+			projectUIDToName[projectUID] = displayName
+		}
+
+		// Now add tasks to their respective groups
 		for _, task := range tasks {
 			var groupKey string
 
@@ -159,6 +174,7 @@ func outputTasksJSON(db *DB, tasks []*types.Task, groupBy string) error {
 				groupKey = projectAlias
 			}
 
+			// If this is a new group (shouldn't happen if we got all projects), add it
 			if _, exists := grouped[groupKey]; !exists {
 				groupOrder = append(groupOrder, groupKey)
 			}
