@@ -71,6 +71,10 @@ var deleteCmd = &cobra.Command{
 			return err
 		}
 
+		if err := db.ProjectTaskDeleteEvent(event); err != nil {
+			return fmt.Errorf("failed to project task.delete event: %w", err)
+		}
+
 		fmt.Printf("Deleted task %s\n", displayID)
 		return nil
 	},
