@@ -339,7 +339,7 @@ func TestDisplayID_Parse(t *testing.T) {
 			wantErr:   true,
 		},
 		{
-			name:      "invalid - too many parts",
+			name:      "invalid - no valid number",
 			displayID: types.DisplayID("proj-42-hint-extra"),
 			wantErr:   true,
 		},
@@ -347,6 +347,38 @@ func TestDisplayID_Parse(t *testing.T) {
 			name:      "invalid number",
 			displayID: types.DisplayID("proj-abc"),
 			wantErr:   true,
+		},
+		{
+			name:         "alias with hyphen",
+			displayID:    types.DisplayID("jj-run-1"),
+			wantAlias:    "jj-run",
+			wantNumber:   1,
+			wantNodeHint: "",
+			wantErr:      false,
+		},
+		{
+			name:         "alias with hyphen and node hint",
+			displayID:    types.DisplayID("jj-run-1-abc"),
+			wantAlias:    "jj-run",
+			wantNumber:   1,
+			wantNodeHint: "abc",
+			wantErr:      false,
+		},
+		{
+			name:         "alias with multiple hyphens",
+			displayID:    types.DisplayID("my-long-alias-99"),
+			wantAlias:    "my-long-alias",
+			wantNumber:   99,
+			wantNodeHint: "",
+			wantErr:      false,
+		},
+		{
+			name:         "alias with multiple hyphens and node hint",
+			displayID:    types.DisplayID("my-long-alias-99-xyz"),
+			wantAlias:    "my-long-alias",
+			wantNumber:   99,
+			wantNodeHint: "xyz",
+			wantErr:      false,
 		},
 	}
 

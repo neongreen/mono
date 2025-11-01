@@ -3,13 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-
 	"github.com/neongreen/mono/tk/internal/payloads"
-	"github.com/neongreen/mono/tk/internal/types"
-
+	"os"
 	"strings"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/fatih/color"
 
