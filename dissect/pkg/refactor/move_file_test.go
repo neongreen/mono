@@ -654,3 +654,106 @@ func TestGetPackageNameFromPath(t *testing.T) {
 		})
 	}
 }
+
+// TestMoveFileUpdatesTestFileImports tests that test files get import statements added
+// when a file is moved to a new package. This is a regression test for a bug where
+// test files would get type qualifiers added (e.g., sync.Type) but not the import statement.
+func TestMoveFileUpdatesTestFileImports(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_test_imports_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a package with a types.go file
+	pkgDir := filepath.Join(tmpDir, "pkg")
+	err = os.MkdirAll(pkgDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create pkg dir: %v", err)
+	}
+
+	// Create types.go with a simple type
+	typesFile := filepath.Join(pkgDir, "types.go")
+	typesContent := `package pkg
+
+type Foo struct {
+	Value string
+}
+
+type Bar interface {
+	DoSomething()
+}
+`
+	err = os.WriteFile(typesFile, []byte(typesContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write types.go: %v", err)
+	}
+
+	// Create types_test.go that uses Foo and Bar without importing
+	// (no import needed since it's in the same package)
+	testFile := filepath.Join(pkgDir, "types_test.go")
+	testContent := `package pkg
+
+import "testing"
+
+func TestFoo(t *testing.T) {
+	f := Foo{Value: "test"}
+	if f.Value != "test" {
+		t.Error("unexpected value")
+	}
+}
+
+func TestBar(t *testing.T) {
+	var _ Bar
+}
+`
+	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write types_test.go: %v", err)
+	}
+
+	// Initialize go.mod
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module testmodule\n\ngo 1.21\n"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	// Move types.go to internal/types/types.go
+	targetFile := filepath.Join(pkgDir, "internal", "types", "types.go")
+	err = MoveFileWithImportUpdates(typesFile, targetFile, tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to move file: %v", err)
+	}
+
+	// Read the test file to verify it was updated
+	testFileContent, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("Failed to read test file: %v", err)
+	}
+
+	testFileStr := string(testFileContent)
+
+	// Verify import was added
+	if !contains(testFileStr, `"testmodule/pkg/internal/types"`) {
+		t.Errorf("Test file missing import for internal/types package.\nGot:\n%s", testFileStr)
+	}
+
+	// Verify type references were qualified
+	if !contains(testFileStr, "types.Foo") {
+		t.Errorf("Test file missing qualified reference types.Foo.\nGot:\n%s", testFileStr)
+	}
+
+	if !contains(testFileStr, "types.Bar") {
+		t.Errorf("Test file missing qualified reference types.Bar.\nGot:\n%s", testFileStr)
+	}
+
+	// Verify the moved file has correct package declaration
+	movedContent, err := os.ReadFile(targetFile)
+	if err != nil {
+		t.Fatalf("Failed to read moved file: %v", err)
+	}
+
+	if !contains(string(movedContent), "package types") {
+		t.Errorf("Moved file should have 'package types', got:\n%s", string(movedContent))
+	}
+}

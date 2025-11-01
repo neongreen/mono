@@ -204,6 +204,64 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 				slog.Info("Reference fixing complete", "filesFixed", fixedCount)
 			}
 		}
+
+		// ADDITIONAL FIX: Handle files in the source package directory (like test files)
+		// that don't import the moved package but use its symbols directly.
+		// These files won't be in refsByFile because they're in the same package,
+		// but they need to be updated to import and qualify references after the move.
+		sourcePkgDir := filepath.Dir(sourceFile)
+		targetPackageName := filepath.Base(filepath.Dir(targetFile))
+
+		slog.Debug("Processing files in source package directory for unqualified symbol usage", "dir", sourcePkgDir)
+
+		sourceDirFixCount := 0
+		for _, goFile := range allGoFiles {
+			// Only process files in the source package directory
+			absGoFile, _ := filepath.Abs(goFile)
+			absSourceFile, _ := filepath.Abs(sourceFile)
+			absTargetFile, _ := filepath.Abs(targetFile)
+			absSourceDir, _ := filepath.Abs(sourcePkgDir)
+
+			// Skip the moved file itself
+			if absGoFile == absSourceFile || absGoFile == absTargetFile {
+				continue
+			}
+
+			// Only process files in the source directory
+			goFileDir := filepath.Dir(absGoFile)
+			if goFileDir != absSourceDir {
+				continue
+			}
+
+			// Skip if this file was already processed via refsByFile
+			if _, alreadyProcessed := refsByFile[goFile]; alreadyProcessed {
+				continue
+			}
+
+			// Check if this file uses any of the exported symbols
+			// by creating dummy references for all exported symbols
+			var dummyRefs []references.Reference
+			for _, sym := range exportedSymbols {
+				dummyRefs = append(dummyRefs, references.Reference{
+					File:      goFile,
+					Ident:     &ast.Ident{Name: sym.Name},
+					Qualified: false,
+				})
+			}
+
+			// Try to qualify references - this will only modify the file if symbols are actually used
+			err := qualify.QualifyReferences(goFile, dummyRefs, targetPackageName, newImportPath, moduleRoot)
+			if err != nil {
+				slog.Debug("No unqualified symbols found in source dir file", "file", goFile)
+			} else {
+				sourceDirFixCount++
+				slog.Debug("Fixed unqualified references in source dir file", "file", goFile)
+			}
+		}
+
+		if sourceDirFixCount > 0 {
+			slog.Info("Fixed references in source package directory files", "filesFixed", sourceDirFixCount)
+		}
 	} else {
 		slog.Info("Import path unchanged, no import or package updates needed")
 	}
