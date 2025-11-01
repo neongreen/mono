@@ -20,8 +20,11 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 4. Optionally adjust the `tk Tasks` settings to change the binary path, working directory, or grouping mode.
 5. Right-click on any task to edit its title.
 6. Click the status icon on any task to rotate its status.
+7. Hover over any task to see its full details in a tooltip, including title, status, and blockers.
 
-**Note**: VS Code TreeView does not support word wrapping. Long task titles are truncated with ellipsis; hover over a task to see the full text in the tooltip.
+## Design Notes
+
+This extension uses VS Code's native TreeView API, which provides excellent integration with themes, keyboard navigation, accessibility features, and context menus. Like other popular VS Code extensions (GitLens, GitHub Pull Requests, Todo Tree), we accept that TreeView truncates long text - full content is available in tooltips on hover. See [VS Code issue #68806](https://github.com/microsoft/vscode/issues/68806) for background on TreeView limitations.
 
 ## Development
 
