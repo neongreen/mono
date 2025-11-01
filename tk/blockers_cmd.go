@@ -53,7 +53,7 @@ var blockersCmd = &cobra.Command{
 
 		// Get transitive blockers
 		maxDepth := 10
-		blockers := reducer.relations.GetTransitiveBlockers(taskUUID, reducer.tasks, config.Blocking.BlockingAxis, config.Blocking.DoneStates, maxDepth)
+		blockers := GetTransitiveBlockers(reducer.relations, taskUUID, reducer.tasks, config.Blocking.BlockingAxis, config.Blocking.DoneStates, maxDepth)
 
 		if jsonOutput {
 			type BlockerOutput struct {

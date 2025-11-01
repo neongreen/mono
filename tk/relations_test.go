@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/payloads"
+	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestRelationGraph_AddRemove(t *testing.T) {
-	graph := NewRelationsGraph()
+	graph := relations.NewRelationsGraph()
 
 	// Add a relation
 	graph.AddRelation("task-a", "blocks", "task-b", "note1", "ev-1-node1", "node1", 1)
@@ -43,7 +44,7 @@ func TestRelationGraph_AddRemove(t *testing.T) {
 }
 
 func TestRelationGraph_ORSetSemantics(t *testing.T) {
-	graph := NewRelationsGraph()
+	graph := relations.NewRelationsGraph()
 
 	// Add from two different nodes (two separate add events)
 	graph.AddRelation("task-a", "blocks", "task-b", "", "ev-1-node1", "node1", 1)
@@ -75,7 +76,7 @@ func TestRelationGraph_ORSetSemantics(t *testing.T) {
 }
 
 func TestRelationGraph_CycleDetection(t *testing.T) {
-	graph := NewRelationsGraph()
+	graph := relations.NewRelationsGraph()
 
 	// Create a cycle: A -> B -> C -> A
 	graph.AddRelation("task-a", "blocks", "task-b", "", "ev-1-node1", "node1", 1)
@@ -101,7 +102,7 @@ func TestRelationGraph_CycleDetection(t *testing.T) {
 }
 
 func TestRelationGraph_ComputeBlocked(t *testing.T) {
-	graph := NewRelationsGraph()
+	graph := relations.NewRelationsGraph()
 	tasks := make(map[string]*Task)
 
 	// Create tasks
@@ -137,7 +138,7 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 	graph.AddRelation("task-c", "blocks", "task-b", "", "ev-2-node1", "node1", 2)
 
 	// Compute blocked status
-	graph.ComputeBlocked(tasks, "generic", []string{"done"})
+	ComputeBlocked(graph, tasks, "generic", []string{"done"})
 
 	// Task A should not be blocked
 	if tasks["task-a"].Blocked {
@@ -237,7 +238,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 }
 
 func TestBuildTaskRelations(t *testing.T) {
-	graph := NewRelationsGraph()
+	graph := relations.NewRelationsGraph()
 
 	// Add various relations
 	graph.AddRelation("task-a", "blocks", "task-b", "", "ev-1-node1", "node1", 1)

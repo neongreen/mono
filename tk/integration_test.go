@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"testing"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/payloads"
+	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/sync"
 )
 
@@ -154,7 +155,7 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	// Test transitive blockers for D
-	transitiveBlockers := reducer.relations.GetTransitiveBlockers("task-d", reducer.tasks, "generic", []string{"done"}, 10)
+	transitiveBlockers := GetTransitiveBlockers(reducer.relations, "task-d", reducer.tasks, "generic", []string{"done"}, 10)
 	if len(transitiveBlockers) != 2 {
 		t.Errorf("Task D should have 2 transitive blockers (C and A), got %d", len(transitiveBlockers))
 	}
@@ -220,7 +221,7 @@ func TestRelationsIntegration(t *testing.T) {
 
 // TestCycleDetectionIntegration tests that cycles are properly detected
 func TestCycleDetectionIntegration(t *testing.T) {
-	graph := NewRelationsGraph()
+	graph := relations.NewRelationsGraph()
 
 	// Create a complex graph with one cycle
 	// A -> B -> C -> D

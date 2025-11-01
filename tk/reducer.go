@@ -6,15 +6,16 @@ import (
 	"sort"
 
 	"github.com/neongreen/mono/tk/internal/payloads"
+	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // Reducer reconstructs task state from events
 type Reducer struct {
-	tasks     map[string]*Task  // Key: task UUID
-	taskByID  map[string]string // Key: task ID (current or alias) -> Value: task UUID
-	relations *RelationsGraph   // Relations graph
+	tasks     map[string]*Task           // Key: task UUID
+	taskByID  map[string]string          // Key: task ID (current or alias) -> Value: task UUID
+	relations *relations.RelationsGraph  // Relations graph
 }
 
 // NewReducer creates a new reducer
@@ -22,7 +23,7 @@ func NewReducer() *Reducer {
 	return &Reducer{
 		tasks:     make(map[string]*Task),
 		taskByID:  make(map[string]string),
-		relations: NewRelationsGraph(),
+		relations: relations.NewRelationsGraph(),
 	}
 }
 
@@ -270,7 +271,7 @@ func (r *Reducer) FinalizeRelations(config *sync.Config) {
 	}
 
 	// Compute blocked status
-	r.relations.ComputeBlocked(r.tasks, config.Blocking.BlockingAxis, config.Blocking.DoneStates)
+	ComputeBlocked(r.relations, r.tasks, config.Blocking.BlockingAxis, config.Blocking.DoneStates)
 }
 
 // BuildFromEvents builds the current state from a list of events
