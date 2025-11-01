@@ -296,46 +296,16 @@ Examples:
 			os.Exit(1)
 		}
 
-		// Handle --list flag
-		if jjListFlag {
+		// Handle --list flag or no arguments (default to list)
+		if jjListFlag || len(args) == 0 {
 			settings, err := jjTool.ListAllSettings()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: Failed to list settings: %v\n", err)
 				os.Exit(1)
 			}
 
-			fmt.Println("All jj configuration settings:")
-			fmt.Println()
-
-			for _, setting := range settings {
-				fmt.Printf("  %s\n", setting.Path)
-				fmt.Printf("    Type: %s\n", setting.Type)
-				if setting.Description != "" {
-					fmt.Printf("    Description: %s\n", setting.Description)
-				}
-				if setting.Default != nil {
-					fmt.Printf("    Default: %v\n", setting.Default)
-				}
-				if len(setting.Enum) > 0 {
-					fmt.Printf("    Valid values: %v\n", setting.Enum)
-				}
-
-				if setting.IsSet {
-					fmt.Printf("    Current value: %v ✓\n", setting.CurrentValue)
-				} else {
-					fmt.Printf("    Current value: (not set)\n")
-				}
-				fmt.Println()
-			}
-
-			fmt.Printf("Config file: %s\n", jjTool.GetConfigPath())
+			renderSettingsTable(settings, jjTool.GetConfigPath())
 			return
-		}
-
-		// Require arguments when not listing
-		if len(args) == 0 {
-			fmt.Fprintf(os.Stderr, "Error: config path required (use --list to see available options)\n")
-			os.Exit(1)
 		}
 
 		configPath := args[0]
@@ -457,46 +427,16 @@ Examples:
 			os.Exit(1)
 		}
 
-		// Handle --list flag
-		if claudeListFlag {
+		// Handle --list flag or no arguments (default to list)
+		if claudeListFlag || len(args) == 0 {
 			settings, err := claudeTool.ListAllSettings()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: Failed to list settings: %v\n", err)
 				os.Exit(1)
 			}
 
-			fmt.Println("All Claude Code configuration settings:")
-			fmt.Println()
-
-			for _, setting := range settings {
-				fmt.Printf("  %s\n", setting.Path)
-				fmt.Printf("    Type: %s\n", setting.Type)
-				if setting.Description != "" {
-					fmt.Printf("    Description: %s\n", setting.Description)
-				}
-				if setting.Default != nil {
-					fmt.Printf("    Default: %v\n", setting.Default)
-				}
-				if len(setting.Enum) > 0 {
-					fmt.Printf("    Valid values: %v\n", setting.Enum)
-				}
-
-				if setting.IsSet {
-					fmt.Printf("    Current value: %v ✓\n", setting.CurrentValue)
-				} else {
-					fmt.Printf("    Current value: (not set)\n")
-				}
-				fmt.Println()
-			}
-
-			fmt.Printf("Config file: %s\n", claudeTool.GetConfigPath())
+			renderSettingsTable(settings, claudeTool.GetConfigPath())
 			return
-		}
-
-		// Require arguments when not listing
-		if len(args) == 0 {
-			fmt.Fprintf(os.Stderr, "Error: config path required (use --list to see available options)\n")
-			os.Exit(1)
 		}
 
 		configPath := args[0]
@@ -657,20 +597,40 @@ var miseCmd = &cobra.Command{
 	Long: `Get or set configuration values in ~/.config/mise/config.toml using dotted path notation.
 
 Examples:
+  conf mise                               # List common settings
   conf mise settings.experimental         # Get current value
   conf mise settings.experimental true    # Set boolean value
   conf mise settings.jobs 4               # Set numeric value`,
-	Args:              cobra.RangeArgs(1, 2),
+	Args:              cobra.RangeArgs(0, 2),
 	ValidArgsFunction: miseCompletion,
 	Run: func(cmd *cobra.Command, args []string) {
-		configPath := args[0]
-
 		// Create mise tool with dry-run mode
 		miseTool, err := misetool.NewMiseToolWithDryRun(dryRun)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize mise tool: %v\n", err)
 			os.Exit(1)
 		}
+
+		// Default to list when no arguments provided
+		if len(args) == 0 {
+			miseSettings := miseTool.ListCommonSettings()
+
+			// Convert to CommonSetting for rendering
+			settings := make([]CommonSetting, len(miseSettings))
+			for i, s := range miseSettings {
+				settings[i] = CommonSetting{
+					Path:        s.Path,
+					Type:        s.Type,
+					Description: s.Description,
+					Example:     s.Example,
+				}
+			}
+
+			renderCommonSettingsTable(settings, miseTool.GetConfigPath())
+			return
+		}
+
+		configPath := args[0]
 
 		// GET operation: only config path provided
 		if len(args) == 1 {
@@ -730,20 +690,20 @@ var miseListCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		settings := miseTool.ListCommonSettings()
+		miseSettings := miseTool.ListCommonSettings()
 
-		fmt.Println("Common mise configuration settings:")
-		fmt.Println()
-
-		for _, setting := range settings {
-			fmt.Printf("  %s\n", setting.Path)
-			fmt.Printf("    Type: %s\n", setting.Type)
-			fmt.Printf("    Description: %s\n", setting.Description)
-			fmt.Printf("    Example: %s\n", setting.Example)
-			fmt.Println()
+		// Convert to CommonSetting for rendering
+		settings := make([]CommonSetting, len(miseSettings))
+		for i, s := range miseSettings {
+			settings[i] = CommonSetting{
+				Path:        s.Path,
+				Type:        s.Type,
+				Description: s.Description,
+				Example:     s.Example,
+			}
 		}
 
-		fmt.Printf("Config file: %s\n", miseTool.GetConfigPath())
+		renderCommonSettingsTable(settings, miseTool.GetConfigPath())
 	},
 }
 
@@ -816,20 +776,20 @@ var starshipListCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		settings := starshipTool.ListCommonSettings()
+		starshipSettings := starshipTool.ListCommonSettings()
 
-		fmt.Println("Common starship configuration settings:")
-		fmt.Println()
-
-		for _, setting := range settings {
-			fmt.Printf("  %s\n", setting.Path)
-			fmt.Printf("    Type: %s\n", setting.Type)
-			fmt.Printf("    Description: %s\n", setting.Description)
-			fmt.Printf("    Example: %s\n", setting.Example)
-			fmt.Println()
+		// Convert to CommonSetting for rendering
+		settings := make([]CommonSetting, len(starshipSettings))
+		for i, s := range starshipSettings {
+			settings[i] = CommonSetting{
+				Path:        s.Path,
+				Type:        s.Type,
+				Description: s.Description,
+				Example:     s.Example,
+			}
 		}
 
-		fmt.Printf("Config file: %s\n", starshipTool.GetConfigPath())
+		renderCommonSettingsTable(settings, starshipTool.GetConfigPath())
 	},
 }
 
@@ -839,20 +799,40 @@ var starshipCmd = &cobra.Command{
 	Long: `Get or set configuration values in ~/.config/starship.toml using dotted path notation.
 
 Examples:
+  conf starship                          # List common settings
   conf starship add_newline              # Get current value
   conf starship add_newline true         # Set boolean value
   conf starship command_timeout 500      # Set timeout value`,
-	Args:              cobra.RangeArgs(1, 2),
+	Args:              cobra.RangeArgs(0, 2),
 	ValidArgsFunction: starshipCompletion,
 	Run: func(cmd *cobra.Command, args []string) {
-		configPath := args[0]
-
 		// Create starship tool with dry-run mode
 		starshipTool, err := starshiptool.NewStarshipToolWithDryRun(dryRun)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize starship tool: %v\n", err)
 			os.Exit(1)
 		}
+
+		// Default to list when no arguments provided
+		if len(args) == 0 {
+			starshipSettings := starshipTool.ListCommonSettings()
+
+			// Convert to CommonSetting for rendering
+			settings := make([]CommonSetting, len(starshipSettings))
+			for i, s := range starshipSettings {
+				settings[i] = CommonSetting{
+					Path:        s.Path,
+					Type:        s.Type,
+					Description: s.Description,
+					Example:     s.Example,
+				}
+			}
+
+			renderCommonSettingsTable(settings, starshipTool.GetConfigPath())
+			return
+		}
+
+		configPath := args[0]
 
 		// GET operation: only config path provided
 		if len(args) == 1 {
