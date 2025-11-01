@@ -322,3 +322,193 @@ func TestGetRoleAuthority(t *testing.T) {
 		})
 	}
 }
+
+func TestReducer_TaskDelete(t *testing.T) {
+	r := NewReducer()
+
+	// Create task first
+	taskUID := string(types.NewTaskUID())
+	projectUID := string(types.NewProjectUID())
+	createPayload := types.TaskCreatedPayload{
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: 1,
+		CreatedNode:    string(types.NewNodeID()),
+		Title:          "Test task",
+		CreatedBy:      "alice",
+	}
+	createPayloadJSON, _ := json.Marshal(createPayload)
+
+	createEvent := types.Event{
+		ID:        "event_01",
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   createPayloadJSON,
+	}
+
+	err := r.Apply(createEvent)
+	if err != nil {
+		t.Fatalf("Failed to apply task.created event: %v", err)
+	}
+
+	// Verify task exists
+	_, ok := r.GetTask(taskUID)
+	if !ok {
+		t.Fatal("Task should exist before delete")
+	}
+
+	// Delete task
+	deletePayload := types.TaskDeletePayload{
+		TaskUUID: taskUID,
+	}
+	deletePayloadJSON, _ := json.Marshal(deletePayload)
+
+	deleteEvent := types.Event{
+		ID:        "event_02",
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.delete",
+		Payload:   deletePayloadJSON,
+	}
+
+	err = r.Apply(deleteEvent)
+	if err != nil {
+		t.Fatalf("Failed to apply task.delete event: %v", err)
+	}
+
+	// Verify task was removed
+	_, ok = r.GetTask(taskUID)
+	if ok {
+		t.Error("Task should not exist after delete")
+	}
+
+	// Verify task is not in the tasks map
+	if _, exists := r.tasks[taskUID]; exists {
+		t.Error("Task should be removed from tasks map")
+	}
+}
+
+func TestReducer_TaskDelete_RemovesTaskIDMappings(t *testing.T) {
+	r := NewReducer()
+
+	// Create task
+	taskUID := string(types.NewTaskUID())
+	projectUID := string(types.NewProjectUID())
+	createPayload := types.TaskCreatedPayload{
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: 1,
+		CreatedNode:    string(types.NewNodeID()),
+		Title:          "Test task",
+		CreatedBy:      "alice",
+	}
+	createPayloadJSON, _ := json.Marshal(createPayload)
+
+	createEvent := types.Event{
+		ID:        "event_01",
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   createPayloadJSON,
+	}
+
+	r.Apply(createEvent)
+
+	// Verify task ID mapping exists
+	if mappedUID, exists := r.taskByID[taskUID]; !exists || mappedUID != taskUID {
+		t.Fatal("Task ID mapping should exist")
+	}
+
+	// Delete task
+	deletePayload := types.TaskDeletePayload{
+		TaskUUID: taskUID,
+	}
+	deletePayloadJSON, _ := json.Marshal(deletePayload)
+
+	deleteEvent := types.Event{
+		ID:        "event_02",
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.delete",
+		Payload:   deletePayloadJSON,
+	}
+
+	r.Apply(deleteEvent)
+
+	// Verify task ID mapping was removed
+	if _, exists := r.taskByID[taskUID]; exists {
+		t.Error("Task ID mapping should be removed after delete")
+	}
+}
+
+func TestReducer_TaskDelete_Idempotency(t *testing.T) {
+	r := NewReducer()
+
+	// Create task
+	taskUID := string(types.NewTaskUID())
+	projectUID := string(types.NewProjectUID())
+	createPayload := types.TaskCreatedPayload{
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: 1,
+		CreatedNode:    string(types.NewNodeID()),
+		Title:          "Test task",
+		CreatedBy:      "alice",
+	}
+	createPayloadJSON, _ := json.Marshal(createPayload)
+
+	createEvent := types.Event{
+		ID:        "event_01",
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.created",
+		Payload:   createPayloadJSON,
+	}
+
+	r.Apply(createEvent)
+
+	// Delete task
+	deletePayload := types.TaskDeletePayload{
+		TaskUUID: taskUID,
+	}
+	deletePayloadJSON, _ := json.Marshal(deletePayload)
+
+	deleteEvent := types.Event{
+		ID:        "event_02",
+		TS:        2,
+		CreatedAt: time.Now(),
+		Actor:     "alice",
+		Role:      "human",
+		Kind:      "task.delete",
+		Payload:   deletePayloadJSON,
+	}
+
+	// Delete first time
+	err := r.Apply(deleteEvent)
+	if err != nil {
+		t.Fatalf("First delete failed: %v", err)
+	}
+
+	// Delete second time (should be idempotent, no error)
+	err = r.Apply(deleteEvent)
+	if err != nil {
+		t.Errorf("Second delete should be idempotent but got error: %v", err)
+	}
+
+	// Verify task is still deleted
+	_, ok := r.GetTask(taskUID)
+	if ok {
+		t.Error("Task should remain deleted after idempotent delete")
+	}
+}

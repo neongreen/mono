@@ -278,6 +278,76 @@ func TestBuildTaskRelations(t *testing.T) {
 	}
 }
 
+func TestRelationGraph_RemoveTaskRelations(t *testing.T) {
+	graph := relations.NewRelationsGraph()
+
+	// Create a task with multiple relations
+	// task-a blocks task-b
+	graph.AddRelation("task-a", "blocks", "task-b", "", "ev-1", "node1", 1)
+	// task-c blocks task-a
+	graph.AddRelation("task-c", "blocks", "task-a", "", "ev-2", "node1", 2)
+	// task-a has subtask task-d
+	graph.AddRelation("task-a", "subtask", "task-d", "", "ev-3", "node1", 3)
+	// task-a related to task-e
+	graph.AddRelation("task-a", "related", "task-e", "", "ev-4", "node1", 4)
+
+	// Verify relations exist before delete
+	outBlocks := graph.GetOutgoingRelations("task-a", "blocks")
+	if len(outBlocks) != 1 {
+		t.Fatalf("Expected 1 outgoing blocks relation, got %d", len(outBlocks))
+	}
+
+	inBlocks := graph.GetIncomingRelations("task-a", "blocks")
+	if len(inBlocks) != 1 {
+		t.Fatalf("Expected 1 incoming blocks relation, got %d", len(inBlocks))
+	}
+
+	outSubtask := graph.GetOutgoingRelations("task-a", "subtask")
+	if len(outSubtask) != 1 {
+		t.Fatalf("Expected 1 outgoing subtask relation, got %d", len(outSubtask))
+	}
+
+	outRelated := graph.GetOutgoingRelations("task-a", "related")
+	if len(outRelated) != 1 {
+		t.Fatalf("Expected 1 outgoing related relation, got %d", len(outRelated))
+	}
+
+	// Remove all relations for task-a
+	graph.RemoveTaskRelations("task-a")
+
+	// Verify all relations involving task-a are removed
+	outBlocks = graph.GetOutgoingRelations("task-a", "blocks")
+	if len(outBlocks) != 0 {
+		t.Errorf("Expected 0 outgoing blocks relations after RemoveTaskRelations, got %d", len(outBlocks))
+	}
+
+	inBlocks = graph.GetIncomingRelations("task-a", "blocks")
+	if len(inBlocks) != 0 {
+		t.Errorf("Expected 0 incoming blocks relations after RemoveTaskRelations, got %d", len(inBlocks))
+	}
+
+	outSubtask = graph.GetOutgoingRelations("task-a", "subtask")
+	if len(outSubtask) != 0 {
+		t.Errorf("Expected 0 outgoing subtask relations after RemoveTaskRelations, got %d", len(outSubtask))
+	}
+
+	outRelated = graph.GetOutgoingRelations("task-a", "related")
+	if len(outRelated) != 0 {
+		t.Errorf("Expected 0 outgoing related relations after RemoveTaskRelations, got %d", len(outRelated))
+	}
+
+	// Verify relations from task-a to other tasks are also removed
+	inBlocksB := graph.GetIncomingRelations("task-b", "blocks")
+	if len(inBlocksB) != 0 {
+		t.Errorf("Expected 0 incoming blocks relations for task-b after RemoveTaskRelations on task-a, got %d", len(inBlocksB))
+	}
+
+	inSubtaskD := graph.GetIncomingRelations("task-d", "subtask")
+	if len(inSubtaskD) != 0 {
+		t.Errorf("Expected 0 incoming subtask relations for task-d after RemoveTaskRelations on task-a, got %d", len(inSubtaskD))
+	}
+}
+
 // Helper to marshal payloads
 func marshalPayload(v interface{}) json.RawMessage {
 	data, _ := json.Marshal(v)

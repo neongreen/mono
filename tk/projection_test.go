@@ -242,3 +242,119 @@ func TestProjectTaskTitleSetEvent(t *testing.T) {
 		t.Errorf("expected title 'New title', got %s", title)
 	}
 }
+
+func TestProjectTaskDeleteEvent(t *testing.T) {
+	db := openTempDB(t)
+
+	// First create a project and task
+	projectUID := seedProject(t, db, "deltest")
+	taskUID := seedTask(t, db, projectUID, "Task to delete", 1)
+
+	// Verify task exists in tasks table
+	var countTasks int
+	err := db.db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&countTasks)
+	if err != nil {
+		t.Fatalf("failed to query tasks: %v", err)
+	}
+	if countTasks != 1 {
+		t.Fatalf("expected 1 task, got %d", countTasks)
+	}
+
+	// Verify task exists in task_numbers table
+	var countNumbers int
+	err = db.db.QueryRow(`SELECT COUNT(*) FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&countNumbers)
+	if err != nil {
+		t.Fatalf("failed to query task_numbers: %v", err)
+	}
+	if countNumbers != 1 {
+		t.Fatalf("expected 1 task_number entry, got %d", countNumbers)
+	}
+
+	// Create and project delete event
+	payload := types.TaskDeletePayload{
+		TaskUUID: taskUID,
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal payload: %v", err)
+	}
+
+	event := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindTaskDelete),
+		Payload:   payloadJSON,
+	}
+
+	if err := db.ProjectTaskDeleteEvent(event); err != nil {
+		t.Fatalf("ProjectTaskDeleteEvent() error = %v", err)
+	}
+
+	// Verify task was deleted from tasks table
+	err = db.db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&countTasks)
+	if err != nil {
+		t.Fatalf("failed to query tasks after delete: %v", err)
+	}
+	if countTasks != 0 {
+		t.Errorf("expected 0 tasks after delete, got %d", countTasks)
+	}
+
+	// Verify task was deleted from task_numbers table
+	err = db.db.QueryRow(`SELECT COUNT(*) FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&countNumbers)
+	if err != nil {
+		t.Fatalf("failed to query task_numbers after delete: %v", err)
+	}
+	if countNumbers != 0 {
+		t.Errorf("expected 0 task_number entries after delete, got %d", countNumbers)
+	}
+}
+
+func TestProjectTaskDeleteEvent_Idempotency(t *testing.T) {
+	db := openTempDB(t)
+
+	// First create a project and task
+	projectUID := seedProject(t, db, "idemtest")
+	taskUID := seedTask(t, db, projectUID, "Task to delete", 1)
+
+	// Create delete event
+	payload := types.TaskDeletePayload{
+		TaskUUID: taskUID,
+	}
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal payload: %v", err)
+	}
+
+	event := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindTaskDelete),
+		Payload:   payloadJSON,
+	}
+
+	// Project delete event first time
+	if err := db.ProjectTaskDeleteEvent(event); err != nil {
+		t.Fatalf("first ProjectTaskDeleteEvent() error = %v", err)
+	}
+
+	// Project delete event second time (should be idempotent)
+	if err := db.ProjectTaskDeleteEvent(event); err != nil {
+		t.Fatalf("second ProjectTaskDeleteEvent() error = %v (should be idempotent)", err)
+	}
+
+	// Verify task is still deleted (only deleted once)
+	var count int
+	err = db.db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&count)
+	if err != nil {
+		t.Fatalf("failed to query tasks: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expected 0 tasks after double delete, got %d", count)
+	}
+}
