@@ -12,7 +12,7 @@ import (
 
 // Rename renames a symbol in a Go file using gopls.
 // It finds the symbol's position and uses gopls rename to update all references.
-func Rename(goplsPath string, filePath string, oldName string, newName string) error {
+func Rename(goplsPath string, filePath string, oldName string, newName string, moduleRoot string) error {
 	slog.Debug("Renaming symbol", "file", filePath, "old", oldName, "new", newName)
 
 	// Validate new name
@@ -31,6 +31,7 @@ func Rename(goplsPath string, filePath string, oldName string, newName string) e
 	positionSpec := fmt.Sprintf("%s:#%d", filePath, offset)
 
 	cmd := exec.Command(goplsPath, "rename", "-w", positionSpec, newName)
+	cmd.Dir = moduleRoot
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("gopls rename failed: %w\nOutput: %s", err, string(output))

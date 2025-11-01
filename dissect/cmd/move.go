@@ -320,7 +320,7 @@ func runMove(cmd *cobra.Command, args []string) {
 
 				slog.Info("Renaming identifier", "identifier", identifier, "to", newName, "file", sourceFile)
 
-				err := gopls.Rename(goplsPath, absSourceFile, identifier, newName)
+				err := gopls.Rename(goplsPath, absSourceFile, identifier, newName, moduleRoot)
 				if err != nil {
 					slog.Error("Error renaming identifier", "identifier", identifier, "error", err)
 					fmt.Fprintf(os.Stderr, "Error renaming identifier '%s': %v\n", identifier, err)
@@ -342,7 +342,7 @@ func runMove(cmd *cobra.Command, args []string) {
 					newName := targetSpec.Identifier
 					if identifier != newName {
 						slog.Info("Renaming moved identifier", "from", identifier, "to", newName)
-						err := gopls.Rename(goplsPath, absTargetFile, identifier, newName)
+						err := gopls.Rename(goplsPath, absTargetFile, identifier, newName, moduleRoot)
 						if err != nil {
 							slog.Error("Error renaming after move", "identifier", identifier, "error", err)
 							fmt.Fprintf(os.Stderr, "Error renaming identifier '%s' after move: %v\n", identifier, err)

@@ -28,7 +28,7 @@ func main() {
 	}
 
 	// Rename the function
-	err := Rename("gopls", testFile, "oldFunc", "newFunc")
+	err := Rename("gopls", testFile, "oldFunc", "newFunc", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -71,7 +71,7 @@ func useType() OldType {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "OldType", "NewType")
+	err := Rename("gopls", testFile, "OldType", "NewType", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -110,7 +110,7 @@ func main() {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "oldVar", "newVar")
+	err := Rename("gopls", testFile, "oldVar", "newVar", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -151,7 +151,7 @@ func main() {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "oldMethod", "newMethod")
+	err := Rename("gopls", testFile, "oldMethod", "newMethod", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -187,7 +187,7 @@ func validFunc() {}
 	}
 
 	// Try to rename a symbol that doesn't exist
-	err := Rename("gopls", testFile, "nonexistent", "newName")
+	err := Rename("gopls", testFile, "nonexistent", "newName", tmpDir)
 	if err == nil {
 		t.Errorf("Expected error when renaming nonexistent symbol, got nil")
 	}
@@ -215,7 +215,7 @@ func main() {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "helper", "Helper")
+	err := Rename("gopls", testFile, "helper", "Helper", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -254,7 +254,7 @@ func main() {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "PublicFunc", "privateFunc")
+	err := Rename("gopls", testFile, "PublicFunc", "privateFunc", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -286,7 +286,7 @@ func test() {}
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "test", "")
+	err := Rename("gopls", testFile, "test", "", tmpDir)
 	if err == nil {
 		t.Errorf("Expected error for empty new name")
 	}
