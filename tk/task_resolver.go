@@ -114,7 +114,7 @@ func RenderTaskDisplayID(db *DB, taskUID string) (string, error) {
 		return "", fmt.Errorf("failed to load task number for %s: %w", taskUID, err)
 	}
 
-	alias, err := preferredAliasForProject(db, projectUID)
+	alias, err := preferredAliasForProject(db, types.ProjectUID(projectUID))
 	if err != nil {
 		return "", err
 	}
@@ -149,16 +149,23 @@ func RenderTaskDisplayID(db *DB, taskUID string) (string, error) {
 	return fmt.Sprintf("%s-%d-%s", prefix, number, hint), nil
 }
 
-func resolveProjectByAlias(db *DB, alias string) (string, error) {
-	if strings.HasPrefix(alias, "prj_") {
+// ResolveProjectRef resolves an unresolved project reference (UID, alias, or name) to a ProjectUID
+func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
+	// If it looks like a ProjectUID, validate and verify it exists
+	if ref.IsProjectUID() {
+		uid := types.ProjectUID(ref)
+		if err := uid.Validate(); err != nil {
+			return "", fmt.Errorf("invalid project UID: %w", err)
+		}
+
 		var count int
-		if err := db.db.QueryRow(`SELECT COUNT(*) FROM projects WHERE project_uid = ?`, alias).Scan(&count); err != nil {
-			return "", fmt.Errorf("failed to lookup project %s: %w", alias, err)
+		if err := db.db.QueryRow(`SELECT COUNT(*) FROM projects WHERE project_uid = ?`, uid).Scan(&count); err != nil {
+			return "", fmt.Errorf("failed to lookup project %s: %w", uid, err)
 		}
 		if count == 0 {
-			return "", fmt.Errorf("project %s not found", alias)
+			return "", fmt.Errorf("project %s not found", uid)
 		}
-		return alias, nil
+		return uid, nil
 	}
 
 	nodeID, err := db.GetOrCreateNodeID()
@@ -173,12 +180,12 @@ func resolveProjectByAlias(db *DB, alias string) (string, error) {
 		WHERE alias = ?
 		ORDER BY CASE WHEN node = ? THEN 0 ELSE 1 END
 		LIMIT 1
-	`, alias, nodeID).Scan(&projectUID)
+	`, ref.String(), nodeID).Scan(&projectUID)
 	if err == nil {
-		return projectUID, nil
+		return types.ProjectUID(projectUID), nil
 	}
 	if err != sql.ErrNoRows {
-		return "", fmt.Errorf("failed to resolve project alias %s: %w", alias, err)
+		return "", fmt.Errorf("failed to resolve project alias %s: %w", ref, err)
 	}
 
 	// If no alias found, try to resolve by project name
@@ -187,17 +194,24 @@ func resolveProjectByAlias(db *DB, alias string) (string, error) {
 		WHERE name = ?
 		ORDER BY created_at
 		LIMIT 1
-	`, alias).Scan(&projectUID)
+	`, ref.String()).Scan(&projectUID)
 	if err == sql.ErrNoRows {
-		return "", fmt.Errorf("project/alias %s not found (checked aliases and project names)", alias)
+		return "", fmt.Errorf("project/alias %s not found (checked aliases and project names)", ref)
 	}
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve project name %s: %w", alias, err)
+		return "", fmt.Errorf("failed to resolve project name %s: %w", ref, err)
 	}
-	return projectUID, nil
+	return types.ProjectUID(projectUID), nil
 }
 
-func preferredAliasForProject(db *DB, projectUID string) (string, error) {
+// resolveProjectByAlias is deprecated - use ResolveProjectRef instead
+// This is kept temporarily for backward compatibility during refactoring
+func resolveProjectByAlias(db *DB, alias string) (string, error) {
+	uid, err := ResolveProjectRef(db, types.NewProjectRef(alias))
+	return string(uid), err
+}
+
+func preferredAliasForProject(db *DB, projectUID types.ProjectUID) (string, error) {
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
 		return "", err
@@ -209,7 +223,7 @@ func preferredAliasForProject(db *DB, projectUID string) (string, error) {
 		WHERE project_uid = ?
 		ORDER BY CASE WHEN node = ? THEN 0 ELSE 1 END
 		LIMIT 1
-	`, projectUID, nodeID).Scan(&alias)
+	`, projectUID.String(), nodeID).Scan(&alias)
 	if err == sql.ErrNoRows {
 		return "", nil
 	}
