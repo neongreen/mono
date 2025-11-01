@@ -17,6 +17,7 @@
   ],
   "activationEvents": [
     "onView:tkExplorer",
+    "onView:tkDetailView",
     "onCommand:tk.refresh",
     "onCommand:tk.editTitle",
     "onCommand:tk.rotateStatus",
@@ -78,6 +79,10 @@
         {
           "id": "tkExplorer",
           "name": "tk"
+        },
+        {
+          "id": "tkDetailView",
+          "name": "Task Details"
         }
       ]
     },

@@ -8,6 +8,12 @@ interface AxisStatus {
   effective?: string;
 }
 
+interface TkNote {
+  markdown?: string;
+  actor?: string;
+  timestamp?: string;
+}
+
 interface TkTask {
   task_uuid?: string;
   task_id?: string;
@@ -15,6 +21,7 @@ interface TkTask {
   axes?: Record<string, AxisStatus | undefined>;
   blocked?: boolean;
   blockers?: Array<{ task_id?: string; title?: string }>;
+  notes?: TkNote[];
 }
 
 interface TkGroup {
@@ -107,7 +114,104 @@ class TaskTreeItem extends vscode.TreeItem {
       this.resourceUri = vscode.Uri.parse(`tk:${task.task_uuid ?? task.task_id ?? label}`);
     }
 
-    // Don't set a command on the item itself - use inline buttons instead
+    // Set command to show task details when clicked
+    this.command = {
+      command: 'tk.showTaskDetails',
+      title: 'Show Task Details',
+      arguments: [task]
+    };
+  }
+}
+
+// Detail view tree items
+type DetailTreeItem = DetailSectionItem | DetailContentItem;
+
+class DetailSectionItem extends vscode.TreeItem {
+  constructor(
+    public readonly label: string,
+    public readonly children: DetailContentItem[],
+  ) {
+    super(label, vscode.TreeItemCollapsibleState.Expanded);
+    this.iconPath = new vscode.ThemeIcon('list-flat');
+    this.contextValue = 'detailSection';
+  }
+}
+
+class DetailContentItem extends vscode.TreeItem {
+  constructor(
+    public readonly content: string,
+    public readonly isMultiline: boolean = false,
+  ) {
+    super(content, vscode.TreeItemCollapsibleState.None);
+    this.contextValue = 'detailContent';
+    this.iconPath = new vscode.ThemeIcon('note');
+    
+    // For multiline content, show it in description and tooltip
+    if (isMultiline) {
+      this.tooltip = content;
+    }
+  }
+}
+
+class TaskDetailProvider implements vscode.TreeDataProvider<DetailTreeItem> {
+  private readonly _onDidChangeTreeData = new vscode.EventEmitter<DetailTreeItem | undefined>();
+  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+
+  private currentTask: TkTask | undefined;
+  private sections: DetailSectionItem[] = [];
+
+  getTreeItem(element: DetailTreeItem): vscode.TreeItem {
+    return element;
+  }
+
+  getChildren(element?: DetailTreeItem): vscode.ProviderResult<DetailTreeItem[]> {
+    if (!element) {
+      // Root level - return sections or a message if no task is selected
+      if (!this.currentTask) {
+        return [new DetailContentItem('No task selected', false)];
+      }
+      return this.sections;
+    }
+
+    if (element instanceof DetailSectionItem) {
+      return element.children;
+    }
+
+    return [];
+  }
+
+  showTask(task: TkTask): void {
+    this.currentTask = task;
+    this.sections = [];
+
+    // Add task title section
+    if (task.title) {
+      const titleItems = [new DetailContentItem(task.title, true)];
+      this.sections.push(new DetailSectionItem('Title', titleItems));
+    }
+
+    // Add notes section if there are notes
+    if (task.notes && task.notes.length > 0) {
+      const noteItems = task.notes.map(note => {
+        const noteText = note.markdown || '(empty note)';
+        const actor = note.actor || 'Unknown';
+        const timestamp = note.timestamp ? new Date(note.timestamp).toLocaleString() : '';
+        const label = `${noteText}${timestamp ? ' - ' + timestamp : ''}${actor ? ' by ' + actor : ''}`;
+        return new DetailContentItem(label, true);
+      });
+      this.sections.push(new DetailSectionItem('Notes', noteItems));
+    } else {
+      // Show "No notes" message
+      this.sections.push(new DetailSectionItem('Notes', [new DetailContentItem('No notes', false)]));
+    }
+
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  clear(): void {
+    this.currentTask = undefined;
+    this.sections = [];
+    this._onDidChangeTreeData.fire(undefined);
   }
 }
 
@@ -505,19 +609,28 @@ export function activate(context: vscode.ExtensionContext): void {
   const decorationProvider = new TkDecorationProvider();
   const provider = new TkProvider(decorationProvider);
   const dragAndDropController = new TkDragAndDropController(provider);
+  const detailProvider = new TaskDetailProvider();
 
   const treeView = vscode.window.createTreeView('tkExplorer', {
     treeDataProvider: provider,
     dragAndDropController: dragAndDropController,
   });
 
+  const detailView = vscode.window.createTreeView('tkDetailView', {
+    treeDataProvider: detailProvider,
+  });
+
   context.subscriptions.push(
     vscode.window.registerFileDecorationProvider(decorationProvider),
     treeView,
+    detailView,
     vscode.commands.registerCommand('tk.refresh', () => provider.refresh()),
     vscode.commands.registerCommand('tk.editTitle', (item: TaskTreeItem) => editTitle(provider, item)),
     vscode.commands.registerCommand('tk.rotateStatus', (item: TaskTreeItem) => rotateStatus(provider, item)),
     vscode.commands.registerCommand('tk.createTask', (item: GroupTreeItem) => createTask(provider, item)),
+    vscode.commands.registerCommand('tk.showTaskDetails', (task: TkTask) => {
+      detailProvider.showTask(task);
+    }),
   );
 }
 
