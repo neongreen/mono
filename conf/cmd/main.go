@@ -367,22 +367,28 @@ Examples:
 
 			// Show state comparison
 			if hasDesired {
-				fmt.Printf("Desired: %s = %v\n", configPath, desiredValue)
+				fmt.Printf("Desired: %s = %s\n", configPath, formatValueAsTOML(desiredValue))
 				if actualValue == nil {
 					fmt.Printf("Actual:  %s = (not set)\n", configPath)
 					fmt.Printf("Status:  DRIFT - value not applied\n")
+					fmt.Printf("\nTo apply the desired value:\n")
+					fmt.Printf("  conf apply jj\n")
 				} else if fmt.Sprintf("%v", actualValue) == fmt.Sprintf("%v", desiredValue) {
-					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Actual:  %s = %s\n", configPath, formatValueAsTOML(actualValue))
 					fmt.Printf("Status:  IN SYNC\n")
 				} else {
-					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Actual:  %s = %s\n", configPath, formatValueAsTOML(actualValue))
 					fmt.Printf("Status:  DRIFT - values differ\n")
+					fmt.Printf("\nTo apply the desired value:\n")
+					fmt.Printf("  conf apply jj\n")
+					fmt.Printf("\nTo update desired to match actual:\n")
+					fmt.Printf("  conf jj %s %s\n", configPath, formatValueAsTOML(actualValue))
 				}
 			} else {
 				if actualValue == nil {
 					fmt.Printf("%s = (not set)\n", configPath)
 				} else {
-					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Actual:  %s = %s\n", configPath, formatValueAsTOML(actualValue))
 					fmt.Printf("Status:  UNMANAGED - not in conf state\n")
 				}
 			}
@@ -528,22 +534,28 @@ Examples:
 
 			// Show state comparison
 			if hasDesired {
-				fmt.Printf("Desired: %s = %v\n", configPath, desiredValue)
+				fmt.Printf("Desired: %s = %s\n", configPath, formatValueAsTOML(desiredValue))
 				if actualValue == nil {
 					fmt.Printf("Actual:  %s = (not set)\n", configPath)
 					fmt.Printf("Status:  DRIFT - value not applied\n")
+					fmt.Printf("\nTo apply the desired value:\n")
+					fmt.Printf("  conf apply claude\n")
 				} else if fmt.Sprintf("%v", actualValue) == fmt.Sprintf("%v", desiredValue) {
-					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Actual:  %s = %s\n", configPath, formatValueAsTOML(actualValue))
 					fmt.Printf("Status:  IN SYNC\n")
 				} else {
-					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Actual:  %s = %s\n", configPath, formatValueAsTOML(actualValue))
 					fmt.Printf("Status:  DRIFT - values differ\n")
+					fmt.Printf("\nTo apply the desired value:\n")
+					fmt.Printf("  conf apply claude\n")
+					fmt.Printf("\nTo update desired to match actual:\n")
+					fmt.Printf("  conf claude %s %s\n", configPath, formatValueAsTOML(actualValue))
 				}
 			} else {
 				if actualValue == nil {
 					fmt.Printf("%s = (not set)\n", configPath)
 				} else {
-					fmt.Printf("Actual:  %s = %v\n", configPath, actualValue)
+					fmt.Printf("Actual:  %s = %s\n", configPath, formatValueAsTOML(actualValue))
 					fmt.Printf("Status:  UNMANAGED - not in conf state\n")
 				}
 			}
