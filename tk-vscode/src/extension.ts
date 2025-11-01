@@ -194,19 +194,30 @@ class TkDragAndDropController implements vscode.TreeDragAndDropController<TkTree
 
     // Move each task to the target group, collecting results
     const results = await Promise.allSettled(
-      tasks.map(task => moveTaskToGroup(this.provider, task, targetGroup!))
+      tasks.map(task => moveTaskToGroup(task, targetGroup!))
     );
 
-    // Check for failures
+    // Report results to user
     const failures = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
-    if (failures.length > 0) {
-      const failureCount = failures.length;
-      const successCount = tasks.length - failureCount;
-      if (successCount > 0) {
-        void vscode.window.showWarningMessage(
-          `Moved ${successCount} task(s), but ${failureCount} failed. Check the output for details.`
-        );
+    const successCount = tasks.length - failures.length;
+    
+    if (failures.length === 0) {
+      // All succeeded
+      if (tasks.length === 1) {
+        void vscode.window.showInformationMessage(`Moved ${tasks[0].task.task_id} to ${targetGroup!.groupName}`);
+      } else {
+        void vscode.window.showInformationMessage(`Moved ${successCount} task(s) to ${targetGroup!.groupName}`);
       }
+    } else if (successCount === 0) {
+      // All failed
+      const firstError = failures[0].reason;
+      const message = firstError instanceof Error ? firstError.message : String(firstError);
+      void vscode.window.showErrorMessage(`Failed to move task(s): ${message}`);
+    } else {
+      // Partial success
+      void vscode.window.showWarningMessage(
+        `Moved ${successCount} task(s) to ${targetGroup!.groupName}, but ${failures.length} failed`
+      );
     }
 
     // Refresh the tree view
@@ -468,32 +479,23 @@ async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<vo
   }
 }
 
-async function moveTaskToGroup(provider: TkProvider, task: TaskTreeItem, targetGroup: GroupTreeItem): Promise<void> {
+async function moveTaskToGroup(task: TaskTreeItem, targetGroup: GroupTreeItem): Promise<void> {
   const taskId = task.task.task_id;
   if (!taskId) {
-    void vscode.window.showErrorMessage('Cannot move task: task has no ID');
-    return;
+    throw new Error('Cannot move task: task has no ID');
   }
 
   const targetGroupName = targetGroup.groupName;
+  const { binary, cwd } = getTkConfig();
 
-  try {
-    const { binary, cwd } = getTkConfig();
+  // Use tk mv command to move the task to the target project/group
+  // Use --auto to automatically assign a new number in the target project if needed
+  const args = ['mv', '--auto', taskId, targetGroupName];
 
-    // Use tk mv command to move the task to the target project/group
-    // Use --auto to automatically assign a new number in the target project if needed
-    const args = ['mv', '--auto', taskId, targetGroupName];
-
-    await execFileAsync(binary, args, {
-      cwd,
-      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
-    });
-
-    void vscode.window.showInformationMessage(`Moved ${taskId} to ${targetGroupName}`);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    void vscode.window.showErrorMessage(`Failed to move task: ${message}`);
-  }
+  await execFileAsync(binary, args, {
+    cwd,
+    env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+  });
 }
 
 export function activate(context: vscode.ExtensionContext): void {
