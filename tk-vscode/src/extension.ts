@@ -75,26 +75,33 @@ class TaskTreeItem extends vscode.TreeItem {
     this.tooltip = tooltip;
     this.contextValue = 'tkTask';
 
-    // Set icon based on status and blocked state
+    // Set icon based on status and blocked state with colors
     if (task.blocked) {
-      this.iconPath = new vscode.ThemeIcon('circle-slash');
+      this.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('errorForeground'));
     } else {
-      // Icon based on status
+      // Icon based on status with colors
       switch (state) {
         case 'next':
-          this.iconPath = new vscode.ThemeIcon('arrow-right');
+          this.iconPath = new vscode.ThemeIcon('arrow-right', new vscode.ThemeColor('charts.blue'));
           break;
         case 'wip':
-          this.iconPath = new vscode.ThemeIcon('sync');
+          this.iconPath = new vscode.ThemeIcon('sync', new vscode.ThemeColor('charts.yellow'));
           break;
         case 'done':
-          this.iconPath = new vscode.ThemeIcon('check');
+          this.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('charts.green'));
           break;
         default:
           this.iconPath = new vscode.ThemeIcon('circle-outline');
           break;
       }
     }
+
+    // Make the icon clickable to rotate status
+    this.command = {
+      command: 'tk.rotateStatus',
+      title: 'Rotate Status',
+      arguments: [this],
+    };
   }
 }
 
