@@ -17,6 +17,7 @@
   ],
   "activationEvents": [
     "onView:tkExplorer",
+    "onView:tkDetailView",
     "onCommand:tk.refresh",
     "onCommand:tk.editTitle",
     "onCommand:tk.rotateStatus",
@@ -43,6 +44,10 @@
         "command": "tk.createTask",
         "title": "Create Task",
         "icon": "$(add)"
+      },
+      {
+        "command": "tk.showTaskDetails",
+        "title": "Show Task Details"
       }
     ],
     "menus": {
@@ -78,6 +83,10 @@
         {
           "id": "tkExplorer",
           "name": "tk"
+        },
+        {
+          "id": "tkDetailView",
+          "name": "Task Details"
         }
       ]
     },
