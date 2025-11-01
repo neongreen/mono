@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
@@ -130,7 +131,7 @@ Examples:
 
 		// Write segments
 		segmentSeq := exportState.SegmentSeq + 1
-		writer := NewSegmentWriter(
+		writer := segment.NewSegmentWriter(
 			remote.Path,
 			space,
 			nodeID,
@@ -155,7 +156,7 @@ Examples:
 
 				// Start new segment
 				segmentSeq++
-				writer = NewSegmentWriter(
+				writer = segment.NewSegmentWriter(
 					remote.Path,
 					space,
 					nodeID,
@@ -167,7 +168,7 @@ Examples:
 		}
 
 		// Write any remaining events
-		if len(writer.events) > 0 {
+		if writer.HasPendingEvents() {
 			segInfo, err := writer.WriteSegment()
 			if err != nil {
 				return fmt.Errorf("failed to write final segment: %w", err)

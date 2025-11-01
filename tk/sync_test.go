@@ -67,7 +67,7 @@ func TestSegmentRoundTrip(t *testing.T) {
 
 	// Export to segment
 	space := "personal"
-	writer := NewSegmentWriter(remotePath, space, nodeID, 1, 2_000_000, 120)
+	writer := segment.NewSegmentWriter(remotePath, space, nodeID, 1, 2_000_000, 120)
 
 	segEvent, err := eventToSegmentEvent(event, space, nodeID)
 	if err != nil {

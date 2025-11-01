@@ -1,4 +1,4 @@
-package main
+package segment
 
 import (
 	"os"
@@ -200,34 +200,34 @@ func TestCalculateSHA256(t *testing.T) {
 		t.Fatalf("failed to write test file: %v", err)
 	}
 
-	sha, err := calculateSHA256(testFile)
+	sha, err := CalculateSHA256(testFile)
 	if err != nil {
-		t.Fatalf("calculateSHA256() error = %v", err)
+		t.Fatalf("CalculateSHA256() error = %v", err)
 	}
 
 	if sha == "" {
-		t.Error("calculateSHA256() returned empty hash")
+		t.Error("CalculateSHA256() returned empty hash")
 	}
 
 	// SHA256 should be 64 hex characters
 	if len(sha) != 64 {
-		t.Errorf("calculateSHA256() hash length = %v, want %v", len(sha), 64)
+		t.Errorf("CalculateSHA256() hash length = %v, want %v", len(sha), 64)
 	}
 
 	// Calculate again to verify consistency
-	sha2, err := calculateSHA256(testFile)
+	sha2, err := CalculateSHA256(testFile)
 	if err != nil {
-		t.Fatalf("calculateSHA256() second call error = %v", err)
+		t.Fatalf("CalculateSHA256() second call error = %v", err)
 	}
 
 	if sha != sha2 {
-		t.Errorf("calculateSHA256() inconsistent: %v != %v", sha, sha2)
+		t.Errorf("CalculateSHA256() inconsistent: %v != %v", sha, sha2)
 	}
 }
 
 func TestCalculateSHA256_NonExistentFile(t *testing.T) {
-	_, err := calculateSHA256("/nonexistent/file")
+	_, err := CalculateSHA256("/nonexistent/file")
 	if err == nil {
-		t.Error("calculateSHA256() should return error for non-existent file")
+		t.Error("CalculateSHA256() should return error for non-existent file")
 	}
 }

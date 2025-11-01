@@ -1,4 +1,4 @@
-package main
+package segment
 
 import (
 	"crypto/sha256"
@@ -151,7 +151,7 @@ func (sw *SegmentWriter) WriteSegment() (*sync.SegmentInfo, error) {
 	}
 
 	// Calculate SHA256
-	sha, err := calculateSHA256(partialPath)
+	sha, err := CalculateSHA256(partialPath)
 	if err != nil {
 		os.Remove(partialPath)
 		return nil, fmt.Errorf("failed to calculate SHA256: %w", err)
@@ -177,8 +177,13 @@ func (sw *SegmentWriter) WriteSegment() (*sync.SegmentInfo, error) {
 	}, nil
 }
 
-// calculateSHA256 calculates the SHA256 hash of a file
-func calculateSHA256(path string) (string, error) {
+// HasPendingEvents returns true if there are events waiting to be written
+func (sw *SegmentWriter) HasPendingEvents() bool {
+	return len(sw.events) > 0
+}
+
+// CalculateSHA256 calculates the SHA256 hash of a file
+func CalculateSHA256(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err

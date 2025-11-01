@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
@@ -409,7 +410,7 @@ func reconstructIndex(remotePath, space string) (*sync.IndexFile, error) {
 			}
 
 			// Calculate SHA256
-			sha, err := calculateSHA256(path)
+			sha, err := segment.CalculateSHA256(path)
 			if err != nil {
 				return fmt.Errorf("failed to calculate SHA256 for %s: %w", path, err)
 			}
