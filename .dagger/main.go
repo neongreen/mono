@@ -66,7 +66,7 @@ func (m *Dagger) JjRunTests(ctx context.Context,
 	} else {
 		args = append([]string{"gotestsum", "--format", format, "--"}, "./jj-run/...")
 	}
-	
+
 	return m.jjRunTestContainer().
 		WithLabel("suite", "jj-run-tests").
 		WithExec(args).
