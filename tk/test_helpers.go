@@ -96,6 +96,40 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 	return projectUID
 }
 
+func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
+	t.Helper()
+	projectUID := string(NewProjectUID())
+	now := time.Now()
+
+	projectPayload := ProjectCreatedPayload{
+		ProjectUID:  projectUID,
+		Type:        "local",
+		Name:        name,
+		Description: name + " project",
+		CreatedBy:   "tester",
+	}
+
+	payloadJSON := mustJSON(t, projectPayload)
+	event := Event{
+		ID:        string(NewEventID()),
+		TS:        0,
+		CreatedAt: now,
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(EventKindProjectCreated),
+		Payload:   payloadJSON,
+	}
+	if err := db.InsertEvent(event); err != nil {
+		t.Fatalf("failed to insert project.created: %v", err)
+	}
+	if err := db.ProjectProjectCreatedEvent(event); err != nil {
+		t.Fatalf("failed to project project.created: %v", err)
+	}
+
+	// No alias event is created, so the project has no alias
+	return projectUID
+}
+
 func seedTask(t *testing.T, db *DB, projectUID string, title string, number int64) string {
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {

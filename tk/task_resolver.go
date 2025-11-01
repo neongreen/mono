@@ -117,8 +117,20 @@ func RenderTaskDisplayID(db *DB, taskUID string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if alias == "" {
-		return fmt.Sprintf("%s-%d", projectUID, number), nil
+
+	// If no alias exists, fall back to project name
+	prefix := alias
+	if prefix == "" {
+		var projectName string
+		err := db.db.QueryRow(`
+			SELECT name FROM projects WHERE project_uid = ?
+		`, projectUID).Scan(&projectName)
+		if err != nil {
+			// If we can't get the name, fall back to UID
+			prefix = projectUID
+		} else {
+			prefix = projectName
+		}
 	}
 
 	collision, err := hasNumberCollision(db, projectUID, number)
@@ -126,14 +138,14 @@ func RenderTaskDisplayID(db *DB, taskUID string) (string, error) {
 		return "", err
 	}
 	if !collision {
-		return fmt.Sprintf("%s-%d", alias, number), nil
+		return fmt.Sprintf("%s-%d", prefix, number), nil
 	}
 
 	hint, err := taskNodeHint(db, taskUID)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s-%d-%s", alias, number, hint), nil
+	return fmt.Sprintf("%s-%d-%s", prefix, number, hint), nil
 }
 
 func resolveProjectByAlias(db *DB, alias string) (string, error) {
