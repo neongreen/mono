@@ -1,16 +1,15 @@
-package main
+package reducer
 
 import (
 	"encoding/json"
 	"testing"
 	"time"
 
-	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestReducer_TaskCreated(t *testing.T) {
-	reducer := reducer.NewReducer()
+	r := NewReducer()
 
 	taskUID := string(types.NewTaskUID())
 	projectUID := string(types.NewProjectUID())
@@ -35,12 +34,12 @@ func TestReducer_TaskCreated(t *testing.T) {
 		Payload:   payloadJSON,
 	}
 
-	err := reducer.Apply(event)
+	err := r.Apply(event)
 	if err != nil {
 		t.Fatalf("Failed to apply task.created event: %v", err)
 	}
 
-	task, ok := reducer.GetTask(taskUID)
+	task, ok := r.GetTask(taskUID)
 	if !ok {
 		t.Fatal("Task not found")
 	}
@@ -59,7 +58,7 @@ func TestReducer_TaskCreated(t *testing.T) {
 }
 
 func TestReducer_StatusSet(t *testing.T) {
-	reducer := reducer.NewReducer()
+	r := NewReducer()
 
 	// Create task first
 	taskUID := string(types.NewTaskUID())
@@ -84,7 +83,7 @@ func TestReducer_StatusSet(t *testing.T) {
 		Payload:   createPayloadJSON,
 	}
 
-	reducer.Apply(createEvent)
+	r.Apply(createEvent)
 
 	// Set status
 	statusPayload := types.TaskStatusSetPayload{
@@ -105,12 +104,12 @@ func TestReducer_StatusSet(t *testing.T) {
 		Payload:   statusPayloadJSON,
 	}
 
-	err := reducer.Apply(statusEvent)
+	err := r.Apply(statusEvent)
 	if err != nil {
 		t.Fatalf("Failed to apply task.status.set event: %v", err)
 	}
 
-	task, _ := reducer.GetTask(taskUID)
+	task, _ := r.GetTask(taskUID)
 
 	axis, ok := task.Axes["generic"]
 	if !ok {
@@ -135,7 +134,7 @@ func TestReducer_StatusSet(t *testing.T) {
 }
 
 func TestReducer_AuthorityResolution(t *testing.T) {
-	reducer := reducer.NewReducer()
+	r := NewReducer()
 
 	// Create task
 	taskUID := string(types.NewTaskUID())
@@ -160,7 +159,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 		Payload:   createPayloadJSON,
 	}
 
-	reducer.Apply(createEvent)
+	r.Apply(createEvent)
 
 	// Agent sets status to done
 	agentPayload := types.TaskStatusSetPayload{
@@ -181,7 +180,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 		Payload:   agentPayloadJSON,
 	}
 
-	reducer.Apply(agentEvent)
+	r.Apply(agentEvent)
 
 	// Human sets status to in_progress (same timestamp for concurrent claim)
 	humanPayload := types.TaskStatusSetPayload{
@@ -202,9 +201,9 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 		Payload:   humanPayloadJSON,
 	}
 
-	reducer.Apply(humanEvent)
+	r.Apply(humanEvent)
 
-	task, _ := reducer.GetTask(taskUID)
+	task, _ := r.GetTask(taskUID)
 	axis := task.Axes["generic"]
 
 	// Human claim should win due to higher authority
@@ -237,7 +236,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 }
 
 func TestReducer_NoteAdd(t *testing.T) {
-	reducer := reducer.NewReducer()
+	r := NewReducer()
 
 	// Create task
 	taskUID := string(types.NewTaskUID())
@@ -262,7 +261,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 		Payload:   createPayloadJSON,
 	}
 
-	reducer.Apply(createEvent)
+	r.Apply(createEvent)
 
 	// Add note
 	notePayload := types.TaskNoteAddPayload{
@@ -281,12 +280,12 @@ func TestReducer_NoteAdd(t *testing.T) {
 		Payload:   notePayloadJSON,
 	}
 
-	err := reducer.Apply(noteEvent)
+	err := r.Apply(noteEvent)
 	if err != nil {
 		t.Fatalf("Failed to apply task.note.add event: %v", err)
 	}
 
-	task, _ := reducer.GetTask(taskUID)
+	task, _ := r.GetTask(taskUID)
 
 	if len(task.Notes) != 1 {
 		t.Fatalf("Expected 1 note, got %d", len(task.Notes))
