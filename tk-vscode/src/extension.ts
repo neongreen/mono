@@ -36,6 +36,7 @@ class GroupTreeItem extends vscode.TreeItem {
   ) {
     super(groupName, vscode.TreeItemCollapsibleState.Collapsed);
     this.iconPath = new vscode.ThemeIcon('folder');
+    this.contextValue = 'tkGroup';
   }
 }
 
@@ -106,12 +107,7 @@ class TaskTreeItem extends vscode.TreeItem {
       this.resourceUri = vscode.Uri.parse(`tk:${task.task_uuid ?? task.task_id ?? label}`);
     }
 
-    // Make clicking the item rotate status
-    this.command = {
-      command: 'tk.rotateStatus',
-      title: 'Rotate Status',
-      arguments: [this],
-    };
+    // Don't set a command on the item itself - use inline buttons instead
   }
 }
 
@@ -378,6 +374,57 @@ async function editTitle(provider: TkProvider, item: TaskTreeItem): Promise<void
   }
 }
 
+async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<void> {
+  const groupName = item.groupName;
+
+  const taskTitle = await vscode.window.showInputBox({
+    prompt: `Create new task in group "${groupName}"`,
+    placeHolder: 'Enter task title',
+  });
+
+  if (taskTitle === undefined) {
+    return;
+  }
+
+  if (taskTitle.trim() === '') {
+    void vscode.window.showErrorMessage('Task title cannot be empty');
+    return;
+  }
+
+  try {
+    const configuration = vscode.workspace.getConfiguration('tk');
+    const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
+    const configuredCwd = configuration.get<string>('workingDirectory');
+
+    let cwd: string | undefined;
+
+    if (configuredCwd && configuredCwd.trim().length > 0) {
+      cwd = configuredCwd;
+    } else {
+      cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    }
+
+    if (!cwd) {
+      void vscode.window.showErrorMessage('No workspace folder is open.');
+      return;
+    }
+
+    // Create task with prefix matching the group name
+    const args = ['add', `${groupName}:${taskTitle}`];
+
+    await execFileAsync(binary, args, {
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    });
+
+    void vscode.window.showInformationMessage(`Created task in group "${groupName}"`);
+    await provider.refresh();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`Failed to create task: ${message}`);
+  }
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   const decorationProvider = new TkDecorationProvider();
   const provider = new TkProvider(decorationProvider);
@@ -388,6 +435,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('tk.refresh', () => provider.refresh()),
     vscode.commands.registerCommand('tk.editTitle', (item: TaskTreeItem) => editTitle(provider, item)),
     vscode.commands.registerCommand('tk.rotateStatus', (item: TaskTreeItem) => rotateStatus(provider, item)),
+    vscode.commands.registerCommand('tk.createTask', (item: GroupTreeItem) => createTask(provider, item)),
   );
 }
 
