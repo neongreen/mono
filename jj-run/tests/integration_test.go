@@ -329,3 +329,131 @@ func TestParentRewriting(t *testing.T) {
 
 	t.Logf("Test passed: parent rewriting works correctly")
 }
+
+// TestWorkspaceCleanupOnStop tests that temporary workspaces are cleaned up when stop error occurs
+func TestWorkspaceCleanupOnStop(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "one .txt file", "one.txt")
+
+	failmeFile := filepath.Join(repoDir, "failme.txt")
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+		t.Fatalf("Failed to write failme.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
+
+	// Get initial workspace list
+	workspacesBefore, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces before: %s", workspacesBefore)
+
+	// Run jj-run with a command that fails (stop strategy)
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "-r", "::", "-e", "stop", "test -f failme.txt && exit 1")
+
+	// Should exit nonzero with -e stop
+	if exitCode == 0 {
+		t.Errorf("Expected nonzero exit code with -e stop on failure, got 0")
+	}
+
+	if !strings.Contains(stderr, "Stopped on change") {
+		t.Errorf("Expected 'Stopped on change' in stderr, got: %s", stderr)
+	}
+
+	// Get workspace list after error
+	workspacesAfter, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces after: %s", workspacesAfter)
+
+	// Verify that temporary workspaces were cleaned up
+	// The workspaces should be the same (only the default workspace should remain)
+	workspaceLinesBefore := strings.Split(strings.TrimSpace(workspacesBefore), "\n")
+	workspaceLinesAfter := strings.Split(strings.TrimSpace(workspacesAfter), "\n")
+
+	if len(workspaceLinesAfter) != len(workspaceLinesBefore) {
+		t.Errorf("Expected same number of workspaces after cleanup. Before: %d, After: %d",
+			len(workspaceLinesBefore), len(workspaceLinesAfter))
+		t.Logf("Before: %s", workspacesBefore)
+		t.Logf("After: %s", workspacesAfter)
+	}
+
+	// Check that no jj-run temporary workspaces remain
+	if strings.Contains(workspacesAfter, "jj-run-") {
+		t.Errorf("Found temporary jj-run workspace in workspace list after stop error: %s", workspacesAfter)
+	}
+
+	t.Logf("Test passed: workspace cleanup on stop error works")
+}
+
+// TestWorkspaceCleanupOnFatal tests that temporary workspaces are cleaned up when fatal error occurs
+func TestWorkspaceCleanupOnFatal(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "one .txt file", "one.txt")
+
+	failmeFile := filepath.Join(repoDir, "failme.txt")
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+		t.Fatalf("Failed to write failme.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
+
+	// Get initial workspace list
+	workspacesBefore, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces before: %s", workspacesBefore)
+
+	// Run jj-run with a command that fails (fatal strategy)
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "-r", "::", "-e", "fatal", "test -f failme.txt && exit 1")
+
+	// Should exit nonzero with -e fatal
+	if exitCode == 0 {
+		t.Errorf("Expected nonzero exit code with -e fatal on failure, got 0")
+	}
+
+	if !strings.Contains(stderr, "Fatal error at change") {
+		t.Errorf("Expected 'Fatal error at change' in stderr, got: %s", stderr)
+	}
+
+	// Get workspace list after error
+	workspacesAfter, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces after: %s", workspacesAfter)
+
+	// Verify that temporary workspaces were cleaned up
+	// The workspaces should be the same (only the default workspace should remain)
+	workspaceLinesBefore := strings.Split(strings.TrimSpace(workspacesBefore), "\n")
+	workspaceLinesAfter := strings.Split(strings.TrimSpace(workspacesAfter), "\n")
+
+	if len(workspaceLinesAfter) != len(workspaceLinesBefore) {
+		t.Errorf("Expected same number of workspaces after cleanup. Before: %d, After: %d",
+			len(workspaceLinesBefore), len(workspaceLinesAfter))
+		t.Logf("Before: %s", workspacesBefore)
+		t.Logf("After: %s", workspacesAfter)
+	}
+
+	// Check that no jj-run temporary workspaces remain
+	if strings.Contains(workspacesAfter, "jj-run-") {
+		t.Errorf("Found temporary jj-run workspace in workspace list after fatal error: %s", workspacesAfter)
+	}
+
+	t.Logf("Test passed: workspace cleanup on fatal error works")
+}

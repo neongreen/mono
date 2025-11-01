@@ -106,7 +106,7 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	}
 
 	// Process changes
-	newChanges, allSuccessful := processChanges(workspacePath, changes, command, strategy)
+	newChanges, allSuccessful, processErr := processChanges(workspacePath, changes, command, strategy)
 
 	// Rewrite parents
 	modifiedCount := rewriteParents(workspacePath, newChanges)
@@ -135,6 +135,11 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	if modifiedCount > 0 {
 		fmt.Fprintf(os.Stderr, "To compare the changes between the 'before' and 'after' repo states, run:\n")
 		fmt.Fprintf(os.Stderr, "  jj operation diff --from %s --to %s -p\n\n", beforeOp[:12], afterOp[:12])
+	}
+
+	// Return error from processChanges if one occurred (stop/fatal)
+	if processErr != nil {
+		return processErr
 	}
 
 	return nil
@@ -202,7 +207,7 @@ func getChangeList(revset string, cwd string) ([]*Change, error) {
 	return changes, nil
 }
 
-func processChanges(workspacePath string, changes []*Change, command string, strategy ErrorStrategy) ([]*Change, bool) {
+func processChanges(workspacePath string, changes []*Change, command string, strategy ErrorStrategy) ([]*Change, bool, error) {
 	var newChanges []*Change
 	allSuccessful := true
 	exitEarly := false
@@ -221,8 +226,9 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 		if _, err := runJJOutput([]string{"new", changeID}, workspacePath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating new change: %v\n", err)
 			allSuccessful = false
-			if exitEarly = handleError(strategy, changeID[:12], err); exitEarly {
-				break
+			var handlerErr error
+			if exitEarly, handlerErr = handleError(strategy, changeID[:12], err); exitEarly {
+				return newChanges, allSuccessful, handlerErr
 			}
 			continue
 		}
@@ -233,8 +239,9 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 
 		if err != nil {
 			allSuccessful = false
-			if exitEarly = handleError(strategy, changeID[:12], err); exitEarly {
-				break
+			var handlerErr error
+			if exitEarly, handlerErr = handleError(strategy, changeID[:12], err); exitEarly {
+				return newChanges, allSuccessful, handlerErr
 			}
 		}
 
@@ -251,7 +258,7 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 		}
 	}
 
-	return newChanges, allSuccessful
+	return newChanges, allSuccessful, nil
 }
 
 func getChangeMetadata(changeID string, cwd string) (*Change, error) {
@@ -316,24 +323,22 @@ func abandonChanges(changes []*Change) {
 	}
 }
 
-func handleError(strategy ErrorStrategy, changeID string, err error) bool {
+func handleError(strategy ErrorStrategy, changeID string, err error) (bool, error) {
 	errorMsg := formatError(changeID, err)
 
 	switch strategy {
 	case ErrorContinue:
 		fmt.Fprintf(os.Stderr, "%s\n", errorMsg)
-		return false
+		return false, nil
 	case ErrorStop:
 		fmt.Fprintf(os.Stderr, "Stopped on change [with fail] %s:\n%s\n", changeID, errorMsg)
-		// Exit with error status but return true to stop processing
-		os.Exit(1)
-		return true
+		// Return error to stop processing and allow cleanup
+		return true, fmt.Errorf("stopped on error at change %s", changeID)
 	case ErrorFatal:
 		fmt.Fprintf(os.Stderr, "Fatal error at change [%s]:\n%s\n", changeID, errorMsg)
-		os.Exit(1)
-		return true
+		return true, fmt.Errorf("fatal error at change %s", changeID)
 	}
-	return false
+	return false, nil
 }
 
 func formatError(changeID string, err error) string {
