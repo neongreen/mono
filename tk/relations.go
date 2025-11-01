@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // RelationEdge represents an edge in the relation graph with OR-set semantics
@@ -212,12 +214,12 @@ func (g *RelationsGraph) ComputeBlocked(tasks map[string]*Task, blockingAxis str
 		}
 
 		// Check each blocker
-		var activeBlockers []Blocker
+		var activeBlockers []types.Blocker
 		for _, blocker := range blockers {
 			blockerTask, ok := tasks[blocker.TaskUUID]
 			if !ok {
 				// Blocker task not found - treat as blocking
-				activeBlockers = append(activeBlockers, Blocker{
+				activeBlockers = append(activeBlockers, types.Blocker{
 					TaskID:   blocker.TaskUUID,
 					Title:    "(unknown task)",
 					Distance: 1,
@@ -234,7 +236,7 @@ func (g *RelationsGraph) ComputeBlocked(tasks map[string]*Task, blockingAxis str
 			}
 
 			if !isDone {
-				activeBlockers = append(activeBlockers, Blocker{
+				activeBlockers = append(activeBlockers, types.Blocker{
 					TaskID:   blockerTask.TaskID,
 					Title:    blockerTask.Title,
 					Distance: 1,
@@ -250,7 +252,7 @@ func (g *RelationsGraph) ComputeBlocked(tasks map[string]*Task, blockingAxis str
 }
 
 // GetTransitiveBlockers returns all transitive blockers for a task
-func (g *RelationsGraph) GetTransitiveBlockers(taskUUID string, tasks map[string]*Task, blockingAxis string, doneStates []string, maxDepth int) []Blocker {
+func (g *RelationsGraph) GetTransitiveBlockers(taskUUID string, tasks map[string]*Task, blockingAxis string, doneStates []string, maxDepth int) []types.Blocker {
 	// Build set of done states for quick lookup
 	doneSet := make(map[string]bool)
 	for _, state := range doneStates {
@@ -258,7 +260,7 @@ func (g *RelationsGraph) GetTransitiveBlockers(taskUUID string, tasks map[string
 	}
 
 	visited := make(map[string]bool)
-	var result []Blocker
+	var result []types.Blocker
 
 	var dfs func(uuid string, distance int)
 	dfs = func(uuid string, distance int) {
@@ -271,7 +273,7 @@ func (g *RelationsGraph) GetTransitiveBlockers(taskUUID string, tasks map[string
 		for _, blocker := range blockers {
 			blockerTask, ok := tasks[blocker.TaskUUID]
 			if !ok {
-				result = append(result, Blocker{
+				result = append(result, types.Blocker{
 					TaskID:   blocker.TaskUUID,
 					Title:    "(unknown task)",
 					Distance: distance,
@@ -288,7 +290,7 @@ func (g *RelationsGraph) GetTransitiveBlockers(taskUUID string, tasks map[string
 			}
 
 			if !isDone {
-				result = append(result, Blocker{
+				result = append(result, types.Blocker{
 					TaskID:   blockerTask.TaskID,
 					Title:    blockerTask.Title,
 					Distance: distance,

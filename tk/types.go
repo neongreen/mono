@@ -76,12 +76,12 @@ type Task struct {
 	Aliases   []string              `json:"aliases,omitempty"` // Previous IDs (when task was moved)
 	Title     string                `json:"title"`
 	Axes      map[string]AxisStatus `json:"axes"`
-	Notes     []types.Note                `json:"notes"`
+	Notes     []types.Note          `json:"notes"`
 	CreatedBy string                `json:"created_by"`
 	CreatedAt time.Time             `json:"created_at"`
 	Relations *Relations            `json:"relations,omitempty"` // Task relations
 	Blocked   bool                  `json:"blocked,omitempty"`   // Is this task blocked
-	Blockers  []Blocker             `json:"blockers,omitempty"`  // List of blocking tasks
+	Blockers  []types.Blocker             `json:"blockers,omitempty"`  // List of blocking tasks
 }
 
 // Relations represents all relations for a task
@@ -108,11 +108,8 @@ type RelationTarget struct {
 }
 
 // Blocker represents a task that blocks another
-type Blocker struct {
-	TaskID   string `json:"task_id"`
-	Title    string `json:"title"`
-	Distance int    `json:"distance"` // Distance in dependency graph
-}
+
+// Distance in dependency graph
 
 // Note represents a note on a task
 
