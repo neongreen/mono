@@ -534,6 +534,7 @@ func init() {
 	rootCmd.AddCommand(lsCmd)
 
 	rootCmd.AddCommand(editCmd)
+	rootCmd.AddCommand(describeCmd)
 	rootCmd.AddCommand(mvCmd)
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(idCmd)

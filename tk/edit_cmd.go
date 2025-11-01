@@ -154,10 +154,15 @@ func editTaskNumber(db *DB, taskUID string, value string, actor string) error {
 	return nil
 }
 
-func editTaskTitle(db *DB, taskUID string, value string, actor string) error {
+func editTaskTitle(db *DB, taskRef string, value string, actor string) error {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return fmt.Errorf("title cannot be empty")
+	}
+
+	taskUID, err := ResolveTaskReference(db, taskRef)
+	if err != nil {
+		return err
 	}
 
 	lamport, err := db.GetNextLamportTS()
