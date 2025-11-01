@@ -245,10 +245,10 @@ async function rotateStatus(provider: TkProvider, item: TaskTreeItem): Promise<v
       return;
     }
 
-    // Use tk set command to update the generic axis
+    // Use tk mark command to update the status
     const args = nextStatus === ''
-      ? ['set', taskId, '--axis', 'generic', '--unset']
-      : ['set', taskId, '--axis', 'generic', nextStatus];
+      ? ['mark', taskId, '--unset']
+      : ['mark', taskId, nextStatus];
 
     await execFileAsync(binary, args, {
       cwd,
