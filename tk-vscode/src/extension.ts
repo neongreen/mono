@@ -411,8 +411,8 @@ async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<vo
       return;
     }
 
-    // Create task with prefix matching the group name
-    const args = ['new', `${groupName}:${taskTitle}`];
+    // Create task with project matching the group name
+    const args = ['new', '-p', groupName, taskTitle];
 
     await execFileAsync(binary, args, {
       cwd,
