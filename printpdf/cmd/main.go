@@ -23,6 +23,8 @@ var (
 	marginRight    string
 	marginBottom   string
 	marginLeft     string
+	marginInner    string
+	marginOuter    string
 	zoom           int
 	firstPageGuide string
 	keepArtifacts  bool
@@ -60,6 +62,8 @@ func init() {
 	rootCmd.Flags().StringVar(&marginRight, "margin-right", "", "right page margin (overrides the value from --margin when set)")
 	rootCmd.Flags().StringVar(&marginBottom, "margin-bottom", "", "bottom page margin (overrides the value from --margin when set)")
 	rootCmd.Flags().StringVar(&marginLeft, "margin-left", "", "left page margin (overrides the value from --margin when set)")
+	rootCmd.Flags().StringVar(&marginInner, "margin-inner", "", "inner margin for booklet printing (binding side; cannot be used with --margin-left or --margin-right)")
+	rootCmd.Flags().StringVar(&marginOuter, "margin-outer", "", "outer margin for booklet printing (outer edge; cannot be used with --margin-left or --margin-right)")
 	rootCmd.Flags().IntVar(&zoom, "zoom", 100, "zoom percentage for all font sizes (e.g., 80 for 80%, 120 for 120%)")
 	rootCmd.Flags().StringVar(&firstPageGuide, "first-page-guide", "", "draw a thin vertical guide on the first page at the given distance from the left edge (e.g., '3cm')")
 	rootCmd.Flags().BoolVar(&keepArtifacts, "keep-artifacts", false, "keep intermediate artifacts such as HTML and Typst sources next to the output")
@@ -98,6 +102,14 @@ func runConvert(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Validate margin options: cannot use both left/right and inner/outer
+	hasLeftRight := marginLeft != "" || marginRight != ""
+	hasInnerOuter := marginInner != "" || marginOuter != ""
+	if hasLeftRight && hasInnerOuter {
+		fmt.Fprintf(os.Stderr, "Error: cannot specify both --margin-left/--margin-right and --margin-inner/--margin-outer at the same time\n")
+		os.Exit(1)
+	}
+
 	pageOptions := converter.PageOptions{
 		Columns:        columns,
 		Orientation:    orientation,
@@ -106,6 +118,8 @@ func runConvert(cmd *cobra.Command, args []string) {
 		MarginRight:    marginRight,
 		MarginBottom:   marginBottom,
 		MarginLeft:     marginLeft,
+		MarginInner:    marginInner,
+		MarginOuter:    marginOuter,
 		Zoom:           zoom,
 		FirstPageGuide: strings.TrimSpace(firstPageGuide),
 	}
