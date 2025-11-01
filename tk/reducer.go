@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"fmt"
 	"github.com/neongreen/mono/tk/internal/sync"
@@ -54,7 +55,7 @@ func (r *Reducer) Apply(e Event) error {
 }
 
 func (r *Reducer) applyTaskStatusSet(e Event) error {
-	var payload TaskStatusSetPayload
+	var payload payloads.TaskStatusSetPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.status.set payload: %w", err)
 	}
@@ -101,7 +102,7 @@ func (r *Reducer) applyTaskStatusSet(e Event) error {
 }
 
 func (r *Reducer) applyTaskNoteAdd(e Event) error {
-	var payload TaskNoteAddPayload
+	var payload payloads.TaskNoteAddPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.note.add payload: %w", err)
 	}
@@ -210,7 +211,7 @@ func (r *Reducer) GetAllTasks() []*Task {
 
 // applyRelationAdd adds a relation edge
 func (r *Reducer) applyRelationAdd(e Event) error {
-	var payload RelationAddPayload
+	var payload payloads.RelationAddPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal relation.add payload: %w", err)
 	}
@@ -230,7 +231,7 @@ func (r *Reducer) applyRelationAdd(e Event) error {
 
 // applyRelationRemove removes a relation edge
 func (r *Reducer) applyRelationRemove(e Event) error {
-	var payload RelationRemovePayload
+	var payload payloads.RelationRemovePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal relation.remove payload: %w", err)
 	}
@@ -250,7 +251,7 @@ func (r *Reducer) applyRelationRemove(e Event) error {
 
 // applyRelationNote sets a note on a relation
 func (r *Reducer) applyRelationNote(e Event) error {
-	var payload RelationNotePayload
+	var payload payloads.RelationNotePayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return fmt.Errorf("failed to unmarshal relation.note payload: %w", err)
 	}

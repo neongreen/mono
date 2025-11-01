@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/neongreen/mono/tk/internal/payloads"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -62,7 +63,7 @@ func editTaskStatus(db *DB, taskUID string, value string, actor string) error {
 		return err
 	}
 
-	payload := TaskStatusSetPayload{
+	payload := payloads.TaskStatusSetPayload{
 		TaskUUID: taskUID,
 		Axis:     "generic",
 		State:    value,

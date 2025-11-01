@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"testing"
 	"time"
@@ -198,7 +199,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "relation.add",
-		Payload:   marshalPayload(RelationAddPayload{Src: "task-a", Type: "blocks", Dst: "task-b", Note: "test"}),
+		Payload:   marshalPayload(payloads.RelationAddPayload{Src: "task-a", Type: "blocks", Dst: "task-b", Note: "test"}),
 	}
 
 	if err := reducer.Apply(relationAddEvent); err != nil {
@@ -219,7 +220,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 		Actor:     "alice",
 		Role:      "human",
 		Kind:      "relation.remove",
-		Payload:   marshalPayload(RelationRemovePayload{Src: "task-a", Type: "blocks", Dst: "task-b"}),
+		Payload:   marshalPayload(payloads.RelationRemovePayload{Src: "task-a", Type: "blocks", Dst: "task-b"}),
 	}
 
 	if err := reducer.Apply(relationRemoveEvent); err != nil {

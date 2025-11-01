@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"testing"
 	"time"
@@ -84,7 +85,7 @@ func TestReducer_StatusSet(t *testing.T) {
 	reducer.Apply(createEvent)
 
 	// Set status
-	statusPayload := TaskStatusSetPayload{
+	statusPayload := payloads.TaskStatusSetPayload{
 		TaskUUID: taskUID,
 		Axis:     "generic",
 		State:    "in_progress",
@@ -160,7 +161,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	reducer.Apply(createEvent)
 
 	// Agent sets status to done
-	agentPayload := TaskStatusSetPayload{
+	agentPayload := payloads.TaskStatusSetPayload{
 		TaskUUID: taskUID,
 		Axis:     "generic",
 		State:    "done",
@@ -181,7 +182,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	reducer.Apply(agentEvent)
 
 	// Human sets status to in_progress (same timestamp for concurrent claim)
-	humanPayload := TaskStatusSetPayload{
+	humanPayload := payloads.TaskStatusSetPayload{
 		TaskUUID: taskUID,
 		Axis:     "generic",
 		State:    "in_progress",
@@ -262,7 +263,7 @@ func TestReducer_NoteAdd(t *testing.T) {
 	reducer.Apply(createEvent)
 
 	// Add note
-	notePayload := TaskNoteAddPayload{
+	notePayload := payloads.TaskNoteAddPayload{
 		TaskUUID: taskUID,
 		Markdown: "This is a test note",
 	}

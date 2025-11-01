@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -110,7 +111,7 @@ Examples:
 		}
 
 		// Create relation.add event
-		payload := RelationAddPayload{
+		payload := payloads.RelationAddPayload{
 			Src:  srcUUID,
 			Type: relationType,
 			Dst:  dstUUID,
@@ -195,7 +196,7 @@ var relateRemoveCmd = &cobra.Command{
 		}
 
 		// Create relation.remove event
-		payload := RelationRemovePayload{
+		payload := payloads.RelationRemovePayload{
 			Src:  srcUUID,
 			Type: relationType,
 			Dst:  dstUUID,
@@ -278,7 +279,7 @@ var dupCmd = &cobra.Command{
 				return err
 			}
 
-			payload := RelationAddPayload{
+			payload := payloads.RelationAddPayload{
 				Src:  pair[0],
 				Type: "duplicate_of",
 				Dst:  pair[1],
