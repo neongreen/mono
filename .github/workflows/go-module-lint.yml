@@ -7,12 +7,6 @@ on:
       - "go.sum"
       - "**/*.go"
       - ".github/workflows/go-module-lint.yml"
-  pull_request:
-    paths:
-      - "go.mod"
-      - "go.sum"
-      - "**/*.go"
-      - ".github/workflows/go-module-lint.yml"
 
 jobs:
   tidy:

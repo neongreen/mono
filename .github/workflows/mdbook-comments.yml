@@ -5,10 +5,6 @@ on:
     paths:
       - "mdbook-comments/**"
       - ".github/workflows/mdbook-comments.yml"
-  pull_request:
-    paths:
-      - "mdbook-comments/**"
-      - ".github/workflows/mdbook-comments.yml"
 
 jobs:
   test:

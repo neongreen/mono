@@ -5,10 +5,6 @@ on:
     paths:
       - "diagram-dsl/**"
       - ".github/workflows/diagram-dsl.yml"
-  pull_request:
-    paths:
-      - "diagram-dsl/**"
-      - ".github/workflows/diagram-dsl.yml"
 
 jobs:
   lint:
