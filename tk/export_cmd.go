@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -88,7 +89,7 @@ Examples:
 			return err
 		}
 		if exportState == nil {
-			exportState = &ExportState{
+			exportState = &sync.ExportState{
 				RemoteName:          remoteName,
 				Space:               space,
 				LastExportedEventID: "",
@@ -118,7 +119,7 @@ Examples:
 		}
 
 		// Convert to segment events
-		segmentEvents := make([]SegmentEvent, 0, len(eventsToExport))
+		segmentEvents := make([]sync.SegmentEvent, 0, len(eventsToExport))
 		for _, e := range eventsToExport {
 			segEvent, err := eventToSegmentEvent(e, space, nodeID)
 			if err != nil {
@@ -138,7 +139,7 @@ Examples:
 			config.Sync.SegmentMaxAge,
 		)
 
-		var segmentsWritten []SegmentInfo
+		var segmentsWritten []sync.SegmentInfo
 		for _, segEvent := range segmentEvents {
 			writer.AddEvent(segEvent)
 
@@ -200,14 +201,14 @@ Examples:
 }
 
 // eventToSegmentEvent converts an Event to a SegmentEvent
-func eventToSegmentEvent(e Event, space, nodeID string) (SegmentEvent, error) {
+func eventToSegmentEvent(e Event, space, nodeID string) (sync.SegmentEvent, error) {
 	// Parse payload to the right type
 	var payload interface{}
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return SegmentEvent{}, fmt.Errorf("failed to unmarshal payload: %w", err)
+		return sync.SegmentEvent{}, fmt.Errorf("failed to unmarshal payload: %w", err)
 	}
 
-	ctx := &SegmentContext{}
+	ctx := &sync.SegmentContext{}
 	if e.RepoUUID != "" {
 		ctx.RepoUUID = &e.RepoUUID
 	}
@@ -221,7 +222,7 @@ func eventToSegmentEvent(e Event, space, nodeID string) (SegmentEvent, error) {
 		ctx.JJOpID = &e.JJOpID
 	}
 
-	return SegmentEvent{
+	return sync.SegmentEvent{
 		Schema:  "tk.event.v1",
 		ID:      e.ID,
 		Lamport: e.TS,
@@ -237,13 +238,13 @@ func eventToSegmentEvent(e Event, space, nodeID string) (SegmentEvent, error) {
 }
 
 // loadExportState loads the export state from a file
-func loadExportState(path string) (*ExportState, error) {
+func loadExportState(path string) (*sync.ExportState, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	var state ExportState
+	var state sync.ExportState
 	if err := json.Unmarshal(data, &state); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal export state: %w", err)
 	}
@@ -252,7 +253,7 @@ func loadExportState(path string) (*ExportState, error) {
 }
 
 // saveExportState saves the export state to a file
-func saveExportState(path string, state *ExportState) error {
+func saveExportState(path string, state *sync.ExportState) error {
 	// Ensure directory exists
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -272,7 +273,7 @@ func saveExportState(path string, state *ExportState) error {
 }
 
 // updateLocalIndex updates the local index mirror with new segments
-func updateLocalIndex(indexPath string, newSegments []SegmentInfo) error {
+func updateLocalIndex(indexPath string, newSegments []sync.SegmentInfo) error {
 	// Ensure directory exists
 	dir := filepath.Dir(indexPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -280,7 +281,7 @@ func updateLocalIndex(indexPath string, newSegments []SegmentInfo) error {
 	}
 
 	// Load existing index or create new one
-	var index IndexFile
+	var index sync.IndexFile
 	if data, err := os.ReadFile(indexPath); err == nil {
 		if err := json.Unmarshal(data, &index); err != nil {
 			return fmt.Errorf("failed to unmarshal index: %w", err)
@@ -292,10 +293,10 @@ func updateLocalIndex(indexPath string, newSegments []SegmentInfo) error {
 		if len(parts) >= 2 {
 			space = parts[len(parts)-2]
 		}
-		index = IndexFile{
+		index = sync.IndexFile{
 			Schema:   "tk.index.v1",
 			Space:    space,
-			Segments: []SegmentInfo{},
+			Segments: []sync.SegmentInfo{},
 		}
 	}
 

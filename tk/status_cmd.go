@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -95,7 +96,7 @@ var statusSyncCmd = &cobra.Command{
 				watermarkFile := filepath.Join(stateDir, "ingest_watermarks", remoteName, space+".json")
 				lastSync := "never"
 				if data, err := os.ReadFile(watermarkFile); err == nil {
-					var watermark IngestWatermark
+					var watermark sync.IngestWatermark
 					if err := json.Unmarshal(data, &watermark); err == nil {
 						elapsed := time.Since(watermark.UpdatedAt)
 						lastSync = formatDuration(elapsed)

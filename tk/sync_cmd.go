@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -84,10 +85,10 @@ Examples:
 
 		// If remote index doesn't exist, create it
 		if remoteIndex == nil {
-			remoteIndex = &IndexFile{
+			remoteIndex = &sync.IndexFile{
 				Schema:   "tk.index.v1",
 				Space:    space,
-				Segments: []SegmentInfo{},
+				Segments: []sync.SegmentInfo{},
 			}
 		}
 
@@ -97,7 +98,7 @@ Examples:
 			remoteSegmentPaths[seg.Rel] = true
 		}
 
-		var segmentsToPush []SegmentInfo
+		var segmentsToPush []sync.SegmentInfo
 		for _, seg := range localIndex.Segments {
 			if !remoteSegmentPaths[seg.Rel] {
 				segmentsToPush = append(segmentsToPush, seg)
@@ -350,13 +351,13 @@ Examples:
 }
 
 // loadIndexFile loads an index file
-func loadIndexFile(path string) (*IndexFile, error) {
+func loadIndexFile(path string) (*sync.IndexFile, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	var index IndexFile
+	var index sync.IndexFile
 	if err := json.Unmarshal(data, &index); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal index: %w", err)
 	}
@@ -365,7 +366,7 @@ func loadIndexFile(path string) (*IndexFile, error) {
 }
 
 // saveIndexFile saves an index file
-func saveIndexFile(path string, index *IndexFile) error {
+func saveIndexFile(path string, index *sync.IndexFile) error {
 	// Ensure directory exists
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -385,17 +386,17 @@ func saveIndexFile(path string, index *IndexFile) error {
 }
 
 // reconstructIndex scans a segments directory and reconstructs the index
-func reconstructIndex(remotePath, space string) (*IndexFile, error) {
+func reconstructIndex(remotePath, space string) (*sync.IndexFile, error) {
 	segmentsDir := filepath.Join(remotePath, space, "segments")
 	if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
-		return &IndexFile{
+		return &sync.IndexFile{
 			Schema:   "tk.index.v1",
 			Space:    space,
-			Segments: []SegmentInfo{},
+			Segments: []sync.SegmentInfo{},
 		}, nil
 	}
 
-	var segments []SegmentInfo
+	var segments []sync.SegmentInfo
 	err := filepath.Walk(segmentsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -413,7 +414,7 @@ func reconstructIndex(remotePath, space string) (*IndexFile, error) {
 				return fmt.Errorf("failed to calculate SHA256 for %s: %w", path, err)
 			}
 
-			segments = append(segments, SegmentInfo{
+			segments = append(segments, sync.SegmentInfo{
 				Rel:    relPath,
 				SHA256: sha,
 				Size:   info.Size(),
@@ -426,7 +427,7 @@ func reconstructIndex(remotePath, space string) (*IndexFile, error) {
 		return nil, err
 	}
 
-	return &IndexFile{
+	return &sync.IndexFile{
 		Schema:   "tk.index.v1",
 		Space:    space,
 		Segments: segments,

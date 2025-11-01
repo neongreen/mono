@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/sync"
 )
 
 func TestNewSegmentWriter(t *testing.T) {
@@ -46,7 +48,7 @@ func TestNewSegmentWriter(t *testing.T) {
 func TestSegmentWriter_AddEvent(t *testing.T) {
 	sw := NewSegmentWriter("/tmp/test", "personal", "node123", 1, 1024*1024, 60)
 
-	event := SegmentEvent{
+	event := sync.SegmentEvent{
 		Schema:  "v1",
 		ID:      "event1",
 		Lamport: 1,
@@ -79,7 +81,7 @@ func TestSegmentWriter_ShouldRotate_BySize(t *testing.T) {
 
 	// Add enough events to exceed maxBytes
 	for i := 0; i < 10; i++ {
-		event := SegmentEvent{
+		event := sync.SegmentEvent{
 			Schema:  "v1",
 			ID:      "event" + string(rune(i)),
 			Lamport: int64(i),
@@ -105,7 +107,7 @@ func TestSegmentWriter_ShouldRotate_ByAge(t *testing.T) {
 	// Set start time to 2 seconds ago
 	sw.startTime = time.Now().Add(-2 * time.Second)
 
-	event := SegmentEvent{
+	event := sync.SegmentEvent{
 		Schema:  "v1",
 		ID:      "event1",
 		Lamport: 1,
@@ -128,7 +130,7 @@ func TestSegmentWriter_WriteSegment(t *testing.T) {
 	tempDir := t.TempDir()
 	sw := NewSegmentWriter(tempDir, "personal", "node123", 1, 1024*1024, 3600)
 
-	event := SegmentEvent{
+	event := sync.SegmentEvent{
 		Schema:  "v1",
 		ID:      "event1",
 		Lamport: 1,

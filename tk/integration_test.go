@@ -3,6 +3,8 @@ package main
 import (
 	"testing"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/sync"
 )
 
 // TestRelationsIntegration tests a realistic workflow with multiple tasks and relations
@@ -106,8 +108,8 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	// Finalize relations with config
-	config := &Config{
-		Blocking: BlockingConfig{
+	config := &sync.Config{
+		Blocking: sync.BlockingConfig{
 			BlockingAxis: "generic",
 			DoneStates:   []string{"done"},
 		},
@@ -288,8 +290,8 @@ func TestRelationRemovalIntegration(t *testing.T) {
 	}
 	reducer.Apply(addEvent)
 
-	config := &Config{
-		Blocking: BlockingConfig{
+	config := &sync.Config{
+		Blocking: sync.BlockingConfig{
 			BlockingAxis: "generic",
 			DoneStates:   []string{"done"},
 		},

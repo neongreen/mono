@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -54,7 +55,7 @@ Examples:
 		}
 
 		// Add remote
-		config.Remotes[name] = RemoteConfig{
+		config.Remotes[name] = sync.RemoteConfig{
 			Type:   remoteType,
 			Path:   path,
 			Spaces: []string{"personal"},
