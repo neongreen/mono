@@ -156,8 +156,8 @@ func runCommand(cmd *cobra.Command, args []string) error {
 }
 
 func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) error {
-	// Get changes to process
-	changes, err := getChangeList(revset, ".")
+	// Get changes to process (exclude root)
+	changes, err := getChangeList(fmt.Sprintf("(%s) ~ root()", revset), ".")
 	if err != nil {
 		return fmt.Errorf("failed to get change list: %w", err)
 	}
