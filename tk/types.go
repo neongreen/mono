@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // Event represents an immutable event in the event log
@@ -74,7 +76,7 @@ type Task struct {
 	Aliases   []string              `json:"aliases,omitempty"` // Previous IDs (when task was moved)
 	Title     string                `json:"title"`
 	Axes      map[string]AxisStatus `json:"axes"`
-	Notes     []Note                `json:"notes"`
+	Notes     []types.Note                `json:"notes"`
 	CreatedBy string                `json:"created_by"`
 	CreatedAt time.Time             `json:"created_at"`
 	Relations *Relations            `json:"relations,omitempty"` // Task relations
@@ -113,11 +115,6 @@ type Blocker struct {
 }
 
 // Note represents a note on a task
-type Note struct {
-	Markdown  string    `json:"markdown"`
-	Actor     string    `json:"actor"`
-	Timestamp time.Time `json:"timestamp"`
-}
 
 // Role authority levels (higher is more authoritative)
 var roleAuthority = map[string]int{

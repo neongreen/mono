@@ -1,11 +1,13 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"fmt"
-	"github.com/neongreen/mono/tk/internal/sync"
 	"sort"
+
+	"github.com/neongreen/mono/tk/internal/payloads"
+	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // Reducer reconstructs task state from events
@@ -123,7 +125,7 @@ func (r *Reducer) applyTaskNoteAdd(e Event) error {
 		return fmt.Errorf("task UUID not found: %s", taskUUID)
 	}
 
-	note := Note{
+	note := types.Note{
 		Markdown:  payload.Markdown,
 		Actor:     e.Actor,
 		Timestamp: e.CreatedAt, // Use actual creation time from event

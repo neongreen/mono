@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // Reducer Functions
@@ -85,7 +87,7 @@ func (r *Reducer) applyTaskCreated(e Event) error {
 		Aliases:   []string{},
 		Title:     payload.Title,
 		Axes:      make(map[string]AxisStatus),
-		Notes:     []Note{},
+		Notes:     []types.Note{},
 		CreatedBy: payload.CreatedBy,
 		CreatedAt: e.CreatedAt,
 	}
