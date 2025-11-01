@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/neongreen/mono/tk/internal/segment"
 	"os"
 	"path/filepath"
 	"testing"
@@ -91,7 +92,7 @@ func TestSegmentRoundTrip(t *testing.T) {
 	}
 
 	// Read segment back
-	reader := NewSegmentReader(segPath)
+	reader := segment.NewSegmentReader(segPath)
 	events, err := reader.ReadEvents()
 	if err != nil {
 		t.Fatalf("failed to read segment: %v", err)

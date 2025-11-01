@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
@@ -75,7 +76,7 @@ var debugEventsCmd = &cobra.Command{
 			fmt.Printf("Scanning %d segment files in space '%s'...\n", len(segmentFiles), space)
 
 			for _, segmentFile := range segmentFiles {
-				reader := NewSegmentReader(segmentFile)
+				reader := segment.NewSegmentReader(segmentFile)
 				events, err := reader.ReadEvents()
 				if err != nil {
 					fmt.Printf("Warning: failed to read %s: %v\n", segmentFile, err)

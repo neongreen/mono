@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
@@ -60,7 +61,7 @@ Examples:
 
 // ingestFile ingests events from a single segment file
 func ingestFile(db *DB, path string) error {
-	reader := NewSegmentReader(path)
+	reader := segment.NewSegmentReader(path)
 	events, err := reader.ReadEvents()
 	if err != nil {
 		return fmt.Errorf("failed to read segment file: %w", err)
@@ -185,7 +186,7 @@ func ingestRemoteSpace(db *DB, remoteName string, remote sync.RemoteConfig, spac
 	totalDuplicates := 0
 
 	for _, segmentFile := range segmentFiles {
-		reader := NewSegmentReader(segmentFile)
+		reader := segment.NewSegmentReader(segmentFile)
 		events, err := reader.ReadEvents()
 		if err != nil {
 			fmt.Printf("Warning: failed to read %s: %v\n", segmentFile, err)

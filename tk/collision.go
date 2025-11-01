@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"os"
 	"path/filepath"
@@ -50,7 +51,7 @@ func (ncc *NodeCollisionChecker) CheckSegment(segmentPath string) error {
 		return nil
 	}
 
-	reader := NewSegmentReader(segmentPath)
+	reader := segment.NewSegmentReader(segmentPath)
 	events, err := reader.ReadEvents()
 	if err != nil {
 		return fmt.Errorf("failed to read segment: %w", err)
