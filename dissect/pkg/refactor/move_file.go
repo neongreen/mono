@@ -71,10 +71,11 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 		// Update imports in all files that reference the old package
 		updatedCount := 0
 		for _, goFile := range allGoFiles {
-			// Skip the moved file itself
+			// Skip the moved file itself (at both old and new locations)
 			absGoFile, _ := filepath.Abs(goFile)
+			absSourceFile, _ := filepath.Abs(sourceFile)
 			absTargetFile, _ := filepath.Abs(targetFile)
-			if absGoFile == absTargetFile {
+			if absGoFile == absSourceFile || absGoFile == absTargetFile {
 				continue
 			}
 
