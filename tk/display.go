@@ -156,11 +156,9 @@ func outputTasksJSON(db *DB, tasks []*types.Task, groupBy string) error {
 		}
 
 		// Initialize all projects in the grouped map
-		projectUIDToName := make(map[string]string)
-		for projectUID, displayName := range allProjects {
+		for _, displayName := range allProjects {
 			grouped[displayName] = []*types.Task{}
 			groupOrder = append(groupOrder, displayName)
-			projectUIDToName[projectUID] = displayName
 		}
 
 		// Now add tasks to their respective groups
