@@ -30,6 +30,7 @@ jobs:
           version: "0.19.4"
           verb: call
           args: tk-tests --format=testname
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
       - name: Display test summary
         if: success()
