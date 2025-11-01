@@ -104,6 +104,28 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 		}
 	}
 
+	// Check for unexported dependencies BEFORE moving (if changing packages)
+	// Simple check: if the directory changes, assume package changes
+	targetDir := filepath.Dir(targetFile)
+
+	absSourceDir, _ := filepath.Abs(sourceDir)
+	absTargetDir, _ := filepath.Abs(targetDir)
+
+	packageWillChange := absSourceDir != absTargetDir
+
+	if packageWillChange && sourcePkg != nil {
+		// Analyze dependencies
+		unexportedDeps, err := analyzeMoveDependencies(sourceFile, sourcePkg)
+		if err != nil {
+			slog.Warn("Failed to analyze dependencies", "error", err)
+		} else if len(unexportedDeps) > 0 {
+			// Format relative paths for error message
+			relSourceFile, _ := filepath.Rel(moduleRoot, sourceFile)
+			relTargetFile, _ := filepath.Rel(moduleRoot, targetFile)
+			return formatDependencyError(sourceFile, targetFile, unexportedDeps, relSourceFile, relTargetFile)
+		}
+	}
+
 	// Move the physical file
 	slog.Debug("Moving file", "from", sourceFile, "to", targetFile)
 	if err := utils.MoveFile(sourceFile, targetFile); err != nil {

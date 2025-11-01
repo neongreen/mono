@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/neongreen/mono/dissect/pkg/refactor"
 )
 
 // TestMoveFile tests basic file moving/renaming functionality
@@ -355,5 +357,412 @@ func main() {
 	// Check for qualified references (may be on different lines due to formatting)
 	if !strings.Contains(mainStr, "cmd.") {
 		t.Errorf("Expected main.go to have qualified references with cmd., got:\n%s", mainStr)
+	}
+}
+
+// TestMoveFileBlocksOnUnexportedFuncDeps tests that moving a file with unexported function dependencies is blocked
+func TestMoveFileBlocksOnUnexportedFuncDeps(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_deps_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create helper.go with unexported function
+	helperFile := filepath.Join(tmpDir, "helper.go")
+	helperContent := `package main
+
+func helper() string {
+	return "help"
+}
+`
+	err = os.WriteFile(helperFile, []byte(helperContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write helper file: %v", err)
+	}
+
+	// Create caller.go that uses helper
+	callerFile := filepath.Join(tmpDir, "caller.go")
+	callerContent := `package main
+
+func main() {
+	helper()
+}
+`
+	err = os.WriteFile(callerFile, []byte(callerContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write caller file: %v", err)
+	}
+
+	// Initialize go.mod
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	targetFile := filepath.Join(tmpDir, "subdir", "caller.go")
+
+	// Call the refactor function directly to get the error
+	err = refactor.MoveFileWithImportUpdates(callerFile, targetFile, tmpDir)
+
+	// Assert: Error contains "cannot move" and "unexported"
+	if err == nil {
+		t.Fatal("Expected error when moving file with unexported dependencies, got nil")
+	}
+
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "cannot move") {
+		t.Errorf("Expected error to contain 'cannot move', got: %v", errMsg)
+	}
+
+	if !strings.Contains(errMsg, "unexported") {
+		t.Errorf("Expected error to contain 'unexported', got: %v", errMsg)
+	}
+
+	// Assert: Error mentions "helper"
+	if !strings.Contains(errMsg, "helper") {
+		t.Errorf("Expected error to mention 'helper' symbol, got: %v", errMsg)
+	}
+
+	// Check that source file still exists (move was blocked)
+	if _, err := os.Stat(callerFile); os.IsNotExist(err) {
+		t.Errorf("Source file was moved despite unexported dependencies")
+	}
+
+	// Check that target file was not created
+	if _, err := os.Stat(targetFile); !os.IsNotExist(err) {
+		t.Errorf("Target file was created despite unexported dependencies")
+	}
+}
+
+// TestMoveFileBlocksOnUnexportedVarDeps tests that moving a file with unexported variable dependencies is blocked
+func TestMoveFileBlocksOnUnexportedVarDeps(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_deps_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create config.go with unexported var
+	configFile := filepath.Join(tmpDir, "config.go")
+	configContent := `package main
+
+var dbPath = "/tmp/db"
+`
+	err = os.WriteFile(configFile, []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	// Create main.go that uses dbPath
+	mainFile := filepath.Join(tmpDir, "main.go")
+	mainContent := `package main
+
+import "fmt"
+
+func main() {
+	fmt.Println(dbPath)
+}
+`
+	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write main file: %v", err)
+	}
+
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	targetFile := filepath.Join(tmpDir, "cmd", "main.go")
+
+	// Call refactor function directly
+	err = refactor.MoveFileWithImportUpdates(mainFile, targetFile, tmpDir)
+
+	// Assert: Error mentions "dbPath" variable
+	if err == nil {
+		t.Fatal("Expected error when moving file with unexported variable dependency, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "dbPath") {
+		t.Errorf("Expected error to mention 'dbPath', got: %v", err)
+	}
+
+	// Check that source file still exists
+	if _, err := os.Stat(mainFile); os.IsNotExist(err) {
+		t.Errorf("Source file was moved despite unexported variable dependency")
+	}
+
+	// Check that target was not created
+	if _, err := os.Stat(targetFile); !os.IsNotExist(err) {
+		t.Errorf("Target file was created despite unexported variable dependency")
+	}
+}
+
+// TestMoveFileBlocksOnUnexportedTypeDeps tests that moving a file with unexported type dependencies is blocked
+func TestMoveFileBlocksOnUnexportedTypeDeps(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_deps_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create types.go with unexported type
+	typesFile := filepath.Join(tmpDir, "types.go")
+	typesContent := `package main
+
+type connection struct {
+	addr string
+}
+`
+	err = os.WriteFile(typesFile, []byte(typesContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write types file: %v", err)
+	}
+
+	// Create client.go that uses connection
+	clientFile := filepath.Join(tmpDir, "client.go")
+	clientContent := `package main
+
+func dial() *connection {
+	return &connection{addr: "localhost"}
+}
+`
+	err = os.WriteFile(clientFile, []byte(clientContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write client file: %v", err)
+	}
+
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	targetFile := filepath.Join(tmpDir, "pkg", "client.go")
+
+	// Call refactor function directly
+	err = refactor.MoveFileWithImportUpdates(clientFile, targetFile, tmpDir)
+
+	// Assert: Error mentions "connection" type
+	if err == nil {
+		t.Fatal("Expected error when moving file with unexported type dependency, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "connection") {
+		t.Errorf("Expected error to mention 'connection' type, got: %v", err)
+	}
+
+	// Check that source file still exists
+	if _, err := os.Stat(clientFile); os.IsNotExist(err) {
+		t.Errorf("Source file was moved despite unexported type dependency")
+	}
+
+	// Check that target was not created
+	if _, err := os.Stat(targetFile); !os.IsNotExist(err) {
+		t.Errorf("Target file was created despite unexported type dependency")
+	}
+}
+
+// TestMoveFileAllowsExportedDeps tests that moving a file with only exported dependencies succeeds
+func TestMoveFileAllowsExportedDeps(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_deps_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create api.go with exported function
+	apiFile := filepath.Join(tmpDir, "api.go")
+	apiContent := `package main
+
+func Helper() string {
+	return "help"
+}
+`
+	err = os.WriteFile(apiFile, []byte(apiContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write api file: %v", err)
+	}
+
+	// Create utils.go that uses Helper
+	utilsFile := filepath.Join(tmpDir, "utils.go")
+	utilsContent := `package main
+
+func UseHelper() {
+	Helper()
+}
+`
+	err = os.WriteFile(utilsFile, []byte(utilsContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write utils file: %v", err)
+	}
+
+	// Create main.go that will stay in the main package
+	mainFile := filepath.Join(tmpDir, "main.go")
+	mainContent := `package main
+
+func main() {
+	UseHelper()
+}
+`
+	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write main file: %v", err)
+	}
+
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	// Move utils.go to subdir (it references Helper which is exported)
+	targetFile := filepath.Join(tmpDir, "subdir", "utils.go")
+
+	// Call refactor function directly
+	err = refactor.MoveFileWithImportUpdates(utilsFile, targetFile, tmpDir)
+
+	// Assert: Move succeeds (exported symbols are fine to reference across packages)
+	if err != nil {
+		t.Fatalf("Expected move to succeed with exported dependencies, got error: %v", err)
+	}
+
+	// Verify move succeeded
+	if _, err := os.Stat(utilsFile); !os.IsNotExist(err) {
+		t.Errorf("Source file still exists after move with exported deps")
+	}
+
+	if _, err := os.Stat(targetFile); err != nil {
+		t.Fatalf("Target file does not exist: %v", err)
+	}
+
+	// Note: This test doesn't check if the code builds because auto-qualifying
+	// references FROM the moved file to the original package is not yet implemented.
+	// The test just verifies that moves with exported dependencies are not blocked.
+}
+
+// TestMoveFileBlocksOnMultipleUnexportedDeps tests error lists multiple dependencies
+func TestMoveFileBlocksOnMultipleUnexportedDeps(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_deps_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create file with 3 unexported functions
+	helpersFile := filepath.Join(tmpDir, "helpers.go")
+	helpersContent := `package main
+
+func helper1() {}
+func helper2() {}
+func helper3() {}
+`
+	err = os.WriteFile(helpersFile, []byte(helpersContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write helpers file: %v", err)
+	}
+
+	// Create caller using all 3
+	callerFile := filepath.Join(tmpDir, "caller.go")
+	callerContent := `package main
+
+func main() {
+	helper1()
+	helper2()
+	helper3()
+}
+`
+	err = os.WriteFile(callerFile, []byte(callerContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write caller file: %v", err)
+	}
+
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	targetFile := filepath.Join(tmpDir, "pkg", "caller.go")
+
+	// Call refactor function directly
+	err = refactor.MoveFileWithImportUpdates(callerFile, targetFile, tmpDir)
+
+	// Assert: Error lists all 3 dependencies
+	if err == nil {
+		t.Fatal("Expected error when moving file with multiple unexported dependencies, got nil")
+	}
+
+	errMsg := err.Error()
+	if !strings.Contains(errMsg, "helper1") || !strings.Contains(errMsg, "helper2") || !strings.Contains(errMsg, "helper3") {
+		t.Errorf("Expected error to list all 3 dependencies (helper1, helper2, helper3), got: %v", errMsg)
+	}
+
+	// Check that source file still exists
+	if _, err := os.Stat(callerFile); os.IsNotExist(err) {
+		t.Errorf("Source file was moved despite multiple unexported dependencies")
+	}
+}
+
+// TestMoveFileWithinSamePackageIgnoresDeps tests that moves within same package succeed
+func TestMoveFileWithinSamePackageIgnoresDeps(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_deps_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create helper and caller in same package
+	helperFile := filepath.Join(tmpDir, "helper.go")
+	helperContent := `package main
+
+func helper() {}
+`
+	err = os.WriteFile(helperFile, []byte(helperContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write helper file: %v", err)
+	}
+
+	callerFile := filepath.Join(tmpDir, "caller.go")
+	callerContent := `package main
+
+func main() {
+	helper()
+}
+`
+	err = os.WriteFile(callerFile, []byte(callerContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write caller file: %v", err)
+	}
+
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	// Move within same package (just rename)
+	targetFile := filepath.Join(tmpDir, "renamed.go")
+
+	// Call refactor function directly
+	err = refactor.MoveFileWithImportUpdates(callerFile, targetFile, tmpDir)
+
+	// Assert: Move succeeds (same package = OK)
+	if err != nil {
+		t.Fatalf("Expected same-package move to succeed, got error: %v", err)
+	}
+
+	// Verify move succeeded (same package, unexported access is OK)
+	if _, err := os.Stat(callerFile); !os.IsNotExist(err) {
+		t.Errorf("Source file still exists after same-package move")
+	}
+
+	if _, err := os.Stat(targetFile); err != nil {
+		t.Fatalf("Target file does not exist: %v", err)
+	}
+
+	// Verify it builds
+	buildCmd := exec.Command("go", "build", ".")
+	buildCmd.Dir = tmpDir
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		t.Errorf("Build failed after same-package move: %v\nOutput: %s", err, output)
 	}
 }
