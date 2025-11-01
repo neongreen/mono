@@ -31,11 +31,13 @@
       },
       {
         "command": "tk.editTitle",
-        "title": "Edit Title"
+        "title": "Edit Title",
+        "icon": "$(edit)"
       },
       {
         "command": "tk.rotateStatus",
-        "title": "Status"
+        "title": "Status",
+        "icon": "$(circle-outline)"
       },
       {
         "command": "tk.createTask",
@@ -47,22 +49,18 @@
       "view/item/context": [
         {
           "command": "tk.editTitle",
-          "when": "view == tkExplorer && viewItem == tkTask"
+          "when": "view == tkExplorer && viewItem == tkTask",
+          "group": "inline"
         },
         {
           "command": "tk.rotateStatus",
-          "when": "view == tkExplorer && viewItem == tkTask"
+          "when": "view == tkExplorer && viewItem == tkTask",
+          "group": "inline"
         },
         {
           "command": "tk.createTask",
           "when": "view == tkExplorer && viewItem == tkGroup",
           "group": "inline"
-        }
-      ],
-      "view/item/inline": [
-        {
-          "command": "tk.rotateStatus",
-          "when": "view == tkExplorer && viewItem == tkTask"
         }
       ]
     },

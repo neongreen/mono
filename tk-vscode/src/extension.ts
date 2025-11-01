@@ -309,8 +309,6 @@ async function rotateStatus(provider: TkProvider, item: TaskTreeItem): Promise<v
       env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
     });
 
-    const statusText = nextStatus === '' ? 'no status' : nextStatus;
-    void vscode.window.showInformationMessage(`Updated status for ${taskId} to ${statusText}`);
     await provider.refresh();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -366,7 +364,6 @@ async function editTitle(provider: TkProvider, item: TaskTreeItem): Promise<void
       env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
     });
 
-    void vscode.window.showInformationMessage(`Updated title for ${taskId}`);
     await provider.refresh();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -410,14 +407,13 @@ async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<vo
     }
 
     // Create task with prefix matching the group name
-    const args = ['add', `${groupName}:${taskTitle}`];
+    const args = ['new', `${groupName}:${taskTitle}`];
 
     await execFileAsync(binary, args, {
       cwd,
       env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
     });
 
-    void vscode.window.showInformationMessage(`Created task in group "${groupName}"`);
     await provider.refresh();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
