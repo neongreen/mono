@@ -47,10 +47,9 @@ class TaskTreeItem extends vscode.TreeItem {
     const genericAxis = task.axes?.['generic'];
     const state = genericAxis?.effective ?? 'unknown';
 
+    // Show only the title, without status in brackets
     if (task.title && task.title !== label) {
-      this.description = `${task.title} [${state}]`;
-    } else {
-      this.description = `[${state}]`;
+      this.description = task.title;
     }
     const blocked = task.blocked ? 'yes' : 'no';
 
@@ -96,10 +95,10 @@ class TaskTreeItem extends vscode.TreeItem {
       }
     }
 
-    // Make the icon clickable to rotate status
+    // Make Enter key trigger title edit
     this.command = {
-      command: 'tk.rotateStatus',
-      title: 'Rotate Status',
+      command: 'tk.editTitle',
+      title: 'Edit Title',
       arguments: [this],
     };
   }
