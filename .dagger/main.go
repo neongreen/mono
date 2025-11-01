@@ -26,32 +26,46 @@ import (
 type Dagger struct{}
 
 // TkTests runs the tk package tests and returns the standard output.
-func (m *Dagger) TkTests(ctx context.Context) error {
+func (m *Dagger) TkTests(ctx context.Context) (string, error) {
 	return m.goTest(ctx, "tk", "./tk/...")
 }
 
 // DissectTests runs the dissect package tests and returns the standard output.
-func (m *Dagger) DissectTests(ctx context.Context) error {
+func (m *Dagger) DissectTests(ctx context.Context) (string, error) {
 	return m.goTest(ctx, "dissect", "./dissect/...")
 }
 
-// `All` runs the tk and dissect test suites concurrently.
+// TomlTests runs the lib/toml package tests and returns the standard output.
+func (m *Dagger) TomlTests(ctx context.Context) (string, error) {
+	return m.goTest(ctx, "toml", "./lib/toml/...")
+}
+
+// `All` runs the tk, dissect, and toml test suites concurrently.
 func (m *Dagger) All(ctx context.Context) error {
 	p := pool.New().WithErrors().WithContext(ctx)
 
-	p.Go(m.TkTests)
-	p.Go(m.DissectTests)
+	p.Go(func(ctx context.Context) error {
+		_, err := m.TkTests(ctx)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.DissectTests(ctx)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.TomlTests(ctx)
+		return err
+	})
 
 	return p.Wait()
 }
 
-func (m *Dagger) goTest(ctx context.Context, label string, patterns ...string) error {
-	args := append([]string{"go", "test"}, patterns...)
-	m.testContainer().
+func (m *Dagger) goTest(ctx context.Context, label string, patterns ...string) (string, error) {
+	args := append([]string{"gotestsum", "--format", "pkgname", "--"}, patterns...)
+	return m.testContainer().
 		WithLabel("suite", fmt.Sprintf("%s-tests", label)).
 		WithExec(args).
 		Stdout(ctx)
-	return nil
 }
 
 // testContainer prepares a Go build container with the monorepo mounted.
@@ -66,5 +80,6 @@ func (m *Dagger) testContainer() *dagger.Container {
 		WithWorkdir("/src").
 		WithEnvVariable("GOPRIVATE", "github.com/neongreen/mono").
 		WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono").
-		WithEnvVariable("GOWORK", "off")
+		WithEnvVariable("GOWORK", "off").
+		WithExec([]string{"go", "install", "gotest.tools/gotestsum@latest"})
 }
