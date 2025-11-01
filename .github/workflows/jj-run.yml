@@ -37,7 +37,7 @@ jobs:
       - name: Install jujutsu
         run: |
           # Install jj from GitHub releases
-          curl -L https://github.com/martinvonz/jj/releases/download/v0.34.0/jj-v0.34.0-x86_64-unknown-linux-musl.tar.gz | tar xz
+          curl -L https://github.com/jj-vcs/jj/releases/download/v0.34.0/jj-v0.34.0-x86_64-unknown-linux-musl.tar.gz | tar xz
           sudo mv jj /usr/local/bin/
           jj --version
 
