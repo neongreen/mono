@@ -86,7 +86,7 @@ func (r *Reducer) applyTaskCreated(e Event) error {
 		TaskID:    taskUID, // Placeholder, will be replaced by display ID
 		Aliases:   []string{},
 		Title:     payload.Title,
-		Axes:      make(map[string]AxisStatus),
+		Axes:      make(map[string]types.AxisStatus),
 		Notes:     []types.Note{},
 		CreatedBy: payload.CreatedBy,
 		CreatedAt: e.CreatedAt,

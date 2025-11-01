@@ -1,10 +1,12 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/payloads"
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestReducer_TaskCreated(t *testing.T) {
@@ -211,7 +213,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 	}
 
 	// Check tentative flags
-	var humanClaim, agentClaim *Claim
+	var humanClaim, agentClaim *types.Claim
 	for i := range axis.Claims {
 		if axis.Claims[i].Role == "human" {
 			humanClaim = &axis.Claims[i]
@@ -314,7 +316,7 @@ func TestGetRoleAuthority(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.role, func(t *testing.T) {
-			authority := GetRoleAuthority(tt.role)
+			authority := types.GetRoleAuthority(tt.role)
 			if authority != tt.expected {
 				t.Errorf("Expected authority %d for role %s, got %d", tt.expected, tt.role, authority)
 			}

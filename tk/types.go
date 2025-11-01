@@ -56,18 +56,8 @@ type Event struct {
 // Note text
 
 // Claim represents a status assertion by an actor
-type Claim struct {
-	State     string `json:"state"`
-	Role      string `json:"role"`
-	Tentative bool   `json:"tentative"`
-	TS        int64  `json:"ts"`
-}
 
 // AxisStatus represents the status claims for a single axis
-type AxisStatus struct {
-	Effective string  `json:"effective"`
-	Claims    []Claim `json:"claims"`
-}
 
 // Task represents the current state of a task, derived from events
 type Task struct {
@@ -75,13 +65,13 @@ type Task struct {
 	TaskID    string                `json:"task_id"`           // Current display ID
 	Aliases   []string              `json:"aliases,omitempty"` // Previous IDs (when task was moved)
 	Title     string                `json:"title"`
-	Axes      map[string]AxisStatus `json:"axes"`
+	Axes      map[string]types.AxisStatus `json:"axes"`
 	Notes     []types.Note          `json:"notes"`
 	CreatedBy string                `json:"created_by"`
 	CreatedAt time.Time             `json:"created_at"`
 	Relations *Relations            `json:"relations,omitempty"` // Task relations
 	Blocked   bool                  `json:"blocked,omitempty"`   // Is this task blocked
-	Blockers  []types.Blocker             `json:"blockers,omitempty"`  // List of blocking tasks
+	Blockers  []types.Blocker       `json:"blockers,omitempty"`  // List of blocking tasks
 }
 
 // Relations represents all relations for a task
@@ -122,10 +112,3 @@ var roleAuthority = map[string]int{
 	"bot":   1,
 }
 
-// GetRoleAuthority returns the authority level for a role
-func GetRoleAuthority(role string) int {
-	if auth, ok := roleAuthority[role]; ok {
-		return auth
-	}
-	return 0
-}

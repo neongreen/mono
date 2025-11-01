@@ -1,10 +1,12 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/payloads"
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestRelationGraph_AddRemove(t *testing.T) {
@@ -107,7 +109,7 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 		TaskUUID: "task-a",
 		TaskID:   "tk-1",
 		Title:    "Task A",
-		Axes: map[string]AxisStatus{
+		Axes: map[string]types.AxisStatus{
 			"generic": {Effective: "in_progress"},
 		},
 	}
@@ -115,7 +117,7 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 		TaskUUID: "task-b",
 		TaskID:   "tk-2",
 		Title:    "Task B",
-		Axes: map[string]AxisStatus{
+		Axes: map[string]types.AxisStatus{
 			"generic": {Effective: "in_progress"},
 		},
 	}
@@ -123,7 +125,7 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 		TaskUUID: "task-c",
 		TaskID:   "tk-3",
 		Title:    "Task C",
-		Axes: map[string]AxisStatus{
+		Axes: map[string]types.AxisStatus{
 			"generic": {Effective: "done"},
 		},
 	}

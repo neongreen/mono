@@ -81,13 +81,13 @@ func (r *Reducer) applyTaskStatusSet(e Event) error {
 	// Get or create axis status
 	axis, ok := task.Axes[payload.Axis]
 	if !ok {
-		axis = AxisStatus{
-			Claims: []Claim{},
+		axis = types.AxisStatus{
+			Claims: []types.Claim{},
 		}
 	}
 
 	// Add new claim
-	newClaim := Claim{
+	newClaim := types.Claim{
 		State:     payload.State,
 		Role:      payload.Role,
 		Tentative: false,
@@ -136,13 +136,13 @@ func (r *Reducer) applyTaskNoteAdd(e Event) error {
 }
 
 // resolveEffectiveStatus resolves which claim is effective based on authority
-func (r *Reducer) resolveEffectiveStatus(axis *AxisStatus) {
+func (r *Reducer) resolveEffectiveStatus(axis *types.AxisStatus) {
 	if len(axis.Claims) == 0 {
 		return
 	}
 
 	// Group claims by state to find concurrent claims
-	stateGroups := make(map[string][]Claim)
+	stateGroups := make(map[string][]types.Claim)
 	for _, claim := range axis.Claims {
 		stateGroups[claim.State] = append(stateGroups[claim.State], claim)
 	}
@@ -157,7 +157,7 @@ func (r *Reducer) resolveEffectiveStatus(axis *AxisStatus) {
 	}
 
 	// Get all claims at the latest timestamp (concurrent claims)
-	var concurrentClaims []Claim
+	var concurrentClaims []types.Claim
 	for i, claim := range axis.Claims {
 		if claim.TS == latestTS {
 			concurrentClaims = append(concurrentClaims, axis.Claims[i])
@@ -166,7 +166,7 @@ func (r *Reducer) resolveEffectiveStatus(axis *AxisStatus) {
 
 	// Sort by authority (highest first)
 	sort.Slice(concurrentClaims, func(i, j int) bool {
-		return GetRoleAuthority(concurrentClaims[i].Role) > GetRoleAuthority(concurrentClaims[j].Role)
+		return types.GetRoleAuthority(concurrentClaims[i].Role) > types.GetRoleAuthority(concurrentClaims[j].Role)
 	})
 
 	// The highest authority claim is effective
@@ -174,9 +174,9 @@ func (r *Reducer) resolveEffectiveStatus(axis *AxisStatus) {
 	axis.Effective = effectiveClaim.State
 
 	// Mark all claims as tentative or not
-	highestAuthority := GetRoleAuthority(effectiveClaim.Role)
+	highestAuthority := types.GetRoleAuthority(effectiveClaim.Role)
 	for i := range axis.Claims {
-		claimAuthority := GetRoleAuthority(axis.Claims[i].Role)
+		claimAuthority := types.GetRoleAuthority(axis.Claims[i].Role)
 		// A claim is tentative if it has lower authority than the effective claim
 		// OR if it's not the latest claim with that state
 		axis.Claims[i].Tentative = claimAuthority < highestAuthority ||
