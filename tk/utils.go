@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/user"
 	"strings"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // extractPrefix extracts the prefix from a TaskID (format: prefix-number-node)
@@ -26,7 +28,7 @@ func getProjectAliasForTask(db *DB, taskUID string) (string, error) {
 		return "", fmt.Errorf("failed to get project for task %s: %w", taskUID, err)
 	}
 
-	alias, err := preferredAliasForProject(db, projectUID)
+	alias, err := preferredAliasForProject(db, types.ProjectUID(projectUID))
 	if err != nil {
 		return "", err
 	}
@@ -93,7 +95,7 @@ func getAllProjectDisplayNames(db *DB) (map[string]string, error) {
 		}
 
 		// Try to get preferred alias
-		alias, err := preferredAliasForProject(db, projectUID)
+		alias, err := preferredAliasForProject(db, types.ProjectUID(projectUID))
 		if err != nil {
 			// On error, fall back to name
 			result[projectUID] = name

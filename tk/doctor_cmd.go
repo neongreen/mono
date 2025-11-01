@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
 
@@ -276,7 +277,7 @@ func getNumberCollisions(db *DB, projectFilter string) ([]DoctorCollision, error
 		}
 		tasksRows.Close()
 
-		alias, err := preferredAliasForProject(db, projectUID)
+		alias, err := preferredAliasForProject(db, types.ProjectUID(projectUID))
 		if err != nil {
 			alias = projectUID
 		}

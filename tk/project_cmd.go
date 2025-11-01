@@ -257,8 +257,8 @@ var projectAliasCmd = &cobra.Command{
 }
 
 var projectAliasAddCmd = &cobra.Command{
-	Use:   "add <project-uid> <alias>",
-	Short: "Add an alias for a project",
+	Use:   "add <project-ref> <alias>",
+	Short: "Add an alias for a project (project-ref can be a UID, alias, or name)",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := OpenExistingDB()
@@ -267,7 +267,13 @@ var projectAliasAddCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		projectUID := args[0]
+		// Resolve the project reference to a ProjectUID
+		projectRef := types.NewProjectRef(args[0])
+		projectUID, err := ResolveProjectRef(db, projectRef)
+		if err != nil {
+			return fmt.Errorf("failed to resolve project: %w", err)
+		}
+
 		alias := args[1]
 
 		// Get current user and node
@@ -283,7 +289,7 @@ var projectAliasAddCmd = &cobra.Command{
 
 		// Create project.alias.add event
 		payload := types.ProjectAliasAddPayload{
-			ProjectUID: projectUID,
+			ProjectUID: projectUID.String(),
 			Alias:      alias,
 			Node:       nodeID,
 			AddedBy:    actor,
@@ -390,8 +396,8 @@ var projectAliasRemoveCmd = &cobra.Command{
 }
 
 var projectRmCmd = &cobra.Command{
-	Use:   "rm <project-uid-or-alias>",
-	Short: "Delete a project",
+	Use:   "rm <project-ref>",
+	Short: "Delete a project (project-ref can be a UID, alias, or name)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := OpenExistingDB()
@@ -400,34 +406,11 @@ var projectRmCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		projectRef := args[0]
-
-		// Try to resolve the project UID from alias or UID
-		var projectUID string
-		nodeID, err := db.GetOrCreateNodeID()
+		// Resolve the project reference to a ProjectUID
+		ref := types.NewProjectRef(args[0])
+		projectUID, err := ResolveProjectRef(db, ref)
 		if err != nil {
-			return err
-		}
-
-		// First try as alias
-		err = db.db.QueryRow(`
-			SELECT project_uid FROM project_aliases 
-			WHERE alias = ? AND node = ?
-		`, projectRef, nodeID).Scan(&projectUID)
-
-		if err != nil {
-			// Try as project UID directly
-			var exists bool
-			err = db.db.QueryRow(`
-				SELECT EXISTS(SELECT 1 FROM projects WHERE project_uid = ?)
-			`, projectRef).Scan(&exists)
-			if err != nil {
-				return fmt.Errorf("failed to query project: %w", err)
-			}
-			if !exists {
-				return fmt.Errorf("project not found: %s", projectRef)
-			}
-			projectUID = projectRef
+			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
 		// Get current user
@@ -438,7 +421,7 @@ var projectRmCmd = &cobra.Command{
 
 		// Create project.delete event
 		payload := types.ProjectDeletePayload{
-			ProjectUID: projectUID,
+			ProjectUID: projectUID.String(),
 		}
 
 		payloadJSON, err := json.Marshal(payload)

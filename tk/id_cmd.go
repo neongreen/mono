@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
 
@@ -82,7 +83,7 @@ func describeTask(db *DB, ref string) (*taskIdentity, error) {
 		return nil, fmt.Errorf("failed to load task number for %s: %w", taskUID, err)
 	}
 
-	alias, err := preferredAliasForProject(db, projectUID)
+	alias, err := preferredAliasForProject(db, types.ProjectUID(projectUID))
 	if err != nil {
 		return nil, err
 	}

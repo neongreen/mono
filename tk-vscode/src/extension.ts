@@ -514,15 +514,11 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       const groups = this.rawGroups
         .map(group => {
           const filteredTasks = this.filterTasksByStatus(group.tasks);
-          if (filteredTasks.length === 0) {
-            return null; // Skip groups with no tasks after filtering
-          }
           return new GroupTreeItem(
             group.group ?? 'unnamed',
             filteredTasks.map((task) => new TaskTreeItem(task)),
           );
-        })
-        .filter((group): group is GroupTreeItem => group !== null);
+        });
 
       const filteredUngrouped = this.filterTasksByStatus(this.rawUngrouped);
       const ungrouped = filteredUngrouped.map((task) => new TaskTreeItem(task));
