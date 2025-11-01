@@ -40,6 +40,8 @@ class GroupTreeItem extends vscode.TreeItem {
 }
 
 class TaskTreeItem extends vscode.TreeItem {
+  public readonly statusColor?: vscode.ThemeColor;
+
   constructor(public readonly task: TkTask) {
     const label = task.task_id ?? task.title ?? 'unnamed task';
     super(label, vscode.TreeItemCollapsibleState.None);
@@ -76,18 +78,22 @@ class TaskTreeItem extends vscode.TreeItem {
 
     // Set icon based on status and blocked state with colors
     if (task.blocked) {
-      this.iconPath = new vscode.ThemeIcon('circle-slash', new vscode.ThemeColor('errorForeground'));
+      this.statusColor = new vscode.ThemeColor('errorForeground');
+      this.iconPath = new vscode.ThemeIcon('circle-slash', this.statusColor);
     } else {
       // Icon based on status with colors
       switch (state) {
         case 'next':
-          this.iconPath = new vscode.ThemeIcon('arrow-right', new vscode.ThemeColor('charts.blue'));
+          this.statusColor = new vscode.ThemeColor('charts.blue');
+          this.iconPath = new vscode.ThemeIcon('arrow-right', this.statusColor);
           break;
         case 'wip':
-          this.iconPath = new vscode.ThemeIcon('sync', new vscode.ThemeColor('charts.yellow'));
+          this.statusColor = new vscode.ThemeColor('charts.yellow');
+          this.iconPath = new vscode.ThemeIcon('sync', this.statusColor);
           break;
         case 'done':
-          this.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('charts.green'));
+          this.statusColor = new vscode.ThemeColor('charts.green');
+          this.iconPath = new vscode.ThemeIcon('check', this.statusColor);
           break;
         default:
           this.iconPath = new vscode.ThemeIcon('circle-outline');
@@ -95,12 +101,49 @@ class TaskTreeItem extends vscode.TreeItem {
       }
     }
 
-    // Make Enter key trigger title edit
+    // Create a unique URI for this task to enable file decorations
+    if (this.statusColor) {
+      this.resourceUri = vscode.Uri.parse(`tk:${task.task_uuid ?? task.task_id ?? label}`);
+    }
+
+    // Make clicking the item rotate status
     this.command = {
-      command: 'tk.editTitle',
-      title: 'Edit Title',
+      command: 'tk.rotateStatus',
+      title: 'Rotate Status',
       arguments: [this],
     };
+  }
+}
+
+class TkDecorationProvider implements vscode.FileDecorationProvider {
+  private readonly _onDidChangeFileDecorations = new vscode.EventEmitter<vscode.Uri | vscode.Uri[]>();
+  readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
+
+  private taskItems = new Map<string, TaskTreeItem>();
+
+  provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+    if (uri.scheme !== 'tk') {
+      return undefined;
+    }
+
+    const item = this.taskItems.get(uri.toString());
+    if (item?.statusColor) {
+      return {
+        color: item.statusColor,
+      };
+    }
+
+    return undefined;
+  }
+
+  updateTaskItems(items: TaskTreeItem[]): void {
+    this.taskItems.clear();
+    for (const item of items) {
+      if (item.resourceUri) {
+        this.taskItems.set(item.resourceUri.toString(), item);
+      }
+    }
+    this._onDidChangeFileDecorations.fire([]);
   }
 }
 
@@ -111,7 +154,7 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   private groups: GroupTreeItem[] = [];
   private ungrouped: TaskTreeItem[] = [];
 
-  constructor() {
+  constructor(private readonly decorationProvider: TkDecorationProvider) {
     void this.refresh();
   }
 
@@ -144,6 +187,15 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       );
 
       this.ungrouped = tasks.tasks.map((task) => new TaskTreeItem(task));
+
+      // Collect all task items for decoration provider
+      const allTaskItems: TaskTreeItem[] = [];
+      for (const group of this.groups) {
+        allTaskItems.push(...group.children);
+      }
+      allTaskItems.push(...this.ungrouped);
+      this.decorationProvider.updateTaskItems(allTaskItems);
+
       this._onDidChangeTreeData.fire(undefined);
     } catch (error) {
       this.groups = [];
@@ -327,9 +379,11 @@ async function editTitle(provider: TkProvider, item: TaskTreeItem): Promise<void
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  const provider = new TkProvider();
+  const decorationProvider = new TkDecorationProvider();
+  const provider = new TkProvider(decorationProvider);
 
   context.subscriptions.push(
+    vscode.window.registerFileDecorationProvider(decorationProvider),
     vscode.window.registerTreeDataProvider('tkExplorer', provider),
     vscode.commands.registerCommand('tk.refresh', () => provider.refresh()),
     vscode.commands.registerCommand('tk.editTitle', (item: TaskTreeItem) => editTitle(provider, item)),
