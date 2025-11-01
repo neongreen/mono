@@ -148,6 +148,60 @@ class TkDecorationProvider implements vscode.FileDecorationProvider {
   }
 }
 
+class TkDragAndDropController implements vscode.TreeDragAndDropController<TkTreeItem> {
+  dropMimeTypes = ['application/vnd.code.tree.tkexplorer'];
+  dragMimeTypes = ['application/vnd.code.tree.tkexplorer'];
+
+  constructor(private readonly provider: TkProvider) {}
+
+  public handleDrag(source: readonly TkTreeItem[], dataTransfer: vscode.DataTransfer, _token: vscode.CancellationToken): void {
+    // Only allow dragging tasks, not groups
+    const tasks = source.filter((item): item is TaskTreeItem => item instanceof TaskTreeItem);
+    if (tasks.length === 0) {
+      return;
+    }
+    
+    dataTransfer.set(
+      'application/vnd.code.tree.tkexplorer',
+      new vscode.DataTransferItem(tasks)
+    );
+  }
+
+  public async handleDrop(target: TkTreeItem | undefined, dataTransfer: vscode.DataTransfer, _token: vscode.CancellationToken): Promise<void> {
+    const transferItem = dataTransfer.get('application/vnd.code.tree.tkexplorer');
+    if (!transferItem) {
+      return;
+    }
+
+    const tasks = transferItem.value as TaskTreeItem[];
+    if (!tasks || tasks.length === 0) {
+      return;
+    }
+
+    // Determine the target group
+    let targetGroup: GroupTreeItem | undefined;
+    if (target instanceof GroupTreeItem) {
+      targetGroup = target;
+    } else if (target instanceof TaskTreeItem) {
+      // If dropped on a task, find the group it belongs to
+      targetGroup = this.provider.findGroupForTask(target);
+    }
+
+    if (!targetGroup) {
+      void vscode.window.showErrorMessage('Cannot drop task: no target group found');
+      return;
+    }
+
+    // Move each task to the target group
+    for (const task of tasks) {
+      await moveTaskToGroup(this.provider, task, targetGroup);
+    }
+
+    // Refresh the tree view
+    await this.provider.refresh();
+  }
+}
+
 class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<TkTreeItem | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
@@ -157,6 +211,15 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
 
   constructor(private readonly decorationProvider: TkDecorationProvider) {
     void this.refresh();
+  }
+
+  public findGroupForTask(task: TaskTreeItem): GroupTreeItem | undefined {
+    for (const group of this.groups) {
+      if (group.children.includes(task)) {
+        return group;
+      }
+    }
+    return undefined;
   }
 
   getTreeItem(element: TkTreeItem): vscode.TreeItem {
@@ -426,13 +489,62 @@ async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<vo
   }
 }
 
+async function moveTaskToGroup(provider: TkProvider, task: TaskTreeItem, targetGroup: GroupTreeItem): Promise<void> {
+  const taskId = task.task.task_id;
+  if (!taskId) {
+    void vscode.window.showErrorMessage('Cannot move task: task has no ID');
+    return;
+  }
+
+  const targetGroupName = targetGroup.groupName;
+
+  try {
+    const configuration = vscode.workspace.getConfiguration('tk');
+    const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
+    const configuredCwd = configuration.get<string>('workingDirectory');
+
+    let cwd: string | undefined;
+
+    if (configuredCwd && configuredCwd.trim().length > 0) {
+      cwd = configuredCwd;
+    } else {
+      cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    }
+
+    if (!cwd) {
+      void vscode.window.showErrorMessage('No workspace folder is open.');
+      return;
+    }
+
+    // Use tk mv command to move the task to the target project/group
+    // Use --auto to automatically assign a new number in the target project if needed
+    const args = ['mv', '--auto', taskId, targetGroupName];
+
+    await execFileAsync(binary, args, {
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    });
+
+    void vscode.window.showInformationMessage(`Moved ${taskId} to ${targetGroupName}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`Failed to move task: ${message}`);
+  }
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   const decorationProvider = new TkDecorationProvider();
   const provider = new TkProvider(decorationProvider);
+  const dragAndDropController = new TkDragAndDropController(provider);
+
+  const treeView = vscode.window.createTreeView('tkExplorer', {
+    treeDataProvider: provider,
+    dragAndDropController: dragAndDropController,
+  });
 
   context.subscriptions.push(
     vscode.window.registerFileDecorationProvider(decorationProvider),
-    vscode.window.registerTreeDataProvider('tkExplorer', provider),
+    treeView,
     vscode.commands.registerCommand('tk.refresh', () => provider.refresh()),
     vscode.commands.registerCommand('tk.editTitle', (item: TaskTreeItem) => editTitle(provider, item)),
     vscode.commands.registerCommand('tk.rotateStatus', (item: TaskTreeItem) => rotateStatus(provider, item)),
