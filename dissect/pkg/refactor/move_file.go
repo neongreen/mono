@@ -70,7 +70,7 @@ func detectTargetPackage(targetDir string) (string, error) {
 
 // MoveFileWithImportUpdates performs a refactoring file move from source to target,
 // updating all import statements in the codebase that reference the old package path.
-func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot string) error {
+func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot string, goimportsPath string) error {
 	slog.Info("Starting refactoring file move", "from", sourceFile, "to", targetFile)
 
 	// Get the original package name from the source file
@@ -233,7 +233,7 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 				continue
 			}
 
-			updated, err := updateImportInFile(goFile, oldImportPath, newImportPath)
+			updated, err := updateImportInFile(goFile, oldImportPath, newImportPath, goimportsPath)
 			if err != nil {
 				slog.Warn("Error updating imports in file", "file", goFile, "error", err)
 				continue
@@ -338,7 +338,7 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 // updateImportInFile updates the import statement in a file from oldPath to newPath using AST operations.
 // It also updates all package qualifiers (selectors) that reference the old package.
 // Returns true if the file was modified, false otherwise.
-func updateImportInFile(filePath string, oldImportPath string, newImportPath string) (bool, error) {
+func updateImportInFile(filePath string, oldImportPath string, newImportPath string, goimportsPath string) (bool, error) {
 	fset, node, err := goutils.ReadGoFile(filePath)
 	if err != nil {
 		return false, fmt.Errorf("error reading file: %w", err)
@@ -427,7 +427,7 @@ func updateImportInFile(filePath string, oldImportPath string, newImportPath str
 		}
 
 		// Run goimports to clean up
-		if err := commands.RunGoimportsOnFile(filePath); err != nil {
+		if err := commands.RunGoimportsOnFile(goimportsPath, filePath); err != nil {
 			return false, fmt.Errorf("error running goimports: %w", err)
 		}
 	}
@@ -459,7 +459,7 @@ type MoveOp struct {
 
 // MoveBatchFiles performs atomic batch file moves with refactoring support.
 // All files are moved together and import updates happen once for all files.
-func MoveBatchFiles(moveOps []MoveOp, moduleRoot string) error {
+func MoveBatchFiles(moveOps []MoveOp, moduleRoot string, goimportsPath string) error {
 	if len(moveOps) == 0 {
 		return fmt.Errorf("no files to move")
 	}
@@ -636,7 +636,7 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string) error {
 
 	// Update all imports in the module
 	if len(importMappings) > 0 {
-		if err := updateImportsForBatch(moduleRoot, importMappings); err != nil {
+		if err := updateImportsForBatch(moduleRoot, importMappings, goimportsPath); err != nil {
 			slog.Error("Failed to update imports", "error", err)
 			// Don't rollback here - files are already moved and packages updated
 			// Imports can be fixed manually if needed
@@ -742,7 +742,7 @@ func getImportPathFromMovedFile(oldPath, newPath, moduleRoot string) (string, er
 }
 
 // updateImportsForBatch updates all imports in the module based on path mappings
-func updateImportsForBatch(moduleRoot string, mappings map[string]string) error {
+func updateImportsForBatch(moduleRoot string, mappings map[string]string, goimportsPath string) error {
 	slog.Info("Updating imports across codebase", "mappings", len(mappings))
 
 	// Find all Go files
@@ -755,7 +755,7 @@ func updateImportsForBatch(moduleRoot string, mappings map[string]string) error 
 	for _, filePath := range allGoFiles {
 		modified := false
 		for oldPath, newPath := range mappings {
-			fileModified, err := updateImportInFile(filePath, oldPath, newPath)
+			fileModified, err := updateImportInFile(filePath, oldPath, newPath, goimportsPath)
 			if err != nil {
 				return fmt.Errorf("failed to update imports in %s: %w", filePath, err)
 			}
@@ -766,7 +766,7 @@ func updateImportsForBatch(moduleRoot string, mappings map[string]string) error 
 
 		// Run goimports if file was modified
 		if modified {
-			if err := commands.RunGoimportsOnFile(filePath); err != nil {
+			if err := commands.RunGoimportsOnFile(goimportsPath, filePath); err != nil {
 				slog.Warn("Failed to run goimports", "file", filePath, "error", err)
 			}
 		}

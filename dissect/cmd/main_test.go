@@ -4,9 +4,6 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/golang-cz/devslog"
@@ -22,33 +19,7 @@ import (
 func init() {
 	// Init logging
 	slog.SetDefault(slog.New(devslog.NewHandler(os.Stdout, &devslog.Options{HandlerOptions: &slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true}, NewLineAfterLog: true})))
-
-	// Add go/bin to PATH so gopls can be found
-	goBinPath := filepath.Join(os.Getenv("HOME"), "go", "bin")
-	currentPath := os.Getenv("PATH")
-	if !strings.Contains(currentPath, goBinPath) {
-		os.Setenv("PATH", goBinPath+":"+currentPath)
-	}
-
-	// Ensure gopls is installed (required by dissect)
-	checkGoplsCmd := exec.Command("gopls", "version")
-	if err := checkGoplsCmd.Run(); err != nil {
-		// gopls not found, install it
-		installGoplsCmd := exec.Command("go", "install", "golang.org/x/tools/gopls@latest")
-		if installErr := installGoplsCmd.Run(); installErr != nil {
-			panic("Failed to install gopls: " + installErr.Error())
-		}
-	}
-
-	// Ensure goimports is installed (required by dissect)
-	checkGoimportsCmd := exec.Command("goimports", "-h")
-	if err := checkGoimportsCmd.Run(); err != nil {
-		// goimports not found, install it
-		installGoimportsCmd := exec.Command("go", "install", "golang.org/x/tools/cmd/goimports@latest")
-		if installErr := installGoimportsCmd.Run(); installErr != nil {
-			panic("Failed to install goimports: " + installErr.Error())
-		}
-	}
+	// Note: gopls and goimports are now automatically installed by the dependency manager
 }
 
 // testFiles represents the structure of our TOML test files.

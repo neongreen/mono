@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/neongreen/mono/dissect/pkg/commands"
+	"github.com/neongreen/mono/dissect/pkg/dependencies"
 	"github.com/neongreen/mono/dissect/pkg/gopls"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"github.com/neongreen/mono/dissect/pkg/parser"
@@ -104,15 +105,29 @@ func init() {
 }
 
 func runMove(cmd *cobra.Command, args []string) {
-	// Check for required dependencies
-	if err := checkDependencies(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+	// Get module root for dependency manager
+	moduleRoot, err := commands.FindGoModuleRoot(".")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error finding Go module root: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Setup dependency manager
+	depMgr := dependencies.NewManager(moduleRoot)
+	goplsPath, err := depMgr.EnsureGopls()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error setting up gopls: %v\n", err)
+		os.Exit(1)
+	}
+	goimportsPath, err := depMgr.EnsureGoimports()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error setting up goimports: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Batch mode: multiple files with arrow syntax
 	if batchMode {
-		runBatchMove(args)
+		runBatchMove(args, goplsPath, goimportsPath)
 		return
 	}
 
@@ -169,7 +184,7 @@ func runMove(cmd *cobra.Command, args []string) {
 
 		// Use refactor.MoveFileWithImportUpdates to move the file and update imports
 		slog.Info("Moving file with import updates", "from", sourceFile, "to", targetFile)
-		if err := refactor.MoveFileWithImportUpdates(absSourceFile, absTargetFile, moduleRoot); err != nil {
+		if err := refactor.MoveFileWithImportUpdates(absSourceFile, absTargetFile, moduleRoot, goimportsPath); err != nil {
 			slog.Error("Error moving file", "error", err)
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -305,7 +320,7 @@ func runMove(cmd *cobra.Command, args []string) {
 
 				slog.Info("Renaming identifier", "identifier", identifier, "to", newName, "file", sourceFile)
 
-				err := gopls.Rename(absSourceFile, identifier, newName)
+				err := gopls.Rename(goplsPath, absSourceFile, identifier, newName)
 				if err != nil {
 					slog.Error("Error renaming identifier", "identifier", identifier, "error", err)
 					fmt.Fprintf(os.Stderr, "Error renaming identifier '%s': %v\n", identifier, err)
@@ -315,7 +330,7 @@ func runMove(cmd *cobra.Command, args []string) {
 				// Move operation
 				slog.Info("Moving identifier", "identifier", identifier, "from", sourceFile, "to", targetFile)
 
-				err := moveIdentifier(absSourceFile, identifier, absTargetFile, moduleRoot)
+				err := moveIdentifier(absSourceFile, identifier, absTargetFile, moduleRoot, goplsPath, goimportsPath)
 				if err != nil {
 					slog.Error("Error moving identifier", "identifier", identifier, "error", err)
 					fmt.Fprintf(os.Stderr, "Error moving identifier '%s': %v\n", identifier, err)
@@ -327,7 +342,7 @@ func runMove(cmd *cobra.Command, args []string) {
 					newName := targetSpec.Identifier
 					if identifier != newName {
 						slog.Info("Renaming moved identifier", "from", identifier, "to", newName)
-						err := gopls.Rename(absTargetFile, identifier, newName)
+						err := gopls.Rename(goplsPath, absTargetFile, identifier, newName)
 						if err != nil {
 							slog.Error("Error renaming after move", "identifier", identifier, "error", err)
 							fmt.Fprintf(os.Stderr, "Error renaming identifier '%s' after move: %v\n", identifier, err)
@@ -408,7 +423,7 @@ func findMatchingIdentifiers(filePath string, patterns []string) ([]string, erro
 }
 
 // moveIdentifier moves a single identifier from source to target file using AST operations
-func moveIdentifier(sourceFile string, identifier string, targetFile string, moduleRoot string) error {
+func moveIdentifier(sourceFile string, identifier string, targetFile string, moduleRoot string, goplsPath string, goimportsPath string) error {
 	// Check if target file exists
 	targetExists := false
 	if _, err := os.Stat(targetFile); err == nil {
@@ -448,17 +463,17 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 
 	// Check if this is a function - if so, use gopls for extraction
 	if _, isFuncDecl := declNode.(*ast.FuncDecl); isFuncDecl {
-		return moveFunctionWithGopls(sourceFile, identifier, targetFile, moduleRoot)
+		return moveFunctionWithGopls(sourceFile, identifier, targetFile, moduleRoot, goplsPath, goimportsPath)
 	}
 
 	// For non-function declarations (types, interfaces, consts, vars), do manual extraction
-	return moveDeclarationManually(sourceFile, identifier, targetFile, sourceFset, declNode)
+	return moveDeclarationManually(sourceFile, identifier, targetFile, sourceFset, declNode, goimportsPath)
 }
 
 // moveFunctionWithGopls moves a function using gopls's extract refactoring
-func moveFunctionWithGopls(sourceFile string, identifier string, targetFile string, moduleRoot string) error {
+func moveFunctionWithGopls(sourceFile string, identifier string, targetFile string, moduleRoot string, goplsPath string, goimportsPath string) error {
 	// Use gopls to extract the function to a new file first
-	tempFile, err := gopls.ExtractToNewFile(sourceFile, identifier, moduleRoot)
+	tempFile, err := gopls.ExtractToNewFile(goplsPath, sourceFile, identifier, moduleRoot)
 	if err != nil {
 		return fmt.Errorf("error extracting identifier: %w", err)
 	}
@@ -537,7 +552,7 @@ func moveFunctionWithGopls(sourceFile string, identifier string, targetFile stri
 	}
 
 	// Run goimports to organize imports and format properly
-	err = commands.RunGoimportsOnFile(targetFile)
+	err = commands.RunGoimportsOnFile(goimportsPath, targetFile)
 	if err != nil {
 		return fmt.Errorf("error running goimports: %w", err)
 	}
@@ -551,7 +566,7 @@ func moveFunctionWithGopls(sourceFile string, identifier string, targetFile stri
 // using AST manipulation. This approach is used because gopls doesn't offer code actions for
 // these declaration types. Uses goimports for import management.
 // See DESIGN.md for detailed explanation and known limitations.
-func moveDeclarationManually(sourceFile string, identifier string, targetFile string, sourceFset *token.FileSet, declNode ast.Node) error {
+func moveDeclarationManually(sourceFile string, identifier string, targetFile string, sourceFset *token.FileSet, declNode ast.Node, goimportsPath string) error {
 	// Read source file
 	sourceFileSet, sourceNode, err := goutils.ReadGoFile(sourceFile)
 	if err != nil {
@@ -629,10 +644,10 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 	}
 
 	// Run goimports on both files to organize imports and format properly
-	if err := commands.RunGoimportsOnFile(targetFile); err != nil {
+	if err := commands.RunGoimportsOnFile(goimportsPath, targetFile); err != nil {
 		return fmt.Errorf("error running goimports on target: %w", err)
 	}
-	if err := commands.RunGoimportsOnFile(sourceFile); err != nil {
+	if err := commands.RunGoimportsOnFile(goimportsPath, sourceFile); err != nil {
 		return fmt.Errorf("error running goimports on source: %w", err)
 	}
 
@@ -642,7 +657,7 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 }
 
 // runBatchMove handles batch mode: multiple files moved atomically with arrow syntax
-func runBatchMove(args []string) {
+func runBatchMove(args []string, goplsPath string, goimportsPath string) {
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: Batch mode requires at least one move specification\n")
 		fmt.Fprintf(os.Stderr, "Usage: dissect move --batch \"source1,source2 -> target/\"\n")
@@ -743,7 +758,7 @@ func runBatchMove(args []string) {
 
 	// Execute batch move
 	slog.Info("Batch moving files", "count", len(allMoveOps))
-	if err := refactor.MoveBatchFiles(allMoveOps, moduleRoot); err != nil {
+	if err := refactor.MoveBatchFiles(allMoveOps, moduleRoot, goimportsPath); err != nil {
 		slog.Error("Error in batch move", "error", err)
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

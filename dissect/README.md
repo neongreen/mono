@@ -56,16 +56,9 @@ Or add to your `.mise.toml`:
 
 ## Requirements
 
-- Go 1.24.4 or later
-- `gopls` (Go language server) must be installed and available in PATH
-- `goimports` must be installed and available in PATH
+- Go 1.23 or later
 
-To install the required tools:
-
-```bash
-go install golang.org/x/tools/gopls@latest
-go install golang.org/x/tools/cmd/goimports@latest
-```
+**Note:** `gopls` and `goimports` are automatically installed to your project's GOBIN directory on first use, ensuring compatibility with your project's Go version. No manual installation required!
 
 ## Usage
 

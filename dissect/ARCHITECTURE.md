@@ -41,6 +41,8 @@ dissect/
 │   │   ├── run_go_mod_tidy.go
 │   │   ├── run_goimports_*.go
 │   │   └── ...
+│   ├── dependencies/        # Dependency management
+│   │   └── manager.go       # Auto-install gopls and goimports
 │   ├── gopls/               # gopls integration
 │   │   ├── extract_to_new_file.go  # Main refactoring command
 │   │   ├── guess_extracted_file_name.go
@@ -83,11 +85,26 @@ dissect/
 
 The CLI uses `cobra` for command-line parsing. It:
 - Accepts file or directory paths
+- Sets up dependency manager for gopls and goimports
 - Discovers Go files in directories
 - Calls `ProcessFile` for each file
 - Reports success/failure statistics
 
-### 2. File Processing (`cmd/process_file.go`)
+### 2. Dependency Manager (`pkg/dependencies/manager.go`)
+
+Handles automatic installation and management of gopls and goimports:
+- Finds or installs gopls to project-specific GOBIN
+- Finds or installs goimports to project-specific GOBIN
+- Ensures version compatibility with project's Go version
+- Caches tool paths for reuse
+
+**Key features:**
+- Zero configuration - tools installed on first use
+- Version compatible - uses project's Go toolchain via `go env GOBIN`
+- Works with version managers (mise, nix, asdf)
+- Fast after first run (~0.04s per invocation)
+
+### 3. File Processing (`cmd/process_file.go`)
 
 The `ProcessFile` function is the core processing loop:
 
@@ -108,7 +125,7 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 
 **Key insight:** The loop re-parses the file after each extraction because line numbers change when functions are removed.
 
-### 3. gopls Integration (`pkg/gopls/`)
+### 4. gopls Integration (`pkg/gopls/`)
 
 The `gopls` package wraps the Go language server's refactoring capabilities:
 
@@ -139,7 +156,7 @@ gopls codeaction -kind=refactor.extract.toNewFile -exec -w <file>:<line>:<column
 - `rename.go` - Rename files or functions
 - `guess_extracted_file_name.go` - Predict what gopls will name the extracted file
 
-### 4. Go Utilities (`pkg/goutils/`)
+### 5. Go Utilities (`pkg/goutils/`)
 
 AST parsing and Go-specific utilities:
 
@@ -151,7 +168,7 @@ AST parsing and Go-specific utilities:
 - **`normalize_imports.go`** - Standardize import formatting
 - **`read_go_file.go` / `write_go_file.go`** - File I/O with AST parsing
 
-### 5. Commands (`pkg/commands/`)
+### 6. Commands (`pkg/commands/`)
 
 Wrappers for Go toolchain commands:
 
@@ -160,7 +177,7 @@ Wrappers for Go toolchain commands:
 - **`run_go_build.go`** - Verify compilation
 - **`run_go_mod_tidy.go`** - Clean up dependencies
 
-### 6. Refactoring Logic (`pkg/refactor/`)
+### 7. Refactoring Logic (`pkg/refactor/`)
 
 High-level refactoring decisions:
 

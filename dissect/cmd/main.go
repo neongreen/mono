@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/neongreen/mono/dissect/pkg/commands"
+	"github.com/neongreen/mono/dissect/pkg/dependencies"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -32,9 +32,23 @@ Explode processes Go files and extracts each top-level function into its own fil
 following Go's best practices for code organization.`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// Check for required dependencies
-		if err := checkDependencies(); err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		// Get module root for dependency manager
+		moduleRoot, err := commands.FindGoModuleRoot(".")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error finding Go module root: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Setup dependency manager
+		depMgr := dependencies.NewManager(moduleRoot)
+		goplsPath, err := depMgr.EnsureGopls()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error setting up gopls: %v\n", err)
+			os.Exit(1)
+		}
+		goimportsPath, err := depMgr.EnsureGoimports()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error setting up goimports: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -91,7 +105,7 @@ following Go's best practices for code organization.`,
 		failed := 0
 
 		for _, file := range filesToProcess {
-			result, _, _ := ProcessFile(file) // Ignore `err` since it's logged inside ProcessFile already
+			result, _, _ := ProcessFile(file, goplsPath, goimportsPath) // Ignore `err` since it's logged inside ProcessFile already
 			switch result {
 			case Refactored:
 				refactored++
@@ -141,23 +155,6 @@ func initLogging() {
 		),
 	))
 	slog.Debug("Logging level set", "level", programLevel.String())
-}
-
-// checkDependencies verifies that required external tools are installed
-func checkDependencies() error {
-	// Check for gopls
-	if _, err := exec.LookPath("gopls"); err != nil {
-		return fmt.Errorf("gopls is required but not found in PATH\n" +
-			"Install it with: go install golang.org/x/tools/gopls@latest")
-	}
-
-	// Check for goimports
-	if _, err := exec.LookPath("goimports"); err != nil {
-		return fmt.Errorf("goimports is required but not found in PATH\n" +
-			"Install it with: go install golang.org/x/tools/cmd/goimports@latest")
-	}
-
-	return nil
 }
 
 func init() {

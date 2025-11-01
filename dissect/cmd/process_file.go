@@ -24,7 +24,7 @@ const (
 )
 
 // Extract functions from the given file and move them to new files.
-func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string, err error) {
+func ProcessFile(absPath string, goplsPath string, goimportsPath string) (status RefactorStatus, exclusionReason string, err error) {
 	// Use relPath in logs for humans and absPath in debug logs
 	relPath := cwdRelPath(absPath)
 
@@ -99,7 +99,7 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 				// Since *we* want to control the file name, we rename the function to a temp name first so that we don't get a clash.
 				// Once the function is moved, we rename it back to the original name and rename the file.
 				renameStart := time.Now()
-				err := gopls.Rename(absPath, funcName, tempFuncName)
+				err := gopls.Rename(goplsPath, absPath, funcName, tempFuncName)
 				if err != nil {
 					slog.Error("Error renaming function", "from", funcName, "to", tempFuncName, "error", err)
 					return Failed, "", err
@@ -108,7 +108,7 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 				changedFiles[absPath] = struct{}{}
 
 				extractStart := time.Now()
-				goplsFilePath, err := gopls.ExtractToNewFile(absPath, tempFuncName, moduleRoot)
+				goplsFilePath, err := gopls.ExtractToNewFile(goplsPath, absPath, tempFuncName, moduleRoot)
 				if err != nil {
 					slog.Error("Error extracting function with gopls",
 						"file", absPath, "function", tempFuncName, "error", err,
@@ -158,7 +158,7 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 						return Failed, "", err
 					}
 					addImportStart := time.Now()
-					err = gopls.AddImport(absPath, importPath, moduleRoot)
+					err = gopls.AddImport(goplsPath, absPath, importPath, moduleRoot)
 					if err != nil {
 						slog.Error("Error adding import", "import", importPath, "to_file", absPath, "error", err)
 						return Failed, "", err
@@ -226,7 +226,7 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 		// We have to run goimports, since moving files around can break imports.
 		goimportsStart := time.Now()
 		for file := range changedFiles {
-			err := commands.RunGoimportsOnFile(file)
+			err := commands.RunGoimportsOnFile(goimportsPath, file)
 			if err != nil {
 				return Failed, "", err
 			}

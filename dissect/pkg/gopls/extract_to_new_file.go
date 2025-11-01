@@ -12,7 +12,7 @@ import (
 
 // ExtractToNewFile executes the gopls refactor.extract.toNewFile command.
 // It extracts a function from the given file and creates a new file for it.
-func ExtractToNewFile(filePath string, funcName string, moduleRoot string) (newFilePath string, err error) {
+func ExtractToNewFile(goplsPath string, filePath string, funcName string, moduleRoot string) (newFilePath string, err error) {
 	slog.Debug("Extracting function to new file via gopls",
 		"filePath", filePath, "funcName", funcName, "moduleRoot", moduleRoot)
 
@@ -47,8 +47,8 @@ func ExtractToNewFile(filePath string, funcName string, moduleRoot string) (newF
 
 	// Construct the URI without the "file://" prefix, let gopls handle it
 	fileURI := fmt.Sprintf("%s:%d:%d", absFilePath, position.Line, position.Column)
-	slog.Debug("Calling gopls", "fileURI", fileURI, "moduleRoot", moduleRoot)
-	cmd := exec.Command("gopls", "codeaction", "-kind=refactor.extract.toNewFile", "-exec", "-write", fileURI)
+	slog.Debug("Calling gopls", "fileURI", fileURI, "moduleRoot", moduleRoot, "goplsPath", goplsPath)
+	cmd := exec.Command(goplsPath, "codeaction", "-kind=refactor.extract.toNewFile", "-exec", "-write", fileURI)
 	cmd.Dir = moduleRoot // Execute gopls in the Go module root
 
 	var stderr bytes.Buffer
