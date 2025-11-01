@@ -134,12 +134,17 @@ class TkDecorationProvider implements vscode.FileDecorationProvider {
 
   updateTaskItems(items: TaskTreeItem[]): void {
     this.taskItems.clear();
+    const uris: vscode.Uri[] = [];
     for (const item of items) {
       if (item.resourceUri) {
         this.taskItems.set(item.resourceUri.toString(), item);
+        uris.push(item.resourceUri);
       }
     }
-    this._onDidChangeFileDecorations.fire([]);
+    // Fire with all URIs to notify VS Code that these decorations have changed
+    if (uris.length > 0) {
+      this._onDidChangeFileDecorations.fire(uris);
+    }
   }
 }
 
