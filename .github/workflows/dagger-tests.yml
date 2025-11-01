@@ -1,0 +1,138 @@
+name: Dagger Tests
+
+on:
+  push:
+    paths:
+      - "beads-merge/**"
+      - "claude-trace/**"
+      - "conf/**"
+      - "dissect/**"
+      - "ingest/**"
+      - "jj-run/**"
+      - "lib/ghclient/**"
+      - "lib/ghrelease/**"
+      - "lib/toml/**"
+      - "markdown-format/**"
+      - "printpdf/**"
+      - "prrun/**"
+      - "tk/**"
+      - "want/**"
+      - ".dagger/**"
+      - ".github/workflows/dagger-tests.yml"
+  pull_request:
+    paths:
+      - "beads-merge/**"
+      - "claude-trace/**"
+      - "conf/**"
+      - "dissect/**"
+      - "ingest/**"
+      - "jj-run/**"
+      - "lib/ghclient/**"
+      - "lib/ghrelease/**"
+      - "lib/toml/**"
+      - "markdown-format/**"
+      - "printpdf/**"
+      - "prrun/**"
+      - "tk/**"
+      - "want/**"
+      - ".dagger/**"
+      - ".github/workflows/dagger-tests.yml"
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.filter.outputs.changes }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Detect changed packages
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            beads-merge:
+              - 'beads-merge/**'
+              - '.dagger/**'
+            claude-trace:
+              - 'claude-trace/**'
+              - '.dagger/**'
+            conf:
+              - 'conf/**'
+              - '.dagger/**'
+            dissect:
+              - 'dissect/**'
+              - '.dagger/**'
+            ghclient:
+              - 'lib/ghclient/**'
+              - '.dagger/**'
+            ghrelease:
+              - 'lib/ghrelease/**'
+              - '.dagger/**'
+            ingest:
+              - 'ingest/**'
+              - '.dagger/**'
+            jj-run:
+              - 'jj-run/**'
+              - '.dagger/**'
+            markdown-format:
+              - 'markdown-format/**'
+              - '.dagger/**'
+            printpdf:
+              - 'printpdf/**'
+              - '.dagger/**'
+            prrun:
+              - 'prrun/**'
+              - '.dagger/**'
+            tk:
+              - 'tk/**'
+              - '.dagger/**'
+            toml:
+              - 'lib/toml/**'
+              - '.dagger/**'
+            want:
+              - 'want/**'
+              - '.dagger/**'
+
+  test:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.detect-changes.outputs.packages) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Run ${{ matrix.package }} tests with Dagger
+        uses: dagger/dagger-for-github@d809c269da643e2a9e56163b6d295c75ecb05f7a # v8.2.0
+        with:
+          version: "0.19.4"
+          verb: call
+          args: ${{ matrix.package }}-tests --format=testname
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+
+      - name: Display test summary
+        if: success()
+        run: |
+          {
+            echo "## ✅ Test Results"
+            echo ""
+            echo "${{ matrix.package }} tests completed successfully using Dagger."
+            echo ""
+            echo "**Test Environment:**"
+            echo "- Container: \`golang:1.24.7\`"
+            echo "- Test runner: \`gotestsum\`"
+            echo "- Format: \`testname\`"
+            echo "- Dagger version: \`0.19.4\`"
+          } >> "$GITHUB_STEP_SUMMARY"
