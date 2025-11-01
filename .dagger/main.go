@@ -52,6 +52,48 @@ func (m *Dagger) TomlTests(ctx context.Context,
 	return m.goTest(ctx, "toml", format, "./lib/toml/...")
 }
 
+// JjRunTests runs the jj-run package tests and returns the standard output.
+// This requires jj (jujutsu) to be installed in the container.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) JjRunTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	// Use the specified format for gotestsum output
+	var args []string
+	if format == "testname" {
+		args = append([]string{"gotestsum", "--format", format, "--", "-v"}, "./jj-run/...")
+	} else {
+		args = append([]string{"gotestsum", "--format", format, "--"}, "./jj-run/...")
+	}
+	
+	return m.jjRunTestContainer().
+		WithLabel("suite", "jj-run-tests").
+		WithExec(args).
+		Stdout(ctx)
+}
+
+// jjRunTestContainer prepares a Go build container with jj installed for jj-run tests.
+func (m *Dagger) jjRunTestContainer() *dagger.Container {
+	repo := dag.CurrentModule().Source().Directory("..")
+
+	return dag.Container().
+		From("golang:1.24.7").
+		WithMountedDirectory("/src", repo).
+		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod")).
+		WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
+		WithMountedCache("/go/bin", dag.CacheVolume("go-bin")).
+		WithWorkdir("/src").
+		WithEnvVariable("GOPRIVATE", "github.com/neongreen/mono").
+		WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono").
+		WithEnvVariable("GOWORK", "off").
+		// Install jj (jujutsu) from GitHub releases
+		WithExec([]string{"sh", "-c", "curl -L https://github.com/martinvonz/jj/releases/download/v0.28.0/jj-v0.28.0-x86_64-unknown-linux-gnu.tar.gz | tar xz && mv jj /usr/local/bin/"}).
+		WithExec([]string{"jj", "--version"}).
+		// Install gotestsum with pinned version
+		WithExec([]string{"go", "install", "gotest.tools/gotestsum@v1.13.0"})
+}
+
 // `All` runs the tk, dissect, and toml test suites concurrently.
 // format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
 func (m *Dagger) All(ctx context.Context,

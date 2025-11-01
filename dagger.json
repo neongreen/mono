@@ -10,6 +10,7 @@
     ".dagger/**",
     "tk/**",
     "dissect/**",
+    "jj-run/**",
     "lib/**"
   ],
   "source": ".dagger"
