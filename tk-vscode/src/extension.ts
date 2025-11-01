@@ -176,6 +176,7 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
     <style>
         body {
             padding: 12px;
@@ -230,6 +231,7 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
     <style>
         body {
             padding: 12px;
@@ -335,9 +337,10 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
       '<': '&lt;',
       '>': '&gt;',
       '"': '&quot;',
-      "'": '&#039;'
+      "'": '&#039;',
+      '`': '&#96;'
     };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
+    return text.replace(/[&<>"'`]/g, (m) => map[m]);
   }
 }
 
