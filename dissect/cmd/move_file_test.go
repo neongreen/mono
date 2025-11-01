@@ -253,11 +253,11 @@ func TestMoveFileSamePackageToSubdirectory(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	// Create admin_cmd.go that defines adminCmd variable in package main
+	// Create admin_cmd.go that defines AdminCmd variable in package main
 	adminFile := filepath.Join(tmpDir, "admin_cmd.go")
 	adminContent := `package main
 
-var adminCmd = "admin"
+var AdminCmd = "admin"
 
 func AdminHelper() string {
 	return "admin helper"
@@ -268,14 +268,14 @@ func AdminHelper() string {
 		t.Fatalf("Failed to write admin file: %v", err)
 	}
 
-	// Create main.go that uses adminCmd from admin_cmd.go (same package, no import)
+	// Create main.go that uses AdminCmd from admin_cmd.go (same package, no import)
 	mainFile := filepath.Join(tmpDir, "main.go")
 	mainContent := `package main
 
 import "fmt"
 
 func main() {
-	fmt.Println(adminCmd)
+	fmt.Println(AdminCmd)
 	fmt.Println(AdminHelper())
 }
 `
@@ -321,20 +321,39 @@ func main() {
 		t.Errorf("Target file should have 'package cmd', got:\n%s", string(targetContent))
 	}
 
-	// The critical test: verify project does NOT build (adminCmd is now undefined in main.go)
-	// This is the bug - dissect move leaves the code in a broken state
+	// The critical test: verify project DOES build after the move
+	// The auto-fix should have qualified the references and added the import
 	buildCmd := exec.Command("go", "build", ".")
 	buildCmd.Dir = tmpDir
 	buildOutput, buildErr := buildCmd.CombinedOutput()
 
-	// We EXPECT this to fail because main.go still references adminCmd without a package qualifier
-	if buildErr == nil {
-		t.Errorf("Expected build to fail after moving file to subdirectory, but it succeeded")
+	// We EXPECT this to succeed because dissect move should have:
+	// 1. Moved the file to cmd/admin.go
+	// 2. Updated the package declaration to "package cmd"
+	// 3. Found unqualified references to AdminCmd and AdminHelper in main.go
+	// 4. Qualified them as cmd.AdminCmd and cmd.AdminHelper
+	// 5. Added "import test/cmd" to main.go
+	if buildErr != nil {
+		t.Errorf("Expected build to succeed after moving file with auto-fix, but it failed: %v\nOutput: %s", buildErr, buildOutput)
+
+		// Print main.go for debugging
+		mainContent, _ := os.ReadFile(mainFile)
+		t.Logf("main.go after move:\n%s", string(mainContent))
 	}
 
-	// Verify we get the expected error message about undefined symbols
-	if !strings.Contains(string(buildOutput), "undefined: adminCmd") &&
-		!strings.Contains(string(buildOutput), "undefined: AdminHelper") {
-		t.Errorf("Expected 'undefined' error for adminCmd or AdminHelper, got: %s", string(buildOutput))
+	// Verify main.go was updated with import and qualified references
+	updatedMainContent, err := os.ReadFile(mainFile)
+	if err != nil {
+		t.Fatalf("Failed to read main file: %v", err)
+	}
+	mainStr := string(updatedMainContent)
+
+	if !strings.Contains(mainStr, `"test/cmd"`) && !strings.Contains(mainStr, `test/cmd`) {
+		t.Errorf("Expected main.go to have import for test/cmd, got:\n%s", mainStr)
+	}
+
+	// Check for qualified references (may be on different lines due to formatting)
+	if !strings.Contains(mainStr, "cmd.") {
+		t.Errorf("Expected main.go to have qualified references with cmd., got:\n%s", mainStr)
 	}
 }

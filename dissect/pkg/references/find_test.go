@@ -551,4 +551,3 @@ func createFileInDir(t *testing.T, dir, name, content string) {
 		t.Fatalf("Failed to write %s: %v", name, err)
 	}
 }
-

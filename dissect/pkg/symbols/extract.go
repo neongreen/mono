@@ -15,9 +15,20 @@ type ExportedSymbol struct {
 	Pkg  string // package path where the symbol is defined
 }
 
+// FindAllSymbols finds all symbols (exported and unexported) in a file.
+// It examines the file within the context of the loaded package to get type information.
+func FindAllSymbols(filePath string, pkg *packages.Package) ([]ExportedSymbol, error) {
+	return findSymbols(filePath, pkg, false)
+}
+
 // FindExportedSymbols finds all exported symbols in a file.
 // It examines the file within the context of the loaded package to get type information.
 func FindExportedSymbols(filePath string, pkg *packages.Package) ([]ExportedSymbol, error) {
+	return findSymbols(filePath, pkg, true)
+}
+
+// findSymbols finds symbols in a file, optionally filtering to only exported symbols.
+func findSymbols(filePath string, pkg *packages.Package, exportedOnly bool) ([]ExportedSymbol, error) {
 	// Get absolute path for comparison
 	absFilePath, err := filepath.Abs(filePath)
 	if err != nil {
@@ -50,7 +61,7 @@ func FindExportedSymbols(filePath string, pkg *packages.Package) ([]ExportedSymb
 		switch d := decl.(type) {
 		case *ast.FuncDecl:
 			// Function or method
-			if d.Name.IsExported() {
+			if !exportedOnly || d.Name.IsExported() {
 				kind := "func"
 				if d.Recv != nil {
 					kind = "method"
@@ -68,7 +79,7 @@ func FindExportedSymbols(filePath string, pkg *packages.Package) ([]ExportedSymb
 				switch s := spec.(type) {
 				case *ast.TypeSpec:
 					// Type declaration (struct, interface, etc.)
-					if s.Name.IsExported() {
+					if !exportedOnly || s.Name.IsExported() {
 						symbols = append(symbols, ExportedSymbol{
 							Name: s.Name.Name,
 							Kind: "type",
@@ -83,7 +94,7 @@ func FindExportedSymbols(filePath string, pkg *packages.Package) ([]ExportedSymb
 						kind = "const"
 					}
 					for _, name := range s.Names {
-						if name.IsExported() {
+						if !exportedOnly || name.IsExported() {
 							symbols = append(symbols, ExportedSymbol{
 								Name: name.Name,
 								Kind: kind,
@@ -98,4 +109,3 @@ func FindExportedSymbols(filePath string, pkg *packages.Package) ([]ExportedSymb
 
 	return symbols, nil
 }
-

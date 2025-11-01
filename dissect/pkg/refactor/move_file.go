@@ -2,12 +2,18 @@ package refactor
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/dissect/pkg/commands"
-	"github.com/neongreen/mono/dissect/pkg/goutils"
-	"github.com/neongreen/mono/dissect/pkg/utils"
-	"go/ast"
 	"log/slog"
 	"path/filepath"
+
+	"github.com/neongreen/mono/dissect/pkg/commands"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/qualify"
+	"github.com/neongreen/mono/dissect/pkg/references"
+	"github.com/neongreen/mono/dissect/pkg/symbols"
+	"github.com/neongreen/mono/dissect/pkg/typeinfo"
+	"github.com/neongreen/mono/dissect/pkg/utils"
+	"go/ast"
+	"golang.org/x/tools/go/packages"
 )
 
 // MoveFileWithImportUpdates performs a refactoring file move from source to target,
@@ -37,6 +43,66 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 		return fmt.Errorf("error finding Go files: %w", err)
 	}
 	slog.Debug("Found Go files", "count", len(allGoFiles))
+
+	// BEFORE moving: capture exported symbols and find references for later fixing
+	// Load the source package to get type information
+	sourceDir := filepath.Dir(sourceFile)
+	var refsByFile map[string][]references.Reference
+	var exportedSymbols []symbols.ExportedSymbol
+	sourcePkg, err := typeinfo.LoadPackage(sourceDir)
+	if err != nil {
+		slog.Warn("Failed to load source package for symbol extraction", "error", err)
+		// Continue without symbol fixing - the move will still work for import updates
+	} else {
+		// Find exported symbols in the file being moved
+		// Note: We only track exported symbols because unexported symbols cannot be
+		// accessed from another package even after qualifying them
+		exportedSymbols, err = symbols.FindExportedSymbols(sourceFile, sourcePkg)
+		if err != nil {
+			slog.Warn("Failed to find symbols", "error", err)
+		} else {
+			slog.Info("Found exported symbols to track", "count", len(exportedSymbols))
+
+			// Also find ALL symbols to warn about unexported ones
+			allSymbols, err := symbols.FindAllSymbols(sourceFile, sourcePkg)
+			if err == nil && len(allSymbols) > len(exportedSymbols) {
+				unexportedCount := len(allSymbols) - len(exportedSymbols)
+				slog.Warn("File contains unexported symbols that will become inaccessible",
+					"count", unexportedCount,
+					"hint", "Consider making these symbols exported (capitalize first letter) before moving")
+			}
+
+			// Find references to these symbols NOW (before moving breaks the package)
+			if len(exportedSymbols) > 0 {
+				symbolNames := make([]string, len(exportedSymbols))
+				for i, sym := range exportedSymbols {
+					symbolNames[i] = sym.Name
+				}
+				slog.Debug("Looking for references to symbols", "symbols", symbolNames)
+
+				refs, err := references.FindReferences(symbolNames, []*packages.Package{sourcePkg})
+				if err != nil {
+					slog.Warn("Failed to find references to symbols before moving", "error", err)
+				} else {
+					slog.Info("Found references before moving", "count", len(refs))
+					for _, ref := range refs {
+						slog.Debug("Reference found", "symbol", ref.Ident.Name, "file", filepath.Base(ref.File), "qualified", ref.Qualified)
+					}
+
+					// Group references by file for later processing
+					refsByFile = make(map[string][]references.Reference)
+					for _, ref := range refs {
+						absRefPath, _ := filepath.Abs(ref.File)
+						// Only track references in files OTHER than the one being moved
+						absSourceFile, _ := filepath.Abs(sourceFile)
+						if absRefPath != absSourceFile {
+							refsByFile[absRefPath] = append(refsByFile[absRefPath], ref)
+						}
+					}
+				}
+			}
+		}
+	}
 
 	// Move the physical file
 	slog.Debug("Moving file", "from", sourceFile, "to", targetFile)
@@ -91,6 +157,31 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 		}
 
 		slog.Info("Import update complete", "filesUpdated", updatedCount)
+
+		// Fix unqualified references in the old package using pre-found references
+		// We found these BEFORE moving to avoid loading a broken package
+		if len(refsByFile) > 0 {
+			slog.Info("Fixing unqualified references in source package", "filesWithRefs", len(refsByFile))
+
+			// Get the new package name for qualification
+			newPackageName := filepath.Base(filepath.Dir(targetFile))
+
+			// Fix references in each file
+			fixedCount := 0
+			for filePath, fileRefs := range refsByFile {
+				err := qualify.QualifyReferences(filePath, fileRefs, newPackageName, newImportPath, moduleRoot)
+				if err != nil {
+					slog.Warn("Failed to qualify references in file", "file", filePath, "error", err)
+				} else {
+					fixedCount++
+					slog.Debug("Fixed references in file", "file", filePath, "count", len(fileRefs))
+				}
+			}
+
+			if fixedCount > 0 {
+				slog.Info("Reference fixing complete", "filesFixed", fixedCount)
+			}
+		}
 	} else {
 		slog.Info("Import path unchanged, no import or package updates needed")
 	}

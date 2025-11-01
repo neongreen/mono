@@ -56,4 +56,3 @@ func LoadPackages(patterns []string, dir string) ([]*packages.Package, error) {
 
 	return pkgs, nil
 }
-

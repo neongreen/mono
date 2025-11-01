@@ -3,7 +3,7 @@ package qualify
 import (
 	"fmt"
 	"go/ast"
-	"go/token"
+	"log/slog"
 	"path/filepath"
 
 	"github.com/neongreen/mono/dissect/pkg/goutils"
@@ -42,8 +42,11 @@ func QualifyReferences(
 	}
 
 	if len(unqualifiedRefs) == 0 {
+		slog.Debug("No unqualified references to fix in file", "file", filePath, "totalRefs", len(refs))
 		return nil // Nothing to do
 	}
+
+	slog.Debug("Qualifying references", "file", filePath, "unqualifiedCount", len(unqualifiedRefs))
 
 	// Read the file
 	fset, node, err := goutils.ReadGoFile(filePath)
@@ -76,16 +79,18 @@ func QualifyReferences(
 		}
 	}
 
-	// Create a map of positions to reference for fast lookup
-	refPositions := make(map[token.Pos]references.Reference)
+	// Create a set of symbol names to qualify
+	symbolNames := make(map[string]bool)
 	for _, ref := range unqualifiedRefs {
-		refPositions[ref.Pos] = ref
+		symbolNames[ref.Ident.Name] = true
 	}
+
+	slog.Debug("Symbol names to qualify", "names", symbolNames)
 
 	// Walk the AST and qualify unqualified references
 	// We need to replace ast.Ident with ast.SelectorExpr
 	modified := false
-	
+
 	// Use astutil.Apply to traverse and modify the AST
 	astutil.Apply(node, func(cursor *astutil.Cursor) bool {
 		ident, ok := cursor.Node().(*ast.Ident)
@@ -93,8 +98,8 @@ func QualifyReferences(
 			return true
 		}
 
-		// Check if this identifier is one we need to qualify
-		if _, needsQualifying := refPositions[ident.Pos()]; !needsQualifying {
+		// Check if this identifier is one of the symbols we need to qualify
+		if !symbolNames[ident.Name] {
 			return true
 		}
 
@@ -102,10 +107,66 @@ func QualifyReferences(
 		parent := cursor.Parent()
 		if sel, ok := parent.(*ast.SelectorExpr); ok && sel.Sel == ident {
 			// Already qualified
+			slog.Debug("Skipping already qualified reference", "name", ident.Name)
+			return true
+		}
+
+		// Check if this identifier is a definition name (not a type reference)
+		switch p := parent.(type) {
+		case *ast.FuncDecl:
+			// Skip function name in declaration
+			if p.Name == ident {
+				slog.Debug("Skipping function name in declaration", "name", ident.Name)
+				return true
+			}
+		case *ast.TypeSpec:
+			// Skip type name in declaration
+			if p.Name == ident {
+				slog.Debug("Skipping type name in declaration", "name", ident.Name)
+				return true
+			}
+		case *ast.ValueSpec:
+			// Skip variable/const names in declaration (but not type references)
+			for _, name := range p.Names {
+				if name == ident {
+					slog.Debug("Skipping variable name in declaration", "name", ident.Name)
+					return true
+				}
+			}
+		}
+
+		// Only qualify if the parent node type can accept a selector expression
+		// Most contexts can, but some (like function names in declarations) cannot
+		canQualify := true
+		switch p := parent.(type) {
+		case *ast.FuncDecl:
+			// Don't qualify function names in declarations
+			canQualify = false
+		case *ast.Field:
+			// Don't qualify field names in struct definitions
+			for _, name := range p.Names {
+				if name == ident {
+					canQualify = false
+					break
+				}
+			}
+		case *ast.AssignStmt:
+			// Check if ident is on the left side of assignment (definition)
+			for _, lhs := range p.Lhs {
+				if lhs == ident {
+					canQualify = false
+					break
+				}
+			}
+		}
+
+		if !canQualify {
+			slog.Debug("Skipping identifier in non-qualifiable position", "name", ident.Name)
 			return true
 		}
 
 		// Replace the identifier with a selector expression
+		slog.Debug("Qualifying reference", "name", ident.Name, "package", packageName)
 		newSelector := &ast.SelectorExpr{
 			X:   &ast.Ident{Name: packageName},
 			Sel: ident,
@@ -118,14 +179,18 @@ func QualifyReferences(
 	}, nil)
 
 	if !modified {
+		slog.Debug("No AST modifications were made", "file", filePath)
 		return nil // Nothing was changed
 	}
+
+	slog.Debug("Writing modified file", "file", filePath)
 
 	// Write the file back
 	if err := goutils.WriteGoFile(filePath, fset, node); err != nil {
 		return fmt.Errorf("error writing file: %w", err)
 	}
 
+	slog.Debug("Successfully wrote modified file", "file", filePath)
+
 	return nil
 }
-

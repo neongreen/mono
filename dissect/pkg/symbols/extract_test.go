@@ -421,4 +421,3 @@ func createTempPackage(t *testing.T, files map[string]string) string {
 
 	return tmpDir
 }
-

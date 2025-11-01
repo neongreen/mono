@@ -688,4 +688,3 @@ func createFile(t *testing.T, path, content string) {
 		t.Fatalf("Failed to write file %s: %v", path, err)
 	}
 }
-

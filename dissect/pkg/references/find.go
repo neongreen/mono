@@ -9,10 +9,10 @@ import (
 
 // Reference represents a use of a symbol.
 type Reference struct {
-	File      string      // file containing the reference
-	Pos       token.Pos   // position in file
-	Ident     *ast.Ident  // the identifier node
-	Qualified bool        // whether it's already qualified (e.g., pkg.Symbol)
+	File      string     // file containing the reference
+	Pos       token.Pos  // position in file
+	Ident     *ast.Ident // the identifier node
+	Qualified bool       // whether it's already qualified (e.g., pkg.Symbol)
 }
 
 // FindReferences finds all references to given symbols in packages.
@@ -52,12 +52,12 @@ func FindReferences(symbolNames []string, pkgs []*packages.Package) ([]Reference
 
 				// Determine if this is a qualified reference
 				qualified := false
-				
+
 				// Check if this identifier is part of a selector expression
 				// We need to look at the parent node, but ast.Inspect doesn't give us that
 				// So we'll check if the identifier is on the right side of a selector
 				// by looking at the file's AST structure
-				
+
 				// For now, we'll use a simple heuristic: check if TypesInfo.Uses
 				// points to an object in a different package
 				if pkg.TypesInfo != nil && pkg.TypesInfo.Uses[ident] != nil {
@@ -83,4 +83,3 @@ func FindReferences(symbolNames []string, pkgs []*packages.Package) ([]Reference
 
 	return refs, nil
 }
-
