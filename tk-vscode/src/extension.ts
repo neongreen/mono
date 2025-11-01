@@ -451,8 +451,8 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   private readonly _onDidChangeTreeData = new vscode.EventEmitter<TkTreeItem | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  private groups: GroupTreeItem[] = [];
-  private ungrouped: TaskTreeItem[] = [];
+  private rawGroups: TkGroup[] = [];
+  private rawUngrouped: TkTask[] = [];
   private statusFilters: Set<string> = new Set();
 
   constructor(private readonly decorationProvider: TkDecorationProvider) {
@@ -484,9 +484,18 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   }
 
   public findGroupForTask(task: TaskTreeItem): GroupTreeItem | undefined {
-    for (const group of this.groups) {
-      if (group.children.includes(task)) {
-        return group;
+    // Find the group containing this task in the raw data
+    for (const rawGroup of this.rawGroups) {
+      const taskFound = rawGroup.tasks.some(t => 
+        t.task_uuid === task.task.task_uuid || 
+        t.task_id === task.task.task_id
+      );
+      if (taskFound) {
+        // Return a GroupTreeItem for this group
+        return new GroupTreeItem(
+          rawGroup.group ?? 'unnamed',
+          rawGroup.tasks.map((t) => new TaskTreeItem(t))
+        );
       }
     }
     return undefined;
@@ -498,7 +507,25 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
 
   getChildren(element?: TkTreeItem): vscode.ProviderResult<TkTreeItem[]> {
     if (!element) {
-      return [...this.groups, ...this.ungrouped];
+      // Apply filtering when getting root children
+      const filteredGroups = this.rawGroups.map(group => ({
+        ...group,
+        tasks: this.filterTasksByStatus(group.tasks)
+      })).filter(group => group.tasks.length > 0); // Only show groups with tasks after filtering
+      
+      const filteredUngrouped = this.filterTasksByStatus(this.rawUngrouped);
+
+      const groups = filteredGroups.map(
+        (group) =>
+          new GroupTreeItem(
+            group.group ?? 'unnamed',
+            group.tasks.map((task) => new TaskTreeItem(task)),
+          ),
+      );
+
+      const ungrouped = filteredUngrouped.map((task) => new TaskTreeItem(task));
+
+      return [...groups, ...ungrouped];
     }
 
     if (element instanceof GroupTreeItem) {
@@ -512,35 +539,26 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
     try {
       const tasks = await fetchTk();
 
-      // Apply status filters
-      const filteredGroups = tasks.groups.map(group => ({
-        ...group,
-        tasks: this.filterTasksByStatus(group.tasks)
-      }));
-      const filteredUngrouped = this.filterTasksByStatus(tasks.tasks);
+      // Store raw unfiltered data
+      this.rawGroups = tasks.groups;
+      this.rawUngrouped = tasks.tasks;
 
-      this.groups = filteredGroups.map(
-        (group) =>
-          new GroupTreeItem(
-            group.group ?? 'unnamed',
-            group.tasks.map((task) => new TaskTreeItem(task)),
-          ),
-      );
-
-      this.ungrouped = filteredUngrouped.map((task) => new TaskTreeItem(task));
-
-      // Collect all task items for decoration provider
+      // Collect all task items for decoration provider (unfiltered)
       const allTaskItems: TaskTreeItem[] = [];
-      for (const group of this.groups) {
-        allTaskItems.push(...group.children);
+      for (const group of tasks.groups) {
+        for (const task of group.tasks) {
+          allTaskItems.push(new TaskTreeItem(task));
+        }
       }
-      allTaskItems.push(...this.ungrouped);
+      for (const task of tasks.tasks) {
+        allTaskItems.push(new TaskTreeItem(task));
+      }
       this.decorationProvider.updateTaskItems(allTaskItems);
 
       this._onDidChangeTreeData.fire(undefined);
     } catch (error) {
-      this.groups = [];
-      this.ungrouped = [];
+      this.rawGroups = [];
+      this.rawUngrouped = [];
       const message = error instanceof Error ? error.message : String(error);
       void vscode.window.showErrorMessage(`tk Tasks: ${message}`);
       this._onDidChangeTreeData.fire(undefined);
@@ -858,6 +876,20 @@ async function moveTaskToGroup(task: TaskTreeItem, targetGroup: GroupTreeItem): 
   });
 }
 
+function updateViewTitle(treeView: vscode.TreeView<TkTreeItem>, provider: TkProvider): void {
+  const filters = provider.getStatusFilters();
+  if (filters.size === 0) {
+    treeView.description = undefined;
+  } else {
+    const filterLabels: string[] = [];
+    if (filters.has('next')) filterLabels.push('Next');
+    if (filters.has('wip')) filterLabels.push('WIP');
+    if (filters.has('done')) filterLabels.push('Done');
+    if (filters.has('')) filterLabels.push('None');
+    treeView.description = `Filters: ${filterLabels.join(', ')}`;
+  }
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   const decorationProvider = new TkDecorationProvider();
   const provider = new TkProvider(decorationProvider);
@@ -880,10 +912,22 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('tk.createProject', () => createProject(provider)),
     vscode.commands.registerCommand('tk.deleteTask', (item: TaskTreeItem) => deleteTask(provider, item)),
     vscode.commands.registerCommand('tk.deleteProject', (item: GroupTreeItem) => deleteProject(provider, item)),
-    vscode.commands.registerCommand('tk.filterNext', () => provider.toggleStatusFilter('next')),
-    vscode.commands.registerCommand('tk.filterWip', () => provider.toggleStatusFilter('wip')),
-    vscode.commands.registerCommand('tk.filterDone', () => provider.toggleStatusFilter('done')),
-    vscode.commands.registerCommand('tk.filterNone', () => provider.toggleStatusFilter('')),
+    vscode.commands.registerCommand('tk.filterNext', () => {
+      provider.toggleStatusFilter('next');
+      updateViewTitle(treeView, provider);
+    }),
+    vscode.commands.registerCommand('tk.filterWip', () => {
+      provider.toggleStatusFilter('wip');
+      updateViewTitle(treeView, provider);
+    }),
+    vscode.commands.registerCommand('tk.filterDone', () => {
+      provider.toggleStatusFilter('done');
+      updateViewTitle(treeView, provider);
+    }),
+    vscode.commands.registerCommand('tk.filterNone', () => {
+      provider.toggleStatusFilter('');
+      updateViewTitle(treeView, provider);
+    }),
     vscode.commands.registerCommand('tk.showTaskDetails', (task: TkTask) => {
       detailProvider.showTask(task);
     }),
