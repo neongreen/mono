@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/payloads"
 	"encoding/json"
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/payloads"
 	"os"
 
 	"strings"

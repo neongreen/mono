@@ -139,22 +139,43 @@ func (n NodeID) String() string { return string(n) }
 type DisplayID string
 
 // Parse extracts components from a display ID
+// Format: <alias>-<number> or <alias>-<number>-<nodeHint>
+// The alias can contain hyphens, so we parse from right to left
 func (d DisplayID) Parse() (alias string, number int64, nodeHint string, err error) {
 	parts := strings.Split(string(d), "-")
-	if len(parts) < 2 || len(parts) > 3 {
+	if len(parts) < 2 {
 		return "", 0, "", fmt.Errorf("invalid display ID format")
 	}
 
-	alias = parts[0]
-	number, err = strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return "", 0, "", fmt.Errorf("invalid number in display ID: %w", err)
+	// Parse from right to left
+	// Try to parse the last segment as the node hint, second-to-last as number
+	// If that fails, try to parse second-to-last as number (no node hint)
+
+	lastIdx := len(parts) - 1
+	secondLastIdx := lastIdx - 1
+
+	// Try parsing second-to-last as number (assuming last is node hint)
+	if secondLastIdx > 0 {
+		num, parseErr := strconv.ParseInt(parts[secondLastIdx], 10, 64)
+		if parseErr == nil {
+			// Success - we have alias-number-nodeHint format
+			alias = strings.Join(parts[:secondLastIdx], "-")
+			number = num
+			nodeHint = parts[lastIdx]
+			return alias, number, nodeHint, nil
+		}
 	}
 
-	if len(parts) == 3 {
-		nodeHint = parts[2]
+	// Try parsing last segment as number (no node hint)
+	num, parseErr := strconv.ParseInt(parts[lastIdx], 10, 64)
+	if parseErr != nil {
+		return "", 0, "", fmt.Errorf("invalid number in display ID: %w", parseErr)
 	}
 
+	// Success - we have alias-number format
+	alias = strings.Join(parts[:lastIdx], "-")
+	number = num
+	nodeHint = ""
 	return alias, number, nodeHint, nil
 }
 
