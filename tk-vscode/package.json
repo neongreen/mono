@@ -21,7 +21,8 @@
     "onCommand:tk.refresh",
     "onCommand:tk.editTitle",
     "onCommand:tk.rotateStatus",
-    "onCommand:tk.createTask"
+    "onCommand:tk.createTask",
+    "onCommand:tk.createProject"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -48,9 +49,21 @@
       {
         "command": "tk.showTaskDetails",
         "title": "Show Task Details"
+      },
+      {
+        "command": "tk.createProject",
+        "title": "Create Project",
+        "icon": "$(new-folder)"
       }
     ],
     "menus": {
+      "view/title": [
+        {
+          "command": "tk.createProject",
+          "when": "view == tkExplorer",
+          "group": "navigation"
+        }
+      ],
       "view/item/context": [
         {
           "command": "tk.editTitle",
@@ -86,7 +99,8 @@
         },
         {
           "id": "tkDetailView",
-          "name": "Task Details"
+          "name": "Task Details",
+          "type": "webview"
         }
       ]
     },
@@ -123,9 +137,13 @@
     "package": "vsce package"
   },
   "devDependencies": {
+    "@types/he": "^1.2.3",
     "@types/node": "^18.19.50",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.6.2",
     "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "he": "^1.2.0"
   }
 }
