@@ -430,6 +430,12 @@ func parseValue(v parser.Value) (interface{}, error) {
 	}
 }
 
+// FormatValueToString converts a Go value into a TOML value string.
+// This is useful for displaying values in a TOML-compatible format.
+func FormatValueToString(v interface{}) (string, error) {
+	return formatValueToString(v)
+}
+
 // formatValueToString converts a Go value into a TOML value string.
 func formatValueToString(v interface{}) (string, error) {
 	switch val := v.(type) {

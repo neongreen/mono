@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
-	"strings"
 
-	"github.com/pelletier/go-toml/v2"
+	tomlcp "github.com/neongreen/mono/lib/toml"
 )
 
 // parseValue attempts to parse a string value into the appropriate type
@@ -32,26 +30,13 @@ func formatValueAsTOML(value interface{}) string {
 		return "(not set)"
 	}
 
-	// Marshal to TOML and extract just the value part
-	// We create a temporary map to marshal
-	temp := map[string]interface{}{"x": value}
-	bytes, err := toml.Marshal(temp)
+	// Use lib/toml's formatValueToString which handles all TOML types properly
+	formatted, err := tomlcp.FormatValueToString(value)
 	if err != nil {
-		// Fallback to basic formatting if marshaling fails
-		return fmt.Sprintf("%v", value)
+		// Fallback to basic formatting if it fails (though it shouldn't)
+		// This handles edge cases that formatValueToString doesn't support
+		return "(unsupported type)"
 	}
 
-	// Extract the value part (after "x = ")
-	str := strings.TrimSpace(string(bytes))
-	if strings.HasPrefix(str, "x = ") {
-		return strings.TrimPrefix(str, "x = ")
-	}
-
-	// If we have a multiline value, it starts with "x = ["
-	if strings.HasPrefix(str, "x = [") {
-		return strings.TrimPrefix(str, "x = ")
-	}
-
-	// Fallback
-	return fmt.Sprintf("%v", value)
+	return formatted
 }
