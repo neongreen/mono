@@ -662,6 +662,110 @@ func main() {
 	}
 }
 
+// TestQualifyReferences_StructLiteralFieldNames tests that field names in struct
+// literals are NOT qualified, only the type names and values should be qualified.
+// This is a regression test for a bug where ProjectUID field name was becoming
+// types.ProjectUID which is invalid Go syntax.
+func TestQualifyReferences_StructLiteralFieldNames(t *testing.T) {
+	tmpDir := createTempModule(t)
+	defer os.RemoveAll(tmpDir)
+
+	// Create types package first (simulating the target after move)
+	typesDir := filepath.Join(tmpDir, "types")
+	if err := os.MkdirAll(typesDir, 0755); err != nil {
+		t.Fatalf("Failed to create types dir: %v", err)
+	}
+	createFile(t, filepath.Join(typesDir, "types.go"), `package types
+
+type ProjectUID string
+type TaskUID string
+`)
+
+	testFile := filepath.Join(tmpDir, "main.go")
+	createFile(t, testFile, `package main
+
+type ProjectUID string
+type TaskUID string
+
+type DoctorCollision struct {
+	ProjectUID     ProjectUID
+	TaskDisplayIDs []string
+	Number         int64
+}
+
+func main() {
+	projectUID := ProjectUID("project-123")
+	collision := DoctorCollision{
+		ProjectUID:     projectUID,
+		TaskDisplayIDs: []string{"task-1", "task-2"},
+		Number:         42,
+	}
+	_ = collision
+}
+`)
+
+	pkg, err := typeinfo.LoadPackage(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load package: %v", err)
+	}
+
+	// Find references to ProjectUID and TaskUID types
+	refs, err := references.FindReferences([]string{"ProjectUID", "TaskUID"}, []*packages.Package{pkg})
+	if err != nil {
+		t.Fatalf("FindReferences failed: %v", err)
+	}
+
+	err = QualifyReferences(testFile, refs, "types", "test/types", tmpDir)
+	if err != nil {
+		t.Fatalf("QualifyReferences failed: %v", err)
+	}
+
+	content, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+
+	contentStr := string(content)
+
+	// Should have import
+	if !strings.Contains(contentStr, `"test/types"`) {
+		t.Error("Expected test/types import to be added")
+	}
+
+	// Should qualify the type name in struct field type declarations
+	if !strings.Contains(contentStr, "types.ProjectUID") {
+		t.Error("Expected types.ProjectUID in struct field type")
+	}
+
+	// Should qualify the type name in variable declarations
+	if !strings.Contains(contentStr, "types.ProjectUID(") {
+		t.Error("Expected types.ProjectUID in type conversion")
+	}
+
+	// CRITICAL: Field names in struct literals should NOT be qualified
+	// This is the bug we're fixing
+	if strings.Contains(contentStr, "types.ProjectUID:") || strings.Contains(contentStr, "types.Number:") {
+		t.Errorf("Field names in struct literal should NOT be qualified. Got:\n%s", contentStr)
+	}
+
+	// Field names should still be present (unqualified)
+	if !strings.Contains(contentStr, "ProjectUID:") {
+		t.Error("Expected unqualified ProjectUID field name in struct literal")
+	}
+
+	if !strings.Contains(contentStr, "Number:") {
+		t.Error("Expected unqualified Number field name in struct literal")
+	}
+
+	// Verify the code actually compiles
+	buildCmd := exec.Command("go", "build", ".")
+	buildCmd.Dir = tmpDir
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Code should build after qualification: %v\nOutput: %s\nContent:\n%s", err, output, contentStr)
+	}
+}
+
 // Helper functions
 
 func createTempModule(t *testing.T) string {

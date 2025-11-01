@@ -158,6 +158,13 @@ func QualifyReferences(
 					break
 				}
 			}
+		case *ast.KeyValueExpr:
+			// Don't qualify field names in struct literals
+			// In a KeyValueExpr like "ProjectUID: value", the key is the field name
+			if p.Key == ident {
+				slog.Debug("Skipping struct literal field name", "name", ident.Name)
+				canQualify = false
+			}
 		}
 
 		if !canQualify {
