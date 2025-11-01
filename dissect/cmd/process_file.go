@@ -99,7 +99,7 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 				// Since *we* want to control the file name, we rename the function to a temp name first so that we don't get a clash.
 				// Once the function is moved, we rename it back to the original name and rename the file.
 				renameStart := time.Now()
-				err := gopls.Rename(absPath, funcName, tempFuncName, moduleRoot)
+				err := gopls.Rename(absPath, funcName, tempFuncName)
 				if err != nil {
 					slog.Error("Error renaming function", "from", funcName, "to", tempFuncName, "error", err)
 					return Failed, "", err

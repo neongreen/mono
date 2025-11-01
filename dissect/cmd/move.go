@@ -14,6 +14,7 @@ import (
 	"github.com/neongreen/mono/dissect/pkg/commands"
 	"github.com/neongreen/mono/dissect/pkg/gopls"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/parser"
 	"github.com/neongreen/mono/dissect/pkg/refactor"
 	"go/ast"
 	"go/printer"
@@ -31,7 +32,7 @@ import (
 var moveCmd = &cobra.Command{
 	Use:   "move <source> <target>",
 	Short: "Move/rename files or move specific identifiers between files",
-	Long: `Move supports two modes of operation:
+	Long: `Move supports three modes of operation:
 
 1. File mode: Move or rename entire files with refactoring support
    dissect move source.go destination.go
@@ -43,6 +44,13 @@ var moveCmd = &cobra.Command{
 2. Symbol mode: Move specific identifiers (functions, types, interfaces) between files
    dissect move source.go:Foo target.go
    dissect move source.go:Foo,Bar,Baz target.go
+   
+   Move and rename simultaneously:
+   dissect move source.go:OldName target.go:NewName
+
+3. Rename mode: Rename symbols in place
+   dissect move file.go:oldName file.go:NewName
+   dissect move utils.go:helper utils.go:Helper  # Export a function
 
 Symbol mode supports glob patterns:
   - File patterns: *.go, pkg/**/*.go
@@ -58,12 +66,19 @@ Examples:
   dissect move source.go destination.go
   dissect move tk/admin_cmd.go tk/cmd/admin.go
 
-  # Symbol mode
-  dissect move source.go:Foo source.go:Bar target.go
+  # Symbol mode - move
+  dissect move source.go:Foo target.go
   dissect move *.go:Helper target.go
   dissect move pkg/**/*.go:Test* target.go
   dissect move file.go:*Helper,Test* target.go
-  dissect move source.go:MyType,MyInterface target.go`,
+  dissect move source.go:MyType,MyInterface target.go
+  
+  # Symbol mode - move and rename
+  dissect move source.go:OldFunc target.go:NewFunc
+  
+  # Rename mode
+  dissect move file.go:oldName file.go:NewName
+  dissect move utils.go:helper utils.go:Helper`,
 	Args: cobra.MinimumNArgs(2),
 	Run:  runMove,
 }
@@ -140,8 +155,16 @@ func runMove(cmd *cobra.Command, args []string) {
 
 	// Symbol mode: move specific identifiers between files
 	// Parse arguments
-	// Last argument is the target file
-	targetFile := args[len(args)-1]
+	// Last argument is the target specification
+	targetSpec, err := parser.ParseFileSpec(args[len(args)-1])
+	if err != nil {
+		slog.Error("Invalid target specification", "error", err)
+		fmt.Fprintf(os.Stderr, "Error: Invalid target specification: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Extract just the file path for target (identifier is the new name if doing rename)
+	targetFile := targetSpec.FilePath
 
 	// All other arguments are source specifications (file:identifier or file:id1,id2,id3)
 	sourceSpecs := args[:len(args)-1]
@@ -242,13 +265,50 @@ func runMove(cmd *cobra.Command, args []string) {
 
 		// Move each matched identifier
 		for _, identifier := range matchingIdentifiers {
-			slog.Info("Moving identifier", "identifier", identifier, "from", sourceFile, "to", targetFile)
+			// Check if this is a rename operation (same file, different identifier)
+			if absSourceFile == absTargetFile && targetSpec.HasIdentifier() {
+				// Rename operation
+				newName := targetSpec.Identifier
 
-			err := moveIdentifier(absSourceFile, identifier, absTargetFile, moduleRoot)
-			if err != nil {
-				slog.Error("Error moving identifier", "identifier", identifier, "error", err)
-				fmt.Fprintf(os.Stderr, "Error moving identifier '%s': %v\n", identifier, err)
-				os.Exit(1)
+				// Check for no-op rename
+				if identifier == newName {
+					slog.Warn("Source and target identifiers are the same, skipping", "identifier", identifier)
+					fmt.Fprintf(os.Stderr, "Warning: Identifier '%s' already has the target name, skipping\n", identifier)
+					continue
+				}
+
+				slog.Info("Renaming identifier", "identifier", identifier, "to", newName, "file", sourceFile)
+
+				err := gopls.Rename(absSourceFile, identifier, newName)
+				if err != nil {
+					slog.Error("Error renaming identifier", "identifier", identifier, "error", err)
+					fmt.Fprintf(os.Stderr, "Error renaming identifier '%s': %v\n", identifier, err)
+					os.Exit(1)
+				}
+			} else {
+				// Move operation
+				slog.Info("Moving identifier", "identifier", identifier, "from", sourceFile, "to", targetFile)
+
+				err := moveIdentifier(absSourceFile, identifier, absTargetFile, moduleRoot)
+				if err != nil {
+					slog.Error("Error moving identifier", "identifier", identifier, "error", err)
+					fmt.Fprintf(os.Stderr, "Error moving identifier '%s': %v\n", identifier, err)
+					os.Exit(1)
+				}
+
+				// If target has a new name specified, rename after moving
+				if targetSpec.HasIdentifier() {
+					newName := targetSpec.Identifier
+					if identifier != newName {
+						slog.Info("Renaming moved identifier", "from", identifier, "to", newName)
+						err := gopls.Rename(absTargetFile, identifier, newName)
+						if err != nil {
+							slog.Error("Error renaming after move", "identifier", identifier, "error", err)
+							fmt.Fprintf(os.Stderr, "Error renaming identifier '%s' after move: %v\n", identifier, err)
+							os.Exit(1)
+						}
+					}
+				}
 			}
 		}
 	}
