@@ -61,41 +61,37 @@ type Event struct {
 
 // Task represents the current state of a task, derived from events
 type Task struct {
-	TaskUUID  string                `json:"task_uuid"`         // Canonical immutable UUID
-	TaskID    string                `json:"task_id"`           // Current display ID
-	Aliases   []string              `json:"aliases,omitempty"` // Previous IDs (when task was moved)
-	Title     string                `json:"title"`
+	TaskUUID  string                      `json:"task_uuid"`         // Canonical immutable UUID
+	TaskID    string                      `json:"task_id"`           // Current display ID
+	Aliases   []string                    `json:"aliases,omitempty"` // Previous IDs (when task was moved)
+	Title     string                      `json:"title"`
 	Axes      map[string]types.AxisStatus `json:"axes"`
-	Notes     []types.Note          `json:"notes"`
-	CreatedBy string                `json:"created_by"`
-	CreatedAt time.Time             `json:"created_at"`
-	Relations *Relations            `json:"relations,omitempty"` // Task relations
-	Blocked   bool                  `json:"blocked,omitempty"`   // Is this task blocked
-	Blockers  []types.Blocker       `json:"blockers,omitempty"`  // List of blocking tasks
+	Notes     []types.Note                `json:"notes"`
+	CreatedBy string                      `json:"created_by"`
+	CreatedAt time.Time                   `json:"created_at"`
+	Relations *types.Relations            `json:"relations,omitempty"` // Task relations
+	Blocked   bool                        `json:"blocked,omitempty"`   // Is this task blocked
+	Blockers  []types.Blocker             `json:"blockers,omitempty"`  // List of blocking tasks
 }
 
 // Relations represents all relations for a task
-type Relations struct {
-	Blocks     RelationSet `json:"blocks,omitempty"`     // Tasks this task blocks
-	Subtask    RelationSet `json:"subtask,omitempty"`    // Parent/children for subtasks
-	Related    RelationSet `json:"related,omitempty"`    // Related tasks
-	Duplicate  RelationSet `json:"duplicate,omitempty"`  // Duplicate tasks
-	Supersedes RelationSet `json:"supersedes,omitempty"` // Tasks this supersedes
-}
+
+// Tasks this task blocks
+// Parent/children for subtasks
+// Related tasks
+// Duplicate tasks
+// Tasks this supersedes
 
 // RelationSet represents directional relations
-type RelationSet struct {
-	Out      []RelationTarget `json:"out,omitempty"`      // Outgoing edges (this task -> others)
-	In       []RelationTarget `json:"in,omitempty"`       // Incoming edges (others -> this task)
-	Children []string         `json:"children,omitempty"` // For subtask relations
-	Parent   string           `json:"parent,omitempty"`   // For subtask relations
-}
+
+// Outgoing edges (this task -> others)
+// Incoming edges (others -> this task)
+// For subtask relations
+// For subtask relations
 
 // RelationTarget represents a relation target
-type RelationTarget struct {
-	TaskUUID string `json:"dst"` // Destination task UUID
-	Note     string `json:"note,omitempty"`
-}
+
+// Destination task UUID
 
 // Blocker represents a task that blocks another
 
@@ -111,4 +107,3 @@ var roleAuthority = map[string]int{
 	"agent": 2,
 	"bot":   1,
 }
-

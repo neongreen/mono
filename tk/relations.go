@@ -106,11 +106,11 @@ func (g *RelationsGraph) SetRelationNote(src, relType, dst, note string) {
 }
 
 // GetOutgoingRelations returns all outgoing relations for a task by type
-func (g *RelationsGraph) GetOutgoingRelations(taskUUID, relType string) []RelationTarget {
-	var targets []RelationTarget
+func (g *RelationsGraph) GetOutgoingRelations(taskUUID, relType string) []types.RelationTarget {
+	var targets []types.RelationTarget
 	for _, edge := range g.edges {
 		if edge.Src == taskUUID && edge.Type == relType && g.isEdgePresent(edge) {
-			targets = append(targets, RelationTarget{
+			targets = append(targets, types.RelationTarget{
 				TaskUUID: edge.Dst,
 				Note:     edge.Note,
 			})
@@ -120,11 +120,11 @@ func (g *RelationsGraph) GetOutgoingRelations(taskUUID, relType string) []Relati
 }
 
 // GetIncomingRelations returns all incoming relations for a task by type
-func (g *RelationsGraph) GetIncomingRelations(taskUUID, relType string) []RelationTarget {
-	var targets []RelationTarget
+func (g *RelationsGraph) GetIncomingRelations(taskUUID, relType string) []types.RelationTarget {
+	var targets []types.RelationTarget
 	for _, edge := range g.edges {
 		if edge.Dst == taskUUID && edge.Type == relType && g.isEdgePresent(edge) {
-			targets = append(targets, RelationTarget{
+			targets = append(targets, types.RelationTarget{
 				TaskUUID: edge.Src,
 				Note:     edge.Note,
 			})
@@ -306,14 +306,14 @@ func (g *RelationsGraph) GetTransitiveBlockers(taskUUID string, tasks map[string
 }
 
 // BuildTaskRelations builds the Relations structure for a task
-func (g *RelationsGraph) BuildTaskRelations(taskUUID string) *Relations {
-	rel := &Relations{}
+func (g *RelationsGraph) BuildTaskRelations(taskUUID string) *types.Relations {
+	rel := &types.Relations{}
 
 	// Blocks relations
 	blocksOut := g.GetOutgoingRelations(taskUUID, "blocks")
 	blocksIn := g.GetIncomingRelations(taskUUID, "blocks")
 	if len(blocksOut) > 0 || len(blocksIn) > 0 {
-		rel.Blocks = RelationSet{
+		rel.Blocks = types.RelationSet{
 			Out: blocksOut,
 			In:  blocksIn,
 		}
@@ -324,7 +324,7 @@ func (g *RelationsGraph) BuildTaskRelations(taskUUID string) *Relations {
 	subtaskIn := g.GetIncomingRelations(taskUUID, "subtask")
 	if len(subtaskOut) > 0 || len(subtaskIn) > 0 {
 		// For subtasks: out = children, in = parent
-		rel.Subtask = RelationSet{}
+		rel.Subtask = types.RelationSet{}
 		if len(subtaskOut) > 0 {
 			children := make([]string, len(subtaskOut))
 			for i, t := range subtaskOut {
@@ -341,7 +341,7 @@ func (g *RelationsGraph) BuildTaskRelations(taskUUID string) *Relations {
 	relatedOut := g.GetOutgoingRelations(taskUUID, "related")
 	relatedIn := g.GetIncomingRelations(taskUUID, "related")
 	if len(relatedOut) > 0 || len(relatedIn) > 0 {
-		rel.Related = RelationSet{
+		rel.Related = types.RelationSet{
 			Out: relatedOut,
 			In:  relatedIn,
 		}
@@ -351,7 +351,7 @@ func (g *RelationsGraph) BuildTaskRelations(taskUUID string) *Relations {
 	duplicateOut := g.GetOutgoingRelations(taskUUID, "duplicate_of")
 	duplicateIn := g.GetIncomingRelations(taskUUID, "duplicate_of")
 	if len(duplicateOut) > 0 || len(duplicateIn) > 0 {
-		rel.Duplicate = RelationSet{
+		rel.Duplicate = types.RelationSet{
 			Out: duplicateOut,
 			In:  duplicateIn,
 		}
@@ -361,7 +361,7 @@ func (g *RelationsGraph) BuildTaskRelations(taskUUID string) *Relations {
 	supersedesOut := g.GetOutgoingRelations(taskUUID, "supersedes")
 	supersedesIn := g.GetIncomingRelations(taskUUID, "supersedes")
 	if len(supersedesOut) > 0 || len(supersedesIn) > 0 {
-		rel.Supersedes = RelationSet{
+		rel.Supersedes = types.RelationSet{
 			Out: supersedesOut,
 			In:  supersedesIn,
 		}

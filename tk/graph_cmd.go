@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 var graphCmd = &cobra.Command{
@@ -80,7 +82,7 @@ var graphCmd = &cobra.Command{
 					Blocked: t.Blocked,
 				}
 
-				var targets []RelationTarget
+				var targets []types.RelationTarget
 				switch relationType {
 				case "blocks":
 					targets = reducer.relations.GetOutgoingRelations(t.TaskUUID, "blocks")
@@ -150,7 +152,7 @@ func printRelationTree(db *DB, reducer *Reducer, task *Task, relationType string
 	}
 
 	// Get related tasks based on type
-	var targets []RelationTarget
+	var targets []types.RelationTarget
 	switch relationType {
 	case "blocks":
 		targets = reducer.relations.GetOutgoingRelations(task.TaskUUID, "blocks")
@@ -210,7 +212,7 @@ func printRelationTreeImpl(db *DB, reducer *Reducer, task *Task, relationType st
 	visited[task.TaskUUID] = true
 
 	// Get related tasks based on type
-	var targets []RelationTarget
+	var targets []types.RelationTarget
 	switch relationType {
 	case "blocks":
 		targets = reducer.relations.GetOutgoingRelations(task.TaskUUID, "blocks")
