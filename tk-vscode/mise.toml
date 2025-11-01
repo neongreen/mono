@@ -1,5 +1,6 @@
 # NOTE: Build tasks defined here are also used by want/vscode.go for 'want mono tk-vscode'
 # If you update these tasks, ensure want/vscode.go stays in sync (it calls these tasks via mise).
+# Task names referenced in want/vscode.go: "install-deps", "build", "install"
 
 [tools]
 node = "latest"

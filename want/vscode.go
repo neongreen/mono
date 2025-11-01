@@ -13,9 +13,10 @@ import (
 // NOTE: Build steps for tk-vscode are defined in tk-vscode/mise.toml
 // If you update the build process here, also update tk-vscode/mise.toml
 // to keep them in sync. The mise tasks define the canonical build process.
+// Task names used: "install-deps", "build", "install"
 
 // createMiseRunCommand creates a command to run a mise task.
-// Example: createMiseRunCommand("//tk-vscode:install-deps") runs the install-deps task.
+// Example: createMiseRunCommand("install-deps") runs the install-deps task from the local mise.toml.
 func createMiseRunCommand(taskPath string) *exec.Cmd {
 	if !isMiseAvailable() {
 		// If mise is not available, fail with a helpful error
