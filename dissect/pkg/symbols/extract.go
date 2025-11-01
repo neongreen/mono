@@ -89,6 +89,21 @@ func findSymbols(filePath string, pkg *packages.Package, exportedOnly bool) ([]E
 						})
 					}
 
+					// Also extract struct fields
+					if structType, ok := s.Type.(*ast.StructType); ok {
+						for _, field := range structType.Fields.List {
+							for _, fieldName := range field.Names {
+								if !exportedOnly || fieldName.IsExported() {
+									symbols = append(symbols, ExportedSymbol{
+										Name: fieldName.Name,
+										Kind: "field",
+										Pkg:  pkg.PkgPath,
+									})
+								}
+							}
+						}
+					}
+
 				case *ast.ValueSpec:
 					// Const or var declaration
 					kind := "var"
@@ -138,6 +153,15 @@ func ExtractAllSymbols(filePath string) ([]string, error) {
 				case *ast.TypeSpec:
 					// Type declaration (struct, interface, etc.)
 					symbolNames = append(symbolNames, s.Name.Name)
+
+					// Also extract struct fields
+					if structType, ok := s.Type.(*ast.StructType); ok {
+						for _, field := range structType.Fields.List {
+							for _, fieldName := range field.Names {
+								symbolNames = append(symbolNames, fieldName.Name)
+							}
+						}
+					}
 
 				case *ast.ValueSpec:
 					// Const or var declaration

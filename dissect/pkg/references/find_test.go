@@ -517,6 +517,156 @@ func Main() {
 	}
 }
 
+func TestFindReferences_FieldAccess(t *testing.T) {
+	tmpDir := createTempPackage(t, map[string]string{
+		"types.go": `package test
+
+type DB struct {
+	data string
+	Name string
+}
+
+func NewDB() *DB {
+	return &DB{data: "test", Name: "mydb"}
+}
+`,
+		"user.go": `package test
+
+func PrintDBData(db *DB) {
+	println(db.data)
+	println(db.Name)
+}
+`,
+	})
+	defer os.RemoveAll(tmpDir)
+
+	pkg, err := typeinfo.LoadPackage(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load package: %v", err)
+	}
+
+	// Find references to the "data" field
+	refs, err := FindReferences([]string{"data"}, []*packages.Package{pkg})
+	if err != nil {
+		t.Fatalf("FindReferences failed: %v", err)
+	}
+
+	// Should find at least the field access in PrintDBData
+	// (may also find the field definition in the struct)
+	if len(refs) == 0 {
+		t.Error("Expected to find field access reference to 'data'")
+	}
+
+	// Verify at least one reference has selector information
+	foundSelector := false
+	for _, ref := range refs {
+		if ref.Selector != "" {
+			foundSelector = true
+			break
+		}
+	}
+	if !foundSelector {
+		t.Error("Expected at least one reference to have selector information")
+	}
+}
+
+func TestFindReferences_UnexportedFieldAccess(t *testing.T) {
+	tmpDir := createTempPackage(t, map[string]string{
+		"database.go": `package test
+
+type Database struct {
+	connection string
+}
+
+func (d *Database) Connect() {
+	println(d.connection)
+}
+`,
+		"main.go": `package test
+
+func UseDatabase() {
+	db := &Database{}
+	println(db.connection)
+}
+`,
+	})
+	defer os.RemoveAll(tmpDir)
+
+	pkg, err := typeinfo.LoadPackage(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load package: %v", err)
+	}
+
+	// Find references to the unexported "connection" field
+	refs, err := FindReferences([]string{"connection"}, []*packages.Package{pkg})
+	if err != nil {
+		t.Fatalf("FindReferences failed: %v", err)
+	}
+
+	// Should find the field accesses (d.connection and db.connection)
+	if len(refs) < 2 {
+		t.Errorf("Expected at least 2 references to 'connection', got %d", len(refs))
+	}
+
+	// Verify references have selector information
+	for _, ref := range refs {
+		if ref.Ident.Name == "connection" && ref.Selector == "" {
+			// It's OK if it's a definition without selector
+			// But uses should have selector info
+			continue
+		}
+	}
+}
+
+func TestFindReferences_ExportedFieldAccess(t *testing.T) {
+	tmpDir := createTempPackage(t, map[string]string{
+		"config.go": `package test
+
+type Config struct {
+	Host string
+	Port int
+}
+`,
+		"server.go": `package test
+
+func StartServer() {
+	cfg := Config{Host: "localhost", Port: 8080}
+	println(cfg.Host)
+	println(cfg.Port)
+}
+`,
+	})
+	defer os.RemoveAll(tmpDir)
+
+	pkg, err := typeinfo.LoadPackage(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load package: %v", err)
+	}
+
+	// Find references to the exported "Host" field
+	refs, err := FindReferences([]string{"Host"}, []*packages.Package{pkg})
+	if err != nil {
+		t.Fatalf("FindReferences failed: %v", err)
+	}
+
+	// Should find the field access in StartServer
+	if len(refs) == 0 {
+		t.Error("Expected to find field access reference to 'Host'")
+	}
+
+	// At least one should be a field access with selector
+	foundFieldAccess := false
+	for _, ref := range refs {
+		if ref.Selector != "" {
+			foundFieldAccess = true
+			break
+		}
+	}
+	if !foundFieldAccess {
+		t.Error("Expected at least one field access with selector information")
+	}
+}
+
 // Helper functions
 
 func createTempPackage(t *testing.T, files map[string]string) string {

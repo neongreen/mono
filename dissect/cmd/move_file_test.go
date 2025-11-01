@@ -563,6 +563,74 @@ func dial() *connection {
 	}
 }
 
+// TestMoveFileBlocksOnUnexportedFieldDeps tests that moving a file with unexported field dependencies is blocked
+func TestMoveFileBlocksOnUnexportedFieldDeps(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_deps_test_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create database.go with unexported field
+	databaseFile := filepath.Join(tmpDir, "database.go")
+	databaseContent := `package main
+
+type DB struct {
+	connection string
+}
+
+func NewDB() *DB {
+	return &DB{connection: "localhost"}
+}
+`
+	err = os.WriteFile(databaseFile, []byte(databaseContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write database file: %v", err)
+	}
+
+	// Create client.go that accesses the unexported field
+	clientFile := filepath.Join(tmpDir, "client.go")
+	clientContent := `package main
+
+func GetConnection(db *DB) string {
+	return db.connection
+}
+`
+	err = os.WriteFile(clientFile, []byte(clientContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write client file: %v", err)
+	}
+
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	targetFile := filepath.Join(tmpDir, "pkg", "database.go")
+
+	// Call refactor function directly
+	err = refactor.MoveFileWithImportUpdates(databaseFile, targetFile, tmpDir, "goimports")
+
+	// Assert: Error mentions the unexported field
+	if err == nil {
+		t.Fatal("Expected error when moving file with unexported field dependency, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "connection") {
+		t.Errorf("Expected error to mention 'connection' field, got: %v", err)
+	}
+
+	// Check that source file still exists
+	if _, err := os.Stat(databaseFile); os.IsNotExist(err) {
+		t.Errorf("Source file was moved despite unexported field dependency")
+	}
+
+	// Check that target was not created
+	if _, err := os.Stat(targetFile); !os.IsNotExist(err) {
+		t.Errorf("Target file was created despite unexported field dependency")
+	}
+}
+
 // TestMoveFileAllowsExportedDeps tests that moving a file with only exported dependencies succeeds
 func TestMoveFileAllowsExportedDeps(t *testing.T) {
 	tmpDir, err := os.MkdirTemp("", "dissect_deps_test_")

@@ -655,7 +655,6 @@ func main() {
 }
 
 func TestBatchMove_UnexportedFieldError(t *testing.T) {
-	t.Skip("Field-level unexported symbol detection not yet implemented")
 	dissect := buildDissectBinary(t)
 	tmpDir := createTempModuleForBatch(t)
 

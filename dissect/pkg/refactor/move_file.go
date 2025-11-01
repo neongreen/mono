@@ -166,7 +166,7 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 	packageWillChange := absSourceDir != absTargetDir
 
 	if packageWillChange && sourcePkg != nil {
-		// Analyze dependencies
+		// Check 1: Analyze if the file BEING MOVED depends on unexported symbols from the source package
 		unexportedDeps, err := analyzeMoveDependencies(sourceFile, sourcePkg)
 		if err != nil {
 			slog.Warn("Failed to analyze dependencies", "error", err)
@@ -175,6 +175,32 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 			relSourceFile, _ := filepath.Rel(moduleRoot, sourceFile)
 			relTargetFile, _ := filepath.Rel(moduleRoot, targetFile)
 			return formatDependencyError(sourceFile, targetFile, unexportedDeps, relSourceFile, relTargetFile)
+		}
+
+		// Check 2: Check if OTHER files depend on unexported symbols FROM the file being moved
+		// Find ALL symbols (exported and unexported) in the file being moved
+		allSymbols, err := symbols.FindAllSymbols(sourceFile, sourcePkg)
+		if err != nil {
+			slog.Warn("Failed to find symbols for unexported check", "error", err)
+		} else if len(allSymbols) > 0 {
+			// Get all symbol names
+			symbolNames := make([]string, len(allSymbols))
+			for i, sym := range allSymbols {
+				symbolNames[i] = sym.Name
+			}
+
+			// Find ALL references to these symbols
+			allRefs, err := references.FindReferences(symbolNames, []*packages.Package{sourcePkg})
+			if err != nil {
+				slog.Warn("Failed to find references for unexported check", "error", err)
+			} else {
+				// Check if any unexported symbols are referenced from files NOT being moved
+				ops := []MoveOp{{From: sourceFile, To: targetFile}}
+				unexportedRefs := detectUnexportedExternalRefs(allRefs, ops, []*packages.Package{sourcePkg}, sourcePkg.PkgPath)
+				if len(unexportedRefs) > 0 {
+					return buildUnexportedSymbolError(unexportedRefs)
+				}
+			}
 		}
 	}
 
@@ -902,17 +928,19 @@ func detectUnexportedExternalRefs(refs []references.Reference, ops []MoveOp, all
 		isUnexported := false
 		symbolName := ref.Ident.Name
 
-		// Check if it's a selector (e.g., "Type.field")
-		parts := strings.Split(ref.Ident.Name, ".")
-		if len(parts) > 1 {
-			// It's a field or method access - check the last part
-			lastPart := parts[len(parts)-1]
-			if len(lastPart) > 0 && lastPart[0] >= 'a' && lastPart[0] <= 'z' {
-				isUnexported = true
-				symbolName = ref.Ident.Name // Keep the full qualified name
+		// Check if it's a selector expression (field/method access)
+		if ref.Selector != "" {
+			// It's a field or method access - check the field/method name (after the last dot)
+			parts := strings.Split(ref.Selector, ".")
+			if len(parts) > 1 {
+				fieldName := parts[len(parts)-1]
+				if len(fieldName) > 0 && fieldName[0] >= 'a' && fieldName[0] <= 'z' {
+					isUnexported = true
+					symbolName = ref.Selector // Use the full selector path (e.g., "DB.data")
+				}
 			}
 		} else {
-			// It's a simple identifier
+			// It's a simple identifier (not a field access)
 			if len(symbolName) > 0 && symbolName[0] >= 'a' && symbolName[0] <= 'z' {
 				isUnexported = true
 			}
