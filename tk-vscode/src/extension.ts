@@ -196,7 +196,17 @@ class TaskDetailProvider implements vscode.TreeDataProvider<DetailTreeItem> {
         const noteText = note.markdown || '(empty note)';
         const actor = note.actor || 'Unknown';
         const timestamp = note.timestamp ? new Date(note.timestamp).toLocaleString() : '';
-        const label = `${noteText}${timestamp ? ' - ' + timestamp : ''}${actor ? ' by ' + actor : ''}`;
+        
+        // Build label with metadata
+        const parts = [noteText];
+        if (timestamp) {
+          parts.push(timestamp);
+        }
+        if (actor) {
+          parts.push(`by ${actor}`);
+        }
+        const label = parts.join(' - ');
+        
         return new DetailContentItem(label, true);
       });
       this.sections.push(new DetailSectionItem('Notes', noteItems));
