@@ -235,10 +235,6 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 	fmt.Printf("Building %s from %s...\n", project, refDescription)
 	fmt.Println()
 	plan.PrintPlan()
-	if !plan.ConfirmPlan() {
-		fmt.Println("Cancelled.")
-		os.Exit(0)
-	}
 	fmt.Println()
 
 	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-*", project))
@@ -387,10 +383,6 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 	fmt.Printf("Building %s from PR #%d...\n", project, prNumber)
 	fmt.Println()
 	plan.PrintPlan()
-	if !plan.ConfirmPlan() {
-		fmt.Println("Cancelled.")
-		os.Exit(0)
-	}
 	fmt.Println()
 
 	ctx := context.Background()
@@ -630,10 +622,6 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 			fmt.Println("Cancelled.")
 			os.Exit(0)
 		}
-		fmt.Println()
-	} else if !plan.ConfirmPlan() {
-		fmt.Println("Cancelled.")
-		os.Exit(0)
 	}
 	fmt.Println()
 
