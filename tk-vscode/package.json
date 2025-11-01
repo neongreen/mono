@@ -17,7 +17,8 @@
   ],
   "activationEvents": [
     "onView:tkExplorer",
-    "onCommand:tk.refresh"
+    "onCommand:tk.refresh",
+    "onCommand:tk.editTitle"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -25,8 +26,21 @@
       {
         "command": "tk.refresh",
         "title": "tk: Refresh"
+      },
+      {
+        "command": "tk.editTitle",
+        "title": "Edit Title"
       }
     ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "tk.editTitle",
+          "when": "view == tkExplorer && viewItem == tkTask",
+          "group": "inline"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {

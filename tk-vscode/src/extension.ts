@@ -178,12 +178,69 @@ async function fetchTk(): Promise<{ groups: TkGroup[]; tasks: TkTask[] }> {
   return { groups, tasks };
 }
 
+async function editTitle(provider: TkProvider, item: TaskTreeItem): Promise<void> {
+  const taskId = item.task.task_id;
+  if (!taskId) {
+    void vscode.window.showErrorMessage('Cannot edit title: task has no ID');
+    return;
+  }
+
+  const currentTitle = item.task.title ?? '';
+  const newTitle = await vscode.window.showInputBox({
+    prompt: `Edit title for ${taskId}`,
+    value: currentTitle,
+    placeHolder: 'Enter new title',
+  });
+
+  if (newTitle === undefined) {
+    return;
+  }
+
+  if (newTitle.trim() === '') {
+    void vscode.window.showErrorMessage('Title cannot be empty');
+    return;
+  }
+
+  try {
+    const configuration = vscode.workspace.getConfiguration('tk');
+    const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
+    const configuredCwd = configuration.get<string>('workingDirectory');
+
+    let cwd: string | undefined;
+
+    if (configuredCwd && configuredCwd.trim().length > 0) {
+      cwd = configuredCwd;
+    } else {
+      cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    }
+
+    if (!cwd) {
+      void vscode.window.showErrorMessage('No workspace folder is open.');
+      return;
+    }
+
+    const args = ['describe', taskId, newTitle];
+
+    await execFileAsync(binary, args, {
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    });
+
+    void vscode.window.showInformationMessage(`Updated title for ${taskId}`);
+    await provider.refresh();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`Failed to update title: ${message}`);
+  }
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   const provider = new TkProvider();
 
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider('tkExplorer', provider),
     vscode.commands.registerCommand('tk.refresh', () => provider.refresh()),
+    vscode.commands.registerCommand('tk.editTitle', (item: TaskTreeItem) => editTitle(provider, item)),
   );
 }
 
