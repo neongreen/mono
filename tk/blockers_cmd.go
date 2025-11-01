@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
@@ -55,7 +56,7 @@ var blockersCmd = &cobra.Command{
 
 		// Get transitive blockers
 		maxDepth := 10
-		blockers := GetTransitiveBlockers(reducer.relations, taskUUID, reducer.tasks, config.Blocking.BlockingAxis, config.Blocking.DoneStates, maxDepth)
+		blockers := utils.GetTransitiveBlockers(reducer.Relations(), taskUUID, reducer.Tasks(), config.Blocking.BlockingAxis, config.Blocking.DoneStates, maxDepth)
 
 		if jsonOutput {
 			type BlockerOutput struct {

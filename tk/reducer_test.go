@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestReducer_TaskCreated(t *testing.T) {
-	reducer := NewReducer()
+	reducer := reducer.NewReducer()
 
 	taskUID := string(types.NewTaskUID())
 	projectUID := string(types.NewProjectUID())
@@ -58,7 +59,7 @@ func TestReducer_TaskCreated(t *testing.T) {
 }
 
 func TestReducer_StatusSet(t *testing.T) {
-	reducer := NewReducer()
+	reducer := reducer.NewReducer()
 
 	// Create task first
 	taskUID := string(types.NewTaskUID())
@@ -134,7 +135,7 @@ func TestReducer_StatusSet(t *testing.T) {
 }
 
 func TestReducer_AuthorityResolution(t *testing.T) {
-	reducer := NewReducer()
+	reducer := reducer.NewReducer()
 
 	// Create task
 	taskUID := string(types.NewTaskUID())
@@ -236,7 +237,7 @@ func TestReducer_AuthorityResolution(t *testing.T) {
 }
 
 func TestReducer_NoteAdd(t *testing.T) {
-	reducer := NewReducer()
+	reducer := reducer.NewReducer()
 
 	// Create task
 	taskUID := string(types.NewTaskUID())

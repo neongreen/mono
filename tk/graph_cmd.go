@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -85,11 +86,11 @@ var graphCmd = &cobra.Command{
 				var targets []types.RelationTarget
 				switch relationType {
 				case "blocks":
-					targets = reducer.relations.GetOutgoingRelations(t.TaskUUID, "blocks")
+					targets = reducer.Relations().GetOutgoingRelations(t.TaskUUID, "blocks")
 				case "subtask":
-					targets = reducer.relations.GetOutgoingRelations(t.TaskUUID, "subtask")
+					targets = reducer.Relations().GetOutgoingRelations(t.TaskUUID, "subtask")
 				default:
-					targets = reducer.relations.GetOutgoingRelations(t.TaskUUID, relationType)
+					targets = reducer.Relations().GetOutgoingRelations(t.TaskUUID, relationType)
 				}
 
 				for _, target := range targets {
@@ -122,7 +123,7 @@ var graphCmd = &cobra.Command{
 	},
 }
 
-func printRelationTree(db *DB, reducer *Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
+func printRelationTree(db *DB, reducer *reducer.Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
 	if currentDepth > maxDepth {
 		return
 	}
@@ -155,11 +156,11 @@ func printRelationTree(db *DB, reducer *Reducer, task *types.Task, relationType 
 	var targets []types.RelationTarget
 	switch relationType {
 	case "blocks":
-		targets = reducer.relations.GetOutgoingRelations(task.TaskUUID, "blocks")
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, "blocks")
 	case "subtask":
-		targets = reducer.relations.GetOutgoingRelations(task.TaskUUID, "subtask")
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, "subtask")
 	default:
-		targets = reducer.relations.GetOutgoingRelations(task.TaskUUID, relationType)
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, relationType)
 	}
 
 	// Print children
@@ -200,7 +201,7 @@ func printRelationTree(db *DB, reducer *Reducer, task *types.Task, relationType 
 }
 
 // Helper function for recursive printing
-func printRelationTreeImpl(db *DB, reducer *Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
+func printRelationTreeImpl(db *DB, reducer *reducer.Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
 	if currentDepth > maxDepth {
 		return
 	}
@@ -215,11 +216,11 @@ func printRelationTreeImpl(db *DB, reducer *Reducer, task *types.Task, relationT
 	var targets []types.RelationTarget
 	switch relationType {
 	case "blocks":
-		targets = reducer.relations.GetOutgoingRelations(task.TaskUUID, "blocks")
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, "blocks")
 	case "subtask":
-		targets = reducer.relations.GetOutgoingRelations(task.TaskUUID, "subtask")
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, "subtask")
 	default:
-		targets = reducer.relations.GetOutgoingRelations(task.TaskUUID, relationType)
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, relationType)
 	}
 
 	// Print children

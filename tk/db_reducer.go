@@ -1,6 +1,9 @@
 package main
 
-import "github.com/neongreen/mono/tk/internal/sync"
+import (
+	"github.com/neongreen/mono/tk/internal/reducer"
+	"github.com/neongreen/mono/tk/internal/sync"
+)
 
 // GetCachedReducerWithConfig returns a cached reducer or builds a new one if needed.
 // The cache is invalidated when new events are inserted.
@@ -11,7 +14,7 @@ import "github.com/neongreen/mono/tk/internal/sync"
 // - The DB instance is scoped to a single command execution
 // - Cache is invalidated on any event insertion
 // If config pointer doesn't match, we rebuild the reducer (safe but may miss some cache hits).
-func (d *DB) GetCachedReducerWithConfig(config *sync.Config) (*Reducer, error) {
+func (d *DB) GetCachedReducerWithConfig(config *sync.Config) (*reducer.Reducer, error) {
 
 	if d.reducerCache != nil && d.reducerConfig == config {
 		return d.reducerCache, nil
@@ -22,7 +25,7 @@ func (d *DB) GetCachedReducerWithConfig(config *sync.Config) (*Reducer, error) {
 		return nil, err
 	}
 
-	reducer, err := BuildFromEventsWithConfig(events, config)
+	reducer, err := reducer.BuildFromEventsWithConfig(events, config)
 	if err != nil {
 		return nil, err
 	}

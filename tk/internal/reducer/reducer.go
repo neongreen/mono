@@ -1,4 +1,4 @@
-package main
+package reducer
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 )
 
 // Reducer reconstructs task state from events
@@ -24,6 +25,16 @@ func NewReducer() *Reducer {
 		taskByID:  make(map[string]string),
 		relations: relations.NewRelationsGraph(),
 	}
+}
+
+// Relations returns the relations graph
+func (r *Reducer) Relations() *relations.RelationsGraph {
+	return r.relations
+}
+
+// Tasks returns the tasks map
+func (r *Reducer) Tasks() map[string]*types.Task {
+	return r.tasks
 }
 
 // Apply applies an event to update the task state
@@ -221,7 +232,7 @@ func (r *Reducer) applyRelationAdd(e types.Event) error {
 	// Extract node from event ID (format: ev-<number>-<node>)
 	node := ""
 	if len(e.ID) > 0 {
-		parts := splitEventID(e.ID)
+		parts := utils.SplitEventID(e.ID)
 		if len(parts) == 3 {
 			node = parts[2]
 		}
@@ -241,7 +252,7 @@ func (r *Reducer) applyRelationRemove(e types.Event) error {
 	// Extract node from event ID
 	node := ""
 	if len(e.ID) > 0 {
-		parts := splitEventID(e.ID)
+		parts := utils.SplitEventID(e.ID)
 		if len(parts) == 3 {
 			node = parts[2]
 		}
@@ -270,7 +281,7 @@ func (r *Reducer) FinalizeRelations(config *sync.Config) {
 	}
 
 	// Compute blocked status
-	ComputeBlocked(r.relations, r.tasks, config.Blocking.BlockingAxis, config.Blocking.DoneStates)
+	utils.ComputeBlocked(r.relations, r.tasks, config.Blocking.BlockingAxis, config.Blocking.DoneStates)
 }
 
 // BuildFromEvents builds the current state from a list of events
@@ -294,4 +305,137 @@ func BuildFromEventsWithConfig(events []types.Event, config *sync.Config) (*Redu
 	}
 	reducer.FinalizeRelations(config)
 	return reducer, nil
+}
+
+// V4 Event Reducer Functions
+// Handles events (project.created, task.created, task.number.set, task.relocate, etc.)
+
+// ApplyProjectEvent applies an event-specific handler
+// Returns (handled=true, error) if the event was handled
+// Returns (handled=false, nil) if the event was not handled
+func (r *Reducer) ApplyProjectEvent(e types.Event) (bool, error) {
+	switch types.EventKind(e.Kind) {
+	case types.EventKindProjectCreated:
+		return true, r.applyProjectCreated(e)
+	case types.EventKindProjectAliasAdd:
+		return true, r.applyProjectAliasAdd(e)
+	case types.EventKindProjectAliasRemove:
+		return true, r.applyProjectAliasRemove(e)
+	case types.EventKindTaskCreated:
+		return true, r.applyTaskCreated(e)
+	case types.EventKindTaskNumberSet:
+		return true, r.applyTaskNumberSet(e)
+	case types.EventKindTaskRelocate:
+		return true, r.applyTaskRelocate(e)
+	case types.EventKindTaskTitleSet:
+		return true, r.applyTaskTitleSet(e)
+	default:
+		// Not a handled event, skip
+		return false, nil
+	}
+}
+
+func (r *Reducer) applyProjectCreated(e types.Event) error {
+	var payload types.ProjectCreatedPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal project.created payload: %w", err)
+	}
+
+	// Project state is managed by DB projections, not in-memory reducer
+	// This is just for completeness
+	return nil
+}
+
+func (r *Reducer) applyProjectAliasAdd(e types.Event) error {
+	var payload types.ProjectAliasAddPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal project.alias.add payload: %w", err)
+	}
+
+	// Alias state is managed by DB projections
+	return nil
+}
+
+func (r *Reducer) applyProjectAliasRemove(e types.Event) error {
+	var payload types.ProjectAliasRemovePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal project.alias.remove payload: %w", err)
+	}
+
+	// Alias state is managed by DB projections
+	return nil
+}
+
+func (r *Reducer) applyTaskCreated(e types.Event) error {
+	var payload types.TaskCreatedPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
+	}
+
+	taskUID := payload.TaskUID
+
+	// Guard against duplicate task.created for same UID
+	if _, exists := r.tasks[taskUID]; exists {
+		return nil
+	}
+
+	// types.Task display ID is derived from project alias + number
+	// For now, we'll use the task_uid as the task_id until we compute the display ID
+	r.tasks[taskUID] = &types.Task{
+		TaskUUID:  taskUID,
+		TaskID:    taskUID, // Placeholder, will be replaced by display ID
+		Aliases:   []string{},
+		Title:     payload.Title,
+		Axes:      make(map[string]types.AxisStatus),
+		Notes:     []types.Note{},
+		CreatedBy: payload.CreatedBy,
+		CreatedAt: e.CreatedAt,
+	}
+
+	// Register task by UID
+	r.taskByID[taskUID] = taskUID
+
+	return nil
+}
+
+func (r *Reducer) applyTaskNumberSet(e types.Event) error {
+	var payload types.TaskNumberSetPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.number.set payload: %w", err)
+	}
+
+	// Number assignments are managed by DB projections (task_numbers table)
+	// The reducer doesn't need to track this in memory
+	return nil
+}
+
+func (r *Reducer) applyTaskRelocate(e types.Event) error {
+	var payload types.TaskRelocatePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.relocate payload: %w", err)
+	}
+
+	// types.Task relocations are managed by DB projections
+	// The task itself doesn't change in the in-memory reducer
+	return nil
+}
+
+func (r *Reducer) applyTaskTitleSet(e types.Event) error {
+	var payload types.TaskTitleSetPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.title.set payload: %w", err)
+	}
+
+	taskUID := payload.TaskUID
+
+	// Find the task
+	task, exists := r.tasks[taskUID]
+	if !exists {
+		return fmt.Errorf("task %s not found", taskUID)
+	}
+
+	// Update the title
+	task.Title = payload.Title
+
+	return nil
 }

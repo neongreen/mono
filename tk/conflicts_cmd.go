@@ -37,8 +37,8 @@ Otherwise, shows all conflicts in the database.`,
 		}
 
 		// Check for cycles in blocks and subtasks
-		blocksCycles := reducer.relations.DetectCycles("blocks")
-		subtaskCycles := reducer.relations.DetectCycles("subtask")
+		blocksCycles := reducer.Relations().DetectCycles("blocks")
+		subtaskCycles := reducer.Relations().DetectCycles("subtask")
 
 		if jsonOutput {
 			type CycleOutput struct {

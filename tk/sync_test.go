@@ -8,6 +8,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 )
 
 func testTime() time.Time {
@@ -48,7 +49,7 @@ func TestSegmentRoundTrip(t *testing.T) {
 		t.Fatalf("failed to generate event ID: %v", err)
 	}
 
-	taskUID, err := GenerateTaskUUID()
+	taskUID, err := utils.GenerateTaskUUID()
 	if err != nil {
 		t.Fatalf("failed to generate task UUID: %v", err)
 	}
@@ -139,7 +140,7 @@ func TestDuplicateIngest(t *testing.T) {
 		t.Fatalf("failed to generate event ID: %v", err)
 	}
 
-	taskUID, err := GenerateTaskUUID()
+	taskUID, err := utils.GenerateTaskUUID()
 	if err != nil {
 		t.Fatalf("failed to generate task UUID: %v", err)
 	}

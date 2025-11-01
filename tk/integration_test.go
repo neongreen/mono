@@ -4,16 +4,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neongreen/mono/tk/internal/types"
-
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 )
 
 // TestRelationsIntegration tests a realistic workflow with multiple tasks and relations
 func TestRelationsIntegration(t *testing.T) {
-	reducer := NewReducer()
+	reducer := reducer.NewReducer()
 
 	// Create a project with dependencies:
 	// - Task A (design) blocks Tasks B and C
@@ -157,7 +157,7 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	// Test transitive blockers for D
-	transitiveBlockers := GetTransitiveBlockers(reducer.relations, "task-d", reducer.tasks, "generic", []string{"done"}, 10)
+	transitiveBlockers := utils.GetTransitiveBlockers(reducer.Relations(), "task-d", reducer.Tasks(), "generic", []string{"done"}, 10)
 	if len(transitiveBlockers) != 2 {
 		t.Errorf("Task D should have 2 transitive blockers (C and A), got %d", len(transitiveBlockers))
 	}
@@ -257,7 +257,7 @@ func TestCycleDetectionIntegration(t *testing.T) {
 
 // TestRelationRemoval tests that removing relations works correctly
 func TestRelationRemovalIntegration(t *testing.T) {
-	reducer := NewReducer()
+	reducer := reducer.NewReducer()
 
 	// Create two tasks
 	taskData := []struct {

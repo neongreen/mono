@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"github.com/neongreen/mono/tk/internal/reducer"
+	"testing"
+)
 
 func TestEditStatus(t *testing.T) {
 	db := openTempDB(t)
@@ -38,12 +41,12 @@ func TestEditStatus(t *testing.T) {
 	}
 }
 
-func buildReducerFromDB(t *testing.T, db *DB) *Reducer {
+func buildReducerFromDB(t *testing.T, db *DB) *reducer.Reducer {
 	events, err := db.GetEvents()
 	if err != nil {
 		t.Fatalf("failed to load events: %v", err)
 	}
-	reducer, err := BuildFromEvents(events)
+	reducer, err := reducer.BuildFromEvents(events)
 	if err != nil {
 		t.Fatalf("failed to build reducer: %v", err)
 	}

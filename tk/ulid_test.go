@@ -3,10 +3,12 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/neongreen/mono/tk/internal/utils"
 )
 
 func TestGenerateTaskUUID(t *testing.T) {
-	uuid, err := GenerateTaskUUID()
+	uuid, err := utils.GenerateTaskUUID()
 	if err != nil {
 		t.Fatalf("GenerateTaskUUID() error = %v", err)
 	}
@@ -22,7 +24,7 @@ func TestGenerateTaskUUID(t *testing.T) {
 	}
 
 	// Generate another and ensure they're different
-	uuid2, err := GenerateTaskUUID()
+	uuid2, err := utils.GenerateTaskUUID()
 	if err != nil {
 		t.Fatalf("GenerateTaskUUID() second call error = %v", err)
 	}
@@ -90,12 +92,12 @@ func TestSplitEventID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parts := splitEventID(tt.eventID)
+			parts := utils.SplitEventID(tt.eventID)
 			if len(parts) != tt.wantLen {
-				t.Errorf("splitEventID() len = %v, want %v", len(parts), tt.wantLen)
+				t.Errorf("SplitEventID() len = %v, want %v", len(parts), tt.wantLen)
 			}
 			if parts[0] != tt.wantPart {
-				t.Errorf("splitEventID() first part = %v, want %v", parts[0], tt.wantPart)
+				t.Errorf("SplitEventID() first part = %v, want %v", parts[0], tt.wantPart)
 			}
 		})
 	}

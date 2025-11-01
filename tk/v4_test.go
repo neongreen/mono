@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -75,7 +76,7 @@ func TestTypeValidation(t *testing.T) {
 
 // TestEvents tests event handling in reducer
 func TestEvents(t *testing.T) {
-	r := NewReducer()
+	r := reducer.NewReducer()
 
 	// Test project.created event
 	t.Run("project.created", func(t *testing.T) {
@@ -133,7 +134,7 @@ func TestEvents(t *testing.T) {
 		}
 
 		// Verify task was created
-		if _, exists := r.tasks[string(taskUID)]; !exists {
+		if _, exists := r.Tasks()[string(taskUID)]; !exists {
 			t.Error("task was not created in reducer")
 		}
 	})
@@ -189,7 +190,7 @@ func TestEvents(t *testing.T) {
 		}
 
 		// Verify title was updated
-		task := r.tasks[string(taskUID)]
+		task := r.Tasks()[string(taskUID)]
 		if task.Title != "Updated Title" {
 			t.Errorf("expected title 'Updated Title', got '%s'", task.Title)
 		}

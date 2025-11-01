@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 )
 
 func TestRelationGraph_AddRemove(t *testing.T) {
@@ -137,7 +139,7 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 	graph.AddRelation("task-c", "blocks", "task-b", "", "ev-2-node1", "node1", 2)
 
 	// Compute blocked status
-	ComputeBlocked(graph, tasks, "generic", []string{"done"})
+	utils.ComputeBlocked(graph, tasks, "generic", []string{"done"})
 
 	// Task A should not be blocked
 	if tasks["task-a"].Blocked {
@@ -164,7 +166,7 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 }
 
 func TestReducer_RelationEvents(t *testing.T) {
-	reducer := NewReducer()
+	reducer := reducer.NewReducer()
 
 	// Create tasks first
 	createTaskA := types.Event{
@@ -209,7 +211,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 	}
 
 	// Verify relation exists
-	out := reducer.relations.GetOutgoingRelations("task-a", "blocks")
+	out := reducer.Relations().GetOutgoingRelations("task-a", "blocks")
 	if len(out) != 1 {
 		t.Fatalf("Expected 1 outgoing relation, got %d", len(out))
 	}
@@ -230,7 +232,7 @@ func TestReducer_RelationEvents(t *testing.T) {
 	}
 
 	// Verify relation is removed
-	out = reducer.relations.GetOutgoingRelations("task-a", "blocks")
+	out = reducer.Relations().GetOutgoingRelations("task-a", "blocks")
 	if len(out) != 0 {
 		t.Errorf("Expected 0 outgoing relations after remove, got %d", len(out))
 	}
