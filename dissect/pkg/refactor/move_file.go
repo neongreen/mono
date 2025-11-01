@@ -3,7 +3,9 @@ package refactor
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/neongreen/mono/dissect/pkg/commands"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
@@ -15,6 +17,56 @@ import (
 	"go/ast"
 	"golang.org/x/tools/go/packages"
 )
+
+// detectTargetPackage returns the package name of existing Go files in targetDir.
+// Returns empty string if the directory doesn't exist or contains no Go files.
+// This is used to detect if a file is being moved into an existing package directory.
+func detectTargetPackage(targetDir string) (string, error) {
+	// Check if directory exists
+	dirInfo, err := os.Stat(targetDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Directory doesn't exist yet - will be created during move
+			return "", nil
+		}
+		return "", fmt.Errorf("error checking target directory: %w", err)
+	}
+
+	if !dirInfo.IsDir() {
+		return "", fmt.Errorf("target path is not a directory: %s", targetDir)
+	}
+
+	// Find Go files in the directory
+	entries, err := os.ReadDir(targetDir)
+	if err != nil {
+		return "", fmt.Errorf("error reading target directory: %w", err)
+	}
+
+	// Look for a Go file (non-test) to determine package
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+
+		// Found a Go file - get its package declaration
+		filePath := filepath.Join(targetDir, name)
+		pkgName, err := goutils.GetPackageDeclaration(filePath)
+		if err != nil {
+			slog.Warn("Failed to get package from existing file", "file", filePath, "error", err)
+			continue
+		}
+
+		slog.Debug("Detected target package from existing file", "file", name, "package", pkgName)
+		return pkgName, nil
+	}
+
+	// No Go files found - directory is empty or contains only test files
+	return "", nil
+}
 
 // MoveFileWithImportUpdates performs a refactoring file move from source to target,
 // updating all import statements in the codebase that reference the old package path.
@@ -123,6 +175,20 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 			relSourceFile, _ := filepath.Rel(moduleRoot, sourceFile)
 			relTargetFile, _ := filepath.Rel(moduleRoot, targetFile)
 			return formatDependencyError(sourceFile, targetFile, unexportedDeps, relSourceFile, relTargetFile)
+		}
+	}
+
+	// BEFORE moving: detect if target directory has an existing package
+	// and update source file's package declaration if needed
+	targetPkgName, err := detectTargetPackage(targetDir)
+	if err != nil {
+		slog.Warn("Failed to detect target package", "error", err)
+	} else if targetPkgName != "" && targetPkgName != originalPackage {
+		// Target directory has an existing package different from source
+		slog.Info("Updating package declaration before move",
+			"file", sourceFile, "from", originalPackage, "to", targetPkgName)
+		if err := goutils.UpdatePackageDeclaration(sourceFile, targetPkgName); err != nil {
+			return fmt.Errorf("error updating package declaration before move: %w", err)
 		}
 	}
 

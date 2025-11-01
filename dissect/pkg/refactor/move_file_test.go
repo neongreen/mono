@@ -757,3 +757,243 @@ func TestBar(t *testing.T) {
 		t.Errorf("Moved file should have 'package types', got:\n%s", string(movedContent))
 	}
 }
+
+// TestMoveFile_MainToNamedPackage tests moving a file from package main
+// to a directory that already contains files with a named package.
+// This should detect the target package and update the source file's package declaration.
+func TestMoveFile_MainToNamedPackage(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_main_to_named_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create internal/types directory with existing file
+	typesDir := filepath.Join(tmpDir, "internal", "types")
+	err = os.MkdirAll(typesDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create types dir: %v", err)
+	}
+
+	// Create existing.go with package types
+	existingFile := filepath.Join(typesDir, "existing.go")
+	existingContent := `package types
+
+type Existing struct {
+	Value string
+}
+`
+	err = os.WriteFile(existingFile, []byte(existingContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write existing.go: %v", err)
+	}
+
+	// Create source.go with package main
+	sourceFile := filepath.Join(tmpDir, "source.go")
+	sourceContent := `package main
+
+type Source struct {
+	ID int
+}
+
+func NewSource() *Source {
+	return &Source{ID: 1}
+}
+`
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write source.go: %v", err)
+	}
+
+	// Create main.go that uses Source
+	mainFile := filepath.Join(tmpDir, "main.go")
+	mainContent := `package main
+
+func main() {
+	s := NewSource()
+	_ = s
+}
+`
+	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write main.go: %v", err)
+	}
+
+	// Create go.mod
+	gomodContent := `module test
+
+go 1.21
+`
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomodContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	// Move source.go to internal/types/
+	targetFile := filepath.Join(typesDir, "source.go")
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	if err != nil {
+		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
+	}
+
+	// Verify source file was moved
+	if _, err := os.Stat(sourceFile); !os.IsNotExist(err) {
+		t.Errorf("Source file still exists at original location")
+	}
+
+	if _, err := os.Stat(targetFile); os.IsNotExist(err) {
+		t.Fatalf("Target file was not created")
+	}
+
+	// Verify moved file has package types (not package main)
+	movedContent, err := os.ReadFile(targetFile)
+	if err != nil {
+		t.Fatalf("Failed to read moved file: %v", err)
+	}
+
+	if !contains(string(movedContent), "package types") {
+		t.Errorf("Moved file should have 'package types', got:\n%s", string(movedContent))
+	}
+
+	if contains(string(movedContent), "package main") {
+		t.Errorf("Moved file should not have 'package main', got:\n%s", string(movedContent))
+	}
+
+	// Verify main.go was updated with import
+	mainUpdated, err := os.ReadFile(mainFile)
+	if err != nil {
+		t.Fatalf("Failed to read main.go: %v", err)
+	}
+
+	if !contains(string(mainUpdated), `"test/internal/types"`) {
+		t.Errorf("main.go should import test/internal/types, got:\n%s", string(mainUpdated))
+	}
+
+	// Verify references are qualified
+	if !contains(string(mainUpdated), "types.NewSource") {
+		t.Errorf("main.go should use types.NewSource(), got:\n%s", string(mainUpdated))
+	}
+}
+
+// TestMoveFile_NamedToNamedPackage tests moving a file from one named package
+// to another named package directory. The package declaration should be updated.
+func TestMoveFile_NamedToNamedPackage(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "dissect_named_to_named_")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create foo directory with source.go
+	fooDir := filepath.Join(tmpDir, "foo")
+	err = os.MkdirAll(fooDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create foo dir: %v", err)
+	}
+
+	sourceFile := filepath.Join(fooDir, "source.go")
+	sourceContent := `package foo
+
+type Source struct {
+	Value string
+}
+`
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write source.go: %v", err)
+	}
+
+	// Create bar directory with existing.go
+	barDir := filepath.Join(tmpDir, "bar")
+	err = os.MkdirAll(barDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create bar dir: %v", err)
+	}
+
+	existingFile := filepath.Join(barDir, "existing.go")
+	existingContent := `package bar
+
+type Existing struct {
+	ID int
+}
+`
+	err = os.WriteFile(existingFile, []byte(existingContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write existing.go: %v", err)
+	}
+
+	// Create a file that imports foo
+	mainFile := filepath.Join(tmpDir, "main.go")
+	mainContent := `package main
+
+import "test/foo"
+
+func main() {
+	s := foo.Source{Value: "test"}
+	_ = s
+}
+`
+	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write main.go: %v", err)
+	}
+
+	// Create go.mod
+	gomodContent := `module test
+
+go 1.21
+`
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomodContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write go.mod: %v", err)
+	}
+
+	// Move source.go from foo to bar
+	targetFile := filepath.Join(barDir, "source.go")
+	err = MoveFileWithImportUpdates(sourceFile, targetFile, tmpDir)
+	if err != nil {
+		t.Fatalf("MoveFileWithImportUpdates failed: %v", err)
+	}
+
+	// Verify source file was moved
+	if _, err := os.Stat(sourceFile); !os.IsNotExist(err) {
+		t.Errorf("Source file still exists at original location")
+	}
+
+	if _, err := os.Stat(targetFile); os.IsNotExist(err) {
+		t.Fatalf("Target file was not created")
+	}
+
+	// Verify moved file has package bar (not package foo)
+	movedContent, err := os.ReadFile(targetFile)
+	if err != nil {
+		t.Fatalf("Failed to read moved file: %v", err)
+	}
+
+	if !contains(string(movedContent), "package bar") {
+		t.Errorf("Moved file should have 'package bar', got:\n%s", string(movedContent))
+	}
+
+	if contains(string(movedContent), "package foo") {
+		t.Errorf("Moved file should not have 'package foo', got:\n%s", string(movedContent))
+	}
+
+	// Verify main.go was updated with new import
+	mainUpdated, err := os.ReadFile(mainFile)
+	if err != nil {
+		t.Fatalf("Failed to read main.go: %v", err)
+	}
+
+	if !contains(string(mainUpdated), `"test/bar"`) {
+		t.Errorf("main.go should import test/bar, got:\n%s", string(mainUpdated))
+	}
+
+	// Verify references are qualified with new package
+	if !contains(string(mainUpdated), "bar.Source") {
+		t.Errorf("main.go should use bar.Source, got:\n%s", string(mainUpdated))
+	}
+
+	if contains(string(mainUpdated), "foo.Source") {
+		t.Errorf("main.go should not use foo.Source, got:\n%s", string(mainUpdated))
+	}
+}
