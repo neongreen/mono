@@ -73,3 +73,43 @@ func getCurrentUser() (string, error) {
 	}
 	return currentUser.Username, nil
 }
+
+// getAllProjectDisplayNames returns a map of project UIDs to their display names (alias or name)
+func getAllProjectDisplayNames(db *DB) (map[string]string, error) {
+	// Query all projects
+	rows, err := db.db.Query(`
+		SELECT project_uid, name FROM projects ORDER BY created_at
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query projects: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]string)
+	for rows.Next() {
+		var projectUID, name string
+		if err := rows.Scan(&projectUID, &name); err != nil {
+			return nil, err
+		}
+
+		// Try to get preferred alias
+		alias, err := preferredAliasForProject(db, projectUID)
+		if err != nil {
+			// On error, fall back to name
+			result[projectUID] = name
+			continue
+		}
+
+		if alias != "" {
+			result[projectUID] = alias
+		} else {
+			result[projectUID] = name
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}

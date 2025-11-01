@@ -53,7 +53,7 @@
       {
         "command": "tk.createProject",
         "title": "Create Project",
-        "icon": "$(new-folder)"
+        "icon": "$(add)"
       }
     ],
     "menus": {
@@ -122,6 +122,7 @@
           "default": "prefix",
           "enum": [
             "prefix",
+            "project",
             "status",
             "none"
           ],
