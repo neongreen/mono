@@ -1056,6 +1056,115 @@ func main() {
 	}
 }
 
+func TestQualifyReferences_TypeReferencesInSignatures(t *testing.T) {
+	tmpDir := createTempModule(t)
+	defer os.RemoveAll(tmpDir)
+
+	// Create db package with DB type
+	dbDir := filepath.Join(tmpDir, "db")
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		t.Fatalf("Failed to create db dir: %v", err)
+	}
+	createFile(t, filepath.Join(dbDir, "db.go"), `package db
+
+type DB struct {
+	Name string
+}
+
+func NewDB() *DB {
+	return &DB{}
+}
+`)
+
+	testFile := filepath.Join(tmpDir, "app.go")
+	createFile(t, testFile, `package test
+
+type DB struct {
+	Name string
+}
+
+func NewDB() *DB {
+	return &DB{}
+}
+
+// Test various type reference contexts
+func checkCollision(db *DB) error {
+	return nil
+}
+
+func returnDB() (*DB, error) {
+	return NewDB(), nil
+}
+
+type Wrapper struct {
+	database *DB
+}
+
+func processMultiple(x *DB, y *DB, z int) (*DB, *DB) {
+	return x, y
+}
+`)
+
+	// Load package to get real type information
+	pkg, err := typeinfo.LoadPackage(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load package: %v", err)
+	}
+
+	// Find references to DB and NewDB
+	refs, err := references.FindReferences([]string{"DB", "NewDB"}, []*packages.Package{pkg})
+	if err != nil {
+		t.Fatalf("FindReferences failed: %v", err)
+	}
+
+	// Qualify with package name "db" (which collides with variable "db")
+	err = QualifyReferences(testFile, refs, "db", "test/db", tmpDir)
+	if err != nil {
+		t.Fatalf("QualifyReferences failed: %v", err)
+	}
+
+	// Read the file and verify
+	content, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+
+	contentStr := string(content)
+
+	// Should use alias
+	if !strings.Contains(contentStr, "db_pkg") {
+		t.Errorf("Expected db_pkg alias. Got:\n%s", contentStr)
+	}
+
+	// Should qualify type in parameter
+	if !strings.Contains(contentStr, "db *db_pkg.DB") {
+		t.Errorf("Expected 'db *db_pkg.DB' in parameter. Got:\n%s", contentStr)
+	}
+
+	// Should qualify type in return type
+	if !strings.Contains(contentStr, "(*db_pkg.DB, error)") {
+		t.Errorf("Expected '(*db_pkg.DB, error)' in return type. Got:\n%s", contentStr)
+	}
+
+	// Should qualify type in struct field
+	if !strings.Contains(contentStr, "database *db_pkg.DB") {
+		t.Errorf("Expected 'database *db_pkg.DB' in struct field. Got:\n%s", contentStr)
+	}
+
+	// Should qualify function call
+	if !strings.Contains(contentStr, "db_pkg.NewDB()") {
+		t.Errorf("Expected 'db_pkg.NewDB()' function call. Got:\n%s", contentStr)
+	}
+
+	// Verify the code compiles
+	buildCmd := exec.Command("go", "build", ".")
+	buildCmd.Dir = tmpDir
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Code should build after qualification: %v\nOutput: %s\nContent:\n%s", err, output, contentStr)
+	}
+}
+
 // Helper functions
 
 func createTempModule(t *testing.T) string {
