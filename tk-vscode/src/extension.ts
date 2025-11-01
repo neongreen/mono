@@ -134,12 +134,17 @@ class TkDecorationProvider implements vscode.FileDecorationProvider {
 
   updateTaskItems(items: TaskTreeItem[]): void {
     this.taskItems.clear();
+    const uris: vscode.Uri[] = [];
     for (const item of items) {
       if (item.resourceUri) {
         this.taskItems.set(item.resourceUri.toString(), item);
+        uris.push(item.resourceUri);
       }
     }
-    this._onDidChangeFileDecorations.fire([]);
+    // Fire with all URIs to notify VS Code that these decorations have changed
+    if (uris.length > 0) {
+      this._onDidChangeFileDecorations.fire(uris);
+    }
   }
 }
 
@@ -406,8 +411,8 @@ async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<vo
       return;
     }
 
-    // Create task with prefix matching the group name
-    const args = ['new', `${groupName}:${taskTitle}`];
+    // Create task with project matching the group name
+    const args = ['new', '-p', groupName, taskTitle];
 
     await execFileAsync(binary, args, {
       cwd,
