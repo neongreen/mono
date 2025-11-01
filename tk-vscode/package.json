@@ -137,9 +137,13 @@
     "package": "vsce package"
   },
   "devDependencies": {
+    "@types/he": "^1.2.3",
     "@types/node": "^18.19.50",
     "@types/vscode": "^1.85.0",
     "@vscode/vsce": "^3.6.2",
     "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "he": "^1.2.0"
   }
 }

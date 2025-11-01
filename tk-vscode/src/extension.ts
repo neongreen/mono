@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { encode as encodeHtml } from 'he';
 
 const execFileAsync = promisify(execFile);
 
@@ -208,15 +209,15 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
     let notesHtml = '';
     if (task.notes && task.notes.length > 0) {
       notesHtml = task.notes.map(note => {
-        const noteText = this.escapeHtml(note.markdown || '(empty note)');
-        const actor = this.escapeHtml(note.actor || 'Unknown');
+        const noteText = encodeHtml(note.markdown || '(empty note)');
+        const actor = encodeHtml(note.actor || 'Unknown');
         const timestamp = note.timestamp ? new Date(note.timestamp).toLocaleString() : '';
         
         return `
           <div class="note">
             <div class="note-content">${noteText}</div>
             <div class="note-meta">
-              ${timestamp ? `<span class="note-time">${this.escapeHtml(timestamp)}</span>` : ''}
+              ${timestamp ? `<span class="note-time">${encodeHtml(timestamp)}</span>` : ''}
               <span class="note-actor">by ${actor}</span>
             </div>
           </div>
@@ -306,20 +307,20 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
 <body>
     <div class="section">
         <div class="section-title">Task</div>
-        <div class="section-content task-id">${this.escapeHtml(taskId)}</div>
+        <div class="section-content task-id">${encodeHtml(taskId)}</div>
     </div>
     
     <div class="section">
         <div class="section-title">Title</div>
-        <div class="section-content">${this.escapeHtml(title)}</div>
+        <div class="section-content">${encodeHtml(title)}</div>
     </div>
 
     <div class="section">
         <div class="metadata-grid">
             <div class="metadata-label">Status:</div>
-            <div class="metadata-value">${this.escapeHtml(status)}</div>
+            <div class="metadata-value">${encodeHtml(status)}</div>
             <div class="metadata-label">Blocked:</div>
-            <div class="metadata-value">${this.escapeHtml(blocked)}</div>
+            <div class="metadata-value">${encodeHtml(blocked)}</div>
         </div>
     </div>
 
@@ -331,17 +332,7 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
 </html>`;
   }
 
-  private escapeHtml(text: string): string {
-    const map: Record<string, string> = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;',
-      '`': '&#96;'
-    };
-    return text.replace(/[&<>"'`]/g, (m) => map[m]);
-  }
+
 }
 
 class TkDecorationProvider implements vscode.FileDecorationProvider {
