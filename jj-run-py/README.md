@@ -1,51 +1,43 @@
 # jj-run
 
-A tool to execute shell commands across multiple repository changes in isolated workspaces using [jj](https://github.com/jj-vcs/jj).
+A script to execute shell commands across multiple repository changes in isolated workspaces using [jj](https://github.com/jj-vcs/jj).
 
 - Runs arbitrary shell commands for each change in a revset, in isolation.
 - Uses a temporary workspace for each run, so your main repo doesn't change while the script is running.
 
 ## Installation
 
-### Quick Install
+First, install [uv](https://docs.astral.sh/uv/), the best and greatest Python package manager.
 
-Use the install script to easily download and install the latest version:
+Then add to your jj config:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/neongreen/mono/main/install.sh | bash -s jj-run
+```shell
+jj config set --user aliases.x '["util", "exec", "--", "uvx", "git+https://github.com/neongreen/mono#subdirectory=jj-run"]'
 ```
 
-### Via Homebrew
+Or in the file:
 
-```bash
-brew tap neongreen/mono
-brew install jj-run
+```toml
+[aliases]
+x = ["util", "exec", "--", "uvx", "git+https://github.com/neongreen/mono#subdirectory=jj-run"]
 ```
 
-### Manual Install
+(Can't use `run` as an alias because it's already defined as a stub.)
 
-1. Go to the [Releases](https://github.com/neongreen/mono/releases) page
-2. Find the release you want (e.g., `jj-run--main.1`)
-3. Download the binary for your platform
-4. Make it executable and move to your PATH:
-
-```bash
-chmod +x jj-run
-sudo mv jj-run /usr/local/bin/
-```
+**Note:** jj-run is now part of the [neongreen/mono](https://github.com/neongreen/mono) monorepo.
 
 ## Usage
 
 Simplest form:
 
 ```sh
-jj-run <command>    # run a command on all mutable&reachable changes
+jj x <command>    # run a command on all mutable&reachable changes
 ```
 
 Full form:
 
 ```sh
-jj-run -r <revset> [-e <error_strategy>] <command>
+jj x -r <revset> [-e <error_strategy>] <command>
 ```
 
 - `-r`, `--revset`: The revset of changes to process. If not provided, defaults to `reachable(@, mutable())` (same as `jj fix`).
@@ -74,7 +66,6 @@ jj-run -r <revset> [-e <error_strategy>] <command>
   - The temp workspace is forgotten and all created changes are abandoned.
 
 ## Error Handling
-
 - If a command fails, the script follows the selected error strategy:
   - `continue`: Logs the error and moves to the next change.
   - `stop`: Stops processing new changes after the first error, but completes any already started ones.
@@ -85,16 +76,10 @@ jj-run -r <revset> [-e <error_strategy>] <command>
 
 MIT
 
-## Development
+## TODO
 
-Build the project:
-
-```bash
-mise run //jj-run:build
-```
-
-Run tests:
-
-```bash
-mise run //jj-run:test
-```
+4. Add a quiet mode that only prints stdout/stderr of the command
+5. Provide CHANGE_ID, COMMIT_ID, REPO_PATH as env vars to the command
+7. `--json` output
+8. Add a `--readonly` flag that doesn't create new changes, just runs the command for each
+10. Handle `--ignore-immutable`
