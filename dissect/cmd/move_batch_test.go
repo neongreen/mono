@@ -8,6 +8,102 @@ import (
 	"testing"
 )
 
+// TestBatchMove_WithPackageNameCollision tests the tk scenario where
+// the target package name conflicts with a variable name
+func TestBatchMove_WithPackageNameCollision(t *testing.T) {
+	tmpDir := createTempModuleForBatch(t)
+
+	// Create main package with a variable named "db"
+	createFileForBatch(t, filepath.Join(tmpDir, "main.go"), `package main
+
+func main() {
+	db, err := OpenDB()
+	if err != nil {
+		panic(err)
+	}
+	user := NewUser("Alice")
+	_ = db
+	_ = user
+}
+
+func OpenDB() (*Database, error) {
+	return &Database{}, nil
+}
+
+type Database struct{}
+`)
+
+	// Create types file with User type
+	createFileForBatch(t, filepath.Join(tmpDir, "types.go"), `package main
+
+type User struct {
+	Name string
+}
+
+func NewUser(name string) *User {
+	return &User{Name: name}
+}
+`)
+
+	// Run batch move to move types to db package
+	cmd := exec.Command("dissect", "move", "--batch", "types.go -> db/")
+	cmd.Dir = tmpDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("dissect move --batch failed: %v\nOutput: %s", err, output)
+	}
+
+	// Read main.go
+	mainContent, err := os.ReadFile(filepath.Join(tmpDir, "main.go"))
+	if err != nil {
+		t.Fatalf("Failed to read main.go: %v", err)
+	}
+
+	mainStr := string(mainContent)
+
+	// Should use aliased import (db_pkg) not bare "db"
+	if !strings.Contains(mainStr, "db_pkg") {
+		t.Errorf("Expected db_pkg alias to be used due to variable collision. Got:\n%s", mainStr)
+	}
+
+	// Should have aliased import
+	if !strings.Contains(mainStr, `db_pkg "test/batch/db"`) {
+		t.Errorf("Expected aliased import. Got:\n%s", mainStr)
+	}
+
+	// Should use qualified reference with alias
+	if !strings.Contains(mainStr, "db_pkg.NewUser") {
+		t.Errorf("Expected db_pkg.NewUser reference. Got:\n%s", mainStr)
+	}
+
+	// Should NOT use bare "db." (that would conflict with variable)
+	if strings.Contains(mainStr, "db.NewUser") || strings.Contains(mainStr, "db.User") {
+		t.Errorf("Should not use 'db.' qualifier. Got:\n%s", mainStr)
+	}
+
+	// Verify types.go was moved and has correct package
+	dbTypesPath := filepath.Join(tmpDir, "db/types.go")
+	if _, err := os.Stat(dbTypesPath); os.IsNotExist(err) {
+		t.Error("types.go was not moved to db/")
+	}
+
+	dbContent, err := os.ReadFile(dbTypesPath)
+	if err != nil {
+		t.Fatalf("Failed to read db/types.go: %v", err)
+	}
+
+	if !strings.Contains(string(dbContent), "package db") {
+		t.Error("Package declaration was not updated to 'package db'")
+	}
+
+	// Verify code builds
+	buildCmd := exec.Command("go", "build", "./...")
+	buildCmd.Dir = tmpDir
+	if output, err := buildCmd.CombinedOutput(); err != nil {
+		t.Fatalf("Code should build after batch move: %v\nOutput: %s\nmain.go:\n%s", err, output, mainStr)
+	}
+}
+
 // createTempModule creates a temporary Go module for testing
 func createTempModuleForBatch(t *testing.T) string {
 	tmpDir := t.TempDir()

@@ -3,8 +3,11 @@ package qualify
 import (
 	"fmt"
 	"go/ast"
+	"go/parser"
+	"go/token"
 	"log/slog"
 	"path/filepath"
+	"strings"
 
 	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"github.com/neongreen/mono/dissect/pkg/references"
@@ -48,6 +51,22 @@ func QualifyReferences(
 
 	slog.Debug("Qualifying references", "file", filePath, "unqualifiedCount", len(unqualifiedRefs))
 
+	// Collect all identifiers in the file to detect collisions
+	existingIdentifiers, err := CollectIdentifiers(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to collect identifiers: %w", err)
+	}
+
+	// Check if packageName collides with existing identifiers
+	actualPackageName := packageName
+	if existingIdentifiers[packageName] {
+		actualPackageName = generateImportAlias(packageName, existingIdentifiers)
+		slog.Info("Package name collision detected, using alias",
+			"originalName", packageName,
+			"alias", actualPackageName,
+			"file", filePath)
+	}
+
 	// Read the file
 	fset, node, err := goutils.ReadGoFile(filePath)
 	if err != nil {
@@ -73,8 +92,13 @@ func QualifyReferences(
 	}
 
 	// Add import if missing
+	// Use alias if actualPackageName differs from original packageName
 	if !hasImport {
-		if !astutil.AddNamedImport(fset, node, "", importPath) {
+		importAlias := ""
+		if actualPackageName != packageName {
+			importAlias = actualPackageName
+		}
+		if !astutil.AddNamedImport(fset, node, importAlias, importPath) {
 			return fmt.Errorf("failed to add import %s", importPath)
 		}
 	}
@@ -173,9 +197,9 @@ func QualifyReferences(
 		}
 
 		// Replace the identifier with a selector expression
-		slog.Debug("Qualifying reference", "name", ident.Name, "package", packageName)
+		slog.Debug("Qualifying reference", "name", ident.Name, "package", actualPackageName)
 		newSelector := &ast.SelectorExpr{
-			X:   &ast.Ident{Name: packageName},
+			X:   &ast.Ident{Name: actualPackageName},
 			Sel: ident,
 		}
 
@@ -200,4 +224,102 @@ func QualifyReferences(
 	slog.Debug("Successfully wrote modified file", "file", filePath)
 
 	return nil
+}
+
+// CollectIdentifiers collects all declared identifiers in a Go file.
+// This includes variables, functions, types, consts, parameters, and receivers.
+func CollectIdentifiers(filePath string) (map[string]bool, error) {
+	fset := token.NewFileSet()
+	node, err := parser.ParseFile(fset, filePath, nil, 0)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse file: %w", err)
+	}
+
+	identifiers := make(map[string]bool)
+
+	ast.Inspect(node, func(n ast.Node) bool {
+		switch decl := n.(type) {
+		case *ast.FuncDecl:
+			// Function name
+			if decl.Name != nil {
+				identifiers[decl.Name.Name] = true
+			}
+			// Receiver name
+			if decl.Recv != nil {
+				for _, field := range decl.Recv.List {
+					for _, name := range field.Names {
+						identifiers[name.Name] = true
+					}
+				}
+			}
+			// Parameters
+			if decl.Type.Params != nil {
+				for _, field := range decl.Type.Params.List {
+					for _, name := range field.Names {
+						identifiers[name.Name] = true
+					}
+				}
+			}
+			// Results
+			if decl.Type.Results != nil {
+				for _, field := range decl.Type.Results.List {
+					for _, name := range field.Names {
+						identifiers[name.Name] = true
+					}
+				}
+			}
+
+		case *ast.GenDecl:
+			// Type, const, var declarations
+			for _, spec := range decl.Specs {
+				switch s := spec.(type) {
+				case *ast.TypeSpec:
+					// Type name
+					if s.Name != nil {
+						identifiers[s.Name.Name] = true
+					}
+				case *ast.ValueSpec:
+					// Const/var names
+					for _, name := range s.Names {
+						identifiers[name.Name] = true
+					}
+				}
+			}
+
+		case *ast.AssignStmt:
+			// Short variable declarations
+			for _, lhs := range decl.Lhs {
+				if ident, ok := lhs.(*ast.Ident); ok {
+					identifiers[ident.Name] = true
+				}
+			}
+		}
+
+		return true
+	})
+
+	return identifiers, nil
+}
+
+// generateImportAlias generates a unique import alias that doesn't collide with existing identifiers.
+// Strategy: try pkgName, then pkgName_pkg, then pkgName_pkg_, pkgName_pkg__, etc.
+func generateImportAlias(pkgName string, existingIdentifiers map[string]bool) string {
+	// Try the package name first
+	if !existingIdentifiers[pkgName] {
+		return pkgName
+	}
+
+	// Try pkgName_pkg
+	candidate := pkgName + "_pkg"
+	if !existingIdentifiers[candidate] {
+		return candidate
+	}
+
+	// Try pkgName_pkg_, pkgName_pkg__, etc.
+	for i := 1; ; i++ {
+		candidate = pkgName + "_pkg" + strings.Repeat("_", i)
+		if !existingIdentifiers[candidate] {
+			return candidate
+		}
+	}
 }

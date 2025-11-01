@@ -766,6 +766,296 @@ func main() {
 	}
 }
 
+func TestQualifyReferences_PackageNameCollision(t *testing.T) {
+	tmpDir := createTempModule(t)
+	defer os.RemoveAll(tmpDir)
+
+	// Create db package first (simulating the target after move)
+	dbDir := filepath.Join(tmpDir, "db")
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		t.Fatalf("Failed to create db dir: %v", err)
+	}
+	createFile(t, filepath.Join(dbDir, "db.go"), `package db
+
+type User struct {
+	Name string
+}
+
+func NewUser(name string) *User {
+	return &User{Name: name}
+}
+`)
+
+	testFile := filepath.Join(tmpDir, "main.go")
+	createFile(t, testFile, `package main
+
+type User struct {
+	Name string
+}
+
+func NewUser(name string) *User {
+	return &User{Name: name}
+}
+
+func main() {
+	db, err := OpenDB()
+	if err != nil {
+		panic(err)
+	}
+	user := NewUser("Alice")
+	_ = db
+	_ = user
+}
+
+func OpenDB() (*Database, error) {
+	return &Database{}, nil
+}
+
+type Database struct{}
+`)
+
+	// Load package to get real type information
+	pkg, err := typeinfo.LoadPackage(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load package: %v", err)
+	}
+
+	// Find references to NewUser
+	refs, err := references.FindReferences([]string{"NewUser", "User"}, []*packages.Package{pkg})
+	if err != nil {
+		t.Fatalf("FindReferences failed: %v", err)
+	}
+
+	// Qualify with package name "db" (which conflicts with variable "db")
+	err = QualifyReferences(testFile, refs, "db", "test/db", tmpDir)
+	if err != nil {
+		t.Fatalf("QualifyReferences failed: %v", err)
+	}
+
+	// Read the file and verify it uses an alias
+	content, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+
+	contentStr := string(content)
+
+	// Should NOT use "db." (that would conflict with the variable)
+	// Should use "db_pkg." instead
+	if strings.Contains(contentStr, "db.NewUser") || strings.Contains(contentStr, "db.User") {
+		t.Errorf("Should not use 'db.' qualifier due to variable name collision. Got:\n%s", contentStr)
+	}
+
+	// Should use db_pkg alias
+	if !strings.Contains(contentStr, "db_pkg") {
+		t.Errorf("Expected db_pkg alias to be used. Got:\n%s", contentStr)
+	}
+
+	// Should have aliased import
+	if !strings.Contains(contentStr, `db_pkg "test/db"`) {
+		t.Errorf("Expected aliased import: db_pkg \"test/db\". Got:\n%s", contentStr)
+	}
+
+	// Should use qualified reference
+	if !strings.Contains(contentStr, "db_pkg.NewUser") {
+		t.Errorf("Expected db_pkg.NewUser reference. Got:\n%s", contentStr)
+	}
+
+	// Verify the code compiles
+	buildCmd := exec.Command("go", "build", ".")
+	buildCmd.Dir = tmpDir
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Code should build after qualification: %v\nOutput: %s\nContent:\n%s", err, output, contentStr)
+	}
+}
+
+func TestQualifyReferences_AliasCollision(t *testing.T) {
+	tmpDir := createTempModule(t)
+	defer os.RemoveAll(tmpDir)
+
+	// Create db package first (simulating the target after move)
+	dbDir := filepath.Join(tmpDir, "db")
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		t.Fatalf("Failed to create db dir: %v", err)
+	}
+	createFile(t, filepath.Join(dbDir, "db.go"), `package db
+
+type User struct {
+	Name string
+}
+
+func NewUser(name string) *User {
+	return &User{Name: name}
+}
+`)
+
+	testFile := filepath.Join(tmpDir, "main.go")
+	createFile(t, testFile, `package main
+
+type User struct {
+	Name string
+}
+
+func NewUser(name string) *User {
+	return &User{Name: name}
+}
+
+func main() {
+	db := "database"
+	db_pkg := "package"
+	user := NewUser("Alice")
+	_ = db
+	_ = db_pkg
+	_ = user
+}
+`)
+
+	// Load package to get real type information
+	pkg, err := typeinfo.LoadPackage(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load package: %v", err)
+	}
+
+	// Find references to NewUser
+	refs, err := references.FindReferences([]string{"NewUser", "User"}, []*packages.Package{pkg})
+	if err != nil {
+		t.Fatalf("FindReferences failed: %v", err)
+	}
+
+	// Qualify with package name "db" (both "db" and "db_pkg" are taken)
+	err = QualifyReferences(testFile, refs, "db", "test/db", tmpDir)
+	if err != nil {
+		t.Fatalf("QualifyReferences failed: %v", err)
+	}
+
+	// Read the file and verify it uses the next available alias
+	content, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+
+	contentStr := string(content)
+
+	// Should use db_pkg_ (with one underscore suffix)
+	if !strings.Contains(contentStr, "db_pkg_") {
+		t.Errorf("Expected db_pkg_ alias to be used. Got:\n%s", contentStr)
+	}
+
+	// Should have aliased import
+	if !strings.Contains(contentStr, `db_pkg_ "test/db"`) {
+		t.Errorf("Expected aliased import: db_pkg_ \"test/db\". Got:\n%s", contentStr)
+	}
+
+	// Should use qualified reference
+	if !strings.Contains(contentStr, "db_pkg_.NewUser") {
+		t.Errorf("Expected db_pkg_.NewUser reference. Got:\n%s", contentStr)
+	}
+
+	// Verify the code compiles
+	buildCmd := exec.Command("go", "build", ".")
+	buildCmd.Dir = tmpDir
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Code should build after qualification: %v\nOutput: %s\nContent:\n%s", err, output, contentStr)
+	}
+}
+
+func TestQualifyReferences_MultipleCollisions(t *testing.T) {
+	tmpDir := createTempModule(t)
+	defer os.RemoveAll(tmpDir)
+
+	// Create db package first (simulating the target after move)
+	dbDir := filepath.Join(tmpDir, "db")
+	if err := os.MkdirAll(dbDir, 0755); err != nil {
+		t.Fatalf("Failed to create db dir: %v", err)
+	}
+	createFile(t, filepath.Join(dbDir, "db.go"), `package db
+
+type User struct {
+	Name string
+}
+
+func NewUser(name string) *User {
+	return &User{Name: name}
+}
+`)
+
+	testFile := filepath.Join(tmpDir, "main.go")
+	createFile(t, testFile, `package main
+
+type User struct {
+	Name string
+}
+
+func NewUser(name string) *User {
+	return &User{Name: name}
+}
+
+func main() {
+	db := "database"
+	db_pkg := "package1"
+	db_pkg_ := "package2"
+	db_pkg__ := "package3"
+	user := NewUser("Alice")
+	_ = db
+	_ = db_pkg
+	_ = db_pkg_
+	_ = db_pkg__
+	_ = user
+}
+`)
+
+	// Load package to get real type information
+	pkg, err := typeinfo.LoadPackage(tmpDir)
+	if err != nil {
+		t.Fatalf("Failed to load package: %v", err)
+	}
+
+	// Find references to NewUser
+	refs, err := references.FindReferences([]string{"NewUser", "User"}, []*packages.Package{pkg})
+	if err != nil {
+		t.Fatalf("FindReferences failed: %v", err)
+	}
+
+	// Qualify with package name "db" (many collisions)
+	err = QualifyReferences(testFile, refs, "db", "test/db", tmpDir)
+	if err != nil {
+		t.Fatalf("QualifyReferences failed: %v", err)
+	}
+
+	// Read the file and verify it uses the next available alias
+	content, err := os.ReadFile(testFile)
+	if err != nil {
+		t.Fatalf("Failed to read file: %v", err)
+	}
+
+	contentStr := string(content)
+
+	// Should use db_pkg___ (with three underscores)
+	if !strings.Contains(contentStr, "db_pkg___") {
+		t.Errorf("Expected db_pkg___ alias to be used. Got:\n%s", contentStr)
+	}
+
+	// Should have aliased import
+	if !strings.Contains(contentStr, `db_pkg___ "test/db"`) {
+		t.Errorf("Expected aliased import: db_pkg___ \"test/db\". Got:\n%s", contentStr)
+	}
+
+	// Should use qualified reference
+	if !strings.Contains(contentStr, "db_pkg___.NewUser") {
+		t.Errorf("Expected db_pkg___.NewUser reference. Got:\n%s", contentStr)
+	}
+
+	// Verify the code compiles
+	buildCmd := exec.Command("go", "build", ".")
+	buildCmd.Dir = tmpDir
+	output, err := buildCmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Code should build after qualification: %v\nOutput: %s\nContent:\n%s", err, output, contentStr)
+	}
+}
+
 // Helper functions
 
 func createTempModule(t *testing.T) string {
