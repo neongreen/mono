@@ -12,6 +12,7 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 - Rotate task status using the "Status" button on each task (cycles through: next → wip → done → unset).
 - Create new tasks in a group using the add button on group headers.
 - Task text color matches the status icon color for easy visual identification.
+- **Drag and drop tasks between groups** to move them to different projects (uses `tk mv`).
 
 ## Usage
 
@@ -23,6 +24,7 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 6. Right-click on any task to edit its title.
 7. Click the add button on a group header to create a new task in that group.
 8. Hover over any task to see its full details in a tooltip, including title, status, and blockers.
+9. **Drag and drop** a task onto a different group to move it to that project.
 
 ## Design Notes
 
