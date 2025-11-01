@@ -110,10 +110,10 @@ Aliases are per-node, so different nodes can use the same alias for different pr
 
 ```bash
 tk new "Task title" --project myproj
-tk new "Another task" --project tk
+tk new "Another task" -p tk
 ```
 
-The `--project` flag accepts either a project alias or a project UID.
+The `--project` (`-p`) flag accepts either a project alias or a project UID.
 
 ### Prefixes (v1-v3, legacy)
 
@@ -258,22 +258,22 @@ Filter by status:
 tk ls --axis generic:in_progress
 ```
 
-Filter by prefix:
+Filter by project:
 
 ```bash
-tk ls --prefix foo
+tk ls -p foo
 ```
 
-Filter by multiple prefixes:
+Filter by multiple projects:
 
 ```bash
-tk ls --prefix foo --prefix bar
+tk ls -p foo -p bar
 ```
 
 Combine filters:
 
 ```bash
-tk ls --prefix foo --axis generic:in_progress
+tk ls -p foo --axis generic:in_progress
 ```
 
 Show task aliases:
@@ -554,7 +554,7 @@ All v1/v2 features plus:
 - **Automatic migration**: v1/v2/v3 databases automatically upgrade on first run
 - **Rollback support**: `tk admin rollback-v4` to restore v3 backup
 - **Project commands**: `tk project create`, `tk project list`, `tk project alias`
-- **Task creation with projects**: `tk new --project <alias>`
+- **Task creation with projects**: `tk new -p <alias>` or `tk new --project <alias>`
 
 ### v2
 

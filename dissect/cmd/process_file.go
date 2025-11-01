@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type RefactorStatus int
@@ -97,13 +98,16 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 				// Gopls decides the file name based on the function name.
 				// Since *we* want to control the file name, we rename the function to a temp name first so that we don't get a clash.
 				// Once the function is moved, we rename it back to the original name and rename the file.
-				err := gopls.Rename(absPath, funcName, tempFuncName, moduleRoot)
+				renameStart := time.Now()
+				err := gopls.Rename(absPath, funcName, tempFuncName)
 				if err != nil {
 					slog.Error("Error renaming function", "from", funcName, "to", tempFuncName, "error", err)
 					return Failed, "", err
 				}
+				slog.Debug("[TIMING] gopls.Rename", "duration", time.Since(renameStart), "function", funcName)
 				changedFiles[absPath] = struct{}{}
 
+				extractStart := time.Now()
 				goplsFilePath, err := gopls.ExtractToNewFile(absPath, tempFuncName, moduleRoot)
 				if err != nil {
 					slog.Error("Error extracting function with gopls",
@@ -111,6 +115,7 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 					)
 					return Failed, "", err
 				}
+				slog.Debug("[TIMING] gopls.ExtractToNewFile", "duration", time.Since(extractStart), "function", funcName)
 				status = Refactored
 				slog.Debug("Gopls extracted function to a new file",
 					"function", funcName, "source", absPath, "target", goplsFilePath,
@@ -152,11 +157,13 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 						slog.Error("Error getting full import path", "file", targetFilePath, "error", err)
 						return Failed, "", err
 					}
+					addImportStart := time.Now()
 					err = gopls.AddImport(absPath, importPath, moduleRoot)
 					if err != nil {
 						slog.Error("Error adding import", "import", importPath, "to_file", absPath, "error", err)
 						return Failed, "", err
 					}
+					slog.Debug("[TIMING] gopls.AddImport", "duration", time.Since(addImportStart), "import", importPath)
 				}
 
 				// Rename the function back. This time we can use search and replace, since the name is unique.
@@ -169,12 +176,16 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 				}
 				slog.Debug("Renaming function back to original name using search and replace",
 					"temp_name", tempFuncName, "target_reference", targetReference, "target_func_name", targetFuncName)
+				findFilesStart := time.Now()
 				allGoFiles, err := commands.FindGoFiles(moduleRoot)
 				if err != nil {
 					slog.Error("Error finding Go files in module root", "moduleRoot", moduleRoot, "error", err)
 					return Failed, "", err
 				}
+				slog.Debug("[TIMING] commands.FindGoFiles", "duration", time.Since(findFilesStart), "fileCount", len(allGoFiles))
 				slog.Debug("Found Go files to rename in", "moduleRoot", moduleRoot, "files", allGoFiles)
+
+				replaceStart := time.Now()
 				for _, goFile := range allGoFiles {
 					// Use search and replace to rename the function back
 					data, err := os.ReadFile(goFile) // Ensure the file exists
@@ -200,6 +211,7 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 						changedFiles[goFile] = struct{}{}
 					}
 				}
+				slog.Debug("[TIMING] search/replace loop", "duration", time.Since(replaceStart), "filesProcessed", len(allGoFiles))
 
 				foundFunctionToMove = true
 				break // Break inner loop to re-parse file and find next function
@@ -212,12 +224,14 @@ func ProcessFile(absPath string) (status RefactorStatus, exclusionReason string,
 
 	if status == Refactored {
 		// We have to run goimports, since moving files around can break imports.
+		goimportsStart := time.Now()
 		for file := range changedFiles {
 			err := commands.RunGoimportsOnFile(file)
 			if err != nil {
 				return Failed, "", err
 			}
 		}
+		slog.Debug("[TIMING] goimports (all files)", "duration", time.Since(goimportsStart), "fileCount", len(changedFiles))
 	}
 
 	return status, "", nil

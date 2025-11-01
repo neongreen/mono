@@ -1,0 +1,21 @@
+[tools]
+pnpm = "latest"
+
+[tasks.install-deps]
+description = "Install dependencies"
+run = "pnpm install"
+
+[tasks.build]
+description = "Compile & package the VS Code extension"
+run = """
+pnpm run compile
+pnpm run package
+"""
+
+[tasks.install]
+description = "Install the VS Code extension"
+run = "code --install-extension tk-0.0.1.vsix --force"
+
+[tasks.watch]
+description = "Recompile on source changes"
+run = "pnpm run watch"

@@ -1,0 +1,105 @@
+{
+  "name": "tk",
+  "displayName": "tk",
+  "description": "View tk tasks inside VS Code.",
+  "version": "0.0.1",
+  "publisher": "Emily",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neongreen/mono"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:tkExplorer",
+    "onCommand:tk.refresh",
+    "onCommand:tk.editTitle",
+    "onCommand:tk.rotateStatus"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "tk.refresh",
+        "title": "tk: Refresh"
+      },
+      {
+        "command": "tk.editTitle",
+        "title": "Edit Title"
+      },
+      {
+        "command": "tk.rotateStatus",
+        "title": "Rotate Status",
+        "icon": "$(sync)"
+      }
+    ],
+    "menus": {
+      "view/item/context": [
+        {
+          "command": "tk.editTitle",
+          "when": "view == tkExplorer && viewItem == tkTask",
+          "group": "inline"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "tkContainer",
+          "title": "tk Tasks",
+          "icon": "$(checklist)"
+        }
+      ]
+    },
+    "views": {
+      "tkContainer": [
+        {
+          "id": "tkExplorer",
+          "name": "tk"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "tk",
+      "properties": {
+        "tk.binaryPath": {
+          "type": "string",
+          "default": "tk",
+          "description": "Path to the tk executable."
+        },
+        "tk.workingDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Directory to run tk ls --json from. Defaults to the first workspace folder when empty."
+        },
+        "tk.group": {
+          "type": "string",
+          "default": "prefix",
+          "enum": [
+            "prefix",
+            "status",
+            "none"
+          ],
+          "description": "Value passed to --group when listing tasks."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run compile",
+    "compile": "tsc -p .",
+    "watch": "tsc -w -p .",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.50",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.6.2",
+    "typescript": "^5.6.3"
+  }
+}

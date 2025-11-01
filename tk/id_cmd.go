@@ -29,7 +29,7 @@ var idCmd = &cobra.Command{
 		taskRef := args[0]
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}

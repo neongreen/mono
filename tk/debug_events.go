@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +24,7 @@ var debugEventsCmd = &cobra.Command{
 		}
 
 		// Get the first remote
-		var remote RemoteConfig
+		var remote sync.RemoteConfig
 		var remoteName string
 		for name, r := range config.Remotes {
 			remote = r

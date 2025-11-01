@@ -1,7 +1,7 @@
 [tools]
 go = "1.24.4"
-"go:github.com/mrjoshuak/godoc-mcp" = "latest"
 gotestsum = "latest"
+"go:golang.org/x/tools/gopls" = "latest"
 
 [tasks."test"]
 description = "Run tests"
@@ -20,12 +20,9 @@ run = "git clone https://github.com/golang/tools.git _gotools"
 description = "Run the project"
 depends = ["build"]
 run = """
-  curdir={{cwd}}
-  dir={{arg(name="dir", default="")}}
-  if [ -z "$dir" ]; then
-    dir="$curdir"
-  fi
-  _build/dissect "$dir"
+DIR="$(pwd)"
+cd {{cwd}}
+"$DIR/_build/dissect"
 """
 
 [tasks."fmt"]

@@ -154,38 +154,51 @@ func (d *DB) GetAllTaskIDs() ([]string, error) {
 	return taskUIDs, rows.Err()
 }
 
-// GetTaskIDsByPrefixes returns task IDs filtered by prefix list (project aliases)
-func (d *DB) GetTaskIDsByPrefixes(prefixes []string) ([]string, error) {
-	if len(prefixes) == 0 {
+// GetTaskIDsByProjects returns task IDs filtered by project identifiers (alias, name, or UID).
+func (d *DB) GetTaskIDsByProjects(projects []string) ([]string, error) {
+	if len(projects) == 0 {
 		return d.GetAllTaskIDs()
 	}
 
-	nodeID, err := d.GetOrCreateNodeID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get node ID: %w", err)
+	seen := make(map[string]struct{})
+	projectUIDs := make([]string, 0, len(projects))
+	for _, spec := range projects {
+		spec = strings.TrimSpace(spec)
+		if spec == "" {
+			return nil, fmt.Errorf("project filter cannot be empty")
+		}
+
+		projectUID, err := resolveProjectByAlias(d, spec)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve project %s: %w", spec, err)
+		}
+		if _, exists := seen[projectUID]; exists {
+			continue
+		}
+		seen[projectUID] = struct{}{}
+		projectUIDs = append(projectUIDs, projectUID)
 	}
 
-	// Build query to find tasks by project alias
-	var conditions []string
-	var args []interface{}
-	for _, alias := range prefixes {
-		conditions = append(conditions, "project_aliases.alias = ?")
-		args = append(args, alias)
+	if len(projectUIDs) == 0 {
+		return []string{}, nil
 	}
-	args = append(args, nodeID)
 
-	query := `
-		SELECT DISTINCT tasks.task_uid
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(projectUIDs)), ",")
+	query := fmt.Sprintf(`
+		SELECT DISTINCT task_uid
 		FROM tasks
-		JOIN project_aliases ON tasks.project_uid = project_aliases.project_uid
-		WHERE (` + strings.Join(conditions, " OR ") + `)
-		  AND project_aliases.node = ?
-		ORDER BY tasks.created_at
-	`
+		WHERE project_uid IN (%s)
+		ORDER BY created_at
+	`, placeholders)
+
+	args := make([]interface{}, len(projectUIDs))
+	for i, projectUID := range projectUIDs {
+		args[i] = projectUID
+	}
 
 	rows, err := d.db.Query(query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query task UIDs by prefix: %w", err)
+		return nil, fmt.Errorf("failed to query task UIDs by project: %w", err)
 	}
 	defer rows.Close()
 

@@ -83,3 +83,22 @@ func TestRenderTaskDisplayIDWithCollision(t *testing.T) {
 		t.Fatalf("expected display with hint %s, got %s", hintB, displayB)
 	}
 }
+
+func TestRenderTaskDisplayIDWithoutAlias(t *testing.T) {
+	db := openTempDB(t)
+
+	// Create a project without an alias
+	projectUID := seedProjectWithoutAlias(t, db, "My Project")
+	taskUID := seedTask(t, db, projectUID, "task", 1)
+
+	displayID, err := RenderTaskDisplayID(db, taskUID)
+	if err != nil {
+		t.Fatalf("render failed: %v", err)
+	}
+
+	// Should use project name, not projectUID
+	expected := "My Project-1"
+	if displayID != expected {
+		t.Fatalf("expected %s, got %s", expected, displayID)
+	}
+}

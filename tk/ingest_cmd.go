@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +28,7 @@ Examples:
 
 		pathOrRemote := args[0]
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -50,7 +51,7 @@ Examples:
 				return fmt.Errorf("'%s' is neither a file nor a configured remote", pathOrRemote)
 			}
 
-			ingestErr = ingestRemote(db, pathOrRemote, remote)
+			ingestErr = IngestRemote(db, pathOrRemote, remote)
 		}
 
 		return ingestErr
@@ -135,8 +136,8 @@ func ingestFile(db *DB, path string) error {
 	return nil
 }
 
-// ingestRemote ingests events from all segments in a remote
-func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
+// IngestRemote ingests events from all segments in a remote
+func IngestRemote(db *DB, remoteName string, remote sync.RemoteConfig) error {
 	// Use configured spaces, or default to "personal"
 	spaces := remote.Spaces
 	if len(spaces) == 0 {
@@ -153,7 +154,7 @@ func ingestRemote(db *DB, remoteName string, remote RemoteConfig) error {
 }
 
 // ingestRemoteSpace ingests events from a specific space in a remote
-func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space string) error {
+func ingestRemoteSpace(db *DB, remoteName string, remote sync.RemoteConfig, space string) error {
 	// Find all segment files
 	segmentsDir := filepath.Join(remote.Path, space, "segments")
 	if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
@@ -262,7 +263,7 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 	}
 
 	watermarkFile := filepath.Join(stateDir, "ingest_watermarks", remoteName, space+".json")
-	watermark := IngestWatermark{
+	watermark := sync.IngestWatermark{
 		RemoteName: remoteName,
 		Space:      space,
 		UpdatedAt:  time.Now(),
@@ -277,7 +278,7 @@ func ingestRemoteSpace(db *DB, remoteName string, remote RemoteConfig, space str
 }
 
 // segmentEventToEvent converts a SegmentEvent to an Event
-func segmentEventToEvent(se SegmentEvent) (Event, error) {
+func segmentEventToEvent(se sync.SegmentEvent) (Event, error) {
 	// Parse timestamp
 	createdAt, err := time.Parse(time.RFC3339Nano, se.TS)
 	if err != nil {
@@ -338,7 +339,7 @@ func containsString(s, substr string) bool {
 }
 
 // saveIngestWatermark saves an ingest watermark to a file
-func saveIngestWatermark(path string, watermark *IngestWatermark) error {
+func saveIngestWatermark(path string, watermark *sync.IngestWatermark) error {
 	// Ensure directory exists
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {

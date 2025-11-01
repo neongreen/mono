@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // ProcessFileFunc is the signature for the function that processes a file
@@ -48,6 +49,19 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 
 	result := &TestResult{}
 
+	// Timing tracking
+	type timing struct {
+		operation string
+		duration  time.Duration
+	}
+	var timings []timing
+
+	logTiming := func(op string, start time.Time) {
+		duration := time.Since(start)
+		timings = append(timings, timing{operation: op, duration: duration})
+		t.Logf("[TIMING] %s: %v", op, duration)
+	}
+
 	// Create temporary directory
 	tmpDir, err := os.MkdirTemp("", "dissect_external_"+sanitizeName(config.Name)+"_")
 	if err != nil {
@@ -60,6 +74,7 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 	result.ProjectDir = projectDir
 
 	// Clone the project
+	cloneStart := time.Now()
 	slog.Debug("Cloning external project", "url", config.URL, "commit", config.Commit)
 	cloneCmd := exec.Command("git", "clone", config.URL, projectDir)
 	cloneOutput, cloneErr := cloneCmd.CombinedOutput()
@@ -67,8 +82,10 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 		result.Error = fmt.Errorf("failed to clone project: %w\nOutput: %s", cloneErr, cloneOutput)
 		return result
 	}
+	logTiming("git clone", cloneStart)
 
 	// Checkout the specific commit
+	checkoutStart := time.Now()
 	checkoutCmd := exec.Command("git", "checkout", config.Commit)
 	checkoutCmd.Dir = projectDir
 	checkoutOutput, checkoutErr := checkoutCmd.CombinedOutput()
@@ -76,11 +93,13 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 		result.Error = fmt.Errorf("failed to checkout commit: %w\nOutput: %s", checkoutErr, checkoutOutput)
 		return result
 	}
+	logTiming("git checkout", checkoutStart)
 
 	// Count files before dissect
 	result.FilesBefore = countGoFiles(projectDir)
 
 	// Verify the project builds before dissect
+	buildBeforeStart := time.Now()
 	slog.Debug("Building project before dissect...")
 	buildBeforeCmd := exec.Command("go", "build", "./...")
 	buildBeforeCmd.Dir = projectDir
@@ -89,8 +108,10 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 		result.Error = fmt.Errorf("project doesn't build before dissect: %w\nOutput: %s", buildBeforeErr, buildBeforeOutput)
 		return result
 	}
+	logTiming("go build (before)", buildBeforeStart)
 
 	// Verify tests pass before dissect
+	testBeforeStart := time.Now()
 	slog.Debug("Running tests before dissect...")
 	testBeforeCmd := exec.Command("go", "test", "./...")
 	testBeforeCmd.Dir = projectDir
@@ -100,8 +121,10 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 		return result
 	}
 	slog.Debug("Tests passed before dissect", "output", string(testBeforeOutput))
+	logTiming("go test (before)", testBeforeStart)
 
 	// Find all Go files in the project using go list
+	goListStart := time.Now()
 	slog.Debug("Finding all Go files in project...")
 	goListCmd := exec.Command("go", "list", "-test", "-json", "./...")
 	goListCmd.Dir = projectDir
@@ -110,6 +133,7 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 		result.Error = fmt.Errorf("failed to list Go files: %w\nOutput: %s", goListErr, goListOutput)
 		return result
 	}
+	logTiming("go list", goListStart)
 
 	// Parse go list output to get all Go files
 	// Process all non-test files in the main package (skip test packages, internal packages, cmd packages)
@@ -148,6 +172,7 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 	slog.Debug("Found Go files", "count", len(allGoFiles))
 
 	// Run dissect on all Go files
+	dissectStart := time.Now()
 	if config.ProcessFile != nil && len(allGoFiles) > 0 {
 		for _, goFile := range allGoFiles {
 			relativePath, _ := filepath.Rel(projectDir, goFile)
@@ -160,6 +185,7 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 			slog.Debug("Dissect result", "file", relativePath, "status", status, "exclusionReason", exclusionReason)
 		}
 	}
+	logTiming("dissect processing", dissectStart)
 
 	// Count files after dissect
 	result.FilesAfter = countGoFiles(projectDir)
@@ -177,6 +203,7 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 	}
 
 	// Verify the project still builds after dissect
+	buildAfterStart := time.Now()
 	slog.Debug("Building project after dissect...")
 	buildAfterCmd := exec.Command("go", "build", "./...")
 	buildAfterCmd.Dir = projectDir
@@ -187,8 +214,10 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 		return result
 	}
 	result.BuildPassed = true
+	logTiming("go build (after)", buildAfterStart)
 
 	// Verify tests still pass after dissect
+	testAfterStart := time.Now()
 	slog.Debug("Running tests after dissect...")
 	testAfterCmd := exec.Command("go", "test", "./...")
 	testAfterCmd.Dir = projectDir
@@ -200,6 +229,16 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 	}
 	result.TestsPassed = true
 	slog.Debug("Tests passed after dissect", "output", string(testAfterOutput))
+	logTiming("go test (after)", testAfterStart)
+
+	// Log timing summary
+	t.Logf("[TIMING SUMMARY] %s:", config.Name)
+	var total time.Duration
+	for _, tm := range timings {
+		t.Logf("  %s: %v", tm.operation, tm.duration)
+		total += tm.duration
+	}
+	t.Logf("  TOTAL: %v", total)
 
 	// Log the files created by dissect
 	slog.Debug("Listing files after dissect...", "project", config.Name)

@@ -144,7 +144,7 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 
 	miseArgs := []string{"exec", fmt.Sprintf("go@%s", goVersion), "--", "go"}
 	miseArgs = append(miseArgs, args...)
-	return exec.Command("mise", miseArgs...)
+	return createMiseCommand(miseArgs...)
 }
 
 // getBuildPath determines the correct build path for a Go project.
@@ -292,6 +292,7 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 	buildPath := getBuildPath(projectDir)
 	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -437,6 +438,7 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 	buildPath := getBuildPath(projectDir)
 	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
 	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -471,6 +473,35 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 
 // installMonoRelease installs a specific version of a project from neongreen/mono
 func installMonoRelease(project, version string, dryRun bool, planJson bool) {
+	// Special handling for tk-vscode extension
+	if project == "tk-vscode" {
+		if strings.HasPrefix(version, "pr-") {
+			prStr := strings.TrimPrefix(version, "pr-")
+			parts := strings.Split(prStr, ".")
+			var prNumber int
+			n, err := fmt.Sscanf(parts[0], "%d", &prNumber)
+			if err != nil || n != 1 {
+				fmt.Printf("Error: Invalid PR number in '%s'\n", version)
+				os.Exit(1)
+			}
+			buildVSCodeExtensionFromPR(project, prNumber, dryRun, planJson)
+			return
+		}
+
+		refDescription := version
+		isCommitSHA := false
+		if version == "main" || version == "master" {
+			refDescription = fmt.Sprintf("latest commit on %s branch", version)
+		} else if len(version) >= 7 && len(version) <= 40 && isHexString(version) {
+			refDescription = fmt.Sprintf("commit %s", version)
+			isCommitSHA = true
+		} else {
+			refDescription = fmt.Sprintf("branch %s", version)
+		}
+
+		buildVSCodeExtensionFromSource(project, version, refDescription, isCommitSHA, dryRun, planJson)
+		return
+	}
 
 	if strings.HasPrefix(version, "pr-") {
 

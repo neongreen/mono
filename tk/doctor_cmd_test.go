@@ -11,7 +11,7 @@ func TestDoctorHealthy(t *testing.T) {
 	projectUID := seedProject(t, db, "proj")
 	seedTask(t, db, projectUID, "task", 1)
 
-	report, err := runDoctor(db)
+	report, err := RunDoctor(db)
 	if err != nil {
 		t.Fatalf("runDoctor failed: %v", err)
 	}
@@ -30,7 +30,7 @@ func TestDoctorDetectsOrphanTask(t *testing.T) {
 		t.Fatalf("failed to remove project: %v", err)
 	}
 
-	report, err := runDoctor(db)
+	report, err := RunDoctor(db)
 	if err != nil {
 		t.Fatalf("runDoctor failed: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestDoctorDetectsCollisions(t *testing.T) {
 	seedTaskWithNode(t, db, projectUID, "first", 3, nodeA)
 	seedTaskWithNode(t, db, projectUID, "second", 3, nodeB)
 
-	report, err := runDoctor(db)
+	report, err := RunDoctor(db)
 	if err != nil {
 		t.Fatalf("runDoctor failed: %v", err)
 	}

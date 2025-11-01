@@ -14,7 +14,7 @@ var conflictsNumbersCmd = &cobra.Command{
 		projectFlag, _ := cmd.Flags().GetString("project")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}

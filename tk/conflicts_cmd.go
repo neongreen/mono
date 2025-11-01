@@ -18,7 +18,7 @@ Otherwise, shows all conflicts in the database.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}

@@ -94,7 +94,7 @@ var newCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		title := args[0]
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -113,15 +113,30 @@ var statusCmd = &cobra.Command{
 var markCmd = &cobra.Command{
 	Use:   "mark [task-id] [state]",
 	Short: "Set task status",
-	Args:  cobra.ExactArgs(2),
+	Args: func(cmd *cobra.Command, args []string) error {
+		unset, _ := cmd.Flags().GetBool("unset")
+		if unset {
+			// When --unset is true, expect exactly 1 arg (task-id)
+			return cobra.ExactArgs(1)(cmd, args)
+		}
+		// Otherwise, expect exactly 2 args (task-id and state)
+		return cobra.ExactArgs(2)(cmd, args)
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
-		state := args[1]
+		unset, _ := cmd.Flags().GetBool("unset")
+
+		var state string
+		if unset {
+			state = ""
+		} else {
+			state = args[1]
+		}
 
 		axis, _ := cmd.Flags().GetString("axis")
 		role, _ := cmd.Flags().GetString("role")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -180,7 +195,11 @@ var markCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Set status for task %s: %s=%s\n", displayID, axis, state)
+		if unset {
+			fmt.Printf("Unset status for task %s (axis: %s)\n", displayID, axis)
+		} else {
+			fmt.Printf("Set status for task %s: %s=%s\n", displayID, axis, state)
+		}
 		return nil
 	},
 }
@@ -193,7 +212,7 @@ var noteCmd = &cobra.Command{
 		taskRef := args[0]
 		text := args[1]
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -263,7 +282,7 @@ var viewCmd = &cobra.Command{
 		taskRef := args[0]
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -324,14 +343,14 @@ var lsCmd = &cobra.Command{
 
 		axisFilter, _ := cmd.Flags().GetString("axis")
 		sortBy, _ := cmd.Flags().GetString("sort")
-		prefixFilter, _ := cmd.Flags().GetStringSlice("prefix")
+		projectFilter, _ := cmd.Flags().GetStringSlice("project")
 		showAliases, _ := cmd.Flags().GetBool("aliases")
 		groupBy, _ := cmd.Flags().GetString("group")
 		blockedOnly, _ := cmd.Flags().GetBool("blocked")
 		unblockedOnly, _ := cmd.Flags().GetBool("unblocked")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := openExistingDB()
+		db, err := OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -351,22 +370,21 @@ var lsCmd = &cobra.Command{
 
 		tasks := reducer.GetAllTasks()
 
-		// Filter by project alias if specified
-		if len(prefixFilter) > 0 {
-			// Filter by project alias (--prefix flag filters by project alias)
-			taskIDs, err := db.GetTaskIDsByPrefixes(prefixFilter)
+		// Filter by project if specified
+		if len(projectFilter) > 0 {
+			taskIDs, err := db.GetTaskIDsByProjects(projectFilter)
 			if err != nil {
 				return err
 			}
 
-			// Filter tasks by project alias
+			// Filter tasks by project
 			var filtered []*Task
-			taskIDSet := make(map[string]bool)
+			taskUIDSet := make(map[string]bool)
 			for _, id := range taskIDs {
-				taskIDSet[id] = true
+				taskUIDSet[id] = true
 			}
 			for _, task := range tasks {
-				if taskIDSet[task.TaskID] {
+				if taskUIDSet[task.TaskUUID] {
 					filtered = append(filtered, task)
 				}
 			}
@@ -428,7 +446,7 @@ var lsCmd = &cobra.Command{
 
 		// Group and render tasks based on groupBy flag
 		switch groupBy {
-		case "prefix":
+		case "project", "prefix":
 			// Group tasks by project
 			grouped := make(map[string][]*Task)
 			var groupOrder []string // To maintain consistent order
@@ -492,7 +510,7 @@ var lsCmd = &cobra.Command{
 			renderTaskTable(db, tasks, showAliases, termWidth)
 
 		default:
-			return fmt.Errorf("invalid --group value: %s (must be prefix, status, or none)", groupBy)
+			return fmt.Errorf("invalid --group value: %s (must be project, status, or none)", groupBy)
 		}
 
 		return nil
@@ -510,11 +528,12 @@ func init() {
 	dbCmd.AddCommand(dbPathCmd)
 	rootCmd.AddCommand(dbCmd)
 
-	newCmd.Flags().String("project", "tk", "Project alias or UID to use")
+	newCmd.Flags().StringP("project", "p", "tk", "Project alias or UID to use")
 	rootCmd.AddCommand(newCmd)
 
 	markCmd.Flags().String("axis", "generic", "Status axis")
 	markCmd.Flags().String("role", "human", "Actor role")
+	markCmd.Flags().Bool("unset", false, "Unset the status (clear it)")
 	rootCmd.AddCommand(markCmd)
 	statusCmd.AddCommand(statusSyncCmd)
 	rootCmd.AddCommand(statusCmd)
@@ -526,15 +545,16 @@ func init() {
 
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
-	lsCmd.Flags().StringSlice("prefix", []string{}, "Filter by project alias (can be specified multiple times)")
+	lsCmd.Flags().StringSliceP("project", "p", []string{}, "Filter by project (alias, UID, or name; can be specified multiple times)")
 	lsCmd.Flags().Bool("aliases", false, "Show task aliases")
-	lsCmd.Flags().String("group", "prefix", "Group tasks by: prefix, status, or none (default: prefix)")
+	lsCmd.Flags().String("group", "project", "Group tasks by: project, status, or none (default: project)")
 	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
 	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
 	lsCmd.Flags().Bool("json", false, "Output tasks as JSON")
 	rootCmd.AddCommand(lsCmd)
 
 	rootCmd.AddCommand(editCmd)
+	rootCmd.AddCommand(describeCmd)
 	rootCmd.AddCommand(mvCmd)
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(idCmd)

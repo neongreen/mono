@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/sync"
 	"sort"
 )
 
@@ -259,7 +260,7 @@ func (r *Reducer) applyRelationNote(e Event) error {
 }
 
 // FinalizeRelations builds relations for all tasks and computes blocked status
-func (r *Reducer) FinalizeRelations(config *Config) {
+func (r *Reducer) FinalizeRelations(config *sync.Config) {
 	// Build relations for all tasks
 	for uuid, task := range r.tasks {
 		task.Relations = r.relations.BuildTaskRelations(uuid)
@@ -281,7 +282,7 @@ func BuildFromEvents(events []Event) (*Reducer, error) {
 }
 
 // BuildFromEventsWithConfig builds the current state from events and finalizes relations
-func BuildFromEventsWithConfig(events []Event, config *Config) (*Reducer, error) {
+func BuildFromEventsWithConfig(events []Event, config *sync.Config) (*Reducer, error) {
 	reducer := NewReducer()
 	for _, e := range events {
 		if err := reducer.Apply(e); err != nil {

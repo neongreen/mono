@@ -14,6 +14,8 @@ import (
 	"github.com/neongreen/mono/dissect/pkg/commands"
 	"github.com/neongreen/mono/dissect/pkg/gopls"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/parser"
+	"github.com/neongreen/mono/dissect/pkg/refactor"
 	"go/ast"
 	"go/printer"
 	"go/token"
@@ -28,12 +30,29 @@ import (
 )
 
 var moveCmd = &cobra.Command{
-	Use:   "move <source_file:identifier> [identifiers...] <target_file>",
-	Short: "Move specific identifiers (functions, types, interfaces) to a target file",
-	Long: `Move extracts specific identifiers (functions, methods, types, interfaces) from a source file 
-and moves them to a target file. The target file will be created if it doesn't exist.
+	Use:   "move <source> <target>",
+	Short: "Move/rename files or move specific identifiers between files",
+	Long: `Move supports three modes of operation:
 
-Both source files and identifiers support glob patterns:
+1. File mode: Move or rename entire files with refactoring support
+   dissect move source.go destination.go
+   - Moves the physical file
+   - Updates package declaration to match new directory
+   - Updates all import statements in the codebase
+   - Updates package qualifiers in code (e.g., old.Func() → new.Func())
+
+2. Symbol mode: Move specific identifiers (functions, types, interfaces) between files
+   dissect move source.go:Foo target.go
+   dissect move source.go:Foo,Bar,Baz target.go
+   
+   Move and rename simultaneously:
+   dissect move source.go:OldName target.go:NewName
+
+3. Rename mode: Rename symbols in place
+   dissect move file.go:oldName file.go:NewName
+   dissect move utils.go:helper utils.go:Helper  # Export a function
+
+Symbol mode supports glob patterns:
   - File patterns: *.go, pkg/**/*.go
   - Identifier patterns: Test*, *Helper, Benchmark*
 
@@ -42,13 +61,24 @@ Glob behavior:
   - An error is only shown if no identifiers match across all files
   - File globs expand first, then identifier globs match within each file
 
-Example:
-  dissect move source.go:Foo source.go:Bar target.go
-  dissect move source.go:Foo,Bar,Baz target.go
+Examples:
+  # File mode
+  dissect move source.go destination.go
+  dissect move tk/admin_cmd.go tk/cmd/admin.go
+
+  # Symbol mode - move
+  dissect move source.go:Foo target.go
   dissect move *.go:Helper target.go
   dissect move pkg/**/*.go:Test* target.go
   dissect move file.go:*Helper,Test* target.go
-  dissect move source.go:MyType,MyInterface target.go`,
+  dissect move source.go:MyType,MyInterface target.go
+  
+  # Symbol mode - move and rename
+  dissect move source.go:OldFunc target.go:NewFunc
+  
+  # Rename mode
+  dissect move file.go:oldName file.go:NewName
+  dissect move utils.go:helper utils.go:Helper`,
 	Args: cobra.MinimumNArgs(2),
 	Run:  runMove,
 }
@@ -60,9 +90,81 @@ func runMove(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
+	// Detect mode: file mode (no colons) vs symbol mode (colons present)
+	hasColons := false
+	for _, arg := range args {
+		if strings.Contains(arg, ":") {
+			hasColons = true
+			break
+		}
+	}
+
+	// File mode: move/rename entire file
+	if !hasColons {
+		if len(args) != 2 {
+			slog.Error("File mode requires exactly 2 arguments", "args", len(args))
+			fmt.Fprintf(os.Stderr, "Error: File mode requires exactly 2 arguments: <source> <target>\n")
+			fmt.Fprintf(os.Stderr, "Got %d arguments. Use 'file:identifier' format to move symbols.\n", len(args))
+			os.Exit(1)
+		}
+
+		sourceFile := args[0]
+		targetFile := args[1]
+
+		// Get absolute paths
+		absSourceFile, err := filepath.Abs(sourceFile)
+		if err != nil {
+			slog.Error("Error getting absolute path", "file", sourceFile, "error", err)
+			fmt.Fprintf(os.Stderr, "Error: Cannot resolve source file path: %v\n", err)
+			os.Exit(1)
+		}
+
+		absTargetFile, err := filepath.Abs(targetFile)
+		if err != nil {
+			slog.Error("Error getting absolute path", "file", targetFile, "error", err)
+			fmt.Fprintf(os.Stderr, "Error: Cannot resolve target file path: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Check if source file exists
+		if _, err := os.Stat(absSourceFile); os.IsNotExist(err) {
+			slog.Error("Source file does not exist", "file", absSourceFile)
+			fmt.Fprintf(os.Stderr, "Error: Source file does not exist: %s\n", sourceFile)
+			os.Exit(1)
+		}
+
+		// Find module root
+		moduleRoot, err := commands.FindGoModuleRoot(absSourceFile)
+		if err != nil {
+			slog.Error("Error finding Go module root", "error", err, "file", absSourceFile)
+			fmt.Fprintf(os.Stderr, "Error: Cannot find Go module root: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Use refactor.MoveFileWithImportUpdates to move the file and update imports
+		slog.Info("Moving file with import updates", "from", sourceFile, "to", targetFile)
+		if err := refactor.MoveFileWithImportUpdates(absSourceFile, absTargetFile, moduleRoot); err != nil {
+			slog.Error("Error moving file", "error", err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		slog.Info("Successfully moved file and updated imports", "from", sourceFile, "to", targetFile)
+		return
+	}
+
+	// Symbol mode: move specific identifiers between files
 	// Parse arguments
-	// Last argument is the target file
-	targetFile := args[len(args)-1]
+	// Last argument is the target specification
+	targetSpec, err := parser.ParseFileSpec(args[len(args)-1])
+	if err != nil {
+		slog.Error("Invalid target specification", "error", err)
+		fmt.Fprintf(os.Stderr, "Error: Invalid target specification: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Extract just the file path for target (identifier is the new name if doing rename)
+	targetFile := targetSpec.FilePath
 
 	// All other arguments are source specifications (file:identifier or file:id1,id2,id3)
 	sourceSpecs := args[:len(args)-1]
@@ -163,13 +265,50 @@ func runMove(cmd *cobra.Command, args []string) {
 
 		// Move each matched identifier
 		for _, identifier := range matchingIdentifiers {
-			slog.Info("Moving identifier", "identifier", identifier, "from", sourceFile, "to", targetFile)
+			// Check if this is a rename operation (same file, different identifier)
+			if absSourceFile == absTargetFile && targetSpec.HasIdentifier() {
+				// Rename operation
+				newName := targetSpec.Identifier
 
-			err := moveIdentifier(absSourceFile, identifier, absTargetFile, moduleRoot)
-			if err != nil {
-				slog.Error("Error moving identifier", "identifier", identifier, "error", err)
-				fmt.Fprintf(os.Stderr, "Error moving identifier '%s': %v\n", identifier, err)
-				os.Exit(1)
+				// Check for no-op rename
+				if identifier == newName {
+					slog.Warn("Source and target identifiers are the same, skipping", "identifier", identifier)
+					fmt.Fprintf(os.Stderr, "Warning: Identifier '%s' already has the target name, skipping\n", identifier)
+					continue
+				}
+
+				slog.Info("Renaming identifier", "identifier", identifier, "to", newName, "file", sourceFile)
+
+				err := gopls.Rename(absSourceFile, identifier, newName)
+				if err != nil {
+					slog.Error("Error renaming identifier", "identifier", identifier, "error", err)
+					fmt.Fprintf(os.Stderr, "Error renaming identifier '%s': %v\n", identifier, err)
+					os.Exit(1)
+				}
+			} else {
+				// Move operation
+				slog.Info("Moving identifier", "identifier", identifier, "from", sourceFile, "to", targetFile)
+
+				err := moveIdentifier(absSourceFile, identifier, absTargetFile, moduleRoot)
+				if err != nil {
+					slog.Error("Error moving identifier", "identifier", identifier, "error", err)
+					fmt.Fprintf(os.Stderr, "Error moving identifier '%s': %v\n", identifier, err)
+					os.Exit(1)
+				}
+
+				// If target has a new name specified, rename after moving
+				if targetSpec.HasIdentifier() {
+					newName := targetSpec.Identifier
+					if identifier != newName {
+						slog.Info("Renaming moved identifier", "from", identifier, "to", newName)
+						err := gopls.Rename(absTargetFile, identifier, newName)
+						if err != nil {
+							slog.Error("Error renaming after move", "identifier", identifier, "error", err)
+							fmt.Fprintf(os.Stderr, "Error renaming identifier '%s' after move: %v\n", identifier, err)
+							os.Exit(1)
+						}
+					}
+				}
 			}
 		}
 	}

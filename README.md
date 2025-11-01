@@ -6,20 +6,23 @@ This repository contains multiple independent projects.
 
 | Project | Status | Notes |
 | --- | --- | --- |
-| [dissect](dissect/) | beta (actively used internally) | Go tool for structural code refactoring; feature set continues to grow. |
+| [dissect](dissect/) | beta | Go tool for structural code refactoring; feature set continues to grow. |
 | [markdown-format](markdown-format/) | alpha | Markdown formatter; command surface and formatting rules are still evolving. |
 | [prrun](prrun/) | deprecated | Was designed to run binaries from PR releases; PR releases are no longer created. |
-| [printpdf](printpdf/) | alpha | Markdown/web-to-PDF tool; rendering pipeline has known gaps documented in project issues. |
+| [printpdf](printpdf/) | beta | Markdown/web-to-PDF tool; rendering pipeline has known gaps documented in project issues. |
 | [beads-merge](beads-merge/) | alpha | 3-way merge tool for beads `.jsonl` issue files; designed for jj version control. |
 | [ingest](ingest/) | pre-alpha | Data ingestion orchestrator; schema and connectors change frequently. |
-| [diagram-dsl](diagram-dsl/) | experimental | TypeScript DSL for diagrams; layout system under active refactor. |
+| [diagram-dsl](diagram-dsl/) | pre-alpha | TypeScript DSL for diagrams; layout system under active refactor. |
 | [mdbook-comments](mdbook-comments/) | alpha | mdbook preprocessor for paragraph-level commenting with Supabase backend. |
-| [want](want/) | pre-alpha | Planning/fulfilment assistant; core design still in flux. |
-| [claude-trace](claude-trace/) | alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
-| [conf](conf/) | pre-alpha | Smart configuration manager; command coverage incomplete. |
-| [tk](tk/) | pre-alpha | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
-| [jj-run](jj-run/) | alpha | Go tool to execute shell commands across multiple repository changes in isolated workspaces using jj. |
-| [ghrelease](lib/ghrelease/) | internal library | Shared helper for fetching release assets; API may change without notice. |
+| [want](want/) | alpha | Planning/fulfilment assistant; core design still in flux. |
+| [claude-trace](claude-trace/) | pre-alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
+| [conf](conf/) | alpha | Smart configuration manager; command coverage incomplete. |
+| [tk](tk/) | beta | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
+| [jj-run](jj-run/) | alpha | Jujutsu subcommand to execute shell commands against multiple revisions. |
+| [jj-run-py](jj-run-py/) | deprecated | Old version of jj-run written in Python. |
+| [tk-vscode](tk-vscode/) | alpha | VS Code extension that lists tk tasks by running `tk ls --json`. |
+| [ghrelease](lib/ghrelease/) | beta | Shared helper for fetching release assets; API may change without notice. |
+| [.dagger](.dagger/) | alpha | Dagger module for running tk and dissect test suites. |
 
 ## Installing Tools
 

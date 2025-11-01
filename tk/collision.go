@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/sync"
 	"os"
 	"path/filepath"
 	"strings"
@@ -87,7 +88,7 @@ func (ncc *NodeCollisionChecker) GetSeenNodes() []string {
 }
 
 // checkNodeCollision checks for node ID collisions in a remote
-func checkNodeCollision(db *DB, remoteName string, remote RemoteConfig) error {
+func checkNodeCollision(db *DB, remoteName string, remote sync.RemoteConfig) error {
 	// Get local node ID
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
