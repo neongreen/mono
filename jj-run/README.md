@@ -19,21 +19,7 @@ This installs the `jj-run` binary. To use it as `jj x`, add the following to you
 
 ```toml
 [aliases]
-x = ["run"]
-```
-
-Then set up the `run` command to point to `jj-run`:
-
-```toml
-[aliases]
-run = ["!jj-run"]
-```
-
-Or combine them:
-
-```toml
-[aliases]
-x = ["!jj-run"]
+x = ["util", "exec", "--", "jj-run"]
 ```
 
 ### Installation with `want` and `conf`
@@ -45,7 +31,7 @@ If you have [`want`](https://github.com/neongreen/mono/tree/main/want) and [`con
 want mono jj-run@main
 
 # Configure the jj alias
-conf jj 'aliases.x' '["!jj-run"]'
+conf jj 'aliases.x' '["util", "exec", "--", "jj-run"]'
 ```
 
 ### Other Installation Methods
