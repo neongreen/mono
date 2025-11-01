@@ -34,6 +34,89 @@ func (m *Dagger) TkTests(ctx context.Context,
 	return m.goTest(ctx, "tk", format, "./tk/...")
 }
 
+// TkCoverage runs the tk package tests and exports the coverage report.
+func (m *Dagger) TkCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "tk", "./tk/...")
+}
+
+// DissectCoverage runs the dissect package tests and exports the coverage report.
+func (m *Dagger) DissectCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "dissect", "./dissect/...")
+}
+
+// TomlCoverage runs the lib/toml package tests and exports the coverage report.
+func (m *Dagger) TomlCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "toml", "./lib/toml/...")
+}
+
+// ConfCoverage runs the conf package tests and exports the coverage report.
+func (m *Dagger) ConfCoverage(ctx context.Context) (*dagger.File, error) {
+	// Include -race flag for conf as per original workflow
+	container := m.testContainer().
+		WithLabel("suite", "conf-tests").
+		WithExec([]string{"gotestsum", "--format", "testname", "--", "-v", "-race", "-coverprofile=coverage.out", "-covermode=atomic", "./conf/..."})
+
+	return container.File("coverage.out"), nil
+}
+
+// IngestCoverage runs the ingest package tests and exports the coverage report.
+func (m *Dagger) IngestCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "ingest", "./ingest/...", "./ingest/cmd", "./ingest/pkg/integration")
+}
+
+// PrintpdfCoverage runs the printpdf package tests and exports the coverage report.
+func (m *Dagger) PrintpdfCoverage(ctx context.Context) (*dagger.File, error) {
+	container := m.printpdfTestContainer().
+		WithLabel("suite", "printpdf-tests").
+		WithExec([]string{"gotestsum", "--format", "testname", "--", "-v", "-coverprofile=coverage.out", "-covermode=atomic", "./printpdf/..."})
+
+	return container.File("coverage.out"), nil
+}
+
+// PrrunCoverage runs the prrun package tests and exports the coverage report.
+func (m *Dagger) PrrunCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "prrun", "./prrun/...")
+}
+
+// ClaudeTraceCoverage runs the claude-trace package tests and exports the coverage report.
+func (m *Dagger) ClaudeTraceCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "claude-trace", "./claude-trace/...")
+}
+
+// WantCoverage runs the want package tests and exports the coverage report.
+func (m *Dagger) WantCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "want", "./want/...")
+}
+
+// MarkdownFormatCoverage runs the markdown-format package tests and exports the coverage report.
+func (m *Dagger) MarkdownFormatCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "markdown-format", "./markdown-format/...")
+}
+
+// BeadsMergeCoverage runs the beads-merge package tests and exports the coverage report.
+func (m *Dagger) BeadsMergeCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "beads-merge", "./beads-merge/...")
+}
+
+// GhclientCoverage runs the lib/ghclient package tests and exports the coverage report.
+func (m *Dagger) GhclientCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "ghclient", "./lib/ghclient/...")
+}
+
+// GhreleaseCoverage runs the lib/ghrelease package tests and exports the coverage report.
+func (m *Dagger) GhreleaseCoverage(ctx context.Context) (*dagger.File, error) {
+	return m.goTestCoverage(ctx, "ghrelease", "./lib/ghrelease/...")
+}
+
+// JjRunCoverage runs the jj-run package tests and exports the coverage report.
+func (m *Dagger) JjRunCoverage(ctx context.Context) (*dagger.File, error) {
+	container := m.jjRunTestContainer().
+		WithLabel("suite", "jj-run-tests").
+		WithExec([]string{"gotestsum", "--format", "testname", "--", "-v", "-coverprofile=coverage.out", "-covermode=atomic", "./jj-run/..."})
+
+	return container.File("coverage.out"), nil
+}
+
 // DissectTests runs the dissect package tests and returns the standard output.
 // format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
 func (m *Dagger) DissectTests(ctx context.Context,
@@ -82,13 +165,14 @@ func (m *Dagger) ConfTests(ctx context.Context,
 	return m.goTest(ctx, "conf", format, "./conf/...")
 }
 
-// IngestTests runs the ingest package tests and returns the standard output.
+// IngestTests runs the ingest package tests (including integration tests) and returns the standard output.
 // format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
 func (m *Dagger) IngestTests(ctx context.Context,
 	// +optional
 	// +default="testname"
 	format string) (string, error) {
-	return m.goTest(ctx, "ingest", format, "./ingest/...")
+	// Run both unit tests and integration tests
+	return m.goTest(ctx, "ingest", format, "./ingest/...", "./ingest/cmd", "./ingest/pkg/integration")
 }
 
 // PrintpdfTests runs the printpdf package tests and returns the standard output.
@@ -294,11 +378,12 @@ func (m *Dagger) All(ctx context.Context,
 func (m *Dagger) goTest(ctx context.Context, label string, format string, patterns ...string) (string, error) {
 	// Use the specified format for gotestsum output
 	// Include -v flag for verbose test output when using testname format for better visibility
+	// Add coverage flags to collect coverage data
 	var args []string
 	if format == "testname" {
-		args = append([]string{"gotestsum", "--format", format, "--", "-v"}, patterns...)
+		args = append([]string{"gotestsum", "--format", format, "--", "-v", "-coverprofile=coverage.out", "-covermode=atomic"}, patterns...)
 	} else {
-		args = append([]string{"gotestsum", "--format", format, "--"}, patterns...)
+		args = append([]string{"gotestsum", "--format", format, "--", "-coverprofile=coverage.out", "-covermode=atomic"}, patterns...)
 	}
 	return m.testContainer().
 		WithLabel("suite", fmt.Sprintf("%s-tests", label)).
@@ -323,4 +408,13 @@ func (m *Dagger) testContainer() *dagger.Container {
 		// Install gotestsum with pinned version
 		// Cached in /go/bin volume, so it won't be rebuilt on every run
 		WithExec([]string{"go", "install", "gotest.tools/gotestsum@v1.13.0"})
+}
+
+// goTestCoverage runs tests and returns the coverage file.
+func (m *Dagger) goTestCoverage(ctx context.Context, label string, patterns ...string) (*dagger.File, error) {
+	container := m.testContainer().
+		WithLabel("suite", fmt.Sprintf("%s-tests", label)).
+		WithExec(append([]string{"gotestsum", "--format", "testname", "--", "-v", "-coverprofile=coverage.out", "-covermode=atomic"}, patterns...))
+
+	return container.File("coverage.out"), nil
 }
