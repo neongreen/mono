@@ -105,7 +105,7 @@ func (m *Dagger) testContainer() *dagger.Container {
 		WithEnvVariable("GOPRIVATE", "github.com/neongreen/mono").
 		WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono").
 		WithEnvVariable("GOWORK", "off").
-		// Install dev dependencies from go.mod (includes gotestsum)
+		// Install gotestsum with pinned version
 		// Cached in /go/bin volume, so it won't be rebuilt on every run
-		WithExec([]string{"go", "install", "gotest.tools/gotestsum"})
+		WithExec([]string{"go", "install", "gotest.tools/gotestsum@v1.13.0"})
 }
