@@ -74,25 +74,6 @@ type Task struct {
 	Blockers  []types.Blocker             `json:"blockers,omitempty"`  // List of blocking tasks
 }
 
-// Relations represents all relations for a task
-
-// Tasks this task blocks
-// Parent/children for subtasks
-// Related tasks
-// Duplicate tasks
-// Tasks this supersedes
-
-// RelationSet represents directional relations
-
-// Outgoing edges (this task -> others)
-// Incoming edges (others -> this task)
-// For subtask relations
-// For subtask relations
-
-// RelationTarget represents a relation target
-
-// Destination task UUID
-
 // Blocker represents a task that blocks another
 
 // Distance in dependency graph
