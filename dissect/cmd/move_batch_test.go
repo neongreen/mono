@@ -367,6 +367,74 @@ func B() {}
 }
 
 // TestBatchMove_PreservesComments tests that comments are preserved
+func TestBatchMove_UpdatesSymbolReferences(t *testing.T) {
+	tmpDir := createTempModuleForBatch(t)
+
+	// Create main package with types
+	createFileForBatch(t, filepath.Join(tmpDir, "types.go"), `package main
+
+type User struct {
+	Name string
+}
+
+type Product struct {
+	ID int
+}
+
+func NewUser(name string) *User {
+	return &User{Name: name}
+}
+`)
+
+	// Create main.go that uses the types
+	createFileForBatch(t, filepath.Join(tmpDir, "main.go"), `package main
+
+func main() {
+	user := NewUser("Alice")
+	product := Product{ID: 123}
+	_ = user
+	_ = product
+}
+`)
+
+	// Move types to internal/models/
+	cmd := exec.Command("dissect", "move", "--batch", "types.go -> internal/models/")
+	cmd.Dir = tmpDir
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("Batch move failed: %v\nOutput: %s", err, output)
+	}
+
+	// Verify main.go was updated with imports and qualified references
+	mainContent, err := os.ReadFile(filepath.Join(tmpDir, "main.go"))
+	if err != nil {
+		t.Fatalf("Failed to read main.go: %v", err)
+	}
+
+	mainStr := string(mainContent)
+
+	// Should have import for internal/models
+	if !strings.Contains(mainStr, `"test/batch/internal/models"`) {
+		t.Errorf("Expected import for test/batch/internal/models, got:\n%s", mainStr)
+	}
+
+	// Should qualify type references
+	if !strings.Contains(mainStr, "models.NewUser") {
+		t.Errorf("Expected qualified function call models.NewUser, got:\n%s", mainStr)
+	}
+
+	if !strings.Contains(mainStr, "models.Product") {
+		t.Errorf("Expected qualified type models.Product, got:\n%s", mainStr)
+	}
+
+	// Verify code builds
+	buildCmd := exec.Command("go", "build", "./...")
+	buildCmd.Dir = tmpDir
+	if output, err := buildCmd.CombinedOutput(); err != nil {
+		t.Fatalf("Code should build after batch move: %v\nOutput: %s", err, output)
+	}
+}
+
 func TestBatchMove_PreservesComments(t *testing.T) {
 	tmpDir := createTempModuleForBatch(t)
 

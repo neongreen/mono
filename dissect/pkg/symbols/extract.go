@@ -3,6 +3,8 @@ package symbols
 import (
 	"fmt"
 	"go/ast"
+	"go/parser"
+	"go/token"
 	"path/filepath"
 
 	"golang.org/x/tools/go/packages"
@@ -108,4 +110,50 @@ func findSymbols(filePath string, pkg *packages.Package, exportedOnly bool) ([]E
 	}
 
 	return symbols, nil
+}
+
+// ExtractExportedSymbols extracts exported symbol names from a file without loading the full package.
+// This is a lightweight version of FindExportedSymbols that doesn't require a pre-loaded package.
+// It returns just the symbol names, which is sufficient for reference qualification.
+func ExtractExportedSymbols(filePath string) ([]string, error) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse file: %w", err)
+	}
+
+	var symbolNames []string
+
+	// Inspect all declarations in the file
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
+		case *ast.FuncDecl:
+			// Function or method
+			if d.Name.IsExported() {
+				symbolNames = append(symbolNames, d.Name.Name)
+			}
+
+		case *ast.GenDecl:
+			// Type, const, or var declaration
+			for _, spec := range d.Specs {
+				switch s := spec.(type) {
+				case *ast.TypeSpec:
+					// Type declaration (struct, interface, etc.)
+					if s.Name.IsExported() {
+						symbolNames = append(symbolNames, s.Name.Name)
+					}
+
+				case *ast.ValueSpec:
+					// Const or var declaration
+					for _, name := range s.Names {
+						if name.IsExported() {
+							symbolNames = append(symbolNames, name.Name)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return symbolNames, nil
 }

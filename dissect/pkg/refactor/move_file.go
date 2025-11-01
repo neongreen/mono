@@ -471,7 +471,37 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string) error {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Phase 2: Determine target packages BEFORE moving
+	// Phase 2: Collect exported symbols and load source packages BEFORE moving
+	// We need this to update references in the old package after the move
+	exportedSymbolsByFile := make(map[string][]string)   // source file -> exported symbol names
+	sourcePackages := make(map[string]*packages.Package) // source dir -> loaded package
+
+	for _, op := range moveOps {
+		// Collect exported symbols
+		syms, err := symbols.ExtractExportedSymbols(op.From)
+		if err != nil {
+			slog.Warn("Failed to extract exported symbols", "file", op.From, "error", err)
+			continue
+		}
+		if len(syms) > 0 {
+			exportedSymbolsByFile[op.From] = syms
+			slog.Debug("Collected exported symbols", "file", op.From, "count", len(syms))
+		}
+
+		// Load source package (once per directory)
+		sourceDir := filepath.Dir(op.From)
+		if _, ok := sourcePackages[sourceDir]; !ok {
+			pkg, err := typeinfo.LoadPackage(sourceDir)
+			if err != nil {
+				slog.Warn("Failed to load source package", "dir", sourceDir, "error", err)
+			} else {
+				sourcePackages[sourceDir] = pkg
+				slog.Debug("Loaded source package", "dir", sourceDir)
+			}
+		}
+	}
+
+	// Phase 3: Determine target packages BEFORE moving
 	// This prevents detecting the moved files themselves
 	targetPackages := make(map[string]string) // target file -> package name
 	for _, op := range moveOps {
@@ -492,7 +522,7 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string) error {
 		targetPackages[op.To] = targetPackage
 	}
 
-	// Phase 3: Physical moves
+	// Phase 4: Physical moves
 	movedFiles := make(map[string]string) // from -> to mapping for rollback
 	for _, op := range moveOps {
 		if err := performPhysicalMove(op.From, op.To); err != nil {
@@ -505,7 +535,7 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string) error {
 		slog.Debug("Physically moved file", "from", op.From, "to", op.To)
 	}
 
-	// Phase 4: Update package declarations
+	// Phase 5: Update package declarations
 	for _, op := range moveOps {
 		targetPackage := targetPackages[op.To]
 
@@ -518,7 +548,15 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string) error {
 		slog.Debug("Updated package declaration", "file", op.To, "package", targetPackage)
 	}
 
-	// Phase 5: Update imports across codebase (once for all moves)
+	// Phase 6: Update references to moved symbols in the old package
+	// Use the pre-loaded source packages
+	if err := updateReferencesToMovedSymbols(moveOps, exportedSymbolsByFile, sourcePackages, moduleRoot); err != nil {
+		slog.Error("Failed to update references to moved symbols", "error", err)
+		// Don't rollback - files are moved and may be partially fixed
+		return fmt.Errorf("failed to update symbol references: %w", err)
+	}
+
+	// Phase 7: Update imports across codebase (once for all moves)
 	// Collect all import path mappings
 	importMappings := make(map[string]string) // oldPath -> newPath
 	for _, op := range moveOps {
@@ -678,6 +716,110 @@ func updateImportsForBatch(moduleRoot string, mappings map[string]string) error 
 		if modified {
 			if err := commands.RunGoimportsOnFile(filePath); err != nil {
 				slog.Warn("Failed to run goimports", "file", filePath, "error", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// updateReferencesToMovedSymbols finds all references to moved symbols in the original package
+// and updates them to use qualified references with the new package.
+func updateReferencesToMovedSymbols(moveOps []MoveOp, exportedSymbolsByFile map[string][]string, sourcePackages map[string]*packages.Package, moduleRoot string) error {
+	// Group moves by source directory (original package)
+	movesBySourceDir := make(map[string][]MoveOp) // source dir -> move ops
+	for _, op := range moveOps {
+		sourceDir := filepath.Dir(op.From)
+		movesBySourceDir[sourceDir] = append(movesBySourceDir[sourceDir], op)
+	}
+
+	// Process each source package
+	for sourceDir, ops := range movesBySourceDir {
+		// Check if all files are moving within the same directory (package)
+		// If so, no reference qualification is needed
+		allSameDir := true
+		for _, op := range ops {
+			if filepath.Dir(op.To) != sourceDir {
+				allSameDir = false
+				break
+			}
+		}
+		if allSameDir {
+			slog.Debug("All moves within same package, skipping reference updates", "dir", sourceDir)
+			continue
+		}
+
+		// Collect all exported symbols from this group
+		var allSymbols []string
+		for _, op := range ops {
+			if syms, ok := exportedSymbolsByFile[op.From]; ok {
+				allSymbols = append(allSymbols, syms...)
+			}
+		}
+
+		if len(allSymbols) == 0 {
+			continue // No exported symbols to process
+		}
+
+		// Get the pre-loaded source package
+		pkg, ok := sourcePackages[sourceDir]
+		if !ok {
+			slog.Warn("Source package not loaded, skipping reference updates", "dir", sourceDir)
+			continue
+		}
+
+		// Find all references to the moved symbols in the remaining files
+		slog.Info("Looking for references to moved symbols", "symbols", allSymbols, "sourceDir", sourceDir)
+		refs, err := references.FindReferences(allSymbols, []*packages.Package{pkg})
+		if err != nil {
+			slog.Warn("Failed to find references", "symbols", allSymbols, "error", err)
+			continue
+		}
+
+		slog.Info("Found references to moved symbols", "count", len(refs))
+		if len(refs) == 0 {
+			slog.Info("No references to update for moved symbols")
+			continue // No references to update
+		}
+
+		// Determine the target package and import path from the first move op
+		// (all ops in this group should have the same target package)
+		firstOp := ops[0]
+		targetPackageName := filepath.Base(filepath.Dir(firstOp.To))
+
+		// Get the full import path for the target
+		targetImportPath, err := commands.GetFullImportPath(firstOp.To)
+		if err != nil {
+			slog.Warn("Failed to get target import path", "file", firstOp.To, "error", err)
+			continue
+		}
+
+		// Group references by file
+		refsByFile := make(map[string][]references.Reference)
+		for _, ref := range refs {
+			refsByFile[ref.File] = append(refsByFile[ref.File], ref)
+		}
+
+		// Update each file that has references
+		for filename, fileRefs := range refsByFile {
+			// Skip the moved files themselves (check both old and new paths)
+			isMovedFile := false
+			for _, op := range ops {
+				if filename == op.From || filename == op.To {
+					isMovedFile = true
+					break
+				}
+			}
+			if isMovedFile {
+				slog.Debug("Skipping moved file itself", "file", filename)
+				continue
+			}
+
+			slog.Debug("Qualifying references in file", "file", filename, "count", len(fileRefs))
+
+			// Qualify the references
+			if err := qualify.QualifyReferences(filename, fileRefs, targetPackageName, targetImportPath, moduleRoot); err != nil {
+				return fmt.Errorf("failed to qualify references in %s: %w", filename, err)
 			}
 		}
 	}
