@@ -31,8 +31,8 @@ import (
 
 var moveCmd = &cobra.Command{
 	Use:   "move <source> <target>",
-	Short: "Move/rename files or move specific identifiers between files",
-	Long: `Move supports three modes of operation:
+	Short: "Move/rename files, move batches of files, or move specific identifiers between files",
+	Long: `Move supports four modes of operation:
 
 1. File mode: Move or rename entire files with refactoring support
    dissect move source.go destination.go
@@ -41,14 +41,23 @@ var moveCmd = &cobra.Command{
    - Updates all import statements in the codebase
    - Updates package qualifiers in code (e.g., old.Func() → new.Func())
 
-2. Symbol mode: Move specific identifiers (functions, types, interfaces) between files
+2. Batch mode: Move multiple files atomically with arrow syntax
+   dissect move --batch "file1.go,file2.go -> target_dir/"
+   dissect move --batch "src.go -> dest.go"  # rename
+   dissect move --batch "db*.go -> internal/db/" "utils.go -> pkg/"
+   - All files move together atomically
+   - Supports glob patterns in sources
+   - Import updates happen once for all files
+   - Avoids intermediate broken compilation states
+
+3. Symbol mode: Move specific identifiers (functions, types, interfaces) between files
    dissect move source.go:Foo target.go
    dissect move source.go:Foo,Bar,Baz target.go
    
    Move and rename simultaneously:
    dissect move source.go:OldName target.go:NewName
 
-3. Rename mode: Rename symbols in place
+4. Rename mode: Rename symbols in place
    dissect move file.go:oldName file.go:NewName
    dissect move utils.go:helper utils.go:Helper  # Export a function
 
@@ -65,6 +74,11 @@ Examples:
   # File mode
   dissect move source.go destination.go
   dissect move tk/admin_cmd.go tk/cmd/admin.go
+  
+  # Batch mode
+  dissect move --batch "db.go,db_events.go -> internal/db/"
+  dissect move --batch "old.go -> new.go"
+  dissect move --batch "db*.go -> internal/db/" "util*.go -> internal/utils/"
 
   # Symbol mode - move
   dissect move source.go:Foo target.go
@@ -79,8 +93,14 @@ Examples:
   # Rename mode
   dissect move file.go:oldName file.go:NewName
   dissect move utils.go:helper utils.go:Helper`,
-	Args: cobra.MinimumNArgs(2),
+	Args: cobra.MinimumNArgs(1), // Changed to 1 to support --batch with 1+ args
 	Run:  runMove,
+}
+
+var batchMode bool
+
+func init() {
+	moveCmd.Flags().BoolVar(&batchMode, "batch", false, "Batch mode: move multiple files atomically with arrow syntax")
 }
 
 func runMove(cmd *cobra.Command, args []string) {
@@ -88,6 +108,12 @@ func runMove(cmd *cobra.Command, args []string) {
 	if err := checkDependencies(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
+	}
+
+	// Batch mode: multiple files with arrow syntax
+	if batchMode {
+		runBatchMove(args)
+		return
 	}
 
 	// Detect mode: file mode (no colons) vs symbol mode (colons present)
@@ -613,4 +639,115 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 	slog.Debug("Moved declaration to target file", "identifier", identifier, "target", targetFile)
 
 	return nil
+}
+
+// runBatchMove handles batch mode: multiple files moved atomically with arrow syntax
+func runBatchMove(args []string) {
+	if len(args) == 0 {
+		fmt.Fprintf(os.Stderr, "Error: Batch mode requires at least one move specification\n")
+		fmt.Fprintf(os.Stderr, "Usage: dissect move --batch \"source1,source2 -> target/\"\n")
+		os.Exit(1)
+	}
+
+	// Get current working directory for resolving relative paths
+	cwd, err := os.Getwd()
+	if err != nil {
+		slog.Error("Error getting current directory", "error", err)
+		fmt.Fprintf(os.Stderr, "Error: Cannot get current directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Parse all move groups from arrow syntax
+	var moveGroups []*parser.MoveGroup
+	for _, arg := range args {
+		group, err := parser.ParseBatchMoveArg(arg)
+		if err != nil {
+			slog.Error("Error parsing batch move argument", "arg", arg, "error", err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			fmt.Fprintf(os.Stderr, "Usage: dissect move --batch \"source1,source2 -> target/\"\n")
+			os.Exit(1)
+		}
+		moveGroups = append(moveGroups, group)
+	}
+
+	// Expand globs and build move operations
+	var allMoveOps []refactor.MoveOp
+	for _, group := range moveGroups {
+		// Expand glob patterns in sources
+		expandedSources, err := parser.ExpandGlobs(group.Sources, cwd)
+		if err != nil {
+			slog.Error("Error expanding globs", "sources", group.Sources, "error", err)
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Determine if target is a directory
+		targetIsDir := parser.IsDirectory(group.Target)
+		if !targetIsDir {
+			// Check if it exists and is a directory
+			absTarget := group.Target
+			if !filepath.IsAbs(absTarget) {
+				absTarget = filepath.Join(cwd, absTarget)
+			}
+			if info, err := os.Stat(absTarget); err == nil && info.IsDir() {
+				targetIsDir = true
+			}
+		}
+
+		// Validate: if multiple sources and target is not a directory, error
+		if len(expandedSources) > 1 && !targetIsDir {
+			slog.Error("Cannot move multiple files to a file target", "sources", len(expandedSources), "target", group.Target)
+			fmt.Fprintf(os.Stderr, "Error: Cannot move multiple files to file target %s\n", group.Target)
+			fmt.Fprintf(os.Stderr, "Use a directory target (ending with /) or move files one at a time.\n")
+			os.Exit(1)
+		}
+
+		// Build move operations
+		for _, source := range expandedSources {
+			var target string
+			if targetIsDir {
+				// Directory target: preserve filename
+				targetPath := group.Target
+				if !filepath.IsAbs(targetPath) {
+					targetPath = filepath.Join(cwd, targetPath)
+				}
+				target = filepath.Join(targetPath, filepath.Base(source))
+			} else {
+				// File target: rename
+				if !filepath.IsAbs(group.Target) {
+					target = filepath.Join(cwd, group.Target)
+				} else {
+					target = group.Target
+				}
+			}
+
+			allMoveOps = append(allMoveOps, refactor.MoveOp{
+				From: source,
+				To:   target,
+			})
+		}
+	}
+
+	if len(allMoveOps) == 0 {
+		fmt.Fprintf(os.Stderr, "Error: No files to move\n")
+		os.Exit(1)
+	}
+
+	// Find module root (use first source file)
+	moduleRoot, err := commands.FindGoModuleRoot(allMoveOps[0].From)
+	if err != nil {
+		slog.Error("Error finding Go module root", "error", err, "file", allMoveOps[0].From)
+		fmt.Fprintf(os.Stderr, "Error: Cannot find Go module root: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Execute batch move
+	slog.Info("Batch moving files", "count", len(allMoveOps))
+	if err := refactor.MoveBatchFiles(allMoveOps, moduleRoot); err != nil {
+		slog.Error("Error in batch move", "error", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Successfully moved %d file(s)\n", len(allMoveOps))
 }

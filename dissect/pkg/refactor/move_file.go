@@ -450,3 +450,237 @@ func getPackageNameFromPath(importPath string) string {
 	// Fallback to using filepath.Base if SplitList doesn't work as expected
 	return filepath.Base(importPath)
 }
+
+// MoveOp represents a single file move operation
+type MoveOp struct {
+	From string // Absolute source path
+	To   string // Absolute destination path
+}
+
+// MoveBatchFiles performs atomic batch file moves with refactoring support.
+// All files are moved together and import updates happen once for all files.
+func MoveBatchFiles(moveOps []MoveOp, moduleRoot string) error {
+	if len(moveOps) == 0 {
+		return fmt.Errorf("no files to move")
+	}
+
+	slog.Info("Starting batch file move", "count", len(moveOps))
+
+	// Phase 1: Validation
+	if err := validateBatchMoves(moveOps); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Phase 2: Determine target packages BEFORE moving
+	// This prevents detecting the moved files themselves
+	targetPackages := make(map[string]string) // target file -> package name
+	for _, op := range moveOps {
+		targetDir := filepath.Dir(op.To)
+
+		// Determine target package name
+		targetPackage, err := detectTargetPackage(targetDir)
+		if err != nil {
+			return fmt.Errorf("failed to detect target package for %s: %w", targetDir, err)
+		}
+
+		// If no existing package, infer from directory name
+		if targetPackage == "" {
+			targetPackage = filepath.Base(targetDir)
+			slog.Debug("Inferred package name from directory", "package", targetPackage, "dir", targetDir)
+		}
+
+		targetPackages[op.To] = targetPackage
+	}
+
+	// Phase 3: Physical moves
+	movedFiles := make(map[string]string) // from -> to mapping for rollback
+	for _, op := range moveOps {
+		if err := performPhysicalMove(op.From, op.To); err != nil {
+			// Rollback: undo all moves
+			slog.Error("Physical move failed, rolling back", "error", err, "from", op.From, "to", op.To)
+			rollbackMoves(movedFiles)
+			return fmt.Errorf("failed to move %s to %s: %w", op.From, op.To, err)
+		}
+		movedFiles[op.From] = op.To
+		slog.Debug("Physically moved file", "from", op.From, "to", op.To)
+	}
+
+	// Phase 4: Update package declarations
+	for _, op := range moveOps {
+		targetPackage := targetPackages[op.To]
+
+		// Update package declaration
+		if err := goutils.UpdatePackageDeclaration(op.To, targetPackage); err != nil {
+			slog.Error("Failed to update package declaration, rolling back", "error", err, "file", op.To)
+			rollbackMoves(movedFiles)
+			return fmt.Errorf("failed to update package in %s: %w", op.To, err)
+		}
+		slog.Debug("Updated package declaration", "file", op.To, "package", targetPackage)
+	}
+
+	// Phase 5: Update imports across codebase (once for all moves)
+	// Collect all import path mappings
+	importMappings := make(map[string]string) // oldPath -> newPath
+	for _, op := range moveOps {
+		oldPath, err := commands.GetFullImportPath(op.From)
+		if err != nil {
+			// File was moved, try to get import path from moved location
+			oldPath, err = getImportPathFromMovedFile(op.From, op.To, moduleRoot)
+			if err != nil {
+				slog.Warn("Could not determine old import path", "from", op.From, "error", err)
+				continue
+			}
+		}
+
+		newPath, err := commands.GetFullImportPath(op.To)
+		if err != nil {
+			slog.Warn("Could not determine new import path", "to", op.To, "error", err)
+			continue
+		}
+
+		if oldPath != newPath {
+			importMappings[oldPath] = newPath
+			slog.Debug("Import path mapping", "old", oldPath, "new", newPath)
+		}
+	}
+
+	// Update all imports in the module
+	if len(importMappings) > 0 {
+		if err := updateImportsForBatch(moduleRoot, importMappings); err != nil {
+			slog.Error("Failed to update imports", "error", err)
+			// Don't rollback here - files are already moved and packages updated
+			// Imports can be fixed manually if needed
+			return fmt.Errorf("failed to update imports: %w", err)
+		}
+	}
+
+	slog.Info("Batch file move completed successfully", "count", len(moveOps))
+	return nil
+}
+
+// validateBatchMoves checks that all move operations are valid
+func validateBatchMoves(moveOps []MoveOp) error {
+	// Check for duplicate sources
+	seen := make(map[string]bool)
+	for _, op := range moveOps {
+		if seen[op.From] {
+			return fmt.Errorf("duplicate source file: %s", op.From)
+		}
+		seen[op.From] = true
+
+		// Check source exists
+		if _, err := os.Stat(op.From); os.IsNotExist(err) {
+			return fmt.Errorf("source file does not exist: %s", op.From)
+		}
+
+		// Check source and target are not the same
+		if op.From == op.To {
+			return fmt.Errorf("source and target are the same: %s", op.From)
+		}
+	}
+
+	// Check for target conflicts
+	targets := make(map[string]string) // target -> source
+	for _, op := range moveOps {
+		if existing, exists := targets[op.To]; exists {
+			return fmt.Errorf("multiple files would be moved to %s (from %s and %s)", op.To, existing, op.From)
+		}
+		targets[op.To] = op.From
+
+		// Check if target already exists (unless it's being moved by this batch)
+		if _, err := os.Stat(op.To); err == nil {
+			// Target exists - check if it's being moved by this batch
+			isBeingMoved := false
+			for _, otherOp := range moveOps {
+				if otherOp.From == op.To {
+					isBeingMoved = true
+					break
+				}
+			}
+			if !isBeingMoved {
+				return fmt.Errorf("target file already exists: %s", op.To)
+			}
+		}
+	}
+
+	return nil
+}
+
+// performPhysicalMove moves a file from source to target, creating directories as needed
+func performPhysicalMove(from, to string) error {
+	// Create target directory if needed
+	targetDir := filepath.Dir(to)
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return fmt.Errorf("failed to create target directory: %w", err)
+	}
+
+	// Move the file
+	if err := utils.MoveFile(from, to); err != nil {
+		return fmt.Errorf("failed to move file: %w", err)
+	}
+
+	return nil
+}
+
+// rollbackMoves undoes all file moves
+func rollbackMoves(movedFiles map[string]string) {
+	slog.Warn("Rolling back file moves", "count", len(movedFiles))
+	for from, to := range movedFiles {
+		if err := utils.MoveFile(to, from); err != nil {
+			slog.Error("Failed to rollback move", "from", to, "to", from, "error", err)
+		} else {
+			slog.Debug("Rolled back move", "from", to, "to", from)
+		}
+	}
+}
+
+// getImportPathFromMovedFile reconstructs the old import path from a moved file
+func getImportPathFromMovedFile(oldPath, newPath, moduleRoot string) (string, error) {
+	// Get relative path from module root to old location
+	relPath, err := filepath.Rel(moduleRoot, filepath.Dir(oldPath))
+	if err != nil {
+		return "", err
+	}
+
+	// Get module name
+	moduleName, err := commands.GetModuleName(moduleRoot)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(moduleName, filepath.ToSlash(relPath)), nil
+}
+
+// updateImportsForBatch updates all imports in the module based on path mappings
+func updateImportsForBatch(moduleRoot string, mappings map[string]string) error {
+	slog.Info("Updating imports across codebase", "mappings", len(mappings))
+
+	// Find all Go files
+	allGoFiles, err := commands.FindGoFiles(moduleRoot)
+	if err != nil {
+		return fmt.Errorf("failed to find Go files: %w", err)
+	}
+
+	// Update imports in each file
+	for _, filePath := range allGoFiles {
+		modified := false
+		for oldPath, newPath := range mappings {
+			fileModified, err := updateImportInFile(filePath, oldPath, newPath)
+			if err != nil {
+				return fmt.Errorf("failed to update imports in %s: %w", filePath, err)
+			}
+			if fileModified {
+				modified = true
+			}
+		}
+
+		// Run goimports if file was modified
+		if modified {
+			if err := commands.RunGoimportsOnFile(filePath); err != nil {
+				slog.Warn("Failed to run goimports", "file", filePath, "error", err)
+			}
+		}
+	}
+
+	return nil
+}
