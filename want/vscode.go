@@ -10,23 +10,21 @@ import (
 	"github.com/neongreen/mono/lib/ghclient"
 )
 
-const pnpmVersion = "9.15.4"
+// NOTE: Build steps for tk-vscode are defined in tk-vscode/mise.toml
+// If you update the build process here, also update tk-vscode/mise.toml
+// to keep them in sync. The mise tasks define the canonical build process.
 
-// createPnpmCommand creates a command to run 'pnpm' with the given arguments.
-// If 'pnpm' is not in PATH, it uses 'mise exec pnpm@<version> -- pnpm' instead.
-func createPnpmCommand(args ...string) *exec.Cmd {
-	if isToolAvailable("pnpm") {
-		return exec.Command("pnpm", args...)
-	}
-
+// createMiseRunCommand creates a command to run a mise task.
+// Example: createMiseRunCommand("//tk-vscode:install-deps") runs the install-deps task.
+func createMiseRunCommand(taskPath string) *exec.Cmd {
 	if !isMiseAvailable() {
-		// If mise is not available, fall back to pnpm anyway (will fail with a helpful error)
-		return exec.Command("pnpm", args...)
+		// If mise is not available, fail with a helpful error
+		fmt.Println("Error: mise is required but not available")
+		fmt.Println("Please install mise first with:")
+		fmt.Println("  want mise")
+		os.Exit(1)
 	}
-
-	miseArgs := []string{"exec", fmt.Sprintf("pnpm@%s", pnpmVersion), "--", "pnpm"}
-	miseArgs = append(miseArgs, args...)
-	return createMiseCommand(miseArgs...)
+	return createMiseCommand("run", taskPath)
 }
 
 // buildVSCodeExtensionFromSource builds a VS Code extension from a branch or commit
@@ -50,25 +48,19 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 			{
 				Type:        "install",
 				Description: "Install dependencies",
-				Command:     "pnpm install",
+				Command:     "mise run //tk-vscode:install-deps",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
-				Description: "Compile TypeScript",
-				Command:     "pnpm run compile",
-				Automatic:   true,
-			},
-			{
-				Type:        "install",
-				Description: "Package extension",
-				Command:     "pnpm run package",
+				Description: "Build extension (compile & package)",
+				Command:     "mise run //tk-vscode:build",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Install VS Code extension",
-				Command:     "code --install-extension tk-*.vsix --force",
+				Command:     "mise run //tk-vscode:install",
 				Automatic:   true,
 			},
 		},
@@ -146,8 +138,8 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Println("\nInstalling dependencies...")
-	cmd = createPnpmCommand("install")
-	cmd.Dir = projectDir
+	cmd = createMiseRunCommand("//tk-vscode:install-deps")
+	cmd.Dir = tmpDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -156,25 +148,14 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 		os.Exit(1)
 	}
 
-	fmt.Println("\nCompiling TypeScript...")
-	cmd = createPnpmCommand("run", "compile")
-	cmd.Dir = projectDir
+	fmt.Println("\nBuilding extension (compile & package)...")
+	cmd = createMiseRunCommand("//tk-vscode:build")
+	cmd.Dir = tmpDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to compile: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println("\nPackaging extension...")
-	cmd = createPnpmCommand("run", "package")
-	cmd.Dir = projectDir
-	setMiseTrustedPath(cmd, tmpDir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to package extension: %v\n", err)
+		fmt.Printf("\nError: Failed to build extension: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -199,7 +180,9 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Printf("\nInstalling extension from %s...\n", filepath.Base(vsixFile))
-	cmd = exec.Command("code", "--install-extension", vsixFile, "--force")
+	cmd = createMiseRunCommand("//tk-vscode:install")
+	cmd.Dir = tmpDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -231,25 +214,19 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 			{
 				Type:        "install",
 				Description: "Install dependencies",
-				Command:     "pnpm install",
+				Command:     "mise run //tk-vscode:install-deps",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
-				Description: "Compile TypeScript",
-				Command:     "pnpm run compile",
-				Automatic:   true,
-			},
-			{
-				Type:        "install",
-				Description: "Package extension",
-				Command:     "pnpm run package",
+				Description: "Build extension (compile & package)",
+				Command:     "mise run //tk-vscode:build",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Install VS Code extension",
-				Command:     "code --install-extension tk-*.vsix --force",
+				Command:     "mise run //tk-vscode:install",
 				Automatic:   true,
 			},
 		},
@@ -323,8 +300,8 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Println("\nInstalling dependencies...")
-	cmd = createPnpmCommand("install")
-	cmd.Dir = projectDir
+	cmd = createMiseRunCommand("//tk-vscode:install-deps")
+	cmd.Dir = tmpDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -333,25 +310,14 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 		os.Exit(1)
 	}
 
-	fmt.Println("\nCompiling TypeScript...")
-	cmd = createPnpmCommand("run", "compile")
-	cmd.Dir = projectDir
+	fmt.Println("\nBuilding extension (compile & package)...")
+	cmd = createMiseRunCommand("//tk-vscode:build")
+	cmd.Dir = tmpDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to compile: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println("\nPackaging extension...")
-	cmd = createPnpmCommand("run", "package")
-	cmd.Dir = projectDir
-	setMiseTrustedPath(cmd, tmpDir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to package extension: %v\n", err)
+		fmt.Printf("\nError: Failed to build extension: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -376,7 +342,9 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Printf("\nInstalling extension from %s...\n", filepath.Base(vsixFile))
-	cmd = exec.Command("code", "--install-extension", vsixFile, "--force")
+	cmd = createMiseRunCommand("//tk-vscode:install")
+	cmd.Dir = tmpDir
+	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
