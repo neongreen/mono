@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"os"
@@ -600,30 +599,6 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 	fmt.Printf("Installing %s version %s from neongreen/mono...\n", project, version)
 	fmt.Println()
 	plan.PrintPlan()
-
-	alreadyInstalled := false
-	if _, err := os.Stat(destPath); err == nil {
-		alreadyInstalled = true
-	}
-
-	if alreadyInstalled {
-		fmt.Println()
-		fmt.Printf("⚠ %s is already installed at %s\n", project, destPath)
-		fmt.Println()
-		fmt.Print("Overwrite? [y/N]: ")
-		reader := bufio.NewReader(os.Stdin)
-		response, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Println("Error reading response")
-			os.Exit(1)
-		}
-		response = strings.TrimSpace(strings.ToLower(response))
-		if response != "y" && response != "yes" {
-			fmt.Println("Cancelled.")
-			os.Exit(0)
-		}
-	}
-	fmt.Println()
 
 	fmt.Println("Fetching release information...")
 	err = ghrelease.DownloadReleaseAsset("neongreen", "mono", tag, project, destPath)
