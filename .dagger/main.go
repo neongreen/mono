@@ -73,6 +73,108 @@ func (m *Dagger) JjRunTests(ctx context.Context,
 		Stdout(ctx)
 }
 
+// ConfTests runs the conf package tests and returns the standard output.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) ConfTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "conf", format, "./conf/...")
+}
+
+// IngestTests runs the ingest package tests and returns the standard output.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) IngestTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "ingest", format, "./ingest/...")
+}
+
+// PrintpdfTests runs the printpdf package tests and returns the standard output.
+// This requires poppler-utils, imagemagick, and weasyprint to be installed in the container.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) PrintpdfTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	// Use the specified format for gotestsum output
+	var args []string
+	if format == "testname" {
+		args = append([]string{"gotestsum", "--format", format, "--", "-v"}, "./printpdf/...")
+	} else {
+		args = append([]string{"gotestsum", "--format", format, "--"}, "./printpdf/...")
+	}
+
+	return m.printpdfTestContainer().
+		WithLabel("suite", "printpdf-tests").
+		WithExec(args).
+		Stdout(ctx)
+}
+
+// PrrunTests runs the prrun package tests and returns the standard output.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) PrrunTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "prrun", format, "./prrun/...")
+}
+
+// ClaudeTraceTests runs the claude-trace package tests and returns the standard output.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) ClaudeTraceTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "claude-trace", format, "./claude-trace/...")
+}
+
+// WantTests runs the want package tests and returns the standard output.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) WantTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "want", format, "./want/...")
+}
+
+// MarkdownFormatTests runs the markdown-format package tests and returns the standard output.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) MarkdownFormatTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "markdown-format", format, "./markdown-format/...")
+}
+
+// BeadsMergeTests runs the beads-merge package tests and returns the standard output.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) BeadsMergeTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "beads-merge", format, "./beads-merge/...")
+}
+
+// GhclientTests runs the lib/ghclient package tests and returns the standard output.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) GhclientTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "ghclient", format, "./lib/ghclient/...")
+}
+
+// GhreleaseTests runs the lib/ghrelease package tests and returns the standard output.
+// format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
+func (m *Dagger) GhreleaseTests(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string) (string, error) {
+	return m.goTest(ctx, "ghrelease", format, "./lib/ghrelease/...")
+}
+
 // jjRunTestContainer prepares a Go build container with jj installed for jj-run tests.
 func (m *Dagger) jjRunTestContainer() *dagger.Container {
 	repo := dag.CurrentModule().Source().Directory("..")
@@ -94,7 +196,34 @@ func (m *Dagger) jjRunTestContainer() *dagger.Container {
 		WithExec([]string{"go", "install", "gotest.tools/gotestsum@v1.13.0"})
 }
 
-// `All` runs the tk, dissect, toml, and jj-run test suites concurrently.
+// printpdfTestContainer prepares a Go build container with PDF tools installed for printpdf tests.
+func (m *Dagger) printpdfTestContainer() *dagger.Container {
+	repo := dag.CurrentModule().Source().Directory("..")
+
+	return dag.Container().
+		From("golang:1.24.7").
+		WithMountedDirectory("/src", repo).
+		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod")).
+		WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
+		WithMountedCache("/go/bin", dag.CacheVolume("go-bin")).
+		WithWorkdir("/src").
+		WithEnvVariable("GOPRIVATE", "github.com/neongreen/mono").
+		WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono").
+		WithEnvVariable("GOWORK", "off").
+		// Install system dependencies for PDF processing
+		WithExec([]string{"apt-get", "update"}).
+		WithExec([]string{"apt-get", "install", "-y", "poppler-utils", "imagemagick", "python3-pip"}).
+		// Install weasyprint for PDF generation
+		WithExec([]string{"pip3", "install", "--break-system-packages", "weasyprint"}).
+		// Verify tools are available
+		WithExec([]string{"which", "pdftoppm"}).
+		WithExec([]string{"which", "convert"}).
+		WithExec([]string{"which", "weasyprint"}).
+		// Install gotestsum with pinned version
+		WithExec([]string{"go", "install", "gotest.tools/gotestsum@v1.13.0"})
+}
+
+// `All` runs all test suites concurrently.
 // format: gotestsum output format (e.g., "testname", "pkgname", "dots", "standard-verbose")
 func (m *Dagger) All(ctx context.Context,
 	// +optional
@@ -116,6 +245,46 @@ func (m *Dagger) All(ctx context.Context,
 	})
 	p.Go(func(ctx context.Context) error {
 		_, err := m.JjRunTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.ConfTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.IngestTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.PrintpdfTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.PrrunTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.ClaudeTraceTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.WantTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.MarkdownFormatTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.BeadsMergeTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.GhclientTests(ctx, format)
+		return err
+	})
+	p.Go(func(ctx context.Context) error {
+		_, err := m.GhreleaseTests(ctx, format)
 		return err
 	})
 
