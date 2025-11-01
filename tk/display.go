@@ -179,6 +179,9 @@ func outputTasksJSON(db *DB, tasks []*types.Task, groupBy string) error {
 			grouped[groupKey] = append(grouped[groupKey], task)
 		}
 
+		// Sort projects alphabetically
+		sort.Strings(groupOrder)
+
 		output.Groups = make([]GroupedOutput, 0, len(groupOrder))
 		for _, groupKey := range groupOrder {
 			output.Groups = append(output.Groups, GroupedOutput{

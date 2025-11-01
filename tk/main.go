@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -481,6 +482,9 @@ var lsCmd = &cobra.Command{
 				}
 				grouped[groupKey] = append(grouped[groupKey], task)
 			}
+
+			// Sort projects alphabetically
+			sort.Strings(groupOrder)
 
 			// Render a table for each project group
 			for i, groupKey := range groupOrder {
