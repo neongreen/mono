@@ -13,8 +13,6 @@ import (
 	"strings"
 )
 
-const version = "0.1.0-mvp"
-
 // goVersion is the Go version to use when building projects via mise
 const goVersion = "1.24.7"
 
@@ -168,7 +166,7 @@ func main() {
 	case "forget":
 		handleForget()
 	case "version", "--version", "-v":
-		fmt.Printf("want version %s\n", version)
+		printVersion()
 	case "help", "--help", "-h":
 		printUsage()
 	default:
@@ -208,6 +206,7 @@ Examples:
   want mono printpdf@main.1            # Install printpdf version main.1 from mono
   want mono printpdf@main              # Build printpdf from latest commit on main branch
   want mono dissect@feature-branch     # Build dissect from a specific branch
+  want mono tk@local                   # Build tk from current directory (must be in mono repo)
   want mono want@abc1234               # Build want from a specific commit
   want mono --dry-run dissect@pr-42    # Preview building from PR #42
   want mono --plan-json dissect@pr-42  # Show build plan as JSON for PR #42

@@ -17,16 +17,16 @@ import (
 
 // BeadsIssue represents an issue from beads JSONL format
 type BeadsIssue struct {
-	ID          string            `json:"id"`
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
-	Status      string            `json:"status"` // open, in_progress, closed
-	Priority    int               `json:"priority"`
-	Type        string            `json:"type"` // bug, feature, task, epic, chore
-	Labels      []string          `json:"labels"`
-	Assignee    string            `json:"assignee"`
-	CreatedAt   string            `json:"created_at"`
-	UpdatedAt   string            `json:"updated_at"`
+	ID           string              `json:"id"`
+	Title        string              `json:"title"`
+	Description  string              `json:"description"`
+	Status       string              `json:"status"` // open, in_progress, closed
+	Priority     int                 `json:"priority"`
+	Type         string              `json:"type"` // bug, feature, task, epic, chore
+	Labels       []string            `json:"labels"`
+	Assignee     string              `json:"assignee"`
+	CreatedAt    string              `json:"created_at"`
+	UpdatedAt    string              `json:"updated_at"`
 	Dependencies map[string][]string `json:"dependencies"` // blocks, related, parent, child, discovered_from
 }
 

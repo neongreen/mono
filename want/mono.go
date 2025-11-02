@@ -146,6 +146,47 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 	return createMiseCommand(miseArgs...)
 }
 
+// getBuildLdflags returns ldflags for injecting version information at build time
+// The ldflags work for both packages (main.GitCommit for want, cmd.GitCommit for tk, etc)
+func getBuildLdflags(repoDir string) (string, error) {
+	// Get git commit hash
+	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
+	cmd.Dir = repoDir
+	commitBytes, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get git commit: %w", err)
+	}
+	commit := strings.TrimSpace(string(commitBytes))
+
+	// Get git describe for version
+	cmd = exec.Command("git", "describe", "--tags", "--always", "--dirty")
+	cmd.Dir = repoDir
+	versionBytes, err := cmd.Output()
+	if err != nil {
+		// If no tags, just use commit
+		versionBytes = commitBytes
+	}
+	version := strings.TrimSpace(string(versionBytes))
+
+	// Build time
+	buildTime := fmt.Sprintf("%s", exec.Command("date", "-u", "+%Y-%m-%dT%H:%M:%SZ").String())
+	cmd = exec.Command("date", "-u", "+%Y-%m-%dT%H:%M:%SZ")
+	timeBytes, err := cmd.Output()
+	if err == nil {
+		buildTime = strings.TrimSpace(string(timeBytes))
+	}
+
+	// Create ldflags for both main package and cmd package
+	ldflags := fmt.Sprintf("-X 'main.GitCommit=%s' -X 'main.BuildTime=%s' -X 'main.Version=%s' "+
+		"-X 'github.com/neongreen/mono/tk/cmd.GitCommit=%s' -X 'github.com/neongreen/mono/tk/cmd.BuildTime=%s' -X 'github.com/neongreen/mono/tk/cmd.Version=%s' "+
+		"-X 'github.com/neongreen/mono/want/cmd.GitCommit=%s' -X 'github.com/neongreen/mono/want/cmd.BuildTime=%s' -X 'github.com/neongreen/mono/want/cmd.Version=%s'",
+		commit, buildTime, version,
+		commit, buildTime, version,
+		commit, buildTime, version)
+
+	return ldflags, nil
+}
+
 // getBuildPath determines the correct build path for a Go project.
 // Some projects have their main.go in a cmd subdirectory, while others have it in the root.
 // Returns the relative path to use with 'go build' (either "." or "./cmd").
@@ -173,6 +214,141 @@ func getBuildPath(projectDir string) string {
 	}
 
 	return "."
+}
+
+// buildMonoFromLocal builds a project from the local mono repository checkout
+func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Error: Failed to get current directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Check if we're in a mono repository
+	// Look for common project directories to confirm this is mono
+	commonProjects := []string{"tk", "want", "dissect", "printpdf", "conf"}
+	monoRepoDetected := false
+	for _, proj := range commonProjects {
+		projPath := filepath.Join(cwd, proj)
+		if stat, err := os.Stat(projPath); err == nil && stat.IsDir() {
+			monoRepoDetected = true
+			break
+		}
+	}
+
+	if !monoRepoDetected {
+		fmt.Printf("Error: Current directory does not appear to be the mono repository\n")
+		fmt.Printf("  Current directory: %s\n", cwd)
+		fmt.Printf("  Expected to find project directories like: %v\n", commonProjects)
+		os.Exit(1)
+	}
+
+	// Check if the project directory exists
+	projectDir := filepath.Join(cwd, project)
+	if stat, err := os.Stat(projectDir); os.IsNotExist(err) || !stat.IsDir() {
+		fmt.Printf("Error: Project '%s' not found in current directory\n", project)
+		fmt.Printf("  Looking for: %s\n", projectDir)
+		os.Exit(1)
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error: Failed to get home directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	destDir := filepath.Join(homeDir, ".local", "bin")
+	destPath := filepath.Join(destDir, project)
+
+	plan := FulfillmentPlan{
+		Requirement: fmt.Sprintf("mono %s@local", project),
+		Steps: []PlanStep{
+			{
+				Type:        "install",
+				Description: fmt.Sprintf("Build %s from local checkout", project),
+				Command:     fmt.Sprintf("go build -o %s .", destPath),
+				Automatic:   true,
+			},
+			{
+				Type:        "configure",
+				Description: "Make binary executable",
+				Command:     fmt.Sprintf("chmod +x %s", destPath),
+				Automatic:   true,
+			},
+		},
+	}
+
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(jsonStr)
+		return
+	}
+
+	if dryRun {
+		fmt.Printf("Building %s from local checkout...\n", project)
+		fmt.Println()
+		plan.PrintPlan()
+		return
+	}
+
+	fmt.Printf("Building %s from local checkout...\n", project)
+	fmt.Println()
+	plan.PrintPlan()
+	fmt.Println()
+
+	fmt.Printf("Building %s from %s...\n", project, projectDir)
+	buildPath := getBuildPath(projectDir)
+
+	// Get ldflags for version information
+	ldflags, err := getBuildLdflags(cwd)
+	if err != nil {
+		fmt.Printf("Warning: Could not get version information: %v\n", err)
+		ldflags = ""
+	}
+
+	var cmd *exec.Cmd
+	if ldflags != "" {
+		cmd = createGoBuildCommand("build", "-ldflags", ldflags, "-o", destPath, buildPath)
+	} else {
+		cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
+	}
+	cmd.Dir = projectDir
+	setMiseTrustedPath(cmd, cwd)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("\nError: Failed to build %s: %v\n", project, err)
+		os.Exit(1)
+	}
+
+	if err := os.Chmod(destPath, 0755); err != nil {
+		fmt.Printf("Warning: Failed to make binary executable: %v\n", err)
+	}
+
+	fmt.Println()
+	fmt.Printf("✓ Built and installed %s from local checkout to: %s\n", project, destPath)
+	fmt.Println()
+
+	pathEnv := os.Getenv("PATH")
+	if !strings.Contains(pathEnv, destDir) {
+		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Println()
+		fmt.Println("To use the binary, either:")
+		fmt.Println("  1. Run it with the full path:")
+		fmt.Printf("     %s\n", destPath)
+		fmt.Println()
+		fmt.Println("  2. Add the directory to your PATH:")
+		configFile := getShellConfigFile()
+		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
+		fmt.Printf("     source %s\n", configFile)
+	} else {
+		fmt.Printf("✓ Binary is available in your PATH as: %s\n", project)
+	}
 }
 
 // buildMonoFromSource builds a project from a branch or commit in the mono repository
@@ -290,7 +466,19 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 
 	fmt.Printf("\nBuilding %s...\n", project)
 	buildPath := getBuildPath(projectDir)
-	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
+
+	// Get ldflags for version information
+	ldflags, err := getBuildLdflags(tmpDir)
+	if err != nil {
+		fmt.Printf("Warning: Could not get version information: %v\n", err)
+		ldflags = ""
+	}
+
+	if ldflags != "" {
+		cmd = createGoBuildCommand("build", "-ldflags", ldflags, "-o", destPath, buildPath)
+	} else {
+		cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
+	}
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
@@ -432,7 +620,19 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 
 	fmt.Printf("\nBuilding %s...\n", project)
 	buildPath := getBuildPath(projectDir)
-	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
+
+	// Get ldflags for version information
+	ldflags, err := getBuildLdflags(tmpDir)
+	if err != nil {
+		fmt.Printf("Warning: Could not get version information: %v\n", err)
+		ldflags = ""
+	}
+
+	if ldflags != "" {
+		cmd = createGoBuildCommand("build", "-ldflags", ldflags, "-o", destPath, buildPath)
+	} else {
+		cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
+	}
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
@@ -469,6 +669,12 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 
 // installMonoRelease installs a specific version of a project from neongreen/mono
 func installMonoRelease(project, version string, dryRun bool, planJson bool) {
+	// Special handling for local builds
+	if version == "local" {
+		buildMonoFromLocal(project, dryRun, planJson)
+		return
+	}
+
 	// Special handling for tk-vscode extension
 	if project == "tk-vscode" {
 		if strings.HasPrefix(version, "pr-") {
