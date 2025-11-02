@@ -421,7 +421,7 @@ func (m *Dagger) BuildRelease(ctx context.Context, project string, version strin
 	}
 
 	// Build for each platform and collect binaries
-	distContainer := dag.Container().From("alpine:latest").WithWorkdir("/dist")
+	outputContainer := dag.Container().From("alpine:latest").WithWorkdir("/output")
 
 	for _, platform := range platforms {
 		outputName := fmt.Sprintf("%s-%s-%s-%s", project, version, platform.OS, platform.Arch)
@@ -436,16 +436,16 @@ func (m *Dagger) BuildRelease(ctx context.Context, project string, version strin
 			WithExec([]string{
 				"go", "build",
 				"-ldflags", ldflags,
-				"-o", fmt.Sprintf("/dist/%s", outputName),
+				"-o", fmt.Sprintf("/output/%s", outputName),
 				buildTarget,
 			})
 
-		// Copy the built binary to our dist container
-		binary := buildContainer.File(fmt.Sprintf("/dist/%s", outputName))
-		distContainer = distContainer.WithFile(fmt.Sprintf("/dist/%s", outputName), binary)
+		// Copy the built binary to our output container
+		binary := buildContainer.File(fmt.Sprintf("/output/%s", outputName))
+		outputContainer = outputContainer.WithFile(fmt.Sprintf("/output/%s", outputName), binary)
 	}
 
-	return distContainer.Directory("/dist"), nil
+	return outputContainer.Directory("/output"), nil
 }
 
 // PackageHomebrew takes a directory of binaries and packages them as tar.gz archives for Homebrew.
