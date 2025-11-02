@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"go.abhg.dev/goldmark/frontmatter"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -16,6 +17,7 @@ import (
 // convertMarkdownToTypst converts Markdown content to Typst markup
 func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error) {
 	// Parse the markdown
+	extender := &frontmatter.Extender{}
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM,
@@ -24,14 +26,16 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 			extension.Strikethrough,
 			extension.Linkify,
 			extension.TaskList,
+			extender, // YAML/TOML frontmatter
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),
 		),
 	)
 
+	ctx := parser.NewContext()
 	reader := text.NewReader(markdown)
-	doc := md.Parser().Parse(reader)
+	doc := md.Parser().Parse(reader, parser.WithContext(ctx))
 
 	footnotes, err := collectTypstFootnotes(doc, markdown)
 	if err != nil {
@@ -78,12 +82,45 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 
 	buf.WriteString("\n")
 
+	// Render frontmatter if present
+	if meta := frontmatter.Get(ctx); meta != nil {
+		var data map[string]interface{}
+		if err := meta.Decode(&data); err == nil && len(data) > 0 {
+			buf.WriteString(renderFrontmatterTypst(data))
+			buf.WriteString("\n")
+		}
+	}
+
 	// Convert the document
 	if err := renderNodeToTypst(&buf, doc, markdown, footnotes); err != nil {
 		return "", err
 	}
 
 	return buf.String(), nil
+}
+
+// renderFrontmatterTypst renders frontmatter as a Typst styled block
+func renderFrontmatterTypst(data map[string]interface{}) string {
+	var buf strings.Builder
+	buf.WriteString("#block(\n")
+	buf.WriteString("  fill: rgb(\"#f6f8fa\"),\n")
+	buf.WriteString("  stroke: 1pt + rgb(\"#d0d7de\"),\n")
+	buf.WriteString("  radius: 4pt,\n")
+	buf.WriteString("  inset: 12pt,\n")
+	buf.WriteString("  width: 100%,\n")
+	buf.WriteString(")[\n")
+	buf.WriteString("  #set text(size: 0.9em)\n")
+	buf.WriteString("  #grid(\n")
+	buf.WriteString("    columns: (auto, 1fr),\n")
+	buf.WriteString("    column-gutter: 1em,\n")
+	buf.WriteString("    row-gutter: 0.5em,\n")
+	for key, value := range data {
+		title := strings.Title(strings.ReplaceAll(key, "_", " "))
+		buf.WriteString(fmt.Sprintf("    [*%s:*], [%v],\n", escapeTypst(title), escapeTypst(fmt.Sprintf("%v", value))))
+	}
+	buf.WriteString("  )\n")
+	buf.WriteString("]\n")
+	return buf.String()
 }
 
 // renderNodeToTypst recursively renders AST nodes to Typst markup
