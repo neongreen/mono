@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { useState } from 'preact/hooks';
+import { useState, useEffect } from 'preact/hooks';
 import { encode as encodeHtml } from 'he';
 import type { TkTask, VSCodeAPI } from './types';
 
@@ -11,6 +11,12 @@ interface TaskDetailsProps {
 export function TaskDetails({ task, vscode }: TaskDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [titleValue, setTitleValue] = useState(task.title ?? 'No title');
+
+  // Update title when task changes
+  useEffect(() => {
+    setTitleValue(task.title ?? 'No title');
+    setIsEditing(false);
+  }, [task.task_id, task.task_uuid, task.title]);
 
   const taskId = task.task_id ?? 'unknown';
   const genericAxis = task.axes?.['generic'];
