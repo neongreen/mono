@@ -21,6 +21,7 @@
     "onCommand:tk.refresh",
     "onCommand:tk.editTitle",
     "onCommand:tk.rotateStatus",
+    "onCommand:tk.markDone",
     "onCommand:tk.createTask",
     "onCommand:tk.createProject",
     "onCommand:tk.deleteTask",
@@ -46,6 +47,11 @@
         "command": "tk.rotateStatus",
         "title": "Status",
         "icon": "$(circle-outline)"
+      },
+      {
+        "command": "tk.markDone",
+        "title": "Mark Done",
+        "icon": "$(check)"
       },
       {
         "command": "tk.createTask",
@@ -195,7 +201,14 @@
           "description": "Value passed to --group when listing tasks."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "tk.markDone",
+        "key": ".",
+        "when": "view == tkExplorer && viewItem == tkTask && !inputFocus"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
