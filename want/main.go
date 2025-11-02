@@ -166,7 +166,17 @@ func main() {
 	case "forget":
 		handleForget()
 	case "version", "--version", "-v":
-		printVersion()
+		// Check for --json flag
+		jsonOutput := false
+		if len(os.Args) > 2 {
+			for _, arg := range os.Args[2:] {
+				if arg == "--json" {
+					jsonOutput = true
+					break
+				}
+			}
+		}
+		printVersionWithJSON(jsonOutput)
 	case "help", "--help", "-h":
 		printUsage()
 	default:
