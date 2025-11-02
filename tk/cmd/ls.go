@@ -124,14 +124,17 @@ var lsCmd = &cobra.Command{
 			grouped := make(map[string][]*types.Task)
 			var groupOrder []string // To maintain consistent order
 
-			allProjects, err := database.GetAllProjectDisplayNames(db)
-			if err != nil {
-				return fmt.Errorf("failed to get projects: %w", err)
-			}
+			// Only show all projects (including empty ones) when no project filter is specified
+			if len(projectFilter) == 0 {
+				allProjects, err := database.GetAllProjectDisplayNames(db)
+				if err != nil {
+					return fmt.Errorf("failed to get projects: %w", err)
+				}
 
-			for _, displayName := range allProjects {
-				grouped[displayName] = []*types.Task{}
-				groupOrder = append(groupOrder, displayName)
+				for _, displayName := range allProjects {
+					grouped[displayName] = []*types.Task{}
+					groupOrder = append(groupOrder, displayName)
+				}
 			}
 
 			for _, task := range tasks {
