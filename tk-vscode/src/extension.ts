@@ -674,6 +674,31 @@ async function rotateStatus(provider: TkProvider, item: TaskTreeItem): Promise<v
   }
 }
 
+async function markDone(provider: TkProvider, item: TaskTreeItem): Promise<void> {
+  const taskId = item.task.task_id;
+  if (!taskId) {
+    void vscode.window.showErrorMessage('Cannot mark task as done: task has no ID');
+    return;
+  }
+
+  try {
+    const { binary, cwd } = getTkConfig();
+
+    // Use tk mark command to set status to done
+    const args = ['mark', taskId, 'done'];
+
+    await execFileAsync(binary, args, {
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    });
+
+    await provider.refresh();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`Failed to mark task as done: ${message}`);
+  }
+}
+
 async function editTitle(provider: TkProvider, item: TaskTreeItem): Promise<void> {
   const taskId = item.task.task_id;
   if (!taskId) {
@@ -906,6 +931,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('tk.refresh', () => provider.refresh()),
     vscode.commands.registerCommand('tk.editTitle', (item: TaskTreeItem) => editTitle(provider, item)),
     vscode.commands.registerCommand('tk.rotateStatus', (item: TaskTreeItem) => rotateStatus(provider, item)),
+    vscode.commands.registerCommand('tk.markDone', (item: TaskTreeItem) => markDone(provider, item)),
     vscode.commands.registerCommand('tk.createTask', (item: GroupTreeItem) => createTask(provider, item)),
     vscode.commands.registerCommand('tk.createProject', () => createProject(provider)),
     vscode.commands.registerCommand('tk.deleteTask', (item: TaskTreeItem) => deleteTask(provider, item)),
