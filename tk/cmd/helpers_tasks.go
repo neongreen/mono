@@ -56,9 +56,19 @@ func createTask(db *database.DB, cmd *cobra.Command, title string) error {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
+	eventID, err := database.GenerateEventID(db)
+	if err != nil {
+		return fmt.Errorf("failed to generate event ID: %w", err)
+	}
+
+	ts, err := db.GetNextLamportTS()
+	if err != nil {
+		return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+	}
+
 	event := types.Event{
-		ID:        generateEventID(db),
-		TS:        getNextLamportTimestamp(db),
+		ID:        eventID,
+		TS:        ts,
 		CreatedAt: time.Now(),
 		Actor:     currentUser,
 		Role:      "human",
@@ -85,9 +95,19 @@ func createTask(db *database.DB, cmd *cobra.Command, title string) error {
 		return fmt.Errorf("failed to marshal number payload: %w", err)
 	}
 
+	numberEventID, err := database.GenerateEventID(db)
+	if err != nil {
+		return fmt.Errorf("failed to generate event ID: %w", err)
+	}
+
+	numberTS, err := db.GetNextLamportTS()
+	if err != nil {
+		return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+	}
+
 	numberEvent := types.Event{
-		ID:        generateEventID(db),
-		TS:        getNextLamportTimestamp(db),
+		ID:        numberEventID,
+		TS:        numberTS,
 		CreatedAt: time.Now(),
 		Actor:     currentUser,
 		Role:      "human",

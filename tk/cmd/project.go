@@ -74,9 +74,19 @@ var projectCreateCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
+		eventID, err := database.GenerateEventID(db)
+		if err != nil {
+			return fmt.Errorf("failed to generate event ID: %w", err)
+		}
+
+		ts, err := db.GetNextLamportTS()
+		if err != nil {
+			return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+		}
+
 		event := types.Event{
-			ID:        generateEventID(db),
-			TS:        getNextLamportTimestamp(db),
+			ID:        eventID,
+			TS:        ts,
 			CreatedAt: time.Now(),
 			Actor:     actor,
 			Role:      "human",
@@ -111,9 +121,19 @@ var projectCreateCmd = &cobra.Command{
 				return fmt.Errorf("failed to marshal alias payload: %w", err)
 			}
 
+			aliasEventID, err := database.GenerateEventID(db)
+			if err != nil {
+				return fmt.Errorf("failed to generate event ID: %w", err)
+			}
+
+			aliasTS, err := db.GetNextLamportTS()
+			if err != nil {
+				return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+			}
+
 			aliasEvent := types.Event{
-				ID:        generateEventID(db),
-				TS:        getNextLamportTimestamp(db),
+				ID:        aliasEventID,
+				TS:        aliasTS,
 				CreatedAt: time.Now(),
 				Actor:     actor,
 				Role:      "human",
@@ -301,9 +321,19 @@ var projectAliasAddCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
+		eventID, err := database.GenerateEventID(db)
+		if err != nil {
+			return fmt.Errorf("failed to generate event ID: %w", err)
+		}
+
+		ts, err := db.GetNextLamportTS()
+		if err != nil {
+			return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+		}
+
 		event := types.Event{
-			ID:        generateEventID(db),
-			TS:        getNextLamportTimestamp(db),
+			ID:        eventID,
+			TS:        ts,
 			CreatedAt: time.Now(),
 			Actor:     actor,
 			Role:      "human",
@@ -372,9 +402,19 @@ var projectAliasRemoveCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
+		eventID, err := database.GenerateEventID(db)
+		if err != nil {
+			return fmt.Errorf("failed to generate event ID: %w", err)
+		}
+
+		ts, err := db.GetNextLamportTS()
+		if err != nil {
+			return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+		}
+
 		event := types.Event{
-			ID:        generateEventID(db),
-			TS:        getNextLamportTimestamp(db),
+			ID:        eventID,
+			TS:        ts,
 			CreatedAt: time.Now(),
 			Actor:     actor,
 			Role:      "human",
@@ -430,9 +470,19 @@ var projectRmCmd = &cobra.Command{
 			return fmt.Errorf("failed to marshal payload: %w", err)
 		}
 
+		eventID, err := database.GenerateEventID(db)
+		if err != nil {
+			return fmt.Errorf("failed to generate event ID: %w", err)
+		}
+
+		ts, err := db.GetNextLamportTS()
+		if err != nil {
+			return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+		}
+
 		event := types.Event{
-			ID:        generateEventID(db),
-			TS:        getNextLamportTimestamp(db),
+			ID:        eventID,
+			TS:        ts,
 			CreatedAt: time.Now(),
 			Actor:     actor,
 			Role:      "human",
@@ -452,23 +502,6 @@ var projectRmCmd = &cobra.Command{
 		fmt.Printf("Deleted project %s\n", projectUID)
 		return nil
 	},
-}
-
-// Helper functions
-
-func generateEventID(db *database.DB) string {
-	// Use the ULID-based event ID
-	return string(types.NewEventID())
-}
-
-func getNextLamportTimestamp(db *database.DB) int64 {
-	// Get the current max timestamp and increment
-	var maxTS int64
-	err := db.Db.QueryRow("SELECT COALESCE(MAX(ts), 0) FROM events").Scan(&maxTS)
-	if err != nil {
-		return 1
-	}
-	return maxTS + 1
 }
 
 func init() {
