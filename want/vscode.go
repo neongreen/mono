@@ -87,10 +87,6 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	fmt.Printf("Building %s from %s...\n", project, refDescription)
 	fmt.Println()
 	plan.PrintPlan()
-	if !plan.ConfirmPlan() {
-		fmt.Println("Cancelled.")
-		os.Exit(0)
-	}
 	fmt.Println()
 
 	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-*", project))
@@ -253,10 +249,6 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	fmt.Printf("Building %s from PR #%d...\n", project, prNumber)
 	fmt.Println()
 	plan.PrintPlan()
-	if !plan.ConfirmPlan() {
-		fmt.Println("Cancelled.")
-		os.Exit(0)
-	}
 	fmt.Println()
 
 	ctx := context.Background()
