@@ -14,6 +14,12 @@ func main() {
 	startTime := time.Now()
 
 	// Capture stdout and stderr
+	// Note: This approach replaces os.Stdout/os.Stderr with pipes, which means
+	// TTY detection (isatty checks) will return false even when running interactively.
+	// This is a known limitation. A proper fix would require platform-specific code
+	// using syscall.Dup2 to preserve file descriptor numbers, which is complex and
+	// error-prone. For tk's use case (debugging AI agent invocations), this limitation
+	// is acceptable as colors/interactive features are less critical than capturing output.
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
 

@@ -31,12 +31,12 @@ func GetLogPath() (string, error) {
 	}
 
 	tkDir := filepath.Join(home, ".tk")
-	// Ensure the directory exists
-	if err := os.MkdirAll(tkDir, 0755); err != nil {
+	// Ensure the directory exists with private permissions
+	if err := os.MkdirAll(tkDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create tk directory: %w", err)
 	}
 
-	return filepath.Join(tkDir, "invocations.jsonl"), nil
+	return filepath.Join(tkDir, "log.jsonl"), nil
 }
 
 // WriteLog appends an invocation log entry to the log file
@@ -46,8 +46,8 @@ func WriteLog(log InvocationLog) error {
 		return fmt.Errorf("failed to get log path: %w", err)
 	}
 
-	// Open file for appending, create if doesn't exist
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// Open file for appending, create if doesn't exist with private permissions
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}

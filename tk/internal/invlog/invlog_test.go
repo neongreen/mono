@@ -50,7 +50,7 @@ func TestWriteLog(t *testing.T) {
 	}
 
 	// Read back the log file
-	expectedPath := filepath.Join(tkDir, "invocations.jsonl")
+	expectedPath := filepath.Join(tkDir, "log.jsonl")
 	data, err := os.ReadFile(expectedPath)
 	if err != nil {
 		t.Fatalf("failed to read log file: %v", err)
@@ -131,7 +131,7 @@ func TestWriteLogAppend(t *testing.T) {
 	}
 
 	// Read back the log file
-	expectedPath := filepath.Join(tkDir, "invocations.jsonl")
+	expectedPath := filepath.Join(tkDir, "log.jsonl")
 	data, err := os.ReadFile(expectedPath)
 	if err != nil {
 		t.Fatalf("failed to read log file: %v", err)
