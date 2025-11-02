@@ -154,6 +154,8 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (message) => {
       if (message.type === 'editTitle' && this.currentTask) {
         await this.handleTitleEdit(message.newTitle);
+      } else if (message.type === 'addNote' && this.currentTask) {
+        await this.handleAddNote(message.markdown);
       }
     });
 
@@ -200,6 +202,65 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       void vscode.window.showErrorMessage(`Failed to update title: ${message}`);
+    }
+  }
+
+  private async handleAddNote(markdown: string): Promise<void> {
+    if (!this.currentTask) {
+      return;
+    }
+
+    const taskId = this.currentTask.task_id;
+    if (!taskId) {
+      void vscode.window.showErrorMessage('Cannot add note: task has no ID');
+      return;
+    }
+
+    if (markdown.trim() === '') {
+      void vscode.window.showErrorMessage('Note cannot be empty');
+      return;
+    }
+
+    try {
+      const { binary, cwd } = getTkConfig();
+      const args = ['note', taskId, markdown];
+
+      await execFileAsync(binary, args, {
+        cwd,
+        env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+      });
+
+      // Refresh the task data to get the new note
+      await this.refreshCurrentTask();
+
+      // Trigger a refresh of the tree view
+      void vscode.commands.executeCommand('tk.refresh');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      void vscode.window.showErrorMessage(`Failed to add note: ${message}`);
+    }
+  }
+
+  private async refreshCurrentTask(): Promise<void> {
+    if (!this.currentTask || !this.currentTask.task_id) {
+      return;
+    }
+
+    try {
+      const { binary, cwd } = getTkConfig();
+      const args = ['show', '--json', this.currentTask.task_id];
+
+      const result = await execFileAsync(binary, args, {
+        cwd,
+        env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+      });
+
+      const updatedTask = JSON.parse(result.stdout) as TkTask;
+      this.currentTask = updatedTask;
+      this.updateView();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      void vscode.window.showErrorMessage(`Failed to refresh task: ${message}`);
     }
   }
 
