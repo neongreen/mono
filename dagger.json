@@ -12,7 +12,14 @@
     "dissect/**",
     "jj-run/**",
     "lib/**",
-    "conf/**"
+    "conf/**",
+    "ingest/**",
+    "printpdf/**",
+    "prrun/**",
+    "claude-trace/**",
+    "want/**",
+    "markdown-format/**",
+    "beads-merge/**"
   ],
   "source": ".dagger"
 }

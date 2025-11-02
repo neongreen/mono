@@ -98,16 +98,31 @@ type Person struct {
 		t.Fatalf("FindExportedSymbols failed: %v", err)
 	}
 
-	if len(symbols) != 1 {
-		t.Fatalf("Expected 1 symbol, got %d", len(symbols))
+	// Expect 3 symbols: Person (type), Name (field), Age (field)
+	if len(symbols) != 3 {
+		t.Fatalf("Expected 3 symbols (type + 2 fields), got %d", len(symbols))
 	}
 
-	sym := symbols[0]
-	if sym.Name != "Person" {
-		t.Errorf("Expected name 'Person', got '%s'", sym.Name)
+	// Check we got the type
+	typeFound := false
+	for _, sym := range symbols {
+		if sym.Name == "Person" && sym.Kind == "type" {
+			typeFound = true
+		}
 	}
-	if sym.Kind != "type" {
-		t.Errorf("Expected kind 'type', got '%s'", sym.Kind)
+	if !typeFound {
+		t.Error("Expected to find Person type")
+	}
+
+	// Check we got the fields
+	fieldNames := make(map[string]bool)
+	for _, sym := range symbols {
+		if sym.Kind == "field" {
+			fieldNames[sym.Name] = true
+		}
+	}
+	if !fieldNames["Name"] || !fieldNames["Age"] {
+		t.Errorf("Expected to find Name and Age fields, got: %v", fieldNames)
 	}
 }
 
@@ -238,8 +253,9 @@ func NewConfig() *Config {
 		t.Fatalf("FindExportedSymbols failed: %v", err)
 	}
 
-	if len(symbols) != 4 {
-		t.Fatalf("Expected 4 symbols, got %d", len(symbols))
+	// Expect 5 symbols: Version (const), DefaultName (var), Config (type), Host (field), NewConfig (func)
+	if len(symbols) != 5 {
+		t.Fatalf("Expected 5 symbols, got %d", len(symbols))
 	}
 
 	// Check we got all kinds
@@ -250,11 +266,11 @@ func NewConfig() *Config {
 		names[sym.Name] = true
 	}
 
-	if !kinds["const"] || !kinds["var"] || !kinds["type"] || !kinds["func"] {
-		t.Errorf("Expected all kinds (const, var, type, func), got: %v", kinds)
+	if !kinds["const"] || !kinds["var"] || !kinds["type"] || !kinds["func"] || !kinds["field"] {
+		t.Errorf("Expected all kinds (const, var, type, field, func), got: %v", kinds)
 	}
 
-	expectedNames := []string{"Version", "DefaultName", "Config", "NewConfig"}
+	expectedNames := []string{"Version", "DefaultName", "Config", "Host", "NewConfig"}
 	for _, name := range expectedNames {
 		if !names[name] {
 			t.Errorf("Expected to find symbol '%s'", name)
@@ -334,21 +350,28 @@ func (p *Person) SetName(name string) {
 		t.Fatalf("FindExportedSymbols failed: %v", err)
 	}
 
-	// Should find: Person (type), GetName (method), SetName (method)
-	if len(symbols) != 3 {
-		t.Fatalf("Expected 3 symbols, got %d", len(symbols))
+	// Should find: Person (type), Name (field), GetName (method), SetName (method)
+	if len(symbols) != 4 {
+		t.Fatalf("Expected 4 symbols, got %d", len(symbols))
 	}
 
 	// Count methods
 	methodCount := 0
+	fieldCount := 0
 	for _, sym := range symbols {
 		if sym.Kind == "method" {
 			methodCount++
+		}
+		if sym.Kind == "field" {
+			fieldCount++
 		}
 	}
 
 	if methodCount != 2 {
 		t.Errorf("Expected 2 methods, got %d", methodCount)
+	}
+	if fieldCount != 1 {
+		t.Errorf("Expected 1 field (Name), got %d", fieldCount)
 	}
 }
 

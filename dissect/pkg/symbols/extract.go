@@ -13,7 +13,7 @@ import (
 // ExportedSymbol represents an exported declaration.
 type ExportedSymbol struct {
 	Name string // The name of the symbol (e.g., "Hello", "Person")
-	Kind string // "func", "type", "var", "const", "method"
+	Kind string // "func", "type", "var", "const", "method", "field"
 	Pkg  string // package path where the symbol is defined
 }
 

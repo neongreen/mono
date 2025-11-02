@@ -197,7 +197,9 @@ func TestFindPlatformAsset(t *testing.T) {
 			TagName: "dissect--pr-123.1",
 			Assets: []Asset{
 				{Name: "dissect-pr-123.1-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/123"},
-				{Name: "dissect-pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/124"},
+				{Name: "dissect-pr-123.1-linux-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/124"},
+				{Name: "dissect-pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/125"},
+				{Name: "dissect-pr-123.1-darwin-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/126"},
 			},
 		}
 
@@ -237,8 +239,10 @@ func TestFindPlatformAsset(t *testing.T) {
 		release := &Release{
 			TagName: "dissect--pr-123.1",
 			Assets: []Asset{
-				{Name: "dissect--pr-123.1-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/125"},
-				{Name: "dissect--pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/126"},
+				{Name: "dissect--pr-123.1-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/127"},
+				{Name: "dissect--pr-123.1-linux-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/128"},
+				{Name: "dissect--pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/129"},
+				{Name: "dissect--pr-123.1-darwin-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/130"},
 			},
 		}
 
@@ -257,8 +261,10 @@ func TestFindPlatformAsset(t *testing.T) {
 		release := &Release{
 			TagName: "want--main.3",
 			Assets: []Asset{
-				{Name: "want-main.3-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/127"},
-				{Name: "want-main.3-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/128"},
+				{Name: "want-main.3-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/131"},
+				{Name: "want-main.3-linux-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/132"},
+				{Name: "want-main.3-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/133"},
+				{Name: "want-main.3-darwin-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/134"},
 			},
 		}
 
