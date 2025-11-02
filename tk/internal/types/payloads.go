@@ -1,5 +1,7 @@
 package types
 
+import "encoding/json"
+
 // TaskStatusSetPayload is the payload for task.status.set events
 type TaskStatusSetPayload struct {
 	TaskUUID string `json:"task_uuid,omitempty"` // New field for UUID-based updates
@@ -19,6 +21,14 @@ type TaskNoteAddPayload struct {
 // TaskDeletePayload is the payload for task.delete events
 type TaskDeletePayload struct {
 	TaskUUID string `json:"task_uuid"`
+}
+
+// TaskMetaSetPayload is the payload for task.meta.set events
+type TaskMetaSetPayload struct {
+	TaskUUID string          `json:"task_uuid"`
+	TaskID   string          `json:"task_id"`
+	Key      string          `json:"key"`
+	Value    json.RawMessage `json:"value"` // JSON value (number, string, array, object, etc.)
 }
 
 // RelationAddPayload is the payload for relation.add events

@@ -134,4 +134,62 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 			}
 		}
 	}
+
+	// Display metadata
+	if len(task.Metadata) > 0 {
+		fmt.Println("\nMetadata:")
+
+		// Sort keys for consistent display
+		var keys []string
+		for key := range task.Metadata {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
+		for _, key := range keys {
+			meta := task.Metadata[key]
+
+			// Display effective value
+			var effectiveValue interface{}
+			if err := json.Unmarshal(meta.Effective, &effectiveValue); err == nil {
+				fmt.Printf("  %s: %v", key, formatMetadataValue(effectiveValue))
+
+				// Count tentative claims
+				tentativeCount := 0
+				for _, claim := range meta.Claims {
+					if claim.Tentative {
+						tentativeCount++
+					}
+				}
+
+				if tentativeCount > 0 {
+					fmt.Printf(" (+ %d tentative claim", tentativeCount)
+					if tentativeCount > 1 {
+						fmt.Printf("s")
+					}
+					fmt.Printf(")")
+				}
+				fmt.Println()
+			}
+		}
+	}
+}
+
+// formatMetadataValue formats a metadata value for display
+func formatMetadataValue(value interface{}) string {
+	switch v := value.(type) {
+	case []interface{}:
+		// Format arrays
+		var items []string
+		for _, item := range v {
+			items = append(items, fmt.Sprintf("%v", item))
+		}
+		return "[" + strings.Join(items, ", ") + "]"
+	case map[string]interface{}:
+		// Format objects as JSON
+		data, _ := json.Marshal(v)
+		return string(data)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
 }

@@ -242,6 +242,7 @@ const (
 	EventKindTaskNoteAdd        EventKind = "task.note.add"
 	EventKindTaskTitleSet       EventKind = "task.title.set"
 	EventKindTaskDelete         EventKind = "task.delete"
+	EventKindTaskMetaSet        EventKind = "task.meta.set"
 	EventKindRelationAdd        EventKind = "relation.add"
 	EventKindRelationRemove     EventKind = "relation.remove"
 	EventKindRelationNote       EventKind = "relation.note"
@@ -261,6 +262,7 @@ const (
 	eventKindTaskNoteAddIndex
 	eventKindTaskTitleSetIndex
 	eventKindTaskDeleteIndex
+	eventKindTaskMetaSetIndex
 	eventKindRelationAddIndex
 	eventKindRelationRemoveIndex
 	eventKindRelationNoteIndex
@@ -279,6 +281,7 @@ var AllEventKinds = [...]EventKind{
 	eventKindTaskNoteAddIndex:        EventKindTaskNoteAdd,
 	eventKindTaskTitleSetIndex:       EventKindTaskTitleSet,
 	eventKindTaskDeleteIndex:         EventKindTaskDelete,
+	eventKindTaskMetaSetIndex:        EventKindTaskMetaSet,
 	eventKindRelationAddIndex:        EventKindRelationAdd,
 	eventKindRelationRemoveIndex:     EventKindRelationRemove,
 	eventKindRelationNoteIndex:       EventKindRelationNote,

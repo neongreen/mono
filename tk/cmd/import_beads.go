@@ -45,7 +45,12 @@ var importBeadsCmd = &cobra.Command{
 	Long: `Import issues from a beads .beads/issues.jsonl file into tk.
 
 This command reads a beads issues.jsonl file and converts each issue into
-a tk task, preserving titles, descriptions, and relationships.
+a tk task, preserving:
+- Titles and descriptions
+- Status (open, in_progress, closed)
+- Priority (0-4) as metadata
+- Labels as metadata
+- Dependencies (blocks, parent-child, related, discovered-from)
 
 Examples:
   tk import-beads .beads/issues.jsonl    # Import from specific file
@@ -95,7 +100,7 @@ Examples:
 		fmt.Printf("Found %d issues in beads file\n", len(issues))
 
 		if dryRun {
-			fmt.Println("\nDry run mode - no changes will be made\n")
+			fmt.Println("\nDry run mode - no changes will be made")
 			for _, issue := range issues {
 				fmt.Printf("  %s: %s (status: %s, type: %s)\n",
 					issue.ID, issue.Title, issue.Status, issue.Type)
@@ -401,7 +406,66 @@ func importBeadsIssue(db *database.DB, issue BeadsIssue, projectUID string) (str
 		}
 	}
 
+	// Import metadata: priority
+	if issue.Priority >= 0 && issue.Priority <= 4 {
+		if err := createMetadataEvent(db, taskUID, "priority", json.RawMessage(fmt.Sprintf("%d", issue.Priority)), actor, createdAt); err != nil {
+			return "", fmt.Errorf("failed to create priority metadata: %w", err)
+		}
+	}
+
+	// Import metadata: labels
+	if len(issue.Labels) > 0 {
+		labelsJSON, err := json.Marshal(issue.Labels)
+		if err != nil {
+			return "", fmt.Errorf("failed to marshal labels: %w", err)
+		}
+		if err := createMetadataEvent(db, taskUID, "labels", json.RawMessage(labelsJSON), actor, createdAt); err != nil {
+			return "", fmt.Errorf("failed to create labels metadata: %w", err)
+		}
+	}
+
 	return taskUID, nil
+}
+
+// createMetadataEvent creates a task.meta.set event
+func createMetadataEvent(db *database.DB, taskUID string, key string, value json.RawMessage, actor string, createdAt time.Time) error {
+	payload := types.TaskMetaSetPayload{
+		TaskUUID: taskUID,
+		TaskID:   "",
+		Key:      key,
+		Value:    value,
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata payload: %w", err)
+	}
+
+	eventID, err := database.GenerateEventID(db)
+	if err != nil {
+		return fmt.Errorf("failed to generate event ID: %w", err)
+	}
+
+	ts, err := db.GetNextLamportTS()
+	if err != nil {
+		return fmt.Errorf("failed to get lamport timestamp: %w", err)
+	}
+
+	event := types.Event{
+		ID:        eventID,
+		TS:        ts,
+		CreatedAt: createdAt,
+		Actor:     actor,
+		Role:      "human", // Import acts with human authority
+		Kind:      string(types.EventKindTaskMetaSet),
+		Payload:   payloadJSON,
+	}
+
+	if err := db.InsertEvent(event); err != nil {
+		return fmt.Errorf("failed to insert metadata event: %w", err)
+	}
+
+	return nil
 }
 
 // importBeadsRelationships imports relationships for a beads issue

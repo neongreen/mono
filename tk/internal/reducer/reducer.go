@@ -51,7 +51,7 @@ func (r *Reducer) Apply(e types.Event) error {
 		return nil
 	}
 
-	// Handle shared events (status, notes, relations, delete)
+	// Handle shared events (status, notes, relations, delete, metadata)
 	switch e.Kind {
 	case "task.status.set":
 		return r.applyTaskStatusSet(e)
@@ -59,6 +59,8 @@ func (r *Reducer) Apply(e types.Event) error {
 		return r.applyTaskNoteAdd(e)
 	case "task.delete":
 		return r.applyTaskDelete(e)
+	case "task.meta.set":
+		return r.applyTaskMetaSet(e)
 	case "project.delete":
 		return r.applyProjectDelete(e)
 	case "relation.add":
