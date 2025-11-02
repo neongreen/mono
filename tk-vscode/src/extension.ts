@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { encode as encodeHtml } from 'he';
 
 const execFileAsync = promisify(execFile);
 
@@ -127,9 +126,14 @@ class TaskTreeItem extends vscode.TreeItem {
 // Detail view using WebView
 class TaskDetailProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'tkDetailView';
-  
+
   private _view?: vscode.WebviewView;
+  private _extensionUri: vscode.Uri;
   private currentTask: TkTask | undefined;
+
+  constructor(extensionUri: vscode.Uri) {
+    this._extensionUri = extensionUri;
+  }
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -140,6 +144,10 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.options = {
       enableScripts: true,
+      localResourceRoots: [
+        vscode.Uri.joinPath(this._extensionUri, 'out'),
+        vscode.Uri.joinPath(this._extensionUri, 'src', 'webview')
+      ],
     };
 
     // Handle messages from the webview
@@ -149,10 +157,12 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
       }
     });
 
+    // Set the HTML content
+    webviewView.webview.html = this.getHtmlForWebview(webviewView.webview);
+
+    // Send initial task data
     if (this.currentTask) {
       this.updateView();
-    } else {
-      this.showEmptyState();
     }
   }
 
@@ -205,293 +215,51 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
 
   private showEmptyState(): void {
     if (this._view) {
-      this._view.webview.html = this.getHtmlForEmptyState();
+      void this._view.webview.postMessage({ type: 'clear' });
     }
   }
 
   private updateView(): void {
     if (this._view && this.currentTask) {
-      this._view.webview.html = this.getHtmlForTask(this.currentTask);
+      void this._view.webview.postMessage({
+        type: 'updateTask',
+        task: this.currentTask
+      });
     }
   }
 
-  private getHtmlForEmptyState(): string {
-    return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
-    <style>
-        body {
-            padding: 12px;
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            color: var(--vscode-foreground);
-        }
-        .empty-state {
-            color: var(--vscode-descriptionForeground);
-            font-style: italic;
-            text-align: center;
-            padding: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="empty-state">No task selected</div>
-</body>
-</html>`;
-  }
+  private getHtmlForWebview(webview: vscode.Webview): string {
+    const scriptUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'out', 'webview.js')
+    );
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'src', 'webview', 'styles.css')
+    );
 
-  private getHtmlForTask(task: TkTask): string {
-    const taskId = task.task_id ?? 'unknown';
-    const title = task.title ?? 'No title';
-    const genericAxis = task.axes?.['generic'];
-    const status = genericAxis?.effective ?? 'none';
-    const blocked = task.blocked ? 'yes' : 'no';
-
-    let notesHtml = '';
-    if (task.notes && task.notes.length > 0) {
-      notesHtml = task.notes.map(note => {
-        const noteText = encodeHtml(note.markdown || '(empty note)');
-        const actor = encodeHtml(note.actor || 'Unknown');
-        const timestamp = note.timestamp ? new Date(note.timestamp).toLocaleString() : '';
-
-        return `
-          <div class="note">
-            <div class="note-content">${noteText}</div>
-            <div class="note-meta">
-              ${timestamp ? `<span class="note-time">${encodeHtml(timestamp)}</span>` : ''}
-              <span class="note-actor">by ${actor}</span>
-            </div>
-          </div>
-        `;
-      }).join('');
-    } else {
-      notesHtml = '<div class="empty-section">No notes</div>';
-    }
+    const nonce = getNonce();
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
-    <style>
-        body {
-            padding: 12px;
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            color: var(--vscode-foreground);
-            line-height: 1.5;
-        }
-        .section {
-            margin-bottom: 16px;
-        }
-        .section-title {
-            font-weight: 600;
-            color: var(--vscode-foreground);
-            margin-bottom: 8px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            opacity: 0.8;
-        }
-        .task-header {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        .task-id {
-            font-family: var(--vscode-editor-font-family);
-            color: var(--vscode-textLink-foreground);
-            font-weight: 600;
-            flex-shrink: 0;
-            line-height: 1.5;
-        }
-        .title-container {
-            flex: 1;
-            min-width: 0;
-        }
-        .title-display {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            color: var(--vscode-foreground);
-            cursor: pointer;
-            padding: 2px 4px;
-            margin: -2px -4px;
-            border-radius: 3px;
-        }
-        .title-display:hover {
-            background-color: var(--vscode-list-hoverBackground);
-        }
-        .title-edit {
-            display: none;
-        }
-        .title-textarea {
-            width: 100%;
-            min-height: 60px;
-            resize: vertical;
-            background-color: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 3px;
-            padding: 6px 8px;
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            line-height: 1.5;
-            box-sizing: border-box;
-        }
-        .title-textarea:focus {
-            outline: 1px solid var(--vscode-focusBorder);
-            border-color: var(--vscode-focusBorder);
-        }
-        .title-buttons {
-            display: flex;
-            gap: 8px;
-            margin-top: 6px;
-        }
-        .btn {
-            padding: 4px 12px;
-            border: 1px solid var(--vscode-button-border);
-            border-radius: 3px;
-            cursor: pointer;
-            font-size: var(--vscode-font-size);
-            font-family: var(--vscode-font-family);
-        }
-        .btn-primary {
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-        }
-        .btn-primary:hover {
-            background-color: var(--vscode-button-hoverBackground);
-        }
-        .btn-secondary {
-            background-color: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-        }
-        .btn-secondary:hover {
-            background-color: var(--vscode-button-secondaryHoverBackground);
-        }
-        .metadata-grid {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 6px 12px;
-        }
-        .metadata-label {
-            font-weight: 500;
-            color: var(--vscode-descriptionForeground);
-            font-size: 12px;
-        }
-        .metadata-value {
-            color: var(--vscode-foreground);
-            font-size: 12px;
-        }
-        .note {
-            background-color: var(--vscode-textBlockQuote-background);
-            border-left: 3px solid var(--vscode-textBlockQuote-border);
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            border-radius: 3px;
-        }
-        .note-content {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            margin-bottom: 6px;
-        }
-        .note-meta {
-            font-size: 11px;
-            color: var(--vscode-descriptionForeground);
-            display: flex;
-            gap: 8px;
-        }
-        .note-time::after {
-            content: "•";
-            margin-left: 8px;
-        }
-        .empty-section {
-            color: var(--vscode-descriptionForeground);
-            font-style: italic;
-        }
-    </style>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+    <link href="${styleUri}" rel="stylesheet">
 </head>
 <body>
-    <div class="task-header">
-        <span class="task-id">${encodeHtml(taskId)}</span>
-        <div class="title-container">
-            <div class="title-display" id="titleDisplay" onclick="startEditTitle()">${encodeHtml(title)}</div>
-            <div class="title-edit" id="titleEdit">
-                <textarea class="title-textarea" id="titleTextarea">${encodeHtml(title)}</textarea>
-                <div class="title-buttons">
-                    <button class="btn btn-primary" onclick="saveTitle()">Save</button>
-                    <button class="btn btn-secondary" onclick="cancelEditTitle()">Cancel</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="metadata-grid">
-            <div class="metadata-label">Status:</div>
-            <div class="metadata-value">${encodeHtml(status)}</div>
-            <div class="metadata-label">Blocked:</div>
-            <div class="metadata-value">${encodeHtml(blocked)}</div>
-        </div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">Notes</div>
-        ${notesHtml}
-    </div>
-
-    <script>
-        const vscode = acquireVsCodeApi();
-        let originalTitle = ${JSON.stringify(title)};
-
-        function startEditTitle() {
-            document.getElementById('titleDisplay').style.display = 'none';
-            document.getElementById('titleEdit').style.display = 'block';
-            const textarea = document.getElementById('titleTextarea');
-            textarea.focus();
-            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-        }
-
-        function cancelEditTitle() {
-            document.getElementById('titleTextarea').value = originalTitle;
-            document.getElementById('titleDisplay').style.display = 'block';
-            document.getElementById('titleEdit').style.display = 'none';
-        }
-
-        function saveTitle() {
-            const newTitle = document.getElementById('titleTextarea').value;
-            if (newTitle.trim() === '') {
-                return;
-            }
-            vscode.postMessage({
-                type: 'editTitle',
-                newTitle: newTitle
-            });
-        }
-
-        // Allow Enter to save with Ctrl/Cmd modifier
-        document.getElementById('titleTextarea').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                saveTitle();
-            }
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                cancelEditTitle();
-            }
-        });
-    </script>
+    <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }
+}
 
-
+function getNonce(): string {
+  let text = '';
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  for (let i = 0; i < 32; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
 }
 
 class TkDecorationProvider implements vscode.FileDecorationProvider {
@@ -1051,7 +819,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const decorationProvider = new TkDecorationProvider();
   const provider = new TkProvider(decorationProvider);
   const dragAndDropController = new TkDragAndDropController(provider);
-  const detailProvider = new TaskDetailProvider();
+  const detailProvider = new TaskDetailProvider(context.extensionUri);
 
   const treeView = vscode.window.createTreeView('tkExplorer', {
     treeDataProvider: provider,
