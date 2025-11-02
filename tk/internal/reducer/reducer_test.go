@@ -585,7 +585,7 @@ func TestReducer_TaskRelocate_UpdatesProjectTracking(t *testing.T) {
 	}
 
 	// Verify task still exists
-	task, ok = r.GetTask(taskUID)
+	_, ok = r.GetTask(taskUID)
 	if !ok {
 		t.Fatal("Task should exist after relocation")
 	}

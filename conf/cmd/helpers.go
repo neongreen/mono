@@ -1,6 +1,10 @@
 package main
 
-import "strconv"
+import (
+	"strconv"
+
+	tomlcp "github.com/neongreen/mono/lib/toml"
+)
 
 // parseValue attempts to parse a string value into the appropriate type
 func parseValue(value string) interface{} {
@@ -18,4 +22,21 @@ func parseValue(value string) interface{} {
 	}
 
 	return value
+}
+
+// formatValueAsTOML formats a value as TOML-compatible string representation
+func formatValueAsTOML(value interface{}) string {
+	if value == nil {
+		return "(not set)"
+	}
+
+	// Use lib/toml's formatValueToString which handles all TOML types properly
+	formatted, err := tomlcp.FormatValueToString(value)
+	if err != nil {
+		// Fallback to basic formatting if it fails (though it shouldn't)
+		// This handles edge cases that formatValueToString doesn't support
+		return "(unsupported type)"
+	}
+
+	return formatted
 }

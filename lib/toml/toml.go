@@ -148,7 +148,7 @@ func (d *Document) formatValuePreservingStyle(value interface{}, existingValue p
 	}
 
 	// For non-strings or when we can't preserve style, use default formatting
-	valueStr, err := formatValueToString(value)
+	valueStr, err := FormatValueToString(value)
 	if err != nil {
 		return parser.Value{}, err
 	}
@@ -159,7 +159,7 @@ func (d *Document) formatValuePreservingStyle(value interface{}, existingValue p
 // addNewKey adds a new key in an appropriate style (dotted key vs section)
 func (d *Document) addNewKey(keys parser.Key, value interface{}) error {
 	// Format the value
-	valueStr, err := formatValueToString(value)
+	valueStr, err := FormatValueToString(value)
 	if err != nil {
 		return fmt.Errorf("failed to format value: %w", err)
 	}
@@ -430,8 +430,9 @@ func parseValue(v parser.Value) (interface{}, error) {
 	}
 }
 
-// formatValueToString converts a Go value into a TOML value string.
-func formatValueToString(v interface{}) (string, error) {
+// FormatValueToString converts a Go value into a TOML value string.
+// This is useful for displaying values in a TOML-compatible format.
+func FormatValueToString(v interface{}) (string, error) {
 	switch val := v.(type) {
 	case string:
 		// Quote and escape the string
@@ -455,7 +456,7 @@ func formatValueToString(v interface{}) (string, error) {
 	case []interface{}:
 		parts := make([]string, len(val))
 		for i, item := range val {
-			s, err := formatValueToString(item)
+			s, err := FormatValueToString(item)
 			if err != nil {
 				return "", err
 			}
@@ -480,7 +481,7 @@ func formatValueToString(v interface{}) (string, error) {
 	case map[string]interface{}:
 		parts := make([]string, 0, len(val))
 		for k, v := range val {
-			vs, err := formatValueToString(v)
+			vs, err := FormatValueToString(v)
 			if err != nil {
 				return "", err
 			}

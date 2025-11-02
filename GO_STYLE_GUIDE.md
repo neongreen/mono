@@ -379,7 +379,3 @@ Some existing code does not follow these standards yet:
 - `tk/main.go` - Main error output uses `fmt.Fprintln` instead of `fmt.Fprintf` (minor inconsistency)
 
 New code should follow these standards. Existing code should be migrated when convenient.
-
-
-
-
