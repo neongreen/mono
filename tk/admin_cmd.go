@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
 )
@@ -145,7 +146,7 @@ Examples:
 		}
 
 		// Load config to verify remote exists
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}

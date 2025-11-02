@@ -1,4 +1,4 @@
-package main
+package collision
 
 import (
 	"fmt"
@@ -90,8 +90,8 @@ func (ncc *NodeCollisionChecker) GetSeenNodes() []string {
 	return nodes
 }
 
-// checkNodeCollision checks for node ID collisions in a remote
-func checkNodeCollision(db *database.DB, remoteName string, remote sync.RemoteConfig) error {
+// CheckNodeCollision checks for node ID collisions in a remote
+func CheckNodeCollision(db *database.DB, remoteName string, remote sync.RemoteConfig) error {
 	// Get local node ID
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {

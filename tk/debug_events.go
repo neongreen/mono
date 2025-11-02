@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
@@ -19,7 +20,7 @@ var debugEventsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskID := args[0]
 
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -137,7 +138,7 @@ func TestDeleteTaskWithRelations(t *testing.T) {
 
 	// Add a relation between tasks (task1 blocks task2)
 	// We need to add this through the events system
-	config, err := LoadConfig()
+	config, err := config_pkg.LoadConfig()
 	if err != nil {
 		t.Fatalf("failed to load config: %v", err)
 	}

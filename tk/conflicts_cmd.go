@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +26,7 @@ Otherwise, shows all conflicts in the database.`,
 		defer db.Close()
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}

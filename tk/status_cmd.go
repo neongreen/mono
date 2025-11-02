@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +18,7 @@ var statusSyncCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}
@@ -31,7 +32,7 @@ var statusSyncCmd = &cobra.Command{
 			return nil
 		}
 
-		stateDir, err := GetStateDir()
+		stateDir, err := config_pkg.GetStateDir()
 		if err != nil {
 			return err
 		}

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 
@@ -292,7 +293,7 @@ var viewCmd = &cobra.Command{
 		defer db.Close()
 
 		// Load config for relation processing
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -360,7 +361,7 @@ var lsCmd = &cobra.Command{
 		defer db.Close()
 
 		// Load config for relation processing
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}

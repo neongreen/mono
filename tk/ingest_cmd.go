@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
@@ -44,7 +45,7 @@ Examples:
 			ingestErr = ingestFile(db, pathOrRemote)
 		} else {
 			// Try as a remote name
-			config, err := LoadConfig()
+			config, err := config_pkg.LoadConfig()
 			if err != nil {
 				return err
 			}
@@ -276,7 +277,7 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remote sync.RemoteCon
 	}
 
 	// Save watermark
-	stateDir, err := GetStateDir()
+	stateDir, err := config_pkg.GetStateDir()
 	if err != nil {
 		return err
 	}

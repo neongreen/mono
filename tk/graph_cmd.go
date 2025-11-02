@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -29,7 +30,7 @@ var graphCmd = &cobra.Command{
 		defer db.Close()
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}

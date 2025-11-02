@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -46,7 +47,7 @@ Examples:
 		}
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}
@@ -80,7 +81,7 @@ Examples:
 		}
 
 		// Get or create export state
-		stateDir, err := GetStateDir()
+		stateDir, err := config_pkg.GetStateDir()
 		if err != nil {
 			return err
 		}

@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/neongreen/mono/tk/internal/collision"
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
@@ -31,7 +33,7 @@ Examples:
 		}
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}
@@ -61,7 +63,7 @@ Examples:
 		}
 
 		// Get state directory
-		stateDir, err := GetStateDir()
+		stateDir, err := config_pkg.GetStateDir()
 		if err != nil {
 			return err
 		}
@@ -148,7 +150,7 @@ Examples:
 		}
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}
@@ -237,7 +239,7 @@ Examples:
 		}
 
 		// Save local index mirror
-		stateDir, err := GetStateDir()
+		stateDir, err := config_pkg.GetStateDir()
 		if err != nil {
 			return err
 		}
@@ -278,7 +280,7 @@ Examples:
 		}
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}
@@ -311,7 +313,7 @@ Examples:
 
 		// Check for node collisions first
 		fmt.Println("Checking for node collisions...")
-		if err := checkNodeCollision(db, remoteName, remote); err != nil {
+		if err := collision.CheckNodeCollision(db, remoteName, remote); err != nil {
 			return fmt.Errorf("node collision detected: %w", err)
 		}
 

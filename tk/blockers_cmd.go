@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/neongreen/mono/tk/internal/utils"
@@ -29,7 +30,7 @@ var blockersCmd = &cobra.Command{
 		defer db.Close()
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}
@@ -134,7 +135,7 @@ var blockedCmd = &cobra.Command{
 		defer db.Close()
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)
 		}

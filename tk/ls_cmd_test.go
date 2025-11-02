@@ -5,6 +5,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 )
 
 func TestLsProjectsSortedAlphabetically(t *testing.T) {
@@ -22,7 +24,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 	seedTask(t, db, bananaUID, "Banana task", 1)
 
 	// Load config
-	config, err := LoadConfig()
+	config, err := config_pkg.LoadConfig()
 	if err != nil {
 		t.Fatalf("failed to load config: %v", err)
 	}
@@ -109,7 +111,7 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 	seedTask(t, db, monkeyUID, "Monkey task", 1)
 
 	// Load config
-	config, err := LoadConfig()
+	config, err := config_pkg.LoadConfig()
 	if err != nil {
 		t.Fatalf("failed to load config: %v", err)
 	}

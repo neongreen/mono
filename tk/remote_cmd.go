@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
@@ -44,7 +45,7 @@ Examples:
 		}
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}
@@ -64,7 +65,7 @@ Examples:
 		}
 
 		// Save config
-		if err := SaveConfig(config); err != nil {
+		if err := config_pkg.SaveConfig(config); err != nil {
 			return err
 		}
 
@@ -79,7 +80,7 @@ var remoteLsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}
@@ -128,7 +129,7 @@ Examples:
 		name := args[0]
 
 		// Load config
-		config, err := LoadConfig()
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}
@@ -142,7 +143,7 @@ Examples:
 		delete(config.Remotes, name)
 
 		// Save config
-		if err := SaveConfig(config); err != nil {
+		if err := config_pkg.SaveConfig(config); err != nil {
 			return err
 		}
 
