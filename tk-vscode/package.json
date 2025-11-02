@@ -206,7 +206,7 @@
       {
         "command": "tk.markDone",
         "key": ".",
-        "when": "view == tkExplorer && viewItem == tkTask && !inputFocus"
+        "when": "focusedView == tkExplorer && !inputFocus"
       }
     ]
   },
