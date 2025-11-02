@@ -126,7 +126,7 @@ func outputTasksJSON(db *database.DB, tasks []*types.Task, groupBy string) error
 		var groupOrder []string
 
 		// First, get all projects to ensure we include empty ones
-		allProjects, err := getAllProjectDisplayNames(db)
+		allProjects, err := database.GetAllProjectDisplayNames(db)
 		if err != nil {
 			return fmt.Errorf("failed to get projects: %w", err)
 		}
@@ -141,7 +141,7 @@ func outputTasksJSON(db *database.DB, tasks []*types.Task, groupBy string) error
 		for _, task := range tasks {
 			var groupKey string
 
-			projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
+			projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
 			if err != nil {
 				groupKey = task.TaskUUID
 			} else {

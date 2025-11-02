@@ -1,32 +1,36 @@
-package cmd
+package database
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
-
-	"github.com/spf13/cobra"
 )
 
-func createTask(db *database.DB, cmd *cobra.Command, title string) error {
-	projectFlag, _ := cmd.Flags().GetString("project")
+// CreateTaskParams holds the parameters for creating a new task.
+type CreateTaskParams struct {
+	ProjectRef  string // Project reference (UID, alias, or name)
+	Title       string
+	CurrentUser string
+}
 
-	currentUser, err := getCurrentUser()
-	if err != nil {
-		return err
-	}
+// CreateTaskResult holds the result of creating a task.
+type CreateTaskResult struct {
+	TaskUID   types.TaskUID
+	DisplayID string // Format: project-alias-number
+}
 
+// CreateTask creates a new task in the specified project.
+func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	projectUID, err := database.ResolveProjectRef(db, types.NewProjectRef(projectFlag))
+	projectUID, err := ResolveProjectRef(db, types.NewProjectRef(params.ProjectRef))
 	if err != nil {
-		return fmt.Errorf("project/alias %q not found. Create it first with: tk project create <name> --alias %s", projectFlag, projectFlag)
+		return nil, fmt.Errorf("project/alias %q not found. Create it first with: tk project create <name> --alias %s", params.ProjectRef, params.ProjectRef)
 	}
 
 	taskUID := types.NewTaskUID()
@@ -38,7 +42,7 @@ func createTask(db *database.DB, cmd *cobra.Command, title string) error {
 		WHERE project_uid = ?
 	`, projectUID.String()).Scan(&maxNumber)
 	if err != nil {
-		return fmt.Errorf("failed to get max number: %w", err)
+		return nil, fmt.Errorf("failed to get max number: %w", err)
 	}
 	proposedNumber := maxNumber + 1
 
@@ -47,41 +51,41 @@ func createTask(db *database.DB, cmd *cobra.Command, title string) error {
 		ProjectUID:     projectUID.String(),
 		ProposedNumber: proposedNumber,
 		CreatedNode:    nodeID,
-		Title:          title,
-		CreatedBy:      currentUser,
+		Title:          params.Title,
+		CreatedBy:      params.CurrentUser,
 	}
 
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
+		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	eventID, err := database.GenerateEventID(db)
+	eventID, err := GenerateEventID(db)
 	if err != nil {
-		return fmt.Errorf("failed to generate event ID: %w", err)
+		return nil, fmt.Errorf("failed to generate event ID: %w", err)
 	}
 
 	ts, err := db.GetNextLamportTS()
 	if err != nil {
-		return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+		return nil, fmt.Errorf("failed to get next lamport timestamp: %w", err)
 	}
 
 	event := types.Event{
 		ID:        eventID,
 		TS:        ts,
 		CreatedAt: time.Now(),
-		Actor:     currentUser,
+		Actor:     params.CurrentUser,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskCreated),
 		Payload:   payloadJSON,
 	}
 
 	if err := db.InsertEvent(event); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := db.ProjectTaskCreatedEvent(event); err != nil {
-		return fmt.Errorf("failed to project task: %w", err)
+		return nil, fmt.Errorf("failed to project task: %w", err)
 	}
 
 	numberPayload := types.TaskNumberSetPayload{
@@ -92,41 +96,41 @@ func createTask(db *database.DB, cmd *cobra.Command, title string) error {
 	}
 	numberPayloadJSON, err := json.Marshal(numberPayload)
 	if err != nil {
-		return fmt.Errorf("failed to marshal number payload: %w", err)
+		return nil, fmt.Errorf("failed to marshal number payload: %w", err)
 	}
 
-	numberEventID, err := database.GenerateEventID(db)
+	numberEventID, err := GenerateEventID(db)
 	if err != nil {
-		return fmt.Errorf("failed to generate event ID: %w", err)
+		return nil, fmt.Errorf("failed to generate event ID: %w", err)
 	}
 
 	numberTS, err := db.GetNextLamportTS()
 	if err != nil {
-		return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+		return nil, fmt.Errorf("failed to get next lamport timestamp: %w", err)
 	}
 
 	numberEvent := types.Event{
 		ID:        numberEventID,
 		TS:        numberTS,
 		CreatedAt: time.Now(),
-		Actor:     currentUser,
+		Actor:     params.CurrentUser,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskNumberSet),
 		Payload:   numberPayloadJSON,
 	}
 
 	if err := db.InsertEvent(numberEvent); err != nil {
-		return fmt.Errorf("failed to insert number event: %w", err)
+		return nil, fmt.Errorf("failed to insert number event: %w", err)
 	}
 
 	if err := db.ProjectTaskNumberSetEvent(numberEvent); err != nil {
-		return fmt.Errorf("failed to project task number: %w", err)
+		return nil, fmt.Errorf("failed to project task number: %w", err)
 	}
 
 	// Get a friendly display name (preferred alias, or project name, or UID as fallback)
-	displayPrefix, err := database.PreferredAliasForProject(db, projectUID)
+	displayPrefix, err := PreferredAliasForProject(db, projectUID)
 	if err != nil {
-		return fmt.Errorf("failed to get display prefix: %w", err)
+		return nil, fmt.Errorf("failed to get display prefix: %w", err)
 	}
 	if displayPrefix == "" {
 		// No alias found, try to get project name
@@ -141,6 +145,9 @@ func createTask(db *database.DB, cmd *cobra.Command, title string) error {
 	}
 
 	displayID := fmt.Sprintf("%s-%d", displayPrefix, proposedNumber)
-	fmt.Printf("Created task %s: %s\n", displayID, title)
-	return nil
+
+	return &CreateTaskResult{
+		TaskUID:   taskUID,
+		DisplayID: displayID,
+	}, nil
 }

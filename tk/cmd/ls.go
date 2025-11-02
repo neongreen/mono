@@ -8,6 +8,7 @@ import (
 
 	"github.com/fatih/color"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -123,7 +124,7 @@ var lsCmd = &cobra.Command{
 			grouped := make(map[string][]*types.Task)
 			var groupOrder []string // To maintain consistent order
 
-			allProjects, err := getAllProjectDisplayNames(db)
+			allProjects, err := database.GetAllProjectDisplayNames(db)
 			if err != nil {
 				return fmt.Errorf("failed to get projects: %w", err)
 			}
@@ -135,7 +136,7 @@ var lsCmd = &cobra.Command{
 
 			for _, task := range tasks {
 
-				projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
+				projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
 				var groupKey string
 				if err != nil {
 					groupKey = task.TaskUUID

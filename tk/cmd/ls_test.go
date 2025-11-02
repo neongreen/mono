@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/database"
 )
 
 func TestLsProjectsSortedAlphabetically(t *testing.T) {
@@ -43,7 +44,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 	var groupOrder []string
 
 	// Get all projects
-	allProjects, err := getAllProjectDisplayNames(db)
+	allProjects, err := database.GetAllProjectDisplayNames(db)
 	if err != nil {
 		t.Fatalf("failed to get projects: %v", err)
 	}
@@ -56,7 +57,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 
 	// Add tasks to groups
 	for _, task := range tasks {
-		projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
 		if err != nil {
 			continue
 		}
@@ -138,7 +139,7 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 	grouped := make(map[string]int)
 	var groupOrder []string
 
-	allProjects, err := getAllProjectDisplayNames(db)
+	allProjects, err := database.GetAllProjectDisplayNames(db)
 	if err != nil {
 		t.Fatalf("failed to get projects: %v", err)
 	}
@@ -149,7 +150,7 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		projectAlias, err := getProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
 		if err != nil {
 			continue
 		}
