@@ -74,6 +74,16 @@
         "command": "tk.toggleDoneHide",
         "title": "Hide Done",
         "icon": "$(filter-filled)"
+      },
+      {
+        "command": "tk.expandAll",
+        "title": "Expand All",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "tk.collapseAll",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)"
       }
     ],
     "menus": {
@@ -89,9 +99,19 @@
           "group": "navigation@1"
         },
         {
-          "command": "tk.createProject",
+          "command": "tk.expandAll",
           "when": "view == tkExplorer",
           "group": "navigation@2"
+        },
+        {
+          "command": "tk.collapseAll",
+          "when": "view == tkExplorer",
+          "group": "navigation@3"
+        },
+        {
+          "command": "tk.createProject",
+          "when": "view == tkExplorer",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [

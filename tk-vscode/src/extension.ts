@@ -40,10 +40,14 @@ class GroupTreeItem extends vscode.TreeItem {
   constructor(
     public readonly groupName: string,
     public readonly children: TaskTreeItem[],
+    uniqueId?: string,
   ) {
     super(groupName, vscode.TreeItemCollapsibleState.Collapsed);
     this.iconPath = new vscode.ThemeIcon('folder');
     this.contextValue = 'tkGroup';
+    if (uniqueId) {
+      this.id = uniqueId;
+    }
   }
 }
 
@@ -444,9 +448,16 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   private rawGroups: TkGroup[] = [];
   private rawUngrouped: TkTask[] = [];
   private showDone: boolean = false; // Default: hide done tasks
+  private groupItems: GroupTreeItem[] = [];
+  private treeView?: vscode.TreeView<TkTreeItem>;
+  private collapseCounter: number = 0;
 
   constructor(private readonly decorationProvider: TkDecorationProvider) {
     void this.refresh();
+  }
+
+  public setTreeView(treeView: vscode.TreeView<TkTreeItem>): void {
+    this.treeView = treeView;
   }
 
   public toggleDone(): void {
@@ -456,6 +467,22 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
 
   public isShowingDone(): boolean {
     return this.showDone;
+  }
+
+  public async expandAll(): Promise<void> {
+    if (!this.treeView) {
+      return;
+    }
+    // Reveal each group with expand parameter
+    for (const group of this.groupItems) {
+      await this.treeView.reveal(group, { expand: true, select: false, focus: false });
+    }
+  }
+
+  public async collapseAllGroups(): Promise<void> {
+    // Increment counter to force new IDs for all groups, making VS Code forget expansion state
+    this.collapseCounter++;
+    this._onDidChangeTreeData.fire(undefined);
   }
 
   private filterTasksByStatus(tasks: TkTask[]): TkTask[] {
@@ -493,23 +520,36 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
     return element;
   }
 
+  getParent(element: TkTreeItem): vscode.ProviderResult<TkTreeItem> {
+    // Tasks have group parents, groups have no parent
+    if (element instanceof TaskTreeItem) {
+      // Find the group that contains this task
+      return this.findGroupForTask(element);
+    }
+    return undefined;
+  }
+
   getChildren(element?: TkTreeItem): vscode.ProviderResult<TkTreeItem[]> {
     if (!element) {
       // Apply filtering when getting root children
       // Filter groups first, then create TreeItems to avoid unnecessary object creation
-      const groups = this.rawGroups
+      this.groupItems = this.rawGroups
         .map(group => {
           const filteredTasks = this.filterTasksByStatus(group.tasks);
+          const groupName = group.group ?? 'unnamed';
+          // Include collapse counter in ID to force VS Code to forget expansion state when collapsed
+          const uniqueId = `${groupName}-${this.collapseCounter}`;
           return new GroupTreeItem(
-            group.group ?? 'unnamed',
+            groupName,
             filteredTasks.map((task) => new TaskTreeItem(task)),
+            uniqueId,
           );
         });
 
       const filteredUngrouped = this.filterTasksByStatus(this.rawUngrouped);
       const ungrouped = filteredUngrouped.map((task) => new TaskTreeItem(task));
 
-      return [...groups, ...ungrouped];
+      return [...this.groupItems, ...ungrouped];
     }
 
     if (element instanceof GroupTreeItem) {
@@ -915,6 +955,9 @@ export function activate(context: vscode.ExtensionContext): void {
     dragAndDropController: dragAndDropController,
   });
 
+  // Give provider access to tree view for expand/collapse operations
+  provider.setTreeView(treeView);
+
   // Set initial context
   void updateToggleDoneButton(provider);
 
@@ -940,6 +983,12 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand('tk.showTaskDetails', (task: TkTask) => {
       detailProvider.showTask(task);
+    }),
+    vscode.commands.registerCommand('tk.expandAll', async () => {
+      await provider.expandAll();
+    }),
+    vscode.commands.registerCommand('tk.collapseAll', async () => {
+      await provider.collapseAllGroups();
     }),
   );
 }
