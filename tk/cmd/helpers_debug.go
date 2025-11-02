@@ -138,5 +138,5 @@ func containsTaskRef(payloadStr string, taskID string) bool {
 }
 
 func init() {
-	adminCmd.AddCommand(debugEventsCmd)
+	debugCmd.AddCommand(debugEventsCmd)
 }

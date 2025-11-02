@@ -9,15 +9,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var adminCmd = &cobra.Command{
-	Use:   "admin",
-	Short: "Administrative commands for tk",
-	Long:  `Administrative commands for tk database management and maintenance.`,
+var debugCmd = &cobra.Command{
+	Use:   "debug",
+	Short: "Debugging and diagnostic commands",
+	Long:  `Commands for debugging, diagnostics, and database management.`,
 }
 
 func init() {
-	adminCmd.AddCommand(rebuildFromRemoteCmd)
-	adminCmd.AddCommand(fixTimestampsCmd)
+	// Database management
+	debugCmd.AddCommand(rebuildFromRemoteCmd)
+	debugCmd.AddCommand(fixTimestampsCmd)
+	
+	// Diagnostic commands
+	debugCmd.AddCommand(idCmd)
+	debugCmd.AddCommand(nodeCmd)
+	debugCmd.AddCommand(eventsCmd)
+	debugCmd.AddCommand(doctorCmd)
+	debugCmd.AddCommand(conflictsNumbersCmd)
 
 	// Add flags to rebuild-from-remote command
 	rebuildFromRemoteCmd.Flags().Bool("debug", false, "Enable debug output with detailed information about each step")
