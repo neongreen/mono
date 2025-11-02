@@ -26,6 +26,7 @@ body {
   margin-bottom: 16px;
 }
 
+/* Section header contains the title and optional action buttons (e.g., Add Note) */
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -33,6 +34,7 @@ body {
   margin-bottom: 8px;
 }
 
+/* Section title styling - margin is now handled by parent .section-header */
 .section-title {
   font-weight: 600;
   color: var(--vscode-foreground);

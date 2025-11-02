@@ -2,6 +2,7 @@ import { h } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
 import { encode as encodeHtml } from 'he';
 import { marked } from 'marked';
+import DOMPurify from 'isomorphic-dompurify';
 import type { TkTask, VSCodeAPI } from './types';
 
 interface TaskDetailsProps {
@@ -93,8 +94,17 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
 
   const renderMarkdown = (markdown: string) => {
     try {
-      const html = marked.parse(markdown, { async: false }) as string;
-      return html;
+      // Parse markdown to HTML
+      const rawHtml = marked.parse(markdown, { 
+        async: false,
+        breaks: true,
+        gfm: true
+      }) as string;
+      
+      // Sanitize the HTML to prevent XSS attacks
+      // DOMPurify removes any potentially dangerous content while preserving safe HTML
+      const sanitizedHtml = DOMPurify.sanitize(rawHtml);
+      return sanitizedHtml;
     } catch (e) {
       return encodeHtml(markdown);
     }
