@@ -56,9 +56,13 @@ func TestWriteLog(t *testing.T) {
 		t.Fatalf("failed to read log file: %v", err)
 	}
 
-	// Parse the JSON line
+	// Parse the JSON line (trim trailing newline)
 	var readLog InvocationLog
-	if err := json.Unmarshal(data[:len(data)-1], &readLog); err != nil {
+	dataStr := string(data)
+	if len(dataStr) > 0 && dataStr[len(dataStr)-1] == '\n' {
+		dataStr = dataStr[:len(dataStr)-1]
+	}
+	if err := json.Unmarshal([]byte(dataStr), &readLog); err != nil {
 		t.Fatalf("failed to unmarshal log entry: %v", err)
 	}
 

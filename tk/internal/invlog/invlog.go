@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"syscall"
 	"time"
 )
 
@@ -55,13 +54,12 @@ func WriteLog(log InvocationLog) error {
 	defer f.Close()
 
 	// Acquire exclusive lock to prevent concurrent write interleaving
-	// Note: syscall.Flock is Unix-specific. On Windows, this will fail gracefully
-	// and logging will still work, just without concurrent write protection.
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
-		// If locking fails, continue without it (e.g., on unsupported platforms)
-		// This ensures logging doesn't break the command on Windows
+	// Uses platform-specific implementation (flock on Unix, no-op on Windows)
+	if err := lockFile(f); err != nil {
+		// If locking fails, continue without it
+		// This ensures logging doesn't break the command
 	} else {
-		defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+		defer unlockFile(f)
 	}
 
 	// Marshal to JSON
