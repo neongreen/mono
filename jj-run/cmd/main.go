@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -77,8 +78,8 @@ func runCommand(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to get current operation ID: %w", err)
 	}
 
-	fmt.Fprintf(os.Stderr, "Current operation: %s. To revert, run:\n", beforeOp[:12])
-	fmt.Fprintf(os.Stderr, "  jj op restore %s\n\n", beforeOp[:12])
+	fmt.Fprintf(os.Stderr, "Current operation: %s. To revert, run:\n", cli.Key(beforeOp[:12]))
+	fmt.Fprintf(os.Stderr, "  jj op restore %s\n\n", cli.Key(beforeOp[:12]))
 
 	// Use direct mode if requested
 	if directMode {
@@ -130,9 +131,9 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	allChanges = append(allChanges, workspaceChange)
 	abandonChanges(allChanges)
 
-	fmt.Fprintf(os.Stderr, "Rewrote %d/%d commits.\n", modifiedCount, totalChanges)
+	fmt.Fprintf(os.Stderr, "%s %d/%d commits.\n", cli.Success("Rewrote"), modifiedCount, totalChanges)
 	if !allSuccessful {
-		fmt.Fprintf(os.Stderr, "Not all changes were processed successfully.\n")
+		fmt.Fprintf(os.Stderr, "%s\n", cli.Warning("Not all changes were processed successfully."))
 	}
 
 	// Get after operation ID
@@ -168,7 +169,7 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) erro
 		return nil
 	}
 
-	fmt.Fprintf(os.Stderr, "Processing %d changes in direct mode...\n", totalChanges)
+	fmt.Fprintf(os.Stderr, "Processing %s in direct mode...\n", cli.Header(fmt.Sprintf("%d changes", totalChanges)))
 
 	allSuccessful := true
 	processedCount := 0
@@ -184,7 +185,7 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) erro
 
 		// Edit this change (make it the working copy)
 		if _, err := runJJOutput([]string{"edit", changeID}, "."); err != nil {
-			fmt.Fprintf(os.Stderr, "Error editing change: %v\n", err)
+			fmt.Fprintf(os.Stderr, "%s %v\n", cli.Error("Error editing change:"), err)
 			allSuccessful = false
 			exitEarly, handlerErr := handleError(strategy, changeID[:12], err)
 			if exitEarly {
@@ -208,9 +209,9 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) erro
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Processed %d/%d changes.\n", processedCount, totalChanges)
+	fmt.Fprintf(os.Stderr, "%s %d/%d changes.\n", cli.Success("Processed"), processedCount, totalChanges)
 	if !allSuccessful {
-		fmt.Fprintf(os.Stderr, "Not all changes were processed successfully.\n")
+		fmt.Fprintf(os.Stderr, "%s\n", cli.Warning("Not all changes were processed successfully."))
 	}
 
 	// Get after operation ID
@@ -307,11 +308,11 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 		}
 
 		changeID := change.ChangeID
-		fmt.Fprintf(os.Stderr, "Processing change %d/%d %s: %s\n", idx+1, totalChanges, changeID[:12], message)
+		fmt.Fprintf(os.Stderr, "Processing change %d/%d %s: %s\n", idx+1, totalChanges, cli.Key(changeID[:12]), message)
 
 		// Create new change based on this one
 		if _, err := runJJOutput([]string{"new", changeID}, workspacePath); err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating new change: %v\n", err)
+			fmt.Fprintf(os.Stderr, cli.Error("Error creating new change:")+" %v\n", err)
 			allSuccessful = false
 			var handlerErr error
 			if exitEarly, handlerErr = handleError(strategy, changeID[:12], err); exitEarly {

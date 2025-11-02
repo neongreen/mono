@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/neongreen/mono/lib/ghrelease"
 	"github.com/neongreen/mono/want/cmd"
 )
@@ -54,7 +55,7 @@ func handleWant(args []string) {
 }
 
 func handleList() {
-	fmt.Println("MVP: No requirements tracked yet")
+	fmt.Println(cli.Muted("MVP: No requirements tracked yet"))
 	fmt.Println("\nThis command will show:")
 	fmt.Println("  • Tools installed via want")
 	fmt.Println("  • Repositories cloned via want")
@@ -62,7 +63,7 @@ func handleList() {
 }
 
 func handleCheck() {
-	fmt.Println("MVP: No requirements to check")
+	fmt.Println(cli.Muted("MVP: No requirements to check"))
 	fmt.Println("\nThis command will verify:")
 	fmt.Println("  • Whether tracked requirements are still available")
 	fmt.Println("  • Whether repositories are still cloned")
@@ -71,13 +72,13 @@ func handleCheck() {
 
 func handleForget() {
 	if len(os.Args) < 3 {
-		fmt.Println("Error: no requirement specified")
+		cli.PrintError("Error: no requirement specified")
 		fmt.Println("Usage: want forget <requirement>")
 		os.Exit(1)
 	}
 
 	requirement := os.Args[2]
-	fmt.Printf("MVP: Would forget: %s\n", requirement)
+	fmt.Printf("%s Would forget: %s\n", cli.Muted("MVP:"), cli.Key(requirement))
 	fmt.Println("This command will remove the requirement from tracking without uninstalling.")
 }
 
@@ -458,24 +459,24 @@ font.save('%s')`
 		}
 
 		fmt.Println()
-		fmt.Printf("✓ Excalifont Regular has been opened in Font Book\n")
+		cli.PrintSuccess("✓ Excalifont Regular has been opened in Font Book")
 		fmt.Println()
-		fmt.Println("Summary:")
-		fmt.Printf("  ✓ Downloaded from excalidraw.com\n")
-		fmt.Printf("  ✓ Converted woff2 to ttf\n")
-		fmt.Printf("  ✓ Font file saved to: %s\n", ttfPath)
+		cli.PrintHeader("Summary:")
+		fmt.Printf("  %s\n", cli.Success("✓ Downloaded from excalidraw.com"))
+		fmt.Printf("  %s\n", cli.Success("✓ Converted woff2 to ttf"))
+		fmt.Printf("  %s %s\n", cli.Success("✓ Font file saved to:"), cli.Path(ttfPath))
 		fmt.Println()
 		fmt.Println("Next steps:")
 		fmt.Println("  • Font Book should now be open")
 		fmt.Println("  • Click 'Install Font' to add it to your system")
 	} else {
 		fmt.Println()
-		fmt.Printf("✓ Excalifont Regular has been converted successfully\n")
+		cli.PrintSuccess("✓ Excalifont Regular has been converted successfully")
 		fmt.Println()
-		fmt.Println("Summary:")
-		fmt.Printf("  ✓ Downloaded from excalidraw.com\n")
-		fmt.Printf("  ✓ Converted woff2 to ttf\n")
-		fmt.Printf("  ✓ Font file saved to: %s\n", ttfPath)
+		cli.PrintHeader("Summary:")
+		fmt.Printf("  %s\n", cli.Success("✓ Downloaded from excalidraw.com"))
+		fmt.Printf("  %s\n", cli.Success("✓ Converted woff2 to ttf"))
+		fmt.Printf("  %s %s\n", cli.Success("✓ Font file saved to:"), cli.Path(ttfPath))
 		fmt.Println()
 		fmt.Println("Next steps:")
 		fmt.Println("  • Double-click the font file to install it")
@@ -627,12 +628,12 @@ func handleGitHubAsset(url string, dryRun bool, planJson bool) {
 	}
 
 	fmt.Println()
-	fmt.Printf("✓ Downloaded to: %s\n", destPath)
+	fmt.Printf("%s %s\n", cli.Success("✓ Downloaded to:"), cli.Path(destPath))
 	fmt.Println()
 
 	pathEnv := os.Getenv("PATH")
 	if !strings.Contains(pathEnv, destDir) {
-		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
 		fmt.Println()
 		fmt.Println("To use the binary, either:")
 		fmt.Println("  1. Run it with the full path:")
@@ -643,7 +644,7 @@ func handleGitHubAsset(url string, dryRun bool, planJson bool) {
 		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
 		fmt.Printf("     source %s\n", configFile)
 	} else {
-		fmt.Printf("✓ Binary is available in your PATH as: %s\n", destFile)
+		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(destFile))
 	}
 }
 

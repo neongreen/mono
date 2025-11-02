@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +17,7 @@ This command will display:
   • Repositories cloned via want
   • Their current status`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("MVP: No requirements tracked yet")
+		fmt.Println(cli.Muted("MVP: No requirements tracked yet"))
 		fmt.Println("\nThis command will show:")
 		fmt.Println("  • Tools installed via want")
 		fmt.Println("  • Repositories cloned via want")

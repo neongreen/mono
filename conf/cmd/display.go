@@ -5,20 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/neongreen/mono/conf/pkg/schemas"
-)
-
-// Color definitions for consistent styling
-var (
-	pathColor        = color.New(color.FgCyan, color.Bold)
-	typeColor        = color.New(color.FgYellow)
-	setValueColor    = color.New(color.FgGreen)
-	unsetValueColor  = color.New(color.FgHiBlack)
-	defaultColor     = color.New(color.FgBlue)
-	descriptionColor = color.New(color.FgWhite)
+	"github.com/neongreen/mono/lib/cli"
 )
 
 // renderSettingsTable renders a table of settings with colors and proper formatting
@@ -46,30 +36,30 @@ func renderSettingsTable(settings []schemas.SettingInfo, configPath string) {
 
 	for _, setting := range settings {
 		// Format the setting path with color
-		pathStr := pathColor.Sprint(setting.Path)
+		pathStr := cli.Key(setting.Path)
 
 		// Format type with color
-		typeStr := typeColor.Sprint(setting.Type)
+		typeStr := cli.Type(setting.Type)
 
 		// Format value with color and status
 		var valueStr string
 		if setting.IsSet {
-			valueStr = setValueColor.Sprintf("✓ %v", formatValue(setting.CurrentValue))
+			valueStr = cli.Successf("✓ %v", formatValue(setting.CurrentValue))
 		} else if setting.Default != nil {
-			valueStr = defaultColor.Sprintf("(default: %v)", formatValue(setting.Default))
+			valueStr = cli.Secondaryf("(default: %v)", formatValue(setting.Default))
 		} else {
-			valueStr = unsetValueColor.Sprint("(not set)")
+			valueStr = cli.Muted("(not set)")
 		}
 
 		// Add enum values if present
 		if len(setting.Enum) > 0 {
-			valueStr += "\n" + unsetValueColor.Sprintf("values: %s", strings.Join(setting.Enum, ", "))
+			valueStr += "\n" + cli.Mutedf("values: %s", strings.Join(setting.Enum, ", "))
 		}
 
 		// Format description
-		descStr := descriptionColor.Sprint(setting.Description)
+		descStr := setting.Description
 		if descStr == "" {
-			descStr = unsetValueColor.Sprint("-")
+			descStr = cli.Muted("-")
 		}
 
 		t.AppendRow(table.Row{pathStr, typeStr, valueStr, descStr})
@@ -146,10 +136,10 @@ func renderCommonSettingsTable(settings []CommonSetting, configPath string) {
 
 	for _, setting := range settings {
 		// Format with colors
-		pathStr := pathColor.Sprint(setting.Path)
-		typeStr := typeColor.Sprint(setting.Type)
-		descStr := descriptionColor.Sprint(setting.Description)
-		exampleStr := setValueColor.Sprint(setting.Example)
+		pathStr := cli.Key(setting.Path)
+		typeStr := cli.Type(setting.Type)
+		descStr := setting.Description
+		exampleStr := cli.Value(setting.Example)
 
 		t.AppendRow(table.Row{pathStr, typeStr, descStr, exampleStr})
 	}
