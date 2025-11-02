@@ -44,7 +44,7 @@ func TestDescribeTaskCollisionDisplay(t *testing.T) {
 	projectUID := seedProject(t, db, "alpha")
 	nodeA := "NODE_A"
 	nodeB := "NODE_B"
-	if _, err := db.db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeA); err != nil {
+	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeA); err != nil {
 		t.Fatalf("failed to override node id: %v", err)
 	}
 	taskA := seedTaskWithNode(t, db, projectUID, "Task A", 5, nodeA)

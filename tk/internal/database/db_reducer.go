@@ -1,4 +1,4 @@
-package main
+package database
 
 import (
 	"github.com/neongreen/mono/tk/internal/reducer"

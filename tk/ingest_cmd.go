@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -61,7 +62,7 @@ Examples:
 }
 
 // ingestFile ingests events from a single segment file
-func ingestFile(db *DB, path string) error {
+func ingestFile(db *database.DB, path string) error {
 	reader := segment.NewSegmentReader(path)
 	events, err := reader.ReadEvents()
 	if err != nil {
@@ -147,7 +148,7 @@ func ingestFile(db *DB, path string) error {
 }
 
 // IngestRemote ingests events from all segments in a remote
-func IngestRemote(db *DB, remoteName string, remote sync.RemoteConfig) error {
+func IngestRemote(db *database.DB, remoteName string, remote sync.RemoteConfig) error {
 	// Use configured spaces, or default to "personal"
 	spaces := remote.Spaces
 	if len(spaces) == 0 {
@@ -164,7 +165,7 @@ func IngestRemote(db *DB, remoteName string, remote sync.RemoteConfig) error {
 }
 
 // ingestRemoteSpace ingests events from a specific space in a remote
-func ingestRemoteSpace(db *DB, remoteName string, remote sync.RemoteConfig, space string) error {
+func ingestRemoteSpace(db *database.DB, remoteName string, remote sync.RemoteConfig, space string) error {
 	// Find all segment files
 	segmentsDir := filepath.Join(remote.Path, space, "segments")
 	if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
@@ -67,7 +68,7 @@ func init() {
 	doctorCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
-func RunDoctor(db *DB) (*DoctorReport, error) {
+func RunDoctor(db *database.DB) (*DoctorReport, error) {
 	report := &DoctorReport{}
 
 	if err := checkOrphanTasks(db, report); err != nil {
@@ -129,8 +130,8 @@ func PrintDoctorReport(w io.Writer, report *DoctorReport) {
 	}
 }
 
-func checkOrphanTasks(db *DB, report *DoctorReport) error {
-	rows, err := db.db.Query(`
+func checkOrphanTasks(db *database.DB, report *DoctorReport) error {
+	rows, err := db.Db.Query(`
         SELECT task_uid, project_uid
         FROM tasks
         WHERE project_uid NOT IN (SELECT project_uid FROM projects)
@@ -145,7 +146,7 @@ func checkOrphanTasks(db *DB, report *DoctorReport) error {
 		if err := rows.Scan(&taskUID, &projectUID); err != nil {
 			return fmt.Errorf("failed to scan orphan task: %w", err)
 		}
-		display, err := RenderTaskDisplayID(db, taskUID)
+		display, err := database.RenderTaskDisplayID(db, taskUID)
 		if err != nil {
 			display = taskUID
 		}
@@ -154,8 +155,8 @@ func checkOrphanTasks(db *DB, report *DoctorReport) error {
 	return rows.Err()
 }
 
-func checkMissingNumbers(db *DB, report *DoctorReport) error {
-	rows, err := db.db.Query(`
+func checkMissingNumbers(db *database.DB, report *DoctorReport) error {
+	rows, err := db.Db.Query(`
         SELECT task_uid FROM tasks
         WHERE task_uid NOT IN (SELECT task_uid FROM task_numbers)
     `)
@@ -169,7 +170,7 @@ func checkMissingNumbers(db *DB, report *DoctorReport) error {
 		if err := rows.Scan(&taskUID); err != nil {
 			return fmt.Errorf("failed to scan task without number: %w", err)
 		}
-		display, err := RenderTaskDisplayID(db, taskUID)
+		display, err := database.RenderTaskDisplayID(db, taskUID)
 		if err != nil {
 			display = taskUID
 		}
@@ -178,8 +179,8 @@ func checkMissingNumbers(db *DB, report *DoctorReport) error {
 	return rows.Err()
 }
 
-func checkBrokenAliases(db *DB, report *DoctorReport) error {
-	rows, err := db.db.Query(`
+func checkBrokenAliases(db *database.DB, report *DoctorReport) error {
+	rows, err := db.Db.Query(`
         SELECT alias, node, project_uid
         FROM project_aliases
         WHERE project_uid NOT IN (SELECT project_uid FROM projects)
@@ -199,8 +200,8 @@ func checkBrokenAliases(db *DB, report *DoctorReport) error {
 	return rows.Err()
 }
 
-func checkEventPayloads(db *DB, report *DoctorReport) error {
-	rows, err := db.db.Query(`SELECT id, payload FROM events`)
+func checkEventPayloads(db *database.DB, report *DoctorReport) error {
+	rows, err := db.Db.Query(`SELECT id, payload FROM events`)
 	if err != nil {
 		return fmt.Errorf("failed to query events: %w", err)
 	}
@@ -219,7 +220,7 @@ func checkEventPayloads(db *DB, report *DoctorReport) error {
 	return rows.Err()
 }
 
-func collectCollisions(db *DB, report *DoctorReport) error {
+func collectCollisions(db *database.DB, report *DoctorReport) error {
 	collisions, err := getNumberCollisions(db, "")
 	if err != nil {
 		return err
@@ -228,7 +229,7 @@ func collectCollisions(db *DB, report *DoctorReport) error {
 	return nil
 }
 
-func getNumberCollisions(db *DB, projectFilter string) ([]DoctorCollision, error) {
+func getNumberCollisions(db *database.DB, projectFilter string) ([]DoctorCollision, error) {
 	baseQuery := `
         SELECT project_uid, number
         FROM task_numbers
@@ -240,7 +241,7 @@ func getNumberCollisions(db *DB, projectFilter string) ([]DoctorCollision, error
 	}
 	baseQuery += " GROUP BY project_uid, number HAVING COUNT(*) > 1"
 
-	rows, err := db.db.Query(baseQuery, args...)
+	rows, err := db.Db.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query collisions: %w", err)
 	}
@@ -254,7 +255,7 @@ func getNumberCollisions(db *DB, projectFilter string) ([]DoctorCollision, error
 			return nil, fmt.Errorf("failed to scan collision row: %w", err)
 		}
 
-		tasksRows, err := db.db.Query(`
+		tasksRows, err := db.Db.Query(`
             SELECT task_uid FROM task_numbers
             WHERE project_uid = ? AND number = ?
         `, projectUID, number)
@@ -269,7 +270,7 @@ func getNumberCollisions(db *DB, projectFilter string) ([]DoctorCollision, error
 				tasksRows.Close()
 				return nil, fmt.Errorf("failed to scan collision task: %w", err)
 			}
-			display, err := RenderTaskDisplayID(db, taskUID)
+			display, err := database.RenderTaskDisplayID(db, taskUID)
 			if err != nil {
 				display = taskUID
 			}
@@ -277,7 +278,7 @@ func getNumberCollisions(db *DB, projectFilter string) ([]DoctorCollision, error
 		}
 		tasksRows.Close()
 
-		alias, err := preferredAliasForProject(db, types.ProjectUID(projectUID))
+		alias, err := database.PreferredAliasForProject(db, types.ProjectUID(projectUID))
 		if err != nil {
 			alias = projectUID
 		}

@@ -26,7 +26,7 @@ func TestDoctorDetectsOrphanTask(t *testing.T) {
 	projectUID := seedProject(t, db, "proj")
 	taskUID := seedTask(t, db, projectUID, "task", 1)
 
-	if _, err := db.db.Exec(`DELETE FROM projects WHERE project_uid = ?`, projectUID); err != nil {
+	if _, err := db.Db.Exec(`DELETE FROM projects WHERE project_uid = ?`, projectUID); err != nil {
 		t.Fatalf("failed to remove project: %v", err)
 	}
 
@@ -55,7 +55,7 @@ func TestDoctorDetectsCollisions(t *testing.T) {
 	projectUID := seedProject(t, db, "proj")
 	nodeA := "NODE_A"
 	nodeB := "NODE_B"
-	if _, err := db.db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeA); err != nil {
+	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeA); err != nil {
 		t.Fatalf("failed to override node id: %v", err)
 	}
 	seedTaskWithNode(t, db, projectUID, "first", 3, nodeA)

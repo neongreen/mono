@@ -13,7 +13,7 @@ func TestEditNumber(t *testing.T) {
 	}
 
 	var number int64
-	if err := db.db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
+	if err := db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
 		t.Fatalf("failed to load task number: %v", err)
 	}
 	if number != 5 {
@@ -32,7 +32,7 @@ func TestEditTitle(t *testing.T) {
 	}
 
 	var title string
-	if err := db.db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUID).Scan(&title); err != nil {
+	if err := db.Db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUID).Scan(&title); err != nil {
 		t.Fatalf("failed to load task title: %v", err)
 	}
 	if title != "New Title" {

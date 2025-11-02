@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/spf13/cobra"
@@ -62,12 +63,12 @@ Examples:
 		defer db.Close()
 
 		// Resolve both task IDs to UUIDs
-		srcUUID, err := ResolveTaskReference(db, srcTaskID)
+		srcUUID, err := database.ResolveTaskReference(db, srcTaskID)
 		if err != nil {
 			return fmt.Errorf("failed to resolve source task %q: %w", srcTaskID, err)
 		}
 
-		dstUUID, err := ResolveTaskReference(db, dstTaskID)
+		dstUUID, err := database.ResolveTaskReference(db, dstTaskID)
 		if err != nil {
 			return fmt.Errorf("failed to resolve target task %q: %w", dstTaskID, err)
 		}
@@ -100,7 +101,7 @@ Examples:
 		}
 
 		// Generate event ID
-		eventID, err := GenerateEventID(db)
+		eventID, err := database.GenerateEventID(db)
 		if err != nil {
 			return err
 		}
@@ -138,11 +139,11 @@ Examples:
 			return err
 		}
 
-		srcDisplay, err := RenderTaskDisplayID(db, srcUUID)
+		srcDisplay, err := database.RenderTaskDisplayID(db, srcUUID)
 		if err != nil {
 			srcDisplay = srcTaskID
 		}
-		dstDisplay, err := RenderTaskDisplayID(db, dstUUID)
+		dstDisplay, err := database.RenderTaskDisplayID(db, dstUUID)
 		if err != nil {
 			dstDisplay = dstTaskID
 		}
@@ -168,12 +169,12 @@ var relateRemoveCmd = &cobra.Command{
 		defer db.Close()
 
 		// Resolve both task IDs to UUIDs
-		srcUUID, err := ResolveTaskReference(db, srcTaskID)
+		srcUUID, err := database.ResolveTaskReference(db, srcTaskID)
 		if err != nil {
 			return fmt.Errorf("failed to resolve source task %q: %w", srcTaskID, err)
 		}
 
-		dstUUID, err := ResolveTaskReference(db, dstTaskID)
+		dstUUID, err := database.ResolveTaskReference(db, dstTaskID)
 		if err != nil {
 			return fmt.Errorf("failed to resolve target task %q: %w", dstTaskID, err)
 		}
@@ -185,7 +186,7 @@ var relateRemoveCmd = &cobra.Command{
 		}
 
 		// Generate event ID
-		eventID, err := GenerateEventID(db)
+		eventID, err := database.GenerateEventID(db)
 		if err != nil {
 			return err
 		}
@@ -222,11 +223,11 @@ var relateRemoveCmd = &cobra.Command{
 			return err
 		}
 
-		srcDisplay, err := RenderTaskDisplayID(db, srcUUID)
+		srcDisplay, err := database.RenderTaskDisplayID(db, srcUUID)
 		if err != nil {
 			srcDisplay = srcTaskID
 		}
-		dstDisplay, err := RenderTaskDisplayID(db, dstUUID)
+		dstDisplay, err := database.RenderTaskDisplayID(db, dstUUID)
 		if err != nil {
 			dstDisplay = dstTaskID
 		}
@@ -270,7 +271,7 @@ var dupCmd = &cobra.Command{
 
 		// Create two relation.add events (bidirectional)
 		for i, pair := range [][2]string{{uuidA, uuidB}, {uuidB, uuidA}} {
-			eventID, err := GenerateEventID(db)
+			eventID, err := database.GenerateEventID(db)
 			if err != nil {
 				return err
 			}

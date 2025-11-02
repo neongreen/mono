@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
@@ -58,15 +59,15 @@ func init() {
 	idCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
-func describeTask(db *DB, ref string) (*taskIdentity, error) {
-	taskUID, err := ResolveTaskReference(db, ref)
+func describeTask(db *database.DB, ref string) (*taskIdentity, error) {
+	taskUID, err := database.ResolveTaskReference(db, ref)
 	if err != nil {
 		return nil, err
 	}
 
 	var projectUID, createdNode, title, createdBy string
 	var createdAtUnix int64
-	err = db.db.QueryRow(`
+	err = db.Db.QueryRow(`
         SELECT project_uid, created_node, title, created_at, created_by
         FROM tasks
         WHERE task_uid = ?
@@ -76,24 +77,24 @@ func describeTask(db *DB, ref string) (*taskIdentity, error) {
 	}
 
 	var number int64
-	err = db.db.QueryRow(`
+	err = db.Db.QueryRow(`
         SELECT number FROM task_numbers WHERE task_uid = ?
     `, taskUID).Scan(&number)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load task number for %s: %w", taskUID, err)
 	}
 
-	alias, err := preferredAliasForProject(db, types.ProjectUID(projectUID))
+	alias, err := database.PreferredAliasForProject(db, types.ProjectUID(projectUID))
 	if err != nil {
 		return nil, err
 	}
 
-	displayID, err := RenderTaskDisplayID(db, taskUID)
+	displayID, err := database.RenderTaskDisplayID(db, taskUID)
 	if err != nil {
 		displayID = taskUID
 	}
 
-	collides, err := hasNumberCollision(db, projectUID, number)
+	collides, err := database.HasNumberCollision(db, projectUID, number)
 	if err != nil {
 		return nil, err
 	}

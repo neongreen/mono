@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/neongreen/mono/tk/internal/utils"
 
@@ -40,7 +41,7 @@ var blockersCmd = &cobra.Command{
 		}
 
 		// Resolve task ID to UUID
-		taskUUID, err := ResolveTaskReference(db, taskID)
+		taskUUID, err := database.ResolveTaskReference(db, taskID)
 		if err != nil {
 			return err
 		}
@@ -49,7 +50,7 @@ var blockersCmd = &cobra.Command{
 			return fmt.Errorf("task not found: %s", taskID)
 		}
 
-		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, taskUUID)
 		if err != nil {
 			displayID = taskID
 		}
@@ -74,7 +75,7 @@ var blockersCmd = &cobra.Command{
 			}
 
 			for _, blocker := range blockers {
-				blockerDisplay, err := RenderTaskDisplayID(db, blocker.TaskID)
+				blockerDisplay, err := database.RenderTaskDisplayID(db, blocker.TaskID)
 				if err != nil {
 					blockerDisplay = blocker.TaskID
 				}
@@ -106,7 +107,7 @@ var blockersCmd = &cobra.Command{
 		t.SetStyle(table.StyleLight)
 
 		for _, blocker := range blockers {
-			blockerDisplay, err := RenderTaskDisplayID(db, blocker.TaskID)
+			blockerDisplay, err := database.RenderTaskDisplayID(db, blocker.TaskID)
 			if err != nil {
 				blockerDisplay = blocker.TaskID
 			}

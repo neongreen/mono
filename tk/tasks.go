@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/spf13/cobra"
 )
 
-func createTask(db *DB, cmd *cobra.Command, title string) error {
+func createTask(db *database.DB, cmd *cobra.Command, title string) error {
 	projectFlag, _ := cmd.Flags().GetString("project")
 
 	currentUser, err := getCurrentUser()
@@ -23,7 +24,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 		return err
 	}
 
-	projectUID, err := ResolveProjectRef(db, types.NewProjectRef(projectFlag))
+	projectUID, err := database.ResolveProjectRef(db, types.NewProjectRef(projectFlag))
 	if err != nil {
 		return fmt.Errorf("project/alias %q not found. Create it first with: tk project create <name> --alias %s", projectFlag, projectFlag)
 	}
@@ -32,7 +33,7 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 
 	// Compute proposed number (max + 1)
 	var maxNumber int64
-	err = db.db.QueryRow(`
+	err = db.Db.QueryRow(`
 		SELECT COALESCE(MAX(number), 0) FROM task_numbers
 		WHERE project_uid = ?
 	`, projectUID.String()).Scan(&maxNumber)
@@ -103,14 +104,14 @@ func createTask(db *DB, cmd *cobra.Command, title string) error {
 	}
 
 	// Get a friendly display name (preferred alias, or project name, or UID as fallback)
-	displayPrefix, err := preferredAliasForProject(db, projectUID)
+	displayPrefix, err := database.PreferredAliasForProject(db, projectUID)
 	if err != nil {
 		return fmt.Errorf("failed to get display prefix: %w", err)
 	}
 	if displayPrefix == "" {
 		// No alias found, try to get project name
 		var projectName string
-		err = db.db.QueryRow(`SELECT name FROM projects WHERE project_uid = ?`, projectUID.String()).Scan(&projectName)
+		err = db.Db.QueryRow(`SELECT name FROM projects WHERE project_uid = ?`, projectUID.String()).Scan(&projectName)
 		if err == nil && projectName != "" {
 			displayPrefix = projectName
 		} else {

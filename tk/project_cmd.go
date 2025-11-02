@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -149,7 +150,7 @@ var projectLsCmd = &cobra.Command{
 		defer db.Close()
 
 		// Query projects
-		rows, err := db.db.Query(`
+		rows, err := db.Db.Query(`
 			SELECT project_uid, type, name, description, created_by, created_at
 			FROM projects
 			ORDER BY created_at
@@ -186,7 +187,7 @@ var projectLsCmd = &cobra.Command{
 			}
 
 			// Get aliases for this project
-			aliasRows, err := db.db.Query(`
+			aliasRows, err := db.Db.Query(`
 				SELECT alias FROM project_aliases
 				WHERE project_uid = ? AND node = ?
 			`, projectUID, nodeID)
@@ -269,7 +270,7 @@ var projectAliasAddCmd = &cobra.Command{
 
 		// Resolve the project reference to a ProjectUID
 		projectRef := types.NewProjectRef(args[0])
-		projectUID, err := ResolveProjectRef(db, projectRef)
+		projectUID, err := database.ResolveProjectRef(db, projectRef)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -345,7 +346,7 @@ var projectAliasRemoveCmd = &cobra.Command{
 
 		// Find the project UID for this alias
 		var projectUID string
-		err = db.db.QueryRow(`
+		err = db.Db.QueryRow(`
 			SELECT project_uid FROM project_aliases 
 			WHERE alias = ? AND node = ?
 		`, alias, nodeID).Scan(&projectUID)
@@ -408,7 +409,7 @@ var projectRmCmd = &cobra.Command{
 
 		// Resolve the project reference to a ProjectUID
 		ref := types.NewProjectRef(args[0])
-		projectUID, err := ResolveProjectRef(db, ref)
+		projectUID, err := database.ResolveProjectRef(db, ref)
 		if err != nil {
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
@@ -455,15 +456,15 @@ var projectRmCmd = &cobra.Command{
 
 // Helper functions
 
-func generateEventID(db *DB) string {
+func generateEventID(db *database.DB) string {
 	// Use the ULID-based event ID
 	return string(types.NewEventID())
 }
 
-func getNextLamportTimestamp(db *DB) int64 {
+func getNextLamportTimestamp(db *database.DB) int64 {
 	// Get the current max timestamp and increment
 	var maxTS int64
-	err := db.db.QueryRow("SELECT COALESCE(MAX(ts), 0) FROM events").Scan(&maxTS)
+	err := db.Db.QueryRow("SELECT COALESCE(MAX(ts), 0) FROM events").Scan(&maxTS)
 	if err != nil {
 		return 1
 	}

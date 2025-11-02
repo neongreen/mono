@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/spf13/cobra"
@@ -24,12 +25,12 @@ var rmCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		taskUUID, err := ResolveTaskReference(db, taskRef)
+		taskUUID, err := database.ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
 		}
 
-		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, taskUUID)
 		if err != nil {
 			displayID = taskRef
 		}
@@ -39,7 +40,7 @@ var rmCmd = &cobra.Command{
 			return err
 		}
 
-		eventID, err := GenerateEventID(db)
+		eventID, err := database.GenerateEventID(db)
 		if err != nil {
 			return err
 		}

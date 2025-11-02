@@ -25,14 +25,14 @@ func TestMoveTaskAutoAssign(t *testing.T) {
 
 	var projectUID string
 	var number int64
-	if err := db.db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, taskUID).Scan(&projectUID); err != nil {
+	if err := db.Db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, taskUID).Scan(&projectUID); err != nil {
 		t.Fatalf("failed to load task project: %v", err)
 	}
 	if projectUID != dstProject {
 		t.Fatalf("expected project %s, got %s", dstProject, projectUID)
 	}
 
-	if err := db.db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
+	if err := db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
 		t.Fatalf("failed to load task number: %v", err)
 	}
 	if number != 2 {
@@ -75,7 +75,7 @@ func TestMoveTaskKeepCollisionAutoFallback(t *testing.T) {
 	}
 
 	var number int64
-	if err := db.db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
+	if err := db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
 		t.Fatalf("failed to load task number: %v", err)
 	}
 	if number != 2 {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
 )
 
@@ -134,7 +135,7 @@ Examples:
 		}
 
 		// Get database path
-		dbPath, err := GetDBPath()
+		dbPath, err := database.GetDBPath()
 		if err != nil {
 			return err
 		}
@@ -183,7 +184,7 @@ Examples:
 		fmt.Println("Creating fresh database...")
 
 		// Create new database
-		db, err := OpenDB(dbPath)
+		db, err := database.OpenDB(dbPath)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %w", err)
 		}

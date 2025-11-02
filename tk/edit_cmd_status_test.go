@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/reducer"
 	"testing"
+
+	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/reducer"
 )
 
 func TestEditStatus(t *testing.T) {
@@ -16,7 +18,7 @@ func TestEditStatus(t *testing.T) {
 	}
 
 	var state string
-	err := db.db.QueryRow(`
+	err := db.Db.QueryRow(`
 		SELECT json_extract(payload, '$.state')
 		FROM events
 		WHERE kind = 'task.status.set'
@@ -41,7 +43,7 @@ func TestEditStatus(t *testing.T) {
 	}
 }
 
-func buildReducerFromDB(t *testing.T, db *DB) *reducer.Reducer {
+func buildReducerFromDB(t *testing.T, db *database.DB) *reducer.Reducer {
 	events, err := db.GetEvents()
 	if err != nil {
 		t.Fatalf("failed to load events: %v", err)

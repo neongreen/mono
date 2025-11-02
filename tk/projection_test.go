@@ -41,7 +41,7 @@ func TestProjectProjectCreatedEvent(t *testing.T) {
 
 	// Verify project was created in database
 	var count int
-	err = db.db.QueryRow(`SELECT COUNT(*) FROM projects WHERE project_uid = ?`, projectUID).Scan(&count)
+	err = db.Db.QueryRow(`SELECT COUNT(*) FROM projects WHERE project_uid = ?`, projectUID).Scan(&count)
 	if err != nil {
 		t.Fatalf("failed to query projects: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestProjectProjectAliasAddEvent(t *testing.T) {
 
 	// Verify alias was added
 	var count int
-	err = db.db.QueryRow(`SELECT COUNT(*) FROM project_aliases WHERE project_uid = ? AND alias = ?`, projectUID, "newalias").Scan(&count)
+	err = db.Db.QueryRow(`SELECT COUNT(*) FROM project_aliases WHERE project_uid = ? AND alias = ?`, projectUID, "newalias").Scan(&count)
 	if err != nil {
 		t.Fatalf("failed to query project_aliases: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestProjectTaskCreatedEvent(t *testing.T) {
 
 	// Verify task was created
 	var count int
-	err = db.db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&count)
+	err = db.Db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&count)
 	if err != nil {
 		t.Fatalf("failed to query tasks: %v", err)
 	}
@@ -189,7 +189,7 @@ func TestProjectTaskNumberSetEvent(t *testing.T) {
 
 	// Verify number was updated
 	var number int64
-	err = db.db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number)
+	err = db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number)
 	if err != nil {
 		t.Fatalf("failed to query task number: %v", err)
 	}
@@ -233,7 +233,7 @@ func TestProjectTaskTitleSetEvent(t *testing.T) {
 
 	// Verify title was updated
 	var title string
-	err = db.db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUID).Scan(&title)
+	err = db.Db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUID).Scan(&title)
 	if err != nil {
 		t.Fatalf("failed to query task title: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestProjectTaskDeleteEvent(t *testing.T) {
 
 	// Verify task exists in tasks table
 	var countTasks int
-	err := db.db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&countTasks)
+	err := db.Db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&countTasks)
 	if err != nil {
 		t.Fatalf("failed to query tasks: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestProjectTaskDeleteEvent(t *testing.T) {
 
 	// Verify task exists in task_numbers table
 	var countNumbers int
-	err = db.db.QueryRow(`SELECT COUNT(*) FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&countNumbers)
+	err = db.Db.QueryRow(`SELECT COUNT(*) FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&countNumbers)
 	if err != nil {
 		t.Fatalf("failed to query task_numbers: %v", err)
 	}
@@ -294,7 +294,7 @@ func TestProjectTaskDeleteEvent(t *testing.T) {
 	}
 
 	// Verify task was deleted from tasks table
-	err = db.db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&countTasks)
+	err = db.Db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&countTasks)
 	if err != nil {
 		t.Fatalf("failed to query tasks after delete: %v", err)
 	}
@@ -303,7 +303,7 @@ func TestProjectTaskDeleteEvent(t *testing.T) {
 	}
 
 	// Verify task was deleted from task_numbers table
-	err = db.db.QueryRow(`SELECT COUNT(*) FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&countNumbers)
+	err = db.Db.QueryRow(`SELECT COUNT(*) FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&countNumbers)
 	if err != nil {
 		t.Fatalf("failed to query task_numbers after delete: %v", err)
 	}
@@ -350,7 +350,7 @@ func TestProjectTaskDeleteEvent_Idempotency(t *testing.T) {
 
 	// Verify task is still deleted (only deleted once)
 	var count int
-	err = db.db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&count)
+	err = db.Db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&count)
 	if err != nil {
 		t.Fatalf("failed to query tasks: %v", err)
 	}

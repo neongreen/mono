@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
-func deleteTaskByUID(db *DB, taskUID string) error {
+func deleteTaskByUID(db *database.DB, taskUID string) error {
 	lamportTS, err := db.GetNextLamportTS()
 	if err != nil {
 		return err
@@ -48,7 +49,7 @@ func TestDeleteTask(t *testing.T) {
 
 	// Verify task exists
 	var exists bool
-	err := db.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM tasks WHERE task_uid = ?)`, taskUID).Scan(&exists)
+	err := db.Db.QueryRow(`SELECT EXISTS(SELECT 1 FROM tasks WHERE task_uid = ?)`, taskUID).Scan(&exists)
 	if err != nil {
 		t.Fatalf("failed to check task existence: %v", err)
 	}
@@ -62,7 +63,7 @@ func TestDeleteTask(t *testing.T) {
 	}
 
 	// Verify task no longer exists in tasks table
-	err = db.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM tasks WHERE task_uid = ?)`, taskUID).Scan(&exists)
+	err = db.Db.QueryRow(`SELECT EXISTS(SELECT 1 FROM tasks WHERE task_uid = ?)`, taskUID).Scan(&exists)
 	if err != nil {
 		t.Fatalf("failed to check task existence after delete: %v", err)
 	}
@@ -71,7 +72,7 @@ func TestDeleteTask(t *testing.T) {
 	}
 
 	// Verify task no longer exists in task_numbers table
-	err = db.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM task_numbers WHERE task_uid = ?)`, taskUID).Scan(&exists)
+	err = db.Db.QueryRow(`SELECT EXISTS(SELECT 1 FROM task_numbers WHERE task_uid = ?)`, taskUID).Scan(&exists)
 	if err != nil {
 		t.Fatalf("failed to check task_numbers existence after delete: %v", err)
 	}
@@ -81,7 +82,7 @@ func TestDeleteTask(t *testing.T) {
 
 	// Verify event was created
 	var eventCount int
-	err = db.db.QueryRow(`SELECT COUNT(*) FROM events WHERE kind = 'task.delete'`).Scan(&eventCount)
+	err = db.Db.QueryRow(`SELECT COUNT(*) FROM events WHERE kind = 'task.delete'`).Scan(&eventCount)
 	if err != nil {
 		t.Fatalf("failed to count delete events: %v", err)
 	}
@@ -103,7 +104,7 @@ func TestDeleteTaskByDisplayID(t *testing.T) {
 
 	// Verify task no longer exists
 	var exists bool
-	err := db.db.QueryRow(`SELECT EXISTS(SELECT 1 FROM tasks WHERE task_uid = ?)`, taskUID).Scan(&exists)
+	err := db.Db.QueryRow(`SELECT EXISTS(SELECT 1 FROM tasks WHERE task_uid = ?)`, taskUID).Scan(&exists)
 	if err != nil {
 		t.Fatalf("failed to check task existence: %v", err)
 	}
@@ -189,7 +190,7 @@ func TestDeleteTaskIdempotency(t *testing.T) {
 
 	// Verify we have 2 delete events for the same task
 	var eventCount int
-	if err := db.db.QueryRow(`SELECT COUNT(*) FROM events WHERE kind = 'task.delete'`).Scan(&eventCount); err != nil {
+	if err := db.Db.QueryRow(`SELECT COUNT(*) FROM events WHERE kind = 'task.delete'`).Scan(&eventCount); err != nil {
 		t.Fatalf("failed to count delete events: %v", err)
 	}
 	if eventCount != 2 {

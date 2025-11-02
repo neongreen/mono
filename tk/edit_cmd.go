@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/spf13/cobra"
@@ -32,8 +33,8 @@ var editCmd = &cobra.Command{
 	},
 }
 
-func editTask(db *DB, taskRef, field, value string) error {
-	taskUID, err := ResolveTaskReference(db, taskRef)
+func editTask(db *database.DB, taskRef, field, value string) error {
+	taskUID, err := database.ResolveTaskReference(db, taskRef)
 	if err != nil {
 		return err
 	}
@@ -55,7 +56,7 @@ func editTask(db *DB, taskRef, field, value string) error {
 	}
 }
 
-func editTaskStatus(db *DB, taskUID string, value string, actor string) error {
+func editTaskStatus(db *database.DB, taskUID string, value string, actor string) error {
 	value = strings.TrimSpace(value)
 	// Allow empty status to unset it
 
@@ -90,7 +91,7 @@ func editTaskStatus(db *DB, taskUID string, value string, actor string) error {
 		return fmt.Errorf("failed to insert task.status.set event: %w", err)
 	}
 
-	displayID, err := RenderTaskDisplayID(db, taskUID)
+	displayID, err := database.RenderTaskDisplayID(db, taskUID)
 	if err != nil {
 		displayID = taskUID
 	}
@@ -103,7 +104,7 @@ func editTaskStatus(db *DB, taskUID string, value string, actor string) error {
 	return nil
 }
 
-func editTaskNumber(db *DB, taskUID string, value string, actor string) error {
+func editTaskNumber(db *database.DB, taskUID string, value string, actor string) error {
 	number, err := strconv.ParseInt(value, 10, 64)
 	if err != nil || number <= 0 {
 		return fmt.Errorf("invalid number %q", value)
@@ -149,7 +150,7 @@ func editTaskNumber(db *DB, taskUID string, value string, actor string) error {
 		return fmt.Errorf("failed to project task.number.set event: %w", err)
 	}
 
-	displayID, err := RenderTaskDisplayID(db, taskUID)
+	displayID, err := database.RenderTaskDisplayID(db, taskUID)
 	if err != nil {
 		return err
 	}
@@ -158,13 +159,13 @@ func editTaskNumber(db *DB, taskUID string, value string, actor string) error {
 	return nil
 }
 
-func editTaskTitle(db *DB, taskRef string, value string, actor string) error {
+func editTaskTitle(db *database.DB, taskRef string, value string, actor string) error {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return fmt.Errorf("title cannot be empty")
 	}
 
-	taskUID, err := ResolveTaskReference(db, taskRef)
+	taskUID, err := database.ResolveTaskReference(db, taskRef)
 	if err != nil {
 		return err
 	}
@@ -202,7 +203,7 @@ func editTaskTitle(db *DB, taskRef string, value string, actor string) error {
 		return fmt.Errorf("failed to project task.title.set event: %w", err)
 	}
 
-	displayID, err := RenderTaskDisplayID(db, taskUID)
+	displayID, err := database.RenderTaskDisplayID(db, taskUID)
 	if err != nil {
 		return err
 	}
@@ -211,9 +212,9 @@ func editTaskTitle(db *DB, taskRef string, value string, actor string) error {
 	return nil
 }
 
-func projectForTask(db *DB, taskUID string) (string, error) {
+func projectForTask(db *database.DB, taskUID string) (string, error) {
 	var projectUID string
-	err := db.db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, taskUID).Scan(&projectUID)
+	err := db.Db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, taskUID).Scan(&projectUID)
 	if err == sql.ErrNoRows {
 		return "", fmt.Errorf("task %s not found in tasks table", taskUID)
 	}

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/neongreen/mono/tk/internal/utils"
@@ -22,7 +23,7 @@ func TestSegmentRoundTrip(t *testing.T) {
 	dbPath := filepath.Join(tmpDir, "tk.db")
 
 	// Create and initialize database
-	db, err := OpenDB(dbPath)
+	db, err := database.OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
@@ -44,7 +45,7 @@ func TestSegmentRoundTrip(t *testing.T) {
 		t.Fatalf("failed to get lamport timestamp: %v", err)
 	}
 
-	eventID, err := GenerateEventID(db)
+	eventID, err := database.GenerateEventID(db)
 	if err != nil {
 		t.Fatalf("failed to generate event ID: %v", err)
 	}
@@ -119,7 +120,7 @@ func TestDuplicateIngest(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "tk.db")
 
-	db, err := OpenDB(dbPath)
+	db, err := database.OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
@@ -135,7 +136,7 @@ func TestDuplicateIngest(t *testing.T) {
 		t.Fatalf("failed to get lamport timestamp: %v", err)
 	}
 
-	eventID, err := GenerateEventID(db)
+	eventID, err := database.GenerateEventID(db)
 	if err != nil {
 		t.Fatalf("failed to generate event ID: %v", err)
 	}
@@ -175,7 +176,7 @@ func TestLamportBump(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "tk.db")
 
-	db, err := OpenDB(dbPath)
+	db, err := database.OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
@@ -230,7 +231,7 @@ func TestNodeID(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "tk.db")
 
-	db, err := OpenDB(dbPath)
+	db, err := database.OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
@@ -286,7 +287,7 @@ func TestEventAndTaskIDFormats(t *testing.T) {
 	tmpDir := t.TempDir()
 	dbPath := filepath.Join(tmpDir, "tk.db")
 
-	db, err := OpenDB(dbPath)
+	db, err := database.OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
@@ -297,7 +298,7 @@ func TestEventAndTaskIDFormats(t *testing.T) {
 	}
 
 	// Generate event ID
-	eventID, err := GenerateEventID(db)
+	eventID, err := database.GenerateEventID(db)
 	if err != nil {
 		t.Fatalf("failed to generate event ID: %v", err)
 	}

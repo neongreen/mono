@@ -9,7 +9,7 @@ func TestGetNumberCollisionsAll(t *testing.T) {
 	projectB := seedProject(t, db, "b")
 
 	node := "NODE_X"
-	if _, err := db.db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, node); err != nil {
+	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, node); err != nil {
 		t.Fatalf("failed to override node id: %v", err)
 	}
 	seedTaskWithNode(t, db, projectA, "task1", 1, node)
@@ -32,7 +32,7 @@ func TestGetNumberCollisionsFilter(t *testing.T) {
 	project := seedProject(t, db, "a")
 	other := seedProject(t, db, "b")
 
-	if _, err := db.db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', 'NODE_X')`); err != nil {
+	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', 'NODE_X')`); err != nil {
 		t.Fatalf("failed to override node id: %v", err)
 	}
 	seedTaskWithNode(t, db, project, "task1", 1, "NODE_X")

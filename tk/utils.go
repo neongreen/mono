@@ -5,6 +5,7 @@ import (
 	"os/user"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -18,17 +19,17 @@ func extractPrefix(taskID string) string {
 }
 
 // getProjectAliasForTask returns the preferred project alias for a task
-func getProjectAliasForTask(db *DB, taskUID string) (string, error) {
+func getProjectAliasForTask(db *database.DB, taskUID string) (string, error) {
 	// Get project UID for this task
 	var projectUID string
-	err := db.db.QueryRow(`
+	err := db.Db.QueryRow(`
 		SELECT project_uid FROM tasks WHERE task_uid = ?
 	`, taskUID).Scan(&projectUID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get project for task %s: %w", taskUID, err)
 	}
 
-	alias, err := preferredAliasForProject(db, types.ProjectUID(projectUID))
+	alias, err := database.PreferredAliasForProject(db, types.ProjectUID(projectUID))
 	if err != nil {
 		return "", err
 	}
@@ -36,7 +37,7 @@ func getProjectAliasForTask(db *DB, taskUID string) (string, error) {
 	if alias == "" {
 		// If no alias exists, fall back to project name
 		var projectName string
-		err := db.db.QueryRow(`
+		err := db.Db.QueryRow(`
 			SELECT name FROM projects WHERE project_uid = ?
 		`, projectUID).Scan(&projectName)
 		if err != nil {
@@ -49,13 +50,13 @@ func getProjectAliasForTask(db *DB, taskUID string) (string, error) {
 	return alias, nil
 }
 
-func OpenExistingDB() (*DB, error) {
-	path, err := GetDBPath()
+func OpenExistingDB() (*database.DB, error) {
+	path, err := database.GetDBPath()
 	if err != nil {
 		return nil, err
 	}
 
-	db, err := OpenDB(path)
+	db, err := database.OpenDB(path)
 	if err != nil {
 		return nil, err
 	}
@@ -77,9 +78,9 @@ func getCurrentUser() (string, error) {
 }
 
 // getAllProjectDisplayNames returns a map of project UIDs to their display names (alias or name)
-func getAllProjectDisplayNames(db *DB) (map[string]string, error) {
+func getAllProjectDisplayNames(db *database.DB) (map[string]string, error) {
 	// Query all projects
-	rows, err := db.db.Query(`
+	rows, err := db.Db.Query(`
 		SELECT project_uid, name FROM projects ORDER BY created_at
 	`)
 	if err != nil {
@@ -95,7 +96,7 @@ func getAllProjectDisplayNames(db *DB) (map[string]string, error) {
 		}
 
 		// Try to get preferred alias
-		alias, err := preferredAliasForProject(db, types.ProjectUID(projectUID))
+		alias, err := database.PreferredAliasForProject(db, types.ProjectUID(projectUID))
 		if err != nil {
 			// On error, fall back to name
 			result[projectUID] = name

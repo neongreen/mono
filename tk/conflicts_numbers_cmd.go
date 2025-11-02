@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +23,7 @@ var conflictsNumbersCmd = &cobra.Command{
 
 		var projectUID string
 		if projectFlag != "" {
-			resolved, err := resolveProjectByAlias(db, projectFlag)
+			resolved, err := database.ResolveProjectByAlias(db, projectFlag)
 			if err != nil {
 				return err
 			}

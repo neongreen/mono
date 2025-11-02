@@ -6,15 +6,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
-func openTempDB(t *testing.T) *DB {
+func openTempDB(t *testing.T) *database.DB {
 	t.Helper()
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "tk.db")
 
-	db, err := OpenDB(dbPath)
+	db, err := database.OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open temp db: %v", err)
 	}
@@ -28,7 +29,7 @@ func openTempDB(t *testing.T) *DB {
 	if err := db.SetDBVersion(4); err != nil {
 		t.Fatalf("failed to set database version: %v", err)
 	}
-	if _, err := db.db.Exec(`
+	if _, err := db.Db.Exec(`
 		INSERT OR REPLACE INTO metadata (key, value)
 		VALUES ('remote_subdir', ?)
 	`, "v4"); err != nil {
@@ -37,7 +38,7 @@ func openTempDB(t *testing.T) *DB {
 	return db
 }
 
-func seedProject(t *testing.T, db *DB, alias string) string {
+func seedProject(t *testing.T, db *database.DB, alias string) string {
 	t.Helper()
 	projectUID := string(types.NewProjectUID())
 	now := time.Now()
@@ -98,7 +99,7 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 	return projectUID
 }
 
-func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
+func seedProjectWithoutAlias(t *testing.T, db *database.DB, name string) string {
 	t.Helper()
 	projectUID := string(types.NewProjectUID())
 	now := time.Now()
@@ -132,7 +133,7 @@ func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
 	return projectUID
 }
 
-func seedTask(t *testing.T, db *DB, projectUID string, title string, number int64) string {
+func seedTask(t *testing.T, db *database.DB, projectUID string, title string, number int64) string {
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
 		t.Fatalf("failed to get node id: %v", err)
@@ -140,7 +141,7 @@ func seedTask(t *testing.T, db *DB, projectUID string, title string, number int6
 	return seedTaskWithNode(t, db, projectUID, title, number, nodeID)
 }
 
-func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, number int64, nodeID string) string {
+func seedTaskWithNode(t *testing.T, db *database.DB, projectUID string, title string, number int64, nodeID string) string {
 	t.Helper()
 	taskUID := string(types.NewTaskUID())
 	now := time.Now()

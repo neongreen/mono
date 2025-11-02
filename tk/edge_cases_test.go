@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/types"
 	"path/filepath"
 	"testing"
+
+	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // TestEventProjectionIdempotency tests that projecting the same event twice is safe
@@ -11,7 +13,7 @@ func TestEventProjectionIdempotency(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
 
-	db, err := OpenDB(dbPath)
+	db, err := database.OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
@@ -51,7 +53,7 @@ func TestEventProjectionIdempotency(t *testing.T) {
 
 	// Verify only one project exists
 	var count int
-	err = db.db.QueryRow("SELECT COUNT(*) FROM projects WHERE project_uid = ?", projectUID).Scan(&count)
+	err = db.Db.QueryRow("SELECT COUNT(*) FROM projects WHERE project_uid = ?", projectUID).Scan(&count)
 	if err != nil {
 		t.Fatalf("failed to query projects: %v", err)
 	}
@@ -65,7 +67,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
 
-	db, err := OpenDB(dbPath)
+	db, err := database.OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
@@ -143,7 +145,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 
 	// Verify both tasks exist with number 1
 	var count int
-	err = db.db.QueryRow("SELECT COUNT(*) FROM task_numbers WHERE project_uid = ? AND number = 1", projectUID).Scan(&count)
+	err = db.Db.QueryRow("SELECT COUNT(*) FROM task_numbers WHERE project_uid = ? AND number = 1", projectUID).Scan(&count)
 	if err != nil {
 		t.Fatalf("failed to count task numbers: %v", err)
 	}
@@ -152,12 +154,12 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	}
 
 	// Test display ID rendering for both tasks
-	displayID1, err := RenderTaskDisplayID(db, task1UID)
+	displayID1, err := database.RenderTaskDisplayID(db, task1UID)
 	if err != nil {
 		t.Fatalf("failed to render display ID 1: %v", err)
 	}
 
-	displayID2, err := RenderTaskDisplayID(db, task2UID)
+	displayID2, err := database.RenderTaskDisplayID(db, task2UID)
 	if err != nil {
 		t.Fatalf("failed to render display ID 2: %v", err)
 	}

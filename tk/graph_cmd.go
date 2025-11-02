@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -40,7 +41,7 @@ var graphCmd = &cobra.Command{
 		}
 
 		// Resolve task ID to UUID
-		taskUUID, err := ResolveTaskReference(db, taskRef)
+		taskUUID, err := database.ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
 		}
@@ -50,7 +51,7 @@ var graphCmd = &cobra.Command{
 			return fmt.Errorf("task not found: %s", taskRef)
 		}
 
-		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, taskUUID)
 		if err != nil {
 			displayID = taskRef
 		}
@@ -72,7 +73,7 @@ var graphCmd = &cobra.Command{
 				}
 				visited[t.TaskUUID] = true
 
-				taskDisplay, err := RenderTaskDisplayID(db, t.TaskUUID)
+				taskDisplay, err := database.RenderTaskDisplayID(db, t.TaskUUID)
 				if err != nil {
 					taskDisplay = t.TaskID
 				}
@@ -123,14 +124,14 @@ var graphCmd = &cobra.Command{
 	},
 }
 
-func printRelationTree(db *DB, reducer *reducer.Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
+func printRelationTree(db *database.DB, reducer *reducer.Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
 	if currentDepth > maxDepth {
 		return
 	}
 
 	// Prevent infinite loops
 	if visited[task.TaskUUID] {
-		display, err := RenderTaskDisplayID(db, task.TaskUUID)
+		display, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
 			display = task.TaskID
 		}
@@ -141,7 +142,7 @@ func printRelationTree(db *DB, reducer *reducer.Reducer, task *types.Task, relat
 
 	// Print current task
 	if currentDepth > 0 {
-		display, err := RenderTaskDisplayID(db, task.TaskUUID)
+		display, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
 			display = task.TaskID
 		}
@@ -186,7 +187,7 @@ func printRelationTree(db *DB, reducer *reducer.Reducer, task *types.Task, relat
 		// and newPrefix for its children
 		fullPrefix := prefix + connector
 		if !visited[childTask.TaskUUID] {
-			childDisplay, err := RenderTaskDisplayID(db, childTask.TaskUUID)
+			childDisplay, err := database.RenderTaskDisplayID(db, childTask.TaskUUID)
 			if err != nil {
 				childDisplay = childTask.TaskID
 			}
@@ -201,7 +202,7 @@ func printRelationTree(db *DB, reducer *reducer.Reducer, task *types.Task, relat
 }
 
 // Helper function for recursive printing
-func printRelationTreeImpl(db *DB, reducer *reducer.Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
+func printRelationTreeImpl(db *database.DB, reducer *reducer.Reducer, task *types.Task, relationType string, currentDepth, maxDepth int, prefix string, visited map[string]bool) {
 	if currentDepth > maxDepth {
 		return
 	}
@@ -243,7 +244,7 @@ func printRelationTreeImpl(db *DB, reducer *reducer.Reducer, task *types.Task, r
 		}
 
 		fullPrefix := prefix + connector
-		childDisplay, err := RenderTaskDisplayID(db, childTask.TaskUUID)
+		childDisplay, err := database.RenderTaskDisplayID(db, childTask.TaskUUID)
 		if err != nil {
 			childDisplay = childTask.TaskID
 		}

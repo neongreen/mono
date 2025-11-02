@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/fatih/color"
@@ -40,16 +41,16 @@ var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create a new tk database",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		path, err := GetDBPath()
+		path, err := database.GetDBPath()
 		if err != nil {
 			return err
 		}
 
-		if DBExists(path) {
+		if database.DBExists(path) {
 			return fmt.Errorf("database already exists at %s", path)
 		}
 
-		db, err := OpenDB(path)
+		db, err := database.OpenDB(path)
 		if err != nil {
 			return err
 		}
@@ -70,7 +71,7 @@ var dbPathCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		path, err := GetDBPath()
+		path, err := database.GetDBPath()
 		if err != nil {
 			return err
 		}
@@ -144,12 +145,12 @@ var markCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		taskUUID, err := ResolveTaskReference(db, taskRef)
+		taskUUID, err := database.ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
 		}
 
-		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, taskUUID)
 		if err != nil {
 			displayID = taskRef
 		}
@@ -159,7 +160,7 @@ var markCmd = &cobra.Command{
 			return err
 		}
 
-		eventID, err := GenerateEventID(db)
+		eventID, err := database.GenerateEventID(db)
 		if err != nil {
 			return err
 		}
@@ -220,12 +221,12 @@ var noteCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		taskUUID, err := ResolveTaskReference(db, taskRef)
+		taskUUID, err := database.ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
 		}
 
-		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, taskUUID)
 		if err != nil {
 			displayID = taskRef
 		}
@@ -235,7 +236,7 @@ var noteCmd = &cobra.Command{
 			return err
 		}
 
-		eventID, err := GenerateEventID(db)
+		eventID, err := database.GenerateEventID(db)
 		if err != nil {
 			return err
 		}
@@ -303,7 +304,7 @@ var viewCmd = &cobra.Command{
 			return err
 		}
 
-		taskUUID, err := ResolveTaskReference(db, taskRef)
+		taskUUID, err := database.ResolveTaskReference(db, taskRef)
 		if err != nil {
 			return err
 		}
@@ -313,7 +314,7 @@ var viewCmd = &cobra.Command{
 			return fmt.Errorf("task not found: %s", taskRef)
 		}
 
-		displayID, err := RenderTaskDisplayID(db, taskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, taskUUID)
 		if err != nil {
 			displayID = taskRef
 		}

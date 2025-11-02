@@ -13,7 +13,7 @@ func TestDescribeCommand(t *testing.T) {
 	}
 
 	var title string
-	if err := db.db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUID).Scan(&title); err != nil {
+	if err := db.Db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUID).Scan(&title); err != nil {
 		t.Fatalf("failed to load task title: %v", err)
 	}
 	if title != "New Title" {
@@ -33,7 +33,7 @@ func TestDescribeByTaskRef(t *testing.T) {
 	}
 
 	var title string
-	if err := db.db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUID).Scan(&title); err != nil {
+	if err := db.Db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUID).Scan(&title); err != nil {
 		t.Fatalf("failed to load task title: %v", err)
 	}
 	if title != "Updated Task Title" {

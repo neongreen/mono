@@ -1,8 +1,10 @@
 package main
 
 import (
-	"github.com/neongreen/mono/tk/internal/types"
 	"testing"
+
+	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestResolveTaskReferenceByAlias(t *testing.T) {
@@ -11,7 +13,7 @@ func TestResolveTaskReferenceByAlias(t *testing.T) {
 	projectUID := seedProject(t, db, "proj")
 	taskUID := seedTask(t, db, projectUID, "task", 7)
 
-	resolved, err := ResolveTaskReference(db, "proj-7")
+	resolved, err := database.ResolveTaskReference(db, "proj-7")
 	if err != nil {
 		t.Fatalf("resolve failed: %v", err)
 	}
@@ -26,18 +28,18 @@ func TestResolveTaskReferenceCollisionRequiresHint(t *testing.T) {
 	projectUID := seedProject(t, db, "proj")
 	nodeA := "NODE_A"
 	nodeB := "NODE_B"
-	if _, err := db.db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeA); err != nil {
+	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeA); err != nil {
 		t.Fatalf("failed to override node id: %v", err)
 	}
 	taskA := seedTaskWithNode(t, db, projectUID, "first", 5, nodeA)
 	taskB := seedTaskWithNode(t, db, projectUID, "second", 5, nodeB)
 
-	if _, err := ResolveTaskReference(db, "proj-5"); err == nil {
+	if _, err := database.ResolveTaskReference(db, "proj-5"); err == nil {
 		t.Fatalf("expected ambiguity error, got none")
 	}
 
 	hintB := types.NodeID(nodeB).Short()
-	resolvedB, err := ResolveTaskReference(db, "proj-5-"+hintB)
+	resolvedB, err := database.ResolveTaskReference(db, "proj-5-"+hintB)
 	if err != nil {
 		t.Fatalf("resolve with hint failed: %v", err)
 	}
@@ -46,7 +48,7 @@ func TestResolveTaskReferenceCollisionRequiresHint(t *testing.T) {
 	}
 
 	hintA := types.NodeID(nodeA).Short()
-	resolvedA, err := ResolveTaskReference(db, "proj-5-"+hintA)
+	resolvedA, err := database.ResolveTaskReference(db, "proj-5-"+hintA)
 	if err != nil {
 		t.Fatalf("resolve with hint failed: %v", err)
 	}
@@ -61,17 +63,17 @@ func TestRenderTaskDisplayIDWithCollision(t *testing.T) {
 	projectUID := seedProject(t, db, "proj")
 	nodeA := "NODE_A"
 	nodeB := "NODE_B"
-	if _, err := db.db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeA); err != nil {
+	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeA); err != nil {
 		t.Fatalf("failed to override node id: %v", err)
 	}
 	taskA := seedTaskWithNode(t, db, projectUID, "first", 2, nodeA)
 	taskB := seedTaskWithNode(t, db, projectUID, "second", 2, nodeB)
 
-	displayA, err := RenderTaskDisplayID(db, taskA)
+	displayA, err := database.RenderTaskDisplayID(db, taskA)
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
-	displayB, err := RenderTaskDisplayID(db, taskB)
+	displayB, err := database.RenderTaskDisplayID(db, taskB)
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
@@ -94,7 +96,7 @@ func TestRenderTaskDisplayIDWithoutAlias(t *testing.T) {
 	projectUID := seedProjectWithoutAlias(t, db, "My Project")
 	taskUID := seedTask(t, db, projectUID, "task", 1)
 
-	displayID, err := RenderTaskDisplayID(db, taskUID)
+	displayID, err := database.RenderTaskDisplayID(db, taskUID)
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -51,7 +52,7 @@ func colorizeStatus(status string) string {
 }
 
 // renderTaskTable renders a table of tasks with the specified configuration
-func renderTaskTable(db *DB, tasks []*types.Task, showAliases bool, termWidth int) {
+func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, termWidth int) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
@@ -91,7 +92,7 @@ func renderTaskTable(db *DB, tasks []*types.Task, showAliases bool, termWidth in
 	}
 
 	for _, task := range tasks {
-		displayID, err := RenderTaskDisplayID(db, task.TaskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
 			displayID = task.TaskID
 		}
@@ -107,7 +108,7 @@ func renderTaskTable(db *DB, tasks []*types.Task, showAliases bool, termWidth in
 			if len(task.Aliases) > 0 {
 				var shortAliases []string
 				for _, alias := range task.Aliases {
-					shortAliases = append(shortAliases, FormatTaskID(db, alias))
+					shortAliases = append(shortAliases, database.FormatTaskID(db, alias))
 				}
 				aliasesStr = strings.Join(shortAliases, ", ")
 			}
@@ -121,10 +122,10 @@ func renderTaskTable(db *DB, tasks []*types.Task, showAliases bool, termWidth in
 }
 
 // outputTasksJSON outputs tasks as JSON, respecting grouping
-func outputTasksJSON(db *DB, tasks []*types.Task, groupBy string) error {
+func outputTasksJSON(db *database.DB, tasks []*types.Task, groupBy string) error {
 
 	for _, task := range tasks {
-		displayID, err := RenderTaskDisplayID(db, task.TaskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
 			displayID = task.TaskID
 		}

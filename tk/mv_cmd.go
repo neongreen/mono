@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 
 	"github.com/spf13/cobra"
@@ -107,8 +108,8 @@ func parseMoveOptions(cmd *cobra.Command, targetSpec string) (moveOptions, error
 	return opts, nil
 }
 
-func moveTask(db *DB, taskRef string, targetSpec string, opts moveOptions) error {
-	taskUID, err := ResolveTaskReference(db, taskRef)
+func moveTask(db *database.DB, taskRef string, targetSpec string, opts moveOptions) error {
+	taskUID, err := database.ResolveTaskReference(db, taskRef)
 	if err != nil {
 		return err
 	}
@@ -123,7 +124,7 @@ func moveTask(db *DB, taskRef string, targetSpec string, opts moveOptions) error
 		targetRef = targetSpec[:idx]
 	}
 
-	toProjectUID, err := resolveProjectByAlias(db, targetRef)
+	toProjectUID, err := database.ResolveProjectByAlias(db, targetRef)
 	if err != nil {
 		return err
 	}
@@ -161,7 +162,7 @@ func moveTask(db *DB, taskRef string, targetSpec string, opts moveOptions) error
 				return err
 			}
 			if collision {
-				display, _ := RenderTaskDisplayID(db, taskUID)
+				display, _ := database.RenderTaskDisplayID(db, taskUID)
 				return fmt.Errorf("task %s would collide with existing number %d in target project; rerun with --auto or --force", display, oldNumber)
 			}
 		}
@@ -203,7 +204,7 @@ func moveTask(db *DB, taskRef string, targetSpec string, opts moveOptions) error
 		return fmt.Errorf("failed to project task.relocate event: %w", err)
 	}
 
-	display, err := RenderTaskDisplayID(db, taskUID)
+	display, err := database.RenderTaskDisplayID(db, taskUID)
 	if err != nil {
 		return err
 	}
@@ -216,9 +217,9 @@ func cmdExplicitNumber(opts moveOptions) bool {
 	return opts.Mode == "force" || (opts.TargetNumber != nil && *opts.TargetNumber > 0)
 }
 
-func taskProjectAndNumber(db *DB, taskUID string) (string, int64, error) {
+func taskProjectAndNumber(db *database.DB, taskUID string) (string, int64, error) {
 	var projectUID string
-	if err := db.db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, taskUID).Scan(&projectUID); err != nil {
+	if err := db.Db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, taskUID).Scan(&projectUID); err != nil {
 		if err == sql.ErrNoRows {
 			return "", 0, fmt.Errorf("task %s not found", taskUID)
 		}
@@ -226,7 +227,7 @@ func taskProjectAndNumber(db *DB, taskUID string) (string, int64, error) {
 	}
 
 	var number int64
-	if err := db.db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
+	if err := db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
 		if err == sql.ErrNoRows {
 			number = 0
 		} else {
@@ -237,9 +238,9 @@ func taskProjectAndNumber(db *DB, taskUID string) (string, int64, error) {
 	return projectUID, number, nil
 }
 
-func numberCollisionExists(db *DB, projectUID string, number int64, taskUID string) (bool, error) {
+func numberCollisionExists(db *database.DB, projectUID string, number int64, taskUID string) (bool, error) {
 	var count int
-	if err := db.db.QueryRow(`
+	if err := db.Db.QueryRow(`
 		SELECT COUNT(*) FROM task_numbers
 		WHERE project_uid = ? AND number = ? AND task_uid != ?
 	`, projectUID, number, taskUID).Scan(&count); err != nil {
