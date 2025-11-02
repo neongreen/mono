@@ -14,32 +14,6 @@ import (
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
-// sortTasks sorts tasks based on the specified sort order
-func sortTasks(tasks []*types.Task, sortBy string) {
-	switch sortBy {
-	case "created":
-
-		sort.Slice(tasks, func(i, j int) bool {
-			return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
-		})
-	case "id":
-
-		sort.Slice(tasks, func(i, j int) bool {
-			return tasks[i].TaskID < tasks[j].TaskID
-		})
-	case "title":
-
-		sort.Slice(tasks, func(i, j int) bool {
-			return tasks[i].Title < tasks[j].Title
-		})
-	default:
-
-		sort.Slice(tasks, func(i, j int) bool {
-			return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
-		})
-	}
-}
-
 // colorizeStatus returns a colored status string based on the status value
 func colorizeStatus(status string) string {
 	switch status {

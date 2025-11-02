@@ -329,7 +329,7 @@ func TestExtractPrefix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := extractPrefix(tt.taskID)
+			got := types.ExtractPrefix(tt.taskID)
 			if got != tt.want {
 				t.Errorf("extractPrefix(%v) = %v, want %v", tt.taskID, got, tt.want)
 			}

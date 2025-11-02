@@ -3,20 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os/user"
-	"strings"
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
-
-// extractPrefix extracts the prefix from a TaskID (format: prefix-number-node)
-func extractPrefix(taskID string) string {
-	parts := strings.Split(taskID, "-")
-	if len(parts) > 0 {
-		return parts[0]
-	}
-	return ""
-}
 
 // getProjectAliasForTask returns the preferred project alias for a task
 func getProjectAliasForTask(db *database.DB, taskUID string) (string, error) {

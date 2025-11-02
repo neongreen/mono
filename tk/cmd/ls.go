@@ -106,7 +106,7 @@ var lsCmd = &cobra.Command{
 			tasks = filtered
 		}
 
-		sortTasks(tasks, sortBy)
+		types.SortTasks(tasks, sortBy)
 
 		if jsonOutput {
 			return outputTasksJSON(db, tasks, groupBy)
