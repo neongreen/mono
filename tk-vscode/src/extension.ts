@@ -139,13 +139,57 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
     this._view = webviewView;
 
     webviewView.webview.options = {
-      enableScripts: false,
+      enableScripts: true,
     };
+
+    // Handle messages from the webview
+    webviewView.webview.onDidReceiveMessage(async (message) => {
+      if (message.type === 'editTitle' && this.currentTask) {
+        await this.handleTitleEdit(message.newTitle);
+      }
+    });
 
     if (this.currentTask) {
       this.updateView();
     } else {
       this.showEmptyState();
+    }
+  }
+
+  private async handleTitleEdit(newTitle: string): Promise<void> {
+    if (!this.currentTask) {
+      return;
+    }
+
+    const taskId = this.currentTask.task_id;
+    if (!taskId) {
+      void vscode.window.showErrorMessage('Cannot edit title: task has no ID');
+      return;
+    }
+
+    if (newTitle.trim() === '') {
+      void vscode.window.showErrorMessage('Title cannot be empty');
+      return;
+    }
+
+    try {
+      const { binary, cwd } = getTkConfig();
+      const args = ['describe', taskId, newTitle];
+
+      await execFileAsync(binary, args, {
+        cwd,
+        env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+      });
+
+      // Update the current task's title
+      this.currentTask.title = newTitle;
+      this.updateView();
+
+      // Trigger a refresh of the tree view
+      void vscode.commands.executeCommand('tk.refresh');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      void vscode.window.showErrorMessage(`Failed to update title: ${message}`);
     }
   }
 
@@ -212,7 +256,7 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
         const noteText = encodeHtml(note.markdown || '(empty note)');
         const actor = encodeHtml(note.actor || 'Unknown');
         const timestamp = note.timestamp ? new Date(note.timestamp).toLocaleString() : '';
-        
+
         return `
           <div class="note">
             <div class="note-content">${noteText}</div>
@@ -232,7 +276,7 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
     <style>
         body {
             padding: 12px;
@@ -242,7 +286,7 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
             line-height: 1.5;
         }
         .section {
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .section-title {
             font-weight: 600;
@@ -253,15 +297,97 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
             letter-spacing: 0.5px;
             opacity: 0.8;
         }
-        .section-content {
-            color: var(--vscode-foreground);
-            white-space: pre-wrap;
-            word-wrap: break-word;
+        .task-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 12px;
         }
         .task-id {
             font-family: var(--vscode-editor-font-family);
             color: var(--vscode-textLink-foreground);
+            font-weight: 600;
+            flex-shrink: 0;
+            line-height: 1.5;
+        }
+        .title-container {
+            flex: 1;
+            min-width: 0;
+        }
+        .title-display {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: var(--vscode-foreground);
+            cursor: pointer;
+            padding: 2px 4px;
+            margin: -2px -4px;
+            border-radius: 3px;
+        }
+        .title-display:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+        .title-edit {
+            display: none;
+        }
+        .title-textarea {
+            width: 100%;
+            min-height: 60px;
+            resize: vertical;
+            background-color: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 3px;
+            padding: 6px 8px;
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            line-height: 1.5;
+            box-sizing: border-box;
+        }
+        .title-textarea:focus {
+            outline: 1px solid var(--vscode-focusBorder);
+            border-color: var(--vscode-focusBorder);
+        }
+        .title-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        .btn {
+            padding: 4px 12px;
+            border: 1px solid var(--vscode-button-border);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: var(--vscode-font-size);
+            font-family: var(--vscode-font-family);
+        }
+        .btn-primary {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+        }
+        .btn-primary:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        .btn-secondary {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+        .btn-secondary:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 6px 12px;
+        }
+        .metadata-label {
             font-weight: 500;
+            color: var(--vscode-descriptionForeground);
+            font-size: 12px;
+        }
+        .metadata-value {
+            color: var(--vscode-foreground);
+            font-size: 12px;
         }
         .note {
             background-color: var(--vscode-textBlockQuote-background);
@@ -289,30 +415,21 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
             color: var(--vscode-descriptionForeground);
             font-style: italic;
         }
-        .metadata-grid {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 8px 12px;
-            margin-bottom: 16px;
-        }
-        .metadata-label {
-            font-weight: 500;
-            color: var(--vscode-descriptionForeground);
-        }
-        .metadata-value {
-            color: var(--vscode-foreground);
-        }
     </style>
 </head>
 <body>
-    <div class="section">
-        <div class="section-title">Task</div>
-        <div class="section-content task-id">${encodeHtml(taskId)}</div>
-    </div>
-    
-    <div class="section">
-        <div class="section-title">Title</div>
-        <div class="section-content">${encodeHtml(title)}</div>
+    <div class="task-header">
+        <span class="task-id">${encodeHtml(taskId)}</span>
+        <div class="title-container">
+            <div class="title-display" id="titleDisplay" onclick="startEditTitle()">${encodeHtml(title)}</div>
+            <div class="title-edit" id="titleEdit">
+                <textarea class="title-textarea" id="titleTextarea">${encodeHtml(title)}</textarea>
+                <div class="title-buttons">
+                    <button class="btn btn-primary" onclick="saveTitle()">Save</button>
+                    <button class="btn btn-secondary" onclick="cancelEditTitle()">Cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="section">
@@ -328,6 +445,48 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
         <div class="section-title">Notes</div>
         ${notesHtml}
     </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        let originalTitle = ${JSON.stringify(title)};
+
+        function startEditTitle() {
+            document.getElementById('titleDisplay').style.display = 'none';
+            document.getElementById('titleEdit').style.display = 'block';
+            const textarea = document.getElementById('titleTextarea');
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+        }
+
+        function cancelEditTitle() {
+            document.getElementById('titleTextarea').value = originalTitle;
+            document.getElementById('titleDisplay').style.display = 'block';
+            document.getElementById('titleEdit').style.display = 'none';
+        }
+
+        function saveTitle() {
+            const newTitle = document.getElementById('titleTextarea').value;
+            if (newTitle.trim() === '') {
+                return;
+            }
+            vscode.postMessage({
+                type: 'editTitle',
+                newTitle: newTitle
+            });
+        }
+
+        // Allow Enter to save with Ctrl/Cmd modifier
+        document.getElementById('titleTextarea').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                saveTitle();
+            }
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelEditTitle();
+            }
+        });
+    </script>
 </body>
 </html>`;
   }
