@@ -49,7 +49,7 @@ When concurrent claims exist (same Lamport timestamp), the claim with highest au
 - `tk new "title"` - Create a new task
 - `tk mark <id> <state>` - Set task status (supports --axis and --role flags)
 - `tk note <id> "text"` - Add a note to a task
-- `tk view <id>` - View task with all claims (JSON output)
+- `tk show <id>` - Show task with all claims (human readable by default, JSON with --json)
 - `tk ls` - List all tasks (supports --axis filter and --sort)
 
 **Sync commands (v1):**
@@ -153,7 +153,7 @@ Set status for task tk-1: generic=in_progress
 $ tk mark tk-1 done --role agent
 Set status for task tk-1: generic=done
 
-$ tk view tk-1
+$ tk show tk-1
 {
   "task_id": "tk-1-AbC123",
   "title": "Implement authentication",

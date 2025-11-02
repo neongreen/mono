@@ -44,7 +44,7 @@ The tk v4 specification has been fully implemented with automatic migration, com
 - [x] `tk new <title> --project <alias>` (v4 mode)
 - [x] `tk new <title> --prefix <prefix>` (v1/v2 compatibility)
 - [x] `tk ls` (v4-aware grouping by project)
-- [x] `tk view <task-ref>` (supports UIDs and display IDs)
+- [x] `tk show <task-ref>` (supports UIDs and display IDs, `view` is an alias)
 - [x] `tk edit <task> <field> <value>`
 - [x] `tk mark <task> <status>`
 - [x] `tk id <task>` (shows v4 metadata)
@@ -173,7 +173,7 @@ $ tk project list
 $ tk new "Review PR" --project work
 Created task work-1: Review PR
 
-$ tk view work-1
+$ tk show work-1
 {
   "task_uuid": "tsk_01J5Q...",
   "task_id": "work-1",

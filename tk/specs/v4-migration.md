@@ -296,7 +296,7 @@ The `task.relocate` event is the v4 equivalent of `task.reprefix` from v1/v2. Bo
 | `tk new --prefix foo "title"` | `tk new --project foo "title"` | `--project` instead of `--prefix` |
 | `tk mv foo-1 bar:2` | `tk edit foo-1 number 2`<br>`tk mv foo-1 bar --force 2` | v4: renumber or move separately |
 | `tk ls --prefix foo` | `tk ls --project foo` | `--project` instead of `--prefix` |
-| `tk view foo-1-abc123` | `tk view foo-1`<br>`tk view foo-1-abc` | Node hint only if needed |
+| `tk show foo-1-abc123` | `tk show foo-1`<br>`tk show foo-1-abc` | Node hint only if needed |
 
 ---
 

@@ -238,8 +238,8 @@ tk note foo-1 "Implemented new feature"
 ### View a task
 
 ```bash
-tk view tk-1
-tk view foo-1
+tk show tk-1
+tk show foo-1
 ```
 
 This shows the current state, all claims (effective and tentative), and notes.
@@ -486,8 +486,8 @@ tk new "My task"  # Creates tk-1
 tk mv tk-1 foo:1  # Now foo-1, but tk-1 is an alias
 
 # Both IDs work
-tk view tk-1      # Works (using alias)
-tk view foo-1     # Works (using current ID)
+tk show tk-1      # Works (using alias)
+tk show foo-1     # Works (using current ID)
 ```
 
 Aliases are preserved indefinitely and synced between machines, ensuring old links and references continue to work.

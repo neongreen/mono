@@ -3,6 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
+	"strings"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
@@ -10,10 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var viewCmd = &cobra.Command{
-	Use:   "view [task-id]",
-	Short: "View task details",
-	Args:  cobra.ExactArgs(1),
+var showCmd = &cobra.Command{
+	Use:     "show [task-id]",
+	Aliases: []string{"view"},
+	Short:   "Show task details",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
 		jsonOutput, _ := cmd.Flags().GetBool("json")
@@ -52,13 +55,83 @@ var viewCmd = &cobra.Command{
 		taskCopy := *task
 		taskCopy.TaskID = displayID
 
-		_ = jsonOutput
-		output, err := json.MarshalIndent(taskCopy, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to marshal task: %w", err)
+		if jsonOutput {
+			output, err := json.MarshalIndent(taskCopy, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal task: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			renderTaskDetails(db, &taskCopy)
 		}
 
-		fmt.Println(string(output))
 		return nil
 	},
+}
+
+// renderTaskDetails renders a human-readable view of a single task
+func renderTaskDetails(db *database.DB, task *types.Task) {
+	fmt.Printf("Task: %s\n", boldText(task.TaskID))
+
+	if task.Title != "" {
+		fmt.Printf("Title: %s\n", task.Title)
+	}
+
+	// Display status from generic axis
+	if axis, ok := task.Axes["generic"]; ok && axis.Effective != "" {
+		fmt.Printf("Status: %s\n", colorizeStatus(axis.Effective))
+	}
+
+	// Display aliases
+	if len(task.Aliases) > 0 {
+		var aliases []string
+		for _, alias := range task.Aliases {
+			aliases = append(aliases, database.FormatTaskID(db, alias))
+		}
+		sort.Strings(aliases)
+		fmt.Printf("Aliases: %s\n", strings.Join(aliases, ", "))
+	}
+
+	// Display blocked status
+	if task.Blocked {
+		fmt.Printf("Blocked: %s\n", redText("yes"))
+		if len(task.Blockers) > 0 {
+			fmt.Println("Blocked by:")
+			for _, blocker := range task.Blockers {
+				blockerID := blocker.TaskID
+				title := ""
+				if blocker.Title != "" {
+					title = fmt.Sprintf(" - %s", blocker.Title)
+				}
+				fmt.Printf("  - %s%s\n", blockerID, title)
+			}
+		}
+	}
+
+	// Display notes
+	if len(task.Notes) > 0 {
+		fmt.Println("\nNotes:")
+		for i, note := range task.Notes {
+			if i > 0 {
+				fmt.Println()
+			}
+			if note.Actor != "" || !note.Timestamp.IsZero() {
+				header := []string{}
+				if note.Actor != "" {
+					header = append(header, note.Actor)
+				}
+				if !note.Timestamp.IsZero() {
+					header = append(header, note.Timestamp.Format("2006-01-02 15:04:05"))
+				}
+				fmt.Printf("  [%s]\n", strings.Join(header, " - "))
+			}
+			if note.Markdown != "" {
+				// Indent note content
+				lines := strings.Split(note.Markdown, "\n")
+				for _, line := range lines {
+					fmt.Printf("  %s\n", line)
+				}
+			}
+		}
+	}
 }

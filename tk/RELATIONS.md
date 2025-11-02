@@ -149,7 +149,7 @@ The system detects cycles in `blocks` and `subtask` relations. Cycles are not cu
 
 ## JSON Output
 
-Relations are included in task JSON when using `tk view`:
+Relations are included in task JSON when using `tk show`:
 
 ```json
 {

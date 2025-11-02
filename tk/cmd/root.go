@@ -110,8 +110,8 @@ func init() {
 
 	rootCmd.AddCommand(noteCmd)
 
-	viewCmd.Flags().Bool("json", false, "Output as JSON")
-	rootCmd.AddCommand(viewCmd)
+	showCmd.Flags().Bool("json", false, "Output as JSON")
+	rootCmd.AddCommand(showCmd)
 
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")

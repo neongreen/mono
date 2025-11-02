@@ -215,4 +215,6 @@ var (
 	// Color formatters for status display
 	yellowStatus = color.New(color.FgYellow).SprintFunc()
 	greenStatus  = color.New(color.FgGreen).SprintFunc()
+	redText      = color.New(color.FgRed).SprintFunc()
+	boldText     = color.New(color.Bold).SprintFunc()
 )
