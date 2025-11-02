@@ -195,6 +195,17 @@ func importBeadsIssue(db *database.DB, issue BeadsIssue, projectUID string) (str
 		return "", err
 	}
 
+	// Compute next task number (max + 1)
+	var maxNumber int64
+	err = db.Db.QueryRow(`
+		SELECT COALESCE(MAX(number), 0) FROM task_numbers
+		WHERE project_uid = ?
+	`, projectUID).Scan(&maxNumber)
+	if err != nil {
+		return "", fmt.Errorf("failed to get max number: %w", err)
+	}
+	proposedNumber := maxNumber + 1
+
 	// Parse created_at time if available
 	var createdAt time.Time
 	if issue.CreatedAt != "" {
@@ -218,11 +229,12 @@ func importBeadsIssue(db *database.DB, issue BeadsIssue, projectUID string) (str
 
 	// Create task.created event
 	payload := types.TaskCreatedPayload{
-		TaskUID:     taskUID,
-		ProjectUID:  projectUID,
-		Title:       issue.Title,
-		CreatedNode: nodeID,
-		CreatedBy:   actor,
+		TaskUID:        taskUID,
+		ProjectUID:     projectUID,
+		ProposedNumber: proposedNumber,
+		Title:          issue.Title,
+		CreatedNode:    nodeID,
+		CreatedBy:      actor,
 	}
 
 	payloadJSON, err := json.Marshal(payload)
@@ -256,6 +268,47 @@ func importBeadsIssue(db *database.DB, issue BeadsIssue, projectUID string) (str
 
 	if err := db.ProjectTaskCreatedEvent(event); err != nil {
 		return "", err
+	}
+
+	// Create task.number.set event
+	numberPayload := types.TaskNumberSetPayload{
+		TaskUID:    taskUID,
+		ProjectUID: projectUID,
+		Number:     proposedNumber,
+		Reason:     "imported",
+	}
+
+	numberPayloadJSON, err := json.Marshal(numberPayload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal number payload: %w", err)
+	}
+
+	numberEventID, err := database.GenerateEventID(db)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate event ID: %w", err)
+	}
+
+	numberTS, err := db.GetNextLamportTS()
+	if err != nil {
+		return "", fmt.Errorf("failed to get next lamport timestamp: %w", err)
+	}
+
+	numberEvent := types.Event{
+		ID:        numberEventID,
+		TS:        numberTS,
+		CreatedAt: createdAt,
+		Actor:     actor,
+		Role:      "human",
+		Kind:      string(types.EventKindTaskNumberSet),
+		Payload:   numberPayloadJSON,
+	}
+
+	if err := db.InsertEvent(numberEvent); err != nil {
+		return "", fmt.Errorf("failed to insert number event: %w", err)
+	}
+
+	if err := db.ProjectTaskNumberSetEvent(numberEvent); err != nil {
+		return "", fmt.Errorf("failed to project task number: %w", err)
 	}
 
 	// Add description as a note if present
