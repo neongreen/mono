@@ -1,7 +1,6 @@
-package main
+package cmd
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -346,10 +345,4 @@ func TestRelationGraph_RemoveTaskRelations(t *testing.T) {
 	if len(inSubtaskD) != 0 {
 		t.Errorf("Expected 0 incoming subtask relations for task-d after RemoveTaskRelations on task-a, got %d", len(inSubtaskD))
 	}
-}
-
-// Helper to marshal payloads
-func marshalPayload(v interface{}) json.RawMessage {
-	data, _ := json.Marshal(v)
-	return json.RawMessage(data)
 }

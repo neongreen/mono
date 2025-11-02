@@ -1,25 +1,18 @@
-package main
+package cmd
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
-
-// Color formatters for status display
-
-func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-}
 
 var rootCmd = &cobra.Command{
 	Use:   "tk",
 	Short: "tk - system-wide event-sourced task tracker",
 	Long:  `tk is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.`,
+}
+
+// Execute runs the root command
+func Execute() error {
+	return rootCmd.Execute()
 }
 
 // Always use project-based path

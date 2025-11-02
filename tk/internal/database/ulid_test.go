@@ -1,10 +1,9 @@
-package main
+package database
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/utils"
 )
 
@@ -38,7 +37,7 @@ func TestGenerateTaskUUID(t *testing.T) {
 func TestGenerateEventID(t *testing.T) {
 	db := openTempDB(t)
 
-	eventID, err := database.GenerateEventID(db)
+	eventID, err := GenerateEventID(db)
 	if err != nil {
 		t.Fatalf("GenerateEventID() error = %v", err)
 	}
@@ -54,7 +53,7 @@ func TestGenerateEventID(t *testing.T) {
 	}
 
 	// Second call should increment the number
-	eventID2, err := database.GenerateEventID(db)
+	eventID2, err := GenerateEventID(db)
 	if err != nil {
 		t.Fatalf("GenerateEventID() second call error = %v", err)
 	}

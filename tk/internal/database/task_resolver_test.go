@@ -1,9 +1,8 @@
-package main
+package database
 
 import (
 	"testing"
 
-	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -13,7 +12,7 @@ func TestResolveTaskReferenceByAlias(t *testing.T) {
 	projectUID := seedProject(t, db, "proj")
 	taskUID := seedTask(t, db, projectUID, "task", 7)
 
-	resolved, err := database.ResolveTaskReference(db, "proj-7")
+	resolved, err := ResolveTaskReference(db, "proj-7")
 	if err != nil {
 		t.Fatalf("resolve failed: %v", err)
 	}
@@ -34,12 +33,12 @@ func TestResolveTaskReferenceCollisionRequiresHint(t *testing.T) {
 	taskA := seedTaskWithNode(t, db, projectUID, "first", 5, nodeA)
 	taskB := seedTaskWithNode(t, db, projectUID, "second", 5, nodeB)
 
-	if _, err := database.ResolveTaskReference(db, "proj-5"); err == nil {
+	if _, err := ResolveTaskReference(db, "proj-5"); err == nil {
 		t.Fatalf("expected ambiguity error, got none")
 	}
 
 	hintB := types.NodeID(nodeB).Short()
-	resolvedB, err := database.ResolveTaskReference(db, "proj-5-"+hintB)
+	resolvedB, err := ResolveTaskReference(db, "proj-5-"+hintB)
 	if err != nil {
 		t.Fatalf("resolve with hint failed: %v", err)
 	}
@@ -48,7 +47,7 @@ func TestResolveTaskReferenceCollisionRequiresHint(t *testing.T) {
 	}
 
 	hintA := types.NodeID(nodeA).Short()
-	resolvedA, err := database.ResolveTaskReference(db, "proj-5-"+hintA)
+	resolvedA, err := ResolveTaskReference(db, "proj-5-"+hintA)
 	if err != nil {
 		t.Fatalf("resolve with hint failed: %v", err)
 	}
@@ -69,11 +68,11 @@ func TestRenderTaskDisplayIDWithCollision(t *testing.T) {
 	taskA := seedTaskWithNode(t, db, projectUID, "first", 2, nodeA)
 	taskB := seedTaskWithNode(t, db, projectUID, "second", 2, nodeB)
 
-	displayA, err := database.RenderTaskDisplayID(db, taskA)
+	displayA, err := RenderTaskDisplayID(db, taskA)
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
-	displayB, err := database.RenderTaskDisplayID(db, taskB)
+	displayB, err := RenderTaskDisplayID(db, taskB)
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
@@ -96,7 +95,7 @@ func TestRenderTaskDisplayIDWithoutAlias(t *testing.T) {
 	projectUID := seedProjectWithoutAlias(t, db, "My Project")
 	taskUID := seedTask(t, db, projectUID, "task", 1)
 
-	displayID, err := database.RenderTaskDisplayID(db, taskUID)
+	displayID, err := RenderTaskDisplayID(db, taskUID)
 	if err != nil {
 		t.Fatalf("render failed: %v", err)
 	}
