@@ -443,33 +443,29 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
 
   private rawGroups: TkGroup[] = [];
   private rawUngrouped: TkTask[] = [];
-  private statusFilters: Set<string> = new Set();
+  private showDone: boolean = false; // Default: hide done tasks
 
   constructor(private readonly decorationProvider: TkDecorationProvider) {
     void this.refresh();
   }
 
-  public toggleStatusFilter(status: string): void {
-    if (this.statusFilters.has(status)) {
-      this.statusFilters.delete(status);
-    } else {
-      this.statusFilters.add(status);
-    }
+  public toggleDone(): void {
+    this.showDone = !this.showDone;
     this._onDidChangeTreeData.fire(undefined);
   }
 
-  public getStatusFilters(): Set<string> {
-    return this.statusFilters;
+  public isShowingDone(): boolean {
+    return this.showDone;
   }
 
   private filterTasksByStatus(tasks: TkTask[]): TkTask[] {
-    if (this.statusFilters.size === 0) {
-      return tasks;
+    if (this.showDone) {
+      return tasks; // Show all tasks
     }
     return tasks.filter(task => {
       const genericAxis = task.axes?.['generic'];
       const status = genericAxis?.effective ?? '';
-      return this.statusFilters.has(status);
+      return status !== 'done'; // Hide done tasks
     });
   }
 
@@ -564,16 +560,15 @@ function getTkConfig(): TkConfig {
   const binary = configuration.get<string>('binaryPath', 'tk') || 'tk';
   const configuredCwd = configuration.get<string>('workingDirectory');
 
-  let cwd: string | undefined;
+  let cwd: string;
 
   if (configuredCwd && configuredCwd.trim().length > 0) {
     cwd = configuredCwd;
+  } else if (vscode.workspace.workspaceFolders?.[0]?.uri.fsPath) {
+    cwd = vscode.workspace.workspaceFolders[0].uri.fsPath;
   } else {
-    cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  }
-
-  if (!cwd) {
-    throw new Error('No workspace folder is open.');
+    // Default to home directory if no workspace is open
+    cwd = process.env.HOME || process.env.USERPROFILE || '.';
   }
 
   return { binary, cwd };
@@ -904,18 +899,9 @@ async function moveTaskToGroup(task: TaskTreeItem, targetGroup: GroupTreeItem): 
   });
 }
 
-function updateViewTitle(treeView: vscode.TreeView<TkTreeItem>, provider: TkProvider): void {
-  const filters = provider.getStatusFilters();
-  if (filters.size === 0) {
-    treeView.description = undefined;
-  } else {
-    const filterLabels: string[] = [];
-    if (filters.has('next')) filterLabels.push('Next');
-    if (filters.has('wip')) filterLabels.push('WIP');
-    if (filters.has('done')) filterLabels.push('Done');
-    if (filters.has('')) filterLabels.push('None');
-    treeView.description = `Filters: ${filterLabels.join(', ')}`;
-  }
+async function updateToggleDoneButton(provider: TkProvider): Promise<void> {
+  const showing = provider.isShowingDone();
+  await vscode.commands.executeCommand('setContext', 'tk.showingDone', showing);
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -929,6 +915,9 @@ export function activate(context: vscode.ExtensionContext): void {
     dragAndDropController: dragAndDropController,
   });
 
+  // Set initial context
+  void updateToggleDoneButton(provider);
+
   context.subscriptions.push(
     vscode.window.registerFileDecorationProvider(decorationProvider),
     treeView,
@@ -941,21 +930,13 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('tk.createProject', () => createProject(provider)),
     vscode.commands.registerCommand('tk.deleteTask', (item: TaskTreeItem) => deleteTask(provider, item)),
     vscode.commands.registerCommand('tk.deleteProject', (item: GroupTreeItem) => deleteProject(provider, item)),
-    vscode.commands.registerCommand('tk.filterNext', () => {
-      provider.toggleStatusFilter('next');
-      updateViewTitle(treeView, provider);
+    vscode.commands.registerCommand('tk.toggleDone', () => {
+      provider.toggleDone();
+      void updateToggleDoneButton(provider);
     }),
-    vscode.commands.registerCommand('tk.filterWip', () => {
-      provider.toggleStatusFilter('wip');
-      updateViewTitle(treeView, provider);
-    }),
-    vscode.commands.registerCommand('tk.filterDone', () => {
-      provider.toggleStatusFilter('done');
-      updateViewTitle(treeView, provider);
-    }),
-    vscode.commands.registerCommand('tk.filterNone', () => {
-      provider.toggleStatusFilter('');
-      updateViewTitle(treeView, provider);
+    vscode.commands.registerCommand('tk.toggleDoneHide', () => {
+      provider.toggleDone();
+      void updateToggleDoneButton(provider);
     }),
     vscode.commands.registerCommand('tk.showTaskDetails', (task: TkTask) => {
       detailProvider.showTask(task);

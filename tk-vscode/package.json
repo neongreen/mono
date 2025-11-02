@@ -17,19 +17,7 @@
   ],
   "activationEvents": [
     "onView:tkExplorer",
-    "onView:tkDetailView",
-    "onCommand:tk.refresh",
-    "onCommand:tk.editTitle",
-    "onCommand:tk.rotateStatus",
-    "onCommand:tk.markDone",
-    "onCommand:tk.createTask",
-    "onCommand:tk.createProject",
-    "onCommand:tk.deleteTask",
-    "onCommand:tk.deleteProject",
-    "onCommand:tk.filterNext",
-    "onCommand:tk.filterWip",
-    "onCommand:tk.filterDone",
-    "onCommand:tk.filterNone"
+    "onView:tkDetailView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -78,52 +66,32 @@
         "icon": "$(trash)"
       },
       {
-        "command": "tk.filterNext",
-        "title": "Filter: Next",
-        "icon": "$(arrow-right)"
+        "command": "tk.toggleDone",
+        "title": "Show All",
+        "icon": "$(filter)"
       },
       {
-        "command": "tk.filterWip",
-        "title": "Filter: WIP",
-        "icon": "$(sync)"
-      },
-      {
-        "command": "tk.filterDone",
-        "title": "Filter: Done",
-        "icon": "$(check)"
-      },
-      {
-        "command": "tk.filterNone",
-        "title": "Filter: None",
-        "icon": "$(circle-outline)"
+        "command": "tk.toggleDoneHide",
+        "title": "Hide Done",
+        "icon": "$(filter-filled)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "tk.filterNext",
-          "when": "view == tkExplorer",
+          "command": "tk.toggleDone",
+          "when": "view == tkExplorer && !tk.showingDone",
           "group": "navigation@1"
         },
         {
-          "command": "tk.filterWip",
-          "when": "view == tkExplorer",
-          "group": "navigation@2"
-        },
-        {
-          "command": "tk.filterDone",
-          "when": "view == tkExplorer",
-          "group": "navigation@3"
-        },
-        {
-          "command": "tk.filterNone",
-          "when": "view == tkExplorer",
-          "group": "navigation@4"
+          "command": "tk.toggleDoneHide",
+          "when": "view == tkExplorer && tk.showingDone",
+          "group": "navigation@1"
         },
         {
           "command": "tk.createProject",
           "when": "view == tkExplorer",
-          "group": "navigation@5"
+          "group": "navigation@2"
         }
       ],
       "view/item/context": [
@@ -187,7 +155,7 @@
         "tk.workingDirectory": {
           "type": "string",
           "default": "",
-          "description": "Directory to run tk ls --json from. Defaults to the first workspace folder when empty."
+          "description": "Directory to run tk ls --json from. Defaults to home directory if no workspace is open."
         },
         "tk.group": {
           "type": "string",
