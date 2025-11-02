@@ -520,12 +520,6 @@ func (m *Dagger) GenerateHomebrewFormula(
 		testArgs = "--help"
 	}
 
-	// Calculate SHA256 for each archive
-	container := dag.Container().
-		From("alpine:latest").
-		WithMountedDirectory("/archives", archivesDir).
-		WithWorkdir("/work")
-
 	// Get list of archives
 	entries, err := archivesDir.Entries(ctx)
 	if err != nil {
