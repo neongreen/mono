@@ -1,6 +1,6 @@
 [tasks.run]
 description = "Build and run"
-run = "go run ."
+run = "go run ./cmd"
 
 [tasks.fmt]
 description = "Format Go code"

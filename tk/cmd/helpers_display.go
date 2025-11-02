@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/neongreen/mono/tk/internal/database"
@@ -235,3 +236,10 @@ func outputTasksJSON(db *database.DB, tasks []*types.Task, groupBy string) error
 	fmt.Println(string(jsonOutput))
 	return nil
 }
+
+var (
+	dbPath string
+	// Color formatters for status display
+	yellowStatus = color.New(color.FgYellow).SprintFunc()
+	greenStatus  = color.New(color.FgGreen).SprintFunc()
+)

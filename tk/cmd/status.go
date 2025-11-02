@@ -158,3 +158,8 @@ func formatDuration(d time.Duration) string {
 	}
 	return fmt.Sprintf("%dd", int(d.Hours()/24))
 }
+
+var statusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Manage task status and sync status",
+}
