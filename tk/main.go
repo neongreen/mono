@@ -47,13 +47,13 @@ func main() {
 	doneErr := make(chan bool)
 
 	go func() {
+		defer func() { doneOut <- true }()
 		io.Copy(io.MultiWriter(oldStdout, stdoutBuf), rOut)
-		doneOut <- true
 	}()
 
 	go func() {
+		defer func() { doneErr <- true }()
 		io.Copy(io.MultiWriter(oldStderr, stderrBuf), rErr)
-		doneErr <- true
 	}()
 
 	// Execute the command
