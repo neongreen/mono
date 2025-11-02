@@ -20,8 +20,22 @@ func main() {
 	stdoutBuf := &bytes.Buffer{}
 	stderrBuf := &bytes.Buffer{}
 
-	rOut, wOut, _ := os.Pipe()
-	rErr, wErr, _ := os.Pipe()
+	rOut, wOut, err := os.Pipe()
+	if err != nil {
+		// If pipe creation fails, run without logging
+		if err := cmd.Execute(); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
+	rErr, wErr, err2 := os.Pipe()
+	if err2 != nil {
+		// If pipe creation fails, run without logging
+		if err := cmd.Execute(); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
 
 	os.Stdout = wOut
 	os.Stderr = wErr
@@ -42,7 +56,7 @@ func main() {
 
 	// Execute the command
 	exitCode := 0
-	err := cmd.Execute()
+	err = cmd.Execute()
 	if err != nil {
 		exitCode = 1
 	}
