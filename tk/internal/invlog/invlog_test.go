@@ -14,13 +14,13 @@ func TestWriteLog(t *testing.T) {
 
 	// Override the home directory for testing
 	origHome := os.Getenv("HOME")
-	defer func() {
+	t.Cleanup(func() {
 		if origHome == "" {
 			os.Unsetenv("HOME")
 		} else {
 			os.Setenv("HOME", origHome)
 		}
-	}()
+	})
 	os.Setenv("HOME", tmpDir)
 
 	// Create .tk directory in temp home
@@ -87,13 +87,13 @@ func TestWriteLogAppend(t *testing.T) {
 
 	// Override the home directory for testing
 	origHome := os.Getenv("HOME")
-	defer func() {
+	t.Cleanup(func() {
 		if origHome == "" {
 			os.Unsetenv("HOME")
 		} else {
 			os.Setenv("HOME", origHome)
 		}
-	}()
+	})
 	os.Setenv("HOME", tmpDir)
 
 	// Create .tk directory in temp home
