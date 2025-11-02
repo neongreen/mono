@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"go.abhg.dev/goldmark/frontmatter"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	htmlrenderer "github.com/yuin/goldmark/renderer/html"
+	"go.abhg.dev/goldmark/frontmatter"
 	stdhtml "golang.org/x/net/html"
 	htmlatom "golang.org/x/net/html/atom"
 )

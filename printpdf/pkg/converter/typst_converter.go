@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"go.abhg.dev/goldmark/frontmatter"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	extast "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
+	"go.abhg.dev/goldmark/frontmatter"
 )
 
 // convertMarkdownToTypst converts Markdown content to Typst markup
