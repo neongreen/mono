@@ -133,6 +133,11 @@ func (d *DB) Close() error {
 
 // GetDBPath returns the database path in ~/.tk/ directory
 func GetDBPath() (string, error) {
+	// Check for TK_DB_PATH environment variable
+	if dbPath := os.Getenv("TK_DB_PATH"); dbPath != "" {
+		return dbPath, nil
+	}
+
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
