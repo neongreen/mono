@@ -654,12 +654,12 @@ func handleMono() {
 
 	if fs.NArg() == 0 {
 		fmt.Println("Error: no project specified")
-		fmt.Println("Usage: want mono [--dry-run] [--plan-json] <project> [--list]")
+		fmt.Println("Usage: want mono [--dry-run] [--plan-json] [--list] <project>")
 		fmt.Println("       want mono [--dry-run] [--plan-json] <project@version>")
 		fmt.Println("\nExamples:")
-		fmt.Println("  want mono printpdf --list              # List all releases and open PRs for printpdf")
+		fmt.Println("  want mono printpdf                     # Build printpdf from main branch (default)")
+		fmt.Println("  want mono --list printpdf              # List all releases and open PRs for printpdf")
 		fmt.Println("  want mono printpdf@main.1              # Install printpdf version main.1")
-		fmt.Println("  want mono printpdf@main                # Build printpdf from latest commit on main")
 		fmt.Println("  want mono dissect@feature-branch       # Build dissect from a specific branch")
 		fmt.Println("  want mono want@abc1234                 # Build want from a specific commit")
 		fmt.Println("  want mono --dry-run dissect@pr-42      # Preview building from PR #42")
@@ -676,18 +676,18 @@ func handleMono() {
 
 	parts := strings.Split(arg, "@")
 	if len(parts) == 1 {
-
-		listMonoReleases(parts[0])
-		return
+		// Default to main branch when no version is specified
+		parts = []string{parts[0], "main"}
 	}
 
 	if len(parts) != 2 {
 		fmt.Printf("Error: Invalid format '%s'\n", arg)
-		fmt.Println("Expected: <project>@<version> or <project> --list")
+		fmt.Println("Expected: <project>, <project>@<version>, or --list <project>")
 		fmt.Println("\nExamples:")
+		fmt.Println("  want mono printpdf            # Defaults to main branch")
 		fmt.Println("  want mono printpdf@main.1")
 		fmt.Println("  want mono dissect@pr-42")
-		fmt.Println("  want mono printpdf --list")
+		fmt.Println("  want mono --list printpdf")
 		os.Exit(1)
 	}
 
