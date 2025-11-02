@@ -223,7 +223,9 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
 
     try {
       const { binary, cwd } = getTkConfig();
-      const args = ['note', taskId, markdown];
+      // Use '--' to force Cobra to treat markdown as positional argument
+      // This prevents errors when markdown starts with '-' or '--' (e.g., bullet lists)
+      const args = ['note', taskId, '--', markdown];
 
       await execFileAsync(binary, args, {
         cwd,
