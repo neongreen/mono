@@ -6,7 +6,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/neongreen/mono/want/cmd"
 )
+
+var ToolRegistry = cmd.ToolRegistry
 
 // ensureToolAvailable checks if a tool is available and returns installation steps if not
 func ensureToolAvailable(toolName string) (available bool, installSteps []PlanStep) {

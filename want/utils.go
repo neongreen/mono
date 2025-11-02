@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+// CompoundHandler is a function that handles compound commands
+type CompoundHandler func(args []string, dryRun bool, planJson bool)
+
 // getCompoundHandler returns a handler for compound commands if one exists
 func getCompoundHandler(command string) (CompoundHandler, bool) {
 	handlers := map[string]CompoundHandler{

@@ -10,7 +10,13 @@ import (
 
 	"github.com/neongreen/mono/lib/ghclient"
 	"github.com/neongreen/mono/lib/ghrelease"
+	"github.com/neongreen/mono/want/cmd"
 )
+
+// Type aliases for cmd package types
+type PRInfo = cmd.PRInfo
+
+const goVersion = cmd.GoVersion
 
 // listOpenPRs fetches open PRs that modify the given project
 func listOpenPRs(project string) ([]PRInfo, error) {

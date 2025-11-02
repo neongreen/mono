@@ -11,7 +11,12 @@ import (
 	"strings"
 
 	"github.com/neongreen/mono/lib/ghrelease"
+	"github.com/neongreen/mono/want/cmd"
 )
+
+// Type aliases for cmd package types
+type FulfillmentPlan = cmd.FulfillmentPlan
+type PlanStep = cmd.PlanStep
 
 func handleWant(args []string) {
 
