@@ -45,7 +45,7 @@ by authority (human > qa > rel > agent > bot).`,
 			return fmt.Errorf("invalid JSON value: %s", valueStr)
 		}
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -121,7 +121,7 @@ var metaGetCmd = &cobra.Command{
 		taskRef := args[0]
 		key := args[1]
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -175,7 +175,7 @@ var metaListCmd = &cobra.Command{
 		taskRef := args[0]
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -246,7 +246,7 @@ var metaClaimsCmd = &cobra.Command{
 		taskRef := args[0]
 		key := args[1]
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

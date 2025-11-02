@@ -23,7 +23,7 @@ var graphCmd = &cobra.Command{
 		depth, _ := cmd.Flags().GetInt("depth")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

@@ -109,7 +109,7 @@ Examples:
 		}
 
 		// Open database
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

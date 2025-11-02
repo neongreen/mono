@@ -1,4 +1,4 @@
-package cmd
+package debug
 
 import (
 	"encoding/json"
@@ -30,13 +30,14 @@ func (r *DoctorReport) ProblemCount() int {
 	return len(r.Issues) + len(r.InvalidEvents) + len(r.Collisions)
 }
 
-var doctorCmd = &cobra.Command{
+// DoctorCmd is the doctor subcommand for debug
+var DoctorCmd = &cobra.Command{
 	Use:   "doctor",
 	Short: "Verify database health and report issues",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		jsonOutput, _ := cmd.Flags().GetBool("json")
+	RunE: func(cobraCmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cobraCmd.Flags().GetBool("json")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -66,7 +67,7 @@ var doctorCmd = &cobra.Command{
 }
 
 func init() {
-	doctorCmd.Flags().Bool("json", false, "Output as JSON")
+	DoctorCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
 func RunDoctor(db *database.DB) (*DoctorReport, error) {
@@ -82,6 +83,9 @@ func RunDoctor(db *database.DB) (*DoctorReport, error) {
 		return nil, err
 	}
 	if err := checkEventPayloads(db, report); err != nil {
+		return nil, err
+	}
+	if err := checkEventOrdering(db, report); err != nil {
 		return nil, err
 	}
 	if err := checkEventProjectionConsistency(db, report); err != nil {
@@ -231,9 +235,32 @@ func checkEventProjectionConsistency(db *database.DB, report *DoctorReport) erro
 		return fmt.Errorf("failed to get events: %w", err)
 	}
 
-	r, err := reducer.BuildFromEvents(events)
-	if err != nil {
-		return fmt.Errorf("failed to rebuild from events: %w", err)
+	// Try to rebuild, but collect errors instead of failing
+	r := reducer.NewReducer()
+	var replayErrors []string
+
+	for i, e := range events {
+		if err := r.Apply(e); err != nil {
+			// Collect error instead of failing immediately
+			replayErrors = append(replayErrors, fmt.Sprintf(
+				"Event %d: %s (kind=%s, TS=%d) - %v",
+				i+1, e.ID, e.Kind, e.TS, err))
+		}
+	}
+
+	// Report replay errors
+	if len(replayErrors) > 0 {
+		report.Issues = append(report.Issues,
+			fmt.Sprintf("Found %d events that failed to apply during replay:", len(replayErrors)))
+		// Limit to first 20 errors to avoid overwhelming output
+		for i, errMsg := range replayErrors {
+			if i >= 20 {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("... and %d more replay errors", len(replayErrors)-20))
+				break
+			}
+			report.Issues = append(report.Issues, "  "+errMsg)
+		}
 	}
 
 	// Compare task count
@@ -289,8 +316,73 @@ func checkEventProjectionConsistency(db *database.DB, report *DoctorReport) erro
 	return nil
 }
 
+func checkEventOrdering(db *database.DB, report *DoctorReport) error {
+	events, err := db.GetEvents()
+	if err != nil {
+		return fmt.Errorf("failed to get events: %w", err)
+	}
+
+	// Track when tasks are created (event index)
+	taskCreated := make(map[string]int)
+
+	for i, e := range events {
+		if e.Kind == string(types.EventKindTaskCreated) {
+			var payload types.TaskCreatedPayload
+			if err := json.Unmarshal(e.Payload, &payload); err == nil {
+				taskCreated[payload.TaskUID] = i
+			}
+		}
+	}
+
+	// Check events that reference tasks
+	for i, e := range events {
+		taskUUID := extractTaskUUIDFromEvent(e)
+		if taskUUID == "" {
+			continue
+		}
+
+		createdIndex, exists := taskCreated[taskUUID]
+		if !exists {
+			// Task never created
+			report.Issues = append(report.Issues,
+				fmt.Sprintf("Event %s (%s, TS=%d) references task %s that was never created",
+					e.ID, e.Kind, e.TS, taskUUID))
+		} else if i < createdIndex {
+			// Event comes before task.created
+			report.Issues = append(report.Issues,
+				fmt.Sprintf("Event %s (%s, TS=%d, position=%d) comes before task.created (TS=%d, position=%d) for task %s",
+					e.ID, e.Kind, e.TS, i+1, events[createdIndex].TS, createdIndex+1, taskUUID))
+		}
+
+		// Check for corrupted timestamps
+		if e.CreatedAt.Unix() <= 0 {
+			report.Issues = append(report.Issues,
+				fmt.Sprintf("Event %s has corrupt created_at timestamp: %v", e.ID, e.CreatedAt))
+		}
+	}
+
+	return nil
+}
+
+func extractTaskUUIDFromEvent(e types.Event) string {
+	var payload map[string]interface{}
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return ""
+	}
+
+	// Try task_uuid first (v4 format)
+	if uuid, ok := payload["task_uuid"].(string); ok {
+		return uuid
+	}
+	// Fall back to task_uid (older format)
+	if uuid, ok := payload["task_uid"].(string); ok {
+		return uuid
+	}
+	return ""
+}
+
 func collectCollisions(db *database.DB, report *DoctorReport) error {
-	collisions, err := getNumberCollisions(db, "")
+	collisions, err := GetNumberCollisions(db, "")
 	if err != nil {
 		return err
 	}
@@ -298,7 +390,8 @@ func collectCollisions(db *database.DB, report *DoctorReport) error {
 	return nil
 }
 
-func getNumberCollisions(db *database.DB, projectFilter string) ([]DoctorCollision, error) {
+// GetNumberCollisions finds task number collisions (exported for cmd package)
+func GetNumberCollisions(db *database.DB, projectFilter string) ([]DoctorCollision, error) {
 	baseQuery := `
         SELECT project_uid, number
         FROM task_numbers

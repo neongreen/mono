@@ -5,28 +5,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-
-	"github.com/neongreen/mono/tk/internal/database"
 )
-
-func OpenExistingDB() (*database.DB, error) {
-	path, err := database.GetDBPath()
-	if err != nil {
-		return nil, err
-	}
-
-	db, err := database.OpenDB(path)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := db.InitDB(); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
-	}
-
-	return db, nil
-}
 
 // collectSegmentFiles walks a directory and collects all .zst segment files
 func collectSegmentFiles(dir string) ([]string, error) {

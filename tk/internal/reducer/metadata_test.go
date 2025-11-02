@@ -8,6 +8,12 @@ import (
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
+// marshalPayload is a local test helper (can't use testutil due to import cycle)
+func marshalPayload(v interface{}) json.RawMessage {
+	data, _ := json.Marshal(v)
+	return json.RawMessage(data)
+}
+
 // TestMetadata_SingleClaim tests that a single metadata claim sets the effective value
 func TestMetadata_SingleClaim(t *testing.T) {
 	reducer := NewReducer()
@@ -762,10 +768,4 @@ func TestMetadata_BoolValue(t *testing.T) {
 	if string(task.Metadata["urgent"].Effective) != "true" {
 		t.Errorf("Expected true, got %s", task.Metadata["urgent"].Effective)
 	}
-}
-
-// Helper function to marshal payloads
-func marshalPayload(v interface{}) json.RawMessage {
-	data, _ := json.Marshal(v)
-	return json.RawMessage(data)
 }

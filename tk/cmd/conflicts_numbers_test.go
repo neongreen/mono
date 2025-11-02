@@ -1,6 +1,10 @@
 package cmd
 
-import "testing"
+import (
+	"testing"
+
+	debug_pkg "github.com/neongreen/mono/tk/cmd/debug"
+)
 
 func TestGetNumberCollisionsAll(t *testing.T) {
 	db := openTempDB(t)
@@ -17,7 +21,7 @@ func TestGetNumberCollisionsAll(t *testing.T) {
 	seedTaskWithNode(t, db, projectB, "task3", 2, node)
 	seedTaskWithNode(t, db, projectB, "task4", 2, "NODE_Z")
 
-	collisions, err := getNumberCollisions(db, "")
+	collisions, err := debug_pkg.GetNumberCollisions(db, "")
 	if err != nil {
 		t.Fatalf("getNumberCollisions failed: %v", err)
 	}
@@ -39,7 +43,7 @@ func TestGetNumberCollisionsFilter(t *testing.T) {
 	seedTaskWithNode(t, db, project, "task2", 1, "NODE_Y")
 	seedTaskWithNode(t, db, other, "task3", 2, "NODE_X")
 
-	collisions, err := getNumberCollisions(db, project)
+	collisions, err := debug_pkg.GetNumberCollisions(db, project)
 	if err != nil {
 		t.Fatalf("getNumberCollisions failed: %v", err)
 	}

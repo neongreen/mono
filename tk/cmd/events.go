@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/database"
 	"os"
 
 	"github.com/neongreen/mono/tk/internal/types"
@@ -35,7 +36,7 @@ Examples:
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -130,7 +131,7 @@ Examples:
 		eventID := args[0]
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -178,7 +179,7 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

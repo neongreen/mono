@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/database"
 	"os"
 	"path/filepath"
 
@@ -304,7 +305,7 @@ Examples:
 			return fmt.Errorf("remote '%s' not found", remoteName)
 		}
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

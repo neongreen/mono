@@ -1,8 +1,18 @@
-package cmd
+package debug
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/neongreen/mono/tk/internal/testutil"
+)
+
+// Test helper aliases
+var (
+	openTempDB       = testutil.OpenTempDB
+	seedProject      = testutil.SeedProject
+	seedTask         = testutil.SeedTask
+	seedTaskWithNode = testutil.SeedTaskWithNode
 )
 
 func TestDoctorHealthy(t *testing.T) {

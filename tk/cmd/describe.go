@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/neongreen/mono/tk/internal/database"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -15,7 +16,7 @@ var describeCmd = &cobra.Command{
 		taskRef := args[0]
 		title := strings.Join(args[1:], " ")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

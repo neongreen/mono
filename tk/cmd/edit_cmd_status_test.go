@@ -2,9 +2,6 @@ package cmd
 
 import (
 	"testing"
-
-	"github.com/neongreen/mono/tk/internal/database"
-	"github.com/neongreen/mono/tk/internal/reducer"
 )
 
 func TestEditStatus(t *testing.T) {
@@ -41,16 +38,4 @@ func TestEditStatus(t *testing.T) {
 	if axis.Effective != "done" {
 		t.Fatalf("expected effective status done, got %s", axis.Effective)
 	}
-}
-
-func buildReducerFromDB(t *testing.T, db *database.DB) *reducer.Reducer {
-	events, err := db.GetEvents()
-	if err != nil {
-		t.Fatalf("failed to load events: %v", err)
-	}
-	reducer, err := reducer.BuildFromEvents(events)
-	if err != nil {
-		t.Fatalf("failed to build reducer: %v", err)
-	}
-	return reducer
 }

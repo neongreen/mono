@@ -23,7 +23,7 @@ var editCmd = &cobra.Command{
 		field := strings.ToLower(args[1])
 		value := strings.Join(args[2:], " ")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

@@ -36,7 +36,7 @@ var markCmd = &cobra.Command{
 		axis, _ := cmd.Flags().GetString("axis")
 		role, _ := cmd.Flags().GetString("role")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

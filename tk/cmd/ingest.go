@@ -32,7 +32,7 @@ Examples:
 
 		pathOrRemote := args[0]
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

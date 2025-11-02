@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/database"
 	"os"
 	"path/filepath"
 	"time"
@@ -34,7 +35,7 @@ Examples:
 			remoteName = args[0]
 		}
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

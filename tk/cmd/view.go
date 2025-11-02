@@ -21,7 +21,7 @@ var showCmd = &cobra.Command{
 		taskRef := args[0]
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/database"
 	"strings"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
@@ -20,7 +21,7 @@ Otherwise, shows all conflicts in the database.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

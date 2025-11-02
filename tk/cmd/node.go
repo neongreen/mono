@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/neongreen/mono/tk/internal/database"
 
 	"github.com/spf13/cobra"
 )
@@ -18,7 +19,7 @@ var nodeShowCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -56,7 +57,7 @@ WARNING: This will change the node ID, which means:
 
 Only use this command if you have a node ID collision with another machine.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}

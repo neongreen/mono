@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	debug_pkg "github.com/neongreen/mono/tk/cmd/debug"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
@@ -24,7 +25,8 @@ func init() {
 	debugCmd.AddCommand(idCmd)
 	debugCmd.AddCommand(nodeCmd)
 	debugCmd.AddCommand(eventsCmd)
-	debugCmd.AddCommand(doctorCmd)
+	debugCmd.AddCommand(debug_pkg.DoctorCmd)
+	debugCmd.AddCommand(debug_pkg.RepairCmd)
 	debugCmd.AddCommand(conflictsNumbersCmd)
 
 	// Add flags to rebuild-from-remote command
@@ -41,7 +43,7 @@ in order of their CreatedAt time.
 
 This command is safe to run multiple times.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
@@ -249,7 +251,7 @@ Examples:
 
 		fmt.Println("Running health check...")
 
-		report, err := RunDoctor(db)
+		report, err := debug_pkg.RunDoctor(db)
 		if err != nil {
 			db.Close()
 			return fmt.Errorf("doctor check failed: %w", err)
@@ -257,7 +259,7 @@ Examples:
 
 		db.Close()
 
-		PrintDoctorReport(os.Stdout, report)
+		debug_pkg.PrintDoctorReport(os.Stdout, report)
 
 		if report.ProblemCount() > 0 {
 			fmt.Println()

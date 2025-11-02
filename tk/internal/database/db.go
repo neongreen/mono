@@ -147,6 +147,26 @@ func GetDBPath() (string, error) {
 	return filepath.Join(tkDir, dbFileName), nil
 }
 
+// OpenExistingDB opens the database at the default path and initializes schema
+func OpenExistingDB() (*DB, error) {
+	path, err := GetDBPath()
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := OpenDB(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := db.InitDB(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
+	}
+
+	return db, nil
+}
+
 // DBExists checks if a database exists at the given path
 func DBExists(path string) bool {
 	_, err := os.Stat(path)

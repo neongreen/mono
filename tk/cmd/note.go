@@ -18,7 +18,7 @@ var noteCmd = &cobra.Command{
 		taskRef := args[0]
 		text := args[1]
 
-		db, err := OpenExistingDB()
+		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
