@@ -15,19 +15,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// BeadsDependency represents a dependency relationship in beads format
+type BeadsDependency struct {
+	IssueID     string `json:"issue_id"`
+	DependsOnID string `json:"depends_on_id"`
+	Type        string `json:"type"`
+	CreatedAt   string `json:"created_at"`
+	CreatedBy   string `json:"created_by"`
+}
+
 // BeadsIssue represents an issue from beads JSONL format
 type BeadsIssue struct {
-	ID           string              `json:"id"`
-	Title        string              `json:"title"`
-	Description  string              `json:"description"`
-	Status       string              `json:"status"` // open, in_progress, closed
-	Priority     int                 `json:"priority"`
-	Type         string              `json:"type"` // bug, feature, task, epic, chore
-	Labels       []string            `json:"labels"`
-	Assignee     string              `json:"assignee"`
-	CreatedAt    string              `json:"created_at"`
-	UpdatedAt    string              `json:"updated_at"`
-	Dependencies map[string][]string `json:"dependencies"` // blocks, related, parent, child, discovered_from
+	ID           string            `json:"id"`
+	Title        string            `json:"title"`
+	Description  string            `json:"description"`
+	Status       string            `json:"status"` // open, in_progress, closed
+	Priority     int               `json:"priority"`
+	Type         string            `json:"type"` // bug, feature, task, epic, chore
+	Labels       []string          `json:"labels"`
+	Assignee     string            `json:"assignee"`
+	CreatedAt    string            `json:"created_at"`
+	UpdatedAt    string            `json:"updated_at"`
+	Dependencies []BeadsDependency `json:"dependencies"`
 }
 
 var importBeadsCmd = &cobra.Command{
@@ -403,40 +412,41 @@ func importBeadsRelationships(db *database.DB, issue BeadsIssue, taskUID string,
 		return 0, nil
 	}
 
-	// Import "blocks" relationships (this task blocks others)
-	if blocks, ok := issue.Dependencies["blocks"]; ok {
-		for _, blockedID := range blocks {
-			if blockedUID, ok := issueMap[blockedID]; ok {
-				if err := createRelation(db, taskUID, blockedUID, "blocks"); err != nil {
-					return count, err
-				}
-				count++
-			}
+	// Process dependency array
+	for _, dep := range issue.Dependencies {
+		// Only process dependencies where this issue is the source
+		if dep.IssueID != issue.ID {
+			continue
 		}
-	}
 
-	// Import "parent" relationships
-	if parents, ok := issue.Dependencies["parent"]; ok {
-		for _, parentID := range parents {
-			if parentUID, ok := issueMap[parentID]; ok {
-				if err := createRelation(db, taskUID, parentUID, "parent"); err != nil {
-					return count, err
-				}
-				count++
-			}
+		// Look up the target task UID
+		targetUID, ok := issueMap[dep.DependsOnID]
+		if !ok {
+			// Target issue not imported, skip
+			continue
 		}
-	}
 
-	// Import "related" relationships
-	if related, ok := issue.Dependencies["related"]; ok {
-		for _, relatedID := range related {
-			if relatedUID, ok := issueMap[relatedID]; ok {
-				if err := createRelation(db, taskUID, relatedUID, "related"); err != nil {
-					return count, err
-				}
-				count++
-			}
+		// Map beads relationship type to tk type
+		var tkRelType string
+		switch dep.Type {
+		case "parent-child":
+			tkRelType = "parent"
+		case "blocks":
+			tkRelType = "blocks"
+		case "related":
+			tkRelType = "related"
+		case "discovered-from":
+			tkRelType = "related" // Map discovered-from to related
+		default:
+			// Unknown type, skip
+			continue
 		}
+
+		// Create the relationship
+		if err := createRelation(db, taskUID, targetUID, tkRelType); err != nil {
+			return count, err
+		}
+		count++
 	}
 
 	return count, nil
