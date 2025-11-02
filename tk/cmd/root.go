@@ -136,6 +136,7 @@ func init() {
 	rootCmd.AddCommand(remoteCmd)
 	rootCmd.AddCommand(exportCmd)
 	rootCmd.AddCommand(ingestCmd)
+	rootCmd.AddCommand(importBeadsCmd)
 	rootCmd.AddCommand(pushCmd)
 	rootCmd.AddCommand(pullCmd)
 	rootCmd.AddCommand(syncCmd)
