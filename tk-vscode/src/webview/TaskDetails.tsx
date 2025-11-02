@@ -94,12 +94,12 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
 
   const renderMarkdown = (markdown: string) => {
     try {
-      // Parse markdown to HTML
-      const rawHtml = marked.parse(markdown, { 
-        async: false,
+      // Parse markdown to HTML using synchronous marked
+      // marked() is the synchronous version, marked.parse() is async
+      const rawHtml = marked(markdown, { 
         breaks: true,
         gfm: true
-      }) as string;
+      });
       
       // Sanitize the HTML to prevent XSS attacks
       // DOMPurify removes any potentially dangerous content while preserving safe HTML
