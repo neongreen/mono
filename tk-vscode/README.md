@@ -14,7 +14,9 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 - **Create new projects** using the add button in the view toolbar (uses `tk project create`).
 - Task text color matches the status icon color for easy visual identification.
 - **Drag and drop tasks between groups** to move them to different projects (uses `tk mv`).
-- **Click on any task** to view its details in the Task Details panel, including the full title and notes in a clean, readable format.
+- **Click on any task** to view its details in the Task Details panel, including the full title and notes.
+- **Add new notes** to tasks from the Task Details panel with markdown support.
+- **Notes are rendered as markdown** with proper formatting for headers, lists, code blocks, links, and more.
 
 ## Usage
 
@@ -26,9 +28,11 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 6. Right-click on any task to edit its title.
 7. Click the add button on a group header to create a new task in that group.
 8. **Click the "Create Project" button** in the view toolbar to create a new project.
-9. **Click on any task** to view its details in the **Task Details** panel below the task list. The panel shows the task ID, title (which may be multiline), status, and all notes associated with the task in a clean, readable format.
-10. Hover over any task to see its full details in a tooltip, including title, status, and blockers.
-11. **Drag and drop** a task onto a different group to move it to that project.
+9. **Click on any task** to view its details in the **Task Details** panel below the task list. The panel shows the task ID, title (which may be multiline), status, and all notes associated with the task.
+10. **Add notes** to tasks directly from the Task Details panel using the "Add Note" button. Notes support full markdown formatting including headers, lists, code blocks, and links.
+11. **Notes are rendered as markdown** for rich formatting and better readability.
+12. Hover over any task to see its full details in a tooltip, including title, status, and blockers.
+13. **Drag and drop** a task onto a different group to move it to that project.
 
 ## Design Notes
 
