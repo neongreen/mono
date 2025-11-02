@@ -1,10 +1,9 @@
-package cmd
+package database
 
 import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -13,7 +12,7 @@ func TestEventProjectionIdempotency(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
 
-	db, err := database.OpenDB(dbPath)
+	db, err := OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
@@ -67,7 +66,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	tempDir := t.TempDir()
 	dbPath := filepath.Join(tempDir, "test.db")
 
-	db, err := database.OpenDB(dbPath)
+	db, err := OpenDB(dbPath)
 	if err != nil {
 		t.Fatalf("failed to open database: %v", err)
 	}
@@ -154,12 +153,12 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	}
 
 	// Test display ID rendering for both tasks
-	displayID1, err := database.RenderTaskDisplayID(db, task1UID)
+	displayID1, err := RenderTaskDisplayID(db, task1UID)
 	if err != nil {
 		t.Fatalf("failed to render display ID 1: %v", err)
 	}
 
-	displayID2, err := database.RenderTaskDisplayID(db, task2UID)
+	displayID2, err := RenderTaskDisplayID(db, task2UID)
 	if err != nil {
 		t.Fatalf("failed to render display ID 2: %v", err)
 	}
