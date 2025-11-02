@@ -30,7 +30,7 @@ func (d *DB) InsertEvent(e types.Event) error {
 // GetEvents retrieves all events in chronological order
 func (d *DB) GetEvents() ([]types.Event, error) {
 	query := `SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
-	          FROM events ORDER BY created_at, id`
+	          FROM events ORDER BY ts, id`
 
 	rows, err := d.Db.Query(query)
 	if err != nil {
@@ -78,7 +78,7 @@ func (d *DB) GetEventsByTaskID(taskID string) ([]types.Event, error) {
 		SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
 		FROM events
 		WHERE json_extract(payload, '$.task_id') = ?
-		ORDER BY created_at, id
+		ORDER BY ts, id
 	`
 
 	rows, err := d.Db.Query(query, taskID)
@@ -128,7 +128,7 @@ func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]types.Event, error) {
 		FROM events
 		WHERE json_extract(payload, '$.task_uuid') = ?
 		   OR json_extract(payload, '$.task_id') = ?
-		ORDER BY created_at, id
+		ORDER BY ts, id
 	`
 
 	rows, err := d.Db.Query(query, taskUUID, taskUUID)
