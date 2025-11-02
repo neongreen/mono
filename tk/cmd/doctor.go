@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
@@ -81,6 +82,9 @@ func RunDoctor(db *database.DB) (*DoctorReport, error) {
 		return nil, err
 	}
 	if err := checkEventPayloads(db, report); err != nil {
+		return nil, err
+	}
+	if err := checkEventProjectionConsistency(db, report); err != nil {
 		return nil, err
 	}
 	if err := collectCollisions(db, report); err != nil {
@@ -218,6 +222,71 @@ func checkEventPayloads(db *database.DB, report *DoctorReport) error {
 		}
 	}
 	return rows.Err()
+}
+
+func checkEventProjectionConsistency(db *database.DB, report *DoctorReport) error {
+	// Rebuild state from events (in memory, read-only)
+	events, err := db.GetEvents()
+	if err != nil {
+		return fmt.Errorf("failed to get events: %w", err)
+	}
+
+	r, err := reducer.BuildFromEvents(events)
+	if err != nil {
+		return fmt.Errorf("failed to rebuild from events: %w", err)
+	}
+
+	// Compare task count
+	rows, err := db.Db.Query(`SELECT COUNT(*) FROM tasks`)
+	if err != nil {
+		return fmt.Errorf("failed to count tasks: %w", err)
+	}
+	defer rows.Close()
+
+	var dbTaskCount int
+	if rows.Next() {
+		rows.Scan(&dbTaskCount)
+	}
+	rows.Close()
+
+	reducerTaskCount := len(r.Tasks())
+	if dbTaskCount != reducerTaskCount {
+		report.Issues = append(report.Issues, fmt.Sprintf("task count mismatch: database has %d tasks, event replay produces %d tasks", dbTaskCount, reducerTaskCount))
+	}
+
+	// Check each task in database exists in reducer with same title
+	taskRows, err := db.Db.Query(`SELECT task_uid, title FROM tasks`)
+	if err != nil {
+		return fmt.Errorf("failed to query tasks: %w", err)
+	}
+	defer taskRows.Close()
+
+	for taskRows.Next() {
+		var taskUID, dbTitle string
+		if err := taskRows.Scan(&taskUID, &dbTitle); err != nil {
+			return fmt.Errorf("failed to scan task: %w", err)
+		}
+
+		reducerTask, ok := r.GetTask(taskUID)
+		if !ok {
+			display, _ := database.RenderTaskDisplayID(db, taskUID)
+			if display == "" {
+				display = taskUID
+			}
+			report.Issues = append(report.Issues, fmt.Sprintf("task %s exists in database but not in event replay", display))
+			continue
+		}
+
+		if reducerTask.Title != dbTitle {
+			display, _ := database.RenderTaskDisplayID(db, taskUID)
+			if display == "" {
+				display = taskUID
+			}
+			report.Issues = append(report.Issues, fmt.Sprintf("task %s title mismatch: db=%q, events=%q", display, dbTitle, reducerTask.Title))
+		}
+	}
+
+	return nil
 }
 
 func collectCollisions(db *database.DB, report *DoctorReport) error {
