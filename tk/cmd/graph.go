@@ -42,7 +42,7 @@ var graphCmd = &cobra.Command{
 		}
 
 		// Resolve task ID to UUID
-		taskUUID, err := database.ResolveTaskReference(db, taskRef)
+		taskUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
 		if err != nil {
 			return err
 		}

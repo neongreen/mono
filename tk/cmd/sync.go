@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -355,37 +354,12 @@ Examples:
 
 // loadIndexFile loads an index file
 func loadIndexFile(path string) (*sync.IndexFile, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var index sync.IndexFile
-	if err := json.Unmarshal(data, &index); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal index: %w", err)
-	}
-
-	return &index, nil
+	return LoadJSON[sync.IndexFile](path)
 }
 
 // saveIndexFile saves an index file
 func saveIndexFile(path string, index *sync.IndexFile) error {
-	// Ensure directory exists
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
-	}
-
-	data, err := json.MarshalIndent(index, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal index: %w", err)
-	}
-
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		return fmt.Errorf("failed to write index: %w", err)
-	}
-
-	return nil
+	return SaveJSON(path, index)
 }
 
 // reconstructIndex scans a segments directory and reconstructs the index

@@ -242,37 +242,12 @@ func eventToSegmentEvent(e types.Event, space, nodeID string) (sync.SegmentEvent
 
 // loadExportState loads the export state from a file
 func loadExportState(path string) (*sync.ExportState, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	var state sync.ExportState
-	if err := json.Unmarshal(data, &state); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal export state: %w", err)
-	}
-
-	return &state, nil
+	return LoadJSON[sync.ExportState](path)
 }
 
 // saveExportState saves the export state to a file
 func saveExportState(path string, state *sync.ExportState) error {
-	// Ensure directory exists
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create export state directory: %w", err)
-	}
-
-	data, err := json.MarshalIndent(state, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal export state: %w", err)
-	}
-
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		return fmt.Errorf("failed to write export state: %w", err)
-	}
-
-	return nil
+	return SaveJSON(path, state)
 }
 
 // updateLocalIndex updates the local index mirror with new segments

@@ -9,7 +9,7 @@ import (
 
 // ResolveTaskIDToUUID resolves a task reference to its UUID (legacy helper).
 func (d *DB) ResolveTaskIDToUUID(taskID string) (string, error) {
-	return ResolveTaskReference(d, taskID)
+	return ResolveTaskReference(d, types.NewTaskRef(taskID))
 }
 
 // ResolveTaskID resolves a short task ID to a full task ID

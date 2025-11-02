@@ -42,7 +42,7 @@ var blockersCmd = &cobra.Command{
 		}
 
 		// Resolve task ID to UUID
-		taskUUID, err := database.ResolveTaskReference(db, taskID)
+		taskUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskID))
 		if err != nil {
 			return err
 		}

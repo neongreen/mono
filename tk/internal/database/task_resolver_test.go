@@ -12,7 +12,7 @@ func TestResolveTaskReferenceByAlias(t *testing.T) {
 	projectUID := seedProject(t, db, "proj")
 	taskUID := seedTask(t, db, projectUID, "task", 7)
 
-	resolved, err := ResolveTaskReference(db, "proj-7")
+	resolved, err := ResolveTaskReference(db, types.NewTaskRef("proj-7"))
 	if err != nil {
 		t.Fatalf("resolve failed: %v", err)
 	}
@@ -33,12 +33,12 @@ func TestResolveTaskReferenceCollisionRequiresHint(t *testing.T) {
 	taskA := seedTaskWithNode(t, db, projectUID, "first", 5, nodeA)
 	taskB := seedTaskWithNode(t, db, projectUID, "second", 5, nodeB)
 
-	if _, err := ResolveTaskReference(db, "proj-5"); err == nil {
+	if _, err := ResolveTaskReference(db, types.NewTaskRef("proj-5")); err == nil {
 		t.Fatalf("expected ambiguity error, got none")
 	}
 
 	hintB := types.NodeID(nodeB).Short()
-	resolvedB, err := ResolveTaskReference(db, "proj-5-"+hintB)
+	resolvedB, err := ResolveTaskReference(db, types.NewTaskRef("proj-5-"+hintB))
 	if err != nil {
 		t.Fatalf("resolve with hint failed: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestResolveTaskReferenceCollisionRequiresHint(t *testing.T) {
 	}
 
 	hintA := types.NodeID(nodeA).Short()
-	resolvedA, err := ResolveTaskReference(db, "proj-5-"+hintA)
+	resolvedA, err := ResolveTaskReference(db, types.NewTaskRef("proj-5-"+hintA))
 	if err != nil {
 		t.Fatalf("resolve with hint failed: %v", err)
 	}

@@ -6,6 +6,7 @@ import (
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
 
@@ -33,7 +34,7 @@ var viewCmd = &cobra.Command{
 			return err
 		}
 
-		taskUUID, err := database.ResolveTaskReference(db, taskRef)
+		taskUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
 		if err != nil {
 			return err
 		}

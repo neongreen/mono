@@ -34,7 +34,7 @@ var editCmd = &cobra.Command{
 }
 
 func editTask(db *database.DB, taskRef, field, value string) error {
-	taskUID, err := database.ResolveTaskReference(db, taskRef)
+	taskUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func editTaskTitle(db *database.DB, taskRef string, value string, actor string) 
 		return fmt.Errorf("title cannot be empty")
 	}
 
-	taskUID, err := database.ResolveTaskReference(db, taskRef)
+	taskUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
 	if err != nil {
 		return err
 	}

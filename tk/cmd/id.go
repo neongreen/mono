@@ -60,7 +60,7 @@ func init() {
 }
 
 func describeTask(db *database.DB, ref string) (*taskIdentity, error) {
-	taskUID, err := database.ResolveTaskReference(db, ref)
+	taskUID, err := database.ResolveTaskReference(db, types.NewTaskRef(ref))
 	if err != nil {
 		return nil, err
 	}

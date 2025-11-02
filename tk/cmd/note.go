@@ -24,7 +24,7 @@ var noteCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		taskUUID, err := database.ResolveTaskReference(db, taskRef)
+		taskUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
 		if err != nil {
 			return err
 		}

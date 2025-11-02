@@ -174,16 +174,7 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remote sync.RemoteCon
 		return nil
 	}
 
-	var segmentFiles []string
-	err := filepath.Walk(segmentsDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && filepath.Ext(path) == ".zst" {
-			segmentFiles = append(segmentFiles, path)
-		}
-		return nil
-	})
+	segmentFiles, err := collectSegmentFiles(segmentsDir)
 	if err != nil {
 		return fmt.Errorf("failed to scan segments directory: %w", err)
 	}
@@ -360,20 +351,5 @@ func containsString(s, substr string) bool {
 
 // saveIngestWatermark saves an ingest watermark to a file
 func saveIngestWatermark(path string, watermark *sync.IngestWatermark) error {
-	// Ensure directory exists
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create watermark directory: %w", err)
-	}
-
-	data, err := json.MarshalIndent(watermark, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal watermark: %w", err)
-	}
-
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		return fmt.Errorf("failed to write watermark: %w", err)
-	}
-
-	return nil
+	return SaveJSON(path, watermark)
 }

@@ -12,6 +12,18 @@ import (
 // Type Definitions
 // Based on tk/specs/v4-types.md
 
+// validatePrefixedULID validates a ULID with a specific prefix
+func validatePrefixedULID(s, prefix, typeName string) error {
+	if !strings.HasPrefix(s, prefix) {
+		return fmt.Errorf("invalid %s: must start with %s", typeName, prefix)
+	}
+	ulidPart := strings.TrimPrefix(s, prefix)
+	if _, err := ulid.Parse(ulidPart); err != nil {
+		return fmt.Errorf("invalid %s ULID part: %w", typeName, err)
+	}
+	return nil
+}
+
 // ProjectUID is a stable, immutable identifier for a project
 type ProjectUID string
 
@@ -22,14 +34,7 @@ func NewProjectUID() ProjectUID {
 
 // Validate checks if the ProjectUID is valid
 func (p ProjectUID) Validate() error {
-	if !strings.HasPrefix(string(p), "prj_") {
-		return fmt.Errorf("invalid project UID: must start with prj_")
-	}
-	ulidPart := strings.TrimPrefix(string(p), "prj_")
-	if _, err := ulid.Parse(ulidPart); err != nil {
-		return fmt.Errorf("invalid project UID ULID part: %w", err)
-	}
-	return nil
+	return validatePrefixedULID(string(p), "prj_", "project UID")
 }
 
 func (p ProjectUID) String() string { return string(p) }
@@ -98,17 +103,25 @@ func NewTaskUID() TaskUID {
 
 // Validate checks if the TaskUID is valid
 func (t TaskUID) Validate() error {
-	if !strings.HasPrefix(string(t), "tsk_") {
-		return fmt.Errorf("invalid task UID: must start with tsk_")
-	}
-	ulidPart := strings.TrimPrefix(string(t), "tsk_")
-	if _, err := ulid.Parse(ulidPart); err != nil {
-		return fmt.Errorf("invalid task UID ULID part: %w", err)
-	}
-	return nil
+	return validatePrefixedULID(string(t), "tsk_", "task UID")
 }
 
 func (t TaskUID) String() string { return string(t) }
+
+// TaskRef is an unresolved task reference that could be a TaskUID, project-number, or alias-number
+type TaskRef string
+
+// NewTaskRef creates an unresolved task reference from a string
+func NewTaskRef(s string) TaskRef {
+	return TaskRef(s)
+}
+
+// IsTaskUID checks if this reference looks like a TaskUID (starts with "tsk_")
+func (r TaskRef) IsTaskUID() bool {
+	return strings.HasPrefix(string(r), "tsk_")
+}
+
+func (r TaskRef) String() string { return string(r) }
 
 // TaskNumber is a mutable label within a project (not identity)
 type TaskNumber int64

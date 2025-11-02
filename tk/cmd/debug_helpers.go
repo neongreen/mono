@@ -55,16 +55,7 @@ var debugEventsCmd = &cobra.Command{
 				continue
 			}
 
-			var segmentFiles []string
-			err = filepath.Walk(segmentsDir, func(path string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-				if !info.IsDir() && filepath.Ext(path) == ".zst" {
-					segmentFiles = append(segmentFiles, path)
-				}
-				return nil
-			})
+			segmentFiles, err := collectSegmentFiles(segmentsDir)
 			if err != nil {
 				return fmt.Errorf("failed to scan segments directory for space '%s': %w", space, err)
 			}

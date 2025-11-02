@@ -10,33 +10,33 @@ import (
 
 // ResolveTaskReference resolves a user-supplied task reference into a task_uid.
 // Supports direct task_uids and display IDs in the form <alias>-<number>[-<node_hint>].
-func ResolveTaskReference(db *DB, ref string) (string, error) {
-	ref = strings.TrimSpace(ref)
-	if ref == "" {
+func ResolveTaskReference(db *DB, ref types.TaskRef) (string, error) {
+	refStr := strings.TrimSpace(string(ref))
+	if refStr == "" {
 		return "", fmt.Errorf("task reference cannot be empty")
 	}
 
 	// Direct task UID
-	if strings.HasPrefix(ref, "tsk_") {
+	if ref.IsTaskUID() {
 		var count int
-		if err := db.Db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, ref).Scan(&count); err != nil {
-			return "", fmt.Errorf("failed to lookup task %s: %w", ref, err)
+		if err := db.Db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, refStr).Scan(&count); err != nil {
+			return "", fmt.Errorf("failed to lookup task %s: %w", refStr, err)
 		}
 		if count == 0 {
-			return "", fmt.Errorf("task %s not found", ref)
+			return "", fmt.Errorf("task %s not found", refStr)
 		}
-		return ref, nil
+		return refStr, nil
 	}
 
 	// Pure numeric references are ambiguous by design.
-	if _, err := strconv.ParseInt(ref, 10, 64); err == nil {
-		return "", fmt.Errorf("ambiguous task reference %s: numeric references are not supported", ref)
+	if _, err := strconv.ParseInt(refStr, 10, 64); err == nil {
+		return "", fmt.Errorf("ambiguous task reference %s: numeric references are not supported", refStr)
 	}
 
-	displayID := types.DisplayID(ref)
+	displayID := types.DisplayID(refStr)
 	alias, number, nodeHint, err := displayID.Parse()
 	if err != nil {
-		return "", fmt.Errorf("invalid task reference %s: %w", ref, err)
+		return "", fmt.Errorf("invalid task reference %s: %w", refStr, err)
 	}
 
 	projectUID, err := ResolveProjectByAlias(db, alias)
@@ -49,7 +49,7 @@ func ResolveTaskReference(db *DB, ref string) (string, error) {
 		WHERE project_uid = ? AND number = ?
 	`, projectUID, number)
 	if err != nil {
-		return "", fmt.Errorf("failed to query tasks for %s: %w", ref, err)
+		return "", fmt.Errorf("failed to query tasks for %s: %w", refStr, err)
 	}
 	defer rows.Close()
 
@@ -62,11 +62,11 @@ func ResolveTaskReference(db *DB, ref string) (string, error) {
 		candidateUIDs = append(candidateUIDs, taskUID)
 	}
 	if err := rows.Err(); err != nil {
-		return "", fmt.Errorf("failed to iterate tasks for %s: %w", ref, err)
+		return "", fmt.Errorf("failed to iterate tasks for %s: %w", refStr, err)
 	}
 
 	if len(candidateUIDs) == 0 {
-		return "", fmt.Errorf("task %s not found", ref)
+		return "", fmt.Errorf("task %s not found", refStr)
 	}
 
 	if len(candidateUIDs) == 1 {
@@ -84,7 +84,7 @@ func ResolveTaskReference(db *DB, ref string) (string, error) {
 				return uid, nil
 			}
 		}
-		return "", fmt.Errorf("node hint %s for %s does not match any task", nodeHint, ref)
+		return "", fmt.Errorf("node hint %s for %s does not match any task", nodeHint, refStr)
 	}
 
 	// Ambiguous without hint – return list of choices.
@@ -97,7 +97,7 @@ func ResolveTaskReference(db *DB, ref string) (string, error) {
 		displayIDs = append(displayIDs, display)
 	}
 
-	return "", fmt.Errorf("ambiguous task reference %s; candidates: %s", ref, strings.Join(displayIDs, ", "))
+	return "", fmt.Errorf("ambiguous task reference %s; candidates: %s", refStr, strings.Join(displayIDs, ", "))
 }
 
 // RenderTaskDisplayID renders the preferred display string for a task.

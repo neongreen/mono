@@ -63,12 +63,12 @@ Examples:
 		defer db.Close()
 
 		// Resolve both task IDs to UUIDs
-		srcUUID, err := database.ResolveTaskReference(db, srcTaskID)
+		srcUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(srcTaskID))
 		if err != nil {
 			return fmt.Errorf("failed to resolve source task %q: %w", srcTaskID, err)
 		}
 
-		dstUUID, err := database.ResolveTaskReference(db, dstTaskID)
+		dstUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(dstTaskID))
 		if err != nil {
 			return fmt.Errorf("failed to resolve target task %q: %w", dstTaskID, err)
 		}
@@ -170,12 +170,12 @@ var relateRemoveCmd = &cobra.Command{
 		defer db.Close()
 
 		// Resolve both task IDs to UUIDs
-		srcUUID, err := database.ResolveTaskReference(db, srcTaskID)
+		srcUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(srcTaskID))
 		if err != nil {
 			return fmt.Errorf("failed to resolve source task %q: %w", srcTaskID, err)
 		}
 
-		dstUUID, err := database.ResolveTaskReference(db, dstTaskID)
+		dstUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(dstTaskID))
 		if err != nil {
 			return fmt.Errorf("failed to resolve target task %q: %w", dstTaskID, err)
 		}

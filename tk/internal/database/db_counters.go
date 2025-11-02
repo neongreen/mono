@@ -75,8 +75,8 @@ func (d *DB) BumpLamport(newValue int64) error {
 	return nil
 }
 
-// GetNextTaskNumber gets the next task number and increments the counter
-func (d *DB) GetNextTaskNumber() (int64, error) {
+// incrementCounter is a generic helper to increment a counter in a table
+func (d *DB) incrementCounter(tableName, columnName string) (int64, error) {
 	tx, err := d.Db.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("failed to begin transaction: %w", err)
@@ -84,15 +84,17 @@ func (d *DB) GetNextTaskNumber() (int64, error) {
 	defer tx.Rollback()
 
 	var lastID int64
-	err = tx.QueryRow("SELECT last_id FROM task_counter").Scan(&lastID)
+	query := fmt.Sprintf("SELECT %s FROM %s", columnName, tableName)
+	err = tx.QueryRow(query).Scan(&lastID)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get last task ID: %w", err)
+		return 0, fmt.Errorf("failed to get last ID from %s: %w", tableName, err)
 	}
 
 	nextID := lastID + 1
-	_, err = tx.Exec("UPDATE task_counter SET last_id = ?", nextID)
+	updateQuery := fmt.Sprintf("UPDATE %s SET %s = ?", tableName, columnName)
+	_, err = tx.Exec(updateQuery, nextID)
 	if err != nil {
-		return 0, fmt.Errorf("failed to update task counter: %w", err)
+		return 0, fmt.Errorf("failed to update %s: %w", tableName, err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -102,29 +104,12 @@ func (d *DB) GetNextTaskNumber() (int64, error) {
 	return nextID, nil
 }
 
+// GetNextTaskNumber gets the next task number and increments the counter
+func (d *DB) GetNextTaskNumber() (int64, error) {
+	return d.incrementCounter("task_counter", "last_id")
+}
+
 // GetNextEventNumber gets the next event number and increments the counter
 func (d *DB) GetNextEventNumber() (int64, error) {
-	tx, err := d.Db.Begin()
-	if err != nil {
-		return 0, fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	var lastID int64
-	err = tx.QueryRow("SELECT last_id FROM event_counter").Scan(&lastID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get last event ID: %w", err)
-	}
-
-	nextID := lastID + 1
-	_, err = tx.Exec("UPDATE event_counter SET last_id = ?", nextID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to update event counter: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return nextID, nil
+	return d.incrementCounter("event_counter", "last_id")
 }

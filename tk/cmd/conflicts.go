@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/spf13/cobra"
 )
 
@@ -114,57 +115,8 @@ Otherwise, shows all conflicts in the database.`,
 		}
 
 		// Display cycles
-		if len(blocksCycles) > 0 {
-			fmt.Printf("Blocks cycles detected (%d):\n\n", len(blocksCycles))
-			for i, cycle := range blocksCycles {
-				fmt.Printf("Cycle %d:\n", i+1)
-
-				// Convert UUIDs to task IDs for display
-				var taskIDs []string
-				for _, uuid := range cycle {
-					task, ok := reducer.GetTask(uuid)
-					if ok {
-						taskIDs = append(taskIDs, task.TaskID)
-					} else {
-						taskIDs = append(taskIDs, uuid)
-					}
-				}
-
-				fmt.Printf("  %s\n", strings.Join(taskIDs, " → "))
-				fmt.Println()
-
-				// Show fix hint
-				if len(taskIDs) > 0 {
-					fmt.Printf("  Fix: tk relate remove %s blocks %s\n\n", taskIDs[len(taskIDs)-1], taskIDs[0])
-				}
-			}
-		}
-
-		if len(subtaskCycles) > 0 {
-			fmt.Printf("Subtask cycles detected (%d):\n\n", len(subtaskCycles))
-			for i, cycle := range subtaskCycles {
-				fmt.Printf("Cycle %d:\n", i+1)
-
-				// Convert UUIDs to task IDs for display
-				var taskIDs []string
-				for _, uuid := range cycle {
-					task, ok := reducer.GetTask(uuid)
-					if ok {
-						taskIDs = append(taskIDs, task.TaskID)
-					} else {
-						taskIDs = append(taskIDs, uuid)
-					}
-				}
-
-				fmt.Printf("  %s\n", strings.Join(taskIDs, " → "))
-				fmt.Println()
-
-				// Show fix hint
-				if len(taskIDs) > 0 {
-					fmt.Printf("  Fix: tk relate remove %s subtask %s\n\n", taskIDs[len(taskIDs)-1], taskIDs[0])
-				}
-			}
-		}
+		displayCycles(reducer, "blocks", blocksCycles)
+		displayCycles(reducer, "subtask", subtaskCycles)
 
 		return nil
 	},
@@ -172,4 +124,35 @@ Otherwise, shows all conflicts in the database.`,
 
 func init() {
 	conflictsCmd.Flags().Bool("json", false, "Output as JSON")
+}
+
+// displayCycles displays detected cycles for a given relation type
+func displayCycles(reducer *reducer.Reducer, cycleType string, cycles [][]string) {
+	if len(cycles) == 0 {
+		return
+	}
+
+	fmt.Printf("%s cycles detected (%d):\n\n", strings.Title(cycleType), len(cycles))
+	for i, cycle := range cycles {
+		fmt.Printf("Cycle %d:\n", i+1)
+
+		// Convert UUIDs to task IDs for display
+		var taskIDs []string
+		for _, uuid := range cycle {
+			task, ok := reducer.GetTask(uuid)
+			if ok {
+				taskIDs = append(taskIDs, task.TaskID)
+			} else {
+				taskIDs = append(taskIDs, uuid)
+			}
+		}
+
+		fmt.Printf("  %s\n", strings.Join(taskIDs, " → "))
+		fmt.Println()
+
+		// Show fix hint
+		if len(taskIDs) > 0 {
+			fmt.Printf("  Fix: tk relate remove %s %s %s\n\n", taskIDs[len(taskIDs)-1], cycleType, taskIDs[0])
+		}
+	}
 }

@@ -109,7 +109,7 @@ func parseMoveOptions(cmd *cobra.Command, targetSpec string) (moveOptions, error
 }
 
 func moveTask(db *database.DB, taskRef string, targetSpec string, opts moveOptions) error {
-	taskUID, err := database.ResolveTaskReference(db, taskRef)
+	taskUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
 	if err != nil {
 		return err
 	}
