@@ -650,20 +650,34 @@ func handleMono() {
 	planJson := fs.Bool("plan-json", false, "Output the fulfillment plan as JSON")
 	listFlag := fs.Bool("list", false, "List all releases and open PRs")
 
-	fs.Parse(os.Args[2:])
+	// Reorder args to move flags before positional arguments
+	// This allows "want mono printpdf --list" to work
+	args := os.Args[2:]
+	var flags []string
+	var positional []string
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			flags = append(flags, arg)
+		} else {
+			positional = append(positional, arg)
+		}
+	}
+	reorderedArgs := append(flags, positional...)
+
+	fs.Parse(reorderedArgs)
 
 	if fs.NArg() == 0 {
 		fmt.Println("Error: no project specified")
-		fmt.Println("Usage: want mono [--dry-run] [--plan-json] [--list] <project>")
-		fmt.Println("       want mono [--dry-run] [--plan-json] <project@version>")
+		fmt.Println("Usage: want mono <project> [--list]")
+		fmt.Println("       want mono <project@version> [--dry-run] [--plan-json]")
 		fmt.Println("\nExamples:")
 		fmt.Println("  want mono printpdf                     # Build printpdf from main branch (default)")
-		fmt.Println("  want mono --list printpdf              # List all releases and open PRs for printpdf")
+		fmt.Println("  want mono printpdf --list              # List all releases and open PRs for printpdf")
 		fmt.Println("  want mono printpdf@main.1              # Install printpdf version main.1")
 		fmt.Println("  want mono dissect@feature-branch       # Build dissect from a specific branch")
 		fmt.Println("  want mono want@abc1234                 # Build want from a specific commit")
-		fmt.Println("  want mono --dry-run dissect@pr-42      # Preview building from PR #42")
-		fmt.Println("  want mono --plan-json printpdf@main.1  # Show installation plan as JSON")
+		fmt.Println("  want mono dissect@pr-42 --dry-run      # Preview building from PR #42")
+		fmt.Println("  want mono printpdf@main.1 --plan-json  # Show installation plan as JSON")
 		os.Exit(1)
 	}
 
@@ -682,12 +696,12 @@ func handleMono() {
 
 	if len(parts) != 2 {
 		fmt.Printf("Error: Invalid format '%s'\n", arg)
-		fmt.Println("Expected: <project>, <project>@<version>, or --list <project>")
+		fmt.Println("Expected: <project>, <project>@<version>, or <project> --list")
 		fmt.Println("\nExamples:")
 		fmt.Println("  want mono printpdf            # Defaults to main branch")
 		fmt.Println("  want mono printpdf@main.1")
 		fmt.Println("  want mono dissect@pr-42")
-		fmt.Println("  want mono --list printpdf")
+		fmt.Println("  want mono printpdf --list")
 		os.Exit(1)
 	}
 
