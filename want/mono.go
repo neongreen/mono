@@ -150,18 +150,23 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 // Some projects have their main.go in a cmd subdirectory, while others have it in the root.
 // Returns the relative path to use with 'go build' (either "." or "./cmd").
 func getBuildPath(projectDir string) string {
+	// Check if there's a main.go in the root first
+	mainGoPath := filepath.Join(projectDir, "main.go")
+	if _, err := os.Stat(mainGoPath); err == nil {
+		// main.go exists in root, build from root
+		return "."
+	}
 
+	// Check for cmd subdirectory with .go files
 	cmdDir := filepath.Join(projectDir, "cmd")
 	if _, err := os.Stat(cmdDir); err == nil {
-
 		entries, err := os.ReadDir(cmdDir)
 		if err != nil {
-
 			return "."
 		}
 		for _, entry := range entries {
 			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".go" {
-
+				// Has .go files in cmd/, build from cmd
 				return "./cmd"
 			}
 		}
