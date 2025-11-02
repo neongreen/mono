@@ -143,19 +143,13 @@ func TestDeleteTaskWithRelations(t *testing.T) {
 		t.Fatalf("failed to load config: %v", err)
 	}
 
-	// Build reducer to verify relations
-	reducer, err := db.GetCachedReducerWithConfig(config)
-	if err != nil {
-		t.Fatalf("failed to build reducer: %v", err)
-	}
-
 	// Delete task1
 	if err := deleteTaskByUID(db, task1UID); err != nil {
 		t.Fatalf("deleteTask failed: %v", err)
 	}
 
-	// Rebuild reducer after delete
-	reducer, err = db.GetCachedReducerWithConfig(config)
+	// Build reducer after delete to verify relations
+	reducer, err := db.GetCachedReducerWithConfig(config)
 	if err != nil {
 		t.Fatalf("failed to rebuild reducer: %v", err)
 	}

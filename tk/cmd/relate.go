@@ -80,11 +80,12 @@ Examples:
 		normalizedSrc := srcUUID
 		normalizedDst := dstUUID
 
-		if relationType == "blocked_by" {
+		switch relationType {
+		case "blocked_by":
 			normalizedType = "blocks"
 			normalizedSrc = dstUUID
 			normalizedDst = srcUUID
-		} else if relationType == "parent" {
+		case "parent":
 			normalizedType = "subtask"
 			// parent(a,b) means a is parent of b, which is subtask(a,b)
 			// Keep src and dst as-is

@@ -212,7 +212,6 @@ func outputTasksJSON(db *database.DB, tasks []*types.Task, groupBy string) error
 }
 
 var (
-	dbPath string
 	// Color formatters for status display
 	yellowStatus = color.New(color.FgYellow).SprintFunc()
 	greenStatus  = color.New(color.FgGreen).SprintFunc()

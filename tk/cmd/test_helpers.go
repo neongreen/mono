@@ -100,40 +100,6 @@ func seedProject(t *testing.T, db *database.DB, alias string) string {
 	return projectUID
 }
 
-func seedProjectWithoutAlias(t *testing.T, db *database.DB, name string) string {
-	t.Helper()
-	projectUID := string(types.NewProjectUID())
-	now := time.Now()
-
-	projectPayload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
-		Name:        name,
-		Description: name + " project",
-		CreatedBy:   "tester",
-	}
-
-	payloadJSON := mustJSON(t, projectPayload)
-	event := types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: now,
-		Actor:     "tester",
-		Role:      "human",
-		Kind:      string(types.EventKindProjectCreated),
-		Payload:   payloadJSON,
-	}
-	if err := db.InsertEvent(event); err != nil {
-		t.Fatalf("failed to insert project.created: %v", err)
-	}
-	if err := db.ProjectProjectCreatedEvent(event); err != nil {
-		t.Fatalf("failed to project project.created: %v", err)
-	}
-
-	// No alias event is created, so the project has no alias
-	return projectUID
-}
-
 func seedTask(t *testing.T, db *database.DB, projectUID string, title string, number int64) string {
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
@@ -206,91 +172,6 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 		t.Fatalf("failed to marshal payload: %v", err)
 	}
 	return json.RawMessage(data)
-}
-
-// Helper functions for creating events without testing context
-
-func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) types.Event {
-	payload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
-		Name:        name,
-		Description: description,
-		CreatedBy:   createdBy,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	return types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     createdBy,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectCreated),
-		Payload:   payloadJSON,
-	}
-}
-
-func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) types.Event {
-	payload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID,
-		Alias:      alias,
-		Node:       node,
-		AddedBy:    addedBy,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	return types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     addedBy,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   payloadJSON,
-	}
-}
-
-func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) types.Event {
-	payload := types.TaskCreatedPayload{
-		TaskUID:        taskUID,
-		ProjectUID:     projectUID,
-		ProposedNumber: proposedNumber,
-		CreatedNode:    createdNode,
-		Title:          title,
-		CreatedBy:      createdBy,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	return types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     createdBy,
-		Role:      "human",
-		Kind:      string(types.EventKindTaskCreated),
-		Payload:   payloadJSON,
-	}
-}
-
-func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason string) types.Event {
-	payload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
-		Number:     number,
-		Reason:     reason,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	return types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     "system",
-		Role:      "human",
-		Kind:      string(types.EventKindTaskNumberSet),
-		Payload:   payloadJSON,
-	}
 }
 
 // Helper to marshal payloads
