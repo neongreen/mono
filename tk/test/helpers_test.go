@@ -291,9 +291,3 @@ func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason s
 		Payload:   payloadJSON,
 	}
 }
-
-// Helper to marshal payloads
-func marshalPayload(v interface{}) json.RawMessage {
-	data, _ := json.Marshal(v)
-	return json.RawMessage(data)
-}
