@@ -674,7 +674,22 @@ async function rotateStatus(provider: TkProvider, item: TaskTreeItem): Promise<v
   }
 }
 
-async function markDone(provider: TkProvider, item: TaskTreeItem): Promise<void> {
+async function markDone(provider: TkProvider, treeView: vscode.TreeView<TkTreeItem>, item?: TaskTreeItem): Promise<void> {
+  // If no item is passed (e.g., from keybinding), get the selected item from the tree view
+  if (!item) {
+    const selection = treeView.selection;
+    if (selection.length === 0) {
+      void vscode.window.showErrorMessage('No task selected');
+      return;
+    }
+    const selectedItem = selection[0];
+    if (!(selectedItem instanceof TaskTreeItem)) {
+      void vscode.window.showErrorMessage('Please select a task, not a group');
+      return;
+    }
+    item = selectedItem;
+  }
+
   const taskId = item.task.task_id;
   if (!taskId) {
     void vscode.window.showErrorMessage('Cannot mark task as done: task has no ID');
@@ -931,7 +946,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('tk.refresh', () => provider.refresh()),
     vscode.commands.registerCommand('tk.editTitle', (item: TaskTreeItem) => editTitle(provider, item)),
     vscode.commands.registerCommand('tk.rotateStatus', (item: TaskTreeItem) => rotateStatus(provider, item)),
-    vscode.commands.registerCommand('tk.markDone', (item: TaskTreeItem) => markDone(provider, item)),
+    vscode.commands.registerCommand('tk.markDone', (item?: TaskTreeItem) => markDone(provider, treeView, item)),
     vscode.commands.registerCommand('tk.createTask', (item: GroupTreeItem) => createTask(provider, item)),
     vscode.commands.registerCommand('tk.createProject', () => createProject(provider)),
     vscode.commands.registerCommand('tk.deleteTask', (item: TaskTreeItem) => deleteTask(provider, item)),
