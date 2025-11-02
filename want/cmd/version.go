@@ -36,10 +36,10 @@ var versionCmd = &cobra.Command{
 			}
 			fmt.Println(string(output))
 		} else {
-			// Format build time as human-readable
+			// Format build time as human-readable in local time
 			buildTimeStr := BuildTime
 			if t, err := time.Parse(time.RFC3339, BuildTime); err == nil {
-				buildTimeStr = t.Format("Jan 2, 2006 15:04 MST")
+				buildTimeStr = t.Local().Format("Jan 2, 2006 15:04 MST")
 			}
 
 			fmt.Printf("want version %s\n", Version)
