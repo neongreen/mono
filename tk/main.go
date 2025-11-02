@@ -30,7 +30,9 @@ func main() {
 	}
 	rErr, wErr, err2 := os.Pipe()
 	if err2 != nil {
-		// If pipe creation fails, run without logging
+		// Clean up first pipe and run without logging
+		rOut.Close()
+		wOut.Close()
 		if err := cmd.Execute(); err != nil {
 			os.Exit(1)
 		}

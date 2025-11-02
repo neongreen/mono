@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
 )
 
@@ -52,6 +53,12 @@ func WriteLog(log InvocationLog) error {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}
 	defer f.Close()
+
+	// Acquire exclusive lock to prevent concurrent write interleaving
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
+		return fmt.Errorf("failed to lock log file: %w", err)
+	}
+	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 
 	// Marshal to JSON
 	data, err := json.Marshal(log)
