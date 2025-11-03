@@ -170,6 +170,7 @@ Examples:
 		totalImported := 0
 		totalSkipped := 0
 		issueMap := make(map[string]string) // beads ID -> tk task UID
+		var renumberedIssues []string
 
 		for prefix, prefixIssues := range prefixGroups {
 			fmt.Printf("\nImporting %d issues with prefix '%s'...\n", len(prefixIssues), prefix)
@@ -182,24 +183,56 @@ Examples:
 			}
 			fmt.Printf("Created project '%s' with alias: %s\n", prefix, projectAlias)
 
+			// Pre-scan to find highest numeric ID (for fallback numbering)
+			highestNumber := int64(0)
+			for _, issue := range prefixIssues {
+				if num, err := parseBeadsNumber(issue.ID); err == nil {
+					if num > highestNumber {
+						highestNumber = num
+					}
+				}
+			}
+
 			// Import issues for this prefix
 			for _, issue := range prefixIssues {
-				// Parse number from beads ID to preserve numbering
+				// Try to parse number from beads ID
 				number, err := parseBeadsNumber(issue.ID)
+				var renumbered bool
+
 				if err != nil {
-					fmt.Printf("Warning: failed to parse number from %s: %v\n", issue.ID, err)
-					totalSkipped++
-					continue
+					// Fallback: assign next available number after highest
+					highestNumber++
+					number = highestNumber
+					renumbered = true
 				}
 
 				taskUID, err := importBeadsIssue(db, issue, projectUID, number)
 				if err != nil {
-					fmt.Printf("Warning: failed to import %s: %v\n", issue.ID, err)
+					fmt.Printf("Error: failed to import %s: %v\n", issue.ID, err)
 					totalSkipped++
 					continue
 				}
+
+				// CRITICAL: Map by original beads ID for relationships
 				issueMap[issue.ID] = taskUID
 				totalImported++
+
+				// Add note explaining renumbering
+				if renumbered {
+					if err := addRenumberNote(db, taskUID, issue.ID, number); err != nil {
+						fmt.Printf("Warning: failed to add renumber note to %s: %v\n", issue.ID, err)
+					}
+					renumberedIssues = append(renumberedIssues,
+						fmt.Sprintf("  %s → %d (non-numeric ID)", issue.ID, number))
+				}
+			}
+		}
+
+		// Show renumbering summary
+		if len(renumberedIssues) > 0 {
+			fmt.Printf("\nRenumbered %d issues with non-numeric IDs:\n", len(renumberedIssues))
+			for _, msg := range renumberedIssues {
+				fmt.Println(msg)
 			}
 		}
 
@@ -650,6 +683,56 @@ func parseBeadsNumber(id string) (int64, error) {
 		return 0, fmt.Errorf("invalid beads ID format: %s", id)
 	}
 	return strconv.ParseInt(parts[1], 10, 64)
+}
+
+// getNextAvailableNumber finds the next available task number for a project
+func getNextAvailableNumber(db *database.DB, projectUID string) int64 {
+	var maxNumber int64
+	db.Db.QueryRow(`
+		SELECT COALESCE(MAX(number), 0) 
+		FROM task_numbers 
+		WHERE project_uid = ?
+	`, projectUID).Scan(&maxNumber)
+	return maxNumber + 1
+}
+
+// addRenumberNote adds a note to a task explaining it was renumbered during import
+func addRenumberNote(db *database.DB, taskUID, originalID string, newNumber int64) error {
+	note := fmt.Sprintf("Note: Original beads ID was %s (non-numeric), renumbered to %d during import",
+		originalID, newNumber)
+
+	payload := types.TaskNoteAddPayload{
+		TaskUUID: taskUID,
+		TaskID:   "",
+		Markdown: note,
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal note payload: %w", err)
+	}
+
+	eventID, err := database.GenerateEventID(db)
+	if err != nil {
+		return fmt.Errorf("failed to generate event ID: %w", err)
+	}
+
+	ts, err := db.GetNextLamportTS()
+	if err != nil {
+		return fmt.Errorf("failed to get lamport timestamp: %w", err)
+	}
+
+	event := types.Event{
+		ID:        eventID,
+		TS:        ts,
+		CreatedAt: time.Now(),
+		Actor:     "importer",
+		Role:      "human",
+		Kind:      string(types.EventKindTaskNoteAdd),
+		Payload:   payloadJSON,
+	}
+
+	return db.InsertEvent(event)
 }
 
 // createProjectForImport creates a new project for beads import (always creates, never reuses)
