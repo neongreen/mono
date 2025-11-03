@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -33,5 +35,5 @@ func handleJsonCommand(args []string, dryRun, planJSON bool) error {
 	if HandleJsonCommandFunc != nil {
 		return HandleJsonCommandFunc(args, dryRun, planJSON)
 	}
-	return nil
+	return fmt.Errorf("json command handler not initialized")
 }

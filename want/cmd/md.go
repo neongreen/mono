@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -32,5 +34,5 @@ func handleMarkdownCommand(args []string, dryRun, planJSON bool) error {
 	if HandleMarkdownCommandFunc != nil {
 		return HandleMarkdownCommandFunc(args, dryRun, planJSON)
 	}
-	return nil
+	return fmt.Errorf("markdown command handler not initialized")
 }

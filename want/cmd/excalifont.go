@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -34,5 +36,5 @@ func handleExcalifontCommand(args []string, dryRun, planJSON bool) error {
 	if HandleExcalifontCommandFunc != nil {
 		return HandleExcalifontCommandFunc(args, dryRun, planJSON)
 	}
-	return nil
+	return fmt.Errorf("excalifont command handler not initialized")
 }
