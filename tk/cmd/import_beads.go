@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,8 +45,27 @@ var importBeadsCmd = &cobra.Command{
 	Short: "Import issues from beads JSONL format",
 	Long: `Import issues from a beads .beads/issues.jsonl file into tk.
 
-This command reads a beads issues.jsonl file and converts each issue into
-a tk task, preserving:
+AUTO-DETECTS PREFIXES:
+This command scans the beads file and creates one tk project per prefix.
+For example, if beads has mono-1, mono-2, foo-1, it creates two projects.
+
+ALIAS NAMING:
+Projects get alias: <--prefix><beads-prefix>
+Default --prefix is "bd-", so:
+  - beads "mono" → tk alias "bd-mono"
+  - beads "foo" → tk alias "bd-foo"
+
+LIMITATION - ALIAS UNIQUENESS:
+tk's multi-machine sync requires that one node cannot create duplicate aliases.
+If you already have a project with alias "bd-mono", the import will fail.
+Use --prefix to avoid clashes (e.g., --prefix=beads-).
+
+CLASH DETECTION:
+Before import, checks if any resulting aliases already exist from this node.
+If clash detected, import aborts with clear error message.
+
+PRESERVES:
+- Exact task numbering (mono-123 in beads → bd-mono-123 in tk)
 - Titles and descriptions
 - Status (open, in_progress, closed)
 - Priority (0-4) as metadata
@@ -53,14 +73,15 @@ a tk task, preserving:
 - Dependencies (blocks, parent-child, related, discovered-from)
 
 Examples:
-  tk import-beads .beads/issues.jsonl    # Import from specific file
-  tk import-beads /path/to/project       # Import from project (auto-finds .beads/issues.jsonl)
-  tk import-beads                        # Import from current directory's .beads/issues.jsonl
+  tk import-beads                                    # Import from .beads/issues.jsonl (prefix: bd-)
+  tk import-beads /path/to/repo                      # Auto-finds .beads/issues.jsonl
+  tk import-beads .beads/issues.jsonl --prefix=old-  # Use different prefix
+  tk import-beads --dry-run                          # Preview what would be imported
 `,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		projectName, _ := cmd.Flags().GetString("project")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		aliasPrefix, _ := cmd.Flags().GetString("prefix")
 
 		// Determine the path to the beads file
 		var beadsPath string
@@ -97,10 +118,47 @@ Examples:
 			return nil
 		}
 
-		fmt.Printf("Found %d issues in beads file\n", len(issues))
+		// Group by prefix
+		prefixGroups := extractPrefixesFromBeads(issues)
+
+		// Open database (needed for clash detection)
+		db, err := database.OpenExistingDB()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		// Get current node
+		nodeID, err := db.GetOrCreateNodeID()
+		if err != nil {
+			return fmt.Errorf("failed to get node ID: %w", err)
+		}
+
+		// Check for alias clashes before starting import
+		for beadsPrefix := range prefixGroups {
+			alias := aliasPrefix + beadsPrefix
+			// Check if this node already has this alias
+			var exists int
+			err := db.Db.QueryRow(`
+				SELECT COUNT(*) FROM project_aliases 
+				WHERE alias = ? AND node = ?
+			`, alias, nodeID).Scan(&exists)
+			if err != nil {
+				return fmt.Errorf("failed to check alias clash: %w", err)
+			}
+			if exists > 0 {
+				return fmt.Errorf("alias '%s' already exists for this node - cannot import (try a different --prefix)", alias)
+			}
+		}
 
 		if dryRun {
 			fmt.Println("\nDry run mode - no changes will be made")
+			fmt.Printf("\nFound %d issues across %d prefix(es):\n", len(issues), len(prefixGroups))
+			for prefix, group := range prefixGroups {
+				alias := aliasPrefix + prefix
+				fmt.Printf("  %s: %d issues → will create project with alias '%s'\n", prefix, len(group), alias)
+			}
+			fmt.Println("\nAll issues:")
 			for _, issue := range issues {
 				fmt.Printf("  %s: %s (status: %s, type: %s)\n",
 					issue.ID, issue.Title, issue.Status, issue.Type)
@@ -108,39 +166,47 @@ Examples:
 			return nil
 		}
 
-		// Open database
-		db, err := database.OpenExistingDB()
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		// Get or create project
-		projectUID, err := getOrCreateProjectForImport(db, projectName)
-		if err != nil {
-			return fmt.Errorf("failed to get/create project: %w", err)
-		}
-
-		// Import each issue
-		imported := 0
-		skipped := 0
+		// Import each prefix as a separate project
+		totalImported := 0
+		totalSkipped := 0
 		issueMap := make(map[string]string) // beads ID -> tk task UID
 
-		for _, issue := range issues {
-			taskUID, err := importBeadsIssue(db, issue, projectUID)
+		for prefix, prefixIssues := range prefixGroups {
+			fmt.Printf("\nImporting %d issues with prefix '%s'...\n", len(prefixIssues), prefix)
+
+			// Always create NEW project
+			projectAlias := aliasPrefix + prefix
+			projectUID, err := createProjectForImport(db, prefix, projectAlias)
 			if err != nil {
-				fmt.Printf("Warning: failed to import %s: %v\n", issue.ID, err)
-				skipped++
-				continue
+				return fmt.Errorf("failed to create project for prefix %s: %w", prefix, err)
 			}
-			issueMap[issue.ID] = taskUID
-			imported++
+			fmt.Printf("Created project '%s' with alias: %s\n", prefix, projectAlias)
+
+			// Import issues for this prefix
+			for _, issue := range prefixIssues {
+				// Parse number from beads ID to preserve numbering
+				number, err := parseBeadsNumber(issue.ID)
+				if err != nil {
+					fmt.Printf("Warning: failed to parse number from %s: %v\n", issue.ID, err)
+					totalSkipped++
+					continue
+				}
+
+				taskUID, err := importBeadsIssue(db, issue, projectUID, number)
+				if err != nil {
+					fmt.Printf("Warning: failed to import %s: %v\n", issue.ID, err)
+					totalSkipped++
+					continue
+				}
+				issueMap[issue.ID] = taskUID
+				totalImported++
+			}
 		}
 
-		fmt.Printf("\nImported %d issues (%d skipped)\n", imported, skipped)
+		fmt.Printf("\nImported %d issues (%d skipped)\n", totalImported, totalSkipped)
 
-		// Second pass: import relationships
-		if imported > 0 {
+		// Second pass: import relationships (across all prefixes)
+		if totalImported > 0 {
 			fmt.Println("\nImporting relationships...")
 			relImported := 0
 			for _, issue := range issues {
@@ -196,7 +262,7 @@ func readBeadsFile(path string) ([]BeadsIssue, error) {
 }
 
 // importBeadsIssue imports a single beads issue as a tk task
-func importBeadsIssue(db *database.DB, issue BeadsIssue, projectUID string) (string, error) {
+func importBeadsIssue(db *database.DB, issue BeadsIssue, projectUID string, number int64) (string, error) {
 	// Get node ID
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
@@ -209,16 +275,8 @@ func importBeadsIssue(db *database.DB, issue BeadsIssue, projectUID string) (str
 		return "", err
 	}
 
-	// Compute next task number (max + 1)
-	var maxNumber int64
-	err = db.Db.QueryRow(`
-		SELECT COALESCE(MAX(number), 0) FROM task_numbers
-		WHERE project_uid = ?
-	`, projectUID).Scan(&maxNumber)
-	if err != nil {
-		return "", fmt.Errorf("failed to get max number: %w", err)
-	}
-	proposedNumber := maxNumber + 1
+	// Use the provided number (from beads ID) to preserve numbering
+	proposedNumber := number
 
 	// Parse created_at time if available
 	var createdAt time.Time
@@ -566,8 +624,36 @@ func mapBeadsStatus(beadsStatus string) string {
 	}
 }
 
-// getOrCreateProjectForImport gets an existing project or creates a new one
-func getOrCreateProjectForImport(db *database.DB, projectName string) (string, error) {
+// extractPrefixesFromBeads groups beads issues by their prefix
+func extractPrefixesFromBeads(issues []BeadsIssue) map[string][]BeadsIssue {
+	grouped := make(map[string][]BeadsIssue)
+
+	for _, issue := range issues {
+		// Extract prefix from ID (e.g., "mono-123" → "mono")
+		parts := strings.Split(issue.ID, "-")
+		if len(parts) < 2 {
+			// Skip malformed IDs
+			continue
+		}
+		prefix := parts[0]
+		grouped[prefix] = append(grouped[prefix], issue)
+	}
+
+	return grouped
+}
+
+// parseBeadsNumber extracts the number from a beads ID
+func parseBeadsNumber(id string) (int64, error) {
+	// mono-123 → 123
+	parts := strings.Split(id, "-")
+	if len(parts) < 2 {
+		return 0, fmt.Errorf("invalid beads ID format: %s", id)
+	}
+	return strconv.ParseInt(parts[1], 10, 64)
+}
+
+// createProjectForImport creates a new project for beads import (always creates, never reuses)
+func createProjectForImport(db *database.DB, prefix string, alias string) (string, error) {
 	// Get current user and node
 	actor, err := getCurrentUser()
 	if err != nil {
@@ -579,22 +665,14 @@ func getOrCreateProjectForImport(db *database.DB, projectName string) (string, e
 		return "", err
 	}
 
-	// Try to resolve existing project
-	ref := types.NewProjectRef(projectName)
-	projectUID, err := database.ResolveProjectRef(db, ref)
-	if err == nil {
-		// Project exists
-		return projectUID.String(), nil
-	}
-
-	// Create new project
-	projectUID = types.NewProjectUID()
+	// Always create NEW project (never reuse existing)
+	projectUID := types.NewProjectUID()
 
 	payload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID.String(),
 		Type:        "local",
-		Name:        projectName,
-		Description: "Imported from beads",
+		Name:        prefix,
+		Description: "Imported from beads (prefix: " + prefix + ", alias: " + alias + ")",
 		CreatedBy:   actor,
 	}
 
@@ -631,10 +709,10 @@ func getOrCreateProjectForImport(db *database.DB, projectName string) (string, e
 		return "", err
 	}
 
-	// Add alias for the project
+	// Add alias (single alias: <aliasPrefix><beadsPrefix>)
 	aliasPayload := types.ProjectAliasAddPayload{
 		ProjectUID: projectUID.String(),
-		Alias:      projectName,
+		Alias:      alias,
 		Node:       nodeID,
 		AddedBy:    actor,
 	}
@@ -672,52 +750,10 @@ func getOrCreateProjectForImport(db *database.DB, projectName string) (string, e
 		return "", err
 	}
 
-	// Add second alias: bd-<projectName> for disambiguation
-	secondAlias := "bd-" + projectName
-	secondAliasPayload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID.String(),
-		Alias:      secondAlias,
-		Node:       nodeID,
-		AddedBy:    actor,
-	}
-
-	secondAliasPayloadJSON, err := json.Marshal(secondAliasPayload)
-	if err != nil {
-		return "", err
-	}
-
-	secondAliasEventID, err := database.GenerateEventID(db)
-	if err != nil {
-		return "", err
-	}
-
-	secondAliasTS, err := db.GetNextLamportTS()
-	if err != nil {
-		return "", err
-	}
-
-	secondAliasEvent := types.Event{
-		ID:        secondAliasEventID,
-		TS:        secondAliasTS,
-		CreatedAt: time.Now(),
-		Actor:     actor,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   secondAliasPayloadJSON,
-	}
-
-	if err := db.InsertEvent(secondAliasEvent); err != nil {
-		return "", err
-	}
-
-	if err := db.ProjectProjectAliasAddEvent(secondAliasEvent); err != nil {
-		return "", err
-	}
-
 	return projectUID.String(), nil
 }
 
 func init() {
-	importBeadsCmd.Flags().StringP("project", "p", "beads-import", "Project to import issues into")
 	importBeadsCmd.Flags().Bool("dry-run", false, "Preview import without making changes")
+	importBeadsCmd.Flags().StringP("prefix", "p", "bd-", "Prefix to prepend to beads prefixes for tk aliases (e.g., 'bd-' creates 'bd-mono' from 'mono')")
 }
