@@ -9,9 +9,9 @@ import (
 	"github.com/fatih/color"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/termutil"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 var lsCmd = &cobra.Command{
@@ -113,10 +113,7 @@ var lsCmd = &cobra.Command{
 			return outputTasksJSON(db, tasks, groupBy)
 		}
 
-		termWidth, _, err := term.GetSize(int(os.Stdout.Fd()))
-		if err != nil {
-			termWidth = 80
-		}
+		termWidth := termutil.GetTerminalWidth()
 
 		switch groupBy {
 		case "project", "prefix":
