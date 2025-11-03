@@ -672,6 +672,48 @@ func getOrCreateProjectForImport(db *database.DB, projectName string) (string, e
 		return "", err
 	}
 
+	// Add second alias: bd-<projectName> for disambiguation
+	secondAlias := "bd-" + projectName
+	secondAliasPayload := types.ProjectAliasAddPayload{
+		ProjectUID: projectUID.String(),
+		Alias:      secondAlias,
+		Node:       nodeID,
+		AddedBy:    actor,
+	}
+
+	secondAliasPayloadJSON, err := json.Marshal(secondAliasPayload)
+	if err != nil {
+		return "", err
+	}
+
+	secondAliasEventID, err := database.GenerateEventID(db)
+	if err != nil {
+		return "", err
+	}
+
+	secondAliasTS, err := db.GetNextLamportTS()
+	if err != nil {
+		return "", err
+	}
+
+	secondAliasEvent := types.Event{
+		ID:        secondAliasEventID,
+		TS:        secondAliasTS,
+		CreatedAt: time.Now(),
+		Actor:     actor,
+		Role:      "human",
+		Kind:      string(types.EventKindProjectAliasAdd),
+		Payload:   secondAliasPayloadJSON,
+	}
+
+	if err := db.InsertEvent(secondAliasEvent); err != nil {
+		return "", err
+	}
+
+	if err := db.ProjectProjectAliasAddEvent(secondAliasEvent); err != nil {
+		return "", err
+	}
+
 	return projectUID.String(), nil
 }
 

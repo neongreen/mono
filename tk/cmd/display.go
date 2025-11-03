@@ -32,9 +32,9 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	t.SetOutputMirror(os.Stdout)
 
 	if showAliases {
-		t.AppendHeader(table.Row{"ID", "Aliases", "Status", "Title"})
+		t.AppendHeader(table.Row{"ID", "Aliases", "Status", "P", "Labels", "Title"})
 	} else {
-		t.AppendHeader(table.Row{"ID", "Status", "Title"})
+		t.AppendHeader(table.Row{"ID", "Status", "P", "Labels", "Title"})
 	}
 
 	t.SetStyle(table.StyleLight)
@@ -42,27 +42,31 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	t.Style().Options.DrawBorder = false
 
 	if showAliases {
-
-		titleMaxWidth := termWidth - 60
+		// ID, Aliases, Status, P, Labels, Title
+		titleMaxWidth := termWidth - 80
 		if titleMaxWidth < 20 {
 			titleMaxWidth = 20
 		}
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false},
-			{Number: 2, AutoMerge: false},
-			{Number: 3, AutoMerge: false},
-			{Number: 4, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft},
+			{Number: 1, AutoMerge: false},                                                           // ID
+			{Number: 2, AutoMerge: false},                                                           // Aliases
+			{Number: 3, AutoMerge: false},                                                           // Status
+			{Number: 4, AutoMerge: false, WidthMax: 3},                                              // P (priority)
+			{Number: 5, AutoMerge: false, WidthMax: 30, WidthMaxEnforcer: text.WrapSoft},            // Labels
+			{Number: 6, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title
 		})
 	} else {
-
-		titleMaxWidth := termWidth - 30
+		// ID, Status, P, Labels, Title
+		titleMaxWidth := termWidth - 50
 		if titleMaxWidth < 20 {
 			titleMaxWidth = 20
 		}
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false},
-			{Number: 2, AutoMerge: false},
-			{Number: 3, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft},
+			{Number: 1, AutoMerge: false},                                                           // ID
+			{Number: 2, AutoMerge: false},                                                           // Status
+			{Number: 3, AutoMerge: false, WidthMax: 3},                                              // P (priority)
+			{Number: 4, AutoMerge: false, WidthMax: 30, WidthMaxEnforcer: text.WrapSoft},            // Labels
+			{Number: 5, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title
 		})
 	}
 
@@ -77,6 +81,28 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 			status = colorizeStatus(axis.Effective)
 		}
 
+		// Extract priority
+		priority := ""
+		if meta, ok := task.Metadata["priority"]; ok {
+			var p interface{}
+			if err := json.Unmarshal(meta.Effective, &p); err == nil {
+				priority = fmt.Sprintf("%v", p)
+			}
+		}
+
+		// Extract labels
+		labelsStr := ""
+		if meta, ok := task.Metadata["labels"]; ok {
+			var labels []interface{}
+			if err := json.Unmarshal(meta.Effective, &labels); err == nil && len(labels) > 0 {
+				var labelStrs []string
+				for _, l := range labels {
+					labelStrs = append(labelStrs, fmt.Sprintf("%v", l))
+				}
+				labelsStr = strings.Join(labelStrs, ", ")
+			}
+		}
+
 		if showAliases {
 
 			aliasesStr := ""
@@ -87,9 +113,9 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 				}
 				aliasesStr = strings.Join(shortAliases, ", ")
 			}
-			t.AppendRow(table.Row{displayID, aliasesStr, status, task.Title})
+			t.AppendRow(table.Row{displayID, aliasesStr, status, priority, labelsStr, task.Title})
 		} else {
-			t.AppendRow(table.Row{displayID, status, task.Title})
+			t.AppendRow(table.Row{displayID, status, priority, labelsStr, task.Title})
 		}
 	}
 
