@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/neongreen/mono/lib/ghclient"
 	"github.com/neongreen/mono/lib/ghrelease"
 	"github.com/neongreen/mono/want/cmd"
@@ -337,23 +338,23 @@ func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
 	}
 
 	fmt.Println()
-	fmt.Printf("✓ Built and installed %s from local checkout to: %s\n", project, destPath)
+	fmt.Printf("%s Built and installed %s from local checkout to: %s\n", cli.Success("✓"), cli.Key(project), cli.Path(destPath))
 	fmt.Println()
 
 	pathEnv := os.Getenv("PATH")
 	if !strings.Contains(pathEnv, destDir) {
-		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
 		fmt.Println()
 		fmt.Println("To use the binary, either:")
 		fmt.Println("  1. Run it with the full path:")
-		fmt.Printf("     %s\n", destPath)
+		fmt.Printf("     %s\n", cli.Path(destPath))
 		fmt.Println()
 		fmt.Println("  2. Add the directory to your PATH:")
 		configFile := getShellConfigFile()
 		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
 		fmt.Printf("     source %s\n", configFile)
 	} else {
-		fmt.Printf("✓ Binary is available in your PATH as: %s\n", project)
+		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(project))
 	}
 }
 
@@ -499,23 +500,23 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 	}
 
 	fmt.Println()
-	fmt.Printf("✓ Built and installed %s from %s to: %s\n", project, refDescription, destPath)
+	fmt.Printf("%s Built and installed %s from %s to: %s\n", cli.Success("✓"), cli.Key(project), refDescription, cli.Path(destPath))
 	fmt.Println()
 
 	pathEnv := os.Getenv("PATH")
 	if !strings.Contains(pathEnv, destDir) {
-		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
 		fmt.Println()
 		fmt.Println("To use the binary, either:")
 		fmt.Println("  1. Run it with the full path:")
-		fmt.Printf("     %s\n", destPath)
+		fmt.Printf("     %s\n", cli.Path(destPath))
 		fmt.Println()
 		fmt.Println("  2. Add the directory to your PATH:")
 		configFile := getShellConfigFile()
 		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
 		fmt.Printf("     source %s\n", configFile)
 	} else {
-		fmt.Printf("✓ Binary is available in your PATH as: %s\n", project)
+		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(project))
 	}
 }
 
@@ -598,7 +599,7 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 
 	branch := *pr.Head.Ref
 	fmt.Printf("PR #%d: %s\n", prNumber, *pr.Title)
-	fmt.Printf("Branch: %s\n", branch)
+	fmt.Printf("Branch: %s\n", cli.Key(branch))
 	fmt.Println()
 
 	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-pr-%d-*", project, prNumber))
@@ -608,7 +609,7 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	fmt.Printf("Cloning neongreen/mono (branch: %s)...\n", branch)
+	fmt.Printf("Cloning neongreen/mono (branch: %s)...\n", cli.Key(branch))
 	cmd := exec.Command("git", "clone", "--depth=1", "--branch", branch,
 		"https://github.com/neongreen/mono.git", tmpDir)
 	cmd.Stdout = os.Stdout
@@ -653,23 +654,23 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 	}
 
 	fmt.Println()
-	fmt.Printf("✓ Built and installed %s from PR #%d to: %s\n", project, prNumber, destPath)
+	fmt.Printf("%s Built and installed %s from PR #%d to: %s\n", cli.Success("✓"), cli.Key(project), prNumber, cli.Path(destPath))
 	fmt.Println()
 
 	pathEnv := os.Getenv("PATH")
 	if !strings.Contains(pathEnv, destDir) {
-		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
 		fmt.Println()
 		fmt.Println("To use the binary, either:")
 		fmt.Println("  1. Run it with the full path:")
-		fmt.Printf("     %s\n", destPath)
+		fmt.Printf("     %s\n", cli.Path(destPath))
 		fmt.Println()
 		fmt.Println("  2. Add the directory to your PATH:")
 		configFile := getShellConfigFile()
 		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
 		fmt.Printf("     source %s\n", configFile)
 	} else {
-		fmt.Printf("✓ Binary is available in your PATH as: %s\n", project)
+		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(project))
 	}
 }
 
@@ -833,22 +834,22 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 	}
 
 	fmt.Println()
-	fmt.Printf("✓ Installed %s version %s to: %s\n", project, version, destPath)
+	fmt.Printf("%s Installed %s version %s to: %s\n", cli.Success("✓"), cli.Key(project), cli.Key(version), cli.Path(destPath))
 	fmt.Println()
 
 	pathEnv := os.Getenv("PATH")
 	if !strings.Contains(pathEnv, destDir) {
-		fmt.Printf("Note: %s is not in your PATH\n", destDir)
+		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
 		fmt.Println()
 		fmt.Println("To use the binary, either:")
 		fmt.Println("  1. Run it with the full path:")
-		fmt.Printf("     %s\n", destPath)
+		fmt.Printf("     %s\n", cli.Path(destPath))
 		fmt.Println()
 		fmt.Println("  2. Add the directory to your PATH:")
 		configFile := getShellConfigFile()
 		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
 		fmt.Printf("     source %s\n", configFile)
 	} else {
-		fmt.Printf("✓ Binary is available in your PATH as: %s\n", project)
+		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(project))
 	}
 }

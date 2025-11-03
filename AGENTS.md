@@ -779,3 +779,48 @@ func applyTool(conf *config.Config, toolName string) error {
 - Configuration file serialization: TOML, JSON, YAML
 
 **The key principle**: If you control both ends (caller and callee), use structured data. Only render to strings at the boundaries.
+
+------------------------------------------------------------
+
+## CLI Output Styling
+
+**All CLI tools must follow the unified styling guidelines defined in [CLI_STYLE_GUIDE.md](./CLI_STYLE_GUIDE.md).**
+
+### Required Library
+
+Use `lib/cli` package for all CLI color formatting:
+
+```go
+import "github.com/neongreen/mono/lib/cli"
+
+// Success messages
+cli.PrintSuccess("✓ Operation completed")
+
+// Error messages  
+cli.PrintError("Error: Failed to process")
+
+// Colored elements
+fmt.Printf("Config: %s\n", cli.Path("/path/to/file"))
+fmt.Printf("%s: %s\n", cli.Key("setting"), cli.Value("value"))
+```
+
+### Semantic Colors
+
+- **Success** (green): `cli.Success()` - checkmarks, success messages
+- **Warning** (yellow): `cli.Warning()` - warnings, in-progress status
+- **Error** (red): `cli.Error()` - errors, failures
+- **Key** (cyan bold): `cli.Key()` - config keys, identifiers
+- **Path** (cyan): `cli.Path()` - file paths
+- **Value** (green): `cli.Value()` - configured values
+- **Type** (yellow): `cli.Type()` - type information
+- **Muted** (bright black): `cli.Muted()` - unset values, placeholders
+- **Header** (bold): `cli.Header()` - section headers
+
+### Guidelines
+
+- Use colors purposefully, not excessively
+- Maintain consistency across all tools (want, conf, jj-run, etc.)
+- Colors should enhance readability, not distract
+- The `fatih/color` library automatically respects NO_COLOR environment variable
+
+See [CLI_STYLE_GUIDE.md](./CLI_STYLE_GUIDE.md) for complete documentation and examples.

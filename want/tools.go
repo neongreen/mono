@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/neongreen/mono/want/cmd"
 )
 
@@ -222,7 +223,7 @@ func performMiseInstallation() error {
 
 	if err := cmd.Run(); err != nil {
 		fmt.Println()
-		fmt.Println("Error: Failed to download and install mise")
+		cli.PrintError("Error: Failed to download and install mise")
 		fmt.Println()
 		fmt.Println("You can try installing manually:")
 		fmt.Println("  curl https://mise.run | sh")
@@ -232,20 +233,20 @@ func performMiseInstallation() error {
 	}
 
 	fmt.Println()
-	fmt.Println("✓ mise installed successfully")
+	cli.PrintSuccess("✓ mise installed successfully")
 	fmt.Println()
 
 	if !isMiseActivated() {
 		configFile := getShellConfigFile()
 		shellName := getShellName()
 
-		fmt.Printf("Adding mise activation to %s...\n", configFile)
+		fmt.Printf("Adding mise activation to %s...\n", cli.Path(configFile))
 
 		activationLine := fmt.Sprintf("\n# Added by want - enables mise\neval \"$(mise activate %s)\"\n", shellName)
 
 		file, err := os.OpenFile(configFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
-			fmt.Printf("⚠ Could not automatically add mise activation to %s: %v\n", configFile, err)
+			fmt.Printf("%s Could not automatically add mise activation to %s: %v\n", cli.Warning("⚠"), cli.Path(configFile), err)
 			fmt.Println()
 			fmt.Println("Please add this line manually:")
 			fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
@@ -257,18 +258,18 @@ func performMiseInstallation() error {
 		defer file.Close()
 
 		if _, err = file.WriteString(activationLine); err != nil {
-			fmt.Printf("⚠ Could not write to %s: %v\n", configFile, err)
+			fmt.Printf("%s Could not write to %s: %v\n", cli.Warning("⚠"), cli.Path(configFile), err)
 			fmt.Println()
 			fmt.Println("Please add this line manually:")
 			fmt.Printf("  eval \"$(mise activate %s)\"\n", shellName)
 			return nil
 		}
 
-		fmt.Println("✓ mise activation added to your shell configuration")
+		cli.PrintSuccess("✓ mise activation added to your shell configuration")
 		fmt.Println()
-		fmt.Println("Summary:")
-		fmt.Println("  ✓ mise installed")
-		fmt.Println("  ✓ Shell configuration updated")
+		cli.PrintHeader("Summary:")
+		fmt.Printf("  %s\n", cli.Success("✓ mise installed"))
+		fmt.Printf("  %s\n", cli.Success("✓ Shell configuration updated"))
 		fmt.Println()
 		fmt.Println()
 		fmt.Println("Manual step required:")
@@ -277,7 +278,7 @@ func performMiseInstallation() error {
 		fmt.Println()
 		fmt.Println("  Or restart your shell to automatically load mise.")
 	} else {
-		fmt.Println("✓ mise activation already configured in your shell")
+		cli.PrintSuccess("✓ mise activation already configured in your shell")
 		fmt.Println()
 		fmt.Println("Summary:")
 		fmt.Println("  ✓ mise installed")
