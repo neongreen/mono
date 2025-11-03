@@ -102,27 +102,35 @@ For testing released versions, see the [Releases](#releases) section above.
 
 Each project has its own development workflow and documentation. See the individual project directories for details.
 
-### Issue Tracking with bd
+### Issue Tracking with tk
 
-This repository uses **bd (beads)** for issue tracking. bd is a lightweight, git-based issue tracker designed for AI coding agents.
+This repository uses **tk** for issue tracking. tk is an event-sourced task tracker with claims-based status, metadata support, and multi-machine sync.
 
 **Quick Reference:**
 
 ```bash
-# Check for ready work
-bd ready
+# List tasks
+tk ls                        # All tasks
+tk ls -p want                # Want tool tasks
+tk ls -p mono                # Repo-wide tasks
 
-# Create an issue
-bd create "Issue title" -t bug|feature|task -p 0-4
+# Create task
+tk new "Fix bug" --project want
+tk new "Update CI" --project mono
 
 # Update status
-bd update <id> --status in_progress
+tk mark want-1 wip           # Mark as in progress
+tk mark want-1 done          # Complete
 
-# Close an issue
-bd close <id> --reason "Done"
+# View details
+tk show want-1
+
+# Add metadata
+tk meta set want-1 priority 1
+tk meta set want-1 labels '["bug"]'
 ```
 
-Issues are stored in `.beads/issues.jsonl` and tracked in a local SQLite database. See [AGENTS.md](AGENTS.md#bd-beads-issue-tracker) for complete documentation.
+Tasks are tracked in `~/.tk/tk.db` (event-sourced SQLite database). See [AGENTS.md](AGENTS.md#tk-issue-tracker) for complete documentation.
 
 ### CI/CD
 

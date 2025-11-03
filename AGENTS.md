@@ -451,191 +451,103 @@ The goal is continuous improvement: learn from mistakes and build better practic
 
 ------------------------------------------------------------
 
-## bd (Beads) Issue Tracker
+## tk Issue Tracker
 
-This repository uses **bd (beads)** for issue tracking instead of Markdown TODO files or external issue trackers.
-
-### What is bd?
-
-bd is a lightweight, git-based issue tracker designed specifically for AI coding agents. It stores issues in `.beads/issues.jsonl` (committed to git) and maintains a local SQLite database for fast queries.
+This repository uses **tk** for issue tracking. tk is an event-sourced task tracker with claims-based status, metadata support, and multi-machine sync.
 
 ### Installation
 
-bd is installed globally via:
-
+Built from this monorepo:
 ```bash
-# Quick install (recommended)
-curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/install.sh | bash
-
-# Or via Homebrew
-brew tap steveyegge/beads
-brew install bd
-
-# Or via go install
-go install github.com/steveyegge/beads/cmd/bd@latest
+want mono tk@local
 ```
 
-### Basic Usage
+### Project Organization
 
-**Check for ready work:**
+Tasks are organized into projects:
+
+- **Tool projects** (want, conf, tk, print, mdbook, dissect, etc.) - Tasks specific to each tool in the repo
+- **mono** - Repository-wide concerns (CI, formatting, build systems, monorepo tooling)
+- **Personal projects** (life, infra, ema) - Personal/work tasks
+
+### Common Commands
+
+**List tasks:**
 ```bash
-bd ready --json
+tk ls                        # All tasks
+tk ls -p want                # Want tool tasks only
+tk ls -p mono                # Repo-wide tasks
+tk ls --json                 # JSON output with full metadata
 ```
 
-**Create a new issue:**
+**Create task:**
 ```bash
-bd create "Issue title" -t bug|feature|task -p 0-4 -d "Description" --json
+tk new "Fix bug" --project want
+tk new "Update CI workflow" --project mono
 ```
 
-**Update issue status:**
+**Update status:**
 ```bash
-bd update <id> --status in_progress --json
+tk mark want-1 wip           # Mark as in progress
+tk mark want-1 done          # Mark as done
+tk mark want-1 wip --role agent  # Agent can claim status
 ```
 
-**Close an issue:**
+**View task:**
 ```bash
-bd close <id> --reason "Done" --json
+tk show want-1               # Show full details
+tk show want-1 --json        # JSON output
 ```
 
-**Show issue details:**
+**Add notes:**
 ```bash
-bd show <id> --json
+tk note want-1 "Implemented feature X"
 ```
 
-**List all issues:**
+**Metadata (priority, labels, custom fields):**
 ```bash
-bd list --json
+tk meta set want-1 priority 1
+tk meta set want-1 labels '["bug","urgent"]'
+tk meta get want-1 priority
+tk meta list want-1          # Show all metadata
 ```
 
-**Add dependencies:**
+**Relationships:**
 ```bash
-bd dep add <issue-id> <blocks-id> --type blocks
+tk relate want-1 blocks want-2
+tk blockers want-2           # See what's blocking a task
+tk blocked                   # List all blocked tasks
 ```
 
-**Show dependency tree:**
+### For Agents
+
+**Workflow:**
+1. Check tasks: `tk ls -p <project>` 
+2. Start work: `tk mark <id> wip --role agent`
+3. Add progress notes: `tk note <id> "Status update"`
+4. Complete: `tk mark <id> done --role agent`
+5. Set metadata: `tk meta set <id> priority N --role agent`
+
+**Claims and Authority:**
+- Agents use `--role agent` when making status changes
+- Human claims override agent claims (authority lattice: human > qa > rel > agent > bot)
+- Conflicting claims are preserved as "tentative"
+
+### Database
+
+- **Default location**: `~/.tk/tk.db`
+- **Custom location**: Set `TK_DB_PATH` environment variable
+- **Diagnostics**: Run `tk debug doctor` to check database health
+
+### Sync (Multi-Machine)
+
+tk supports syncing across machines:
 ```bash
-bd dep tree <id>
+tk remote add icloud folder ~/Library/Mobile\ Documents/...
+tk sync icloud
 ```
 
-### Issue Types
-
-- `bug` - Something broken that needs fixing
-- `feature` - New functionality
-- `task` - Work item (tests, docs, refactoring)
-- `epic` - Large feature composed of multiple issues
-- `chore` - Maintenance work (dependencies, tooling)
-
-### Priorities
-
-- `0` - Critical (security, data loss, broken builds)
-- `1` - High (major features, important bugs)
-- `2` - Medium (nice-to-have features, minor bugs)
-- `3` - Low (polish, optimization)
-- `4` - Backlog (future ideas)
-
-### Dependency Types
-
-- `blocks` - Hard dependency (issue X blocks issue Y)
-- `related` - Soft relationship (issues are connected)
-- `parent-child` - Epic/subtask relationship
-- `discovered-from` - Track issues discovered during work
-
-Only `blocks` dependencies affect the ready work queue.
-
-### Workflow
-
-1. **At session start**: Run `bd ready` to see what's unblocked
-2. **Claim a task**: `bd update <id> --status in_progress`
-3. **Work on it**: Implement, test, document
-4. **Discover new work**: Create issues for bugs/TODOs found during work
-5. **Complete**: `bd close <id> --reason "Implemented"`
-6. **Auto-sync**: Changes automatically export to `.beads/issues.jsonl` after 5 seconds
-
-### Agent Guidelines
-
-- **Always use `--json` flag** for programmatic use
-- **Use bd instead of Markdown** for all new work tracking
-- **Link discovered issues** using `discovered-from` dependency type
-- **Check `bd ready`** before asking "what should I work on next?"
-- **Auto-sync is enabled**: JSONL is automatically updated after CRUD operations
-- **Issues are git-versioned**: The `.beads/issues.jsonl` file is the source of truth
-- **SQLite DB is local**: The `*.db` files are in `.gitignore` and regenerated from JSONL
-
-### Git Workflow
-
-bd automatically handles git synchronization:
-
-- **Export**: After any CRUD operation, changes are exported to `.beads/issues.jsonl` (5-second debounce)
-- **Import**: When JSONL is newer than DB (e.g., after `git pull`), it's automatically imported
-
-```bash
-# Make changes
-bd create "Fix bug" -p 1
-bd update mono-42 --status in_progress
-
-# Wait 5 seconds for auto-export, or run manually
-bd export
-
-# Commit
-git add .beads/issues.jsonl
-git commit -m "Your message"
-
-# After pull, BD auto-imports the updated JSONL
-git pull
-bd ready  # Fresh data from git
-```
-
-### Repository Setup
-
-This repository has been initialized with:
-- Database at `.beads/mono.db` (not committed)
-- Issue prefix: `mono` (issues are named `mono-1`, `mono-2`, etc.)
-- JSONL export at `.beads/issues.jsonl` (committed to git)
-
-### Resources
-
-- [bd GitHub Repository](https://github.com/steveyegge/beads)
-- [bd Documentation](https://github.com/steveyegge/beads/blob/main/README.md)
-- [bd Workflow Guide](https://github.com/steveyegge/beads/blob/main/WORKFLOW.md)
-- [bd for Agents](https://github.com/steveyegge/beads/blob/main/AGENTS.md)
-
-### Merge Tool Configuration
-
-This repository includes `beads-merge`, a custom 3-way merge tool for `.beads/issues.jsonl` files. To use it with jj:
-
-1. Build the tool: `cd beads-merge && go build -o beads-merge .`
-2. Add to your jj config (`~/.jjconfig.toml`):
-
-```toml
-[merge-tools.beads-merge]
-program = "/absolute/path/to/mono/beads-merge/beads-merge"
-merge-args = ["$output", "$base", "$left", "$right"]
-merge-conflict-exit-codes = [1]
-
-[merge-tools.beads-merge.diff-args]
-# Optional: configure for 2-way diff if needed
-program = "diff"
-```
-
-3. Configure automatic merge for .jsonl files in `.beads/`:
-
-```toml
-[merge]
-# Use beads-merge for .beads/issues.jsonl
-tool-edits = [
-  { pattern = ".beads/issues.jsonl", tool = "beads-merge" }
-]
-```
-
-The `merge-conflict-exit-codes = [1]` setting tells jj that exit code 1 indicates conflict markers are present in the output file, not that the merge should be aborted.
-
-The merge tool will:
-- Match issues by id, created_at, and created_by
-- Intelligently merge field changes
-- Combine dependency arrays
-- Write conflict markers to the output file for unresolvable conflicts
-
-See [beads-merge/README.md](./beads-merge/README.md) for details on the merge algorithm.
+Events are stored as immutable segments that can be synced via iCloud, git, or other remotes.
 
 ------------------------------------------------------------
 
