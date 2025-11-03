@@ -43,29 +43,34 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 
 	if showAliases {
 		// ID, Aliases, Status, P, Labels, Title
-		titleMaxWidth := termWidth - 80
+		// Estimate space needed for fixed columns:
+		// ID (~10) + Aliases (~15) + Status (~8) + P (3) + Labels (30) + separators/padding (~22) = ~88
+		titleMaxWidth := termWidth - 88
 		if titleMaxWidth < 20 {
 			titleMaxWidth = 20
 		}
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false},                                                           // ID
-			{Number: 2, AutoMerge: false},                                                           // Aliases
-			{Number: 3, AutoMerge: false},                                                           // Status
+			{Number: 1, AutoMerge: false, WidthMax: 10},                                             // ID
+			{Number: 2, AutoMerge: false, WidthMax: 15},                                             // Aliases
+			{Number: 3, AutoMerge: false, WidthMax: 8},                                              // Status
 			{Number: 4, AutoMerge: false, WidthMax: 3},                                              // P (priority)
 			{Number: 5, AutoMerge: false, WidthMax: 30, WidthMaxEnforcer: text.WrapSoft},            // Labels
 			{Number: 6, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title
 		})
 	} else {
 		// ID, Status, P, Labels, Title
-		titleMaxWidth := termWidth - 50
+		// Estimate space needed for fixed columns:
+		// ID (~10) + Status (~8) + P (3) + Labels (30) + separators/padding (~18) = ~69
+		// But Labels is often empty, so let's be more conservative
+		titleMaxWidth := termWidth - 35
 		if titleMaxWidth < 20 {
 			titleMaxWidth = 20
 		}
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false},                                                           // ID
-			{Number: 2, AutoMerge: false},                                                           // Status
+			{Number: 1, AutoMerge: false, WidthMax: 10},                                             // ID
+			{Number: 2, AutoMerge: false, WidthMax: 8},                                              // Status
 			{Number: 3, AutoMerge: false, WidthMax: 3},                                              // P (priority)
-			{Number: 4, AutoMerge: false, WidthMax: 30, WidthMaxEnforcer: text.WrapSoft},            // Labels
+			{Number: 4, AutoMerge: false, WidthMax: 12, WidthMaxEnforcer: text.WrapSoft},            // Labels (reduce from 30)
 			{Number: 5, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title
 		})
 	}
