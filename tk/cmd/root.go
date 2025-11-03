@@ -93,6 +93,18 @@ func init() {
 	dbCmd := &cobra.Command{
 		Use:   "db",
 		Short: "Database commands",
+		Long: `Database management commands.
+
+Default database location: ~/.tk/tk.db
+
+You can override the database location using the TK_DB_PATH environment variable:
+  export TK_DB_PATH=/custom/path/tk.db
+  tk ls  # Uses custom database
+
+This is useful for:
+- Testing with isolated databases
+- Running multiple tk instances
+- Custom database locations`,
 	}
 	dbPathCmd.Flags().Bool("json", false, "Output as JSON")
 	dbCmd.AddCommand(dbPathCmd)

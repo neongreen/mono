@@ -537,6 +537,11 @@ tk blocked                   # List all blocked tasks
 
 - **Default location**: `~/.tk/tk.db`
 - **Custom location**: Set `TK_DB_PATH` environment variable
+  ```bash
+  export TK_DB_PATH=/tmp/test.db
+  tk ls  # Uses /tmp/test.db instead of ~/.tk/tk.db
+  ```
+- **Use cases**: Testing, multiple instances, custom locations
 - **Diagnostics**: Run `tk debug doctor` to check database health
 
 ### Sync (Multi-Machine)

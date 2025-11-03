@@ -67,6 +67,21 @@ mise run //tk:run
 
 tk stores its database in `~/.tk/tk.db` by default. The database and directory are created automatically on first use.
 
+**Custom database location:**
+
+You can override the default location using the `TK_DB_PATH` environment variable:
+
+```bash
+export TK_DB_PATH=/tmp/tk-test.db
+tk new "Test task"  # Creates database at /tmp/tk-test.db
+tk ls               # Uses /tmp/tk-test.db
+```
+
+This is useful for:
+- Testing with isolated databases without affecting your main database
+- Running multiple tk instances with separate databases
+- Custom database locations (e.g., Dropbox, project-specific databases)
+
 ### Projects (v4)
 
 In v4, tasks are organized by projects. Each project has:

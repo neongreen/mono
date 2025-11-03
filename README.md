@@ -130,7 +130,15 @@ tk meta set want-1 priority 1
 tk meta set want-1 labels '["bug"]'
 ```
 
-Tasks are tracked in `~/.tk/tk.db` (event-sourced SQLite database). See [AGENTS.md](AGENTS.md#tk-issue-tracker) for complete documentation.
+Tasks are tracked in `~/.tk/tk.db` (event-sourced SQLite database). 
+
+**Custom database location:**
+```bash
+export TK_DB_PATH=/custom/path/tk.db
+tk ls  # Uses custom database
+```
+
+See [AGENTS.md](AGENTS.md#tk-issue-tracker) for complete documentation.
 
 ### CI/CD
 
