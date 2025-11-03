@@ -21,6 +21,8 @@ var rootCmd = &cobra.Command{
 It's an interactive assistant that respects your preferences.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
+	// Accept any arguments
+	Args: cobra.ArbitraryArgs,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return ensureConfigDirectory()
 	},
