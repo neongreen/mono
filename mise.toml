@@ -7,7 +7,6 @@ GONOSUMDB = "github.com/neongreen/mono"
 
 [tools]
 go = "1.24.7"
-"go:github.com/steveyegge/beads/cmd/bd" = "latest"
 "go:github.com/rhysd/actionlint/cmd/actionlint" = "latest"
 "go:github.com/suzuki-shunsuke/pinact/v3/cmd/pinact" = "latest"
 zizmor = "latest"
