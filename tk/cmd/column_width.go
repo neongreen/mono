@@ -34,8 +34,8 @@ func DefaultColumnConstraints(termWidth int, showAliases bool) ColumnConstraints
 		ShowAliases:    showAliases,
 		LabelsMaxWidth: 10,
 		TitleMinWidth:  30,
-		SeparatorWidth: 3, // " │ "
-		PaddingPerCell: 2, // ~1 char padding on each side
+		SeparatorWidth: 1, // "│" - the table library adds spaces around it
+		PaddingPerCell: 2, // The table library adds 1 space on each side of content
 	}
 }
 
