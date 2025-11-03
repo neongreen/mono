@@ -41,36 +41,36 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	t.Style().Options.SeparateRows = true
 	t.Style().Options.DrawBorder = false
 
-	if showAliases {
-		// ID, Aliases, Status, P, Labels, Title
-		// Let ID, Aliases, Status, P auto-size based on content
-		// Only constrain Labels and Title for wrapping
-		titleMaxWidth := termWidth - 80
-		if titleMaxWidth < 20 {
-			titleMaxWidth = 20
+	// Build displayID map for width calculation
+	displayIDs := make(map[string]string)
+	for _, task := range tasks {
+		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+		if err == nil {
+			displayIDs[task.TaskUUID] = displayID
 		}
+	}
+
+	// Calculate optimal column widths based on actual data
+	constraints := DefaultColumnConstraints(termWidth, showAliases)
+	widths := CalculateColumnWidths(tasks, displayIDs, constraints)
+
+	// Configure columns with calculated widths
+	if showAliases {
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false}, // ID (auto-size)
-			{Number: 2, AutoMerge: false}, // Aliases (auto-size)
-			{Number: 3, AutoMerge: false}, // Status (auto-size)
-			{Number: 4, AutoMerge: false}, // P (auto-size)
-			{Number: 5, AutoMerge: false, WidthMax: 30, WidthMaxEnforcer: text.WrapSoft},            // Labels
-			{Number: 6, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title
+			{Number: 1, AutoMerge: false, WidthMax: widths.ID},                                      // ID
+			{Number: 2, AutoMerge: false, WidthMax: widths.Aliases},                                 // Aliases
+			{Number: 3, AutoMerge: false, WidthMax: widths.Status},                                  // Status
+			{Number: 4, AutoMerge: false, WidthMax: widths.Priority},                                // P
+			{Number: 5, AutoMerge: false, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
+			{Number: 6, AutoMerge: false, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},  // Title
 		})
 	} else {
-		// ID, Status, P, Labels, Title
-		// Let ID, Status, P auto-size based on content
-		// Only constrain Labels and Title for wrapping
-		titleMaxWidth := termWidth - 35
-		if titleMaxWidth < 20 {
-			titleMaxWidth = 20
-		}
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false}, // ID (auto-size)
-			{Number: 2, AutoMerge: false}, // Status (auto-size)
-			{Number: 3, AutoMerge: false}, // P (auto-size)
-			{Number: 4, AutoMerge: false, WidthMax: 12, WidthMaxEnforcer: text.WrapSoft},            // Labels
-			{Number: 5, AutoMerge: false, WidthMax: titleMaxWidth, WidthMaxEnforcer: text.WrapSoft}, // Title
+			{Number: 1, AutoMerge: false, WidthMax: widths.ID},                                      // ID
+			{Number: 2, AutoMerge: false, WidthMax: widths.Status},                                  // Status
+			{Number: 3, AutoMerge: false, WidthMax: widths.Priority},                                // P
+			{Number: 4, AutoMerge: false, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
+			{Number: 5, AutoMerge: false, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},  // Title
 		})
 	}
 
