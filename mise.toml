@@ -55,3 +55,7 @@ run = """
 go mod tidy
 git diff --exit-code go.mod go.sum
 """
+
+[tasks."lint:go-vet"]
+description = "Run go vet on all packages"
+run = "go vet ./..."
