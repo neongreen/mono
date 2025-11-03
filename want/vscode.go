@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/neongreen/mono/lib/ghclient"
 )
 
@@ -70,7 +71,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	if planJson {
 		jsonStr, err := plan.ToJSON()
 		if err != nil {
-			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			cli.PrintError(fmt.Sprintf("Error: Failed to generate JSON: %v", err))
 			os.Exit(1)
 		}
 		fmt.Println(jsonStr)
@@ -78,20 +79,20 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	if dryRun {
-		fmt.Printf("Building %s from %s...\n", project, refDescription)
+		fmt.Printf("Building %s from %s...\n", cli.Key(project), refDescription)
 		fmt.Println()
 		plan.PrintPlan()
 		return
 	}
 
-	fmt.Printf("Building %s from %s...\n", project, refDescription)
+	fmt.Printf("Building %s from %s...\n", cli.Key(project), refDescription)
 	fmt.Println()
 	plan.PrintPlan()
 	fmt.Println()
 
 	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-*", project))
 	if err != nil {
-		fmt.Printf("Error: Failed to create temporary directory: %v\n", err)
+		cli.PrintError(fmt.Sprintf("Error: Failed to create temporary directory: %v", err))
 		os.Exit(1)
 	}
 	defer os.RemoveAll(tmpDir)
@@ -103,7 +104,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			fmt.Printf("\nError: Failed to clone repository: %v\n", err)
+			cli.PrintError(fmt.Sprintf("\nError: Failed to clone repository: %v", err))
 			os.Exit(1)
 		}
 
@@ -112,8 +113,8 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			fmt.Printf("\nError: Failed to checkout commit %s: %v\n", refSpec, err)
-			fmt.Printf("Note: Make sure the commit '%s' exists in neongreen/mono\n", refSpec)
+			cli.PrintError(fmt.Sprintf("\nError: Failed to checkout commit %s: %v", cli.Key(refSpec), err))
+			fmt.Printf("%s Make sure the commit '%s' exists in neongreen/mono\n", cli.Warning("Note:"), refSpec)
 			os.Exit(1)
 		}
 	} else {
@@ -122,15 +123,15 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
-			fmt.Printf("\nError: Failed to clone repository: %v\n", err)
-			fmt.Printf("Note: Make sure the branch or tag '%s' exists in neongreen/mono\n", refSpec)
+			cli.PrintError(fmt.Sprintf("\nError: Failed to clone repository: %v", err))
+			fmt.Printf("%s Make sure the branch or tag '%s' exists in neongreen/mono\n", cli.Warning("Note:"), refSpec)
 			os.Exit(1)
 		}
 	}
 
 	projectDir := filepath.Join(tmpDir, project)
 	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
-		fmt.Printf("\nError: Project '%s' not found in repository\n", project)
+		cli.PrintError(fmt.Sprintf("\nError: Project '%s' not found in repository", cli.Key(project)))
 		os.Exit(1)
 	}
 
@@ -141,7 +142,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to install dependencies: %v\n", err)
+		cli.PrintError(fmt.Sprintf("\nError: Failed to install dependencies: %v", err))
 		os.Exit(1)
 	}
 
@@ -152,14 +153,14 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to build extension: %v\n", err)
+		cli.PrintError(fmt.Sprintf("\nError: Failed to build extension: %v", err))
 		os.Exit(1)
 	}
 
 	// Find the .vsix file
 	entries, err := os.ReadDir(projectDir)
 	if err != nil {
-		fmt.Printf("\nError: Failed to read project directory: %v\n", err)
+		cli.PrintError(fmt.Sprintf("\nError: Failed to read project directory: %v", err))
 		os.Exit(1)
 	}
 
@@ -172,7 +173,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	if vsixFile == "" {
-		fmt.Printf("\nError: No .vsix file found in %s\n", projectDir)
+		cli.PrintError(fmt.Sprintf("\nError: No .vsix file found in %s", cli.Path(projectDir)))
 		os.Exit(1)
 	}
 
@@ -183,12 +184,12 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to install extension: %v\n", err)
+		cli.PrintError(fmt.Sprintf("\nError: Failed to install extension: %v", err))
 		os.Exit(1)
 	}
 
 	fmt.Println()
-	fmt.Printf("✓ Built and installed %s from %s\n", project, refDescription)
+	fmt.Printf("%s Built and installed %s from %s\n", cli.Success("✓"), cli.Key(project), refDescription)
 }
 
 // buildVSCodeExtensionFromPR builds a VS Code extension from a PR branch
@@ -232,7 +233,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	if planJson {
 		jsonStr, err := plan.ToJSON()
 		if err != nil {
-			fmt.Printf("Error: Failed to generate JSON: %v\n", err)
+			cli.PrintError(fmt.Sprintf("Error: Failed to generate JSON: %v", err))
 			os.Exit(1)
 		}
 		fmt.Println(jsonStr)
@@ -240,13 +241,13 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	if dryRun {
-		fmt.Printf("Building %s from PR #%d...\n", project, prNumber)
+		fmt.Printf("Building %s from PR #%d...\n", cli.Key(project), prNumber)
 		fmt.Println()
 		plan.PrintPlan()
 		return
 	}
 
-	fmt.Printf("Building %s from PR #%d...\n", project, prNumber)
+	fmt.Printf("Building %s from PR #%d...\n", cli.Key(project), prNumber)
 	fmt.Println()
 	plan.PrintPlan()
 	fmt.Println()
@@ -255,40 +256,40 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	client := ghclient.NewClient(ctx)
 	pr, _, err := client.PullRequests.Get(ctx, "neongreen", "mono", prNumber)
 	if err != nil {
-		fmt.Printf("Error: Failed to fetch PR #%d: %v\n", prNumber, err)
+		cli.PrintError(fmt.Sprintf("Error: Failed to fetch PR #%d: %v", prNumber, err))
 		os.Exit(1)
 	}
 
 	if pr.Head == nil || pr.Head.Ref == nil {
-		fmt.Printf("Error: PR #%d has no head branch\n", prNumber)
+		cli.PrintError(fmt.Sprintf("Error: PR #%d has no head branch", prNumber))
 		os.Exit(1)
 	}
 
 	branch := *pr.Head.Ref
 	fmt.Printf("PR #%d: %s\n", prNumber, *pr.Title)
-	fmt.Printf("Branch: %s\n", branch)
+	fmt.Printf("Branch: %s\n", cli.Key(branch))
 	fmt.Println()
 
 	tmpDir, err := os.MkdirTemp("", fmt.Sprintf("want-mono-%s-pr-%d-*", project, prNumber))
 	if err != nil {
-		fmt.Printf("Error: Failed to create temporary directory: %v\n", err)
+		cli.PrintError(fmt.Sprintf("Error: Failed to create temporary directory: %v", err))
 		os.Exit(1)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	fmt.Printf("Cloning neongreen/mono (branch: %s)...\n", branch)
+	fmt.Printf("Cloning neongreen/mono (branch: %s)...\n", cli.Key(branch))
 	cmd := exec.Command("git", "clone", "--depth=1", "--branch", branch,
 		"https://github.com/neongreen/mono.git", tmpDir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to clone repository: %v\n", err)
+		cli.PrintError(fmt.Sprintf("\nError: Failed to clone repository: %v", err))
 		os.Exit(1)
 	}
 
 	projectDir := filepath.Join(tmpDir, project)
 	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
-		fmt.Printf("\nError: Project '%s' not found in repository\n", project)
+		cli.PrintError(fmt.Sprintf("\nError: Project '%s' not found in repository", cli.Key(project)))
 		os.Exit(1)
 	}
 
@@ -299,7 +300,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to install dependencies: %v\n", err)
+		cli.PrintError(fmt.Sprintf("\nError: Failed to install dependencies: %v", err))
 		os.Exit(1)
 	}
 
@@ -310,14 +311,14 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to build extension: %v\n", err)
+		cli.PrintError(fmt.Sprintf("\nError: Failed to build extension: %v", err))
 		os.Exit(1)
 	}
 
 	// Find the .vsix file
 	entries, err := os.ReadDir(projectDir)
 	if err != nil {
-		fmt.Printf("\nError: Failed to read project directory: %v\n", err)
+		cli.PrintError(fmt.Sprintf("\nError: Failed to read project directory: %v", err))
 		os.Exit(1)
 	}
 
@@ -330,7 +331,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	if vsixFile == "" {
-		fmt.Printf("\nError: No .vsix file found in %s\n", projectDir)
+		cli.PrintError(fmt.Sprintf("\nError: No .vsix file found in %s", cli.Path(projectDir)))
 		os.Exit(1)
 	}
 
@@ -341,10 +342,10 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to install extension: %v\n", err)
+		cli.PrintError(fmt.Sprintf("\nError: Failed to install extension: %v", err))
 		os.Exit(1)
 	}
 
 	fmt.Println()
-	fmt.Printf("✓ Built and installed %s from PR #%d\n", project, prNumber)
+	fmt.Printf("%s Built and installed %s from PR #%d\n", cli.Success("✓"), cli.Key(project), prNumber)
 }

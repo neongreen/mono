@@ -17,6 +17,7 @@ import (
 	misetool "github.com/neongreen/mono/conf/pkg/tools/mise"
 	shimstool "github.com/neongreen/mono/conf/pkg/tools/shims"
 	starshiptool "github.com/neongreen/mono/conf/pkg/tools/starship"
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -337,19 +338,19 @@ Examples:
 
 			// Show state comparison
 			if hasDesired {
-				fmt.Printf("Desired: %s = %s\n", configPath, formatValueAsTOML(desiredValue))
+				fmt.Printf("Desired: %s = %s\n", cli.Key(configPath), cli.Value(formatValueAsTOML(desiredValue)))
 				if actualValue == nil {
-					fmt.Printf("Actual:  %s = (not set)\n", configPath)
-					fmt.Printf("Status:  DRIFT - value not applied\n")
+					fmt.Printf("Actual:  %s = %s\n", cli.Key(configPath), cli.Muted("(not set)"))
+					fmt.Printf("Status:  %s\n", cli.Warning("DRIFT - value not applied"))
 					fmt.Printf("\nTo apply the desired value:\n")
 					fmt.Printf("  conf apply jj  # Applies ALL drifting jj values\n")
 					fmt.Printf("  conf apply jj --dry-run  # Preview changes first\n")
 				} else if fmt.Sprintf("%v", actualValue) == fmt.Sprintf("%v", desiredValue) {
-					fmt.Printf("Actual:  %s = %s\n", configPath, formatValueAsTOML(actualValue))
-					fmt.Printf("Status:  IN SYNC\n")
+					fmt.Printf("Actual:  %s = %s\n", cli.Key(configPath), cli.Value(formatValueAsTOML(actualValue)))
+					fmt.Printf("Status:  %s\n", cli.Success("IN SYNC"))
 				} else {
-					fmt.Printf("Actual:  %s = %s\n", configPath, formatValueAsTOML(actualValue))
-					fmt.Printf("Status:  DRIFT - values differ\n")
+					fmt.Printf("Actual:  %s = %s\n", cli.Key(configPath), cli.Value(formatValueAsTOML(actualValue)))
+					fmt.Printf("Status:  %s\n", cli.Warning("DRIFT - values differ"))
 					fmt.Printf("\nTo apply the desired value:\n")
 					fmt.Printf("  conf apply jj  # Applies ALL drifting jj values\n")
 					fmt.Printf("  conf apply jj --dry-run  # Preview changes first\n")
@@ -358,10 +359,10 @@ Examples:
 				}
 			} else {
 				if actualValue == nil {
-					fmt.Printf("%s = (not set)\n", configPath)
+					fmt.Printf("%s = %s\n", cli.Key(configPath), cli.Muted("(not set)"))
 				} else {
-					fmt.Printf("Actual:  %s = %s\n", configPath, formatValueAsTOML(actualValue))
-					fmt.Printf("Status:  UNMANAGED - not in conf state\n")
+					fmt.Printf("Actual:  %s = %s\n", cli.Key(configPath), cli.Value(formatValueAsTOML(actualValue)))
+					fmt.Printf("Status:  %s\n", cli.Muted("UNMANAGED - not in conf state"))
 				}
 			}
 			return
