@@ -152,12 +152,23 @@ var lsCmd = &cobra.Command{
 
 			sort.Strings(groupOrder)
 
+			// Calculate column widths once for ALL tasks to ensure consistency across groups
+			displayIDs := make(map[string]string)
+			for _, task := range tasks {
+				displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+				if err == nil {
+					displayIDs[task.TaskUUID] = displayID
+				}
+			}
+			constraints := DefaultColumnConstraints(termWidth, showAliases)
+			widths := CalculateColumnWidths(tasks, displayIDs, constraints)
+
 			for i, groupKey := range groupOrder {
 				if i > 0 {
 					fmt.Println()
 				}
 				fmt.Printf("Project: %s\n", groupKey)
-				renderTaskTable(db, grouped[groupKey], showAliases, termWidth)
+				renderTaskTable(db, grouped[groupKey], showAliases, termWidth, &widths)
 			}
 
 		case "status":
@@ -180,17 +191,28 @@ var lsCmd = &cobra.Command{
 				grouped[status] = append(grouped[status], task)
 			}
 
+			// Calculate column widths once for ALL tasks to ensure consistency across groups
+			displayIDs := make(map[string]string)
+			for _, task := range tasks {
+				displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+				if err == nil {
+					displayIDs[task.TaskUUID] = displayID
+				}
+			}
+			constraints := DefaultColumnConstraints(termWidth, showAliases)
+			widths := CalculateColumnWidths(tasks, displayIDs, constraints)
+
 			for i, status := range groupOrder {
 				if i > 0 {
 					fmt.Println()
 				}
 				fmt.Printf("Status: %s\n", colorizeStatus(status))
-				renderTaskTable(db, grouped[status], showAliases, termWidth)
+				renderTaskTable(db, grouped[status], showAliases, termWidth, &widths)
 			}
 
 		case "none":
 
-			renderTaskTable(db, tasks, showAliases, termWidth)
+			renderTaskTable(db, tasks, showAliases, termWidth, nil)
 
 		default:
 			return fmt.Errorf("invalid --group value: %s (must be project, status, or none)", groupBy)

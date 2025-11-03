@@ -27,7 +27,8 @@ func colorizeStatus(status string) string {
 }
 
 // renderTaskTable renders a table of tasks with the specified configuration
-func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, termWidth int) {
+// If widths is nil, it will calculate widths based on the provided tasks
+func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, termWidth int, widths *ColumnWidths) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
@@ -41,36 +42,41 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	t.Style().Options.SeparateRows = true
 	t.Style().Options.DrawBorder = false
 
-	// Build displayID map for width calculation
-	displayIDs := make(map[string]string)
-	for _, task := range tasks {
-		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
-		if err == nil {
-			displayIDs[task.TaskUUID] = displayID
+	// Calculate widths if not provided
+	if widths == nil {
+		// Build displayID map for width calculation
+		displayIDs := make(map[string]string)
+		for _, task := range tasks {
+			displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+			if err == nil {
+				displayIDs[task.TaskUUID] = displayID
+			}
 		}
+
+		// Calculate optimal column widths based on actual data
+		constraints := DefaultColumnConstraints(termWidth, showAliases)
+		calculatedWidths := CalculateColumnWidths(tasks, displayIDs, constraints)
+		widths = &calculatedWidths
 	}
 
-	// Calculate optimal column widths based on actual data
-	constraints := DefaultColumnConstraints(termWidth, showAliases)
-	widths := CalculateColumnWidths(tasks, displayIDs, constraints)
-
 	// Configure columns with calculated widths
+	// Set both WidthMin and WidthMax to force fixed widths for consistency across groups
 	if showAliases {
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false, WidthMax: widths.ID},                                      // ID
-			{Number: 2, AutoMerge: false, WidthMax: widths.Aliases},                                 // Aliases
-			{Number: 3, AutoMerge: false, WidthMax: widths.Status},                                  // Status
-			{Number: 4, AutoMerge: false, WidthMax: widths.Priority},                                // P
-			{Number: 5, AutoMerge: false, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
-			{Number: 6, AutoMerge: false, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},  // Title
+			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                          // ID
+			{Number: 2, AutoMerge: false, WidthMin: widths.Aliases, WidthMax: widths.Aliases},                                // Aliases
+			{Number: 3, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                                  // Status
+			{Number: 4, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                              // P
+			{Number: 5, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
+			{Number: 6, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},   // Title
 		})
 	} else {
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false, WidthMax: widths.ID},                                      // ID
-			{Number: 2, AutoMerge: false, WidthMax: widths.Status},                                  // Status
-			{Number: 3, AutoMerge: false, WidthMax: widths.Priority},                                // P
-			{Number: 4, AutoMerge: false, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
-			{Number: 5, AutoMerge: false, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},  // Title
+			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                          // ID
+			{Number: 2, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                                  // Status
+			{Number: 3, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                              // P
+			{Number: 4, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
+			{Number: 5, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},   // Title
 		})
 	}
 
