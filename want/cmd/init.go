@@ -10,10 +10,16 @@ func SetHandlers(
 	getCompoundHandler func(string) (CompoundHandlerFunc, bool),
 	handleGitHubAsset func(string, bool, bool),
 	installToolViaMise func(string, bool, bool),
+	handleJsonCommand func([]string, bool, bool) error,
+	handleMarkdownCommand func([]string, bool, bool) error,
+	handleExcalifontCommand func([]string, bool, bool) error,
 ) {
 	ListMonoReleasesFunc = listMonoReleases
 	InstallMonoReleaseFunc = installMonoRelease
 	GetCompoundHandlerFunc = getCompoundHandler
 	HandleGitHubAssetFunc = handleGitHubAsset
 	InstallToolViaMiseFunc = installToolViaMise
+	HandleJsonCommandFunc = handleJsonCommand
+	HandleMarkdownCommandFunc = handleMarkdownCommand
+	HandleExcalifontCommandFunc = handleExcalifontCommand
 }

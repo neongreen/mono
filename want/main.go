@@ -19,12 +19,31 @@ func main() {
 		return cmd.CompoundHandlerFunc(handler), true
 	}
 
+	// Wrap handler functions to return errors
+	handleJsonCommandWrapped := func(args []string, dryRun bool, planJSON bool) error {
+		handleJsonCommand(args, dryRun, planJSON)
+		return nil
+	}
+
+	handleMarkdownCommandWrapped := func(args []string, dryRun bool, planJSON bool) error {
+		handleMarkdownCommand(args, dryRun, planJSON)
+		return nil
+	}
+
+	handleExcalifontCommandWrapped := func(args []string, dryRun bool, planJSON bool) error {
+		handleExcalifontCommand(args, dryRun, planJSON)
+		return nil
+	}
+
 	cmd.SetHandlers(
 		listMonoReleases,
 		installMonoRelease,
 		getCompoundHandlerWrapped,
 		handleGitHubAsset,
 		installToolViaMise,
+		handleJsonCommandWrapped,
+		handleMarkdownCommandWrapped,
+		handleExcalifontCommandWrapped,
 	)
 
 	if err := cmd.Execute(); err != nil {
