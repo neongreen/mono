@@ -429,7 +429,7 @@ func (m *Dagger) BuildRelease(ctx context.Context, project string, version strin
 	for _, platform := range platforms {
 		outputName := fmt.Sprintf("%s-%s-%s-%s", project, version, platform.OS, platform.Arch)
 
-		ldflags := fmt.Sprintf("-X main.Version=%s -X main.GitCommit=%s -X main.BuildTime=%s",
+		ldflags := fmt.Sprintf("-X github.com/neongreen/mono/lib/version.Version=%s -X github.com/neongreen/mono/lib/version.GitCommit=%s -X github.com/neongreen/mono/lib/version.BuildTime=%s",
 			version, gitCommit, buildTime)
 
 		buildContainer := baseContainer.
