@@ -166,27 +166,6 @@ func init() {
 func main() {
 	initLogging()
 
-	// For backward compatibility: if the first argument is not a known subcommand,
-	// prepend 'explode' to the arguments
-	args := os.Args[1:]
-	if len(args) > 0 {
-		knownCommands := map[string]bool{
-			"explode":    true,
-			"move":       true,
-			"help":       true,
-			"completion": true,
-			"version":    true,
-			"--help":     true,
-			"-h":         true,
-		}
-
-		if !knownCommands[args[0]] && !strings.HasPrefix(args[0], "-") {
-			// Prepend 'explode' to args for backward compatibility
-			newArgs := append([]string{"explode"}, args...)
-			rootCmd.SetArgs(newArgs)
-		}
-	}
-
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
