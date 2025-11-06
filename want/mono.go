@@ -154,7 +154,7 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 }
 
 // getBuildLdflags returns ldflags for injecting version information at build time
-// The ldflags work for both packages (main.GitCommit for want, cmd.GitCommit for tk, etc)
+// The ldflags set version information in the lib/version package used by all tools
 func getBuildLdflags(repoDir string) (string, error) {
 	// Get git commit hash
 	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
@@ -183,13 +183,9 @@ func getBuildLdflags(repoDir string) (string, error) {
 		buildTime = strings.TrimSpace(string(timeBytes))
 	}
 
-	// Create ldflags for both main package and cmd package
-	ldflags := fmt.Sprintf("-X 'main.GitCommit=%s' -X 'main.BuildTime=%s' -X 'main.Version=%s' "+
-		"-X 'github.com/neongreen/mono/tk/cmd.GitCommit=%s' -X 'github.com/neongreen/mono/tk/cmd.BuildTime=%s' -X 'github.com/neongreen/mono/tk/cmd.Version=%s' "+
-		"-X 'github.com/neongreen/mono/want/cmd.GitCommit=%s' -X 'github.com/neongreen/mono/want/cmd.BuildTime=%s' -X 'github.com/neongreen/mono/want/cmd.Version=%s'",
-		commit, buildTime, version,
-		commit, buildTime, version,
-		commit, buildTime, version)
+	// Create ldflags for lib/version package (used by all tools)
+	ldflags := fmt.Sprintf("-X github.com/neongreen/mono/lib/version.Version=%s -X github.com/neongreen/mono/lib/version.GitCommit=%s -X github.com/neongreen/mono/lib/version.BuildTime=%s",
+		version, commit, buildTime)
 
 	return ldflags, nil
 }

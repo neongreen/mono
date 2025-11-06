@@ -8,6 +8,7 @@ import (
 	"github.com/neongreen/mono/ingest/pkg/jobs"
 	mcppkg "github.com/neongreen/mono/ingest/pkg/mcp"
 	"github.com/neongreen/mono/ingest/pkg/runconfig"
+	"github.com/neongreen/mono/lib/version"
 	"log"
 	"os"
 	"strings"
@@ -36,6 +37,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newMCPCmd())
 	cmd.AddCommand(newRunConfigCmd())
 	cmd.AddCommand(newConfigCmd())
+	cmd.AddCommand(version.NewVersionCommand("ingest"))
 
 	return cmd
 }

@@ -4,17 +4,59 @@ import (
 	"encoding/json"
 	"fmt"
 	"runtime"
+	"runtime/debug"
 	"time"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-	// Version information - set via -ldflags at build time
+	// Version information - automatically populated from VCS (Go 1.18+) or set via -ldflags
 	Version   = "dev"
 	GitCommit = "unknown"
 	BuildTime = "unknown"
 )
+
+func init() {
+	// Try to read VCS information from build info (available since Go 1.18)
+	// This works automatically when building in a git repository with plain `go build`
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return
+	}
+
+	var revision, vcsTime, modified string
+	for _, setting := range info.Settings {
+		switch setting.Key {
+		case "vcs.revision":
+			revision = setting.Value
+		case "vcs.time":
+			vcsTime = setting.Value
+		case "vcs.modified":
+			modified = setting.Value
+		}
+	}
+
+	// Populate GitCommit if we have revision info
+	if revision != "" {
+		// Use short commit hash (first 12 chars) for display
+		if len(revision) > 12 {
+			GitCommit = revision[:12]
+		} else {
+			GitCommit = revision
+		}
+	}
+
+	// Populate BuildTime if we have VCS time info
+	if vcsTime != "" {
+		BuildTime = vcsTime
+	}
+
+	// Append "-dirty" to version if there are uncommitted changes
+	if modified == "true" && Version == "dev" {
+		Version = "dev-dirty"
+	}
+}
 
 // NewVersionCommand creates a new version command for the given tool name.
 // The tool name is used to customize the output (e.g., "tk version 1.0.0").

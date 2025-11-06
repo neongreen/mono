@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/neongreen/mono/lib/cli"
+	"github.com/neongreen/mono/lib/version"
 	"github.com/spf13/cobra"
 )
 
@@ -46,7 +47,6 @@ Uses a temporary workspace for each run, so your main repo doesn't change while 
 
 Direct mode (--direct): Instead of using temporary workspaces, directly edits each revision in place.
 Useful for metadata changes (e.g., changing commit descriptions, authors) that don't require file isolation.`,
-	Args: cobra.MinimumNArgs(1),
 	RunE: runCommand,
 }
 
@@ -54,6 +54,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&revset, "revset", "r", "reachable(@, mutable())", "Revset to process")
 	rootCmd.Flags().StringVarP(&errStrategy, "err-strategy", "e", "continue", "Error handling strategy (continue|stop|fatal)")
 	rootCmd.Flags().BoolVarP(&directMode, "direct", "d", false, "Direct mode: edit each revision in place without worktrees")
+	rootCmd.AddCommand(version.NewVersionCommand("jj-run"))
 }
 
 func main() {
@@ -64,6 +65,16 @@ func main() {
 }
 
 func runCommand(cmd *cobra.Command, args []string) error {
+	// Check if the first argument is a known subcommand
+	// If so, Cobra should have handled it, but if we're here, it means it didn't match
+	// This can happen if the subcommand wasn't registered properly
+	// For now, we'll just proceed with the original behavior
+
+	// Check if we have at least one argument
+	if len(args) == 0 {
+		return fmt.Errorf("command is required")
+	}
+
 	command := strings.Join(args, " ")
 
 	// Validate error strategy
