@@ -175,6 +175,7 @@ func main() {
 			"move":       true,
 			"help":       true,
 			"completion": true,
+			"version":    true,
 			"--help":     true,
 			"-h":         true,
 		}

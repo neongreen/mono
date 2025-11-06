@@ -157,6 +157,74 @@ Key standards:
 
 ------------------------------------------------------------
 
+## Version Subcommand Pattern
+
+**All Go CLI tools must implement a `version` subcommand using the shared `lib/version` package.**
+
+### Implementation
+
+1. Import the version package in your cmd directory:
+   ```go
+   import "github.com/neongreen/mono/lib/version"
+   ```
+
+2. Add the version command in an `init()` function in a `version.go` file:
+   ```go
+   func init() {
+       rootCmd.AddCommand(version.NewVersionCommand("tool-name"))
+   }
+   ```
+
+3. The version command automatically provides:
+   - Human-readable output: `tool-name version dev`
+   - JSON output with `--json` flag
+   - Version, git commit, build time, and Go version information
+
+### Build-time Version Information
+
+Version information is injected at build time via ldflags in the Dagger build configuration (`.dagger/main.go`):
+
+```go
+ldflags := fmt.Sprintf("-X github.com/neongreen/mono/lib/version.Version=%s -X github.com/neongreen/mono/lib/version.GitCommit=%s -X github.com/neongreen/mono/lib/version.BuildTime=%s",
+    version, gitCommit, buildTime)
+```
+
+The build system automatically sets these values during release builds.
+
+### Example Usage
+
+```bash
+# Human-readable output
+$ conf version
+conf version main.42
+  commit: a1b2c3d
+  built:  Jan 15, 2024 10:30 PST
+  go:     go1.24.7
+
+# JSON output
+$ conf version --json
+{
+  "build_time": "2024-01-15T18:30:00Z",
+  "commit": "a1b2c3d",
+  "go_version": "go1.24.7",
+  "version": "main.42"
+}
+```
+
+### Tools with Version Commands
+
+All Go CLI tools in this monorepo have version subcommands:
+- tk
+- want
+- conf
+- dissect
+- ingest
+- printpdf
+- claude-trace
+- jj-run
+
+------------------------------------------------------------
+
 ## Error Handling Guidelines
 
 **All Go code must follow consistent error handling patterns.**
