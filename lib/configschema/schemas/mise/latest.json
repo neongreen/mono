@@ -56,7 +56,9 @@
               "$ref": "#/$defs/env_directive/properties/path"
             }
           },
-          "required": ["path"]
+          "required": [
+            "path"
+          ]
         },
         {
           "type": "object",
@@ -65,7 +67,9 @@
               "$ref": "#/$defs/env_directive/properties/paths"
             }
           },
-          "required": ["paths"]
+          "required": [
+            "paths"
+          ]
         }
       ]
     },
@@ -120,18 +124,25 @@
                       },
                       "format": {
                         "type": "string",
-                        "enum": ["raw", "zstd"],
+                        "enum": [
+                          "raw",
+                          "zstd"
+                        ],
                         "description": "[experimental] compression format for the encrypted value"
                       }
                     },
-                    "required": ["value"],
+                    "required": [
+                      "value"
+                    ],
                     "additionalProperties": false,
                     "description": "[experimental] age-encrypted value (complex format)"
                   }
                 ]
               }
             },
-            "required": ["age"],
+            "required": [
+              "age"
+            ],
             "additionalProperties": false,
             "description": "[experimental] age-encrypted environment variable"
           },
@@ -225,7 +236,9 @@
                           ]
                         }
                       },
-                      "required": ["path"]
+                      "required": [
+                        "path"
+                      ]
                     },
                     {
                       "type": "object",
@@ -237,7 +250,9 @@
                           }
                         }
                       },
-                      "required": ["paths"]
+                      "required": [
+                        "paths"
+                      ]
                     }
                   ]
                 },
@@ -321,7 +336,9 @@
                           }
                         }
                       },
-                      "required": ["path"],
+                      "required": [
+                        "path"
+                      ],
                       "type": "object"
                     }
                   ]
@@ -727,7 +744,13 @@
           "default": "info",
           "description": "Show more/less output.",
           "type": "string",
-          "enum": ["trace", "debug", "info", "warn", "error"]
+          "enum": [
+            "trace",
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
         },
         "node": {
           "type": "object",
@@ -1031,6 +1054,11 @@
               "items": {
                 "type": "string"
               }
+            },
+            "strict": {
+              "default": true,
+              "description": "If true, fail when age decryption fails (including when age is not available, the key is missing, or the key is invalid). If false, skip decryption and continue in these cases.",
+              "type": "boolean"
             }
           }
         },
@@ -1164,12 +1192,12 @@
         },
         "unix_default_file_shell_args": {
           "default": "sh",
-          "description": "List of default shell arguments for unix to be used with `file`. For example `sh`.",
+          "description": "Default shell arguments for Unix to be used for file commands. For example, `sh` for sh.",
           "type": "string"
         },
         "unix_default_inline_shell_args": {
           "default": "sh -c -o errexit",
-          "description": "List of default shell arguments for unix to be used with inline commands. For example, `sh`, `-c` for sh.",
+          "description": "Default shell arguments for Unix to be used for inline commands. For example, `sh -c` for sh.",
           "type": "string"
         },
         "url_replacements": {
@@ -1200,19 +1228,23 @@
         },
         "windows_default_file_shell_args": {
           "default": "cmd /c",
-          "description": "List of default shell arguments for Windows to be used for file commands. For example, `cmd`, `/c` for cmd.exe.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+          "description": "Default shell arguments for Windows to be used for file commands. For example, `cmd /c` for cmd.exe.",
+          "type": "string"
         },
         "windows_default_inline_shell_args": {
           "default": "cmd /c",
-          "description": "List of default shell arguments for Windows to be used for inline commands. For example, `cmd`, `/c` for cmd.exe.",
+          "description": "Default shell arguments for Windows to be used for inline commands. For example, `cmd /c` for cmd.exe.",
           "type": "string"
         },
         "windows_executable_extensions": {
-          "default": ["exe", "bat", "cmd", "com", "ps1", "vbs"],
+          "default": [
+            "exe",
+            "bat",
+            "cmd",
+            "com",
+            "ps1",
+            "vbs"
+          ],
           "description": "List of executable extensions for Windows. For example, `exe` for .exe files, `bat` for .bat files, and so on.",
           "type": "array",
           "items": {
@@ -1280,7 +1312,9 @@
               "type": "string"
             }
           },
-          "required": ["task"]
+          "required": [
+            "task"
+          ]
         },
         {
           "type": "object",
@@ -1295,7 +1329,9 @@
               "type": "array"
             }
           },
-          "required": ["tasks"]
+          "required": [
+            "tasks"
+          ]
         }
       ]
     },
@@ -1447,7 +1483,9 @@
                         ]
                       }
                     },
-                    "required": ["version"],
+                    "required": [
+                      "version"
+                    ],
                     "type": "object",
                     "additionalProperties": {
                       "oneOf": [
@@ -1485,11 +1523,15 @@
                   "properties": {
                     "auto": {
                       "description": "automatically touch an internal tracked file instead of specifying outputs",
-                      "enum": [true],
+                      "enum": [
+                        true
+                      ],
                       "type": "boolean"
                     }
                   },
-                  "required": ["auto"],
+                  "required": [
+                    "auto"
+                  ],
                   "type": "object"
                 }
               ]
@@ -1507,7 +1549,10 @@
                   "type": "boolean"
                 },
                 {
-                  "enum": ["stdout", "stderr"],
+                  "enum": [
+                    "stdout",
+                    "stderr"
+                  ],
                   "type": "string"
                 }
               ]
@@ -1698,7 +1743,9 @@
               "type": "string"
             }
           },
-          "required": ["version"],
+          "required": [
+            "version"
+          ],
           "type": "object",
           "additionalProperties": {
             "oneOf": [

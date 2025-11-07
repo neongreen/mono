@@ -6,6 +6,7 @@ import (
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
 	"github.com/neongreen/mono/conf/pkg/schemas"
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // StarshipTool implements starship configuration management
@@ -161,7 +162,7 @@ func (s *StarshipTool) GetAllValues() (map[string]any, error) {
 }
 
 // ListAllSettings returns comprehensive information about all starship settings from schema
-func (s *StarshipTool) ListAllSettings() ([]schemas.SettingInfo, error) {
+func (s *StarshipTool) ListAllSettings() ([]configschema.SettingInfo, error) {
 	// Get all settings from schema
 	schemaSettings := s.parser.GetAllSettingsWithInfo()
 

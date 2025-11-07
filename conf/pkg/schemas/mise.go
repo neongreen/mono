@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/neongreen/mono/lib/configschema"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -41,13 +42,13 @@ func LoadMiseSchema() (*MiseSchema, error) {
 }
 
 // GetCompletionOptions returns completion options for a given path
-func (s *MiseSchema) GetCompletionOptions(path string) []CompletionOption {
-	var options []CompletionOption
+func (s *MiseSchema) GetCompletionOptions(path string) []configschema.CompletionOption {
+	var options []configschema.CompletionOption
 
 	// If path is empty, return top-level fields
 	if path == "" {
 		for name, field := range s.Fields {
-			options = append(options, CompletionOption{
+			options = append(options, configschema.CompletionOption{
 				Name:        name,
 				Type:        field.Type,
 				Description: field.Description,
@@ -67,16 +68,9 @@ func (s *MiseSchema) GetCompletionOptions(path string) []CompletionOption {
 	if len(parts) == 1 {
 		// Return properties of this field
 		for _, prop := range field.Properties {
-			options = append(options, CompletionOption(prop))
+			options = append(options, configschema.CompletionOption(prop))
 		}
 	}
 
 	return options
-}
-
-// CompletionOption represents a completion option
-type CompletionOption struct {
-	Name        string
-	Type        string
-	Description string
 }

@@ -36,11 +36,16 @@ func TestCLIIntegration(t *testing.T) {
 	tmpDir := t.TempDir()
 	binaryPath := filepath.Join(tmpDir, "conf")
 
-	// Build conf binary
+	// Build conf binary from the conf root (where main.go is)
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = "." // Current directory is already cmd/
+	cmd.Dir = ".." // Go up to conf directory
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
+	}
+
+	// Make binary executable
+	if err := os.Chmod(binaryPath, 0755); err != nil {
+		t.Fatalf("Failed to make binary executable: %v", err)
 	}
 
 	tests := []struct {
@@ -193,9 +198,14 @@ add_newline = true
 	binaryPath := filepath.Join(tmpDir, "conf")
 
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = "."
+	cmd.Dir = ".." // Go up to conf directory
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
+	}
+
+	// Make binary executable
+	if err := os.Chmod(binaryPath, 0755); err != nil {
+		t.Fatalf("Failed to make binary executable: %v", err)
 	}
 
 	tests := []struct {
@@ -288,9 +298,14 @@ add_newline = true
 	binaryPath := filepath.Join(tmpDir, "conf")
 
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = "."
+	cmd.Dir = ".." // Go up to conf directory
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
+	}
+
+	// Make binary executable
+	if err := os.Chmod(binaryPath, 0755); err != nil {
+		t.Fatalf("Failed to make binary executable: %v", err)
 	}
 
 	tests := []struct {
@@ -320,8 +335,8 @@ add_newline = true
 				"TYPE",
 				"VALUE",
 				"DESCRIPTION",
-				"settings.experimental",
-				"boolean",
+				"env",
+				"tools",
 			},
 		},
 		{
@@ -377,9 +392,14 @@ func TestCLIErrorHandling(t *testing.T) {
 	binaryPath := filepath.Join(tmpDir, "conf")
 
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = "."
+	cmd.Dir = ".." // Go up to conf directory
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
+	}
+
+	// Make binary executable
+	if err := os.Chmod(binaryPath, 0755); err != nil {
+		t.Fatalf("Failed to make binary executable: %v", err)
 	}
 
 	tests := []struct {
@@ -454,9 +474,14 @@ func TestImportCommand(t *testing.T) {
 
 	// Build conf binary
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = "."
+	cmd.Dir = ".." // Go up to conf directory
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
+	}
+
+	// Make binary executable
+	if err := os.Chmod(binaryPath, 0755); err != nil {
+		t.Fatalf("Failed to make binary executable: %v", err)
 	}
 
 	// Setup test home directory
@@ -636,9 +661,14 @@ func TestApplyPreservesUnmanagedSettings(t *testing.T) {
 
 	// Build conf binary
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
-	cmd.Dir = "."
+	cmd.Dir = ".." // Go up to conf directory
 	if err := cmd.Run(); err != nil {
 		t.Fatalf("Failed to build conf binary: %v", err)
+	}
+
+	// Make binary executable
+	if err := os.Chmod(binaryPath, 0755); err != nil {
+		t.Fatalf("Failed to make binary executable: %v", err)
 	}
 
 	// Setup test home directory

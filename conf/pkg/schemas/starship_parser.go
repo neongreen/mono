@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // StarshipSchemaParser handles parsing of starship JSON schema for completion data
@@ -13,7 +15,7 @@ type StarshipSchemaParser struct {
 	// Legacy field kept for compatibility, but not used
 	schema map[string]any
 	// New field using proper jsonschema library
-	parser *JSONSchemaParser
+	parser *configschema.JSONSchemaParser
 }
 
 // NewStarshipSchemaParser creates a new starship schema parser using the jsonschema library
@@ -39,14 +41,14 @@ func NewStarshipSchemaParser() (*StarshipSchemaParser, error) {
 }
 
 // GetCompletionOptions returns completion options for a given dotted path
-func (p *StarshipSchemaParser) GetCompletionOptions(path string) []CompletionOption {
+func (p *StarshipSchemaParser) GetCompletionOptions(path string) []configschema.CompletionOption {
 	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetCompletionOptions(path)
 	}
 
 	// Fallback to legacy implementation
-	var options []CompletionOption
+	var options []configschema.CompletionOption
 
 	// Get the properties from the schema
 	properties, ok := p.schema["properties"].(map[string]any)
@@ -58,7 +60,7 @@ func (p *StarshipSchemaParser) GetCompletionOptions(path string) []CompletionOpt
 		// Return top-level properties
 		for name, prop := range properties {
 			if propMap, ok := prop.(map[string]any); ok {
-				option := CompletionOption{
+				option := configschema.CompletionOption{
 					Name:        name,
 					Type:        getTypeFromProperty(propMap),
 					Description: getDescriptionFromProperty(propMap),
@@ -80,8 +82,8 @@ func (p *StarshipSchemaParser) GetCompletionOptions(path string) []CompletionOpt
 }
 
 // getNestedCompletionOptions navigates through nested properties to find completion options
-func (p *StarshipSchemaParser) getNestedCompletionOptions(properties map[string]any, path string) []CompletionOption {
-	var options []CompletionOption
+func (p *StarshipSchemaParser) getNestedCompletionOptions(properties map[string]any, path string) []configschema.CompletionOption {
+	var options []configschema.CompletionOption
 
 	parts := strings.Split(path, ".")
 	current := properties
@@ -95,7 +97,7 @@ func (p *StarshipSchemaParser) getNestedCompletionOptions(properties map[string]
 					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 						for name, nestedProp := range nestedProps {
 							if nestedPropMap, ok := nestedProp.(map[string]any); ok {
-								option := CompletionOption{
+								option := configschema.CompletionOption{
 									Name:        name,
 									Type:        getTypeFromProperty(nestedPropMap),
 									Description: getDescriptionFromProperty(nestedPropMap),
@@ -288,7 +290,7 @@ func (p *StarshipSchemaParser) validateAgainstSchema(schema map[string]any, part
 }
 
 // GetPropertyInfo returns detailed information about a specific property
-func (p *StarshipSchemaParser) GetPropertyInfo(path string) (PropertyInfo, error) {
+func (p *StarshipSchemaParser) GetPropertyInfo(path string) (configschema.PropertyInfo, error) {
 	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetPropertyInfo(path)
@@ -296,12 +298,12 @@ func (p *StarshipSchemaParser) GetPropertyInfo(path string) (PropertyInfo, error
 
 	// Fallback to legacy implementation
 	if path == "" {
-		return PropertyInfo{}, fmt.Errorf("empty path")
+		return configschema.PropertyInfo{}, fmt.Errorf("empty path")
 	}
 
 	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
-		return PropertyInfo{}, fmt.Errorf("no properties found in schema")
+		return configschema.PropertyInfo{}, fmt.Errorf("no properties found in schema")
 	}
 
 	parts := strings.Split(path, ".")
@@ -312,7 +314,7 @@ func (p *StarshipSchemaParser) GetPropertyInfo(path string) (PropertyInfo, error
 			if propMap, ok := prop.(map[string]any); ok {
 				if i == len(parts)-1 {
 					// This is the target property
-					return PropertyInfo{
+					return configschema.PropertyInfo{
 						Name:        part,
 						Type:        getTypeFromProperty(propMap),
 						Description: getDescriptionFromProperty(propMap),
@@ -324,29 +326,29 @@ func (p *StarshipSchemaParser) GetPropertyInfo(path string) (PropertyInfo, error
 					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 						current = nestedProps
 					} else {
-						return PropertyInfo{}, fmt.Errorf("cannot navigate to %s: no nested properties", part)
+						return configschema.PropertyInfo{}, fmt.Errorf("cannot navigate to %s: no nested properties", part)
 					}
 				}
 			} else {
-				return PropertyInfo{}, fmt.Errorf("invalid property structure at %s", part)
+				return configschema.PropertyInfo{}, fmt.Errorf("invalid property structure at %s", part)
 			}
 		} else {
-			return PropertyInfo{}, fmt.Errorf("property %s not found", part)
+			return configschema.PropertyInfo{}, fmt.Errorf("property %s not found", part)
 		}
 	}
 
-	return PropertyInfo{}, fmt.Errorf("unexpected end of path navigation")
+	return configschema.PropertyInfo{}, fmt.Errorf("unexpected end of path navigation")
 }
 
 // GetAllSettingsWithInfo returns comprehensive information about all settings in the schema
-func (p *StarshipSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
+func (p *StarshipSchemaParser) GetAllSettingsWithInfo() []configschema.SettingInfo {
 	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetAllSettingsWithInfo()
 	}
 
 	// Fallback to legacy implementation
-	var settings []SettingInfo
+	var settings []configschema.SettingInfo
 
 	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
@@ -364,8 +366,8 @@ func (p *StarshipSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
 }
 
 // collectAllSettingsWithInfo recursively collects all settings with their information
-func (p *StarshipSchemaParser) collectAllSettingsWithInfo(properties map[string]any, prefix string) []SettingInfo {
-	var settings []SettingInfo
+func (p *StarshipSchemaParser) collectAllSettingsWithInfo(properties map[string]any, prefix string) []configschema.SettingInfo {
+	var settings []configschema.SettingInfo
 
 	for name, prop := range properties {
 		var currentPath string
@@ -377,7 +379,7 @@ func (p *StarshipSchemaParser) collectAllSettingsWithInfo(properties map[string]
 
 		if propMap, ok := prop.(map[string]any); ok {
 			// Add this setting to the list
-			setting := SettingInfo{
+			setting := configschema.SettingInfo{
 				Path:        currentPath,
 				Type:        getTypeFromProperty(propMap),
 				Description: getDescriptionFromProperty(propMap),

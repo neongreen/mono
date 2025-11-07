@@ -7,6 +7,7 @@ import (
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
 	"github.com/neongreen/mono/conf/pkg/schemas"
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // JJTool implements jj configuration management
@@ -135,7 +136,7 @@ func (j *JJTool) IsDryRun() bool {
 }
 
 // ListAllSettings returns comprehensive information about all jj settings from schema
-func (j *JJTool) ListAllSettings() ([]schemas.SettingInfo, error) {
+func (j *JJTool) ListAllSettings() ([]configschema.SettingInfo, error) {
 	// Get all settings from schema
 	schemaSettings := j.parser.GetAllSettingsWithInfo()
 

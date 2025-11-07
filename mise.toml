@@ -1,5 +1,4 @@
 [env]
-GOWORK = "auto"
 GOPRIVATE = "github.com/neongreen/mono"
 GONOSUMDB = "github.com/neongreen/mono"
 # Prevent Go from auto-upgrading to newer versions (fixes version mismatch errors)
@@ -91,6 +90,14 @@ git diff --exit-code go.mod go.sum
 [tasks."lint:go-vet"]
 description = "Run go vet on all packages"
 run = "go vet ./..."
+
+# ============================================================================
+# Schema management
+# ============================================================================
+
+[tasks."schemas:update"]
+description = "Update configuration schemas (jj, mise, starship, claude)"
+run = "./lib/configschema/scripts/update-schemas.sh"
 
 # ============================================================================
 # Dagger

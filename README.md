@@ -21,7 +21,22 @@ This repository contains multiple independent projects.
 | [jj-run](jj-run/) | alpha | Jujutsu subcommand to execute shell commands against multiple revisions. |
 | [jj-run-py](jj-run-py/) | deprecated | Old version of jj-run written in Python. |
 | [tk-vscode](tk-vscode/) | alpha | VS Code extension that lists tk tasks by running `tk ls --json`. |
-| [ghrelease](lib/ghrelease/) | beta | Shared helper for fetching release assets; API may change without notice. |
+
+## Libraries
+
+| Library | Status | Notes |
+| --- | --- | --- |
+| [configschema](lib/configschema/) | alpha | Centralized schema registry for configuration tools (jj, mise, starship, claude); schemas updated via mise task. |
+| [ghclient](lib/ghclient/) | alpha | GitHub API client helper; used by ghrelease and other tools. |
+| [ghrelease](lib/ghrelease/) | beta | Helper for fetching GitHub release assets; API may change without notice. |
+| [toml](lib/toml/) | beta | Surgical TOML editor with comment preservation; used by conf. |
+| [version](lib/version/) | stable | Shared version command implementation for CLI tools. |
+| [cli](lib/cli/) | stable | Unified CLI color/styling utilities for all tools. |
+
+## Infrastructure
+
+| Project | Status | Notes |
+| --- | --- | --- |
 | [.dagger](.dagger/) | alpha | Dagger module for building, testing, and linting all Go projects. |
 
 ## Installing Tools

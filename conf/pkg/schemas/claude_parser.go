@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // ClaudeSchemaParser handles parsing of Claude JSON schema for completion data
@@ -13,7 +15,7 @@ type ClaudeSchemaParser struct {
 	// Legacy field kept for compatibility, but not used
 	schema map[string]any
 	// New field using proper jsonschema library
-	parser *JSONSchemaParser
+	parser *configschema.JSONSchemaParser
 }
 
 // NewClaudeSchemaParser creates a new Claude schema parser using the jsonschema library
@@ -39,14 +41,14 @@ func NewClaudeSchemaParser() (*ClaudeSchemaParser, error) {
 }
 
 // GetCompletionOptions returns completion options for a given dotted path
-func (p *ClaudeSchemaParser) GetCompletionOptions(path string) []CompletionOption {
+func (p *ClaudeSchemaParser) GetCompletionOptions(path string) []configschema.CompletionOption {
 	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetCompletionOptions(path)
 	}
 
 	// Fallback to legacy implementation
-	var options []CompletionOption
+	var options []configschema.CompletionOption
 
 	// Get the properties from the schema
 	properties, ok := p.schema["properties"].(map[string]any)
@@ -58,7 +60,7 @@ func (p *ClaudeSchemaParser) GetCompletionOptions(path string) []CompletionOptio
 		// Return top-level properties
 		for name, prop := range properties {
 			if propMap, ok := prop.(map[string]any); ok {
-				option := CompletionOption{
+				option := configschema.CompletionOption{
 					Name:        name,
 					Type:        getTypeFromProperty(propMap),
 					Description: getDescriptionFromProperty(propMap),
@@ -80,8 +82,8 @@ func (p *ClaudeSchemaParser) GetCompletionOptions(path string) []CompletionOptio
 }
 
 // getNestedCompletionOptions navigates through nested properties to find completion options
-func (p *ClaudeSchemaParser) getNestedCompletionOptions(properties map[string]any, path string) []CompletionOption {
-	var options []CompletionOption
+func (p *ClaudeSchemaParser) getNestedCompletionOptions(properties map[string]any, path string) []configschema.CompletionOption {
+	var options []configschema.CompletionOption
 
 	parts := strings.Split(path, ".")
 	current := properties
@@ -95,7 +97,7 @@ func (p *ClaudeSchemaParser) getNestedCompletionOptions(properties map[string]an
 					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 						for name, nestedProp := range nestedProps {
 							if nestedPropMap, ok := nestedProp.(map[string]any); ok {
-								option := CompletionOption{
+								option := configschema.CompletionOption{
 									Name:        name,
 									Type:        getTypeFromProperty(nestedPropMap),
 									Description: getDescriptionFromProperty(nestedPropMap),
@@ -214,14 +216,14 @@ func (p *ClaudeSchemaParser) collectPaths(properties map[string]any, prefix stri
 }
 
 // GetAllSettingsWithInfo returns all settings with their schema information
-func (p *ClaudeSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
+func (p *ClaudeSchemaParser) GetAllSettingsWithInfo() []configschema.SettingInfo {
 	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetAllSettingsWithInfo()
 	}
 
 	// Fallback to legacy implementation
-	var settings []SettingInfo
+	var settings []configschema.SettingInfo
 
 	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
@@ -239,7 +241,7 @@ func (p *ClaudeSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
 }
 
 // collectSettingsInfo recursively collects setting information from the schema
-func (p *ClaudeSchemaParser) collectSettingsInfo(properties map[string]any, prefix string, settings *[]SettingInfo) {
+func (p *ClaudeSchemaParser) collectSettingsInfo(properties map[string]any, prefix string, settings *[]configschema.SettingInfo) {
 	for name, prop := range properties {
 		fullPath := name
 		if prefix != "" {
@@ -247,7 +249,7 @@ func (p *ClaudeSchemaParser) collectSettingsInfo(properties map[string]any, pref
 		}
 
 		if propMap, ok := prop.(map[string]any); ok {
-			setting := SettingInfo{
+			setting := configschema.SettingInfo{
 				Path:        fullPath,
 				Type:        getTypeFromProperty(propMap),
 				Description: getDescriptionFromProperty(propMap),

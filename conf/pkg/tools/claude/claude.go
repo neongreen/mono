@@ -7,6 +7,7 @@ import (
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
 	"github.com/neongreen/mono/conf/pkg/schemas"
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // ClaudeTool implements Claude Code configuration management
@@ -192,7 +193,7 @@ func containsSubstring(s, substr string) bool {
 }
 
 // ListAllSettings returns comprehensive information about all Claude settings from schema
-func (c *ClaudeTool) ListAllSettings() ([]schemas.SettingInfo, error) {
+func (c *ClaudeTool) ListAllSettings() ([]configschema.SettingInfo, error) {
 	// Get all settings from schema
 	schemaSettings := c.parser.GetAllSettingsWithInfo()
 

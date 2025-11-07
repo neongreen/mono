@@ -7,12 +7,12 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
-	"github.com/neongreen/mono/conf/pkg/schemas"
 	"github.com/neongreen/mono/lib/cli"
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // renderSettingsTable renders a table of settings with colors and proper formatting
-func renderSettingsTable(settings []schemas.SettingInfo, configPath string) {
+func renderSettingsTable(settings []configschema.SettingInfo, configPath string) {
 	if len(settings) == 0 {
 		fmt.Println("No settings available")
 		return

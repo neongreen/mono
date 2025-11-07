@@ -1,8 +1,6 @@
 package schemas
 
-import _ "embed"
+import "github.com/neongreen/mono/lib/configschema"
 
 // MiseJSONSchema contains the embedded Mise configuration JSON schema
-//
-//go:embed mise.json
-var MiseJSONSchema string
+var MiseJSONSchema string = configschema.MiseSchema()

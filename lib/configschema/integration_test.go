@@ -1,89 +1,29 @@
-package schemas
+package configschema
 
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
-const (
-	pinnedJJSchemaURL = "https://jj-vcs.github.io/jj/v0.34.0/config-schema.json"
-	latestJJSchemaURL = "https://jj-vcs.github.io/jj/latest/config-schema.json"
-)
-
-// fixSchemaIssues fixes known issues in downloaded schemas
-// Currently fixes duplicate enum values in v0.34.0 schema
-func fixSchemaIssues(schemaJSON []byte) ([]byte, error) {
-	var schema map[string]any
-	if err := json.Unmarshal(schemaJSON, &schema); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal schema: %w", err)
-	}
-
-	// Fix duplicate "hermit" in --when.platforms.items.enum (v0.34.0 issue)
-	if when, ok := schema["properties"].(map[string]any); ok {
-		if whenProp, ok := when["--when"].(map[string]any); ok {
-			if platforms, ok := whenProp["properties"].(map[string]any); ok {
-				if platformsProp, ok := platforms["platforms"].(map[string]any); ok {
-					if items, ok := platformsProp["items"].(map[string]any); ok {
-						if enum, ok := items["enum"].([]any); ok {
-							// Remove duplicates while preserving order
-							seen := make(map[any]bool)
-							var uniqueEnum []any
-							for _, val := range enum {
-								if !seen[val] {
-									seen[val] = true
-									uniqueEnum = append(uniqueEnum, val)
-								}
-							}
-							items["enum"] = uniqueEnum
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return json.Marshal(schema)
+// JJSchemaParser wraps a JSON schema for jj configuration
+type JJSchemaParser struct {
+	parser *JSONSchemaParser
 }
 
-// newJJSchemaParserFromURL downloads a schema from the given URL and creates a parser
-func newJJSchemaParserFromURL(t *testing.T, url string) *JJSchemaParser {
+// newJJSchemaParserFromJSON creates a parser from embedded JSON
+func newJJSchemaParserFromJSON(t *testing.T, schemaJSON string) *JJSchemaParser {
 	t.Helper()
 
-	// Download schema
-	resp, err := http.Get(url)
-	if err != nil {
-		t.Fatalf("Failed to download schema from %s: %v", url, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("Failed to download schema: got status %d", resp.StatusCode)
-	}
-
-	schemaJSON, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("Failed to read schema response: %v", err)
-	}
-
-	// Fix known schema issues (e.g., duplicate enum values in v0.34.0)
-	schemaJSONFixed, err := fixSchemaIssues(schemaJSON)
-	if err != nil {
-		t.Fatalf("Failed to fix schema issues: %v", err)
-	}
-
-	// Compile schema
 	compiler := jsonschema.NewCompiler()
 	compiler.Draft = jsonschema.Draft4
 	compiler.ExtractAnnotations = true
 
 	resourceName := "jj.json"
-	if err := compiler.AddResource(resourceName, strings.NewReader(string(schemaJSONFixed))); err != nil {
+	if err := compiler.AddResource(resourceName, strings.NewReader(schemaJSON)); err != nil {
 		t.Fatalf("Failed to add jj schema resource: %v", err)
 	}
 
@@ -101,13 +41,30 @@ func newJJSchemaParserFromURL(t *testing.T, url string) *JJSchemaParser {
 // newJJSchemaParserPinned creates a parser using the pinned v0.34.0 schema
 func newJJSchemaParserPinned(t *testing.T) *JJSchemaParser {
 	t.Helper()
-	return newJJSchemaParserFromURL(t, pinnedJJSchemaURL)
+	return newJJSchemaParserFromJSON(t, JJSchemaPinned())
 }
 
 // newJJSchemaParserLatest creates a parser using the latest schema
 func newJJSchemaParserLatest(t *testing.T) *JJSchemaParser {
 	t.Helper()
-	return newJJSchemaParserFromURL(t, latestJJSchemaURL)
+	return newJJSchemaParserFromJSON(t, JJSchemaLatest())
+}
+
+// Delegate methods to JSONSchemaParser
+func (p *JJSchemaParser) GetAllPaths() []string {
+	return p.parser.GetAllPaths()
+}
+
+func (p *JJSchemaParser) ValidatePath(path string) bool {
+	return p.parser.ValidatePath(path)
+}
+
+func (p *JJSchemaParser) GetPropertyInfo(path string) (PropertyInfo, error) {
+	return p.parser.GetPropertyInfo(path)
+}
+
+func (p *JJSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
+	return p.parser.GetAllSettingsWithInfo()
 }
 
 // TestJJSchemaParserIntegration tests the complete jj schema parsing workflow
@@ -679,6 +636,37 @@ func TestSchemaConsistency(t *testing.T) {
 					t.Error("Expected some type diversity")
 				}
 			})
+		})
+	}
+}
+
+// TestEmbeddedSchemas validates that schemas are properly embedded
+func TestEmbeddedSchemas(t *testing.T) {
+	tests := []struct {
+		name   string
+		getter func() string
+	}{
+		{"JJ Pinned", JJSchemaPinned},
+		{"JJ Latest", JJSchemaLatest},
+		{"Mise", MiseSchema},
+		{"Starship", StarshipSchema},
+		{"Claude", ClaudeSchema},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			schema := tt.getter()
+			if schema == "" {
+				t.Error("Schema should not be empty")
+			}
+
+			// Verify it's valid JSON
+			var js map[string]any
+			if err := json.Unmarshal([]byte(schema), &js); err != nil {
+				t.Errorf("Schema is not valid JSON: %v", err)
+			}
+
+			t.Logf("Schema size: %d bytes", len(schema))
 		})
 	}
 }

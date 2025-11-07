@@ -3,6 +3,8 @@ package schemas
 import (
 	"slices"
 	"testing"
+
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 func TestMiseSchemaParser_ValidatePath(t *testing.T) {
@@ -143,8 +145,8 @@ func TestMiseSchemaParser_GetAllSettingsWithInfo(t *testing.T) {
 	}
 
 	// Check for specific settings from official schema
-	var envSetting *SettingInfo
-	var toolsSetting *SettingInfo
+	var envSetting *configschema.SettingInfo
+	var toolsSetting *configschema.SettingInfo
 
 	for i := range settings {
 		if settings[i].Path == "env" {

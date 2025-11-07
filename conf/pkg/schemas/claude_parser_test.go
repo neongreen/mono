@@ -3,6 +3,8 @@ package schemas
 import (
 	"slices"
 	"testing"
+
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 func TestClaudeSchemaParser_ValidatePath(t *testing.T) {
@@ -173,8 +175,8 @@ func TestClaudeSchemaParser_GetAllSettingsWithInfo(t *testing.T) {
 	}
 
 	// Check for specific settings from official schema
-	var modelSetting *SettingInfo
-	var hooksSetting *SettingInfo
+	var modelSetting *configschema.SettingInfo
+	var hooksSetting *configschema.SettingInfo
 
 	for i := range settings {
 		if settings[i].Path == "model" {

@@ -1,8 +1,6 @@
 package schemas
 
-import _ "embed"
+import "github.com/neongreen/mono/lib/configschema"
 
 // ClaudeSchema contains the embedded Claude Code configuration schema
-//
-//go:embed claude.json
-var ClaudeSchema string
+var ClaudeSchema string = configschema.ClaudeSchema()

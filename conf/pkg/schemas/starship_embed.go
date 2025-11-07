@@ -1,8 +1,6 @@
 package schemas
 
-import _ "embed"
+import "github.com/neongreen/mono/lib/configschema"
 
 // StarshipSchema contains the embedded starship configuration schema
-//
-//go:embed starship.json
-var StarshipSchema string
+var StarshipSchema string = configschema.StarshipSchema()

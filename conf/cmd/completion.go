@@ -5,11 +5,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/neongreen/mono/conf/pkg/schemas"
 	claudetool "github.com/neongreen/mono/conf/pkg/tools/claude"
 	jjtool "github.com/neongreen/mono/conf/pkg/tools/jj"
 	misetool "github.com/neongreen/mono/conf/pkg/tools/mise"
 	starshiptool "github.com/neongreen/mono/conf/pkg/tools/starship"
+	"github.com/neongreen/mono/lib/configschema"
 	"github.com/spf13/cobra"
 )
 
@@ -24,7 +24,7 @@ type completionOptions struct {
 func genericCompletion(
 	args []string,
 	toComplete string,
-	getSettings func() ([]schemas.SettingInfo, error),
+	getSettings func() ([]configschema.SettingInfo, error),
 	opts completionOptions,
 ) ([]string, cobra.ShellCompDirective) {
 	switch len(args) {
@@ -64,7 +64,7 @@ func genericCompletion(
 			return nil, cobra.ShellCompDirectiveError
 		}
 
-		var targetSetting *schemas.SettingInfo
+		var targetSetting *configschema.SettingInfo
 		for _, setting := range settings {
 			if setting.Path == configPath {
 				targetSetting = &setting

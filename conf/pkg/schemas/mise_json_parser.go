@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // MiseSchemaParser handles parsing of Mise JSON schema for completion data
@@ -13,7 +15,7 @@ type MiseSchemaParser struct {
 	// Legacy field kept for compatibility, but not used
 	schema map[string]any
 	// New field using proper jsonschema library
-	parser *JSONSchemaParser
+	parser *configschema.JSONSchemaParser
 }
 
 // NewMiseSchemaParser creates a new Mise schema parser using the jsonschema library
@@ -39,14 +41,14 @@ func NewMiseSchemaParser() (*MiseSchemaParser, error) {
 }
 
 // GetCompletionOptions returns completion options for a given dotted path
-func (p *MiseSchemaParser) GetCompletionOptions(path string) []CompletionOption {
+func (p *MiseSchemaParser) GetCompletionOptions(path string) []configschema.CompletionOption {
 	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetCompletionOptions(path)
 	}
 
 	// Fallback to legacy implementation
-	var options []CompletionOption
+	var options []configschema.CompletionOption
 
 	// Get the properties from the schema
 	properties, ok := p.schema["properties"].(map[string]any)
@@ -58,7 +60,7 @@ func (p *MiseSchemaParser) GetCompletionOptions(path string) []CompletionOption 
 		// Return top-level properties
 		for name, prop := range properties {
 			if propMap, ok := prop.(map[string]any); ok {
-				option := CompletionOption{
+				option := configschema.CompletionOption{
 					Name:        name,
 					Type:        getTypeFromProperty(propMap),
 					Description: getDescriptionFromProperty(propMap),
@@ -80,8 +82,8 @@ func (p *MiseSchemaParser) GetCompletionOptions(path string) []CompletionOption 
 }
 
 // getNestedCompletionOptions navigates through nested properties to find completion options
-func (p *MiseSchemaParser) getNestedCompletionOptions(properties map[string]any, path string) []CompletionOption {
-	var options []CompletionOption
+func (p *MiseSchemaParser) getNestedCompletionOptions(properties map[string]any, path string) []configschema.CompletionOption {
+	var options []configschema.CompletionOption
 
 	parts := strings.Split(path, ".")
 	current := properties
@@ -95,7 +97,7 @@ func (p *MiseSchemaParser) getNestedCompletionOptions(properties map[string]any,
 					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 						for name, nestedProp := range nestedProps {
 							if nestedPropMap, ok := nestedProp.(map[string]any); ok {
-								option := CompletionOption{
+								option := configschema.CompletionOption{
 									Name:        name,
 									Type:        getTypeFromProperty(nestedPropMap),
 									Description: getDescriptionFromProperty(nestedPropMap),
@@ -214,14 +216,14 @@ func (p *MiseSchemaParser) collectPaths(properties map[string]any, prefix string
 }
 
 // GetAllSettingsWithInfo returns all settings with their schema information
-func (p *MiseSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
+func (p *MiseSchemaParser) GetAllSettingsWithInfo() []configschema.SettingInfo {
 	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetAllSettingsWithInfo()
 	}
 
 	// Fallback to legacy implementation
-	var settings []SettingInfo
+	var settings []configschema.SettingInfo
 
 	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
@@ -239,7 +241,7 @@ func (p *MiseSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
 }
 
 // collectSettingsInfo recursively collects setting information from the schema
-func (p *MiseSchemaParser) collectSettingsInfo(properties map[string]any, prefix string, settings *[]SettingInfo) {
+func (p *MiseSchemaParser) collectSettingsInfo(properties map[string]any, prefix string, settings *[]configschema.SettingInfo) {
 	for name, prop := range properties {
 		fullPath := name
 		if prefix != "" {
@@ -247,7 +249,7 @@ func (p *MiseSchemaParser) collectSettingsInfo(properties map[string]any, prefix
 		}
 
 		if propMap, ok := prop.(map[string]any); ok {
-			setting := SettingInfo{
+			setting := configschema.SettingInfo{
 				Path:        fullPath,
 				Type:        getTypeFromProperty(propMap),
 				Description: getDescriptionFromProperty(propMap),

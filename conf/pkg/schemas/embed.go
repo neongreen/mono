@@ -1,8 +1,6 @@
 package schemas
 
-import _ "embed"
+import "github.com/neongreen/mono/lib/configschema"
 
-// JJSchema contains the embedded jj configuration schema
-//
-//go:embed jj.json
-var JJSchema string
+// JJSchema contains the embedded jj configuration schema (latest version)
+var JJSchema string = configschema.JJSchemaLatest()

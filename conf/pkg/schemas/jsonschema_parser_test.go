@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neongreen/mono/lib/configschema"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -164,7 +165,7 @@ func TestJSONSchemaParser_Navigation(t *testing.T) {
 		t.Fatalf("Failed to compile schema: %v", err)
 	}
 
-	parser := NewJSONSchemaParser(schema)
+	parser := configschema.NewJSONSchemaParser(schema)
 
 	// Test navigation
 	t.Run("validate_simple_path", func(t *testing.T) {
@@ -236,7 +237,7 @@ func TestJSONSchemaParser_AdditionalProperties(t *testing.T) {
 		t.Fatalf("Failed to compile schema: %v", err)
 	}
 
-	parser := NewJSONSchemaParser(schema)
+	parser := configschema.NewJSONSchemaParser(schema)
 
 	// Test that any property under env is valid
 	t.Run("validate_additional_property", func(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/neongreen/mono/lib/configschema"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -107,31 +108,31 @@ func (s *SchemaLoader) GetJJSchemaRaw() string {
 }
 
 // NewJJSchemaParserFromCompiled creates a new JSONSchemaParser for jj using the compiled schema
-func (s *SchemaLoader) NewJJSchemaParserFromCompiled() (*JSONSchemaParser, error) {
+func (s *SchemaLoader) NewJJSchemaParserFromCompiled() (*configschema.JSONSchemaParser, error) {
 	if s.jjSchema == nil {
 		return nil, fmt.Errorf("jj schema not compiled")
 	}
-	return NewJSONSchemaParser(s.jjSchema), nil
+	return configschema.NewJSONSchemaParser(s.jjSchema), nil
 }
 
 // NewClaudeSchemaParserFromCompiled creates a new JSONSchemaParser for claude using the compiled schema
-func (s *SchemaLoader) NewClaudeSchemaParserFromCompiled() (*JSONSchemaParser, error) {
+func (s *SchemaLoader) NewClaudeSchemaParserFromCompiled() (*configschema.JSONSchemaParser, error) {
 	if s.claudeSchema == nil {
 		return nil, fmt.Errorf("claude schema not compiled")
 	}
-	return NewJSONSchemaParser(s.claudeSchema), nil
+	return configschema.NewJSONSchemaParser(s.claudeSchema), nil
 }
 
 // NewMiseSchemaParserFromCompiled creates a new JSONSchemaParser for mise using the compiled schema
-func (s *SchemaLoader) NewMiseSchemaParserFromCompiled() (*JSONSchemaParser, error) {
+func (s *SchemaLoader) NewMiseSchemaParserFromCompiled() (*configschema.JSONSchemaParser, error) {
 	if s.miseSchema == nil {
 		return nil, fmt.Errorf("mise schema not compiled")
 	}
-	return NewJSONSchemaParser(s.miseSchema), nil
+	return configschema.NewJSONSchemaParser(s.miseSchema), nil
 }
 
 // CompileJJSchema compiles the jj schema and returns a JSONSchemaParser
-func CompileJJSchema() (*JSONSchemaParser, error) {
+func CompileJJSchema() (*configschema.JSONSchemaParser, error) {
 	compiler := jsonschema.NewCompiler()
 	compiler.Draft = jsonschema.Draft4
 	compiler.ExtractAnnotations = true // Enable extraction of title, description, default, etc.
@@ -145,11 +146,11 @@ func CompileJJSchema() (*JSONSchemaParser, error) {
 		return nil, fmt.Errorf("failed to compile jj schema: %w", err)
 	}
 
-	return NewJSONSchemaParser(schema), nil
+	return configschema.NewJSONSchemaParser(schema), nil
 }
 
 // CompileClaudeSchema compiles the claude schema and returns a JSONSchemaParser
-func CompileClaudeSchema() (*JSONSchemaParser, error) {
+func CompileClaudeSchema() (*configschema.JSONSchemaParser, error) {
 	compiler := jsonschema.NewCompiler()
 	compiler.ExtractAnnotations = true // Enable extraction of title, description, default, etc.
 
@@ -162,11 +163,11 @@ func CompileClaudeSchema() (*JSONSchemaParser, error) {
 		return nil, fmt.Errorf("failed to compile claude schema: %w", err)
 	}
 
-	return NewJSONSchemaParser(schema), nil
+	return configschema.NewJSONSchemaParser(schema), nil
 }
 
 // CompileMiseSchema compiles the mise schema and returns a JSONSchemaParser
-func CompileMiseSchema() (*JSONSchemaParser, error) {
+func CompileMiseSchema() (*configschema.JSONSchemaParser, error) {
 	compiler := jsonschema.NewCompiler()
 	compiler.ExtractAnnotations = true // Enable extraction of title, description, default, etc.
 
@@ -179,7 +180,7 @@ func CompileMiseSchema() (*JSONSchemaParser, error) {
 		return nil, fmt.Errorf("failed to compile mise schema: %w", err)
 	}
 
-	return NewJSONSchemaParser(schema), nil
+	return configschema.NewJSONSchemaParser(schema), nil
 }
 
 // GetStarshipSchema returns the compiled starship schema
@@ -188,15 +189,15 @@ func (s *SchemaLoader) GetStarshipSchema() *jsonschema.Schema {
 }
 
 // NewStarshipSchemaParserFromCompiled creates a new JSONSchemaParser for starship using the compiled schema
-func (s *SchemaLoader) NewStarshipSchemaParserFromCompiled() (*JSONSchemaParser, error) {
+func (s *SchemaLoader) NewStarshipSchemaParserFromCompiled() (*configschema.JSONSchemaParser, error) {
 	if s.starshipSchema == nil {
 		return nil, fmt.Errorf("starship schema not compiled")
 	}
-	return NewJSONSchemaParser(s.starshipSchema), nil
+	return configschema.NewJSONSchemaParser(s.starshipSchema), nil
 }
 
 // CompileStarshipSchema compiles the starship schema and returns a JSONSchemaParser
-func CompileStarshipSchema() (*JSONSchemaParser, error) {
+func CompileStarshipSchema() (*configschema.JSONSchemaParser, error) {
 	compiler := jsonschema.NewCompiler()
 	compiler.Draft = jsonschema.Draft2020 // Starship uses JSON Schema Draft 2020-12
 	compiler.ExtractAnnotations = true    // Enable extraction of title, description, default, etc.
@@ -210,5 +211,5 @@ func CompileStarshipSchema() (*JSONSchemaParser, error) {
 		return nil, fmt.Errorf("failed to compile starship schema: %w", err)
 	}
 
-	return NewJSONSchemaParser(schema), nil
+	return configschema.NewJSONSchemaParser(schema), nil
 }

@@ -8,9 +8,12 @@ on:
       - "dissect/**"
       - "ingest/**"
       - "jj-run/**"
+      - "lib/cli/**"
+      - "lib/configschema/**"
       - "lib/ghclient/**"
       - "lib/ghrelease/**"
       - "lib/toml/**"
+      - "lib/version/**"
       - "markdown-format/**"
       - "printpdf/**"
       - "prrun/**"
@@ -44,11 +47,23 @@ jobs:
             dissect:
               - 'dissect/**'
               - '.dagger/**'
+            lib-cli:
+              - 'lib/cli/**'
+              - '.dagger/**'
+            lib-configschema:
+              - 'lib/configschema/**'
+              - '.dagger/**'
             lib-ghclient:
               - 'lib/ghclient/**'
               - '.dagger/**'
             lib-ghrelease:
               - 'lib/ghrelease/**'
+              - '.dagger/**'
+            lib-toml:
+              - 'lib/toml/**'
+              - '.dagger/**'
+            lib-version:
+              - 'lib/version/**'
               - '.dagger/**'
             ingest:
               - 'ingest/**'
@@ -67,9 +82,6 @@ jobs:
               - '.dagger/**'
             tk:
               - 'tk/**'
-              - '.dagger/**'
-            lib-toml:
-              - 'lib/toml/**'
               - '.dagger/**'
             want:
               - 'want/**'

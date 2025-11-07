@@ -32,9 +32,12 @@ func (m *Dagger) Test(ctx context.Context,
 	addTest("test claude-trace", p.ClaudeTrace().Test)
 	addTest("test markdown-format", p.MarkdownFormat().Test)
 	addTest("test jj-run", p.JjRun().Test)
+	addTest("test lib/cli", p.LibCli().Test)
+	addTest("test lib/configschema", p.LibConfigschema().Test)
 	addTest("test lib/ghclient", p.LibGhclient().Test)
 	addTest("test lib/ghrelease", p.LibGhrelease().Test)
 	addTest("test lib/toml", p.LibToml().Test)
+	addTest("test lib/version", p.LibVersion().Test)
 
 	return jobs.Run(ctx)
 }

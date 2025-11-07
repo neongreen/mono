@@ -7,6 +7,7 @@ import (
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
 	"github.com/neongreen/mono/conf/pkg/schemas"
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // MiseTool implements mise configuration management
@@ -125,7 +126,7 @@ func (m *MiseTool) PreviewUnsetConfig(path string) (string, error) {
 }
 
 // GetCompletionOptions returns completion options for a given path
-func (m *MiseTool) GetCompletionOptions(path string) []schemas.CompletionOption {
+func (m *MiseTool) GetCompletionOptions(path string) []configschema.CompletionOption {
 	return m.parser.GetCompletionOptions(path)
 }
 
@@ -181,7 +182,7 @@ func (m *MiseTool) SetAllValues(values map[string]any) error {
 }
 
 // ListAllSettings returns comprehensive information about all mise settings from schema
-func (m *MiseTool) ListAllSettings() ([]schemas.SettingInfo, error) {
+func (m *MiseTool) ListAllSettings() ([]configschema.SettingInfo, error) {
 	// Get all settings from schema
 	schemaSettings := m.parser.GetAllSettingsWithInfo()
 
