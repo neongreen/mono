@@ -50,3 +50,17 @@ fnox exec -- tofu validate
 4. Manually deploy: `mise run cloud:dagger:deploy`
 
 This separation keeps infrastructure automated while giving explicit control over when applications are deployed.
+
+## Hetzner Cloud Best Practices
+
+- Provider: `hetznercloud/hcloud` (token from `HCLOUD_TOKEN` environment variable)
+- Subnet resource is `hcloud_network_subnet` (not `hcloud_subnetwork`)
+- **Use `.name` not `.id`** for immutable server attributes (location, server_type, image)
+  - Using `.id` returns numeric IDs which can cause Terraform to see "nbg1" → "2" as a change
+  - This forces unnecessary server replacements
+  - Use `.name` for stable, human-readable values
+- Typical resources:
+  - Network: `hcloud_network`, `hcloud_network_subnet`
+  - Security: `hcloud_firewall`, `hcloud_firewall_attachment`
+  - SSH: `hcloud_ssh_key` (read from `ssh_key.pub` in module directory)
+  - Compute: `hcloud_server`, `hcloud_server_network`

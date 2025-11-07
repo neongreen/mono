@@ -82,9 +82,9 @@ resource "hcloud_ssh_key" "workstation" {
 # Server: VM running Ubuntu with k3s installed
 resource "hcloud_server" "vm1" {
   name        = "vm1"
-  image       = data.hcloud_image.ubuntu_2404.id
-  server_type = data.hcloud_server_type.cpx21.id
-  location    = data.hcloud_location.nbg1.id
+  image       = data.hcloud_image.ubuntu_2404.name
+  server_type = data.hcloud_server_type.cpx21.name
+  location    = data.hcloud_location.nbg1.name
   ssh_keys    = [hcloud_ssh_key.workstation.id]
 
   # Cloud-init: runs on first boot to configure the server
