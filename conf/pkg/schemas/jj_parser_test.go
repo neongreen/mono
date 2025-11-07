@@ -281,4 +281,3 @@ func TestJJSchemaParser_HandlesMissingProperties(t *testing.T) {
 		t.Error("Should get empty options for deeply nested non-existent path")
 	}
 }
-
