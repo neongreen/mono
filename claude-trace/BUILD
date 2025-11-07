@@ -1,5 +1,3 @@
-subinclude("//third_party/go:go_defs")
-
 go_binary(
     name = "claude-trace",
     srcs = glob(["**/*.go"]),

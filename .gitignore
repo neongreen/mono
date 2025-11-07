@@ -12,20 +12,16 @@ dist/
 *.test
 *.out
 .cache/
+.gocache
 
 # Go binaries
 prrun/prrun
 dissect/dissect
 markdown-format/markdown-format
 
-# BD (beads) - SQLite databases are not committed, only JSONL
-*.db
-*.db-journal
-*.db-wal
-*.db-shm
-
-# Keep BD JSONL exports (source of truth for git)
-!.beads/*.jsonl
-.gocache
+# Idk
 actionlint
-plz-out/
+
+# Entries below this point are managed by Please (DO NOT EDIT)
+plz-out
+.plzconfig.local

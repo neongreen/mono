@@ -21,6 +21,7 @@ gotestsum = "latest"
 fnox = "latest"
 opentofu = "latest"
 spacectl = "latest"
+please = "latest"
 
 # ============================================================================
 # Top-level tasks
