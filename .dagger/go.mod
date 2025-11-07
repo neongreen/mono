@@ -1,6 +1,6 @@
 module dagger
 
-go 1.25.3
+go 1.24.7
 
 require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
@@ -24,8 +24,8 @@ require (
 	github.com/Khan/genqlient v0.8.1
 	github.com/vektah/gqlparser/v2 v2.5.31
 	go.opentelemetry.io/otel v1.38.0
-	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.0.0-00010101000000-000000000000
-	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.0.0-00010101000000-000000000000
+	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.14.0
+	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.14.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.38.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.38.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.38.0

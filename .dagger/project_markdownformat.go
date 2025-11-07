@@ -29,8 +29,3 @@ func (p *MarkdownFormatProject) Coverage(ctx context.Context,
 ) (*dagger.File, error) {
 	return coverageFile(ctx, "markdown-format", format)
 }
-
-func (p *MarkdownFormatProject) Lint(ctx context.Context) (string, error) {
-	return lintProject(ctx, "markdown-format")
-}
-

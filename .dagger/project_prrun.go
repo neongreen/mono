@@ -29,8 +29,3 @@ func (p *PrrunProject) Coverage(ctx context.Context,
 ) (*dagger.File, error) {
 	return coverageFile(ctx, "prrun", format)
 }
-
-func (p *PrrunProject) Lint(ctx context.Context) (string, error) {
-	return lintProject(ctx, "prrun")
-}
-

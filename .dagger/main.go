@@ -1,17 +1,3 @@
-// A generated module for DaggerTk functions
-//
-// This module has been generated via dagger init and serves as a reference to
-// basic module structure as you get started with Dagger.
-//
-// Two functions have been pre-created. You can modify, delete, or add to them,
-// as needed. They demonstrate usage of arguments and return types using simple
-// echo and grep commands. The functions can be called from the dagger CLI or
-// from one of the SDKs.
-//
-// The first line in this comment block is a short description line and the
-// rest is a long description with more detail on the module's purpose or usage,
-// if appropriate. All modules should have a short description.
-
 package main
 
 import (
@@ -209,18 +195,18 @@ func (m *Dagger) GenerateHomebrewFormula(
 	}
 
 	// Generate the formula class name
-	className := ""
-	for _, part := range strings.Split(project, "-") {
+	var className strings.Builder
+	for part := range strings.SplitSeq(project, "-") {
 		if len(part) > 0 {
 			runes := []rune(part)
 			runes[0] = unicode.ToUpper(runes[0])
-			className += string(runes)
+			className.WriteString(string(runes))
 		}
 	}
 
 	// Build the formula
 	var formulaBuilder strings.Builder
-	formulaBuilder.WriteString(fmt.Sprintf("class %s < Formula\n", className))
+	formulaBuilder.WriteString(fmt.Sprintf("class %s < Formula\n", className.String()))
 	formulaBuilder.WriteString(fmt.Sprintf("  desc \"%s\"\n", strings.ReplaceAll(desc, "\"", "\\\"")))
 	formulaBuilder.WriteString(fmt.Sprintf("  homepage \"%s\"\n", strings.ReplaceAll(homepage, "\"", "\\\"")))
 	formulaBuilder.WriteString(fmt.Sprintf("  version \"%s\"\n", version))
@@ -230,11 +216,11 @@ func (m *Dagger) GenerateHomebrewFormula(
 	linuxArchives := make(map[string]ArchiveInfo)
 
 	for _, archive := range archives {
-		if strings.HasPrefix(archive.Platform, "darwin-") {
-			arch := strings.TrimPrefix(archive.Platform, "darwin-")
+		if after, ok := strings.CutPrefix(archive.Platform, "darwin-"); ok {
+			arch := after
 			macosArchives[arch] = archive
-		} else if strings.HasPrefix(archive.Platform, "linux-") {
-			arch := strings.TrimPrefix(archive.Platform, "linux-")
+		} else if after, ok := strings.CutPrefix(archive.Platform, "linux-"); ok {
+			arch := after
 			linuxArchives[arch] = archive
 		}
 	}
@@ -282,16 +268,16 @@ func (m *Dagger) GenerateHomebrewFormula(
 
 	// Parse test args
 	testArgsList := strings.Split(testArgs, ",")
-	testArgsRuby := ""
+	var testArgsRuby strings.Builder
 	for i, arg := range testArgsList {
 		arg = strings.TrimSpace(arg)
 		if i > 0 {
-			testArgsRuby += ", "
+			testArgsRuby.WriteString(", ")
 		}
-		testArgsRuby += fmt.Sprintf("\"%s\"", arg)
+		testArgsRuby.WriteString(fmt.Sprintf("\"%s\"", arg))
 	}
 
-	formulaBuilder.WriteString(fmt.Sprintf("    system \"#{bin}/%s\", %s\n", binaryName, testArgsRuby))
+	formulaBuilder.WriteString(fmt.Sprintf("    system \"#{bin}/%s\", %s\n", binaryName, testArgsRuby.String()))
 	formulaBuilder.WriteString("  end\n")
 	formulaBuilder.WriteString("end\n")
 

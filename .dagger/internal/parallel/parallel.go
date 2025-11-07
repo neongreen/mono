@@ -1,3 +1,6 @@
+//nolint
+
+// Code copied from github.com/dagger/dagger/util/parallel
 // Package parallel provides parallel job execution with OpenTelemetry spans.
 //
 // This package is copied from github.com/dagger/dagger/util/parallel
@@ -108,4 +111,3 @@ func (p parallelJobs) RunSerial(ctx context.Context) error {
 	}
 	return nil
 }
-

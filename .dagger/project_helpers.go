@@ -68,34 +68,3 @@ func coverageFile(ctx context.Context, projectName string, format string) (*dagg
 	ctr := testContainer(projectName, format)
 	return ctr.File("coverage.out"), nil
 }
-
-// lintProject runs golangci-lint for a Go project.
-// projectName: the project directory (e.g., "tk", "want")
-func lintProject(ctx context.Context, projectName string) (string, error) {
-	repo := dag.CurrentModule().Source().Directory("..")
-
-	lintImageRepo := "docker.io/golangci/golangci-lint"
-	lintImageTag := "v2.6.1"
-	lintImage := lintImageRepo + ":" + lintImageTag
-
-	return dag.Container().
-		From(lintImage).
-		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod")).
-		WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
-		WithMountedCache("/root/.cache/golangci-lint", dag.CacheVolume("golangci-lint")).
-		WithWorkdir("/src").
-		WithMountedDirectory(".", repo).
-		WithWorkdir(projectName).
-		WithExec([]string{
-			"golangci-lint", "run",
-			"--path-prefix", projectName + "/",
-			"--output.tab.path=stderr",
-			"--output.tab.print-linter-name=true",
-			"--output.tab.colors=false",
-			"--show-stats=false",
-			"--max-issues-per-linter=0",
-			"--max-same-issues=0",
-		}).
-		Stdout(ctx)
-}
-

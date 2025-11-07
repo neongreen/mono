@@ -29,8 +29,3 @@ func (p *TkProject) Coverage(ctx context.Context,
 ) (*dagger.File, error) {
 	return coverageFile(ctx, "tk", format)
 }
-
-func (p *TkProject) Lint(ctx context.Context) (string, error) {
-	return lintProject(ctx, "tk")
-}
-

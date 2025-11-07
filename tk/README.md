@@ -615,11 +615,6 @@ go test ./...
 
 ## Development
 
-Format code:
-```bash
-golangci-lint fmt ./...
-```
-
 Run via mise:
 ```bash
 mise run tk new "test task"

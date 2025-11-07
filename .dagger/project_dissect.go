@@ -29,8 +29,3 @@ func (p *DissectProject) Coverage(ctx context.Context,
 ) (*dagger.File, error) {
 	return coverageFile(ctx, "dissect", format)
 }
-
-func (p *DissectProject) Lint(ctx context.Context) (string, error) {
-	return lintProject(ctx, "dissect")
-}
-

@@ -60,3 +60,17 @@ func (p *Projects) JjRun() *JjRunProject {
 	return &JjRunProject{Dagger: p.Dagger}
 }
 
+// LibGhclient returns the lib/ghclient library project
+func (p *Projects) LibGhclient() *LibGhclientProject {
+	return &LibGhclientProject{Dagger: p.Dagger}
+}
+
+// LibGhrelease returns the lib/ghrelease library project
+func (p *Projects) LibGhrelease() *LibGhreleaseProject {
+	return &LibGhreleaseProject{Dagger: p.Dagger}
+}
+
+// LibToml returns the lib/toml library project
+func (p *Projects) LibToml() *LibTomlProject {
+	return &LibTomlProject{Dagger: p.Dagger}
+}

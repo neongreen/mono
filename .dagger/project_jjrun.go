@@ -79,8 +79,3 @@ func (p *JjRunProject) Coverage(ctx context.Context,
 
 	return container.File("coverage.out"), nil
 }
-
-func (p *JjRunProject) Lint(ctx context.Context) (string, error) {
-	return lintProject(ctx, "jj-run")
-}
-

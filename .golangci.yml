@@ -1,4 +1,5 @@
 version: "2"
+
 linters:
   default: none
   enable:
@@ -8,43 +9,18 @@ linters:
   - govet
   - errorlint
   - ineffassign
-
-  # default: all
-  # disable:
-  #   # - exhaustruct
-  #   # - gochecknoglobals
-  #   # - mnd
-  #   # Stuff I disagree with
-  #   - noinlineerr
-  #   - varnamelen
-  #   # This actually returns good suggestions but we should autofix them, not enforce them
-  #   - whitespace
-  #   # Idk, something about "error is unwrapped"
-  #   - wrapcheck
-  #   # Whitespace linters
-  #   - wsl
-  #   - wsl_v5
-  #   - nlreturn
-  #   # False positives
-  #   # - nilerr  # Routinely flags graceful degradation patterns as bugs (e.g., fallback to UID when name lookup fails)
+  # - nilerr  # Routinely flags graceful degradation patterns as bugs (e.g., fallback to UID when name lookup fails)
   settings:
     staticcheck:
       checks:
       - all
       - -QF1001  # De Morgan's law - whatever
       - -ST1003  # Don't complain about naming conventions 
-    errcheck:
-      check-type-assertions: true
-      check-blank: true
-    gocyclo:
-      min-complexity: 15
     govet:
       enable-all: true
       disable:
         - shadow  # Don't complain about 'err' being shadowed
         - fieldalignment  # We don't care about field alignment
-    lll:
-      line-length: 150
   exclusions:
     generated: lax
     presets:
@@ -60,22 +36,9 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - .dagger/internal/.*
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-formatters:
-  enable:
-    - gci
-    - gofmt
-    - gofumpt
-    - goimports
-  exclusions:
-    generated: lax
-    paths:
-      - .*\.gen\.go$
-      - node_modules
-      - _gotools
-      - _build
-      - third_party$
-      - builtin$
-      - examples$
+

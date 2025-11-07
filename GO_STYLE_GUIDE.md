@@ -268,16 +268,6 @@ pkg/
 - Use `package main` for testing main package (white-box testing)
 - Use `package package_test` for black-box testing of public API only
 
-## Code Formatting
-
-**All Go code must be formatted with `golangci-lint fmt` before work is considered complete.**
-
-This is already documented in `AGENTS.md` but repeated here:
-
-```bash
-golangci-lint fmt ./...
-```
-
 ## Documentation Comments
 
 - Export all public symbols with documentation comments

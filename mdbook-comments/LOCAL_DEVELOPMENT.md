@@ -146,10 +146,12 @@ mise run dev:logs     # View Supabase logs
 
 ### Building
 
+TODO: outdated
+
 ```bash
 mise run build        # Build the preprocessor
 mise run test         # Run tests
-mise run fmt          # Format code
+mise run format-rust  # Format code
 mise run check        # Clippy checks
 ```
 

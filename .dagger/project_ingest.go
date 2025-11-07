@@ -25,9 +25,9 @@ func (p *IngestProject) Test(ctx context.Context,
 	// Run both unit tests and integration tests
 	var args []string
 	if format == "testname" {
-		args = []string{"gotestsum", "--format", format, "--", "-v", "-coverprofile=coverage.out", "-covermode=atomic", "./ingest/...", "./ingest/cmd", "./ingest/pkg/integration"}
+		args = []string{"gotestsum", "--format", format, "--", "-v", "-coverprofile=coverage.out", "-covermode=atomic", "./ingest/..."}
 	} else {
-		args = []string{"gotestsum", "--format", format, "--", "-coverprofile=coverage.out", "-covermode=atomic", "./ingest/...", "./ingest/cmd", "./ingest/pkg/integration"}
+		args = []string{"gotestsum", "--format", format, "--", "-coverprofile=coverage.out", "-covermode=atomic", "./ingest/..."}
 	}
 
 	return dag.Container().
@@ -55,9 +55,9 @@ func (p *IngestProject) Coverage(ctx context.Context,
 	// Run both unit tests and integration tests
 	var args []string
 	if format == "testname" {
-		args = []string{"gotestsum", "--format", format, "--", "-v", "-coverprofile=coverage.out", "-covermode=atomic", "./ingest/...", "./ingest/cmd", "./ingest/pkg/integration"}
+		args = []string{"gotestsum", "--format", format, "--", "-v", "-coverprofile=coverage.out", "-covermode=atomic", "./ingest/..."}
 	} else {
-		args = []string{"gotestsum", "--format", format, "--", "-coverprofile=coverage.out", "-covermode=atomic", "./ingest/...", "./ingest/cmd", "./ingest/pkg/integration"}
+		args = []string{"gotestsum", "--format", format, "--", "-coverprofile=coverage.out", "-covermode=atomic", "./ingest/..."}
 	}
 
 	container := dag.Container().
@@ -75,8 +75,3 @@ func (p *IngestProject) Coverage(ctx context.Context,
 
 	return container.File("coverage.out"), nil
 }
-
-func (p *IngestProject) Lint(ctx context.Context) (string, error) {
-	return lintProject(ctx, "ingest")
-}
-

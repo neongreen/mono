@@ -90,8 +90,3 @@ func (p *PrintpdfProject) Coverage(ctx context.Context,
 
 	return container.File("coverage.out"), nil
 }
-
-func (p *PrintpdfProject) Lint(ctx context.Context) (string, error) {
-	return lintProject(ctx, "printpdf")
-}
-

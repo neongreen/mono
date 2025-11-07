@@ -2,6 +2,17 @@
 
 This document contains guidelines for AI agents and automated tools working on projects in this monorepo.
 
+## Dagger Best Practices
+
+When working with Dagger modules (`.dagger/` directory):
+- **Always check the official Dagger repository for best practices**: https://github.com/dagger/dagger
+- Look at their own Dagger modules for reference implementations (e.g., `modules/go/main.go` for Go project handling)
+- Don't reinvent the wheel - see how the Dagger team solves common problems like:
+  - Configuration file handling (golangci-lint automatically searches parent directories)
+  - Caching strategies (module cache, build cache, tool caches)
+  - Parallel execution with limits
+  - Directory mounting and workdir patterns
+
 ## Multi-Agent Environment
 
 **IMPORTANT: Multiple agents may be working on this repository simultaneously.** When making commits, always specify the specific files and subdirectories you're changing to avoid conflicts and provide clear change boundaries.
@@ -114,11 +125,10 @@ These namespaced tasks ensure consistent commands across all projects and make i
 **All Go code must be formatted before work is considered complete.**
 
 Before submitting any changes to Go projects:
-- Run `mise run fmt` from the repository root
-- This formats all Go code in the monorepo using `golangci-lint fmt`
+- Run `mise run format` from the repository root
 - Applies to both new and modified Go code
 
-The centralized `fmt` task ensures consistent formatting across all Go code in the monorepo.
+The centralized `format` task ensures consistent formatting across all Go code in the monorepo.
 
 ------------------------------------------------------------
 

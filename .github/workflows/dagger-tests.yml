@@ -44,10 +44,10 @@ jobs:
             dissect:
               - 'dissect/**'
               - '.dagger/**'
-            ghclient:
+            lib-ghclient:
               - 'lib/ghclient/**'
               - '.dagger/**'
-            ghrelease:
+            lib-ghrelease:
               - 'lib/ghrelease/**'
               - '.dagger/**'
             ingest:
@@ -68,7 +68,7 @@ jobs:
             tk:
               - 'tk/**'
               - '.dagger/**'
-            toml:
+            lib-toml:
               - 'lib/toml/**'
               - '.dagger/**'
             want:

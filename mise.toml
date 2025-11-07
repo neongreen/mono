@@ -27,21 +27,22 @@ gotestsum = "latest"
 description = "Count lines of Go code by file"
 run = "cloc --by-file --include-lang=Go ."
 
-[tasks.fmt]
+[tasks.format]
 description = "Format all Go code"
-run = "golangci-lint fmt ."
+run = "goimports -w ."
 
-[tasks.fmt-all]
+[tasks.format-all]
 description = "Format everything (Go and Rust)"
-run = """
-golangci-lint fmt .
-cd mdbook-comments && cargo fmt
-"""
+depends = ["format", "format-rust"]
+
+[tasks.format-rust]
+description = "Format Rust code"
+dir = "mdbook-comments"
+run = "cargo fmt"
 
 # NOTE: Project run tasks (tk, conf, printpdf, etc.) are intentionally flat names
 # without the :run suffix for convenience, since running is the most common operation.
 # All other tasks remain namespaced (project:test, project:build, etc.).
-
 
 [tasks."jj:track"]
 description = "Track all remote bookmarks"
@@ -76,6 +77,25 @@ git diff --exit-code go.mod go.sum
 [tasks."lint:go-vet"]
 description = "Run go vet on all packages"
 run = "go vet ./..."
+
+# ============================================================================
+# Dagger
+# ============================================================================
+
+# Very important that this doesn't have a "dir" set!
+# I spent half a day figuring out why "mise run dagger:lint" was reporting errors.
+
+[tasks."dagger:test"]
+description = "Run tests for all Go projects using Dagger"
+run = "dagger call test"
+
+[tasks."dagger:lint"]
+description = "Lint all Go projects using Dagger"
+run = "dagger call lint"
+
+[tasks."dagger:build"]
+description = "Build all Go projects using Dagger"
+run = "dagger call build"
 
 # ============================================================================
 # jj-run-py

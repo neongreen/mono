@@ -29,8 +29,3 @@ func (p *ClaudeTraceProject) Coverage(ctx context.Context,
 ) (*dagger.File, error) {
 	return coverageFile(ctx, "claude-trace", format)
 }
-
-func (p *ClaudeTraceProject) Lint(ctx context.Context) (string, error) {
-	return lintProject(ctx, "claude-trace")
-}
-

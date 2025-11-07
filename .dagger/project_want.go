@@ -29,8 +29,3 @@ func (p *WantProject) Coverage(ctx context.Context,
 ) (*dagger.File, error) {
 	return coverageFile(ctx, "want", format)
 }
-
-func (p *WantProject) Lint(ctx context.Context) (string, error) {
-	return lintProject(ctx, "want")
-}
-
