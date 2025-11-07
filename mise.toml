@@ -519,7 +519,11 @@ run = "go test -v ./..."
 [tasks."conf:build"]
 description = "Build conf binary"
 dir = "conf"
-run = "go build -o conf ./cmd/"
+run = """
+go build -trimpath -o {{cwd}}/_build/conf ./cmd/
+{{cwd}}/_build/conf version
+echo "{{cwd}}/_build/conf"
+"""
 
 
 # ============================================================================
@@ -536,6 +540,15 @@ description = "Run tests for claude-trace"
 dir = "claude-trace"
 run = "go test ./..."
 
+
+[tasks."claude-trace:build"]
+description = "Build claude-trace binary"
+dir = "claude-trace"
+run = """
+go build -trimpath -o {{cwd}}/_build/claude-trace ./cmd
+{{cwd}}/_build/claude-trace version
+echo "{{cwd}}/_build/claude-trace"
+"""
 
 [tasks."claude-trace:check"]
 description = "Check that Go code and tests compile and type check"
@@ -554,7 +567,11 @@ run = "gotestsum"
 [tasks."dissect:build"]
 description = "Build the project into _build/dissect"
 dir = "dissect"
-run = "go build -trimpath -o _build/dissect ./cmd"
+run = """
+go build -trimpath -o {{cwd}}/_build/dissect ./cmd
+{{cwd}}/_build/dissect version
+echo "{{cwd}}/_build/dissect"
+"""
 
 [tasks."dissect:fetch-gotools"]
 description = "Fetch Go tools (including gopls) for AI to inspect"
@@ -570,7 +587,6 @@ DIR="$(pwd)"
 cd {{cwd}}
 "$DIR/_build/dissect"
 """
-
 
 [tasks."dissect:check"]
 description = "Check that Go code and tests compile and type check"
@@ -594,7 +610,11 @@ run = "go test -v ./..."
 [tasks."jj-run:build"]
 description = "Build jj-run binary"
 dir = "jj-run"
-run = "go build -o jj-run ./cmd"
+run = """
+go build -trimpath -o {{cwd}}/_build/jj-run ./cmd
+{{cwd}}/_build/jj-run version
+echo "{{cwd}}/_build/jj-run"
+"""
 
 
 # ============================================================================
@@ -615,6 +635,15 @@ run = "go test ./..."
 description = "Run ingest CLI and integration suites"
 dir = "ingest"
 run = "go test ./cmd ./pkg/integration"
+
+[tasks."ingest:build"]
+description = "Build ingest binary"
+dir = "ingest"
+run = """
+go build -trimpath -o {{cwd}}/_build/ingest ./cmd/ingest
+{{cwd}}/_build/ingest version
+echo "{{cwd}}/_build/ingest"
+"""
 
 
 # ============================================================================
@@ -641,6 +670,15 @@ description = "Run tests for markdown-format"
 dir = "markdown-format"
 run = "go test ./..."
 
+
+[tasks."markdown-format:build"]
+description = "Build markdown-format binary"
+dir = "markdown-format"
+run = """
+go build -trimpath -o {{cwd}}/_build/markdown-format .
+{{cwd}}/_build/markdown-format version
+echo "{{cwd}}/_build/markdown-format"
+"""
 
 [tasks."markdown-format:check"]
 description = "Check that Go code and tests compile and type check"
@@ -680,7 +718,11 @@ run = "UPDATE_GOLDENS=1 go test ./pkg/golden -v -timeout=10m"
 [tasks."printpdf:build"]
 description = "Build the project into _build/printpdf"
 dir = "printpdf"
-run = "go build -trimpath -o _build/printpdf ./cmd"
+run = """
+go build -trimpath -o {{cwd}}/_build/printpdf ./cmd
+{{cwd}}/_build/printpdf version
+echo "{{cwd}}/_build/printpdf"
+"""
 
 # ============================================================================
 # prrun
@@ -707,6 +749,15 @@ description = "Run integration tests (requires access to private repo)"
 dir = "prrun"
 run = "PRRUN_INTEGRATION_TEST=1 go test ./..."
 
+[tasks."prrun:build"]
+description = "Build prrun binary"
+dir = "prrun"
+run = """
+go build -trimpath -o {{cwd}}/_build/prrun .
+{{cwd}}/_build/prrun version
+echo "{{cwd}}/_build/prrun"
+"""
+
 # ============================================================================
 # tk
 # ============================================================================
@@ -727,6 +778,15 @@ description = "Run tests for tk"
 dir = "tk"
 run = "go test ./..."
 
+[tasks."tk:build"]
+description = "Build tk binary"
+dir = "tk"
+run = """
+go build -trimpath -o {{cwd}}/_build/tk .
+{{cwd}}/_build/tk version
+echo "{{cwd}}/_build/tk"
+"""
+
 # ============================================================================
 # want
 # ============================================================================
@@ -746,6 +806,15 @@ run = "go test -run=^$ ./..."
 description = "Run tests for want"
 dir = "want"
 run = "go test ./..."
+
+[tasks."want:build"]
+description = "Build want binary"
+dir = "want"
+run = """
+go build -trimpath -o {{cwd}}/_build/want .
+{{cwd}}/_build/want version
+echo "{{cwd}}/_build/want"
+"""
 
 # ============================================================================
 # cloud (OpenTofu)
