@@ -5,7 +5,21 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/neongreen/mono/dissect/pkg/dependencies"
 )
+
+// setupGopls ensures gopls is installed and returns its path.
+// This is a test helper that mimics production code behavior.
+func setupGopls(t *testing.T, moduleRoot string) string {
+	t.Helper()
+	depMgr := dependencies.NewManager(moduleRoot)
+	goplsPath, err := depMgr.EnsureGopls()
+	if err != nil {
+		t.Fatalf("Failed to setup gopls: %v", err)
+	}
+	return goplsPath
+}
 
 func TestRenameFunction(t *testing.T) {
 	// Create temp directory
@@ -27,8 +41,11 @@ func main() {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
+	// Setup gopls
+	goplsPath := setupGopls(t, tmpDir)
+
 	// Rename the function
-	err := Rename("gopls", testFile, "oldFunc", "newFunc", tmpDir)
+	err := Rename(goplsPath, testFile, "oldFunc", "newFunc", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -71,7 +88,10 @@ func useType() OldType {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "OldType", "NewType", tmpDir)
+	// Setup gopls
+	goplsPath := setupGopls(t, tmpDir)
+
+	err := Rename(goplsPath, testFile, "OldType", "NewType", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -110,7 +130,10 @@ func main() {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "oldVar", "newVar", tmpDir)
+	// Setup gopls
+	goplsPath := setupGopls(t, tmpDir)
+
+	err := Rename(goplsPath, testFile, "oldVar", "newVar", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -151,7 +174,10 @@ func main() {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "oldMethod", "newMethod", tmpDir)
+	// Setup gopls
+	goplsPath := setupGopls(t, tmpDir)
+
+	err := Rename(goplsPath, testFile, "oldMethod", "newMethod", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -186,8 +212,11 @@ func validFunc() {}
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
+	// Setup gopls
+	goplsPath := setupGopls(t, tmpDir)
+
 	// Try to rename a symbol that doesn't exist
-	err := Rename("gopls", testFile, "nonexistent", "newName", tmpDir)
+	err := Rename(goplsPath, testFile, "nonexistent", "newName", tmpDir)
 	if err == nil {
 		t.Errorf("Expected error when renaming nonexistent symbol, got nil")
 	}
@@ -215,7 +244,10 @@ func main() {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "helper", "Helper", tmpDir)
+	// Setup gopls
+	goplsPath := setupGopls(t, tmpDir)
+
+	err := Rename(goplsPath, testFile, "helper", "Helper", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -254,7 +286,10 @@ func main() {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "PublicFunc", "privateFunc", tmpDir)
+	// Setup gopls
+	goplsPath := setupGopls(t, tmpDir)
+
+	err := Rename(goplsPath, testFile, "PublicFunc", "privateFunc", tmpDir)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -286,7 +321,10 @@ func test() {}
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	err := Rename("gopls", testFile, "test", "", tmpDir)
+	// Setup gopls
+	goplsPath := setupGopls(t, tmpDir)
+
+	err := Rename(goplsPath, testFile, "test", "", tmpDir)
 	if err == nil {
 		t.Errorf("Expected error for empty new name")
 	}
