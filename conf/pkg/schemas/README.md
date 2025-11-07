@@ -55,6 +55,12 @@ Each schema file MUST have a corresponding `.meta` file documenting:
   - Note: Mise configs are TOML; this JSON schema describes their structure
   - See: mise.schema.meta
 
+- **starship.json**: Official schema from Starship project
+  - Source: https://starship.rs/config-schema.json
+  - Downloaded: 2025-11-07
+  - Format: JSON Schema (Draft 2020-12) describing TOML configs
+  - See: starship.json.meta
+
 ### Adding New Schemas
 
 When adding a new schema:

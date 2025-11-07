@@ -540,6 +540,125 @@ error_symbol = "[➜](bold red)"
 	}
 }
 
+func TestStarshipTool_ListAllSettings(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "starship-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Override home directory for testing
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	// Create minimal starship config structure
+	starshipConfigDir := filepath.Join(tempDir, ".config")
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
+		t.Fatalf("Failed to create starship config dir: %v", err)
+	}
+
+	configContent := `# Starship config for testing
+add_newline = true
+command_timeout = 1000
+
+[character]
+success_symbol = "[➜](bold green)"
+`
+	configPath := filepath.Join(starshipConfigDir, "starship.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	tool, err := NewStarshipTool()
+	if err != nil {
+		t.Fatalf("Failed to create starship tool: %v", err)
+	}
+
+	// Test listing all settings
+	settings, err := tool.ListAllSettings()
+	if err != nil {
+		t.Fatalf("Failed to list all settings: %v", err)
+	}
+
+	// Should have many settings from schema
+	if len(settings) < 50 {
+		t.Errorf("Expected at least 50 settings from schema, got %d", len(settings))
+	}
+
+	// Check that we have some expected top-level settings
+	expectedSettings := map[string]bool{
+		"format":          false,
+		"add_newline":     false,
+		"command_timeout": false,
+	}
+
+	for _, setting := range settings {
+		if _, exists := expectedSettings[setting.Path]; exists {
+			expectedSettings[setting.Path] = true
+
+			// Verify setting has required fields
+			if setting.Type == "" {
+				t.Errorf("Setting %s has empty type", setting.Path)
+			}
+		}
+	}
+
+	// Verify expected settings were found
+	for path, found := range expectedSettings {
+		if !found {
+			t.Errorf("Expected setting %s not found in all settings", path)
+		}
+	}
+
+	// Check that current values are populated for configured settings
+	var addNewlineFound, commandTimeoutFound bool
+	for _, setting := range settings {
+		if setting.Path == "add_newline" {
+			addNewlineFound = true
+			if !setting.IsSet {
+				t.Error("Expected add_newline to be marked as set")
+			}
+			if setting.CurrentValue != true {
+				t.Errorf("Expected add_newline current value to be true, got %v", setting.CurrentValue)
+			}
+		}
+		if setting.Path == "command_timeout" {
+			commandTimeoutFound = true
+			if !setting.IsSet {
+				t.Error("Expected command_timeout to be marked as set")
+			}
+			if setting.CurrentValue != int64(1000) {
+				t.Errorf("Expected command_timeout current value to be 1000, got %v", setting.CurrentValue)
+			}
+		}
+	}
+
+	if !addNewlineFound {
+		t.Error("add_newline setting not found")
+	}
+	if !commandTimeoutFound {
+		t.Error("command_timeout setting not found")
+	}
+
+	// Verify that unset settings have IsSet=false
+	for _, setting := range settings {
+		if setting.Path == "scan_timeout" { // This one is not set in our test config
+			if setting.IsSet {
+				t.Error("Expected scan_timeout to not be marked as set")
+			}
+			if setting.CurrentValue != nil {
+				t.Error("Expected scan_timeout CurrentValue to be nil")
+			}
+			// Should have a default value from schema
+			if setting.Default == nil {
+				t.Error("Expected scan_timeout to have a default value from schema")
+			}
+		}
+	}
+}
+
 // Helper function to check if a string contains a substring
 func containsString(s, substr string) bool {
 	return len(s) >= len(substr) &&
