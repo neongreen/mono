@@ -3,269 +3,67 @@ package schemas
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/neongreen/mono/lib/configschema"
 )
 
 // ClaudeSchemaParser handles parsing of Claude JSON schema for completion data
-// It now wraps JSONSchemaParser which uses the jsonschema library properly
+// It wraps either JSONSchemaParser or LegacyJSONSchemaParser
 type ClaudeSchemaParser struct {
-	// Legacy field kept for compatibility, but not used
-	schema map[string]any
-	// New field using proper jsonschema library
-	parser *configschema.JSONSchemaParser
+	parser       *configschema.JSONSchemaParser
+	legacyParser *configschema.LegacyJSONSchemaParser
 }
 
 // NewClaudeSchemaParser creates a new Claude schema parser using the jsonschema library
 func NewClaudeSchemaParser() (*ClaudeSchemaParser, error) {
-	// Use the new jsonschema-based parser
+	// Try to use the new jsonschema-based parser
 	parser, err := CompileClaudeSchema()
 	if err != nil {
-		// Fall back to manual parsing if compilation fails
+		// Fall back to legacy parsing if compilation fails
 		var schema map[string]any
 		if unmarshalErr := json.Unmarshal([]byte(ClaudeSchema), &schema); unmarshalErr != nil {
 			return nil, fmt.Errorf("failed to parse Claude schema JSON: %w (jsonschema error: %w)", unmarshalErr, err)
 		}
 		return &ClaudeSchemaParser{
-			schema: schema,
-			parser: nil,
+			parser:       nil,
+			legacyParser: configschema.NewLegacyJSONSchemaParser(schema),
 		}, nil
 	}
 
 	return &ClaudeSchemaParser{
-		schema: nil,
-		parser: parser,
+		parser:       parser,
+		legacyParser: nil,
 	}, nil
 }
 
 // GetCompletionOptions returns completion options for a given dotted path
 func (p *ClaudeSchemaParser) GetCompletionOptions(path string) []configschema.CompletionOption {
-	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetCompletionOptions(path)
 	}
-
-	// Fallback to legacy implementation
-	var options []configschema.CompletionOption
-
-	// Get the properties from the schema
-	properties, ok := p.schema["properties"].(map[string]any)
-	if !ok {
-		return options
-	}
-
-	if path == "" {
-		// Return top-level properties
-		for name, prop := range properties {
-			if propMap, ok := prop.(map[string]any); ok {
-				option := configschema.CompletionOption{
-					Name:        name,
-					Type:        getTypeFromProperty(propMap),
-					Description: getDescriptionFromProperty(propMap),
-				}
-				options = append(options, option)
-			}
-		}
-	} else {
-		// Navigate to the nested property
-		options = p.getNestedCompletionOptions(properties, path)
-	}
-
-	// Sort options by name for consistent output
-	sort.Slice(options, func(i, j int) bool {
-		return options[i].Name < options[j].Name
-	})
-
-	return options
-}
-
-// getNestedCompletionOptions navigates through nested properties to find completion options
-func (p *ClaudeSchemaParser) getNestedCompletionOptions(properties map[string]any, path string) []configschema.CompletionOption {
-	var options []configschema.CompletionOption
-
-	parts := strings.Split(path, ".")
-	current := properties
-
-	// Navigate through the path
-	for i, part := range parts {
-		if prop, exists := current[part]; exists {
-			if propMap, ok := prop.(map[string]any); ok {
-				if i == len(parts)-1 {
-					// This is the final part - return its sub-properties
-					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
-						for name, nestedProp := range nestedProps {
-							if nestedPropMap, ok := nestedProp.(map[string]any); ok {
-								option := configschema.CompletionOption{
-									Name:        name,
-									Type:        getTypeFromProperty(nestedPropMap),
-									Description: getDescriptionFromProperty(nestedPropMap),
-								}
-								options = append(options, option)
-							}
-						}
-					}
-					return options
-				} else {
-					// Continue navigating
-					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
-						current = nestedProps
-					} else {
-						return options // Can't navigate further
-					}
-				}
-			} else {
-				return options // Invalid property structure
-			}
-		} else {
-			return options // Property doesn't exist
-		}
-	}
-
-	return options
+	return p.legacyParser.GetCompletionOptions(path)
 }
 
 // ValidatePath checks if a configuration path exists in the schema
 func (p *ClaudeSchemaParser) ValidatePath(path string) bool {
-	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.ValidatePath(path)
 	}
-
-	// Fallback to legacy implementation
-	if path == "" {
-		return true
-	}
-
-	properties, ok := p.schema["properties"].(map[string]any)
-	if !ok {
-		return false
-	}
-
-	parts := strings.Split(path, ".")
-	current := properties
-
-	for i, part := range parts {
-		prop, exists := current[part]
-		if !exists {
-			return false
-		}
-
-		if i == len(parts)-1 {
-			// We've reached the final part and it exists
-			return true
-		}
-
-		// Need to navigate deeper
-		if propMap, ok := prop.(map[string]any); ok {
-			if nestedProps, ok := propMap["properties"].(map[string]any); ok {
-				current = nestedProps
-			} else {
-				// Can't navigate further but the path continues
-				return false
-			}
-		} else {
-			return false
-		}
-	}
-
-	return false
+	return p.legacyParser.ValidatePath(path)
 }
 
 // GetAllPaths returns all valid configuration paths from the schema
 func (p *ClaudeSchemaParser) GetAllPaths() []string {
-	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetAllPaths()
 	}
-
-	// Fallback to legacy implementation
-	var paths []string
-
-	properties, ok := p.schema["properties"].(map[string]any)
-	if !ok {
-		return paths
-	}
-
-	p.collectPaths(properties, "", &paths)
-
-	// Sort for consistent output
-	sort.Strings(paths)
-
-	return paths
-}
-
-// collectPaths recursively collects all paths from the schema
-func (p *ClaudeSchemaParser) collectPaths(properties map[string]any, prefix string, paths *[]string) {
-	for name, prop := range properties {
-		fullPath := name
-		if prefix != "" {
-			fullPath = prefix + "." + name
-		}
-
-		*paths = append(*paths, fullPath)
-
-		// Check if this property has nested properties
-		if propMap, ok := prop.(map[string]any); ok {
-			if nestedProps, ok := propMap["properties"].(map[string]any); ok {
-				p.collectPaths(nestedProps, fullPath, paths)
-			}
-		}
-	}
+	return p.legacyParser.GetAllPaths()
 }
 
 // GetAllSettingsWithInfo returns all settings with their schema information
 func (p *ClaudeSchemaParser) GetAllSettingsWithInfo() []configschema.SettingInfo {
-	// Use the new parser if available
 	if p.parser != nil {
 		return p.parser.GetAllSettingsWithInfo()
 	}
-
-	// Fallback to legacy implementation
-	var settings []configschema.SettingInfo
-
-	properties, ok := p.schema["properties"].(map[string]any)
-	if !ok {
-		return settings
-	}
-
-	p.collectSettingsInfo(properties, "", &settings)
-
-	// Sort by path
-	sort.Slice(settings, func(i, j int) bool {
-		return settings[i].Path < settings[j].Path
-	})
-
-	return settings
-}
-
-// collectSettingsInfo recursively collects setting information from the schema
-func (p *ClaudeSchemaParser) collectSettingsInfo(properties map[string]any, prefix string, settings *[]configschema.SettingInfo) {
-	for name, prop := range properties {
-		fullPath := name
-		if prefix != "" {
-			fullPath = prefix + "." + name
-		}
-
-		if propMap, ok := prop.(map[string]any); ok {
-			setting := configschema.SettingInfo{
-				Path:        fullPath,
-				Type:        getTypeFromProperty(propMap),
-				Description: getDescriptionFromProperty(propMap),
-			}
-
-			// Get default value if present
-			if defaultVal, ok := propMap["default"]; ok {
-				setting.Default = defaultVal
-			}
-
-			*settings = append(*settings, setting)
-
-			// Check if this property has nested properties
-			if nestedProps, ok := propMap["properties"].(map[string]any); ok {
-				p.collectSettingsInfo(nestedProps, fullPath, settings)
-			}
-		}
-	}
+	return p.legacyParser.GetAllSettingsWithInfo()
 }
