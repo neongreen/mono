@@ -24,6 +24,7 @@ fnox = "latest"
 opentofu = "latest"
 spacectl = "latest"
 kubectl = "latest"
+helm = "latest"
 
 # ============================================================================
 # Top-level tasks
@@ -835,4 +836,56 @@ if ! grep -q "server:" kubeconfig 2>/dev/null; then
   mise run cloud:kubeconfig >/dev/null 2>&1
 fi
 KUBECONFIG="$(pwd)/kubeconfig" kubectl "$@"
+'''
+
+[tasks."cloud:helm:repo:add"]
+description = "Add Dagger Helm repository"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+helm repo add dagger https://dagger.io/helm-charts || true
+helm repo update dagger
+'''
+
+[tasks."cloud:gvisor:deploy"]
+description = "Deploy gVisor RuntimeClass"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+mise run cloud:kubectl apply -f k8s/gvisor/runtimeclass.yaml
+'''
+
+[tasks."cloud:dagger:deploy"]
+description = "Deploy Dagger Engine to k3s cluster (with gVisor)"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+# Ensure gVisor RuntimeClass exists
+mise run cloud:gvisor:deploy
+# Deploy Dagger Engine
+mise run cloud:kubectl apply -f k8s/dagger/deployment.yaml
+mise run cloud:kubectl wait --for=condition=available --timeout=300s deployment/dagger-engine -n dagger
+'''
+
+[tasks."cloud:dagger:status"]
+description = "Check Dagger Engine deployment status"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+mise run cloud:kubectl get pods -n dagger
+mise run cloud:kubectl get svc -n dagger
+'''
+
+[tasks."cloud:dagger:logs"]
+description = "Show Dagger Engine logs"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+POD=$(mise run cloud:kubectl get pods -n dagger -l app.kubernetes.io/name=dagger-engine -o jsonpath='{.items[0].metadata.name}')
+mise run cloud:kubectl logs -n dagger "$POD" "$@"
 '''

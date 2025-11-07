@@ -105,8 +105,32 @@ resource "hcloud_server" "vm1" {
   ssh_pwauth: false
 
   runcmd:
+    # Install gVisor (runsc runtime for enhanced container isolation)
+    - |
+      set -e
+      ARCH=$(dpkg --print-architecture)
+      URL=https://storage.googleapis.com/gvisor/releases/release/latest/$${ARCH}
+      wget $${URL}/runsc $${URL}/runsc.sha512 $${URL}/containerd-shim-runsc-v1 $${URL}/containerd-shim-runsc-v1.sha512
+      sha512sum -c runsc.sha512 -c containerd-shim-runsc-v1.sha512
+      rm -f *.sha512
+      chmod a+rx runsc containerd-shim-runsc-v1
+      mv runsc containerd-shim-runsc-v1 /usr/local/bin
+    
     # Install k3s (lightweight Kubernetes)
     - curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 0644 --disable traefik" sh -s -
+    
+    # Configure containerd for gVisor
+    - |
+      set -e
+      mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
+      cat > /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl << 'EOF'
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+        runtime_type = "io.containerd.runc.v2"
+      
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
+        runtime_type = "io.containerd.runsc.v1"
+      EOF
+      systemctl restart k3s
   CLOUDCFG
 }
 
