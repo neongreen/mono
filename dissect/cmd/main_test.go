@@ -29,17 +29,17 @@ func init() {
 func setupTools(t *testing.T, moduleRoot string) (goplsPath, goimportsPath string) {
 	t.Helper()
 	depMgr := dependencies.NewManager(moduleRoot)
-	
+
 	goplsPath, err := depMgr.EnsureGopls()
 	if err != nil {
 		t.Fatalf("Failed to setup gopls: %v", err)
 	}
-	
+
 	goimportsPath, err = depMgr.EnsureGoimports()
 	if err != nil {
 		t.Fatalf("Failed to setup goimports: %v", err)
 	}
-	
+
 	return goplsPath, goimportsPath
 }
 
