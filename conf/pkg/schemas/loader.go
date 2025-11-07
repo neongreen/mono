@@ -9,9 +9,10 @@ import (
 
 // SchemaLoader handles loading and parsing of configuration schemas
 type SchemaLoader struct {
-	jjSchema     *jsonschema.Schema
-	claudeSchema *jsonschema.Schema
-	miseSchema   *jsonschema.Schema
+	jjSchema       *jsonschema.Schema
+	claudeSchema   *jsonschema.Schema
+	miseSchema     *jsonschema.Schema
+	starshipSchema *jsonschema.Schema
 }
 
 // NewSchemaLoader creates a new schema loader instance
@@ -64,6 +65,22 @@ func NewSchemaLoader() (*SchemaLoader, error) {
 		loader.miseSchema = nil
 	} else {
 		loader.miseSchema = miseSchema
+	}
+
+	// Load Starship schema
+	starshipCompiler := jsonschema.NewCompiler()
+	starshipCompiler.Draft = jsonschema.Draft2020 // Starship uses JSON Schema Draft 2020-12
+	starshipCompiler.ExtractAnnotations = true
+	if err := starshipCompiler.AddResource("starship.json", strings.NewReader(StarshipSchema)); err != nil {
+		return nil, fmt.Errorf("failed to add starship schema resource: %w", err)
+	}
+
+	starshipSchema, err := starshipCompiler.Compile("starship.json")
+	if err != nil {
+		fmt.Printf("Warning: starship schema compilation had issues: %v\n", err)
+		loader.starshipSchema = nil
+	} else {
+		loader.starshipSchema = starshipSchema
 	}
 
 	return loader, nil
@@ -160,6 +177,37 @@ func CompileMiseSchema() (*JSONSchemaParser, error) {
 	schema, err := compiler.Compile("mise.json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile mise schema: %w", err)
+	}
+
+	return NewJSONSchemaParser(schema), nil
+}
+
+// GetStarshipSchema returns the compiled starship schema
+func (s *SchemaLoader) GetStarshipSchema() *jsonschema.Schema {
+	return s.starshipSchema
+}
+
+// NewStarshipSchemaParserFromCompiled creates a new JSONSchemaParser for starship using the compiled schema
+func (s *SchemaLoader) NewStarshipSchemaParserFromCompiled() (*JSONSchemaParser, error) {
+	if s.starshipSchema == nil {
+		return nil, fmt.Errorf("starship schema not compiled")
+	}
+	return NewJSONSchemaParser(s.starshipSchema), nil
+}
+
+// CompileStarshipSchema compiles the starship schema and returns a JSONSchemaParser
+func CompileStarshipSchema() (*JSONSchemaParser, error) {
+	compiler := jsonschema.NewCompiler()
+	compiler.Draft = jsonschema.Draft2020 // Starship uses JSON Schema Draft 2020-12
+	compiler.ExtractAnnotations = true    // Enable extraction of title, description, default, etc.
+
+	if err := compiler.AddResource("starship.json", strings.NewReader(StarshipSchema)); err != nil {
+		return nil, fmt.Errorf("failed to add starship schema resource: %w", err)
+	}
+
+	schema, err := compiler.Compile("starship.json")
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile starship schema: %w", err)
 	}
 
 	return NewJSONSchemaParser(schema), nil

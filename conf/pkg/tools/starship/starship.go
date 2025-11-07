@@ -5,12 +5,14 @@ import (
 
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
+	"github.com/neongreen/mono/conf/pkg/schemas"
 )
 
 // StarshipTool implements starship configuration management
 type StarshipTool struct {
 	configPath string
 	editor     *editors.TOMLEditor
+	parser     *schemas.StarshipSchemaParser
 	dryRun     bool
 }
 
@@ -35,9 +37,16 @@ func NewStarshipToolWithDryRun(dryRun bool) (*StarshipTool, error) {
 	// Create TOML editor for starship config file
 	editor := editors.NewTOMLEditorWithDryRun(starshipConfig.ConfigPath, dryRun)
 
+	// Create starship schema parser
+	parser, err := schemas.NewStarshipSchemaParser()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create starship schema parser: %w", err)
+	}
+
 	return &StarshipTool{
 		configPath: starshipConfig.ConfigPath,
 		editor:     editor,
+		parser:     parser,
 		dryRun:     dryRun,
 	}, nil
 }
@@ -211,4 +220,96 @@ type CommonSetting struct {
 // GetAllValues returns all configuration values from the starship config file as a nested map
 func (s *StarshipTool) GetAllValues() (map[string]any, error) {
 	return s.editor.GetAllValues()
+}
+
+// ListAllSettings returns comprehensive information about all starship settings from schema
+func (s *StarshipTool) ListAllSettings() ([]schemas.SettingInfo, error) {
+	// Get all settings from schema
+	schemaSettings := s.parser.GetAllSettingsWithInfo()
+
+	// Read config file once to avoid re-parsing for every setting
+	allValues, err := s.editor.GetAllValues()
+	if err != nil {
+		// If we can't read the config, return settings without current values
+		return schemaSettings, nil
+	}
+
+	// Enhance with current values by looking up in the in-memory map
+	for i := range schemaSettings {
+		currentValue := lookupValueByPath(allValues, schemaSettings[i].Path)
+		if currentValue != nil {
+			schemaSettings[i].CurrentValue = currentValue
+			schemaSettings[i].IsSet = true
+		} else {
+			schemaSettings[i].IsSet = false
+		}
+	}
+
+	return schemaSettings, nil
+}
+
+// lookupValueByPath traverses a nested map using a dotted path to find a value
+func lookupValueByPath(data map[string]any, path string) any {
+	if path == "" {
+		return nil
+	}
+
+	parts := splitPath(path)
+	current := data
+
+	for i, part := range parts {
+		value, exists := current[part]
+		if !exists {
+			return nil
+		}
+
+		// If this is the last part, return the value
+		if i == len(parts)-1 {
+			return value
+		}
+
+		// Otherwise, expect a nested map and continue traversing
+		nestedMap, ok := value.(map[string]any)
+		if !ok {
+			return nil
+		}
+		current = nestedMap
+	}
+
+	return nil
+}
+
+// splitPath splits a dotted path into parts, handling quoted segments
+func splitPath(path string) []string {
+	if path == "" {
+		return nil
+	}
+
+	var parts []string
+	var current []rune
+	inQuotes := false
+
+	for _, ch := range path {
+		switch ch {
+		case '"':
+			inQuotes = !inQuotes
+		case '.':
+			if !inQuotes {
+				if len(current) > 0 {
+					parts = append(parts, string(current))
+					current = nil
+				}
+			} else {
+				current = append(current, ch)
+			}
+		default:
+			current = append(current, ch)
+		}
+	}
+
+	if len(current) > 0 {
+		parts = append(parts, string(current))
+	}
+
+	return parts
 }

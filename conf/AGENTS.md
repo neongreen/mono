@@ -56,6 +56,7 @@ For each schema file:
 - **jj**: Official schema from `https://jj-vcs.github.io/jj/latest/config-schema.json` (updated 2025-10-28) - JSON Schema for TOML configs
 - **mise**: Custom TOML schema + official JSON schema from `https://mise.jdx.dev/schema/mise.json` (downloaded 2025-10-28 for reference) - Mise configs are TOML
 - **claude**: Official schema from `https://json.schemastore.org/claude-code-settings.json` (see `claude.json.meta` for details) - JSON Schema for JSON configs
+- **starship**: Official schema from `https://starship.rs/config-schema.json` (downloaded 2025-11-07) - JSON Schema Draft 2020-12 for TOML configs
 - **Embedded**: Bundle schemas in binary for offline use
 
 ## CLI Interface Pattern
