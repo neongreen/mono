@@ -138,18 +138,24 @@ func listMonoReleases(project string) {
 
 // createGoBuildCommand creates a command to run 'go build' with the given arguments.
 // If 'go' is not in PATH, it uses 'mise exec go@<version> -- go build' instead.
+// Sets GOTOOLCHAIN=local to prevent Go from auto-upgrading and causing version mismatches.
 func createGoBuildCommand(args ...string) *exec.Cmd {
+	var cmd *exec.Cmd
 	if isToolAvailable("go") {
-		return exec.Command("go", args...)
+		cmd = exec.Command("go", args...)
+	} else if !isMiseAvailable() {
+		cmd = exec.Command("go", args...)
+	} else {
+		miseArgs := []string{"exec", fmt.Sprintf("go@%s", goVersion), "--", "go"}
+		miseArgs = append(miseArgs, args...)
+		cmd = createMiseCommand(miseArgs...)
 	}
 
-	if !isMiseAvailable() {
-		return exec.Command("go", args...)
-	}
-
-	miseArgs := []string{"exec", fmt.Sprintf("go@%s", goVersion), "--", "go"}
-	miseArgs = append(miseArgs, args...)
-	return createMiseCommand(miseArgs...)
+	// Set GOTOOLCHAIN=local to prevent Go from auto-upgrading to newer versions,
+	// which can cause "version does not match go tool version" errors when the
+	// build cache contains packages compiled with a different Go version.
+	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local")
+	return cmd
 }
 
 // getBuildPath determines the correct build path for a Go project.
