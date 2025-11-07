@@ -22,7 +22,7 @@ This repository contains multiple independent projects.
 | [jj-run-py](jj-run-py/) | deprecated | Old version of jj-run written in Python. |
 | [tk-vscode](tk-vscode/) | alpha | VS Code extension that lists tk tasks by running `tk ls --json`. |
 | [ghrelease](lib/ghrelease/) | beta | Shared helper for fetching release assets; API may change without notice. |
-| [.dagger](.dagger/) | alpha | Dagger module for running tk and dissect test suites. |
+| [.dagger](.dagger/) | alpha | Dagger module for building, testing, and linting all Go projects. |
 
 ## Installing Tools
 

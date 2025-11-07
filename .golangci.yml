@@ -1,0 +1,64 @@
+version: "2"
+linters:
+  default: all
+  disable:
+    # - depguard
+    # - exhaustruct
+    # - gochecknoglobals
+    # - gochecknoinits
+    # - mnd
+    # Stuff I disagree with
+    - noinlineerr
+    - varnamelen
+    # This actually returns good suggestions but we should autofix them, not enforce them
+    - whitespace
+    # Idk, something about "error is unwrapped"
+    - wrapcheck
+    # Whitespace linters
+    - wsl
+    - wsl_v5
+    - nlreturn
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    gocyclo:
+      min-complexity: 15
+    govet:
+      enable-all: true
+    lll:
+      line-length: 150
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - .*\.gen\.go$
+      - node_modules
+      - _gotools
+      - _build
+      - third_party$
+      - builtin$
+      - examples$
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - .*\.gen\.go$
+      - node_modules
+      - _gotools
+      - _build
+      - third_party$
+      - builtin$
+      - examples$

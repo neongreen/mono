@@ -1,17 +1,64 @@
 ## .dagger
 
-`.dagger` provides top-level Dagger functions for running repository Go test suites inside disposable containers.
+Dagger module for building, testing, and linting all Go projects in the monorepo.
 
-The layout follows the [official Dagger monorepo best practices](https://docs.dagger.io/reference/best-practices/monorepos/): a shared module at the repository root with narrow per-project functions and a trimmed include set so each run mounts only what it needs.
+### Structure
 
-### Running tests
+The module follows Dagger's patterns with one file per project:
+- **Individual projects**: `project_tk.go`, `project_want.go`, etc.
+- **Shared helpers**: `project_helpers.go` (common build/test/lint logic)
+- **Namespace**: `project_namespace.go` (groups all projects under `project`)
+- **Orchestration**: `projects.go` (Build/Test/Lint all projects in parallel)
+- **Observability**: Custom OpenTelemetry spans for better tracing
 
-From the repository root:
+Special projects with custom setup:
+- **printpdf**: Installs PDF tools (poppler-utils, imagemagick, weasyprint)
+- **jj-run**: Installs jujutsu VCS
+- **ingest**: Uses custom test patterns for integration tests
 
+### Usage
+
+**Discover available functions:**
 ```bash
-dagger call tk-tests
-dagger call dissect-tests
-dagger call test
+dagger functions              # List all functions
+dagger call --help            # Help for top-level functions
+dagger call project --help    # List all projects
+dagger call project tk --help # Methods for a specific project
 ```
 
-The module mounts only the code required for each package, reuses module and build caches, and invokes `go test` inside the official `golang:1.24.7` image.
+**Individual projects:**
+```bash
+dagger call project tk build
+dagger call project want test
+dagger call project printpdf lint
+```
+
+**All projects in parallel:**
+```bash
+dagger call build    # Build all projects
+dagger call test     # Test all projects
+dagger call lint     # Lint all projects (limited to 3 parallel)
+```
+
+**Release builds:**
+```bash
+dagger call build-release --project tk --version v1.0.0 --git-commit abc123
+```
+
+### Caching
+
+The module uses three cache volumes (matching Dagger's approach):
+- `/go/pkg/mod` - Go module cache (shared)
+- `/root/.cache/go-build` - Go build cache (shared)
+- `/root/.cache/golangci-lint` - golangci-lint cache (shared)
+
+Second runs are ~40x faster due to caching (e.g., lint: 8.6s → 0.2s).
+
+### Observability
+
+Parallel operations create named OpenTelemetry spans visible in Dagger Cloud:
+- `build tk`, `build want`, `build conf`, etc.
+- `test tk`, `test want`, etc.
+- `lint tk`, `lint want`, etc.
+
+View traces at the URL shown in command output or with `--web` flag.

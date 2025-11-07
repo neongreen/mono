@@ -101,16 +101,7 @@ jobs:
         with:
           version: "0.19.4"
           verb: call
-          args: ${{ matrix.package }}-tests --format=testname
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Export coverage report
-        if: always()
-        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
-        with:
-          version: "0.19.4"
-          verb: call
-          args: ${{ matrix.package }}-coverage export --path=coverage.out
+          args: project ${{ matrix.package }} coverage --format=testname export --path=coverage.out
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
       - name: Display coverage summary
