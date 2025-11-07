@@ -17,8 +17,6 @@ import (
 // Type aliases for cmd package types
 type PRInfo = cmd.PRInfo
 
-const goVersion = cmd.GoVersion
-
 // listOpenPRs fetches open PRs that modify the given project
 func listOpenPRs(project string) ([]PRInfo, error) {
 	ctx := context.Background()
@@ -136,55 +134,62 @@ func listMonoReleases(project string) {
 	}
 }
 
-// createGoBuildCommand creates a command to run 'go build' with the given arguments.
-// If 'go' is not in PATH, it uses 'mise exec go@<version> -- go build' instead.
-// Sets GOTOOLCHAIN=local to prevent Go from auto-upgrading and causing version mismatches.
-func createGoBuildCommand(args ...string) *exec.Cmd {
-	var cmd *exec.Cmd
-	if isToolAvailable("go") {
-		cmd = exec.Command("go", args...)
-	} else if !isMiseAvailable() {
-		cmd = exec.Command("go", args...)
-	} else {
-		miseArgs := []string{"exec", fmt.Sprintf("go@%s", goVersion), "--", "go"}
-		miseArgs = append(miseArgs, args...)
-		cmd = createMiseCommand(miseArgs...)
+// buildWithMiseAndCopy builds a project using mise and copies the binary to destination
+func buildWithMiseAndCopy(project, workDir, destPath string) error {
+	projectDir := filepath.Join(workDir, project)
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		return fmt.Errorf("project '%s' not found in repository", project)
 	}
 
-	// Set GOTOOLCHAIN=local to prevent Go from auto-upgrading to newer versions,
-	// which can cause "version does not match go tool version" errors when the
-	// build cache contains packages compiled with a different Go version.
-	cmd.Env = append(os.Environ(), "GOTOOLCHAIN=local")
-	return cmd
+	fmt.Printf("\nBuilding %s using mise...\n", project)
+
+	cmd := createMiseCommand("run", fmt.Sprintf("%s:build", project))
+	cmd.Dir = workDir
+	setMiseTrustedPath(cmd, workDir)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to build %s: %w", project, err)
+	}
+
+	// Copy the binary from _build to destination
+	buildSource := filepath.Join(projectDir, "_build", project)
+	destDir := filepath.Dir(destPath)
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	sourceData, err := os.ReadFile(buildSource)
+	if err != nil {
+		return fmt.Errorf("failed to read built binary from %s: %w", buildSource, err)
+	}
+
+	if err := os.WriteFile(destPath, sourceData, 0o755); err != nil {
+		return fmt.Errorf("failed to write binary to %s: %w", destPath, err)
+	}
+
+	return nil
 }
 
-// getBuildPath determines the correct build path for a Go project.
-// Some projects have their main.go in a cmd subdirectory, while others have it in the root.
-// Returns the relative path to use with 'go build' (either "." or "./cmd").
-func getBuildPath(projectDir string) string {
-	// Check if there's a main.go in the root first
-	mainGoPath := filepath.Join(projectDir, "main.go")
-	if _, err := os.Stat(mainGoPath); err == nil {
-		// main.go exists in root, build from root
-		return "."
-	}
+// printPathInfo prints information about whether the binary is in PATH
+func printPathInfo(project, destPath string) {
+	destDir := filepath.Dir(destPath)
+	pathEnv := os.Getenv("PATH")
 
-	// Check for cmd subdirectory with .go files
-	cmdDir := filepath.Join(projectDir, "cmd")
-	if _, err := os.Stat(cmdDir); err == nil {
-		entries, err := os.ReadDir(cmdDir)
-		if err != nil {
-			return "."
-		}
-		for _, entry := range entries {
-			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".go" {
-				// Has .go files in cmd/, build from cmd
-				return "./cmd"
-			}
-		}
+	if !strings.Contains(pathEnv, destDir) {
+		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
+		fmt.Println()
+		fmt.Println("To use the binary, either:")
+		fmt.Println("  1. Run it with the full path:")
+		fmt.Printf("     %s\n", cli.Path(destPath))
+		fmt.Println()
+		fmt.Println("  2. Add the directory to your PATH:")
+		configFile := getShellConfigFile()
+		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
+		fmt.Printf("     source %s\n", configFile)
+	} else {
+		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(project))
 	}
-
-	return "."
 }
 
 // buildMonoFromLocal builds a project from the local mono repository checkout
@@ -231,6 +236,7 @@ func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
 
 	destDir := filepath.Join(homeDir, ".local", "bin")
 	destPath := filepath.Join(destDir, project)
+	buildSource := filepath.Join(projectDir, "_build", project)
 
 	plan := FulfillmentPlan{
 		Requirement: fmt.Sprintf("mono %s@local", project),
@@ -238,7 +244,13 @@ func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
 			{
 				Type:        "install",
 				Description: fmt.Sprintf("Build %s from local checkout", project),
-				Command:     fmt.Sprintf("go build -o %s .", destPath),
+				Command:     fmt.Sprintf("mise run %s:build", project),
+				Automatic:   true,
+			},
+			{
+				Type:        "install",
+				Description: fmt.Sprintf("Copy binary to %s", destPath),
+				Command:     fmt.Sprintf("cp %s %s", buildSource, destPath),
 				Automatic:   true,
 			},
 			{
@@ -272,42 +284,16 @@ func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
 	plan.PrintPlan()
 	fmt.Println()
 
-	fmt.Printf("Building %s from %s...\n", project, projectDir)
-	buildPath := getBuildPath(projectDir)
-
-	cmd := createGoBuildCommand("build", "-o", destPath, buildPath)
-	cmd.Dir = projectDir
-	setMiseTrustedPath(cmd, cwd)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to build %s: %v\n", project, err)
+	if err := buildWithMiseAndCopy(project, cwd, destPath); err != nil {
+		fmt.Printf("\nError: %v\n", err)
 		os.Exit(1)
-	}
-
-	if err := os.Chmod(destPath, 0o755); err != nil {
-		fmt.Printf("Warning: Failed to make binary executable: %v\n", err)
 	}
 
 	fmt.Println()
 	fmt.Printf("%s Built and installed %s from local checkout to: %s\n", cli.Success("✓"), cli.Key(project), cli.Path(destPath))
 	fmt.Println()
 
-	pathEnv := os.Getenv("PATH")
-	if !strings.Contains(pathEnv, destDir) {
-		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
-		fmt.Println()
-		fmt.Println("To use the binary, either:")
-		fmt.Println("  1. Run it with the full path:")
-		fmt.Printf("     %s\n", cli.Path(destPath))
-		fmt.Println()
-		fmt.Println("  2. Add the directory to your PATH:")
-		configFile := getShellConfigFile()
-		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
-		fmt.Printf("     source %s\n", configFile)
-	} else {
-		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(project))
-	}
+	printPathInfo(project, destPath)
 }
 
 // buildMonoFromSource builds a project from a branch or commit in the mono repository
@@ -341,7 +327,13 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 			{
 				Type:        "install",
 				Description: fmt.Sprintf("Build %s from source", project),
-				Command:     fmt.Sprintf("go build -o %s .", destPath),
+				Command:     fmt.Sprintf("mise run %s:build", project),
+				Automatic:   true,
+			},
+			{
+				Type:        "install",
+				Description: fmt.Sprintf("Copy binary to %s", destPath),
+				Command:     fmt.Sprintf("cp <tmpdir>/%s/_build/%s %s", project, project, destPath),
 				Automatic:   true,
 			},
 			{
@@ -416,48 +408,16 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 		}
 	}
 
-	projectDir := filepath.Join(tmpDir, project)
-	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
-		fmt.Printf("\nError: Project '%s' not found in repository\n", project)
+	if err := buildWithMiseAndCopy(project, tmpDir, destPath); err != nil {
+		fmt.Printf("\nError: %v\n", err)
 		os.Exit(1)
-	}
-
-	fmt.Printf("\nBuilding %s...\n", project)
-	buildPath := getBuildPath(projectDir)
-
-	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
-	cmd.Dir = projectDir
-	setMiseTrustedPath(cmd, tmpDir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to build %s: %v\n", project, err)
-		os.Exit(1)
-	}
-
-	if err := os.Chmod(destPath, 0o755); err != nil {
-		fmt.Printf("Warning: Failed to make binary executable: %v\n", err)
 	}
 
 	fmt.Println()
 	fmt.Printf("%s Built and installed %s from %s to: %s\n", cli.Success("✓"), cli.Key(project), refDescription, cli.Path(destPath))
 	fmt.Println()
 
-	pathEnv := os.Getenv("PATH")
-	if !strings.Contains(pathEnv, destDir) {
-		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
-		fmt.Println()
-		fmt.Println("To use the binary, either:")
-		fmt.Println("  1. Run it with the full path:")
-		fmt.Printf("     %s\n", cli.Path(destPath))
-		fmt.Println()
-		fmt.Println("  2. Add the directory to your PATH:")
-		configFile := getShellConfigFile()
-		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
-		fmt.Printf("     source %s\n", configFile)
-	} else {
-		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(project))
-	}
+	printPathInfo(project, destPath)
 }
 
 // buildMonoFromPR builds a project from a PR branch
@@ -489,7 +449,13 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 			{
 				Type:        "install",
 				Description: fmt.Sprintf("Build %s from source", project),
-				Command:     fmt.Sprintf("go build -o %s .", destPath),
+				Command:     fmt.Sprintf("mise run %s:build", project),
+				Automatic:   true,
+			},
+			{
+				Type:        "install",
+				Description: fmt.Sprintf("Copy binary to %s", destPath),
+				Command:     fmt.Sprintf("cp <tmpdir>/%s/_build/%s %s", project, project, destPath),
 				Automatic:   true,
 			},
 			{
@@ -558,48 +524,16 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 		os.Exit(1)
 	}
 
-	projectDir := filepath.Join(tmpDir, project)
-	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
-		fmt.Printf("\nError: Project '%s' not found in repository\n", project)
+	if err := buildWithMiseAndCopy(project, tmpDir, destPath); err != nil {
+		fmt.Printf("\nError: %v\n", err)
 		os.Exit(1)
-	}
-
-	fmt.Printf("\nBuilding %s...\n", project)
-	buildPath := getBuildPath(projectDir)
-
-	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
-	cmd.Dir = projectDir
-	setMiseTrustedPath(cmd, tmpDir)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		fmt.Printf("\nError: Failed to build %s: %v\n", project, err)
-		os.Exit(1)
-	}
-
-	if err := os.Chmod(destPath, 0o755); err != nil {
-		fmt.Printf("Warning: Failed to make binary executable: %v\n", err)
 	}
 
 	fmt.Println()
 	fmt.Printf("%s Built and installed %s from PR #%d to: %s\n", cli.Success("✓"), cli.Key(project), prNumber, cli.Path(destPath))
 	fmt.Println()
 
-	pathEnv := os.Getenv("PATH")
-	if !strings.Contains(pathEnv, destDir) {
-		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
-		fmt.Println()
-		fmt.Println("To use the binary, either:")
-		fmt.Println("  1. Run it with the full path:")
-		fmt.Printf("     %s\n", cli.Path(destPath))
-		fmt.Println()
-		fmt.Println("  2. Add the directory to your PATH:")
-		configFile := getShellConfigFile()
-		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
-		fmt.Printf("     source %s\n", configFile)
-	} else {
-		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(project))
-	}
+	printPathInfo(project, destPath)
 }
 
 // installMonoRelease installs a specific version of a project from neongreen/mono
@@ -765,19 +699,5 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 	fmt.Printf("%s Installed %s version %s to: %s\n", cli.Success("✓"), cli.Key(project), cli.Key(version), cli.Path(destPath))
 	fmt.Println()
 
-	pathEnv := os.Getenv("PATH")
-	if !strings.Contains(pathEnv, destDir) {
-		fmt.Printf("%s %s is not in your PATH\n", cli.Warning("Note:"), cli.Path(destDir))
-		fmt.Println()
-		fmt.Println("To use the binary, either:")
-		fmt.Println("  1. Run it with the full path:")
-		fmt.Printf("     %s\n", cli.Path(destPath))
-		fmt.Println()
-		fmt.Println("  2. Add the directory to your PATH:")
-		configFile := getShellConfigFile()
-		fmt.Printf("     echo 'export PATH=\"$PATH:%s\"' >> %s\n", destDir, configFile)
-		fmt.Printf("     source %s\n", configFile)
-	} else {
-		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(project))
-	}
+	printPathInfo(project, destPath)
 }

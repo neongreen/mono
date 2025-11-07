@@ -566,8 +566,11 @@ func miseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]str
 
 	switch len(args) {
 	case 0:
-		// First argument: complete config paths from common settings
-		settings := miseTool.ListCommonSettings()
+		// First argument: complete config paths from schema settings
+		settings, err := miseTool.ListAllSettings()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
 		var completions []string
 		for _, setting := range settings {
 			if strings.HasPrefix(setting.Path, toComplete) {
@@ -580,7 +583,10 @@ func miseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]str
 	case 1:
 		// Second argument: provide type-based suggestions
 		configPath := args[0]
-		settings := miseTool.ListCommonSettings()
+		settings, err := miseTool.ListAllSettings()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
 
 		for _, setting := range settings {
 			if setting.Path == configPath {
@@ -593,10 +599,13 @@ func miseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]str
 						}
 					}
 					return completions, cobra.ShellCompDirectiveDefault
-				case "integer":
-					// Show example as suggestion
-					if strings.HasPrefix(setting.Example, toComplete) {
-						return []string{fmt.Sprintf("%s\tExample value", setting.Example)}, cobra.ShellCompDirectiveDefault
+				case "integer", "number":
+					// Show default as suggestion if available
+					if setting.Default != nil {
+						defaultStr := fmt.Sprintf("%v", setting.Default)
+						if strings.HasPrefix(defaultStr, toComplete) {
+							return []string{fmt.Sprintf("%s\tDefault value", defaultStr)}, cobra.ShellCompDirectiveDefault
+						}
 					}
 				}
 				break
@@ -631,20 +640,13 @@ Examples:
 
 		// Default to list when no arguments provided
 		if len(args) == 0 {
-			miseSettings := miseTool.ListCommonSettings()
-
-			// Convert to CommonSetting for rendering
-			settings := make([]CommonSetting, len(miseSettings))
-			for i, s := range miseSettings {
-				settings[i] = CommonSetting{
-					Path:        s.Path,
-					Type:        s.Type,
-					Description: s.Description,
-					Example:     s.Example,
-				}
+			settings, err := miseTool.ListAllSettings()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to list settings: %v\n", err)
+				os.Exit(1)
 			}
 
-			renderCommonSettingsTable(settings, miseTool.GetConfigPath())
+			renderSettingsTable(settings, miseTool.GetConfigPath())
 			return
 		}
 
@@ -699,8 +701,8 @@ Examples:
 
 var miseListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List common mise configuration options",
-	Long:  `Display a list of commonly used mise configuration options with descriptions and examples.`,
+	Short: "List all mise configuration options from schema",
+	Long:  `Display a list of all mise configuration options from the official schema.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		miseTool, err := misetool.NewMiseTool()
 		if err != nil {
@@ -708,20 +710,13 @@ var miseListCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		miseSettings := miseTool.ListCommonSettings()
-
-		// Convert to CommonSetting for rendering
-		settings := make([]CommonSetting, len(miseSettings))
-		for i, s := range miseSettings {
-			settings[i] = CommonSetting{
-				Path:        s.Path,
-				Type:        s.Type,
-				Description: s.Description,
-				Example:     s.Example,
-			}
+		settings, err := miseTool.ListAllSettings()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to list settings: %v\n", err)
+			os.Exit(1)
 		}
 
-		renderCommonSettingsTable(settings, miseTool.GetConfigPath())
+		renderSettingsTable(settings, miseTool.GetConfigPath())
 	},
 }
 

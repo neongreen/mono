@@ -27,7 +27,7 @@ func TestFormatWriteToolArguments(t *testing.T) {
 				"extra_field":   "unexpected",
 				"another_field": 123,
 			},
-			expected: "**File:** `/path/to/file.txt`\n\n**Content:**\n```\nHello, world!\n```\n\n⚠️ **Unexpected fields:** `extra_field`, `another_field`\n\n",
+			expected: "**File:** `/path/to/file.txt`\n\n**Content:**\n```\nHello, world!\n```\n\n⚠️ **Unexpected fields:** `another_field`, `extra_field`\n\n",
 		},
 		{
 			name: "write tool with only file_path",

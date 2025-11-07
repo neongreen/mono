@@ -104,6 +104,11 @@ func (p *JSONSchemaParser) navigateToPath(path string) *jsonschema.Schema {
 	current := p.schema
 
 	for i, part := range parts {
+		// Follow $ref if present
+		if current.Ref != nil {
+			current = current.Ref
+		}
+
 		if current.Properties == nil {
 			// No explicit properties - check additionalProperties
 			if additionalProps := p.getAdditionalPropertiesSchema(current); additionalProps != nil {
@@ -129,7 +134,10 @@ func (p *JSONSchemaParser) navigateToPath(path string) *jsonschema.Schema {
 
 		// Found the property
 		if i == len(parts)-1 {
-			// This is the final part
+			// This is the final part - follow $ref if present before returning
+			if propSchema.Ref != nil {
+				return propSchema.Ref
+			}
 			return propSchema
 		}
 

@@ -318,8 +318,8 @@ add_newline = true
 			expectOut: []string{
 				"SETTING",
 				"TYPE",
+				"VALUE",
 				"DESCRIPTION",
-				"EXAMPLE",
 				"settings.experimental",
 				"boolean",
 			},
@@ -330,8 +330,8 @@ add_newline = true
 			expectOut: []string{
 				"SETTING",
 				"TYPE",
+				"VALUE",
 				"DESCRIPTION",
-				"EXAMPLE",
 				"add_newline",
 				"boolean",
 			},

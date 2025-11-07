@@ -155,68 +155,6 @@ func (s *StarshipTool) createInvalidPathError(path string) error {
 	return fmt.Errorf("%s", errorMsg)
 }
 
-// ListCommonSettings returns a list of commonly used starship settings with descriptions
-func (s *StarshipTool) ListCommonSettings() []CommonSetting {
-	return []CommonSetting{
-		{
-			Path:        "format",
-			Description: "Custom format string for the prompt",
-			Type:        "string",
-			Example:     "$all$character",
-		},
-		{
-			Path:        "add_newline",
-			Description: "Add a blank line before the prompt",
-			Type:        "boolean",
-			Example:     "true",
-		},
-		{
-			Path:        "command_timeout",
-			Description: "Timeout for commands run by starship (in milliseconds)",
-			Type:        "integer",
-			Example:     "500",
-		},
-		{
-			Path:        "scan_timeout",
-			Description: "Timeout for scanning files and directories (in milliseconds)",
-			Type:        "integer",
-			Example:     "30",
-		},
-		{
-			Path:        "character.success_symbol",
-			Description: "Symbol shown when the last command succeeded",
-			Type:        "string",
-			Example:     "[➜](bold green)",
-		},
-		{
-			Path:        "character.error_symbol",
-			Description: "Symbol shown when the last command failed",
-			Type:        "string",
-			Example:     "[➜](bold red)",
-		},
-		{
-			Path:        "directory.truncation_length",
-			Description: "Number of parent directories to show",
-			Type:        "integer",
-			Example:     "3",
-		},
-		{
-			Path:        "git_branch.format",
-			Description: "Format string for git branch display",
-			Type:        "string",
-			Example:     "on [$symbol$branch]($style) ",
-		},
-	}
-}
-
-// CommonSetting represents a commonly used configuration setting
-type CommonSetting struct {
-	Path        string
-	Description string
-	Type        string
-	Example     string
-}
-
 // GetAllValues returns all configuration values from the starship config file as a nested map
 func (s *StarshipTool) GetAllValues() (map[string]any, error) {
 	return s.editor.GetAllValues()

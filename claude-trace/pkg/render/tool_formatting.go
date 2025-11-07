@@ -3,6 +3,7 @@ package render
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -45,6 +46,7 @@ func formatWriteToolArguments(input map[string]any) string {
 		}
 	}
 	if len(unexpectedFields) > 0 {
+		sort.Strings(unexpectedFields)
 		sb.WriteString("⚠️ **Unexpected fields:** ")
 		for i, field := range unexpectedFields {
 			if i > 0 {

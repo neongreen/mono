@@ -3,7 +3,6 @@ package mise
 import (
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
@@ -14,7 +13,7 @@ import (
 type MiseTool struct {
 	configPath string
 	editor     *editors.TOMLEditor
-	schema     *schemas.MiseSchema
+	parser     *schemas.MiseSchemaParser
 	dryRun     bool
 }
 
@@ -40,7 +39,7 @@ func NewMiseToolWithDryRun(dryRun bool) (*MiseTool, error) {
 	editor := editors.NewTOMLEditorWithDryRun(miseConfig.ConfigPath, dryRun)
 
 	// Create mise schema parser
-	schema, err := schemas.LoadMiseSchema()
+	parser, err := schemas.NewMiseSchemaParser()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load mise schema: %w", err)
 	}
@@ -48,7 +47,7 @@ func NewMiseToolWithDryRun(dryRun bool) (*MiseTool, error) {
 	return &MiseTool{
 		configPath: miseConfig.ConfigPath,
 		editor:     editor,
-		schema:     schema,
+		parser:     parser,
 		dryRun:     dryRun,
 	}, nil
 }
@@ -127,14 +126,14 @@ func (m *MiseTool) PreviewUnsetConfig(path string) (string, error) {
 
 // GetCompletionOptions returns completion options for a given path
 func (m *MiseTool) GetCompletionOptions(path string) []schemas.CompletionOption {
-	return m.schema.GetCompletionOptions(path)
+	return m.parser.GetCompletionOptions(path)
 }
 
 // ValidatePath checks if a configuration path is valid
 func (m *MiseTool) ValidatePath(path string) bool {
 	// For mise, we'll be more permissive since the schema is custom
 	// Check if it's in our known schema fields, or allow any path for flexibility
-	options := m.schema.GetCompletionOptions("")
+	options := m.parser.GetCompletionOptions("")
 	if path == "" {
 		return true
 	}
@@ -181,80 +180,30 @@ func (m *MiseTool) SetAllValues(values map[string]any) error {
 	return m.editor.SetAllValues(values)
 }
 
-// ListCommonSettings returns a list of commonly used mise settings with descriptions
-func (m *MiseTool) ListCommonSettings() []CommonSetting {
-	return []CommonSetting{
-		{
-			Path:        "settings.experimental",
-			Description: "Enable experimental features in mise",
-			Type:        "boolean",
-			Example:     "true",
-		},
-		{
-			Path:        "settings.verbose",
-			Description: "Enable verbose output",
-			Type:        "boolean",
-			Example:     "false",
-		},
-		{
-			Path:        "settings.jobs",
-			Description: "Number of parallel jobs for installation",
-			Type:        "integer",
-			Example:     "4",
-		},
-		{
-			Path:        "settings.legacy_version_file",
-			Description: "Enable support for legacy version files",
-			Type:        "boolean",
-			Example:     "true",
-		},
-		{
-			Path:        "env.NODE_ENV",
-			Description: "Set Node.js environment",
-			Type:        "string",
-			Example:     "development",
-		},
-		{
-			Path:        "tools.node",
-			Description: "Node.js version to use",
-			Type:        "string",
-			Example:     "20",
-		},
-		{
-			Path:        "tools.python",
-			Description: "Python version to use",
-			Type:        "string",
-			Example:     "3.11",
-		},
-		{
-			Path:        "tasks.dev.run",
-			Description: "Development task command",
-			Type:        "string",
-			Example:     "npm run dev",
-		},
-		{
-			Path:        "python.venv_auto_create",
-			Description: "Automatically create Python virtual environments",
-			Type:        "boolean",
-			Example:     "true",
-		},
-	}
-}
+// ListAllSettings returns comprehensive information about all mise settings from schema
+func (m *MiseTool) ListAllSettings() ([]schemas.SettingInfo, error) {
+	// Get all settings from schema
+	schemaSettings := m.parser.GetAllSettingsWithInfo()
 
-// CommonSetting represents a commonly used configuration setting
-type CommonSetting struct {
-	Path        string
-	Description string
-	Type        string
-	Example     string
-}
-
-// Helper function to split dotted path
-func splitPath(path string) []string {
-	if path == "" {
-		return []string{}
+	// Read config file once to avoid re-parsing for every setting
+	allValues, err := m.editor.GetAllValues()
+	if err != nil {
+		// If we can't read the config, return settings without current values
+		return schemaSettings, nil
 	}
-	return strings.Split(path, ".")
+
+	// Enhance with current values by looking up in the in-memory map
+	for i := range schemaSettings {
+		currentValue := lookupValueByPath(allValues, schemaSettings[i].Path)
+		if currentValue != nil {
+			schemaSettings[i].CurrentValue = currentValue
+			schemaSettings[i].IsSet = true
+		} else {
+			schemaSettings[i].IsSet = false
+		}
+	}
+
+	return schemaSettings, nil
 }
 
 // GetAllValues returns all configuration values from the mise config file as a nested map

@@ -134,36 +134,6 @@ func (j *JJTool) IsDryRun() bool {
 	return j.dryRun
 }
 
-// ListCommonSettings returns a list of commonly used jj settings with descriptions
-func (j *JJTool) ListCommonSettings() []CommonSetting {
-	return []CommonSetting{
-		{
-			Path:        "user.name",
-			Description: "Full name of the user, used in commits",
-			Type:        "string",
-			Example:     "Alice Smith",
-		},
-		{
-			Path:        "user.email",
-			Description: "User's email address, used in commits",
-			Type:        "string",
-			Example:     "alice@example.com",
-		},
-		{
-			Path:        "ui.default-command",
-			Description: "Default command to run when no command is specified",
-			Type:        "string",
-			Example:     "log",
-		},
-		{
-			Path:        "snapshot.max-new-file-size",
-			Description: "Maximum size of new files to automatically track",
-			Type:        "integer",
-			Example:     "1048576",
-		},
-	}
-}
-
 // ListAllSettings returns comprehensive information about all jj settings from schema
 func (j *JJTool) ListAllSettings() ([]schemas.SettingInfo, error) {
 	// Get all settings from schema
@@ -223,14 +193,6 @@ func containsSubstring(s, substr string) bool {
 		(s == substr ||
 			(len(s) > len(substr) && s[:len(substr)] == substr) ||
 			(len(s) > len(substr) && s[len(s)-len(substr):] == substr))
-}
-
-// CommonSetting represents a commonly used configuration setting
-type CommonSetting struct {
-	Path        string
-	Description string
-	Type        string
-	Example     string
 }
 
 // GetAllValues returns all configuration values from the jj config file as a nested map

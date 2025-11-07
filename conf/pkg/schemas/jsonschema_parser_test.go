@@ -119,6 +119,15 @@ func TestJSONSchemaParser_WithMiseSchema(t *testing.T) {
 	if len(options) == 0 {
 		t.Error("Expected some top-level options")
 	}
+
+	// Test nested completion for settings (which uses $ref)
+	settingsOptions := parser.GetCompletionOptions("settings")
+	t.Logf("Got %d settings options", len(settingsOptions))
+	if len(settingsOptions) == 0 {
+		t.Error("Expected settings to have nested options (schema uses $ref: #/$defs/settings)")
+	} else {
+		t.Logf("First 3 settings: %+v", settingsOptions[:min(3, len(settingsOptions))])
+	}
 }
 
 func TestJSONSchemaParser_Navigation(t *testing.T) {

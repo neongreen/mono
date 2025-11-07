@@ -32,7 +32,7 @@ helm = "latest"
 
 [tasks.cloc]
 description = "Count lines of Go code by file"
-run = "cloc --by-file --include-lang=Go ."
+run = "cloc --by-file --include-lang=Go --vcs=git ."
 
 [tasks.format]
 description = "Format all Go code"
@@ -57,6 +57,14 @@ run = """
 jj git fetch && jj b t "glob:*@origin"
 """
 
+[tasks."lint:go"]
+description = "Lint all Go code"
+run = "golangci-lint run"
+
+[tasks."test:go"]
+description = "Test all Go code"
+run = "go test -run=^$ ./..."
+
 [tasks."lint:actions:actionlint"]
 description = "Lint GitHub Actions workflows with actionlint"
 run = "actionlint"
@@ -68,7 +76,6 @@ run = "GITHUB_TOKEN=$(gh auth token) pinact run --check --diff --verify"
 [tasks."lint:actions"]
 description = "Lint GitHub Actions workflows"
 depends = ["lint:actions:actionlint", "lint:actions:pinact"]
-
 
 [tasks."go:tidy"]
 description = "Synchronize Go dependencies"
