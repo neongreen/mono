@@ -38,49 +38,6 @@ golangci-lint fmt .
 cd mdbook-comments && cargo fmt
 """
 
-# ============================================================================
-# Project aliases (mise run <project> -> mise run <project>:run)
-# ============================================================================
-
-[tasks.claude-trace]
-description = "Build and run claude-trace"
-depends = ["claude-trace:run"]
-
-[tasks.conf]
-description = "Build and run conf"
-depends = ["conf:run"]
-
-[tasks.dissect]
-description = "Build and run dissect"
-depends = ["dissect:run"]
-
-[tasks.ingest]
-description = "Build and run the ingest CLI"
-depends = ["ingest:run"]
-
-[tasks.jj-run]
-description = "Build and run jj-run"
-depends = ["jj-run:run"]
-
-[tasks.markdown-format]
-description = "Build and run markdown-format"
-depends = ["markdown-format:run"]
-
-[tasks.printpdf]
-description = "Build and run printpdf"
-depends = ["printpdf:run"]
-
-[tasks.prrun]
-description = "Build and run prrun"
-depends = ["prrun:run"]
-
-[tasks.tk]
-description = "Build and run tk"
-depends = ["tk:run"]
-
-[tasks.want]
-description = "Build and run want"
-depends = ["want:run"]
 
 [tasks."jj:track"]
 description = "Track all remote bookmarks"
@@ -515,7 +472,7 @@ run = "npm run watch"
 # conf
 # ============================================================================
 
-[tasks."conf:run"]
+[tasks.conf]
 description = "Build and run conf"
 dir = "conf"
 run = "go run ./cmd/main.go"
@@ -535,7 +492,7 @@ run = "go build -o conf ./cmd/main.go"
 # claude-trace
 # ============================================================================
 
-[tasks."claude-trace:run"]
+[tasks."claude-trace"]
 description = "Build and run claude-trace"
 dir = "claude-trace"
 run = "go run ./cmd"
@@ -570,7 +527,7 @@ description = "Fetch Go tools (including gopls) for AI to inspect"
 dir = "dissect"
 run = "git clone https://github.com/golang/tools.git _gotools"
 
-[tasks."dissect:run"]
+[tasks.dissect]
 description = "Run the dissect project"
 depends = ["dissect:build"]
 dir = "dissect"
@@ -590,7 +547,7 @@ run = "go test -run=^$ ./..."
 # jj-run
 # ============================================================================
 
-[tasks."jj-run:run"]
+[tasks."jj-run"]
 description = "Build and run jj-run"
 dir = "jj-run"
 run = "go run ./cmd"
@@ -610,7 +567,7 @@ run = "go build -o jj-run ./cmd"
 # ingest
 # ============================================================================
 
-[tasks."ingest:run"]
+[tasks.ingest]
 description = "Build and run the ingest CLI"
 dir = "ingest"
 run = "go run ./cmd/ingest"
@@ -640,7 +597,7 @@ run = "go test ./..."
 # markdown-format
 # ============================================================================
 
-[tasks."markdown-format:run"]
+[tasks."markdown-format"]
 description = "Build and run markdown-format"
 dir = "markdown-format"
 run = "go run ."
@@ -660,7 +617,7 @@ run = "go test -run=^$ ./..."
 # printpdf
 # ============================================================================
 
-[tasks."printpdf:run"]
+[tasks.printpdf]
 description = "Build and run printpdf"
 dir = "printpdf"
 run = "go run ./cmd"
@@ -695,7 +652,7 @@ run = "go build -trimpath -o _build/printpdf ./cmd"
 # prrun
 # ============================================================================
 
-[tasks."prrun:run"]
+[tasks.prrun]
 description = "Build and run prrun"
 dir = "prrun"
 run = "go run ."
@@ -720,7 +677,7 @@ run = "PRRUN_INTEGRATION_TEST=1 go test ./..."
 # tk
 # ============================================================================
 
-[tasks."tk:run"]
+[tasks.tk]
 description = "Build and run tk"
 dir = "tk"
 run = "go run ."
@@ -740,7 +697,7 @@ run = "go test ./..."
 # want
 # ============================================================================
 
-[tasks."want:run"]
+[tasks.want]
 description = "Build and run want"
 dir = "want"
 run = "go run ."

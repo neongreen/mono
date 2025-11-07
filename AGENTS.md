@@ -66,7 +66,7 @@ mise run project-name:task-name
 ```
 
 Examples:
-- `mise run claude-trace:run` - Run claude-trace with default command (TUI mode)
+- `mise run claude-trace` - Run claude-trace with default command (TUI mode)
 - `mise run jj-run:test` - Run tests for jj-run
 - `mise run printpdf:build` - Build printpdf binary
 
@@ -81,7 +81,7 @@ Examples:
 
 All project tasks are defined in the top-level `mise.toml` file with project-name prefixes. Standard tasks where applicable:
 
-- **`project-name:run`** - Build and run the project (for applications)
+- **`project-name`** - Build and run the project (for applications)
 - **`project-name:test`** - Run all tests
 - **`project-name:build`** - Build binary
 
