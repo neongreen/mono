@@ -49,9 +49,9 @@ func TestClaudeSchemaParser_ValidatePath(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "invalid top-level path",
+			name:     "nonexistent top-level path (allowed by additionalProperties)",
 			path:     "nonexistent",
-			expected: false,
+			expected: true, // Claude schema has additionalProperties: true
 		},
 	}
 

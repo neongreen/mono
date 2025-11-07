@@ -52,7 +52,8 @@
     "permissionRule": {
       "type": "string",
       "description": "Tool permission rule",
-      "pattern": "^((Bash|BashOutput|Edit|ExitPlanMode|Glob|Grep|KillShell|NotebookEdit|Read|SlashCommand|Task|TodoWrite|WebFetch|WebSearch|Write)(\\((?=.*[^)*?])[^)]+\\))?|mcp__.*)$",
+      "$comment": "HACK: Original pattern used lookahead (?=.*[^)*?]) which jsonschema lib doesn't support. Simplified to [^)]+ to allow compilation. This means patterns like 'Bash(*)' are now allowed by schema validation, but should still be validated at application level if needed.",
+      "pattern": "^((Bash|BashOutput|Edit|ExitPlanMode|Glob|Grep|KillShell|NotebookEdit|Read|SlashCommand|Task|TodoWrite|WebFetch|WebSearch|Write)(\\([^)]+\\))?|mcp__.*)$",
       "examples": [
         "Bash(git commit:*)",
         "Bash(npm run lint:*)",
