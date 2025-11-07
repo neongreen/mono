@@ -24,7 +24,7 @@ func NewMiseSchemaParser() (*MiseSchemaParser, error) {
 		// Fall back to manual parsing if compilation fails
 		var schema map[string]any
 		if unmarshalErr := json.Unmarshal([]byte(MiseJSONSchema), &schema); unmarshalErr != nil {
-			return nil, fmt.Errorf("failed to parse Mise schema JSON: %w (jsonschema error: %v)", unmarshalErr, err)
+			return nil, fmt.Errorf("failed to parse Mise schema JSON: %w (jsonschema error: %w)", unmarshalErr, err)
 		}
 		return &MiseSchemaParser{
 			schema: schema,

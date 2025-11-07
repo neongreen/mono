@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -47,7 +48,8 @@ func CompareDirectories(t *testing.T, expectedFiles map[string]string, actualDir
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		// git diff returns non-zero exit code if differences are found
-		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+		exitError := &exec.ExitError{}
+		if errors.As(err, &exitError) {
 			// Differences found, return the diff output as an error
 			return fmt.Errorf("directories differ:\n%s", string(output))
 		}

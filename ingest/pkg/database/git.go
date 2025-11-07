@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -50,7 +51,7 @@ func (d *Database) GetOrCreateBlob(content []byte, sha256Hash string) (int64, er
 	if err == nil {
 		return blobID, nil
 	}
-	if err != sql.ErrNoRows {
+	if !errors.Is(err, sql.ErrNoRows) {
 		return 0, fmt.Errorf("failed to check for existing blob: %w", err)
 	}
 

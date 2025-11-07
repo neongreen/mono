@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
@@ -16,7 +17,7 @@ func (d *DB) GetNextLamportTS() (int64, error) {
 	// Get current counter value
 	var counter int64
 	err = tx.QueryRow("SELECT value FROM metadata WHERE key = 'lamport_counter'").Scan(&counter)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		counter = 0
 	} else if err != nil {
 		return 0, fmt.Errorf("failed to query lamport counter: %w", err)
@@ -51,7 +52,7 @@ func (d *DB) BumpLamport(newValue int64) error {
 	// Get current counter value
 	var counter int64
 	err = tx.QueryRow("SELECT value FROM metadata WHERE key = 'lamport_counter'").Scan(&counter)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		counter = 0
 	} else if err != nil {
 		return fmt.Errorf("failed to query lamport counter: %w", err)

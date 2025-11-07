@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -108,7 +109,7 @@ func RenderTaskDisplayID(db *DB, taskUID string) (string, error) {
 	err := db.Db.QueryRow(`
 		SELECT project_uid, number FROM task_numbers WHERE task_uid = ?
 	`, taskUID).Scan(&projectUID, &number)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return taskUID, nil
 	}
 	if err != nil {
@@ -185,7 +186,7 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 	if err == nil {
 		return types.ProjectUID(projectUID), nil
 	}
-	if err != sql.ErrNoRows {
+	if !errors.Is(err, sql.ErrNoRows) {
 		return "", fmt.Errorf("failed to resolve project alias %s: %w", ref, err)
 	}
 
@@ -196,7 +197,7 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 		ORDER BY created_at
 		LIMIT 1
 	`, ref.String()).Scan(&projectUID)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", fmt.Errorf("project/alias %s not found (checked aliases and project names)", ref)
 	}
 	if err != nil {
@@ -225,7 +226,7 @@ func PreferredAliasForProject(db *DB, projectUID types.ProjectUID) (string, erro
 		ORDER BY CASE WHEN node = ? THEN 0 ELSE 1 END
 		LIMIT 1
 	`, projectUID.String(), nodeID).Scan(&alias)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return "", nil
 	}
 	if err != nil {

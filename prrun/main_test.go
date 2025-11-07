@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"strings"
@@ -163,7 +164,8 @@ func TestHelpFlagPositioning(t *testing.T) {
 			output, err := cmd.CombinedOutput()
 
 			// All these cases should exit with code 0
-			if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() != 0 {
+			exitErr := &exec.ExitError{}
+			if errors.As(err, &exitErr) {
 				t.Errorf("Expected exit code 0, got %d", exitErr.ExitCode())
 			}
 

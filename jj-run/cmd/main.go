@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -439,7 +440,8 @@ func handleError(strategy ErrorStrategy, changeID string, err error) (bool, erro
 }
 
 func formatError(changeID string, err error) string {
-	if exitErr, ok := err.(*exec.ExitError); ok {
+	exitErr := &exec.ExitError{}
+	if errors.As(err, &exitErr) {
 		return fmt.Sprintf("Error while processing change [%s]:\nReturn code: %d\nSTDERR:\n%s",
 			changeID,
 			exitErr.ExitCode(),
@@ -451,7 +453,8 @@ func formatError(changeID string, err error) string {
 func printCommandResult(result *exec.Cmd, err error) {
 	// For successful commands, the output is already printed by runShellCommand
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
 			fmt.Fprintf(os.Stderr, "Command failed with return code %d\n", exitErr.ExitCode())
 		} else {
 			fmt.Fprintf(os.Stderr, "Command failed: %v\n", err)
@@ -485,7 +488,8 @@ func runJJOutput(args []string, cwd string) (string, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
 			exitErr.Stderr = stderr.Bytes()
 		}
 		return "", err

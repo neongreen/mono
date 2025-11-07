@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/neongreen/mono/tk/internal/types"
@@ -190,7 +191,7 @@ func (d *DB) ProjectTaskRelocateEvent(e types.Event) error {
 		err = d.Db.QueryRow(`
 			SELECT number FROM task_numbers WHERE task_uid = ?
 		`, payload.TaskUID).Scan(&oldNumber)
-		if err != nil && err != sql.ErrNoRows {
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("failed to get old number: %w", err)
 		}
 	}

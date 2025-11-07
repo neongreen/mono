@@ -24,7 +24,7 @@ func NewClaudeSchemaParser() (*ClaudeSchemaParser, error) {
 		// Fall back to manual parsing if compilation fails
 		var schema map[string]any
 		if unmarshalErr := json.Unmarshal([]byte(ClaudeSchema), &schema); unmarshalErr != nil {
-			return nil, fmt.Errorf("failed to parse Claude schema JSON: %w (jsonschema error: %v)", unmarshalErr, err)
+			return nil, fmt.Errorf("failed to parse Claude schema JSON: %w (jsonschema error: %w)", unmarshalErr, err)
 		}
 		return &ClaudeSchemaParser{
 			schema: schema,

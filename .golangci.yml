@@ -6,13 +6,13 @@ linters:
   - unused
   - staticcheck
   - govet
+  - errorlint
+  - ineffassign
 
   # default: all
   # disable:
-  #   # - depguard
   #   # - exhaustruct
   #   # - gochecknoglobals
-  #   # - gochecknoinits
   #   # - mnd
   #   # Stuff I disagree with
   #   - noinlineerr

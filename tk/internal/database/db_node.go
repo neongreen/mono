@@ -3,6 +3,7 @@ package database
 import (
 	"crypto/rand"
 	"database/sql"
+	"errors"
 	"fmt"
 	"math/big"
 )
@@ -15,7 +16,7 @@ func (d *DB) GetOrCreateNodeID() (string, error) {
 	if err == nil {
 		return nodeID, nil
 	}
-	if err != sql.ErrNoRows {
+	if !errors.Is(err, sql.ErrNoRows) {
 		return "", fmt.Errorf("failed to query node ID: %w", err)
 	}
 

@@ -619,7 +619,7 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 			return
 		}
 
-		refDescription := version
+		var refDescription string
 		isCommitSHA := false
 		if version == "main" || version == "master" {
 			refDescription = fmt.Sprintf("latest commit on %s branch", version)
@@ -665,7 +665,7 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 	_, err := ghrelease.GetReleaseByTag("neongreen", "mono", tag)
 	if err != nil {
 
-		refDescription := version
+		var refDescription string
 		isCommitSHA := false
 		if version == "main" || version == "master" {
 			refDescription = fmt.Sprintf("latest commit on %s branch", version)
