@@ -742,3 +742,24 @@ run = "go test -run=^$ ./..."
 description = "Run tests for want"
 dir = "want"
 run = "go test ./..."
+
+# ============================================================================
+# cloud (OpenTofu)
+# ============================================================================
+
+[tasks."cloud:tf:validate"]
+description = "Validate all OpenTofu modules under cloud/terraform"
+run = '''
+set -euo pipefail
+
+# Find unique directories containing .tf files under cloud/terraform and validate each
+for dir in $(find cloud/terraform -type f -name '*.tf' -exec dirname {} \; | sort -u); do
+  echo "==> $dir"
+  (
+    cd "$dir"
+    # Init without touching any remote backend; download providers only
+    tofu init -backend=false -input=false >/dev/null
+    tofu validate
+  )
+done
+'''
