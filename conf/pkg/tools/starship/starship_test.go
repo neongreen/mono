@@ -659,6 +659,71 @@ success_symbol = "[➜](bold green)"
 	}
 }
 
+func TestLookupValueByPath(t *testing.T) {
+	data := map[string]any{
+		"top_level": "value1",
+		"nested": map[string]any{
+			"key1": "value2",
+			"key2": map[string]any{
+				"deep": "value3",
+			},
+		},
+		"number": int64(42),
+	}
+
+	tests := []struct {
+		name     string
+		path     string
+		expected any
+	}{
+		{"top level key", "top_level", "value1"},
+		{"nested key", "nested.key1", "value2"},
+		{"deeply nested key", "nested.key2.deep", "value3"},
+		{"number value", "number", int64(42)},
+		{"non-existent key", "nonexistent", nil},
+		{"non-existent nested", "nested.nonexistent", nil},
+		{"empty path", "", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := lookupValueByPath(data, tt.path)
+			if result != tt.expected {
+				t.Errorf("lookupValueByPath(%q) = %v, want %v", tt.path, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSplitPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected []string
+	}{
+		{"simple path", "a.b.c", []string{"a", "b", "c"}},
+		{"single segment", "single", []string{"single"}},
+		{"empty path", "", nil},
+		{"quoted segment", `a."b.c".d`, []string{"a", "b.c", "d"}},
+		{"nested path", "character.success_symbol", []string{"character", "success_symbol"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := splitPath(tt.path)
+			if len(result) != len(tt.expected) {
+				t.Errorf("splitPath(%q) returned %d parts, want %d", tt.path, len(result), len(tt.expected))
+				return
+			}
+			for i := range result {
+				if result[i] != tt.expected[i] {
+					t.Errorf("splitPath(%q)[%d] = %q, want %q", tt.path, i, result[i], tt.expected[i])
+				}
+			}
+		})
+	}
+}
+
 // Helper function to check if a string contains a substring
 func containsString(s, substr string) bool {
 	return len(s) >= len(substr) &&

@@ -227,10 +227,17 @@ func (s *StarshipTool) ListAllSettings() ([]schemas.SettingInfo, error) {
 	// Get all settings from schema
 	schemaSettings := s.parser.GetAllSettingsWithInfo()
 
-	// Enhance with current values
+	// Read config file once to avoid re-parsing for every setting
+	allValues, err := s.editor.GetAllValues()
+	if err != nil {
+		// If we can't read the config, return settings without current values
+		return schemaSettings, nil
+	}
+
+	// Enhance with current values by looking up in the in-memory map
 	for i := range schemaSettings {
-		currentValue, err := s.editor.GetValue(schemaSettings[i].Path)
-		if err == nil && currentValue != nil {
+		currentValue := lookupValueByPath(allValues, schemaSettings[i].Path)
+		if currentValue != nil {
 			schemaSettings[i].CurrentValue = currentValue
 			schemaSettings[i].IsSet = true
 		} else {
@@ -239,4 +246,70 @@ func (s *StarshipTool) ListAllSettings() ([]schemas.SettingInfo, error) {
 	}
 
 	return schemaSettings, nil
+}
+
+// lookupValueByPath traverses a nested map using a dotted path to find a value
+func lookupValueByPath(data map[string]any, path string) any {
+	if path == "" {
+		return nil
+	}
+
+	parts := splitPath(path)
+	current := data
+
+	for i, part := range parts {
+		value, exists := current[part]
+		if !exists {
+			return nil
+		}
+
+		// If this is the last part, return the value
+		if i == len(parts)-1 {
+			return value
+		}
+
+		// Otherwise, expect a nested map and continue traversing
+		nestedMap, ok := value.(map[string]any)
+		if !ok {
+			return nil
+		}
+		current = nestedMap
+	}
+
+	return nil
+}
+
+// splitPath splits a dotted path into parts, handling quoted segments
+func splitPath(path string) []string {
+	if path == "" {
+		return nil
+	}
+
+	var parts []string
+	var current []rune
+	inQuotes := false
+
+	for _, ch := range path {
+		switch ch {
+		case '"':
+			inQuotes = !inQuotes
+		case '.':
+			if !inQuotes {
+				if len(current) > 0 {
+					parts = append(parts, string(current))
+					current = nil
+				}
+			} else {
+				current = append(current, ch)
+			}
+		default:
+			current = append(current, ch)
+		}
+	}
+
+	if len(current) > 0 {
+		parts = append(parts, string(current))
+	}
+
+	return parts
 }
