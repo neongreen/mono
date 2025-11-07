@@ -1,0 +1,4676 @@
+[
+  {
+    "file_path": "dissect/cmd/internal/testutils/contains_func.go",
+    "package": "testutils",
+    "symbols": [
+      {
+        "name": "ContainsFunc",
+        "kind": "func",
+        "doc": "ContainsFunc checks if a function exists in code",
+        "line": 4
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/internal/testutils/contains_string.go",
+    "package": "testutils",
+    "symbols": [
+      {
+        "name": "ContainsString",
+        "kind": "func",
+        "doc": "ContainsString checks if a string contains a substring",
+        "line": 4
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/internal/testutils/find_substring.go",
+    "package": "testutils",
+    "symbols": [
+      {
+        "name": "FindSubstring",
+        "kind": "func",
+        "doc": "FindSubstring checks if a substring exists in a string",
+        "line": 4
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/list.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "Symbol",
+        "kind": "type",
+        "doc": "Symbol represents a Go symbol with its documentation",
+        "line": 19
+      },
+      {
+        "name": "FileSymbols",
+        "kind": "type",
+        "doc": "FileSymbols represents all symbols in a single file",
+        "line": 27
+      },
+      {
+        "name": "listCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 33
+      },
+      {
+        "name": "extractFileSymbols",
+        "kind": "func",
+        "doc": "extractFileSymbols extracts all symbols from a Go file",
+        "line": 119
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/main.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "rootCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 17
+      },
+      {
+        "name": "explodeCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 24
+      },
+      {
+        "name": "initLogging",
+        "kind": "func",
+        "doc": "",
+        "line": 131
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 160
+      },
+      {
+        "name": "main",
+        "kind": "func",
+        "doc": "",
+        "line": 167
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/main_test.go",
+    "package": "main_test",
+    "symbols": [
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "Run this to init logging",
+        "line": 22
+      },
+      {
+        "name": "setupTools",
+        "kind": "func",
+        "doc": "setupTools ensures gopls and goimports are installed and returns their paths.\nThis is a test helper that mimics production code behavior.",
+        "line": 29
+      },
+      {
+        "name": "testFiles",
+        "kind": "type",
+        "doc": "testFiles represents the structure of our TOML test files.",
+        "line": 47
+      },
+      {
+        "name": "loadTestFilesFromTOML",
+        "kind": "func",
+        "doc": "loadTestFilesFromTOML reads a TOML file, parses it, and returns a testFiles struct.",
+        "line": 53
+      },
+      {
+        "name": "runDissectIntegrationTest",
+        "kind": "func",
+        "doc": "",
+        "line": 67
+      },
+      {
+        "name": "TestAllDissectIntegration",
+        "kind": "func",
+        "doc": "",
+        "line": 228
+      },
+      {
+        "name": "TestExternalProjects",
+        "kind": "func",
+        "doc": "TestExternalProjects tests dissect on real external Go projects.\nThis test suite runs dissect on multiple predefined projects and validates correctness.",
+        "line": 258
+      },
+      {
+        "name": "findRepoRoot",
+        "kind": "func",
+        "doc": "",
+        "line": 307
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "moveCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 33
+      },
+      {
+        "name": "batchMode",
+        "kind": "var",
+        "doc": "",
+        "line": 101
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 103
+      },
+      {
+        "name": "runMove",
+        "kind": "func",
+        "doc": "",
+        "line": 107
+      },
+      {
+        "name": "findMatchingIdentifiers",
+        "kind": "func",
+        "doc": "findMatchingIdentifiers finds all declaration names (functions, types, interfaces, etc.) in a file that match any of the given patterns",
+        "line": 367
+      },
+      {
+        "name": "moveIdentifier",
+        "kind": "func",
+        "doc": "moveIdentifier moves a single identifier from source to target file using AST operations",
+        "line": 426
+      },
+      {
+        "name": "moveFunctionWithGopls",
+        "kind": "func",
+        "doc": "moveFunctionWithGopls moves a function using gopls's extract refactoring",
+        "line": 474
+      },
+      {
+        "name": "moveDeclarationManually",
+        "kind": "func",
+        "doc": "moveDeclarationManually moves a non-function declaration (type, interface, const, var) manually\nusing AST manipulation. This approach is used because gopls doesn't offer code actions for\nthese declaration types. Uses goimports for import management.\nSee DESIGN.md for detailed explanation and known limitations.",
+        "line": 567
+      },
+      {
+        "name": "runBatchMove",
+        "kind": "func",
+        "doc": "runBatchMove handles batch mode: multiple files moved atomically with arrow syntax",
+        "line": 658
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_ast_requirements_test.go",
+    "package": "main_test",
+    "symbols": [
+      {
+        "name": "TestMoveWithDifferentFormatting",
+        "kind": "func",
+        "doc": "",
+        "line": 20
+      },
+      {
+        "name": "TestMoveWithBuildTags",
+        "kind": "func",
+        "doc": "",
+        "line": 95
+      },
+      {
+        "name": "TestMoveWithUnicodeComments",
+        "kind": "func",
+        "doc": "",
+        "line": 172
+      },
+      {
+        "name": "TestMoveWithComplexCommentPatterns",
+        "kind": "func",
+        "doc": "",
+        "line": 261
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_batch_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestBatchMove_WithPackageNameCollision",
+        "kind": "func",
+        "doc": "TestBatchMove_WithPackageNameCollision tests the tk scenario where\nthe target package name conflicts with a variable name",
+        "line": 13
+      },
+      {
+        "name": "buildDissectBinary",
+        "kind": "func",
+        "doc": "createTempModule creates a temporary Go module for testing\nbuildDissectBinary builds the dissect binary for testing and returns its path",
+        "line": 110
+      },
+      {
+        "name": "createTempModuleForBatch",
+        "kind": "func",
+        "doc": "",
+        "line": 121
+      },
+      {
+        "name": "createFileForBatch",
+        "kind": "func",
+        "doc": "createFile creates a file with the given content",
+        "line": 137
+      },
+      {
+        "name": "TestBatchMove_BasicDirectory",
+        "kind": "func",
+        "doc": "TestBatchMove_BasicDirectory tests moving multiple files to a directory",
+        "line": 148
+      },
+      {
+        "name": "TestBatchMove_FileRename",
+        "kind": "func",
+        "doc": "TestBatchMove_FileRename tests renaming a single file",
+        "line": 214
+      },
+      {
+        "name": "TestBatchMove_MultipleGroups",
+        "kind": "func",
+        "doc": "TestBatchMove_MultipleGroups tests multiple groups in one command",
+        "line": 263
+      },
+      {
+        "name": "TestBatchMove_WithMutualReferences",
+        "kind": "func",
+        "doc": "TestBatchMove_WithMutualReferences tests files that reference each other",
+        "line": 329
+      },
+      {
+        "name": "TestBatchMove_GlobExpansion",
+        "kind": "func",
+        "doc": "TestBatchMove_GlobExpansion tests using glob patterns in sources",
+        "line": 382
+      },
+      {
+        "name": "TestBatchMove_Rollback_SourceNotFound",
+        "kind": "func",
+        "doc": "TestBatchMove_Rollback_SourceNotFound tests validation failure",
+        "line": 433
+      },
+      {
+        "name": "TestBatchMove_Rollback_MultipleToFile",
+        "kind": "func",
+        "doc": "TestBatchMove_Rollback_MultipleToFile tests validation failure for multiple sources to file",
+        "line": 453
+      },
+      {
+        "name": "TestBatchMove_UpdatesSymbolReferences",
+        "kind": "func",
+        "doc": "TestBatchMove_PreservesComments tests that comments are preserved",
+        "line": 486
+      },
+      {
+        "name": "TestBatchMove_PreservesComments",
+        "kind": "func",
+        "doc": "",
+        "line": 555
+      },
+      {
+        "name": "TestBatchMove_UnexportedSymbolError",
+        "kind": "func",
+        "doc": "",
+        "line": 601
+      },
+      {
+        "name": "TestBatchMove_UnexportedFieldError",
+        "kind": "func",
+        "doc": "",
+        "line": 657
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_command_test.go",
+    "package": "main_test",
+    "symbols": [
+      {
+        "name": "TestMoveCommand",
+        "kind": "func",
+        "doc": "",
+        "line": 12
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_command_with_comments_test.go",
+    "package": "main_test",
+    "symbols": [
+      {
+        "name": "TestMoveCommandWithComments",
+        "kind": "func",
+        "doc": "",
+        "line": 12
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_edge_cases_test.go",
+    "package": "main_test",
+    "symbols": [
+      {
+        "name": "TestMoveEdgeCases",
+        "kind": "func",
+        "doc": "TestMoveEdgeCases tests edge cases and potential issues with moving declarations",
+        "line": 13
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_file_integration_basic_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestMoveFileMultipleImporters",
+        "kind": "func",
+        "doc": "TestMoveFileMultipleImporters verifies that when a file is moved,\nall files that import it are updated correctly",
+        "line": 13
+      },
+      {
+        "name": "TestMoveFileRenameInPlace",
+        "kind": "func",
+        "doc": "TestMoveFileRenameInPlace verifies renaming a file in the same directory",
+        "line": 186
+      },
+      {
+        "name": "TestMoveFileCreateTargetDir",
+        "kind": "func",
+        "doc": "TestMoveFileCreateTargetDir verifies that target directories are created automatically",
+        "line": 274
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_file_integration_content_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestMoveFileMixedDeclarations",
+        "kind": "func",
+        "doc": "TestMoveFileMixedDeclarations verifies that files with mixed declaration types are handled correctly",
+        "line": 12
+      },
+      {
+        "name": "TestMoveFilePreservesComments",
+        "kind": "func",
+        "doc": "TestMoveFilePreservesComments verifies that all comments are preserved when moving files",
+        "line": 162
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_file_integration_imports_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestMoveFileDeeplyNested",
+        "kind": "func",
+        "doc": "TestMoveFileDeeplyNested verifies moving files between deeply nested directories",
+        "line": 12
+      },
+      {
+        "name": "TestMoveFileComplexImports",
+        "kind": "func",
+        "doc": "TestMoveFileComplexImports verifies that complex import patterns are handled correctly",
+        "line": 119
+      },
+      {
+        "name": "TestMoveFileWithCrossPackageDeps",
+        "kind": "func",
+        "doc": "TestMoveFileWithCrossPackageDeps verifies that transitive dependencies are handled correctly",
+        "line": 275
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_file_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestMoveFile",
+        "kind": "func",
+        "doc": "TestMoveFile tests basic file moving/renaming functionality",
+        "line": 14
+      },
+      {
+        "name": "TestMoveFileToSubdirectory",
+        "kind": "func",
+        "doc": "TestMoveFileToSubdirectory tests moving a file to a subdirectory (package should change)",
+        "line": 81
+      },
+      {
+        "name": "TestMoveFileWithImportUpdates",
+        "kind": "func",
+        "doc": "TestMoveFileWithImportUpdates tests that imports are updated when moving files between packages",
+        "line": 148
+      },
+      {
+        "name": "TestMoveFileSamePackageToSubdirectory",
+        "kind": "func",
+        "doc": "TestMoveFileSamePackageToSubdirectory tests moving a file within the same package to a subdirectory\nThis should break references from sibling files that use the moved definitions",
+        "line": 250
+      },
+      {
+        "name": "TestMoveFileBlocksOnUnexportedFuncDeps",
+        "kind": "func",
+        "doc": "TestMoveFileBlocksOnUnexportedFuncDeps tests that moving a file with unexported function dependencies is blocked",
+        "line": 364
+      },
+      {
+        "name": "TestMoveFileBlocksOnUnexportedVarDeps",
+        "kind": "func",
+        "doc": "TestMoveFileBlocksOnUnexportedVarDeps tests that moving a file with unexported variable dependencies is blocked",
+        "line": 439
+      },
+      {
+        "name": "TestMoveFileBlocksOnUnexportedTypeDeps",
+        "kind": "func",
+        "doc": "TestMoveFileBlocksOnUnexportedTypeDeps tests that moving a file with unexported type dependencies is blocked",
+        "line": 503
+      },
+      {
+        "name": "TestMoveFileBlocksOnUnexportedFieldDeps",
+        "kind": "func",
+        "doc": "TestMoveFileBlocksOnUnexportedFieldDeps tests that moving a file with unexported field dependencies is blocked",
+        "line": 567
+      },
+      {
+        "name": "TestMoveFileAllowsExportedDeps",
+        "kind": "func",
+        "doc": "TestMoveFileAllowsExportedDeps tests that moving a file with only exported dependencies succeeds",
+        "line": 635
+      },
+      {
+        "name": "TestMoveFileBlocksOnMultipleUnexportedDeps",
+        "kind": "func",
+        "doc": "TestMoveFileBlocksOnMultipleUnexportedDeps tests error lists multiple dependencies",
+        "line": 711
+      },
+      {
+        "name": "TestMoveFileWithinSamePackageIgnoresDeps",
+        "kind": "func",
+        "doc": "TestMoveFileWithinSamePackageIgnoresDeps tests that moves within same package succeed",
+        "line": 773
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_fileset_bug_test.go",
+    "package": "main_test",
+    "symbols": [
+      {
+        "name": "TestMoveToFileWithExistingContent",
+        "kind": "func",
+        "doc": "TestMoveToFileWithExistingContent tests moving a function to a file that already has content.\nThis is the critical test case that exposes the FileSet bug: when targetNode has existing\ndeclarations with position info from targetFset, but we write using tempFset, it can cause\npanics or corrupt formatting.",
+        "line": 16
+      },
+      {
+        "name": "TestMoveMultipleFunctionsToExistingFile",
+        "kind": "func",
+        "doc": "TestMoveMultipleFunctionsToExistingFile tests moving multiple functions sequentially\nto a file with existing content. This stresses the FileSet handling.",
+        "line": 132
+      },
+      {
+        "name": "TestMoveWithComplexExistingImports",
+        "kind": "func",
+        "doc": "TestMoveWithComplexExistingImports tests that existing imports in the target file\nare preserved correctly even with different FileSets",
+        "line": 260
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_rename_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestMoveWithRenameToSameFile",
+        "kind": "func",
+        "doc": "",
+        "line": 12
+      },
+      {
+        "name": "TestMoveWithRenameToNewFile",
+        "kind": "func",
+        "doc": "",
+        "line": 54
+      },
+      {
+        "name": "TestMoveWithoutRename",
+        "kind": "func",
+        "doc": "",
+        "line": 85
+      },
+      {
+        "name": "TestRenameExport",
+        "kind": "func",
+        "doc": "",
+        "line": 128
+      },
+      {
+        "name": "TestRenameUnexport",
+        "kind": "func",
+        "doc": "",
+        "line": 165
+      },
+      {
+        "name": "TestFileMoveSamePackageToSubdirectory",
+        "kind": "func",
+        "doc": "",
+        "line": 202
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/move_types_test.go",
+    "package": "main_test",
+    "symbols": [
+      {
+        "name": "TestMoveTypes",
+        "kind": "func",
+        "doc": "",
+        "line": 12
+      },
+      {
+        "name": "TestMoveConstAndVar",
+        "kind": "func",
+        "doc": "",
+        "line": 221
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/process_file.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "RefactorStatus",
+        "kind": "type",
+        "doc": "",
+        "line": 18
+      },
+      {
+        "name": "NothingToDo",
+        "kind": "const",
+        "doc": "",
+        "line": 21
+      },
+      {
+        "name": "Refactored",
+        "kind": "const",
+        "doc": "",
+        "line": 22
+      },
+      {
+        "name": "Skipped",
+        "kind": "const",
+        "doc": "",
+        "line": 23
+      },
+      {
+        "name": "Failed",
+        "kind": "const",
+        "doc": "",
+        "line": 24
+      },
+      {
+        "name": "ProcessFile",
+        "kind": "func",
+        "doc": "Extract functions from the given file and move them to new files.",
+        "line": 28
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/smoke-test/main.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "main",
+        "kind": "func",
+        "doc": "",
+        "line": 15
+      },
+      {
+        "name": "runSmokeTest",
+        "kind": "func",
+        "doc": "runSmokeTest runs the external test without *testing.T",
+        "line": 118
+      },
+      {
+        "name": "mockLogger",
+        "kind": "type",
+        "doc": "mockLogger is a minimal implementation of Logger for non-test usage",
+        "line": 137
+      },
+      {
+        "name": "Helper",
+        "kind": "method",
+        "doc": "",
+        "line": 139
+      },
+      {
+        "name": "Fatalf",
+        "kind": "method",
+        "doc": "",
+        "line": 140
+      },
+      {
+        "name": "Logf",
+        "kind": "method",
+        "doc": "",
+        "line": 144
+      },
+      {
+        "name": "extractProjectName",
+        "kind": "func",
+        "doc": "extractProjectName extracts a project name from a git URL",
+        "line": 147
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/util_cwd_rel_path.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "cwdRelPath",
+        "kind": "func",
+        "doc": "cwdRelPath returns the relative path of the given file from the current working directory.\nWe use it to log the file paths in a more readable way.",
+        "line": 11
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/cmd/version.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 7
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/find_go_files.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "GoListPackage",
+        "kind": "type",
+        "doc": "GoListPackage represents a single package entry from `go list -json` output.",
+        "line": 12
+      },
+      {
+        "name": "FindGoFiles",
+        "kind": "func",
+        "doc": "Find all Go files in the project",
+        "line": 18
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/find_go_module_root.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "FindGoModuleRoot",
+        "kind": "func",
+        "doc": "FindGoModuleRoot finds the Go module root by running 'go env GOMOD'.",
+        "line": 10
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/get_full_import_path.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "GetFullImportPath",
+        "kind": "func",
+        "doc": "GetFullImportPath returns the full import path for a given file path.",
+        "line": 8
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/get_module_name.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "GetModuleName",
+        "kind": "func",
+        "doc": "GetModuleName returns the module name from go.mod",
+        "line": 10
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/run_command.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "RunCommand",
+        "kind": "func",
+        "doc": "RunCommand executes a shell command and captures stdout/stderr.",
+        "line": 12
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/run_go_build.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "RunGoBuild",
+        "kind": "func",
+        "doc": "RunGoBuild runs 'go build -o /dev/null ./...' in the specified working directory.",
+        "line": 8
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/run_go_command.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "RunGoCommand",
+        "kind": "func",
+        "doc": "RunGoCommand executes a 'go' subcommand and captures stdout/stderr.",
+        "line": 8
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/run_go_list_no_args.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "RunGoListNoArgs",
+        "kind": "func",
+        "doc": "RunGoListNoArgs runs 'go list' in the specified working directory.",
+        "line": 9
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/run_go_mod_tidy.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "RunGoModTidy",
+        "kind": "func",
+        "doc": "RunGoModTidy runs 'go mod tidy' in the specified working directory.",
+        "line": 8
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/run_goimports_on_directory.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "RunGoimportsOnDirectory",
+        "kind": "func",
+        "doc": "runGoimportsOnDirectory runs goimports on all Go files in a given directory.",
+        "line": 11
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/commands/run_goimports_on_file.go",
+    "package": "commands",
+    "symbols": [
+      {
+        "name": "RunGoimportsOnFile",
+        "kind": "func",
+        "doc": "RunGoimportsOnFile runs goimports on a single file",
+        "line": 9
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/dependencies/manager.go",
+    "package": "dependencies",
+    "symbols": [
+      {
+        "name": "Manager",
+        "kind": "type",
+        "doc": "Manager handles finding and installing gopls and goimports",
+        "line": 14
+      },
+      {
+        "name": "NewManager",
+        "kind": "func",
+        "doc": "NewManager creates a dependency manager for a project",
+        "line": 21
+      },
+      {
+        "name": "EnsureGopls",
+        "kind": "method",
+        "doc": "EnsureGopls finds or installs gopls, returns path",
+        "line": 28
+      },
+      {
+        "name": "EnsureGoimports",
+        "kind": "method",
+        "doc": "EnsureGoimports finds or installs goimports, returns path",
+        "line": 43
+      },
+      {
+        "name": "findOrInstall",
+        "kind": "method",
+        "doc": "findOrInstall is the core logic for finding or installing a Go tool",
+        "line": 58
+      },
+      {
+        "name": "getGOBIN",
+        "kind": "method",
+        "doc": "getGOBIN returns the GOBIN directory for the project",
+        "line": 107
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/externaltest/externaltest.go",
+    "package": "externaltest",
+    "symbols": [
+      {
+        "name": "ProcessFileFunc",
+        "kind": "type",
+        "doc": "ProcessFileFunc is the signature for the function that processes a file",
+        "line": 16
+      },
+      {
+        "name": "ProjectConfig",
+        "kind": "type",
+        "doc": "ProjectConfig defines configuration for testing an external project",
+        "line": 19
+      },
+      {
+        "name": "TestResult",
+        "kind": "type",
+        "doc": "TestResult contains the results of running dissect on an external project",
+        "line": 28
+      },
+      {
+        "name": "Logger",
+        "kind": "type",
+        "doc": "Logger interface for testing",
+        "line": 40
+      },
+      {
+        "name": "RunExternalProjectTest",
+        "kind": "func",
+        "doc": "RunExternalProjectTest clones a project, runs dissect, and validates the results",
+        "line": 47
+      },
+      {
+        "name": "countGoFiles",
+        "kind": "func",
+        "doc": "countGoFiles counts the number of .go files in a directory",
+        "line": 267
+      },
+      {
+        "name": "findNewGoFiles",
+        "kind": "func",
+        "doc": "findNewGoFiles finds newly created .go files (unstaged in git)",
+        "line": 282
+      },
+      {
+        "name": "sanitizeName",
+        "kind": "func",
+        "doc": "sanitizeName removes special characters from a name for use in filenames",
+        "line": 300
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/externaltest/projects.go",
+    "package": "externaltest",
+    "symbols": [
+      {
+        "name": "KnownProjects",
+        "kind": "var",
+        "doc": "KnownProjects contains predefined external projects for testing",
+        "line": 4
+      },
+      {
+        "name": "GetProject",
+        "kind": "func",
+        "doc": "GetProject returns a project configuration by name",
+        "line": 20
+      },
+      {
+        "name": "GetProjectNames",
+        "kind": "func",
+        "doc": "GetProjectNames returns all available project names",
+        "line": 26
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/gopls/add_dot_import.go",
+    "package": "gopls",
+    "symbols": [
+      {
+        "name": "AddDotImport",
+        "kind": "func",
+        "doc": "AddDotImport adds a dot import to the given file.",
+        "line": 13
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/gopls/add_import.go",
+    "package": "gopls",
+    "symbols": [
+      {
+        "name": "AddImport",
+        "kind": "func",
+        "doc": "AddImport executes the `gopls.add_import` command.\nIt adds an import to the given file.\n\nParameters:\n  - goplsPath: Path to the gopls binary\n  - filePath: Relative or absolute file path to the Go file where the import should be added.",
+        "line": 17
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/gopls/extract_to_new_file.go",
+    "package": "gopls",
+    "symbols": [
+      {
+        "name": "ExtractToNewFile",
+        "kind": "func",
+        "doc": "ExtractToNewFile executes the gopls refactor.extract.toNewFile command.\nIt extracts a function from the given file and creates a new file for it.",
+        "line": 16
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/gopls/guess_extracted_file_name.go",
+    "package": "gopls",
+    "symbols": [
+      {
+        "name": "GuessGoplsExtractedFileName",
+        "kind": "func",
+        "doc": "GuessGoplsExtractedFileName guesses the file name that gopls would use for the extracted function.\n\nTODO(gopls): reuse the guesser from gotools/gopls/internal/golang/extracttofile.go",
+        "line": 10
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/gopls/rename.go",
+    "package": "gopls",
+    "symbols": [
+      {
+        "name": "Rename",
+        "kind": "func",
+        "doc": "Rename renames a symbol in a Go file using gopls.\nIt finds the symbol's position and uses gopls rename to update all references.",
+        "line": 15
+      },
+      {
+        "name": "findSymbolOffset",
+        "kind": "func",
+        "doc": "findSymbolOffset finds the byte offset of a symbol's definition in a file.\nThis is used to provide gopls with the precise location for renaming.",
+        "line": 46
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/gopls/rename_test.go",
+    "package": "gopls",
+    "symbols": [
+      {
+        "name": "setupGopls",
+        "kind": "func",
+        "doc": "setupGopls ensures gopls is installed and returns its path.\nThis is a test helper that mimics production code behavior.",
+        "line": 14
+      },
+      {
+        "name": "TestRenameFunction",
+        "kind": "func",
+        "doc": "",
+        "line": 24
+      },
+      {
+        "name": "TestRenameType",
+        "kind": "func",
+        "doc": "",
+        "line": 73
+      },
+      {
+        "name": "TestRenameVariable",
+        "kind": "func",
+        "doc": "",
+        "line": 117
+      },
+      {
+        "name": "TestRenameMethod",
+        "kind": "func",
+        "doc": "",
+        "line": 156
+      },
+      {
+        "name": "TestRenameInvalid",
+        "kind": "func",
+        "doc": "",
+        "line": 203
+      },
+      {
+        "name": "TestRenameExport",
+        "kind": "func",
+        "doc": "",
+        "line": 228
+      },
+      {
+        "name": "TestRenameUnexport",
+        "kind": "func",
+        "doc": "",
+        "line": 270
+      },
+      {
+        "name": "TestRenameEmptyName",
+        "kind": "func",
+        "doc": "",
+        "line": 312
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/find_func.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "FindFunc",
+        "kind": "func",
+        "doc": "FindFunc finds a function in a Go file by its name.",
+        "line": 10
+      },
+      {
+        "name": "FindDecl",
+        "kind": "func",
+        "doc": "FindDecl finds any top-level declaration (function, type, interface, const, var) in a Go file by its name.\nReturns the FileSet, the declaration node, and any error.\nThis function is used by the move command to locate declarations for AST-based moving.\nSee DESIGN.md for implementation details.",
+        "line": 28
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/get_package_declaration.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "GetPackageDeclaration",
+        "kind": "func",
+        "doc": "getPackageDeclaration reads a Go file and extracts its package declaration.",
+        "line": 8
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/get_receiver_type_name.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "GetReceiverTypeName",
+        "kind": "func",
+        "doc": "For functions that are methods, get the name of the type it's a method of.\nOtherwise, return an empty string.",
+        "line": 7
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/is_test_file.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "IsTestFile",
+        "kind": "func",
+        "doc": "isTestFile determines if a given file path corresponds to a Go test file.",
+        "line": 8
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/is_test_function.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "IsTestFunction",
+        "kind": "func",
+        "doc": "Check if the function name starts with \"Test\", is exported, and is not a method.\nIf yes, return the function name without the \"Test\" prefix.\nIf not, return an empty string.",
+        "line": 12
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/normalize_imports.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "NormalizeImports",
+        "kind": "func",
+        "doc": "NormalizeImports takes Go source code as a string, parses it,\nensures all imports are grouped and parenthesized, sorts them,\nand returns the normalized code.",
+        "line": 16
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/normalize_imports_test.go",
+    "package": "goutils_test",
+    "symbols": [
+      {
+        "name": "TestNormalizeImports",
+        "kind": "func",
+        "doc": "",
+        "line": 9
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/read_go_file.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "ReadGoFile",
+        "kind": "func",
+        "doc": "ReadGoFile reads a Go file and parses it into an AST.",
+        "line": 11
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/should_refactor.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "ShouldRefactor",
+        "kind": "func",
+        "doc": "ShouldRefactor checks if a Go file contains only function, type, and import declarations,\ndoes not contain an init function, and isn't excluded by special comments.",
+        "line": 14
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/update_package_declaration.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "UpdatePackageDeclaration",
+        "kind": "func",
+        "doc": "updatePackageDeclaration reads a Go file, changes its package declaration in the AST, and writes it back.",
+        "line": 8
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/goutils/write_go_file.go",
+    "package": "goutils",
+    "symbols": [
+      {
+        "name": "WriteGoFile",
+        "kind": "func",
+        "doc": "WriteGoFile writes an AST back to a Go file, formatting it.",
+        "line": 12
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/parser/batch_move.go",
+    "package": "parser",
+    "symbols": [
+      {
+        "name": "MoveGroup",
+        "kind": "type",
+        "doc": "MoveGroup represents a group of source files to be moved to a target",
+        "line": 10
+      },
+      {
+        "name": "ParseBatchMoveArg",
+        "kind": "func",
+        "doc": "ParseBatchMoveArg parses a single arrow syntax argument like \"a.go,b.go -\u003e target/\"",
+        "line": 16
+      },
+      {
+        "name": "ExpandGlobs",
+        "kind": "func",
+        "doc": "ExpandGlobs expands glob patterns in source files",
+        "line": 57
+      },
+      {
+        "name": "IsDirectory",
+        "kind": "func",
+        "doc": "IsDirectory returns true if the target should be treated as a directory",
+        "line": 106
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/parser/batch_move_test.go",
+    "package": "parser",
+    "symbols": [
+      {
+        "name": "TestParseBatchMoveArg",
+        "kind": "func",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "TestParseBatchMoveArg_Errors",
+        "kind": "func",
+        "doc": "",
+        "line": 89
+      },
+      {
+        "name": "TestExpandGlobs",
+        "kind": "func",
+        "doc": "",
+        "line": 139
+      },
+      {
+        "name": "TestIsDirectory",
+        "kind": "func",
+        "doc": "",
+        "line": 227
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/parser/filespec.go",
+    "package": "parser",
+    "symbols": [
+      {
+        "name": "FileSpec",
+        "kind": "type",
+        "doc": "FileSpec represents a parsed file specification in the format \"file.go:identifier\"",
+        "line": 9
+      },
+      {
+        "name": "ParseFileSpec",
+        "kind": "func",
+        "doc": "ParseFileSpec parses a file specification string in the format:\n  - \"file.go\" -\u003e FileSpec{FilePath: \"file.go\", Identifier: \"\"}\n  - \"file.go:Foo\" -\u003e FileSpec{FilePath: \"file.go\", Identifier: \"Foo\"}\n  - \"path/to/file.go:MyFunc\" -\u003e FileSpec{FilePath: \"path/to/file.go\", Identifier: \"MyFunc\"}\n\nReturns an error if the format is invalid (e.g., empty string, only colon, etc.)",
+        "line": 22
+      },
+      {
+        "name": "String",
+        "kind": "method",
+        "doc": "String returns the string representation of the FileSpec",
+        "line": 51
+      },
+      {
+        "name": "HasIdentifier",
+        "kind": "method",
+        "doc": "HasIdentifier returns true if an identifier is specified",
+        "line": 59
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/parser/filespec_test.go",
+    "package": "parser",
+    "symbols": [
+      {
+        "name": "TestParseFileSpec",
+        "kind": "func",
+        "doc": "",
+        "line": 7
+      },
+      {
+        "name": "TestFileSpec_String",
+        "kind": "func",
+        "doc": "",
+        "line": 138
+      },
+      {
+        "name": "TestFileSpec_HasIdentifier",
+        "kind": "func",
+        "doc": "",
+        "line": 171
+      },
+      {
+        "name": "TestParseFileSpec_MultipleColons",
+        "kind": "func",
+        "doc": "",
+        "line": 199
+      },
+      {
+        "name": "contains",
+        "kind": "func",
+        "doc": "Helper function",
+        "line": 218
+      },
+      {
+        "name": "findSubstr",
+        "kind": "func",
+        "doc": "",
+        "line": 224
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/qualify/rewrite.go",
+    "package": "qualify",
+    "symbols": [
+      {
+        "name": "QualifyReferences",
+        "kind": "func",
+        "doc": "QualifyReferences adds package qualifier to unqualified references.\nIt also adds the import if missing.",
+        "line": 20
+      },
+      {
+        "name": "CollectIdentifiers",
+        "kind": "func",
+        "doc": "CollectIdentifiers collects all declared identifiers in a Go file.\nThis includes variables, functions, types, consts, parameters, and receivers.",
+        "line": 227
+      },
+      {
+        "name": "generateImportAlias",
+        "kind": "func",
+        "doc": "generateImportAlias generates a unique import alias that doesn't collide with existing identifiers.\nStrategy: try pkgName, then pkgName_pkg, then pkgName_pkg_, pkgName_pkg__, etc.",
+        "line": 302
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/qualify/rewrite_test.go",
+    "package": "qualify",
+    "symbols": [
+      {
+        "name": "TestQualifyReferences_SingleReference",
+        "kind": "func",
+        "doc": "",
+        "line": 15
+      },
+      {
+        "name": "TestQualifyReferences_MultipleReferences",
+        "kind": "func",
+        "doc": "",
+        "line": 65
+      },
+      {
+        "name": "TestQualifyReferences_AddsImport",
+        "kind": "func",
+        "doc": "",
+        "line": 117
+      },
+      {
+        "name": "TestQualifyReferences_ImportAlreadyExists",
+        "kind": "func",
+        "doc": "",
+        "line": 161
+      },
+      {
+        "name": "TestQualifyReferences_QualifiedReferencesIgnored",
+        "kind": "func",
+        "doc": "",
+        "line": 216
+      },
+      {
+        "name": "TestQualifyReferences_DifferentSymbols",
+        "kind": "func",
+        "doc": "",
+        "line": 263
+      },
+      {
+        "name": "TestQualifyReferences_InFunctionCall",
+        "kind": "func",
+        "doc": "",
+        "line": 309
+      },
+      {
+        "name": "TestQualifyReferences_InStructLiteral",
+        "kind": "func",
+        "doc": "",
+        "line": 349
+      },
+      {
+        "name": "TestQualifyReferences_InTypeAssertion",
+        "kind": "func",
+        "doc": "",
+        "line": 393
+      },
+      {
+        "name": "TestQualifyReferences_InVariableDecl",
+        "kind": "func",
+        "doc": "",
+        "line": 436
+      },
+      {
+        "name": "TestQualifyReferences_PreservesFormatting",
+        "kind": "func",
+        "doc": "",
+        "line": 476
+      },
+      {
+        "name": "TestQualifyReferences_PreservesComments",
+        "kind": "func",
+        "doc": "",
+        "line": 520
+      },
+      {
+        "name": "TestQualifyReferences_EmptyReferences",
+        "kind": "func",
+        "doc": "",
+        "line": 562
+      },
+      {
+        "name": "TestQualifyReferences_BuildsAfter",
+        "kind": "func",
+        "doc": "",
+        "line": 594
+      },
+      {
+        "name": "TestQualifyReferences_StructLiteralFieldNames",
+        "kind": "func",
+        "doc": "TestQualifyReferences_StructLiteralFieldNames tests that field names in struct\nliterals are NOT qualified, only the type names and values should be qualified.\nThis is a regression test for a bug where ProjectUID field name was becoming\ntypes.ProjectUID which is invalid Go syntax.",
+        "line": 669
+      },
+      {
+        "name": "TestQualifyReferences_PackageNameCollision",
+        "kind": "func",
+        "doc": "",
+        "line": 769
+      },
+      {
+        "name": "TestQualifyReferences_AliasCollision",
+        "kind": "func",
+        "doc": "",
+        "line": 873
+      },
+      {
+        "name": "TestQualifyReferences_MultipleCollisions",
+        "kind": "func",
+        "doc": "",
+        "line": 964
+      },
+      {
+        "name": "TestQualifyReferences_TypeReferencesInSignatures",
+        "kind": "func",
+        "doc": "",
+        "line": 1059
+      },
+      {
+        "name": "createTempModule",
+        "kind": "func",
+        "doc": "",
+        "line": 1170
+      },
+      {
+        "name": "createFile",
+        "kind": "func",
+        "doc": "",
+        "line": 1188
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/refactor/dependencies.go",
+    "package": "refactor",
+    "symbols": [
+      {
+        "name": "UnexportedDependency",
+        "kind": "type",
+        "doc": "UnexportedDependency represents an unexported symbol that a file depends on.",
+        "line": 17
+      },
+      {
+        "name": "analyzeMoveDependencies",
+        "kind": "func",
+        "doc": "analyzeMoveDependencies checks if the file being moved depends on unexported symbols\nfrom the source package. Returns the list of unexported symbols referenced.",
+        "line": 25
+      },
+      {
+        "name": "isUnexported",
+        "kind": "func",
+        "doc": "isUnexported returns true if the name starts with a lowercase letter.",
+        "line": 162
+      },
+      {
+        "name": "determineKind",
+        "kind": "func",
+        "doc": "determineKind determines the kind of an object (func, var, type, const, method).",
+        "line": 171
+      },
+      {
+        "name": "formatDependencyError",
+        "kind": "func",
+        "doc": "formatDependencyError creates a helpful error message for unexported dependencies.",
+        "line": 194
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/refactor/dependencies_test.go",
+    "package": "refactor",
+    "symbols": [
+      {
+        "name": "TestAnalyzeMoveDependenciesUnit",
+        "kind": "func",
+        "doc": "TestAnalyzeMoveDependenciesUnit tests the analyzeMoveDependencies function directly",
+        "line": 12
+      },
+      {
+        "name": "TestAnalyzeMoveDependenciesMultipleTypes",
+        "kind": "func",
+        "doc": "",
+        "line": 80
+      },
+      {
+        "name": "TestAnalyzeMoveDependenciesExportedIgnored",
+        "kind": "func",
+        "doc": "",
+        "line": 157
+      },
+      {
+        "name": "TestAnalyzeMoveDependenciesSelfReferencesIgnored",
+        "kind": "func",
+        "doc": "",
+        "line": 213
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/refactor/determine_extraction_target.go",
+    "package": "refactor",
+    "symbols": [
+      {
+        "name": "DetermineExtractionTarget",
+        "kind": "func",
+        "doc": "DetermineExtractionTarget determines where we'd like to extract the function to.",
+        "line": 14
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/refactor/move_file.go",
+    "package": "refactor",
+    "symbols": [
+      {
+        "name": "detectTargetPackage",
+        "kind": "func",
+        "doc": "detectTargetPackage returns the package name of existing Go files in targetDir.\nReturns empty string if the directory doesn't exist or contains no Go files.\nThis is used to detect if a file is being moved into an existing package directory.",
+        "line": 24
+      },
+      {
+        "name": "MoveFileWithImportUpdates",
+        "kind": "func",
+        "doc": "MoveFileWithImportUpdates performs a refactoring file move from source to target,\nupdating all import statements in the codebase that reference the old package path.",
+        "line": 73
+      },
+      {
+        "name": "updateImportInFile",
+        "kind": "func",
+        "doc": "updateImportInFile updates the import statement in a file from oldPath to newPath using AST operations.\nIt also updates all package qualifiers (selectors) that reference the old package.\nReturns true if the file was modified, false otherwise.",
+        "line": 367
+      },
+      {
+        "name": "getPackageNameFromPath",
+        "kind": "func",
+        "doc": "getPackageNameFromPath extracts the package name from an import path.\nFor example, \"github.com/user/repo/pkg/helper\" returns \"helper\"",
+        "line": 466
+      },
+      {
+        "name": "MoveOp",
+        "kind": "type",
+        "doc": "MoveOp represents a single file move operation",
+        "line": 481
+      },
+      {
+        "name": "MoveBatchFiles",
+        "kind": "func",
+        "doc": "MoveBatchFiles performs atomic batch file moves with refactoring support.\nAll files are moved together and import updates happen once for all files.",
+        "line": 488
+      },
+      {
+        "name": "validateBatchMoves",
+        "kind": "func",
+        "doc": "validateBatchMoves checks that all move operations are valid",
+        "line": 678
+      },
+      {
+        "name": "performPhysicalMove",
+        "kind": "func",
+        "doc": "performPhysicalMove moves a file from source to target, creating directories as needed",
+        "line": 726
+      },
+      {
+        "name": "rollbackMoves",
+        "kind": "func",
+        "doc": "rollbackMoves undoes all file moves",
+        "line": 742
+      },
+      {
+        "name": "getImportPathFromMovedFile",
+        "kind": "func",
+        "doc": "getImportPathFromMovedFile reconstructs the old import path from a moved file",
+        "line": 754
+      },
+      {
+        "name": "updateImportsForBatch",
+        "kind": "func",
+        "doc": "updateImportsForBatch updates all imports in the module based on path mappings",
+        "line": 771
+      },
+      {
+        "name": "updateReferencesToMovedSymbols",
+        "kind": "func",
+        "doc": "updateReferencesToMovedSymbols finds all references to moved symbols in the original package\nand updates them to use qualified references with the new package.",
+        "line": 806
+      },
+      {
+        "name": "UnexportedRef",
+        "kind": "type",
+        "doc": "UnexportedRef represents an unexported symbol being referenced from another package",
+        "line": 908
+      },
+      {
+        "name": "detectUnexportedExternalRefs",
+        "kind": "func",
+        "doc": "detectUnexportedExternalRefs detects unexported symbols that are referenced from other packages.\nThese would cause build failures after the move.",
+        "line": 916
+      },
+      {
+        "name": "buildUnexportedSymbolError",
+        "kind": "func",
+        "doc": "buildUnexportedSymbolError creates a user-friendly error message with copy-pasteable commands\nto fix unexported symbol issues.",
+        "line": 995
+      },
+      {
+        "name": "exportSymbolName",
+        "kind": "func",
+        "doc": "exportSymbolName capitalizes the first letter of a symbol name (or the last part if it's a field)",
+        "line": 1035
+      },
+      {
+        "name": "mapBasenames",
+        "kind": "func",
+        "doc": "mapBasenames converts a slice of file paths to their basenames",
+        "line": 1056
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/refactor/move_file_test.go",
+    "package": "refactor",
+    "symbols": [
+      {
+        "name": "TestMoveFileWithMultipleImporters",
+        "kind": "func",
+        "doc": "TestMoveFileWithMultipleImporters tests that imports are updated in multiple files",
+        "line": 10
+      },
+      {
+        "name": "TestMoveFileWithImportAlias",
+        "kind": "func",
+        "doc": "TestMoveFileWithImportAlias tests that files with import aliases are handled correctly",
+        "line": 134
+      },
+      {
+        "name": "TestMoveFileWithMultipleImportsInFile",
+        "kind": "func",
+        "doc": "TestMoveFileWithMultipleImportsInFile tests files that import multiple packages",
+        "line": 224
+      },
+      {
+        "name": "TestMoveFileDeeplyNested",
+        "kind": "func",
+        "doc": "TestMoveFileDeeplyNested tests moving files between deeply nested directories",
+        "line": 351
+      },
+      {
+        "name": "TestMoveFileNoImporters",
+        "kind": "func",
+        "doc": "TestMoveFileNoImporters tests moving a file that has no importers",
+        "line": 437
+      },
+      {
+        "name": "TestMoveFileSameDirectoryRename",
+        "kind": "func",
+        "doc": "TestMoveFileSameDirectoryRename tests renaming a file in the same directory",
+        "line": 488
+      },
+      {
+        "name": "TestMoveFileComplexSelectors",
+        "kind": "func",
+        "doc": "TestMoveFileComplexSelectors tests that complex selector expressions are updated",
+        "line": 540
+      },
+      {
+        "name": "contains",
+        "kind": "func",
+        "doc": "",
+        "line": 625
+      },
+      {
+        "name": "TestGetPackageNameFromPath",
+        "kind": "func",
+        "doc": "TestGetPackageNameFromPath tests the package name extraction function",
+        "line": 635
+      },
+      {
+        "name": "TestMoveFileUpdatesTestFileImports",
+        "kind": "func",
+        "doc": "TestMoveFileUpdatesTestFileImports tests that test files get import statements added\nwhen a file is moved to a new package. This is a regression test for a bug where\ntest files would get type qualifiers added (e.g., sync.Type) but not the import statement.",
+        "line": 661
+      },
+      {
+        "name": "TestMoveFile_MainToNamedPackage",
+        "kind": "func",
+        "doc": "TestMoveFile_MainToNamedPackage tests moving a file from package main\nto a directory that already contains files with a named package.\nThis should detect the target package and update the source file's package declaration.",
+        "line": 764
+      },
+      {
+        "name": "TestMoveFile_NamedToNamedPackage",
+        "kind": "func",
+        "doc": "TestMoveFile_NamedToNamedPackage tests moving a file from one named package\nto another named package directory. The package declaration should be updated.",
+        "line": 880
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/references/find.go",
+    "package": "references",
+    "symbols": [
+      {
+        "name": "Reference",
+        "kind": "type",
+        "doc": "Reference represents a use of a symbol.",
+        "line": 13
+      },
+      {
+        "name": "FindReferences",
+        "kind": "func",
+        "doc": "FindReferences finds all references to given symbols in packages.\nIt uses type information to accurately identify symbol references.\nIt tracks both simple identifiers and field/method accesses via selector expressions.",
+        "line": 24
+      },
+      {
+        "name": "buildSelectorPath",
+        "kind": "func",
+        "doc": "buildSelectorPath constructs the full selector path for a selector expression.\nFor example, \"db.data\" becomes \"DB.data\" if db has type *DB.",
+        "line": 115
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/references/find_test.go",
+    "package": "references",
+    "symbols": [
+      {
+        "name": "TestFindReferences_SingleUnqualified",
+        "kind": "func",
+        "doc": "",
+        "line": 12
+      },
+      {
+        "name": "TestFindReferences_MultipleUnqualified",
+        "kind": "func",
+        "doc": "",
+        "line": 53
+      },
+      {
+        "name": "TestFindReferences_QualifiedReference",
+        "kind": "func",
+        "doc": "",
+        "line": 85
+      },
+      {
+        "name": "TestFindReferences_MixedQualifiedUnqualified",
+        "kind": "func",
+        "doc": "",
+        "line": 141
+      },
+      {
+        "name": "TestFindReferences_MultipleSymbols",
+        "kind": "func",
+        "doc": "",
+        "line": 205
+      },
+      {
+        "name": "TestFindReferences_InFunctionBody",
+        "kind": "func",
+        "doc": "",
+        "line": 246
+      },
+      {
+        "name": "TestFindReferences_InStructField",
+        "kind": "func",
+        "doc": "",
+        "line": 277
+      },
+      {
+        "name": "TestFindReferences_InReturnType",
+        "kind": "func",
+        "doc": "",
+        "line": 305
+      },
+      {
+        "name": "TestFindReferences_InVariableDecl",
+        "kind": "func",
+        "doc": "",
+        "line": 334
+      },
+      {
+        "name": "TestFindReferences_NoReferences",
+        "kind": "func",
+        "doc": "",
+        "line": 360
+      },
+      {
+        "name": "TestFindReferences_MultipleFiles",
+        "kind": "func",
+        "doc": "",
+        "line": 388
+      },
+      {
+        "name": "TestFindReferences_IgnoreOtherPackages",
+        "kind": "func",
+        "doc": "",
+        "line": 434
+      },
+      {
+        "name": "TestFindReferences_LocalVariableSameName",
+        "kind": "func",
+        "doc": "",
+        "line": 486
+      },
+      {
+        "name": "TestFindReferences_FieldAccess",
+        "kind": "func",
+        "doc": "",
+        "line": 520
+      },
+      {
+        "name": "TestFindReferences_UnexportedFieldAccess",
+        "kind": "func",
+        "doc": "",
+        "line": 573
+      },
+      {
+        "name": "TestFindReferences_ExportedFieldAccess",
+        "kind": "func",
+        "doc": "",
+        "line": 621
+      },
+      {
+        "name": "createTempPackage",
+        "kind": "func",
+        "doc": "",
+        "line": 672
+      },
+      {
+        "name": "createFileInDir",
+        "kind": "func",
+        "doc": "",
+        "line": 698
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/symbols/extract.go",
+    "package": "symbols",
+    "symbols": [
+      {
+        "name": "ExportedSymbol",
+        "kind": "type",
+        "doc": "ExportedSymbol represents an exported declaration.",
+        "line": 14
+      },
+      {
+        "name": "FindAllSymbols",
+        "kind": "func",
+        "doc": "FindAllSymbols finds all symbols (exported and unexported) in a file.\nIt examines the file within the context of the loaded package to get type information.",
+        "line": 22
+      },
+      {
+        "name": "FindExportedSymbols",
+        "kind": "func",
+        "doc": "FindExportedSymbols finds all exported symbols in a file.\nIt examines the file within the context of the loaded package to get type information.",
+        "line": 28
+      },
+      {
+        "name": "findSymbols",
+        "kind": "func",
+        "doc": "findSymbols finds symbols in a file, optionally filtering to only exported symbols.",
+        "line": 33
+      },
+      {
+        "name": "ExtractAllSymbols",
+        "kind": "func",
+        "doc": "ExtractAllSymbols extracts all symbol names (exported and unexported) from a file without loading the full package.\nThis is a lightweight version that doesn't require a pre-loaded package.\nIt returns just the symbol names, including both exported and unexported declarations.",
+        "line": 133
+      },
+      {
+        "name": "ExtractExportedSymbols",
+        "kind": "func",
+        "doc": "ExtractExportedSymbols extracts exported symbol names from a file without loading the full package.\nThis is a lightweight version of FindExportedSymbols that doesn't require a pre-loaded package.\nIt returns just the symbol names, which is sufficient for reference qualification.",
+        "line": 182
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/symbols/extract_test.go",
+    "package": "symbols",
+    "symbols": [
+      {
+        "name": "TestFindExportedSymbols_SingleFunction",
+        "kind": "func",
+        "doc": "",
+        "line": 11
+      },
+      {
+        "name": "TestFindExportedSymbols_MultipleFunctions",
+        "kind": "func",
+        "doc": "",
+        "line": 45
+      },
+      {
+        "name": "TestFindExportedSymbols_ExportedType",
+        "kind": "func",
+        "doc": "",
+        "line": 79
+      },
+      {
+        "name": "TestFindExportedSymbols_ExportedInterface",
+        "kind": "func",
+        "doc": "",
+        "line": 129
+      },
+      {
+        "name": "TestFindExportedSymbols_ExportedVar",
+        "kind": "func",
+        "doc": "",
+        "line": 163
+      },
+      {
+        "name": "TestFindExportedSymbols_ExportedConst",
+        "kind": "func",
+        "doc": "",
+        "line": 195
+      },
+      {
+        "name": "TestFindExportedSymbols_Mixed",
+        "kind": "func",
+        "doc": "",
+        "line": 227
+      },
+      {
+        "name": "TestFindExportedSymbols_UnexportedIgnored",
+        "kind": "func",
+        "doc": "",
+        "line": 281
+      },
+      {
+        "name": "TestFindExportedSymbols_Methods",
+        "kind": "func",
+        "doc": "",
+        "line": 324
+      },
+      {
+        "name": "TestFindExportedSymbols_EmptyFile",
+        "kind": "func",
+        "doc": "",
+        "line": 378
+      },
+      {
+        "name": "TestFindExportedSymbols_NonExistentFile",
+        "kind": "func",
+        "doc": "",
+        "line": 400
+      },
+      {
+        "name": "createTempPackage",
+        "kind": "func",
+        "doc": "",
+        "line": 422
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/testutils/compare_directories.go",
+    "package": "testutils",
+    "symbols": [
+      {
+        "name": "CompareDirectories",
+        "kind": "func",
+        "doc": "CompareDirectories compares the contents of expected files (from files_out)\nwith the actual files generated in a specified directory using git diff --no-index.\nIt returns an error if any discrepancies are found.",
+        "line": 15
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/typeinfo/load.go",
+    "package": "typeinfo",
+    "symbols": [
+      {
+        "name": "LoadPackage",
+        "kind": "func",
+        "doc": "LoadPackage loads a single package with full type information.\nThe dir parameter should be the directory containing the package.",
+        "line": 11
+      },
+      {
+        "name": "LoadPackages",
+        "kind": "func",
+        "doc": "LoadPackages loads multiple packages with full type information.\nThe patterns parameter specifies which packages to load (e.g., \".\", \"./...\", \"path/to/pkg\").\nThe dir parameter is the working directory for resolving the patterns.",
+        "line": 28
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/typeinfo/load_test.go",
+    "package": "typeinfo",
+    "symbols": [
+      {
+        "name": "TestLoadPackage_SimplePackage",
+        "kind": "func",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "TestLoadPackage_MultipleFiles",
+        "kind": "func",
+        "doc": "",
+        "line": 33
+      },
+      {
+        "name": "TestLoadPackage_WithTests",
+        "kind": "func",
+        "doc": "",
+        "line": 69
+      },
+      {
+        "name": "TestLoadPackage_TypeInfoPresent",
+        "kind": "func",
+        "doc": "",
+        "line": 104
+      },
+      {
+        "name": "TestLoadPackage_NonExistentDir",
+        "kind": "func",
+        "doc": "",
+        "line": 139
+      },
+      {
+        "name": "TestLoadPackage_InvalidCode",
+        "kind": "func",
+        "doc": "",
+        "line": 146
+      },
+      {
+        "name": "TestLoadPackages_MultiplePatterns",
+        "kind": "func",
+        "doc": "",
+        "line": 164
+      },
+      {
+        "name": "TestLoadPackages_DependentPackages",
+        "kind": "func",
+        "doc": "",
+        "line": 208
+      },
+      {
+        "name": "createTempPackage",
+        "kind": "func",
+        "doc": "",
+        "line": 258
+      },
+      {
+        "name": "createFileInDir",
+        "kind": "func",
+        "doc": "",
+        "line": 284
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/utils/capitalize_first_letter.go",
+    "package": "utils",
+    "symbols": [
+      {
+        "name": "CapitalizeFirstLetter",
+        "kind": "func",
+        "doc": "",
+        "line": 7
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/utils/delete_file.go",
+    "package": "utils",
+    "symbols": [
+      {
+        "name": "DeleteFile",
+        "kind": "func",
+        "doc": "DeleteFile deletes a file.",
+        "line": 9
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/utils/hash_string.go",
+    "package": "utils",
+    "symbols": [
+      {
+        "name": "HashString",
+        "kind": "func",
+        "doc": "",
+        "line": 8
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/utils/is_lower.go",
+    "package": "utils",
+    "symbols": [
+      {
+        "name": "IsLower",
+        "kind": "func",
+        "doc": "isLower checks if a rune is a lowercase letter.",
+        "line": 8
+      }
+    ]
+  },
+  {
+    "file_path": "dissect/pkg/utils/move_file.go",
+    "package": "utils",
+    "symbols": [
+      {
+        "name": "MoveFile",
+        "kind": "func",
+        "doc": "MoveFile moves a file from source to destination, creating destination directories if they don't exist.",
+        "line": 10
+      }
+    ]
+  },
+  {
+    "file_path": "lib/cli/cli.go",
+    "package": "cli",
+    "symbols": [
+      {
+        "name": "successColor",
+        "kind": "var",
+        "doc": "Success formats text in green for successful operations and positive states",
+        "line": 13
+      },
+      {
+        "name": "warningColor",
+        "kind": "var",
+        "doc": "Warning formats text in yellow for warnings and in-progress states",
+        "line": 16
+      },
+      {
+        "name": "errorColor",
+        "kind": "var",
+        "doc": "Error formats text in red for errors and failures",
+        "line": 19
+      },
+      {
+        "name": "keyColor",
+        "kind": "var",
+        "doc": "Key formats text in cyan for keys, paths, and primary identifiers",
+        "line": 22
+      },
+      {
+        "name": "pathColor",
+        "kind": "var",
+        "doc": "Path formats text in cyan for file paths",
+        "line": 25
+      },
+      {
+        "name": "valueColor",
+        "kind": "var",
+        "doc": "Value formats text in green for set/configured values",
+        "line": 28
+      },
+      {
+        "name": "typeColor",
+        "kind": "var",
+        "doc": "Type formats text in yellow for type information",
+        "line": 31
+      },
+      {
+        "name": "secondaryColor",
+        "kind": "var",
+        "doc": "Secondary formats text in blue for secondary information",
+        "line": 34
+      },
+      {
+        "name": "mutedColor",
+        "kind": "var",
+        "doc": "Muted formats text in bright black for disabled/unset values",
+        "line": 37
+      },
+      {
+        "name": "headerColor",
+        "kind": "var",
+        "doc": "Header formats text as bold for section headers",
+        "line": 40
+      },
+      {
+        "name": "Success",
+        "kind": "func",
+        "doc": "Success returns a green-colored string for successful operations.",
+        "line": 44
+      },
+      {
+        "name": "Warning",
+        "kind": "func",
+        "doc": "Warning returns a yellow-colored string for warnings.",
+        "line": 49
+      },
+      {
+        "name": "Error",
+        "kind": "func",
+        "doc": "Error returns a red-colored string for errors.",
+        "line": 54
+      },
+      {
+        "name": "Key",
+        "kind": "func",
+        "doc": "Key returns a cyan bold-colored string for configuration keys and identifiers.",
+        "line": 59
+      },
+      {
+        "name": "Path",
+        "kind": "func",
+        "doc": "Path returns a cyan-colored string for file paths.",
+        "line": 64
+      },
+      {
+        "name": "Value",
+        "kind": "func",
+        "doc": "Value returns a green-colored string for configured values.",
+        "line": 69
+      },
+      {
+        "name": "Type",
+        "kind": "func",
+        "doc": "Type returns a yellow-colored string for type information.",
+        "line": 74
+      },
+      {
+        "name": "Secondary",
+        "kind": "func",
+        "doc": "Secondary returns a blue-colored string for secondary information.",
+        "line": 79
+      },
+      {
+        "name": "Muted",
+        "kind": "func",
+        "doc": "Muted returns a bright-black-colored string for disabled or unset values.",
+        "line": 84
+      },
+      {
+        "name": "Header",
+        "kind": "func",
+        "doc": "Header returns a bold string for section headers.",
+        "line": 89
+      },
+      {
+        "name": "Successf",
+        "kind": "func",
+        "doc": "Successf returns a formatted green-colored string.",
+        "line": 96
+      },
+      {
+        "name": "Warningf",
+        "kind": "func",
+        "doc": "Warningf returns a formatted yellow-colored string.",
+        "line": 101
+      },
+      {
+        "name": "Errorf",
+        "kind": "func",
+        "doc": "Errorf returns a formatted red-colored string.",
+        "line": 106
+      },
+      {
+        "name": "Keyf",
+        "kind": "func",
+        "doc": "Keyf returns a formatted cyan bold-colored string.",
+        "line": 111
+      },
+      {
+        "name": "Pathf",
+        "kind": "func",
+        "doc": "Pathf returns a formatted cyan-colored string.",
+        "line": 116
+      },
+      {
+        "name": "Valuef",
+        "kind": "func",
+        "doc": "Valuef returns a formatted green-colored string.",
+        "line": 121
+      },
+      {
+        "name": "Typef",
+        "kind": "func",
+        "doc": "Typef returns a formatted yellow-colored string.",
+        "line": 126
+      },
+      {
+        "name": "Secondaryf",
+        "kind": "func",
+        "doc": "Secondaryf returns a formatted blue-colored string.",
+        "line": 131
+      },
+      {
+        "name": "Mutedf",
+        "kind": "func",
+        "doc": "Mutedf returns a formatted bright-black-colored string.",
+        "line": 136
+      },
+      {
+        "name": "Headerf",
+        "kind": "func",
+        "doc": "Headerf returns a formatted bold string.",
+        "line": 141
+      },
+      {
+        "name": "PrintSuccess",
+        "kind": "func",
+        "doc": "PrintSuccess prints a green-colored message to stdout.",
+        "line": 146
+      },
+      {
+        "name": "PrintWarning",
+        "kind": "func",
+        "doc": "PrintWarning prints a yellow-colored message to stdout.",
+        "line": 151
+      },
+      {
+        "name": "PrintError",
+        "kind": "func",
+        "doc": "PrintError prints a red-colored message to stdout.",
+        "line": 156
+      },
+      {
+        "name": "PrintHeader",
+        "kind": "func",
+        "doc": "PrintHeader prints a bold header to stdout.",
+        "line": 161
+      }
+    ]
+  },
+  {
+    "file_path": "lib/cli/cli_test.go",
+    "package": "cli",
+    "symbols": [
+      {
+        "name": "TestColorFunctions",
+        "kind": "func",
+        "doc": "",
+        "line": 8
+      },
+      {
+        "name": "TestValue",
+        "kind": "func",
+        "doc": "",
+        "line": 36
+      },
+      {
+        "name": "TestFormatFunctions",
+        "kind": "func",
+        "doc": "",
+        "line": 56
+      }
+    ]
+  },
+  {
+    "file_path": "lib/configschema/claude.go",
+    "package": "configschema",
+    "symbols": [
+      {
+        "name": "ClaudeSchema",
+        "kind": "func",
+        "doc": "ClaudeSchema returns the Claude JSON schema",
+        "line": 4
+      }
+    ]
+  },
+  {
+    "file_path": "lib/configschema/embed.go",
+    "package": "configschema",
+    "symbols": [
+      {
+        "name": "jjSchemaPinnedJSON",
+        "kind": "var",
+        "doc": "JJ schemas",
+        "line": 8
+      },
+      {
+        "name": "jjSchemaLatestJSON",
+        "kind": "var",
+        "doc": "",
+        "line": 11
+      },
+      {
+        "name": "miseSchemaJSON",
+        "kind": "var",
+        "doc": "Mise schema",
+        "line": 16
+      },
+      {
+        "name": "starshipSchemaJSON",
+        "kind": "var",
+        "doc": "Starship schema",
+        "line": 21
+      },
+      {
+        "name": "claudeSchemaJSON",
+        "kind": "var",
+        "doc": "Claude schema",
+        "line": 26
+      }
+    ]
+  },
+  {
+    "file_path": "lib/configschema/integration_test.go",
+    "package": "configschema",
+    "symbols": [
+      {
+        "name": "JJSchemaParser",
+        "kind": "type",
+        "doc": "JJSchemaParser wraps a JSON schema for jj configuration",
+        "line": 13
+      },
+      {
+        "name": "newJJSchemaParserFromJSON",
+        "kind": "func",
+        "doc": "newJJSchemaParserFromJSON creates a parser from embedded JSON",
+        "line": 18
+      },
+      {
+        "name": "newJJSchemaParserPinned",
+        "kind": "func",
+        "doc": "newJJSchemaParserPinned creates a parser using the pinned v0.34.0 schema",
+        "line": 42
+      },
+      {
+        "name": "newJJSchemaParserLatest",
+        "kind": "func",
+        "doc": "newJJSchemaParserLatest creates a parser using the latest schema",
+        "line": 48
+      },
+      {
+        "name": "GetAllPaths",
+        "kind": "method",
+        "doc": "Delegate methods to JSONSchemaParser",
+        "line": 54
+      },
+      {
+        "name": "ValidatePath",
+        "kind": "method",
+        "doc": "",
+        "line": 58
+      },
+      {
+        "name": "GetPropertyInfo",
+        "kind": "method",
+        "doc": "",
+        "line": 62
+      },
+      {
+        "name": "GetAllSettingsWithInfo",
+        "kind": "method",
+        "doc": "",
+        "line": 66
+      },
+      {
+        "name": "TestJJSchemaParserIntegration",
+        "kind": "func",
+        "doc": "TestJJSchemaParserIntegration tests the complete jj schema parsing workflow",
+        "line": 71
+      },
+      {
+        "name": "TestSchemaCompletion",
+        "kind": "func",
+        "doc": "TestSchemaCompletion tests completion generation from schema data",
+        "line": 300
+      },
+      {
+        "name": "TestSchemaConsistency",
+        "kind": "func",
+        "doc": "TestSchemaConsistency tests that schema data is consistent and well-formed",
+        "line": 447
+      },
+      {
+        "name": "TestEmbeddedSchemas",
+        "kind": "func",
+        "doc": "TestEmbeddedSchemas validates that schemas are properly embedded",
+        "line": 644
+      }
+    ]
+  },
+  {
+    "file_path": "lib/configschema/jj.go",
+    "package": "configschema",
+    "symbols": [
+      {
+        "name": "JJSchemaPinned",
+        "kind": "func",
+        "doc": "JJSchemaPinned returns the pinned JJ schema (v0.34.0)\nThis schema has the duplicate \"hermit\" enum fixed.",
+        "line": 5
+      },
+      {
+        "name": "JJSchemaLatest",
+        "kind": "func",
+        "doc": "JJSchemaLatest returns the latest JJ schema\nThis is the version that was current when schemas were last updated.",
+        "line": 11
+      }
+    ]
+  },
+  {
+    "file_path": "lib/configschema/jsonschema_parser.go",
+    "package": "configschema",
+    "symbols": [
+      {
+        "name": "JSONSchemaParser",
+        "kind": "type",
+        "doc": "JSONSchemaParser provides universal JSON schema parsing using the jsonschema library.\nIt replaces manual map[string]interface{} navigation with proper schema introspection.",
+        "line": 13
+      },
+      {
+        "name": "NewJSONSchemaParser",
+        "kind": "func",
+        "doc": "NewJSONSchemaParser creates a new parser from a compiled jsonschema.Schema",
+        "line": 18
+      },
+      {
+        "name": "GetCompletionOptions",
+        "kind": "method",
+        "doc": "GetCompletionOptions returns completion options for a given dotted path",
+        "line": 25
+      },
+      {
+        "name": "GetAllPaths",
+        "kind": "method",
+        "doc": "GetAllPaths returns all possible dotted paths in the schema",
+        "line": 62
+      },
+      {
+        "name": "collectPaths",
+        "kind": "method",
+        "doc": "collectPaths recursively collects all paths from the schema",
+        "line": 70
+      },
+      {
+        "name": "ValidatePath",
+        "kind": "method",
+        "doc": "ValidatePath checks if a given dotted path exists in the schema",
+        "line": 88
+      },
+      {
+        "name": "navigateToPath",
+        "kind": "method",
+        "doc": "navigateToPath navigates to a schema at the given dotted path\nReturns nil if the path doesn't exist",
+        "line": 98
+      },
+      {
+        "name": "getAdditionalPropertiesSchema",
+        "kind": "method",
+        "doc": "getAdditionalPropertiesSchema extracts the schema from AdditionalProperties if it exists",
+        "line": 152
+      },
+      {
+        "name": "GetPropertyInfo",
+        "kind": "method",
+        "doc": "GetPropertyInfo returns detailed information about a specific property",
+        "line": 174
+      },
+      {
+        "name": "GetAllSettingsWithInfo",
+        "kind": "method",
+        "doc": "GetAllSettingsWithInfo returns comprehensive information about all settings in the schema",
+        "line": 198
+      },
+      {
+        "name": "collectSettings",
+        "kind": "method",
+        "doc": "collectSettings recursively collects all settings with their information",
+        "line": 211
+      },
+      {
+        "name": "getSchemaType",
+        "kind": "func",
+        "doc": "",
+        "line": 239
+      },
+      {
+        "name": "getSchemaDefault",
+        "kind": "func",
+        "doc": "",
+        "line": 265
+      },
+      {
+        "name": "getSchemaEnum",
+        "kind": "func",
+        "doc": "",
+        "line": 272
+      }
+    ]
+  },
+  {
+    "file_path": "lib/configschema/mise.go",
+    "package": "configschema",
+    "symbols": [
+      {
+        "name": "MiseSchema",
+        "kind": "func",
+        "doc": "MiseSchema returns the Mise JSON schema",
+        "line": 4
+      }
+    ]
+  },
+  {
+    "file_path": "lib/configschema/starship.go",
+    "package": "configschema",
+    "symbols": [
+      {
+        "name": "StarshipSchema",
+        "kind": "func",
+        "doc": "StarshipSchema returns the Starship JSON schema",
+        "line": 4
+      }
+    ]
+  },
+  {
+    "file_path": "lib/configschema/types.go",
+    "package": "configschema",
+    "symbols": [
+      {
+        "name": "PropertyInfo",
+        "kind": "type",
+        "doc": "PropertyInfo contains detailed information about a schema property",
+        "line": 4
+      },
+      {
+        "name": "SettingInfo",
+        "kind": "type",
+        "doc": "SettingInfo contains comprehensive information about a setting including current value",
+        "line": 13
+      },
+      {
+        "name": "CompletionOption",
+        "kind": "type",
+        "doc": "CompletionOption represents a completion suggestion",
+        "line": 24
+      }
+    ]
+  },
+  {
+    "file_path": "lib/ghclient/client.go",
+    "package": "ghclient",
+    "symbols": [
+      {
+        "name": "NewClient",
+        "kind": "func",
+        "doc": "NewClient constructs a go-github client configured with our shared HTTP settings.",
+        "line": 10
+      },
+      {
+        "name": "NewEnterpriseClient",
+        "kind": "func",
+        "doc": "NewEnterpriseClient builds a client for GitHub Enterprise deployments using custom URLs.",
+        "line": 19
+      }
+    ]
+  },
+  {
+    "file_path": "lib/ghclient/client_test.go",
+    "package": "ghclient",
+    "symbols": [
+      {
+        "name": "TestNewClientAddsAuthorizationHeader",
+        "kind": "func",
+        "doc": "",
+        "line": 12
+      },
+      {
+        "name": "TestNewEnterpriseClientUsesCustomURLs",
+        "kind": "func",
+        "doc": "",
+        "line": 38
+      },
+      {
+        "name": "mustParseURL",
+        "kind": "func",
+        "doc": "",
+        "line": 66
+      }
+    ]
+  },
+  {
+    "file_path": "lib/ghclient/token.go",
+    "package": "ghclient",
+    "symbols": [
+      {
+        "name": "GetToken",
+        "kind": "func",
+        "doc": "GetToken retrieves a GitHub token from environment variables or gh CLI.",
+        "line": 16
+      },
+      {
+        "name": "NewHTTPClient",
+        "kind": "func",
+        "doc": "NewHTTPClient returns an HTTP client configured with authentication headers.",
+        "line": 45
+      }
+    ]
+  },
+  {
+    "file_path": "lib/ghclient/token_test.go",
+    "package": "ghclient",
+    "symbols": [
+      {
+        "name": "setupTestLogger",
+        "kind": "func",
+        "doc": "",
+        "line": 18
+      },
+      {
+        "name": "installGhStub",
+        "kind": "func",
+        "doc": "",
+        "line": 30
+      },
+      {
+        "name": "TestGetToken",
+        "kind": "func",
+        "doc": "",
+        "line": 70
+      },
+      {
+        "name": "TestNewHTTPClient",
+        "kind": "func",
+        "doc": "",
+        "line": 150
+      }
+    ]
+  },
+  {
+    "file_path": "lib/ghrelease/api_test.go",
+    "package": "ghrelease",
+    "symbols": [
+      {
+        "name": "TestGetReleaseByTag",
+        "kind": "func",
+        "doc": "TestGetReleaseByTag tests fetching a release by tag name",
+        "line": 16
+      },
+      {
+        "name": "TestDownloadAsset",
+        "kind": "func",
+        "doc": "TestDownloadAsset tests downloading a release asset",
+        "line": 127
+      },
+      {
+        "name": "TestListReleases",
+        "kind": "func",
+        "doc": "TestListReleases tests listing releases with pagination",
+        "line": 273
+      },
+      {
+        "name": "TestFindPlatformAssetErrorCases",
+        "kind": "func",
+        "doc": "TestFindPlatformAssetErrorCases tests error handling in FindPlatformAsset",
+        "line": 371
+      },
+      {
+        "name": "TestDownloadReleaseAsset",
+        "kind": "func",
+        "doc": "TestDownloadReleaseAsset tests the convenience function for downloading assets",
+        "line": 432
+      }
+    ]
+  },
+  {
+    "file_path": "lib/ghrelease/ghrelease.go",
+    "package": "ghrelease",
+    "symbols": [
+      {
+        "name": "Asset",
+        "kind": "type",
+        "doc": "Asset represents a GitHub release asset",
+        "line": 19
+      },
+      {
+        "name": "Release",
+        "kind": "type",
+        "doc": "Release represents a GitHub release",
+        "line": 26
+      },
+      {
+        "name": "Platform",
+        "kind": "type",
+        "doc": "Platform represents OS and architecture",
+        "line": 34
+      },
+      {
+        "name": "GetCurrentPlatform",
+        "kind": "func",
+        "doc": "GetCurrentPlatform returns the current OS and architecture",
+        "line": 40
+      },
+      {
+        "name": "GetGitHubToken",
+        "kind": "func",
+        "doc": "GetGitHubToken retrieves a GitHub token using the shared client utilities.",
+        "line": 64
+      },
+      {
+        "name": "CreateAuthenticatedRequest",
+        "kind": "func",
+        "doc": "CreateAuthenticatedRequest creates an HTTP request with GitHub authentication",
+        "line": 69
+      },
+      {
+        "name": "CreateAuthenticatedRequestWithContext",
+        "kind": "func",
+        "doc": "CreateAuthenticatedRequestWithContext creates an HTTP request with GitHub authentication and context",
+        "line": 74
+      },
+      {
+        "name": "GetReleaseByTag",
+        "kind": "func",
+        "doc": "GetReleaseByTag fetches a GitHub release by its tag name",
+        "line": 87
+      },
+      {
+        "name": "GetReleaseByTagWithContext",
+        "kind": "func",
+        "doc": "GetReleaseByTagWithContext fetches a GitHub release by its tag name with context",
+        "line": 92
+      },
+      {
+        "name": "FindPlatformAsset",
+        "kind": "func",
+        "doc": "FindPlatformAsset finds the asset matching the current platform\nprojectName can be empty to match any asset with the platform",
+        "line": 121
+      },
+      {
+        "name": "DownloadAsset",
+        "kind": "func",
+        "doc": "DownloadAsset downloads a GitHub release asset to the specified path",
+        "line": 173
+      },
+      {
+        "name": "DownloadAssetWithContext",
+        "kind": "func",
+        "doc": "DownloadAssetWithContext downloads a GitHub release asset to the specified path with context",
+        "line": 178
+      },
+      {
+        "name": "DownloadReleaseAsset",
+        "kind": "func",
+        "doc": "DownloadReleaseAsset is a convenience function that downloads an asset from a GitHub release\nby tag name for the current platform",
+        "line": 231
+      },
+      {
+        "name": "ListReleases",
+        "kind": "func",
+        "doc": "ListReleases fetches all releases for a repository",
+        "line": 246
+      },
+      {
+        "name": "ListReleasesWithContext",
+        "kind": "func",
+        "doc": "ListReleasesWithContext fetches all releases for a repository with context",
+        "line": 251
+      }
+    ]
+  },
+  {
+    "file_path": "lib/ghrelease/ghrelease_test.go",
+    "package": "ghrelease",
+    "symbols": [
+      {
+        "name": "setupTestLogger",
+        "kind": "func",
+        "doc": "",
+        "line": 14
+      },
+      {
+        "name": "installGhStub",
+        "kind": "func",
+        "doc": "",
+        "line": 26
+      },
+      {
+        "name": "TestGetCurrentPlatform",
+        "kind": "func",
+        "doc": "",
+        "line": 66
+      },
+      {
+        "name": "TestGetGitHubToken",
+        "kind": "func",
+        "doc": "",
+        "line": 86
+      },
+      {
+        "name": "TestCreateAuthenticatedRequest",
+        "kind": "func",
+        "doc": "",
+        "line": 166
+      },
+      {
+        "name": "TestFindPlatformAsset",
+        "kind": "func",
+        "doc": "",
+        "line": 195
+      }
+    ]
+  },
+  {
+    "file_path": "lib/ghrelease/pagination_test.go",
+    "package": "ghrelease",
+    "symbols": [
+      {
+        "name": "TestListReleasesWithPagination",
+        "kind": "func",
+        "doc": "",
+        "line": 10
+      },
+      {
+        "name": "TestListReleasesWithEmptyResponse",
+        "kind": "func",
+        "doc": "",
+        "line": 58
+      },
+      {
+        "name": "TestPaginationLogic",
+        "kind": "func",
+        "doc": "",
+        "line": 69
+      },
+      {
+        "name": "TestListReleasesIntegration",
+        "kind": "func",
+        "doc": "TestListReleasesIntegration is a simple integration test that verifies\nthe pagination implementation works correctly",
+        "line": 109
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/advanced_test.go",
+    "package": "toml",
+    "symbols": [
+      {
+        "name": "TestComplexNestedStructures",
+        "kind": "func",
+        "doc": "TestComplexNestedStructures tests deeply nested tables and dotted keys",
+        "line": 9
+      },
+      {
+        "name": "TestArrayOfTables",
+        "kind": "func",
+        "doc": "TestArrayOfTables tests array of tables syntax",
+        "line": 65
+      },
+      {
+        "name": "TestMultilineStrings",
+        "kind": "func",
+        "doc": "TestMultilineStrings tests handling of multiline strings",
+        "line": 91
+      },
+      {
+        "name": "TestDateTimeValues",
+        "kind": "func",
+        "doc": "TestDateTimeValues tests handling of date-time values",
+        "line": 119
+      },
+      {
+        "name": "TestNumberFormats",
+        "kind": "func",
+        "doc": "TestNumberFormats tests different number formats",
+        "line": 140
+      },
+      {
+        "name": "TestLargeDocument",
+        "kind": "func",
+        "doc": "TestLargeDocument tests handling of a large, complex document",
+        "line": 199
+      },
+      {
+        "name": "TestConcurrentAccess",
+        "kind": "func",
+        "doc": "TestConcurrentAccess tests that the library is safe for concurrent reads",
+        "line": 289
+      },
+      {
+        "name": "TestEmptyValues",
+        "kind": "func",
+        "doc": "TestEmptyValues tests handling of empty values",
+        "line": 322
+      },
+      {
+        "name": "TestUpdateMultipleValues",
+        "kind": "func",
+        "doc": "TestUpdateMultipleValues tests updating multiple values and verifying all changes",
+        "line": 367
+      },
+      {
+        "name": "TestDeleteMultipleKeys",
+        "kind": "func",
+        "doc": "TestDeleteMultipleKeys tests deleting multiple keys",
+        "line": 425
+      },
+      {
+        "name": "TestUnicodeSupport",
+        "kind": "func",
+        "doc": "TestUnicodeSupport tests handling of Unicode characters",
+        "line": 479
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/apply.go",
+    "package": "toml",
+    "symbols": [
+      {
+        "name": "WriteFile",
+        "kind": "func",
+        "doc": "WriteFile writes the provided values to the given TOML file while preserving\nall existing comments and formatting. Missing parent directories are created\nautomatically.",
+        "line": 18
+      },
+      {
+        "name": "ApplyMap",
+        "kind": "method",
+        "doc": "ApplyMap merges the provided nested map into the document, preserving\nany existing keys that are not present in values. This allows partial\nupdates without affecting unmanaged configuration.",
+        "line": 55
+      },
+      {
+        "name": "ReplaceMap",
+        "kind": "method",
+        "doc": "ReplaceMap updates the document with the provided nested map and removes any\nkeys that are not present in values. Use ApplyMap instead if you want to\npreserve unmanaged keys.",
+        "line": 82
+      },
+      {
+        "name": "flattenValues",
+        "kind": "func",
+        "doc": "",
+        "line": 122
+      },
+      {
+        "name": "flattenRecursive",
+        "kind": "func",
+        "doc": "",
+        "line": 133
+      },
+      {
+        "name": "formatKeySegment",
+        "kind": "func",
+        "doc": "",
+        "line": 155
+      },
+      {
+        "name": "isBareKey",
+        "kind": "func",
+        "doc": "",
+        "line": 163
+      },
+      {
+        "name": "normalizeValues",
+        "kind": "func",
+        "doc": "",
+        "line": 175
+      },
+      {
+        "name": "normalizeValue",
+        "kind": "func",
+        "doc": "",
+        "line": 197
+      },
+      {
+        "name": "setNestedValue",
+        "kind": "func",
+        "doc": "",
+        "line": 222
+      },
+      {
+        "name": "ensureMap",
+        "kind": "func",
+        "doc": "",
+        "line": 249
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/apply_test.go",
+    "package": "toml",
+    "symbols": [
+      {
+        "name": "TestWriteFile",
+        "kind": "func",
+        "doc": "TestWriteFile tests writing values to TOML files",
+        "line": 13
+      },
+      {
+        "name": "TestApplyMap",
+        "kind": "func",
+        "doc": "TestApplyMap tests merging values into documents",
+        "line": 154
+      },
+      {
+        "name": "TestReplaceMap",
+        "kind": "func",
+        "doc": "TestReplaceMap tests replacing document content",
+        "line": 293
+      },
+      {
+        "name": "TestFlattenValues",
+        "kind": "func",
+        "doc": "TestFlattenValues tests flattening nested maps",
+        "line": 381
+      },
+      {
+        "name": "TestNormalizeValues",
+        "kind": "func",
+        "doc": "TestNormalizeValues tests value normalization",
+        "line": 464
+      },
+      {
+        "name": "TestHelperFunctions",
+        "kind": "func",
+        "doc": "TestHelperFunctions tests utility functions",
+        "line": 545
+      },
+      {
+        "name": "mustReadFile",
+        "kind": "func",
+        "doc": "Helper function to read file contents",
+        "line": 630
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/edge_cases_test.go",
+    "package": "toml",
+    "symbols": [
+      {
+        "name": "TestMalformedTOML",
+        "kind": "func",
+        "doc": "TestMalformedTOML tests that the library properly rejects malformed TOML",
+        "line": 9
+      },
+      {
+        "name": "TestMalformedTOMLDoesntCorrupt",
+        "kind": "func",
+        "doc": "TestMalformedTOMLDoesntCorrupt tests that failed parsing doesn't leave things in a bad state",
+        "line": 69
+      },
+      {
+        "name": "TestArrayOfInlineTables",
+        "kind": "func",
+        "doc": "TestArrayOfInlineTables tests preservation of array-of-inline-tables formatting",
+        "line": 89
+      },
+      {
+        "name": "TestArrayOfTablesPreservation",
+        "kind": "func",
+        "doc": "TestArrayOfTables tests the [[array]] syntax for array of tables",
+        "line": 185
+      },
+      {
+        "name": "TestModifyingArrayOfTables",
+        "kind": "func",
+        "doc": "TestModifyingArrayOfTables tests modifying values within array of tables",
+        "line": 295
+      },
+      {
+        "name": "TestQuotedKeys",
+        "kind": "func",
+        "doc": "TestQuotedKeys tests preservation of quoted keys",
+        "line": 338
+      },
+      {
+        "name": "TestQuotedKeysRoundTrip",
+        "kind": "func",
+        "doc": "TestQuotedKeysRoundTrip tests that quoted keys survive round-trip",
+        "line": 451
+      },
+      {
+        "name": "TestEmptyArrayOfTables",
+        "kind": "func",
+        "doc": "TestEmptyArrayOfTables tests array of tables with no entries",
+        "line": 490
+      },
+      {
+        "name": "TestComplexArrayStructures",
+        "kind": "func",
+        "doc": "TestComplexArrayStructures tests complex nested array scenarios",
+        "line": 515
+      },
+      {
+        "name": "TestQuotedDotKey",
+        "kind": "func",
+        "doc": "TestQuotedDotKey tests handling of a quoted key that is just a dot character.\nThis is an interesting edge case: [aliases] with '.' = ['ci', '-m.']\nIn JSON this would be {\"aliases\": {\".\": [\"ci\", \"-m.\"]}}.\n\nTOML syntax: The key '.' is a valid quoted key (TOML v1.0.0 spec).\nLibrary behavior: The document can be parsed and serialized correctly,\npreserving the quoted dot key. However, accessing the value through the\npath-based Get() API is a known limitation since dots are path separators.",
+        "line": 568
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/examples/basic/main.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "main",
+        "kind": "func",
+        "doc": "",
+        "line": 11
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/examples/config_manager/main.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "main",
+        "kind": "func",
+        "doc": "",
+        "line": 13
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/path_parsing_test.go",
+    "package": "toml",
+    "symbols": [
+      {
+        "name": "TestParseKeyPath",
+        "kind": "func",
+        "doc": "TestParseKeyPath tests the parseKeyPath function with various valid and invalid inputs",
+        "line": 9
+      },
+      {
+        "name": "TestDocumentWithQuotedKeys",
+        "kind": "func",
+        "doc": "TestDocumentWithQuotedKeys tests Get/Set/Delete with quoted keys in actual TOML documents",
+        "line": 138
+      },
+      {
+        "name": "TestInvalidPathsRejected",
+        "kind": "func",
+        "doc": "TestInvalidPathsRejected ensures invalid paths are rejected in document operations",
+        "line": 217
+      },
+      {
+        "name": "TestComplexQuotedKeyScenarios",
+        "kind": "func",
+        "doc": "TestComplexQuotedKeyScenarios tests more complex real-world scenarios",
+        "line": 255
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/preservation_test.go",
+    "package": "toml",
+    "symbols": [
+      {
+        "name": "TestKeyOrderPreservation",
+        "kind": "func",
+        "doc": "TestKeyOrderPreservation tests that key order is preserved",
+        "line": 9
+      },
+      {
+        "name": "TestQuoteStylePreservation",
+        "kind": "func",
+        "doc": "TestQuoteStylePreservation tests that different quote styles are preserved",
+        "line": 63
+      },
+      {
+        "name": "TestQuoteStylePreservationOnModification",
+        "kind": "func",
+        "doc": "TestQuoteStylePreservationOnModification tests that quote style is preserved when modifying a value",
+        "line": 167
+      },
+      {
+        "name": "TestNestednessStylePreservation",
+        "kind": "func",
+        "doc": "TestNestednessStylePreservation tests that dotted keys vs sections are preserved",
+        "line": 199
+      },
+      {
+        "name": "TestAddingNewKeysPreservesStyle",
+        "kind": "func",
+        "doc": "TestAddingNewKeysPreservesStyle tests that when adding new keys to existing structures,\nwe follow the existing style",
+        "line": 331
+      },
+      {
+        "name": "TestComplexPreservation",
+        "kind": "func",
+        "doc": "TestComplexPreservation tests that all preservation features work together",
+        "line": 377
+      },
+      {
+        "name": "TestRoundTripPreservation",
+        "kind": "func",
+        "doc": "TestRoundTripPreservation tests that multiple round-trips preserve everything",
+        "line": 461
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/toml.go",
+    "package": "toml",
+    "symbols": [
+      {
+        "name": "Document",
+        "kind": "type",
+        "doc": "Document represents a parsed TOML document with preserved structure,\nincluding comments, formatting, and declaration order.",
+        "line": 46
+      },
+      {
+        "name": "Parse",
+        "kind": "func",
+        "doc": "Parse parses a TOML document from bytes and returns a Document that\npreserves all structural information including comments.",
+        "line": 52
+      },
+      {
+        "name": "ParseString",
+        "kind": "func",
+        "doc": "ParseString is a convenience wrapper around Parse that accepts a string.",
+        "line": 61
+      },
+      {
+        "name": "Get",
+        "kind": "method",
+        "doc": "Get retrieves a value at the given dotted path (e.g., \"server.host\").\nReturns nil if the path doesn't exist.",
+        "line": 67
+      },
+      {
+        "name": "Set",
+        "kind": "method",
+        "doc": "Set sets a value at the given dotted path, creating intermediate sections\nif necessary. The value can be a string, int, float64, bool, or []interface{}.\nThis method preserves the original style (dotted keys vs sections, quote styles).",
+        "line": 88
+      },
+      {
+        "name": "updateExistingKey",
+        "kind": "method",
+        "doc": "updateExistingKey updates an existing key while preserving its formatting",
+        "line": 107
+      },
+      {
+        "name": "formatValuePreservingStyle",
+        "kind": "method",
+        "doc": "formatValuePreservingStyle formats a value trying to match the style of an existing value",
+        "line": 124
+      },
+      {
+        "name": "addNewKey",
+        "kind": "method",
+        "doc": "addNewKey adds a new key in an appropriate style (dotted key vs section)",
+        "line": 160
+      },
+      {
+        "name": "hasDottedKeysWithPrefix",
+        "kind": "method",
+        "doc": "hasDottedKeysWithPrefix checks if there are any dotted keys with the given prefix",
+        "line": 208
+      },
+      {
+        "name": "addToGlobalSection",
+        "kind": "method",
+        "doc": "addToGlobalSection adds a key-value pair to the global section",
+        "line": 228
+      },
+      {
+        "name": "addDottedKey",
+        "kind": "method",
+        "doc": "addDottedKey adds a key as a dotted key in the global section",
+        "line": 243
+      },
+      {
+        "name": "addToSection",
+        "kind": "method",
+        "doc": "addToSection adds a key-value pair to an existing section",
+        "line": 258
+      },
+      {
+        "name": "ensureSection",
+        "kind": "method",
+        "doc": "ensureSection finds or creates a table section for the given key.",
+        "line": 269
+      },
+      {
+        "name": "copyKey",
+        "kind": "func",
+        "doc": "",
+        "line": 299
+      },
+      {
+        "name": "Delete",
+        "kind": "method",
+        "doc": "Delete removes a key at the given dotted path.\nReturns nil if the path doesn't exist.",
+        "line": 310
+      },
+      {
+        "name": "Has",
+        "kind": "method",
+        "doc": "Has returns true if the given path exists in the document.",
+        "line": 326
+      },
+      {
+        "name": "String",
+        "kind": "method",
+        "doc": "String serializes the document back to TOML format, preserving all\ncomments, formatting, and declaration order.",
+        "line": 333
+      },
+      {
+        "name": "Bytes",
+        "kind": "method",
+        "doc": "Bytes serializes the document back to TOML format as a byte slice.",
+        "line": 338
+      },
+      {
+        "name": "parseKeyPath",
+        "kind": "func",
+        "doc": "parseKeyPath parses a dotted path into a parser.Key using the TOML-compliant\nparser from tomledit. This properly handles quoted keys like aliases.\".\" and\nrejects invalid paths like \"aliases.\" (trailing dot).\n\nExamples:\n  - \"simple\" -\u003e [\"simple\"]\n  - \"dotted.key\" -\u003e [\"dotted\", \"key\"]\n  - \"aliases.\\\".\\\"\" or `aliases.\".\"` -\u003e [\"aliases\", \".\"]\n  - \"aliases.\" -\u003e error (trailing dot not allowed)\n  - \"\" -\u003e error (empty path not allowed)",
+        "line": 355
+      },
+      {
+        "name": "parseValue",
+        "kind": "func",
+        "doc": "parseValue converts a parser.Value into a Go value.",
+        "line": 371
+      },
+      {
+        "name": "FormatValueToString",
+        "kind": "func",
+        "doc": "FormatValueToString converts a Go value into a TOML value string.\nThis is useful for displaying values in a TOML-compatible format.",
+        "line": 435
+      },
+      {
+        "name": "quoteString",
+        "kind": "func",
+        "doc": "quoteString adds quotes around a string value and escapes special characters.",
+        "line": 498
+      },
+      {
+        "name": "unquoteString",
+        "kind": "func",
+        "doc": "unquoteString removes quotes and unescapes a string value.",
+        "line": 509
+      }
+    ]
+  },
+  {
+    "file_path": "lib/toml/toml_test.go",
+    "package": "toml",
+    "symbols": [
+      {
+        "name": "TestParse",
+        "kind": "func",
+        "doc": "TestParse tests basic parsing functionality",
+        "line": 9
+      },
+      {
+        "name": "TestGet",
+        "kind": "func",
+        "doc": "TestGet tests retrieving values from the document",
+        "line": 87
+      },
+      {
+        "name": "TestSet",
+        "kind": "func",
+        "doc": "TestSet tests setting values in the document",
+        "line": 180
+      },
+      {
+        "name": "TestDelete",
+        "kind": "func",
+        "doc": "TestDelete tests deleting values from the document",
+        "line": 277
+      },
+      {
+        "name": "TestHas",
+        "kind": "func",
+        "doc": "TestHas tests checking if a path exists",
+        "line": 336
+      },
+      {
+        "name": "TestCommentPreservation",
+        "kind": "func",
+        "doc": "TestCommentPreservation tests that comments are preserved during round-trip",
+        "line": 370
+      },
+      {
+        "name": "TestRoundTrip",
+        "kind": "func",
+        "doc": "TestRoundTrip tests that documents can be parsed and serialized without loss",
+        "line": 457
+      },
+      {
+        "name": "TestArrays",
+        "kind": "func",
+        "doc": "TestArrays tests handling of array values",
+        "line": 528
+      },
+      {
+        "name": "TestInlineTables",
+        "kind": "func",
+        "doc": "TestInlineTables tests handling of inline table values",
+        "line": 598
+      },
+      {
+        "name": "TestSetInlineTable",
+        "kind": "func",
+        "doc": "TestSetInlineTable tests setting inline table values",
+        "line": 628
+      },
+      {
+        "name": "TestEdgeCases",
+        "kind": "func",
+        "doc": "TestEdgeCases tests various edge cases",
+        "line": 668
+      },
+      {
+        "name": "TestBytes",
+        "kind": "func",
+        "doc": "TestBytes tests the Bytes method",
+        "line": 720
+      }
+    ]
+  },
+  {
+    "file_path": "lib/version/version.go",
+    "package": "version",
+    "symbols": [
+      {
+        "name": "Version",
+        "kind": "var",
+        "doc": "Version information - automatically populated from VCS",
+        "line": 15
+      },
+      {
+        "name": "GitCommit",
+        "kind": "var",
+        "doc": "",
+        "line": 16
+      },
+      {
+        "name": "BuildTime",
+        "kind": "var",
+        "doc": "",
+        "line": 17
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 20
+      },
+      {
+        "name": "PrintVersion",
+        "kind": "func",
+        "doc": "PrintVersion prints version information for the given tool name.",
+        "line": 62
+      },
+      {
+        "name": "NewVersionCommand",
+        "kind": "func",
+        "doc": "NewVersionCommand creates a new version command for the given tool name.\nThe tool name is used to customize the output (e.g., \"tk version 1.0.0\").",
+        "line": 77
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/github.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "debugMode",
+        "kind": "var",
+        "doc": "",
+        "line": 16
+      },
+      {
+        "name": "prURLRegex",
+        "kind": "var",
+        "doc": "",
+        "line": 17
+      },
+      {
+        "name": "debugLog",
+        "kind": "func",
+        "doc": "",
+        "line": 20
+      },
+      {
+        "name": "parsePRURL",
+        "kind": "func",
+        "doc": "",
+        "line": 26
+      },
+      {
+        "name": "fetchAllReleases",
+        "kind": "func",
+        "doc": "fetchAllReleases fetches all releases from GitHub API with pagination support",
+        "line": 39
+      },
+      {
+        "name": "findPRRelease",
+        "kind": "func",
+        "doc": "",
+        "line": 91
+      },
+      {
+        "name": "getPlatformBinaryName",
+        "kind": "func",
+        "doc": "",
+        "line": 127
+      },
+      {
+        "name": "findAllPRReleases",
+        "kind": "func",
+        "doc": "findAllPRReleases finds all releases for a given PR number",
+        "line": 152
+      },
+      {
+        "name": "extractProjectFromTag",
+        "kind": "func",
+        "doc": "extractProjectFromTag extracts the project name from a release tag\ne.g., \"dissect--pr-123.1\" -\u003e \"dissect\"",
+        "line": 176
+      },
+      {
+        "name": "extractUniqueProjects",
+        "kind": "func",
+        "doc": "extractUniqueProjects extracts unique project names from a list of releases",
+        "line": 186
+      },
+      {
+        "name": "checkWorkflowApproval",
+        "kind": "func",
+        "doc": "checkWorkflowApproval checks if the workflow run for a PR is pending approval",
+        "line": 200
+      },
+      {
+        "name": "downloadBinary",
+        "kind": "func",
+        "doc": "",
+        "line": 274
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/github_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestGetPlatformBinaryName",
+        "kind": "func",
+        "doc": "",
+        "line": 12
+      },
+      {
+        "name": "TestGetPlatformBinaryName_NoAssets",
+        "kind": "func",
+        "doc": "",
+        "line": 37
+      },
+      {
+        "name": "TestGetPlatformBinaryName_DoubleDashFormat",
+        "kind": "func",
+        "doc": "",
+        "line": 57
+      },
+      {
+        "name": "TestGetGitHubToken",
+        "kind": "func",
+        "doc": "",
+        "line": 88
+      },
+      {
+        "name": "TestCreateAuthenticatedRequest",
+        "kind": "func",
+        "doc": "",
+        "line": 138
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/integration_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestPrivateReleaseDownload",
+        "kind": "func",
+        "doc": "TestPrivateReleaseDownload tests the full end-to-end flow of downloading\nand executing a binary from a private GitHub release.\n\nThis test is skipped by default and only runs when PRRUN_INTEGRATION_TEST=1\nis set. It requires:\n1. Access to the private neongreen/mono repository\n2. A valid GitHub token (GITHUB_TOKEN, MISE_GITHUB_TOKEN, or gh CLI auth)\n3. A PR with a release that has assets",
+        "line": 18
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/main.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "main",
+        "kind": "func",
+        "doc": "",
+        "line": 12
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/main_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestExtractProjectFromTag",
+        "kind": "func",
+        "doc": "",
+        "line": 11
+      },
+      {
+        "name": "TestFindAllPRReleases",
+        "kind": "func",
+        "doc": "",
+        "line": 49
+      },
+      {
+        "name": "TestExtractUniqueProjects",
+        "kind": "func",
+        "doc": "",
+        "line": 58
+      },
+      {
+        "name": "TestHelpFlagPositioning",
+        "kind": "func",
+        "doc": "",
+        "line": 126
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/parse_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestParsePRURL",
+        "kind": "func",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "TestGetCacheDir",
+        "kind": "func",
+        "doc": "",
+        "line": 40
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/releases.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "prReleaseTagPattern",
+        "kind": "var",
+        "doc": "",
+        "line": 11
+      },
+      {
+        "name": "parsePRReleaseTag",
+        "kind": "func",
+        "doc": "",
+        "line": 13
+      },
+      {
+        "name": "findPreviousReleaseTag",
+        "kind": "func",
+        "doc": "",
+        "line": 33
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/releases_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestParsePRReleaseTag",
+        "kind": "func",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "TestFindPreviousReleaseTag",
+        "kind": "func",
+        "doc": "",
+        "line": 38
+      },
+      {
+        "name": "TestFindPreviousReleaseTagMissingCache",
+        "kind": "func",
+        "doc": "",
+        "line": 89
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/types.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "GitHubRelease",
+        "kind": "type",
+        "doc": "GitHubRelease represents a GitHub release",
+        "line": 4
+      },
+      {
+        "name": "PRInfo",
+        "kind": "type",
+        "doc": "PRInfo contains parsed PR information",
+        "line": 20
+      },
+      {
+        "name": "GitHubWorkflowRun",
+        "kind": "type",
+        "doc": "GitHubWorkflowRun represents a GitHub Actions workflow run",
+        "line": 28
+      },
+      {
+        "name": "GitHubWorkflowRunsResponse",
+        "kind": "type",
+        "doc": "GitHubWorkflowRunsResponse represents the response from the workflow runs API",
+        "line": 36
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/utils.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "getCacheDir",
+        "kind": "func",
+        "doc": "",
+        "line": 10
+      },
+      {
+        "name": "runBinary",
+        "kind": "func",
+        "doc": "",
+        "line": 22
+      },
+      {
+        "name": "printUsage",
+        "kind": "func",
+        "doc": "",
+        "line": 34
+      }
+    ]
+  },
+  {
+    "file_path": "prrun/version.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "printVersion",
+        "kind": "func",
+        "doc": "printVersion prints version information and checks for updates",
+        "line": 15
+      },
+      {
+        "name": "checkForNewerVersion",
+        "kind": "func",
+        "doc": "checkForNewerVersion checks if there's a newer version available in main",
+        "line": 25
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/check.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "checkCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 28
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/excalifont.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "excalifontCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 28
+      },
+      {
+        "name": "HandleExcalifontCommandFunc",
+        "kind": "var",
+        "doc": "Function reference that will be set by main package",
+        "line": 33
+      },
+      {
+        "name": "handleExcalifontCommand",
+        "kind": "func",
+        "doc": "",
+        "line": 35
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/forget.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "forgetCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 25
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/handlers.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "handleRequirement",
+        "kind": "func",
+        "doc": "handleRequirement processes a general requirement (tool, URL, etc.)",
+        "line": 10
+      },
+      {
+        "name": "GetCompoundHandlerFunc",
+        "kind": "var",
+        "doc": "Function references that will be set by main package",
+        "line": 44
+      },
+      {
+        "name": "HandleGitHubAssetFunc",
+        "kind": "var",
+        "doc": "Function references that will be set by main package",
+        "line": 45
+      },
+      {
+        "name": "InstallToolViaMiseFunc",
+        "kind": "var",
+        "doc": "Function references that will be set by main package",
+        "line": 46
+      },
+      {
+        "name": "getCompoundHandler",
+        "kind": "func",
+        "doc": "",
+        "line": 49
+      },
+      {
+        "name": "handleGitHubAsset",
+        "kind": "func",
+        "doc": "",
+        "line": 56
+      },
+      {
+        "name": "installToolViaMise",
+        "kind": "func",
+        "doc": "",
+        "line": 64
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/init.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "CompoundHandlerFunc",
+        "kind": "type",
+        "doc": "CompoundHandlerFunc is the type for compound command handlers",
+        "line": 4
+      },
+      {
+        "name": "SetHandlers",
+        "kind": "func",
+        "doc": "SetHandlers is called by main package to wire up the actual implementations",
+        "line": 7
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/json.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "jsonCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 27
+      },
+      {
+        "name": "HandleJsonCommandFunc",
+        "kind": "var",
+        "doc": "Function reference that will be set by main package",
+        "line": 32
+      },
+      {
+        "name": "handleJsonCommand",
+        "kind": "func",
+        "doc": "",
+        "line": 34
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/list.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "listCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 10
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 29
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/md.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "mdCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 26
+      },
+      {
+        "name": "HandleMarkdownCommandFunc",
+        "kind": "var",
+        "doc": "Function reference that will be set by main package",
+        "line": 31
+      },
+      {
+        "name": "handleMarkdownCommand",
+        "kind": "func",
+        "doc": "",
+        "line": 33
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/mono.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "listReleases",
+        "kind": "var",
+        "doc": "",
+        "line": 10
+      },
+      {
+        "name": "monoCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 12
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 51
+      },
+      {
+        "name": "ListMonoReleasesFunc",
+        "kind": "var",
+        "doc": "Function references that will be set by main package",
+        "line": 61
+      },
+      {
+        "name": "InstallMonoReleaseFunc",
+        "kind": "var",
+        "doc": "",
+        "line": 62
+      },
+      {
+        "name": "listMonoReleases",
+        "kind": "func",
+        "doc": "",
+        "line": 65
+      },
+      {
+        "name": "installMonoRelease",
+        "kind": "func",
+        "doc": "",
+        "line": 73
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/root.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "dryRun",
+        "kind": "var",
+        "doc": "Global flags",
+        "line": 13
+      },
+      {
+        "name": "planJSON",
+        "kind": "var",
+        "doc": "",
+        "line": 14
+      },
+      {
+        "name": "rootCmd",
+        "kind": "var",
+        "doc": "",
+        "line": 17
+      },
+      {
+        "name": "Execute",
+        "kind": "func",
+        "doc": "Execute runs the root command",
+        "line": 39
+      },
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 43
+      },
+      {
+        "name": "ensureConfigDirectory",
+        "kind": "func",
+        "doc": "",
+        "line": 48
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/types.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "GoVersion",
+        "kind": "const",
+        "doc": "GoVersion is the Go version to use when building projects via mise",
+        "line": 12
+      },
+      {
+        "name": "Tool",
+        "kind": "type",
+        "doc": "Tool represents an installable tool or dependency",
+        "line": 15
+      },
+      {
+        "name": "ToolRegistry",
+        "kind": "var",
+        "doc": "ToolRegistry is a catalogue of installable tools and their installation methods",
+        "line": 24
+      },
+      {
+        "name": "PlanStep",
+        "kind": "type",
+        "doc": "PlanStep represents a single step in a fulfillment plan",
+        "line": 80
+      },
+      {
+        "name": "FulfillmentPlan",
+        "kind": "type",
+        "doc": "FulfillmentPlan represents a complete plan to fulfill a requirement",
+        "line": 89
+      },
+      {
+        "name": "PrintPlan",
+        "kind": "method",
+        "doc": "PrintPlan displays the plan in human-readable format",
+        "line": 95
+      },
+      {
+        "name": "ToJSON",
+        "kind": "method",
+        "doc": "ToJSON returns the plan as a JSON string",
+        "line": 111
+      },
+      {
+        "name": "HasOnlySafeSteps",
+        "kind": "method",
+        "doc": "HasOnlySafeSteps returns true if all steps in the plan are marked as safe",
+        "line": 120
+      },
+      {
+        "name": "ConfirmPlan",
+        "kind": "method",
+        "doc": "ConfirmPlan asks the user to confirm the plan",
+        "line": 130
+      },
+      {
+        "name": "PRInfo",
+        "kind": "type",
+        "doc": "PRInfo holds information about a pull request",
+        "line": 142
+      }
+    ]
+  },
+  {
+    "file_path": "want/cmd/version.go",
+    "package": "cmd",
+    "symbols": [
+      {
+        "name": "init",
+        "kind": "func",
+        "doc": "",
+        "line": 7
+      }
+    ]
+  },
+  {
+    "file_path": "want/handlers.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "FulfillmentPlan",
+        "kind": "type",
+        "doc": "Type aliases for cmd package types",
+        "line": 19
+      },
+      {
+        "name": "PlanStep",
+        "kind": "type",
+        "doc": "Type aliases for cmd package types",
+        "line": 20
+      },
+      {
+        "name": "handleJsonCommand",
+        "kind": "func",
+        "doc": "handleJsonCommand handles \"want json \u003ccommand\u003e\" - converts command output to JSON",
+        "line": 24
+      },
+      {
+        "name": "handleMarkdownCommand",
+        "kind": "func",
+        "doc": "handleMarkdownCommand handles \"want md \u003curl\u003e\" - converts URL to markdown",
+        "line": 124
+      },
+      {
+        "name": "handleExcalifontCommand",
+        "kind": "func",
+        "doc": "handleExcalifontCommand handles \"want excalifont\" - downloads and installs Excalifont",
+        "line": 265
+      },
+      {
+        "name": "handleGitHubAsset",
+        "kind": "func",
+        "doc": "handleGitHubAsset downloads a binary from a GitHub release",
+        "line": 423
+      }
+    ]
+  },
+  {
+    "file_path": "want/main.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "main",
+        "kind": "func",
+        "doc": "",
+        "line": 10
+      }
+    ]
+  },
+  {
+    "file_path": "want/main_test.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "TestParseMonoProjectVersion",
+        "kind": "func",
+        "doc": "",
+        "line": 9
+      },
+      {
+        "name": "TestFormatMonoTag",
+        "kind": "func",
+        "doc": "",
+        "line": 73
+      },
+      {
+        "name": "TestExtractVersionFromTag",
+        "kind": "func",
+        "doc": "",
+        "line": 104
+      },
+      {
+        "name": "TestParsePRNumber",
+        "kind": "func",
+        "doc": "",
+        "line": 136
+      },
+      {
+        "name": "TestIsHexString",
+        "kind": "func",
+        "doc": "",
+        "line": 190
+      },
+      {
+        "name": "TestToolRegistry",
+        "kind": "func",
+        "doc": "",
+        "line": 243
+      },
+      {
+        "name": "TestBuildToolInstallationPlan",
+        "kind": "func",
+        "doc": "",
+        "line": 294
+      },
+      {
+        "name": "TestBuildMiseInstallationSteps",
+        "kind": "func",
+        "doc": "",
+        "line": 345
+      },
+      {
+        "name": "TestBuildShellConfigStep",
+        "kind": "func",
+        "doc": "",
+        "line": 373
+      },
+      {
+        "name": "TestBuildManualActivationStep",
+        "kind": "func",
+        "doc": "",
+        "line": 398
+      }
+    ]
+  },
+  {
+    "file_path": "want/mono.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "PRInfo",
+        "kind": "type",
+        "doc": "Type aliases for cmd package types",
+        "line": 15
+      },
+      {
+        "name": "installMonoRelease",
+        "kind": "func",
+        "doc": "installMonoRelease installs a specific version of a project from neongreen/mono",
+        "line": 18
+      }
+    ]
+  },
+  {
+    "file_path": "want/mono_build.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "buildWithMiseAndCopy",
+        "kind": "func",
+        "doc": "buildWithMiseAndCopy builds a project using mise and copies the binary to destination",
+        "line": 14
+      },
+      {
+        "name": "printPathInfo",
+        "kind": "func",
+        "doc": "printPathInfo prints information about whether the binary is in PATH",
+        "line": 51
+      },
+      {
+        "name": "buildMonoFromLocal",
+        "kind": "func",
+        "doc": "buildMonoFromLocal builds a project from the local mono repository checkout",
+        "line": 72
+      },
+      {
+        "name": "buildMonoFromSource",
+        "kind": "func",
+        "doc": "buildMonoFromSource builds a project from a branch or commit in the mono repository",
+        "line": 176
+      }
+    ]
+  },
+  {
+    "file_path": "want/mono_pr.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "listOpenPRs",
+        "kind": "func",
+        "doc": "listOpenPRs fetches open PRs that modify the given project",
+        "line": 16
+      },
+      {
+        "name": "buildMonoFromPR",
+        "kind": "func",
+        "doc": "buildMonoFromPR builds a project from a PR branch",
+        "line": 61
+      }
+    ]
+  },
+  {
+    "file_path": "want/mono_release.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "listMonoReleases",
+        "kind": "func",
+        "doc": "listMonoReleases lists all releases for a project from neongreen/mono",
+        "line": 12
+      }
+    ]
+  },
+  {
+    "file_path": "want/tools.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "ToolRegistry",
+        "kind": "var",
+        "doc": "",
+        "line": 14
+      },
+      {
+        "name": "buildToolInstallationPlan",
+        "kind": "func",
+        "doc": "buildToolInstallationPlan creates a complete installation plan for a tool\nIt handles dependencies (like mise) automatically based on the registry",
+        "line": 18
+      },
+      {
+        "name": "buildShellConfigStep",
+        "kind": "func",
+        "doc": "buildShellConfigStep creates a step to configure shell for mise activation",
+        "line": 40
+      },
+      {
+        "name": "buildManualActivationStep",
+        "kind": "func",
+        "doc": "buildManualActivationStep creates a manual step for activating mise in current shell",
+        "line": 52
+      },
+      {
+        "name": "buildMiseInstallationSteps",
+        "kind": "func",
+        "doc": "buildMiseInstallationSteps returns the steps needed to install mise",
+        "line": 63
+      },
+      {
+        "name": "isToolAvailable",
+        "kind": "func",
+        "doc": "isToolAvailable checks if a tool is already available in PATH",
+        "line": 82
+      },
+      {
+        "name": "isMiseAvailable",
+        "kind": "func",
+        "doc": "isMiseAvailable checks if mise is installed",
+        "line": 88
+      },
+      {
+        "name": "createMiseCommand",
+        "kind": "func",
+        "doc": "createMiseCommand creates a command to run 'mise' with the given arguments.",
+        "line": 94
+      },
+      {
+        "name": "setMiseTrustedPath",
+        "kind": "func",
+        "doc": "setMiseTrustedPath sets MISE_TRUSTED_CONFIG_PATHS on a command to avoid trust prompts.\nThis should be called with the repository root directory.",
+        "line": 101
+      },
+      {
+        "name": "getShellConfigFile",
+        "kind": "func",
+        "doc": "getShellConfigFile returns the shell configuration file path based on the current shell",
+        "line": 109
+      },
+      {
+        "name": "isMiseActivated",
+        "kind": "func",
+        "doc": "isMiseActivated checks if mise activation is present in the shell config",
+        "line": 140
+      },
+      {
+        "name": "getShellName",
+        "kind": "func",
+        "doc": "getShellName returns a human-readable name for the current shell",
+        "line": 157
+      },
+      {
+        "name": "installMise",
+        "kind": "func",
+        "doc": "installMise installs mise using the official installation script",
+        "line": 168
+      },
+      {
+        "name": "performMiseInstallation",
+        "kind": "func",
+        "doc": "",
+        "line": 198
+      },
+      {
+        "name": "installToolViaMise",
+        "kind": "func",
+        "doc": "installToolViaMise installs a tool using mise",
+        "line": 276
+      }
+    ]
+  },
+  {
+    "file_path": "want/utils.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "CompoundHandler",
+        "kind": "type",
+        "doc": "CompoundHandler is a function that handles compound commands",
+        "line": 11
+      },
+      {
+        "name": "getCompoundHandler",
+        "kind": "func",
+        "doc": "getCompoundHandler returns a handler for compound commands if one exists",
+        "line": 14
+      },
+      {
+        "name": "isCommandSafe",
+        "kind": "func",
+        "doc": "isCommandSafe checks if a command is read-only/safe (doesn't modify system state)",
+        "line": 25
+      },
+      {
+        "name": "isHexString",
+        "kind": "func",
+        "doc": "isHexString checks if a string contains only hexadecimal characters",
+        "line": 45
+      },
+      {
+        "name": "usePureMd",
+        "kind": "func",
+        "doc": "usePureMd uses the pure.md service to convert URL to markdown",
+        "line": 55
+      }
+    ]
+  },
+  {
+    "file_path": "want/vscode.go",
+    "package": "main",
+    "symbols": [
+      {
+        "name": "createMiseRunCommand",
+        "kind": "func",
+        "doc": "createMiseRunCommand creates a command to run a mise task.\nExample: createMiseRunCommand(\"tk-vscode:install-deps\") runs the tk-vscode:install-deps task.",
+        "line": 22
+      },
+      {
+        "name": "buildVSCodeExtensionFromSource",
+        "kind": "func",
+        "doc": "buildVSCodeExtensionFromSource builds a VS Code extension from a branch or commit",
+        "line": 34
+      },
+      {
+        "name": "buildVSCodeExtensionFromPR",
+        "kind": "func",
+        "doc": "buildVSCodeExtensionFromPR builds a VS Code extension from a PR branch",
+        "line": 197
+      }
+    ]
+  }
+]
