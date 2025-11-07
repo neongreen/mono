@@ -93,14 +93,14 @@ These namespaced tasks ensure consistent commands across all projects and make i
 
 ## Code Formatting
 
-**All Go code must be formatted with `golangci-lint fmt` before work is considered complete.**
+**All Go code must be formatted before work is considered complete.**
 
 Before submitting any changes to Go projects:
-- Run `golangci-lint fmt ./...` in the project directory
-- Ensure all Go files are properly formatted
-- This applies to both new and modified Go code
+- Run `mise run fmt` from the repository root
+- This formats all Go code in the monorepo using `golangci-lint fmt`
+- Applies to both new and modified Go code
 
-The `golangci-lint fmt` tool ensures consistent formatting across all Go code in the monorepo and is a standard requirement for Go development.
+The centralized `fmt` task ensures consistent formatting across all Go code in the monorepo.
 
 ------------------------------------------------------------
 
