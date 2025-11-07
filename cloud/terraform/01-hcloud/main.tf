@@ -1,6 +1,6 @@
 # Data sources: look up Hetzner Cloud resources (no creation)
-data "hcloud_server_type" "cpx21" {
-  name = "cpx21"
+data "hcloud_server_type" "cpx22" {
+  name = "cpx22"
 }
 
 data "hcloud_image" "ubuntu_2404" {
@@ -83,7 +83,7 @@ resource "hcloud_ssh_key" "workstation" {
 resource "hcloud_server" "vm1" {
   name        = "vm1"
   image       = data.hcloud_image.ubuntu_2404.name
-  server_type = data.hcloud_server_type.cpx21.name
+  server_type = data.hcloud_server_type.cpx22.name
   location    = data.hcloud_location.nbg1.name
   ssh_keys    = [hcloud_ssh_key.workstation.id]
 

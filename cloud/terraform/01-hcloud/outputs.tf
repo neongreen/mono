@@ -1,5 +1,5 @@
 output "server_type" {
-  value = data.hcloud_server_type.cpx21.id  # CPX21 server type
+  value = data.hcloud_server_type.cpx22.id
 }
 
 output "image" {
