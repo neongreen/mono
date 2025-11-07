@@ -67,11 +67,7 @@ func (s *MiseSchema) GetCompletionOptions(path string) []CompletionOption {
 	if len(parts) == 1 {
 		// Return properties of this field
 		for _, prop := range field.Properties {
-			options = append(options, CompletionOption{
-				Name:        prop.Name,
-				Type:        prop.Type,
-				Description: prop.Description,
-			})
+			options = append(options, CompletionOption(prop))
 		}
 	}
 

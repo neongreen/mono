@@ -79,7 +79,7 @@ func (d *Document) Get(path string) (any, error) {
 		return nil, nil // Entry is a section, not a value
 	}
 
-	return parseValue(entry.KeyValue.Value)
+	return parseValue(entry.Value)
 }
 
 // Set sets a value at the given dotted path, creating intermediate sections
@@ -105,7 +105,7 @@ func (d *Document) Set(path string, value any) error {
 
 // updateExistingKey updates an existing key while preserving its formatting
 func (d *Document) updateExistingKey(entry *tomledit.Entry, value any) error {
-	oldValue := entry.KeyValue.Value
+	oldValue := entry.Value
 
 	// Try to format the new value in the same style as the old value
 	newValue, err := d.formatValuePreservingStyle(value, oldValue)
@@ -114,8 +114,8 @@ func (d *Document) updateExistingKey(entry *tomledit.Entry, value any) error {
 	}
 
 	// Update the value while preserving comments
-	entry.KeyValue.Value = newValue
-	entry.KeyValue.Value.Trailer = oldValue.Trailer // Preserve trailing comment
+	entry.Value = newValue
+	entry.Value.Trailer = oldValue.Trailer // Preserve trailing comment
 
 	return nil
 }

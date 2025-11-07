@@ -42,16 +42,18 @@ func GetCurrentPlatform() Platform {
 	archName := runtime.GOARCH
 
 	// Normalize OS name
-	if osName == "darwin" {
+	switch osName {
+	case "darwin":
 		osName = "darwin"
-	} else if osName == "linux" {
+	case "linux":
 		osName = "linux"
 	}
 
 	// Normalize architecture name
-	if archName == "amd64" {
+	switch archName {
+	case "amd64":
 		archName = "amd64"
-	} else if archName == "arm64" {
+	case "arm64":
 		archName = "arm64"
 	}
 

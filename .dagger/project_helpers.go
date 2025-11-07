@@ -75,9 +75,8 @@ func lintProject(ctx context.Context, projectName string) (string, error) {
 	repo := dag.CurrentModule().Source().Directory("..")
 
 	lintImageRepo := "docker.io/golangci/golangci-lint"
-	lintImageTag := "v2.5.0-alpine"
-	lintImageDigest := "sha256:ac072ef3a8a6aa52c04630c68a7514e06be6f634d09d5975be60f2d53b484106"
-	lintImage := lintImageRepo + ":" + lintImageTag + "@" + lintImageDigest
+	lintImageTag := "v2.6.1"
+	lintImage := lintImageRepo + ":" + lintImageTag
 
 	return dag.Container().
 		From(lintImage).

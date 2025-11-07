@@ -83,10 +83,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.mode == modeView {
+	switch m.mode {
+	case modeView:
 		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
-	} else if m.mode == modeAnnotate {
+	case modeAnnotate:
 		m.textarea, cmd = m.textarea.Update(msg)
 		cmds = append(cmds, cmd)
 	}

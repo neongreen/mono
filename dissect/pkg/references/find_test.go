@@ -512,7 +512,7 @@ func Main() {
 	// The local variable "Helper" shadows the function, so we should find both
 	// But the type info should distinguish them correctly
 	// For this test, we just verify it doesn't crash and returns some results
-	if len(refs) < 0 {
+	if len(refs) == 0 {
 		t.Error("FindReferences should handle shadowing correctly")
 	}
 }

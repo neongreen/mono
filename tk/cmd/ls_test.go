@@ -431,7 +431,7 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 		t.Fatal("not all projects found in JSON output")
 	}
 
-	if !(applePos < monkeyPos && monkeyPos < zebraPos) {
+	if applePos >= monkeyPos || monkeyPos >= zebraPos {
 		t.Errorf("projects not in alphabetical order: apple at %d, monkey at %d, zebra at %d",
 			applePos, monkeyPos, zebraPos)
 	}

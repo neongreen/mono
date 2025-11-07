@@ -21,5 +21,6 @@ func NewEnterpriseClient(ctx context.Context, baseURL, uploadURL string) (*githu
 		ctx = context.Background()
 	}
 	httpClient := NewHTTPClient(ctx)
-	return github.NewEnterpriseClient(baseURL, uploadURL, httpClient)
+	client, err := github.NewClient(httpClient).WithEnterpriseURLs(baseURL, uploadURL)
+	return client, err
 }

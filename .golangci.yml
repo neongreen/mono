@@ -4,6 +4,7 @@ linters:
   enable:
   - modernize
   - unused
+  - staticcheck
 
   # default: all
   # disable:
@@ -24,6 +25,11 @@ linters:
   #   - wsl_v5
   #   - nlreturn
   settings:
+    staticcheck:
+      checks:
+      - all
+      - -QF1001  # De Morgan's law - whatever
+      - -ST1003  # Don't complain about naming conventions 
     errcheck:
       check-type-assertions: true
       check-blank: true

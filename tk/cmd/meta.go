@@ -205,7 +205,7 @@ var metaListCmd = &cobra.Command{
 			return fmt.Errorf("task not found: %s", taskRef)
 		}
 
-		if task.Metadata == nil || len(task.Metadata) == 0 {
+		if len(task.Metadata) == 0 {
 			if jsonOutput {
 				fmt.Println("{}")
 			} else {

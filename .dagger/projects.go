@@ -117,6 +117,18 @@ func (m *Dagger) Lint(ctx context.Context) error {
 	// Limit parallelism to avoid OOM (matching Dagger's approach)
 	jobs := parallel.New().WithLimit(3)
 	p := m.Project()
+	
+	// Verify golangci-lint config first
+	jobs = jobs.WithJob("verify golangci-lint config", func(ctx context.Context) error {
+		_, err := dag.Container().
+			From("golangci/golangci-lint:v2.6.1").
+			WithMountedDirectory("/workspace", dag.CurrentModule().Source().Directory("..")).
+			WithWorkdir("/workspace").
+			WithExec([]string{"golangci-lint", "config", "verify"}).
+			Sync(ctx)
+		return err
+	})
+	
 	jobs = jobs.WithJob("lint tk", func(ctx context.Context) error {
 		_, err := p.Tk().Lint(ctx)
 		return err

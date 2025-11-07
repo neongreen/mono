@@ -14,26 +14,26 @@ func renderConversationItems(sb *strings.Builder, items []parser.ConversationIte
 		switch item.Type {
 		case parser.ItemTypeUser:
 			messageNum++
-			sb.WriteString(fmt.Sprintf("### Message %d: User\n\n", messageNum))
+			fmt.Fprintf(sb, "### Message %d: User\n\n", messageNum)
 			if !item.Timestamp.IsZero() {
-				sb.WriteString(fmt.Sprintf("**Time:** %s\n\n", item.Timestamp.Format("2006-01-02 15:04:05")))
+				fmt.Fprintf(sb, "**Time:** %s\n\n", item.Timestamp.Format("2006-01-02 15:04:05"))
 			}
 			if item.UserMessage != nil {
 				sb.WriteString(item.UserMessage.Content)
 				if item.UserMessage.CWD != "" {
-					sb.WriteString(fmt.Sprintf("\n\n*Working directory: %s*", item.UserMessage.CWD))
+					fmt.Fprintf(sb, "\n\n*Working directory: %s*", item.UserMessage.CWD)
 				}
 			}
 			sb.WriteString("\n\n---\n\n")
 		case parser.ItemTypeAssistant:
 			messageNum++
-			sb.WriteString(fmt.Sprintf("### Message %d: Assistant", messageNum))
+			fmt.Fprintf(sb, "### Message %d: Assistant", messageNum)
 			if item.AssistantMessage != nil && item.AssistantMessage.Model != "" {
-				sb.WriteString(fmt.Sprintf(" (%s)", item.AssistantMessage.Model))
+				fmt.Fprintf(sb, " (%s)", item.AssistantMessage.Model)
 			}
 			sb.WriteString("\n\n")
 			if !item.Timestamp.IsZero() {
-				sb.WriteString(fmt.Sprintf("**Time:** %s\n\n", item.Timestamp.Format("2006-01-02 15:04:05")))
+				fmt.Fprintf(sb, "**Time:** %s\n\n", item.Timestamp.Format("2006-01-02 15:04:05"))
 			}
 			if item.AssistantMessage != nil {
 				for _, content := range item.AssistantMessage.Content {
@@ -46,7 +46,7 @@ func renderConversationItems(sb *strings.Builder, items []parser.ConversationIte
 						sb.WriteString(content.Text)
 						sb.WriteString("\n\n")
 					case parser.ContentTypeToolUse:
-						sb.WriteString(fmt.Sprintf("**Tool Use:** `%s`\n\n", content.ToolUse.Name))
+						fmt.Fprintf(sb, "**Tool Use:** `%s`\n\n", content.ToolUse.Name)
 						if len(content.ToolUse.Input) > 0 {
 							sb.WriteString(formatToolArguments(content.ToolUse.Name, content.ToolUse.Input))
 						}
@@ -56,7 +56,7 @@ func renderConversationItems(sb *strings.Builder, items []parser.ConversationIte
 			sb.WriteString("---\n\n")
 		case parser.ItemTypeToolResult:
 			if item.ToolResult != nil {
-				sb.WriteString(fmt.Sprintf("**Tool Result:** %s\n\n", item.ToolResult.ToolUseID))
+				fmt.Fprintf(sb, "**Tool Result:** %s\n\n", item.ToolResult.ToolUseID)
 				if item.ToolResult.IsError {
 					sb.WriteString("*Error:* ")
 				}

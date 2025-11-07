@@ -11,14 +11,14 @@ import (
 )
 
 var (
-	// Version information - automatically populated from VCS (Go 1.18+) or set via -ldflags
+	// Version information - automatically populated from VCS
 	Version   = "dev"
 	GitCommit = "unknown"
 	BuildTime = "unknown"
 )
 
 func init() {
-	// Try to read VCS information from build info (available since Go 1.18)
+	// Try to read VCS information from build info
 	// This works automatically when building in a git repository with plain `go build`
 	info, ok := debug.ReadBuildInfo()
 	if !ok {

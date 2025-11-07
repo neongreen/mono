@@ -1461,7 +1461,7 @@ func applyTool(conf *config.Config, toolName string, dryRun bool) error {
 		return fmt.Errorf("tool %s not configured", toolName)
 	}
 
-	if tool.Values == nil || len(tool.Values) == 0 {
+	if len(tool.Values) == 0 {
 		fmt.Printf("%s: No values to apply\n", toolName)
 		return nil
 	}

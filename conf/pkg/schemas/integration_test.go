@@ -305,13 +305,10 @@ func TestSchemaCompletion(t *testing.T) {
 		// Test boolean completion
 		if booleanSetting != nil {
 			expectedValues := []string{"true", "false"}
-			for _, value := range expectedValues {
-				// Simulate completion check
-				if !strings.HasPrefix(value, "t") && !strings.HasPrefix(value, "f") {
-					continue // This is just testing the concept
-				}
+			// Verify we have boolean values
+			if len(expectedValues) > 0 {
+				t.Logf("Boolean setting example: %s", booleanSetting.Path)
 			}
-			t.Logf("Boolean setting example: %s", booleanSetting.Path)
 		}
 
 		// Test enum completion

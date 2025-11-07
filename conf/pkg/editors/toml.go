@@ -163,7 +163,7 @@ func (e *TOMLEditor) PreviewSetValue(path string, value any) (string, error) {
 		preview.WriteString(fmt.Sprintf("Would modify existing file: %s\n", e.filePath))
 	}
 
-	preview.WriteString(fmt.Sprintf("Operation: SET\n"))
+	preview.WriteString("Operation: SET\n")
 	preview.WriteString(fmt.Sprintf("Path: %s\n", path))
 	preview.WriteString(fmt.Sprintf("Value: %v (%T)\n", value, value))
 
@@ -191,7 +191,7 @@ func (e *TOMLEditor) PreviewUnsetValue(path string) (string, error) {
 	}
 
 	preview.WriteString(fmt.Sprintf("Would modify existing file: %s\n", e.filePath))
-	preview.WriteString(fmt.Sprintf("Operation: UNSET\n"))
+	preview.WriteString("Operation: UNSET\n")
 	preview.WriteString(fmt.Sprintf("Path: %s\n", path))
 
 	return preview.String(), nil

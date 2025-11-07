@@ -41,7 +41,7 @@ bravo = 4
 	}
 
 	// Verify order is preserved (zebra, apple, middle, banana)
-	if !(zebraPos < applePos && applePos < middlePos && middlePos < bananaPos) {
+	if zebraPos >= applePos || applePos >= middlePos || middlePos >= bananaPos {
 		t.Errorf("Key order not preserved. Positions: zebra=%d, apple=%d, middle=%d, banana=%d",
 			zebraPos, applePos, middlePos, bananaPos)
 		t.Logf("Output:\n%s", output)
@@ -53,7 +53,7 @@ bravo = 4
 	mikePos := strings.Index(output, "mike")
 	bravoPos := strings.Index(output, "bravo")
 
-	if !(zuluPos < alphaPos && alphaPos < mikePos && mikePos < bravoPos) {
+	if zuluPos >= alphaPos || alphaPos >= mikePos || mikePos >= bravoPos {
 		t.Errorf("Section key order not preserved")
 		t.Logf("Output:\n%s", output)
 	}
@@ -432,7 +432,7 @@ feature_b = false
 	mPos := strings.Index(featureSection, "feature_m")
 	bPos := strings.Index(featureSection, "feature_b")
 
-	if !(aPos < zPos && zPos < mPos && mPos < bPos) {
+	if aPos >= zPos || zPos >= mPos || mPos >= bPos {
 		t.Error("Feature flag order not preserved")
 	}
 

@@ -25,7 +25,7 @@ func debugLog(format string, args ...any) {
 
 func parsePRURL(prURL string) (*PRInfo, error) {
 	matches := prURLRegex.FindStringSubmatch(prURL)
-	if matches == nil || len(matches) < 4 {
+	if len(matches) < 4 {
 		return nil, fmt.Errorf("invalid GitHub PR URL: %s", prURL)
 	}
 	prNum, err := strconv.Atoi(matches[3])

@@ -13,6 +13,8 @@ import (
 	"go.abhg.dev/goldmark/frontmatter"
 	stdhtml "golang.org/x/net/html"
 	htmlatom "golang.org/x/net/html/atom"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const htmlFootnoteCSS = `sup[id^="fnref:"] {
@@ -88,9 +90,10 @@ func renderFrontmatterHTML(data map[string]any) string {
 	var buf strings.Builder
 	buf.WriteString(`<div class="frontmatter">`)
 	buf.WriteString("<dl>")
+	titleCaser := cases.Title(language.English)
 	for key, value := range data {
 		buf.WriteString("<dt>")
-		buf.WriteString(strings.Title(strings.ReplaceAll(key, "_", " ")))
+		buf.WriteString(titleCaser.String(strings.ReplaceAll(key, "_", " ")))
 		buf.WriteString("</dt>")
 		buf.WriteString("<dd>")
 		buf.WriteString(fmt.Sprintf("%v", value))

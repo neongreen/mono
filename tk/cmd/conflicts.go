@@ -9,6 +9,8 @@ import (
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/spf13/cobra"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var conflictsCmd = &cobra.Command{
@@ -133,7 +135,8 @@ func displayCycles(reducer *reducer.Reducer, cycleType string, cycles [][]string
 		return
 	}
 
-	fmt.Printf("%s cycles detected (%d):\n\n", strings.Title(cycleType), len(cycles))
+	titleCaser := cases.Title(language.English)
+	fmt.Printf("%s cycles detected (%d):\n\n", titleCaser.String(cycleType), len(cycles))
 	for i, cycle := range cycles {
 		fmt.Printf("Cycle %d:\n", i+1)
 

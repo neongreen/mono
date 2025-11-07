@@ -32,6 +32,7 @@ require (
 	golang.org/x/net v0.46.0
 	golang.org/x/oauth2 v0.32.0
 	golang.org/x/term v0.36.0
+	golang.org/x/text v0.30.0
 	golang.org/x/tools v0.37.0
 	modernc.org/sqlite v1.39.1
 )
@@ -90,7 +91,6 @@ require (
 	golang.org/x/mod v0.28.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
-	golang.org/x/text v0.30.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

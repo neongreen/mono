@@ -503,9 +503,7 @@ func moveFunctionWithGopls(sourceFile string, identifier string, targetFile stri
 
 	// Extract imports from temp file for later merging
 	var tempImports []*ast.ImportSpec
-	for _, imp := range tempNode.Imports {
-		tempImports = append(tempImports, imp)
-	}
+	tempImports = append(tempImports, tempNode.Imports...)
 
 	// Serialize just the function declaration (not a whole file) using printer
 	// This gives us the function with its Doc comments as source text
@@ -575,7 +573,7 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 
 	// Find and extract the declaration to move
 	var declToMove ast.Decl
-	var declIndex int = -1
+	declIndex := -1
 
 	for i, decl := range sourceNode.Decls {
 		genDecl, ok := decl.(*ast.GenDecl)

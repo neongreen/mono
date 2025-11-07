@@ -212,7 +212,7 @@ func (c *Config) Save() error {
 		// Save to per-tool file if it exists
 		if _, err := os.Stat(perToolPath); err == nil {
 			// Save values if they exist
-			if tool.Values != nil && len(tool.Values) > 0 {
+			if len(tool.Values) > 0 {
 				if err := tomlcp.WriteFile(perToolPath, tool.Values); err != nil {
 					return fmt.Errorf("failed to write %s config: %w", toolName, err)
 				}
@@ -475,7 +475,7 @@ func isBareKey(key string) bool {
 		return false
 	}
 	for _, r := range key {
-		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-') {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' && r != '-' {
 			return false
 		}
 	}

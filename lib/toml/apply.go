@@ -165,7 +165,7 @@ func isBareKey(key string) bool {
 		return false
 	}
 	for _, r := range key {
-		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-') {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' && r != '-' {
 			return false
 		}
 	}

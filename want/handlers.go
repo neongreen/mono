@@ -428,7 +428,7 @@ func handleGitHubAsset(url string, dryRun bool, planJson bool) {
 
 		re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/([^/]+)`)
 		matches := re.FindStringSubmatch(url)
-		if matches == nil || len(matches) < 5 {
+		if len(matches) < 5 {
 			fmt.Printf("Error: Invalid GitHub release download URL: %s\n", url)
 			fmt.Println("\nExpected format:")
 			fmt.Println("  https://github.com/owner/repo/releases/download/tag/asset-name")
@@ -447,7 +447,7 @@ func handleGitHubAsset(url string, dryRun bool, planJson bool) {
 
 		re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/releases/tag/([^/]+)`)
 		matches := re.FindStringSubmatch(url)
-		if matches == nil || len(matches) < 4 {
+		if len(matches) < 4 {
 			fmt.Printf("Error: Invalid GitHub release tag URL: %s\n", url)
 			fmt.Println("\nExpected format:")
 			fmt.Println("  https://github.com/owner/repo/releases/tag/tag-name")

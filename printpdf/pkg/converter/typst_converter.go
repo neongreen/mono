@@ -12,6 +12,8 @@ import (
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 	"go.abhg.dev/goldmark/frontmatter"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // convertMarkdownToTypst converts Markdown content to Typst markup
@@ -114,8 +116,9 @@ func renderFrontmatterTypst(data map[string]any) string {
 	buf.WriteString("    columns: (auto, 1fr),\n")
 	buf.WriteString("    column-gutter: 1em,\n")
 	buf.WriteString("    row-gutter: 0.5em,\n")
+	titleCaser := cases.Title(language.English)
 	for key, value := range data {
-		title := strings.Title(strings.ReplaceAll(key, "_", " "))
+		title := titleCaser.String(strings.ReplaceAll(key, "_", " "))
 		buf.WriteString(fmt.Sprintf("    [*%s:*], [%v],\n", escapeTypst(title), escapeTypst(fmt.Sprintf("%v", value))))
 	}
 	buf.WriteString("  )\n")
@@ -146,9 +149,9 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte, footnote
 
 	case *ast.Text:
 		// Handle text content
-		text := n.Text(source)
+		textBytes := n.Segment.Value(source)
 		// Escape special Typst characters
-		escaped := escapeTypst(string(text))
+		escaped := escapeTypst(string(textBytes))
 		buf.WriteString(escaped)
 
 		// Handle soft/hard line breaks
@@ -163,19 +166,20 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte, footnote
 
 	case *ast.Emphasis:
 		// Level 1 = italic (_text_), Level 2 = bold (*text*)
-		if n.Level == 1 {
+		switch n.Level {
+		case 1:
 			buf.WriteString("_")
 			if err := renderChildren(buf, n, source, footnotes); err != nil {
 				return err
 			}
 			buf.WriteString("_")
-		} else if n.Level == 2 {
+		case 2:
 			buf.WriteString("*")
 			if err := renderChildren(buf, n, source, footnotes); err != nil {
 				return err
 			}
 			buf.WriteString("*")
-		} else {
+		default:
 			// Fallback for other levels
 			if err := renderChildren(buf, n, source, footnotes); err != nil {
 				return err
@@ -193,7 +197,12 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte, footnote
 
 	case *ast.CodeSpan:
 		buf.WriteString("`")
-		buf.WriteString(string(n.Text(source)))
+		// Get text from child nodes
+		for child := n.FirstChild(); child != nil; child = child.NextSibling() {
+			if textNode, ok := child.(*ast.Text); ok {
+				buf.WriteString(string(textNode.Segment.Value(source)))
+			}
+		}
 		buf.WriteString("`")
 
 	case *ast.FencedCodeBlock:
@@ -297,7 +306,7 @@ func renderNodeToTypst(buf *bytes.Buffer, node ast.Node, source []byte, footnote
 	case *extast.FootnoteLink:
 		content, ok := footnotes[n.Index]
 		if !ok {
-			buf.WriteString(fmt.Sprintf("#footnote[missing footnote %d]", n.Index))
+			fmt.Fprintf(buf, "#footnote[missing footnote %d]", n.Index)
 			return nil
 		}
 		buf.WriteString("#footnote[")

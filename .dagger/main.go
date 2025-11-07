@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
-	"time"
 	"unicode"
 
 	"dagger/internal/dagger"
@@ -37,11 +36,10 @@ type Platform struct {
 
 // Build binaries for all platforms and return them as a directory
 // project: the project directory to build (e.g., "tk", "ingest")
-// version: the version string to embed in the binary
-// gitCommit: the git commit hash to embed in the binary
+// version: the version string (currently unused, kept for API compatibility)
+// gitCommit: the git commit hash (currently unused, kept for API compatibility)
 func (m *Dagger) BuildRelease(ctx context.Context, project string, version string, gitCommit string) (*dagger.Directory, error) {
 	repo := dag.CurrentModule().Source().Directory("..")
-	buildTime := time.Now().UTC().Format(time.RFC3339)
 
 	platforms := []Platform{
 		{OS: "linux", Arch: "amd64"},
@@ -74,16 +72,12 @@ func (m *Dagger) BuildRelease(ctx context.Context, project string, version strin
 	for _, platform := range platforms {
 		outputName := fmt.Sprintf("%s-%s-%s-%s", project, version, platform.OS, platform.Arch)
 
-		ldflags := fmt.Sprintf("-X github.com/neongreen/mono/lib/version.Version=%s -X github.com/neongreen/mono/lib/version.GitCommit=%s -X github.com/neongreen/mono/lib/version.BuildTime=%s",
-			version, gitCommit, buildTime)
-
 		buildContainer := baseContainer.
 			WithEnvVariable("GOOS", platform.OS).
 			WithEnvVariable("GOARCH", platform.Arch).
 			WithWorkdir(fmt.Sprintf("/src/%s", project)).
 			WithExec([]string{
 				"go", "build",
-				"-ldflags", ldflags,
 				"-o", fmt.Sprintf("/output/%s", outputName),
 				buildTarget,
 			})
