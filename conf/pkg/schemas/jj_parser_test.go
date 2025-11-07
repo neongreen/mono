@@ -4,6 +4,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 func TestJJSchemaParser_GetCompletionOptions_TopLevel(t *testing.T) {
@@ -289,43 +291,43 @@ func TestHelperFunctions(t *testing.T) {
 		"description": "Test property",
 	}
 
-	if getTypeFromProperty(prop) != "string" {
+	if configschema.GetTypeFromProperty(prop) != "string" {
 		t.Error("Should extract type correctly")
 	}
 
-	if getDescriptionFromProperty(prop) != "Test property" {
+	if configschema.GetDescriptionFromProperty(prop) != "Test property" {
 		t.Error("Should extract description correctly")
 	}
 
 	// Test with missing properties
 	emptyProp := map[string]any{}
-	if getTypeFromProperty(emptyProp) != "unknown" {
+	if configschema.GetTypeFromProperty(emptyProp) != "unknown" {
 		t.Error("Should return 'unknown' for missing type")
 	}
 
-	if getDescriptionFromProperty(emptyProp) != "" {
+	if configschema.GetDescriptionFromProperty(emptyProp) != "" {
 		t.Error("Should return empty string for missing description")
 	}
 
-	// Test getDefaultFromProperty
+	// Test GetDefaultFromProperty
 	propWithDefault := map[string]any{
 		"default": "test_value",
 	}
 
-	if getDefaultFromProperty(propWithDefault) != "test_value" {
+	if configschema.GetDefaultFromProperty(propWithDefault) != "test_value" {
 		t.Error("Should extract default value correctly")
 	}
 
-	if getDefaultFromProperty(emptyProp) != nil {
+	if configschema.GetDefaultFromProperty(emptyProp) != nil {
 		t.Error("Should return nil for missing default")
 	}
 
-	// Test getEnumFromProperty
+	// Test GetEnumFromProperty
 	propWithEnum := map[string]any{
 		"enum": []any{"option1", "option2", "option3"},
 	}
 
-	enum := getEnumFromProperty(propWithEnum)
+	enum := configschema.GetEnumFromProperty(propWithEnum)
 	if len(enum) != 3 {
 		t.Errorf("Should extract 3 enum values, got %d", len(enum))
 	}

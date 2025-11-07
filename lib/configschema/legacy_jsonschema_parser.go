@@ -350,29 +350,34 @@ func (p *LegacyJSONSchemaParser) collectAllSettingsWithInfo(properties map[strin
 }
 
 // Helper functions to extract information from property maps
+// These are exported for testing purposes
 
-func getTypeFromProperty(prop map[string]any) string {
+// GetTypeFromProperty extracts the type from a property map
+func GetTypeFromProperty(prop map[string]any) string {
 	if t, ok := prop["type"].(string); ok {
 		return t
 	}
 	return "unknown"
 }
 
-func getDescriptionFromProperty(prop map[string]any) string {
+// GetDescriptionFromProperty extracts the description from a property map
+func GetDescriptionFromProperty(prop map[string]any) string {
 	if desc, ok := prop["description"].(string); ok {
 		return desc
 	}
 	return ""
 }
 
-func getDefaultFromProperty(prop map[string]any) any {
+// GetDefaultFromProperty extracts the default value from a property map
+func GetDefaultFromProperty(prop map[string]any) any {
 	if def, ok := prop["default"]; ok {
 		return def
 	}
 	return nil
 }
 
-func getEnumFromProperty(prop map[string]any) []string {
+// GetEnumFromProperty extracts enum values from a property map
+func GetEnumFromProperty(prop map[string]any) []string {
 	if enumInterface, ok := prop["enum"]; ok {
 		if enumSlice, ok := enumInterface.([]any); ok {
 			var enumStrings []string
@@ -385,4 +390,21 @@ func getEnumFromProperty(prop map[string]any) []string {
 		}
 	}
 	return nil
+}
+
+// Lowercase versions for internal use
+func getTypeFromProperty(prop map[string]any) string {
+	return GetTypeFromProperty(prop)
+}
+
+func getDescriptionFromProperty(prop map[string]any) string {
+	return GetDescriptionFromProperty(prop)
+}
+
+func getDefaultFromProperty(prop map[string]any) any {
+	return GetDefaultFromProperty(prop)
+}
+
+func getEnumFromProperty(prop map[string]any) []string {
+	return GetEnumFromProperty(prop)
 }
