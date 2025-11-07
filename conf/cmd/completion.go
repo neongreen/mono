@@ -21,7 +21,6 @@ type completionOptions struct {
 
 // genericCompletion provides schema-aware completion using a settings provider function
 func genericCompletion(
-	cmd *cobra.Command,
 	args []string,
 	toComplete string,
 	getSettings func() ([]schemas.SettingInfo, error),
@@ -143,13 +142,13 @@ func genericCompletion(
 }
 
 // jjCompletion provides schema-aware completion for jj commands
-func jjCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func jjCompletion(args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	jjTool, err := jjtool.NewJJTool()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	return genericCompletion(cmd, args, toComplete, jjTool.ListAllSettings, completionOptions{
+	return genericCompletion(args, toComplete, jjTool.ListAllSettings, completionOptions{
 		showCurrentValuesInList: true,
 		handleStringType:        true,
 		showIntegerCurrentValue: true,
@@ -157,13 +156,13 @@ func jjCompletion(cmd *cobra.Command, args []string, toComplete string) ([]strin
 }
 
 // claudeCompletion provides schema-aware completion for claude commands
-func claudeCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func claudeCompletion(args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	claudeTool, err := claudetool.NewClaudeTool()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	return genericCompletion(cmd, args, toComplete, claudeTool.ListAllSettings, completionOptions{
+	return genericCompletion(args, toComplete, claudeTool.ListAllSettings, completionOptions{
 		showCurrentValuesInList: true,
 		handleStringType:        true,
 		showIntegerCurrentValue: true,
@@ -171,13 +170,13 @@ func claudeCompletion(cmd *cobra.Command, args []string, toComplete string) ([]s
 }
 
 // miseCompletion provides completion for mise commands
-func miseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func miseCompletion(args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	miseTool, err := misetool.NewMiseTool()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	return genericCompletion(cmd, args, toComplete, miseTool.ListAllSettings, completionOptions{
+	return genericCompletion(args, toComplete, miseTool.ListAllSettings, completionOptions{
 		showCurrentValuesInList: false,
 		handleStringType:        false,
 		showIntegerCurrentValue: false,
@@ -185,13 +184,13 @@ func miseCompletion(cmd *cobra.Command, args []string, toComplete string) ([]str
 }
 
 // starshipCompletion provides completion for starship commands
-func starshipCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func starshipCompletion(args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	starshipTool, err := starshiptool.NewStarshipTool()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	return genericCompletion(cmd, args, toComplete, starshipTool.ListAllSettings, completionOptions{
+	return genericCompletion(args, toComplete, starshipTool.ListAllSettings, completionOptions{
 		showCurrentValuesInList: true,
 		handleStringType:        true,
 		showIntegerCurrentValue: false,

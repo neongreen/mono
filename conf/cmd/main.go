@@ -47,8 +47,10 @@ Examples:
   conf jj user.name                    # Get current value
   conf jj user.name "John Doe"         # Set value
   conf jj user.email john@example.com  # Set email`,
-	Args:              cobra.RangeArgs(0, 2),
-	ValidArgsFunction: jjCompletion,
+	Args: cobra.RangeArgs(0, 2),
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return jjCompletion(args, toComplete)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create jj tool
 		jjTool, err := jjtool.NewJJToolWithDryRun(dryRun)
@@ -186,8 +188,10 @@ Examples:
   conf claude model                           # Get current value
   conf claude model "sonnet"                  # Set value
   conf claude alwaysThinkingEnabled true      # Enable extended thinking`,
-	Args:              cobra.RangeArgs(0, 2),
-	ValidArgsFunction: claudeCompletion,
+	Args: cobra.RangeArgs(0, 2),
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return claudeCompletion(args, toComplete)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create claude tool
 		claudeTool, err := claudetool.NewClaudeToolWithDryRun(dryRun)
@@ -325,8 +329,10 @@ Examples:
   conf mise settings.experimental         # Get current value
   conf mise settings.experimental true    # Set boolean value
   conf mise settings.jobs 4               # Set numeric value`,
-	Args:              cobra.RangeArgs(0, 2),
-	ValidArgsFunction: miseCompletion,
+	Args: cobra.RangeArgs(0, 2),
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return miseCompletion(args, toComplete)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create mise tool with dry-run mode
 		miseTool, err := misetool.NewMiseToolWithDryRun(dryRun)
@@ -448,8 +454,10 @@ Examples:
   conf starship add_newline              # Get current value
   conf starship add_newline true         # Set boolean value
   conf starship command_timeout 500      # Set timeout value`,
-	Args:              cobra.RangeArgs(0, 2),
-	ValidArgsFunction: starshipCompletion,
+	Args: cobra.RangeArgs(0, 2),
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return starshipCompletion(args, toComplete)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Create starship tool with dry-run mode
 		starshipTool, err := starshiptool.NewStarshipToolWithDryRun(dryRun)
