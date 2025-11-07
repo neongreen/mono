@@ -3,6 +3,7 @@ package converter
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -67,7 +68,7 @@ func markdownToHTMLBody(markdown []byte) ([]byte, error) {
 	// Extract and render frontmatter if present
 	var result bytes.Buffer
 	if meta := frontmatter.Get(ctx); meta != nil {
-		var data map[string]interface{}
+		var data map[string]any
 		if err := meta.Decode(&data); err == nil && len(data) > 0 {
 			result.WriteString(renderFrontmatterHTML(data))
 		}
@@ -83,7 +84,7 @@ func markdownToHTMLBody(markdown []byte) ([]byte, error) {
 }
 
 // renderFrontmatterHTML renders frontmatter as an HTML definition list
-func renderFrontmatterHTML(data map[string]interface{}) string {
+func renderFrontmatterHTML(data map[string]any) string {
 	var buf strings.Builder
 	buf.WriteString(`<div class="frontmatter">`)
 	buf.WriteString("<dl>")
@@ -685,10 +686,8 @@ func hasClass(node *stdhtml.Node, class string) bool {
 	}
 	for _, attr := range node.Attr {
 		if attr.Key == "class" {
-			for _, part := range strings.Fields(attr.Val) {
-				if part == class {
-					return true
-				}
+			if slices.Contains(strings.Fields(attr.Val), class) {
+				return true
 			}
 		}
 	}
