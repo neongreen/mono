@@ -153,43 +153,6 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 	return createMiseCommand(miseArgs...)
 }
 
-// getBuildLdflags returns ldflags for injecting version information at build time
-// The ldflags set version information in the lib/version package used by all tools
-func getBuildLdflags(repoDir string) (string, error) {
-	// Get git commit hash
-	cmd := exec.Command("git", "rev-parse", "--short", "HEAD")
-	cmd.Dir = repoDir
-	commitBytes, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get git commit: %w", err)
-	}
-	commit := strings.TrimSpace(string(commitBytes))
-
-	// Get git describe for version
-	cmd = exec.Command("git", "describe", "--tags", "--always", "--dirty")
-	cmd.Dir = repoDir
-	versionBytes, err := cmd.Output()
-	if err != nil {
-		// If no tags, just use commit
-		versionBytes = commitBytes
-	}
-	version := strings.TrimSpace(string(versionBytes))
-
-	// Build time
-	buildTime := fmt.Sprintf("%s", exec.Command("date", "-u", "+%Y-%m-%dT%H:%M:%SZ").String())
-	cmd = exec.Command("date", "-u", "+%Y-%m-%dT%H:%M:%SZ")
-	timeBytes, err := cmd.Output()
-	if err == nil {
-		buildTime = strings.TrimSpace(string(timeBytes))
-	}
-
-	// Create ldflags for lib/version package (used by all tools)
-	ldflags := fmt.Sprintf("-X github.com/neongreen/mono/lib/version.Version=%s -X github.com/neongreen/mono/lib/version.GitCommit=%s -X github.com/neongreen/mono/lib/version.BuildTime=%s",
-		version, commit, buildTime)
-
-	return ldflags, nil
-}
-
 // getBuildPath determines the correct build path for a Go project.
 // Some projects have their main.go in a cmd subdirectory, while others have it in the root.
 // Returns the relative path to use with 'go build' (either "." or "./cmd").
@@ -307,19 +270,7 @@ func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
 	fmt.Printf("Building %s from %s...\n", project, projectDir)
 	buildPath := getBuildPath(projectDir)
 
-	// Get ldflags for version information
-	ldflags, err := getBuildLdflags(cwd)
-	if err != nil {
-		fmt.Printf("Warning: Could not get version information: %v\n", err)
-		ldflags = ""
-	}
-
-	var cmd *exec.Cmd
-	if ldflags != "" {
-		cmd = createGoBuildCommand("build", "-ldflags", ldflags, "-o", destPath, buildPath)
-	} else {
-		cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
-	}
+	cmd := createGoBuildCommand("build", "-o", destPath, buildPath)
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, cwd)
 	cmd.Stdout = os.Stdout
@@ -470,18 +421,7 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 	fmt.Printf("\nBuilding %s...\n", project)
 	buildPath := getBuildPath(projectDir)
 
-	// Get ldflags for version information
-	ldflags, err := getBuildLdflags(tmpDir)
-	if err != nil {
-		fmt.Printf("Warning: Could not get version information: %v\n", err)
-		ldflags = ""
-	}
-
-	if ldflags != "" {
-		cmd = createGoBuildCommand("build", "-ldflags", ldflags, "-o", destPath, buildPath)
-	} else {
-		cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
-	}
+	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
@@ -624,18 +564,7 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 	fmt.Printf("\nBuilding %s...\n", project)
 	buildPath := getBuildPath(projectDir)
 
-	// Get ldflags for version information
-	ldflags, err := getBuildLdflags(tmpDir)
-	if err != nil {
-		fmt.Printf("Warning: Could not get version information: %v\n", err)
-		ldflags = ""
-	}
-
-	if ldflags != "" {
-		cmd = createGoBuildCommand("build", "-ldflags", ldflags, "-o", destPath, buildPath)
-	} else {
-		cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
-	}
+	cmd = createGoBuildCommand("build", "-o", destPath, buildPath)
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout

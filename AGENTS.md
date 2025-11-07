@@ -182,14 +182,17 @@ Key standards:
 
 ### Build-time Version Information
 
-Version information is injected at build time via ldflags in the Dagger build configuration (`.dagger/main.go`):
+Version information is automatically embedded by Go's VCS stamping (available since Go 1.18). When building with `go build`, Go automatically includes:
+- Git commit hash
+- Build time from VCS
+- Whether the working tree was modified
 
-```go
-ldflags := fmt.Sprintf("-X github.com/neongreen/mono/lib/version.Version=%s -X github.com/neongreen/mono/lib/version.GitCommit=%s -X github.com/neongreen/mono/lib/version.BuildTime=%s",
-    version, gitCommit, buildTime)
-```
+This works automatically when:
+- Building from a git repository
+- Building a package (e.g., `./cmd`) rather than a specific file (e.g., `./cmd/main.go`)
+- Not in a detached HEAD state (or using go build from the module root)
 
-The build system automatically sets these values during release builds.
+The `lib/version` package reads this information from `debug.ReadBuildInfo()` at runtime.
 
 ### Example Usage
 
