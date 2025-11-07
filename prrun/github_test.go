@@ -33,13 +33,16 @@ func TestGetPlatformBinaryName(t *testing.T) {
 	t.Logf("Platform binary: %s", binaryName)
 	t.Logf("Download URL: %s", downloadURL)
 }
+
 func TestGetPlatformBinaryName_NoAssets(t *testing.T) {
-	release := &GitHubRelease{TagName: "test--pr-1.1",
+	release := &GitHubRelease{
+		TagName: "test--pr-1.1",
 		Assets: []struct {
 			Name               string `json:"name"`
 			URL                string `json:"url"`
 			BrowserDownloadURL string `json:"browser_download_url"`
-		}{}}
+		}{},
+	}
 	_, _, err := getPlatformBinaryName(release, "test")
 	if err == nil {
 		t.Error("getPlatformBinaryName() should return error for release with no assets")
@@ -50,6 +53,7 @@ func TestGetPlatformBinaryName_NoAssets(t *testing.T) {
 			expectedErrMsg, err)
 	}
 }
+
 func TestGetPlatformBinaryName_DoubleDashFormat(t *testing.T) {
 	release := &GitHubRelease{TagName: "dissect--pr-123.1", Assets: []struct {
 		Name               string `json:"name"`
@@ -80,6 +84,7 @@ func TestGetPlatformBinaryName_DoubleDashFormat(t *testing.T) {
 		Logf("Double dash format binary: %s", binaryName)
 	t.Logf("Download URL: %s", downloadURL)
 }
+
 func TestGetGitHubToken(t *testing.T) {
 	origGithubToken := os.Getenv("GITHUB_TOKEN")
 	origMiseToken := os.Getenv("MISE_GITHUB_TOKEN")
@@ -129,6 +134,7 @@ func TestGetGitHubToken(t *testing.T) {
 			t.Logf("GetGitHubToken() = %q", token)
 		})
 }
+
 func TestCreateAuthenticatedRequest(t *testing.T) {
 	origGithubToken := os.Getenv("GITHUB_TOKEN")
 	defer func() {
@@ -158,7 +164,8 @@ func TestCreateAuthenticatedRequest(t *testing.T) {
 	t.Run("creates request without authorization when token not available",
 
 		func(t *testing.
-			T) {
+			T,
+		) {
 			os.Unsetenv("GITHUB_TOKEN")
 			os.Unsetenv("MISE_GITHUB_TOKEN")
 			req, err := ghrelease.CreateAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")

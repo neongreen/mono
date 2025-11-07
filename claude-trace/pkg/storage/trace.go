@@ -70,7 +70,6 @@ func LoadTraces(directories []string) ([]*Trace, error) {
 
 			return nil
 		})
-
 		if err != nil {
 			return nil, fmt.Errorf("error walking directory %s: %w", dir, err)
 		}
@@ -93,7 +92,7 @@ func SaveAnnotations(trace *Trace) error {
 		return fmt.Errorf("failed to marshal annotations: %w", err)
 	}
 
-	err = os.WriteFile(annotationPath, data, 0644)
+	err = os.WriteFile(annotationPath, data, 0o644)
 	if err != nil {
 		return fmt.Errorf("failed to write annotations file: %w", err)
 	}

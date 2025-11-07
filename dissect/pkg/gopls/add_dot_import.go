@@ -2,10 +2,11 @@ package gopls
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"go/ast"
 	"go/token"
 	"path/filepath"
+
+	"github.com/neongreen/mono/dissect/pkg/goutils"
 )
 
 // AddDotImport adds a dot import to the given file.

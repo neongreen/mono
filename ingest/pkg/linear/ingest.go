@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/neongreen/mono/ingest/pkg/database"
-
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/neongreen/mono/ingest/pkg/database"
 )
 
 // ResourceSession defines the subset of MCP session functionality required for Linear ingestion.

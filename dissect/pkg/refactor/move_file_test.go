@@ -16,7 +16,7 @@ func TestMoveFileWithMultipleImporters(t *testing.T) {
 
 	// Create source file in models/
 	modelsDir := filepath.Join(tmpDir, "models")
-	err = os.MkdirAll(modelsDir, 0755)
+	err = os.MkdirAll(modelsDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create models dir: %v", err)
 	}
@@ -29,7 +29,7 @@ type User struct {
 	Name string
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -44,7 +44,7 @@ func GetUser() *models.User {
 	return &models.User{ID: 1, Name: "Alice"}
 }
 `
-	err = os.WriteFile(file1, []byte(file1Content), 0644)
+	err = os.WriteFile(file1, []byte(file1Content), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write file1: %v", err)
 	}
@@ -59,13 +59,13 @@ func UpdateUser(u *models.User) {
 	models.ProcessUser(u)
 }
 `
-	err = os.WriteFile(file2, []byte(file2Content), 0644)
+	err = os.WriteFile(file2, []byte(file2Content), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write file2: %v", err)
 	}
 
 	// Initialize go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestMoveFileWithImportAlias(t *testing.T) {
 
 	// Create source file
 	helpDir := filepath.Join(tmpDir, "help")
-	err = os.MkdirAll(helpDir, 0755)
+	err = os.MkdirAll(helpDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create help dir: %v", err)
 	}
@@ -152,7 +152,7 @@ func DoSomething() string {
 	return "done"
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -167,13 +167,13 @@ func main() {
 	helplib.DoSomething()
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main file: %v", err)
 	}
 
 	// Initialize go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -230,7 +230,7 @@ func TestMoveFileWithMultipleImportsInFile(t *testing.T) {
 
 	// Create source file in config/
 	configDir := filepath.Join(tmpDir, "config")
-	err = os.MkdirAll(configDir, 0755)
+	err = os.MkdirAll(configDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
@@ -242,14 +242,14 @@ type Settings struct {
 	Debug bool
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
 
 	// Create a utils package that won't be moved
 	utilsDir := filepath.Join(tmpDir, "utils")
-	err = os.MkdirAll(utilsDir, 0755)
+	err = os.MkdirAll(utilsDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create utils dir: %v", err)
 	}
@@ -261,7 +261,7 @@ func Helper() string {
 	return "help"
 }
 `
-	err = os.WriteFile(utilsFile, []byte(utilsContent), 0644)
+	err = os.WriteFile(utilsFile, []byte(utilsContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write utils file: %v", err)
 	}
@@ -285,13 +285,13 @@ func processSettings(s *config.Settings) {
 	// Process settings
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main file: %v", err)
 	}
 
 	// Initialize go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -357,7 +357,7 @@ func TestMoveFileDeeplyNested(t *testing.T) {
 
 	// Create source file in a/b/c/
 	sourceDir := filepath.Join(tmpDir, "a", "b", "c")
-	err = os.MkdirAll(sourceDir, 0755)
+	err = os.MkdirAll(sourceDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create source dir: %v", err)
 	}
@@ -367,7 +367,7 @@ func TestMoveFileDeeplyNested(t *testing.T) {
 
 func DeepFunc() {}
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -382,13 +382,13 @@ func main() {
 	c.DeepFunc()
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main file: %v", err)
 	}
 
 	// Initialize go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -449,13 +449,13 @@ func main() {
 	println("Hello")
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
 
 	// Initialize go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -502,13 +502,13 @@ func Foo() {
 	fmt.Println("foo")
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
 
 	// Initialize go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -546,7 +546,7 @@ func TestMoveFileComplexSelectors(t *testing.T) {
 
 	// Create source file
 	dataDir := filepath.Join(tmpDir, "data")
-	err = os.MkdirAll(dataDir, 0755)
+	err = os.MkdirAll(dataDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create data dir: %v", err)
 	}
@@ -560,7 +560,7 @@ type Config struct {
 
 var DefaultConfig = Config{Value: "default"}
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -580,13 +580,13 @@ func main() {
 
 func merge(c1, c2 data.Config) {}
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main file: %v", err)
 	}
 
 	// Initialize go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -667,7 +667,7 @@ func TestMoveFileUpdatesTestFileImports(t *testing.T) {
 
 	// Create a package with a types.go file
 	pkgDir := filepath.Join(tmpDir, "pkg")
-	err = os.MkdirAll(pkgDir, 0755)
+	err = os.MkdirAll(pkgDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create pkg dir: %v", err)
 	}
@@ -684,7 +684,7 @@ type Bar interface {
 	DoSomething()
 }
 `
-	err = os.WriteFile(typesFile, []byte(typesContent), 0644)
+	err = os.WriteFile(typesFile, []byte(typesContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write types.go: %v", err)
 	}
@@ -707,13 +707,13 @@ func TestBar(t *testing.T) {
 	var _ Bar
 }
 `
-	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	err = os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write types_test.go: %v", err)
 	}
 
 	// Initialize go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module testmodule\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module testmodule\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -770,7 +770,7 @@ func TestMoveFile_MainToNamedPackage(t *testing.T) {
 
 	// Create internal/types directory with existing file
 	typesDir := filepath.Join(tmpDir, "internal", "types")
-	err = os.MkdirAll(typesDir, 0755)
+	err = os.MkdirAll(typesDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create types dir: %v", err)
 	}
@@ -783,7 +783,7 @@ type Existing struct {
 	Value string
 }
 `
-	err = os.WriteFile(existingFile, []byte(existingContent), 0644)
+	err = os.WriteFile(existingFile, []byte(existingContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write existing.go: %v", err)
 	}
@@ -800,7 +800,7 @@ func NewSource() *Source {
 	return &Source{ID: 1}
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source.go: %v", err)
 	}
@@ -814,7 +814,7 @@ func main() {
 	_ = s
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main.go: %v", err)
 	}
@@ -824,7 +824,7 @@ func main() {
 
 go 1.21
 `
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomodContent), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomodContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -886,7 +886,7 @@ func TestMoveFile_NamedToNamedPackage(t *testing.T) {
 
 	// Create foo directory with source.go
 	fooDir := filepath.Join(tmpDir, "foo")
-	err = os.MkdirAll(fooDir, 0755)
+	err = os.MkdirAll(fooDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create foo dir: %v", err)
 	}
@@ -898,14 +898,14 @@ type Source struct {
 	Value string
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source.go: %v", err)
 	}
 
 	// Create bar directory with existing.go
 	barDir := filepath.Join(tmpDir, "bar")
-	err = os.MkdirAll(barDir, 0755)
+	err = os.MkdirAll(barDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create bar dir: %v", err)
 	}
@@ -917,7 +917,7 @@ type Existing struct {
 	ID int
 }
 `
-	err = os.WriteFile(existingFile, []byte(existingContent), 0644)
+	err = os.WriteFile(existingFile, []byte(existingContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write existing.go: %v", err)
 	}
@@ -933,7 +933,7 @@ func main() {
 	_ = s
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main.go: %v", err)
 	}
@@ -943,7 +943,7 @@ func main() {
 
 go 1.21
 `
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomodContent), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomodContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}

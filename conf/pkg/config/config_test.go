@@ -307,7 +307,7 @@ func TestPerToolConfigLoading(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get config dir: %v", err)
 	}
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
@@ -321,7 +321,7 @@ schema_path = 'embedded://jj.json'
 	if err != nil {
 		t.Fatalf("Failed to get config path: %v", err)
 	}
-	if err := os.WriteFile(configPath, []byte(configToml), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configToml), 0o644); err != nil {
 		t.Fatalf("Failed to write config.toml: %v", err)
 	}
 
@@ -330,7 +330,7 @@ schema_path = 'embedded://jj.json'
 'user.email' = 'emily@artyom.me'
 `
 	jjTomlPath := configDir + "/jj.toml"
-	if err := os.WriteFile(jjTomlPath, []byte(jjToml), 0644); err != nil {
+	if err := os.WriteFile(jjTomlPath, []byte(jjToml), 0o644); err != nil {
 		t.Fatalf("Failed to write jj.toml: %v", err)
 	}
 
@@ -382,14 +382,14 @@ func TestPerToolConfigSaving(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get config dir: %v", err)
 	}
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
 	// Seed per-tool file with a comment to verify preservation
 	jjTomlPath := configDir + "/jj.toml"
 	initialJJContent := "# keep-this-comment\n"
-	if err := os.WriteFile(jjTomlPath, []byte(initialJJContent), 0644); err != nil {
+	if err := os.WriteFile(jjTomlPath, []byte(initialJJContent), 0o644); err != nil {
 		t.Fatalf("Failed to create jj.toml: %v", err)
 	}
 
@@ -399,7 +399,7 @@ func TestPerToolConfigSaving(t *testing.T) {
 		t.Fatalf("Failed to get config path: %v", err)
 	}
 	initialConfigContent := "# preserve-this-config-comment\n"
-	if err := os.WriteFile(configPath, []byte(initialConfigContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(initialConfigContent), 0o644); err != nil {
 		t.Fatalf("Failed to seed config.toml: %v", err)
 	}
 

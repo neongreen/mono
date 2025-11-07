@@ -3,8 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/neongreen/mono/tk/internal/database"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
 )
 

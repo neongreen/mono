@@ -18,7 +18,6 @@ var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "List tasks",
 	RunE: func(cmd *cobra.Command, args []string) error {
-
 		if os.Getenv("FORCE_COLOR") != "" || os.Getenv("CLICOLOR_FORCE") != "" {
 			color.NoColor = false
 		}

@@ -103,7 +103,7 @@ func TestShimsTool_CreateShim(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to stat shim file: %v", err)
 	}
-	if info.Mode()&0111 == 0 {
+	if info.Mode()&0o111 == 0 {
 		t.Error("Expected shim to be executable")
 	}
 }

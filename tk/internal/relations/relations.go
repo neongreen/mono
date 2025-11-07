@@ -1,7 +1,5 @@
 package relations
 
-import ()
-
 // RelationEdge represents an edge in the relation graph with OR-set semantics
 
 // Source task UUID

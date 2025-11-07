@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"os"
 
 	"github.com/spf13/cobra"
@@ -37,8 +36,10 @@ var viewCmd = &cobra.Command{
 	Args:  cobra.MinimumNArgs(1),
 }
 
-var extractOutputDir string
-var viewPort int
+var (
+	extractOutputDir string
+	viewPort         int
+)
 
 func init() {
 	extractCmd.Flags().StringVarP(&extractOutputDir, "output", "o", "./extracted-traces", "Output directory for extracted traces")

@@ -26,7 +26,7 @@ func LoadJSON[T any](path string) (*T, error) {
 func SaveJSON[T any](path string, data *T) error {
 	// Ensure directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -35,7 +35,7 @@ func SaveJSON[T any](path string, data *T) error {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	if err := os.WriteFile(path, jsonData, 0644); err != nil {
+	if err := os.WriteFile(path, jsonData, 0o644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 

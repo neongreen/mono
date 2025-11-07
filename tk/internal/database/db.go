@@ -2,9 +2,7 @@ package database
 
 import (
 	"database/sql"
-
 	"fmt"
-
 	"os"
 	"path/filepath"
 
@@ -28,7 +26,7 @@ type DB struct {
 func OpenDB(path string) (*DB, error) {
 	// Ensure the directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create directory %s: %w", dir, err)
 	}
 

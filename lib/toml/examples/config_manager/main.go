@@ -55,7 +55,7 @@ output = "stdout"       # Output: stdout, stderr, file
 	configPath := filepath.Join(tmpDir, "config.toml")
 
 	// Write initial config
-	err = os.WriteFile(configPath, []byte(sampleConfig), 0644)
+	err = os.WriteFile(configPath, []byte(sampleConfig), 0o644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -85,7 +85,7 @@ output = "stdout"       # Output: stdout, stderr, file
 	doc.Set("database.pool_size", 20)
 
 	// Save the updated config
-	err = os.WriteFile(configPath, doc.Bytes(), 0644)
+	err = os.WriteFile(configPath, doc.Bytes(), 0o644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -142,7 +142,7 @@ output = "stdout"       # Output: stdout, stderr, file
 	}
 
 	// Save final configuration
-	err = os.WriteFile(configPath, doc.Bytes(), 0644)
+	err = os.WriteFile(configPath, doc.Bytes(), 0o644)
 	if err != nil {
 		log.Fatal(err)
 	}

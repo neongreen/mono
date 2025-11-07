@@ -2,8 +2,9 @@ package render
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/claude-trace/pkg/parser"
 	"strings"
+
+	"github.com/neongreen/mono/claude-trace/pkg/parser"
 )
 
 // renderConversationItems renders conversation items in a human-readable format

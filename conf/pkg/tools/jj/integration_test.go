@@ -17,7 +17,7 @@ func TestJJToolRealFileOperations(t *testing.T) {
 
 	// Create jj config directory structure
 	jjConfigDir := filepath.Join(tempHome, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config directory: %v", err)
 	}
 
@@ -79,7 +79,7 @@ email = "original@example.com"
 [ui]
 default-command = "status"
 `
-		if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 			t.Fatalf("Failed to write initial config: %v", err)
 		}
 
@@ -140,7 +140,7 @@ default-command = "status"
 		initialConfig := `[user]
 name = "Test User"
 `
-		if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 			t.Fatalf("Failed to write initial config: %v", err)
 		}
 
@@ -201,7 +201,7 @@ email = "test@example.com"
 editor = "vim"
 default-command = "status"
 `
-		if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 			t.Fatalf("Failed to write initial config: %v", err)
 		}
 
@@ -249,7 +249,7 @@ default-command = "status"
 		initialConfig := `[user]
 name = "Original User"
 `
-		if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 			t.Fatalf("Failed to write initial config: %v", err)
 		}
 
@@ -344,7 +344,7 @@ func TestJJToolStructurePreservation(t *testing.T) {
 
 	// Create jj config directory
 	jjConfigDir := filepath.Join(tempHome, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config directory: %v", err)
 	}
 
@@ -363,7 +363,7 @@ editor = "vim"
 max-new-file-size = 1048576
 `
 
-	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 		t.Fatalf("Failed to write initial config: %v", err)
 	}
 
@@ -431,7 +431,7 @@ func TestJJToolConcurrentAccess(t *testing.T) {
 
 	// Create jj config directory
 	jjConfigDir := filepath.Join(tempHome, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config directory: %v", err)
 	}
 
@@ -442,7 +442,7 @@ func TestJJToolConcurrentAccess(t *testing.T) {
 name = "Initial User"
 email = "initial@example.com"
 `
-	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 		t.Fatalf("Failed to write initial config: %v", err)
 	}
 

@@ -17,14 +17,14 @@ func TestMoveFileDeeplyNested(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
 	// Create deeply nested source file: pkg/api/handlers/v1/admin.go
 	sourceDir := filepath.Join(tmpDir, "pkg", "api", "handlers", "v1")
-	err = os.MkdirAll(sourceDir, 0755)
+	err = os.MkdirAll(sourceDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create source dir: %v", err)
 	}
@@ -40,7 +40,7 @@ func AdminStatus() int {
 	return 200
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -57,7 +57,7 @@ func main() {
 	println(result, status)
 }
 `
-	err = os.WriteFile(importerFile, []byte(importerContent), 0644)
+	err = os.WriteFile(importerFile, []byte(importerContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write importer: %v", err)
 	}
@@ -124,14 +124,14 @@ func TestMoveFileComplexImports(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
 	// Create source file: data/store.go
 	dataDir := filepath.Join(tmpDir, "data")
-	err = os.MkdirAll(dataDir, 0755)
+	err = os.MkdirAll(dataDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create data dir: %v", err)
 	}
@@ -147,7 +147,7 @@ func NewStore(name string) *Store {
 	return &Store{Name: name}
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -166,7 +166,7 @@ func useAliased() {
 	fmt.Println(store.Name)
 }
 `
-	err = os.WriteFile(importerAliased, []byte(importerAliasedContent), 0644)
+	err = os.WriteFile(importerAliased, []byte(importerAliasedContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write aliased importer: %v", err)
 	}
@@ -186,7 +186,7 @@ func useStandard() {
 	fmt.Println(store, s)
 }
 `
-	err = os.WriteFile(importerStandard, []byte(importerStandardContent), 0644)
+	err = os.WriteFile(importerStandard, []byte(importerStandardContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write standard importer: %v", err)
 	}
@@ -200,7 +200,7 @@ func main() {
 	useStandard()
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main: %v", err)
 	}
@@ -280,14 +280,14 @@ func TestMoveFileWithCrossPackageDeps(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
 	// Create Package A: models/user.go
 	modelsDir := filepath.Join(tmpDir, "models")
-	err = os.MkdirAll(modelsDir, 0755)
+	err = os.MkdirAll(modelsDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create models dir: %v", err)
 	}
@@ -300,14 +300,14 @@ type User struct {
 	Name string
 }
 `
-	err = os.WriteFile(userFile, []byte(userContent), 0644)
+	err = os.WriteFile(userFile, []byte(userContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write user file: %v", err)
 	}
 
 	// Create Package B: handlers/user.go (imports models)
 	handlersDir := filepath.Join(tmpDir, "handlers")
-	err = os.MkdirAll(handlersDir, 0755)
+	err = os.MkdirAll(handlersDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create handlers dir: %v", err)
 	}
@@ -325,7 +325,7 @@ func ProcessUser(u *models.User) {
 	println(u.Name)
 }
 `
-	err = os.WriteFile(handlerFile, []byte(handlerContent), 0644)
+	err = os.WriteFile(handlerFile, []byte(handlerContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write handler file: %v", err)
 	}
@@ -348,7 +348,7 @@ func main() {
 	println(anotherUser.Name)
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main file: %v", err)
 	}

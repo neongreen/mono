@@ -15,8 +15,10 @@ import (
 )
 
 // Type aliases for cmd package types
-type FulfillmentPlan = cmd.FulfillmentPlan
-type PlanStep = cmd.PlanStep
+type (
+	FulfillmentPlan = cmd.FulfillmentPlan
+	PlanStep        = cmd.PlanStep
+)
 
 // handleJsonCommand handles "want json <command>" - converts command output to JSON
 func handleJsonCommand(args []string, dryRun bool, planJson bool) {
@@ -141,7 +143,6 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 	hasUv := isToolAvailable("uv")
 
 	if hasMarkitdown {
-
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Convert URL to markdown",
@@ -149,7 +150,6 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 			Automatic:   true,
 		})
 	} else if hasUvx {
-
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Run markitdown via uvx",
@@ -166,7 +166,6 @@ func handleMarkdownCommand(args []string, dryRun bool, planJson bool) {
 			Automatic:   true,
 		})
 	} else if hasUv {
-
 		plan.Steps = append(plan.Steps, PlanStep{
 			Type:        "execute",
 			Description: "Run markitdown via uv",

@@ -21,7 +21,7 @@ func TestNewJJTool(t *testing.T) {
 
 	// Create minimal jj config structure
 	jjConfigDir := filepath.Join(tempDir, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
 
@@ -29,7 +29,7 @@ func TestNewJJTool(t *testing.T) {
 	configContent := `# JJ config for testing
 `
 	configPath := filepath.Join(jjConfigDir, "config.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -63,14 +63,14 @@ func TestNewJJToolWithDryRun(t *testing.T) {
 
 	// Create minimal jj config structure
 	jjConfigDir := filepath.Join(tempDir, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
 
 	configContent := `# JJ config for testing
 `
 	configPath := filepath.Join(jjConfigDir, "config.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -100,14 +100,14 @@ func TestJJTool_SetDryRun(t *testing.T) {
 
 	// Create minimal jj config structure
 	jjConfigDir := filepath.Join(tempDir, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
 
 	configContent := `# JJ config for testing
 `
 	configPath := filepath.Join(jjConfigDir, "config.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -144,14 +144,14 @@ func TestJJTool_GetConfigPath(t *testing.T) {
 
 	// Create minimal jj config structure
 	jjConfigDir := filepath.Join(tempDir, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
 
 	configContent := `# JJ config for testing
 `
 	configPath := filepath.Join(jjConfigDir, "config.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -183,7 +183,7 @@ func TestJJTool_SetAndGetConfig(t *testing.T) {
 
 	// Create minimal jj config structure
 	jjConfigDir := filepath.Join(tempDir, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
 
@@ -193,7 +193,7 @@ name = "Test User"
 email = "test@example.com"
 `
 	configPath := filepath.Join(jjConfigDir, "config.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -242,14 +242,14 @@ func TestJJTool_ValidatePath(t *testing.T) {
 
 	// Create minimal jj config structure
 	jjConfigDir := filepath.Join(tempDir, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
 
 	configContent := `# JJ config for testing
 `
 	configPath := filepath.Join(jjConfigDir, "config.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -295,14 +295,14 @@ func TestJJTool_ListCommonSettings(t *testing.T) {
 
 	// Create minimal jj config structure
 	jjConfigDir := filepath.Join(tempDir, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
 
 	configContent := `# JJ config for testing
 `
 	configPath := filepath.Join(jjConfigDir, "config.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 

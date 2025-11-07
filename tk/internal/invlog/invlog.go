@@ -32,7 +32,7 @@ func GetLogPath() (string, error) {
 
 	tkDir := filepath.Join(home, ".tk")
 	// Ensure the directory exists with private permissions
-	if err := os.MkdirAll(tkDir, 0700); err != nil {
+	if err := os.MkdirAll(tkDir, 0o700); err != nil {
 		return "", fmt.Errorf("failed to create tk directory: %w", err)
 	}
 
@@ -47,7 +47,7 @@ func WriteLog(log InvocationLog) error {
 	}
 
 	// Open file for appending, create if doesn't exist with private permissions
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
 	}

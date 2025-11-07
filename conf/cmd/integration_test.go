@@ -166,27 +166,27 @@ func TestCLIDryRunMode(t *testing.T) {
 	miseConfigDir := filepath.Join(tempHome, ".config", "mise")
 	starshipConfigDir := filepath.Join(tempHome, ".config")
 
-	os.MkdirAll(jjConfigDir, 0755)
-	os.MkdirAll(miseConfigDir, 0755)
-	os.MkdirAll(starshipConfigDir, 0755)
+	os.MkdirAll(jjConfigDir, 0o755)
+	os.MkdirAll(miseConfigDir, 0o755)
+	os.MkdirAll(starshipConfigDir, 0o755)
 
 	// Create basic config files
 	jjConfig := `# JJ config for testing
 [user]
 name = "Original User"
 `
-	os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(jjConfig), 0644)
+	os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(jjConfig), 0o644)
 
 	miseConfig := `# Mise config for testing
 [settings]
 experimental = false
 `
-	os.WriteFile(filepath.Join(miseConfigDir, "config.toml"), []byte(miseConfig), 0644)
+	os.WriteFile(filepath.Join(miseConfigDir, "config.toml"), []byte(miseConfig), 0o644)
 
 	starshipConfig := `# Starship config for testing
 add_newline = true
 `
-	os.WriteFile(filepath.Join(starshipConfigDir, "starship.toml"), []byte(starshipConfig), 0644)
+	os.WriteFile(filepath.Join(starshipConfigDir, "starship.toml"), []byte(starshipConfig), 0o644)
 
 	// Build the binary for testing
 	tmpDir := t.TempDir()
@@ -270,8 +270,8 @@ func TestCLIListCommands(t *testing.T) {
 	// Create minimal config structures
 	jjConfigDir := filepath.Join(tempHome, ".config", "jj")
 	starshipConfigDir := filepath.Join(tempHome, ".config")
-	os.MkdirAll(jjConfigDir, 0755)
-	os.MkdirAll(starshipConfigDir, 0755)
+	os.MkdirAll(jjConfigDir, 0o755)
+	os.MkdirAll(starshipConfigDir, 0o755)
 
 	jjConfig := `# JJ config for testing
 [user]
@@ -280,8 +280,8 @@ name = "Test User"
 	starshipConfig := `# Starship config for testing
 add_newline = true
 `
-	os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(jjConfig), 0644)
-	os.WriteFile(filepath.Join(starshipConfigDir, "starship.toml"), []byte(starshipConfig), 0644)
+	os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(jjConfig), 0o644)
+	os.WriteFile(filepath.Join(starshipConfigDir, "starship.toml"), []byte(starshipConfig), 0o644)
 
 	// Build the binary for testing
 	tmpDir := t.TempDir()
@@ -395,8 +395,8 @@ func TestCLIErrorHandling(t *testing.T) {
 			setup: func() {
 				// Create valid jj config dir
 				jjConfigDir := filepath.Join(tempHome, ".config", "jj")
-				os.MkdirAll(jjConfigDir, 0755)
-				os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte("# test"), 0644)
+				os.MkdirAll(jjConfigDir, 0o755)
+				os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte("# test"), 0o644)
 			},
 			expectError: true,
 			expectErr:   "invalid configuration path",
@@ -464,7 +464,7 @@ func TestImportCommand(t *testing.T) {
 
 	// Create test jj config
 	jjConfigDir := filepath.Join(testHome, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
 	jjConfig := `[user]
@@ -474,7 +474,7 @@ email = "import@example.com"
 [snapshot]
 max-new-file-size = 2048
 `
-	if err := os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(jjConfig), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(jjConfig), 0o644); err != nil {
 		t.Fatalf("Failed to write jj config: %v", err)
 	}
 
@@ -556,7 +556,7 @@ max-new-file-size = 2048
 
 		// Create test jj config with quoted keys
 		jjConfigDir2 := filepath.Join(testHome2, ".config", "jj")
-		if err := os.MkdirAll(jjConfigDir2, 0755); err != nil {
+		if err := os.MkdirAll(jjConfigDir2, 0o755); err != nil {
 			t.Fatalf("Failed to create jj config dir: %v", err)
 		}
 
@@ -569,7 +569,7 @@ name = "Test User"
 ".." = ["bar"]
 normal = "status"
 `
-		if err := os.WriteFile(filepath.Join(jjConfigDir2, "config.toml"), []byte(jjConfigWithQuotedKeys), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(jjConfigDir2, "config.toml"), []byte(jjConfigWithQuotedKeys), 0o644); err != nil {
 			t.Fatalf("Failed to write jj config with quoted keys: %v", err)
 		}
 
@@ -646,7 +646,7 @@ func TestApplyPreservesUnmanagedSettings(t *testing.T) {
 
 	// Create jj config with existing user settings
 	jjConfigDir := filepath.Join(testHome, ".config", "jj")
-	if err := os.MkdirAll(jjConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create jj config dir: %v", err)
 	}
 
@@ -659,13 +659,13 @@ email = "original@example.com"
 [ui]
 default-command = "log"
 `
-	if err := os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(initialConfig), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(jjConfigDir, "config.toml"), []byte(initialConfig), 0o644); err != nil {
 		t.Fatalf("Failed to write jj config: %v", err)
 	}
 
 	// Create conf state directory
 	confDir := filepath.Join(testHome, ".config", "conf")
-	if err := os.MkdirAll(confDir, 0755); err != nil {
+	if err := os.MkdirAll(confDir, 0o755); err != nil {
 		t.Fatalf("Failed to create conf dir: %v", err)
 	}
 
@@ -673,7 +673,7 @@ default-command = "log"
 	confState := `[ui]
 default-command = "status"
 `
-	if err := os.WriteFile(filepath.Join(confDir, "jj.toml"), []byte(confState), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(confDir, "jj.toml"), []byte(confState), 0o644); err != nil {
 		t.Fatalf("Failed to write conf state: %v", err)
 	}
 

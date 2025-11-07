@@ -3,11 +3,12 @@ package gopls
 import (
 	"bytes"
 	"fmt"
-	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/neongreen/mono/dissect/pkg/goutils"
 )
 
 // ExtractToNewFile executes the gopls refactor.extract.toNewFile command.

@@ -3,12 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/neongreen/mono/tk/internal/database"
 	"os"
 	"path/filepath"
 	"time"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -255,7 +255,7 @@ func saveExportState(path string, state *sync.ExportState) error {
 func updateLocalIndex(indexPath string, newSegments []sync.SegmentInfo) error {
 	// Ensure directory exists
 	dir := filepath.Dir(indexPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create index directory: %w", err)
 	}
 
@@ -288,7 +288,7 @@ func updateLocalIndex(indexPath string, newSegments []sync.SegmentInfo) error {
 		return fmt.Errorf("failed to marshal index: %w", err)
 	}
 
-	if err := os.WriteFile(indexPath, data, 0644); err != nil {
+	if err := os.WriteFile(indexPath, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write index: %w", err)
 	}
 

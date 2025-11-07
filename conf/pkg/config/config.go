@@ -201,7 +201,7 @@ func (c *Config) Save() error {
 	}
 
 	// Ensure config directory exists
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -313,8 +313,8 @@ func (c *Config) SetToolValue(toolName, path string, value any) {
 
 	// Create empty file if it doesn't exist, so Save() will write to it
 	if _, err := os.Stat(perToolPath); os.IsNotExist(err) {
-		os.MkdirAll(configDir, 0755)
-		os.WriteFile(perToolPath, []byte{}, 0644)
+		os.MkdirAll(configDir, 0o755)
+		os.WriteFile(perToolPath, []byte{}, 0o644)
 	}
 }
 
@@ -337,8 +337,8 @@ func (c *Config) MergeToolValues(toolName string, values map[string]any) {
 	perToolPath := filepath.Join(configDir, toolName+".toml")
 
 	if _, err := os.Stat(perToolPath); os.IsNotExist(err) {
-		os.MkdirAll(configDir, 0755)
-		os.WriteFile(perToolPath, []byte{}, 0644)
+		os.MkdirAll(configDir, 0o755)
+		os.WriteFile(perToolPath, []byte{}, 0o644)
 	}
 }
 

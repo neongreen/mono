@@ -74,7 +74,7 @@ func (sw *SegmentWriter) WriteSegment() (*sync.SegmentInfo, error) {
 		fmt.Sprintf("%02d", now.Month()),
 		fmt.Sprintf("%02d", now.Day()))
 
-	if err := os.MkdirAll(dateDir, 0755); err != nil {
+	if err := os.MkdirAll(dateDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create segment directory: %w", err)
 	}
 

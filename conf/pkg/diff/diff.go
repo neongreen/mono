@@ -43,7 +43,6 @@ func DisplayUnifiedDiff(before, after, filename string) bool {
 
 // displayColoredDiff displays a unified diff string with color highlighting
 func displayColoredDiff(diffText string) {
-
 	lines := strings.SplitSeq(diffText, "\n")
 	for line := range lines {
 		if line == "" {

@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
-	"github.com/neongreen/mono/claude-trace/pkg/viewer"
 	"os"
 	"os/exec"
 	"runtime"
 	"time"
 
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
+	"github.com/neongreen/mono/claude-trace/pkg/viewer"
 	"github.com/spf13/cobra"
 )
 

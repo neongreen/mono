@@ -49,7 +49,7 @@ func TestReadIssues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tmpDir := t.TempDir()
 			path := filepath.Join(tmpDir, "test.jsonl")
-			if err := os.WriteFile(path, []byte(tt.content), 0644); err != nil {
+			if err := os.WriteFile(path, []byte(tt.content), 0o644); err != nil {
 				t.Fatalf("Failed to write test file: %v", err)
 			}
 
@@ -670,13 +670,13 @@ func TestIntegration_FullMerge(t *testing.T) {
 	leftPath := filepath.Join(tmpDir, "left.jsonl")
 	rightPath := filepath.Join(tmpDir, "right.jsonl")
 
-	if err := os.WriteFile(basePath, []byte(baseContent), 0644); err != nil {
+	if err := os.WriteFile(basePath, []byte(baseContent), 0o644); err != nil {
 		t.Fatalf("Failed to write base file: %v", err)
 	}
-	if err := os.WriteFile(leftPath, []byte(leftContent), 0644); err != nil {
+	if err := os.WriteFile(leftPath, []byte(leftContent), 0o644); err != nil {
 		t.Fatalf("Failed to write left file: %v", err)
 	}
-	if err := os.WriteFile(rightPath, []byte(rightContent), 0644); err != nil {
+	if err := os.WriteFile(rightPath, []byte(rightContent), 0o644); err != nil {
 		t.Fatalf("Failed to write right file: %v", err)
 	}
 

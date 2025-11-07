@@ -21,7 +21,7 @@ func TestNewStarshipTool(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -30,7 +30,7 @@ func TestNewStarshipTool(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -64,7 +64,7 @@ func TestNewStarshipToolWithDryRun(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -72,7 +72,7 @@ func TestNewStarshipToolWithDryRun(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -102,7 +102,7 @@ func TestStarshipTool_SetDryRun(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -110,7 +110,7 @@ func TestStarshipTool_SetDryRun(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -147,7 +147,7 @@ func TestStarshipTool_GetConfigPath(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -155,7 +155,7 @@ func TestStarshipTool_GetConfigPath(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -187,7 +187,7 @@ func TestStarshipTool_SetAndGetConfig(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -196,7 +196,7 @@ add_newline = true
 command_timeout = 500
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -245,7 +245,7 @@ func TestStarshipTool_UnsetConfig(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -254,7 +254,7 @@ add_newline = true
 command_timeout = 500
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -297,7 +297,7 @@ func TestStarshipTool_ValidatePath(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -305,7 +305,7 @@ func TestStarshipTool_ValidatePath(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -353,7 +353,7 @@ func TestStarshipTool_PreviewSetConfig(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -361,7 +361,7 @@ func TestStarshipTool_PreviewSetConfig(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -404,7 +404,7 @@ func TestStarshipTool_ListCommonSettings(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -412,7 +412,7 @@ func TestStarshipTool_ListCommonSettings(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -479,7 +479,7 @@ func TestStarshipTool_NestedConfiguration(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -491,7 +491,7 @@ success_symbol = "[➜](bold green)"
 error_symbol = "[➜](bold red)"
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 

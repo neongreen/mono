@@ -11,12 +11,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/neongreen/mono/dissect/pkg/commands"
-	"github.com/neongreen/mono/dissect/pkg/dependencies"
-	"github.com/neongreen/mono/dissect/pkg/gopls"
-	"github.com/neongreen/mono/dissect/pkg/goutils"
-	"github.com/neongreen/mono/dissect/pkg/parser"
-	"github.com/neongreen/mono/dissect/pkg/refactor"
 	"go/ast"
 	"go/printer"
 	"go/token"
@@ -27,6 +21,12 @@ import (
 
 	"github.com/bmatcuk/doublestar/v4"
 	"github.com/gobwas/glob"
+	"github.com/neongreen/mono/dissect/pkg/commands"
+	"github.com/neongreen/mono/dissect/pkg/dependencies"
+	"github.com/neongreen/mono/dissect/pkg/gopls"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/parser"
+	"github.com/neongreen/mono/dissect/pkg/refactor"
 	"github.com/spf13/cobra"
 )
 
@@ -443,12 +443,12 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 
 		// Create target directory if needed
 		targetDir := filepath.Dir(targetFile)
-		if err := os.MkdirAll(targetDir, 0755); err != nil {
+		if err := os.MkdirAll(targetDir, 0o755); err != nil {
 			return fmt.Errorf("error creating target directory: %w", err)
 		}
 
 		// Create target file with package declaration
-		err = os.WriteFile(targetFile, fmt.Appendf(nil, "package %s\n", packageName), 0644)
+		err = os.WriteFile(targetFile, fmt.Appendf(nil, "package %s\n", packageName), 0o644)
 		if err != nil {
 			return fmt.Errorf("error creating target file: %w", err)
 		}
@@ -524,7 +524,7 @@ func moveFunctionWithGopls(sourceFile string, identifier string, targetFile stri
 	// Append the serialized function to the target file
 	// printer.Fprint on a FuncDecl includes the Doc comments automatically
 	newContent := string(targetContent) + "\n" + funcBuf.String() + "\n"
-	if err := os.WriteFile(targetFile, []byte(newContent), 0644); err != nil {
+	if err := os.WriteFile(targetFile, []byte(newContent), 0o644); err != nil {
 		return fmt.Errorf("error writing target file: %w", err)
 	}
 
@@ -631,7 +631,7 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 
 	// Append the serialized declaration to the target file
 	newContent := string(targetContent) + "\n" + declBuf.String() + "\n"
-	if err := os.WriteFile(targetFile, []byte(newContent), 0644); err != nil {
+	if err := os.WriteFile(targetFile, []byte(newContent), 0o644); err != nil {
 		return fmt.Errorf("error writing target file: %w", err)
 	}
 

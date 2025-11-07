@@ -7,7 +7,6 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
-
 	"github.com/spf13/cobra"
 )
 

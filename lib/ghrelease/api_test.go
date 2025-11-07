@@ -171,7 +171,7 @@ func TestDownloadAsset(t *testing.T) {
 			t.Fatalf("failed to stat file: %v", err)
 		}
 		mode := info.Mode()
-		if mode&0111 == 0 {
+		if mode&0o111 == 0 {
 			t.Errorf("file is not executable: mode = %v", mode)
 		}
 	})

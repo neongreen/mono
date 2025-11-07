@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/dissect/pkg/commands"
-	"github.com/neongreen/mono/dissect/pkg/dependencies"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -11,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/golang-cz/devslog"
+	"github.com/neongreen/mono/dissect/pkg/commands"
+	"github.com/neongreen/mono/dissect/pkg/dependencies"
 	"github.com/spf13/cobra"
 )
 

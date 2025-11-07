@@ -429,14 +429,14 @@ func createTempPackage(t *testing.T, files map[string]string) string {
 
 	// Create go.mod
 	gomod := "module test\n\ngo 1.21\n"
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0o644); err != nil {
 		os.RemoveAll(tmpDir)
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
 	// Create all files
 	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0o644); err != nil {
 			os.RemoveAll(tmpDir)
 			t.Fatalf("Failed to write %s: %v", name, err)
 		}

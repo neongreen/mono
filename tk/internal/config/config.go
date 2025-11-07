@@ -66,7 +66,7 @@ func SaveConfig(config *sync.Config) error {
 
 	// Ensure config directory exists
 	configDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -75,7 +75,7 @@ func SaveConfig(config *sync.Config) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
@@ -90,7 +90,7 @@ func GetStateDir() (string, error) {
 	}
 
 	stateDir := filepath.Join(home, ".local", "state", "tk")
-	if err := os.MkdirAll(stateDir, 0755); err != nil {
+	if err := os.MkdirAll(stateDir, 0o755); err != nil {
 		return "", fmt.Errorf("failed to create state directory: %w", err)
 	}
 

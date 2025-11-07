@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/claude-trace/pkg/render"
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/neongreen/mono/claude-trace/pkg/render"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -37,10 +37,10 @@ func runExtract(cmd *cobra.Command, args []string) {
 	}
 	jsonDir := filepath.Join(extractOutputDir, "json")
 	markdownDir := filepath.Join(extractOutputDir, "markdown")
-	if err := os.MkdirAll(jsonDir, 0755); err != nil {
+	if err := os.MkdirAll(jsonDir, 0o755); err != nil {
 		log.Fatalf("Error creating JSON output directory: %v", err)
 	}
-	if err := os.MkdirAll(markdownDir, 0755); err != nil {
+	if err := os.MkdirAll(markdownDir, 0o755); err != nil {
 		log.Fatalf("Error creating Markdown output directory: %v", err)
 	}
 	fmt.Printf("Extracting %d traces to %s\n", len(traces), extractOutputDir)
@@ -54,7 +54,7 @@ func runExtract(cmd *cobra.Command, args []string) {
 			continue
 		}
 		jsonPath := filepath.Join(jsonDir, baseName+".json")
-		if err := os.WriteFile(jsonPath, jsonData, 0644); err != nil {
+		if err := os.WriteFile(jsonPath, jsonData, 0o644); err != nil {
 			log.Printf("Error writing JSON file for %s: %v", trace.Name, err)
 			continue
 		}
@@ -64,7 +64,7 @@ func runExtract(cmd *cobra.Command, args []string) {
 			continue
 		}
 		markdownPath := filepath.Join(markdownDir, baseName+".md")
-		if err := os.WriteFile(markdownPath, markdownData, 0644); err != nil {
+		if err := os.WriteFile(markdownPath, markdownData, 0o644); err != nil {
 			log.Printf("Error writing Markdown file for %s: %v", trace.Name, err)
 			continue
 		}

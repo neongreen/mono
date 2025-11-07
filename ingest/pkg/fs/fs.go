@@ -109,7 +109,6 @@ func WalkFilesystemWithOptions(rootPath string, progressCallback func(int), opts
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk filesystem: %w", err)
 	}

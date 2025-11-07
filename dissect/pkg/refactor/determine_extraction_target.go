@@ -1,13 +1,13 @@
 package refactor
 
 import (
-	"github.com/neongreen/mono/dissect/pkg/goutils"
-	"github.com/neongreen/mono/dissect/pkg/utils"
 	"go/ast"
 	"path/filepath"
 	"strings"
 
 	"github.com/iancoleman/strcase"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/utils"
 )
 
 // DetermineExtractionTarget determines where we'd like to extract the function to.

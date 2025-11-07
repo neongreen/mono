@@ -1,11 +1,12 @@
 package main_test
 
 import (
-	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
 )
 
 func TestMoveTypes(t *testing.T) {
@@ -21,7 +22,7 @@ func TestMoveTypes(t *testing.T) {
 
 go 1.24
 `
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -65,7 +66,7 @@ func main() {
 }
 `
 	sourceFile := filepath.Join(tmpDir, "source.go")
-	if err := os.WriteFile(sourceFile, []byte(sourceCode), 0644); err != nil {
+	if err := os.WriteFile(sourceFile, []byte(sourceCode), 0o644); err != nil {
 		t.Fatalf("Failed to create source file: %v", err)
 	}
 
@@ -230,7 +231,7 @@ func TestMoveConstAndVar(t *testing.T) {
 
 go 1.24
 `
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -255,7 +256,7 @@ fmt.Println(MyConst, MyVar, MaxSize, MinSize)
 }
 `
 	sourceFile := filepath.Join(tmpDir, "source.go")
-	if err := os.WriteFile(sourceFile, []byte(sourceCode), 0644); err != nil {
+	if err := os.WriteFile(sourceFile, []byte(sourceCode), 0o644); err != nil {
 		t.Fatalf("Failed to create source file: %v", err)
 	}
 

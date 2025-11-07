@@ -1,8 +1,9 @@
 package goutils
 
 import (
-	"github.com/neongreen/mono/dissect/pkg/utils"
 	"go/ast"
+
+	"github.com/neongreen/mono/dissect/pkg/utils"
 )
 
 // Check if the function name starts with "Test", is exported, and is not a method.

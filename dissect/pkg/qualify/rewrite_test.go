@@ -164,7 +164,7 @@ func TestQualifyReferences_ImportAlreadyExists(t *testing.T) {
 
 	// Create util package
 	utilDir := filepath.Join(tmpDir, "util")
-	if err := os.MkdirAll(utilDir, 0755); err != nil {
+	if err := os.MkdirAll(utilDir, 0o755); err != nil {
 		t.Fatalf("Failed to create util dir: %v", err)
 	}
 	createFile(t, filepath.Join(utilDir, "util.go"), `package util
@@ -219,7 +219,7 @@ func TestQualifyReferences_QualifiedReferencesIgnored(t *testing.T) {
 
 	// Create util package
 	utilDir := filepath.Join(tmpDir, "util")
-	if err := os.MkdirAll(utilDir, 0755); err != nil {
+	if err := os.MkdirAll(utilDir, 0o755); err != nil {
 		t.Fatalf("Failed to create util dir: %v", err)
 	}
 	createFile(t, filepath.Join(utilDir, "util.go"), `package util
@@ -597,7 +597,7 @@ func TestQualifyReferences_BuildsAfter(t *testing.T) {
 
 	// Create util package
 	utilDir := filepath.Join(tmpDir, "util")
-	if err := os.MkdirAll(utilDir, 0755); err != nil {
+	if err := os.MkdirAll(utilDir, 0o755); err != nil {
 		t.Fatalf("Failed to create util dir: %v", err)
 	}
 	createFile(t, filepath.Join(utilDir, "util.go"), `package util
@@ -672,7 +672,7 @@ func TestQualifyReferences_StructLiteralFieldNames(t *testing.T) {
 
 	// Create types package first (simulating the target after move)
 	typesDir := filepath.Join(tmpDir, "types")
-	if err := os.MkdirAll(typesDir, 0755); err != nil {
+	if err := os.MkdirAll(typesDir, 0o755); err != nil {
 		t.Fatalf("Failed to create types dir: %v", err)
 	}
 	createFile(t, filepath.Join(typesDir, "types.go"), `package types
@@ -772,7 +772,7 @@ func TestQualifyReferences_PackageNameCollision(t *testing.T) {
 
 	// Create db package first (simulating the target after move)
 	dbDir := filepath.Join(tmpDir, "db")
-	if err := os.MkdirAll(dbDir, 0755); err != nil {
+	if err := os.MkdirAll(dbDir, 0o755); err != nil {
 		t.Fatalf("Failed to create db dir: %v", err)
 	}
 	createFile(t, filepath.Join(dbDir, "db.go"), `package db
@@ -876,7 +876,7 @@ func TestQualifyReferences_AliasCollision(t *testing.T) {
 
 	// Create db package first (simulating the target after move)
 	dbDir := filepath.Join(tmpDir, "db")
-	if err := os.MkdirAll(dbDir, 0755); err != nil {
+	if err := os.MkdirAll(dbDir, 0o755); err != nil {
 		t.Fatalf("Failed to create db dir: %v", err)
 	}
 	createFile(t, filepath.Join(dbDir, "db.go"), `package db
@@ -967,7 +967,7 @@ func TestQualifyReferences_MultipleCollisions(t *testing.T) {
 
 	// Create db package first (simulating the target after move)
 	dbDir := filepath.Join(tmpDir, "db")
-	if err := os.MkdirAll(dbDir, 0755); err != nil {
+	if err := os.MkdirAll(dbDir, 0o755); err != nil {
 		t.Fatalf("Failed to create db dir: %v", err)
 	}
 	createFile(t, filepath.Join(dbDir, "db.go"), `package db
@@ -1062,7 +1062,7 @@ func TestQualifyReferences_TypeReferencesInSignatures(t *testing.T) {
 
 	// Create db package with DB type
 	dbDir := filepath.Join(tmpDir, "db")
-	if err := os.MkdirAll(dbDir, 0755); err != nil {
+	if err := os.MkdirAll(dbDir, 0o755); err != nil {
 		t.Fatalf("Failed to create db dir: %v", err)
 	}
 	createFile(t, filepath.Join(dbDir, "db.go"), `package db
@@ -1177,7 +1177,7 @@ func createTempModule(t *testing.T) string {
 
 	// Create go.mod
 	gomod := "module test\n\ngo 1.21\n"
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0o644); err != nil {
 		os.RemoveAll(tmpDir)
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -1187,7 +1187,7 @@ func createTempModule(t *testing.T) string {
 
 func createFile(t *testing.T, path, content string) {
 	t.Helper()
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("Failed to write file %s: %v", path, err)
 	}
 }

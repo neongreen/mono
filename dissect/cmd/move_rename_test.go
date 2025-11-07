@@ -15,7 +15,7 @@ func TestMoveWithRenameToSameFile(t *testing.T) {
 
 	// Create a Go module
 	modFile := filepath.Join(tmpDir, "go.mod")
-	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0644); err != nil {
+	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -31,7 +31,7 @@ func main() {
 	oldFunc()
 }
 `
-	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -57,7 +57,7 @@ func TestMoveWithRenameToNewFile(t *testing.T) {
 
 	// Create a Go module
 	modFile := filepath.Join(tmpDir, "go.mod")
-	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0644); err != nil {
+	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -69,7 +69,7 @@ func OldFunc() {
 	println("hello")
 }
 `
-	if err := os.WriteFile(sourceFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(sourceFile, []byte(content), 0o644); err != nil {
 		t.Fatalf("Failed to create source file: %v", err)
 	}
 
@@ -88,7 +88,7 @@ func TestMoveWithoutRename(t *testing.T) {
 
 	// Create a Go module
 	modFile := filepath.Join(tmpDir, "go.mod")
-	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0644); err != nil {
+	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -100,7 +100,7 @@ func MyFunc() {
 	println("hello")
 }
 `
-	if err := os.WriteFile(sourceFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(sourceFile, []byte(content), 0o644); err != nil {
 		t.Fatalf("Failed to create source file: %v", err)
 	}
 
@@ -108,7 +108,7 @@ func MyFunc() {
 	targetFile := filepath.Join(tmpDir, "target.go")
 	targetContent := `package main
 `
-	if err := os.WriteFile(targetFile, []byte(targetContent), 0644); err != nil {
+	if err := os.WriteFile(targetFile, []byte(targetContent), 0o644); err != nil {
 		t.Fatalf("Failed to create target file: %v", err)
 	}
 
@@ -131,7 +131,7 @@ func TestRenameExport(t *testing.T) {
 
 	// Create a Go module
 	modFile := filepath.Join(tmpDir, "go.mod")
-	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0644); err != nil {
+	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -147,7 +147,7 @@ func main() {
 	helper()
 }
 `
-	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -168,7 +168,7 @@ func TestRenameUnexport(t *testing.T) {
 
 	// Create a Go module
 	modFile := filepath.Join(tmpDir, "go.mod")
-	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0644); err != nil {
+	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -184,7 +184,7 @@ func main() {
 	PublicFunc()
 }
 `
-	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(testFile, []byte(content), 0o644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
@@ -206,7 +206,7 @@ func TestFileMoveSamePackageToSubdirectory(t *testing.T) {
 
 	// Create a Go module
 	modFile := filepath.Join(tmpDir, "go.mod")
-	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0644); err != nil {
+	if err := os.WriteFile(modFile, []byte("module testmod\n\ngo 1.24\n"), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -218,7 +218,7 @@ func main() {
 	_ = AdminCmd
 }
 `
-	if err := os.WriteFile(mainFile, []byte(mainContent), 0644); err != nil {
+	if err := os.WriteFile(mainFile, []byte(mainContent), 0o644); err != nil {
 		t.Fatalf("Failed to create main.go: %v", err)
 	}
 
@@ -228,13 +228,13 @@ func main() {
 
 var AdminCmd = "admin command"
 `
-	if err := os.WriteFile(adminCmdFile, []byte(adminCmdContent), 0644); err != nil {
+	if err := os.WriteFile(adminCmdFile, []byte(adminCmdContent), 0o644); err != nil {
 		t.Fatalf("Failed to create admin_cmd.go: %v", err)
 	}
 
 	// Create target directory
 	cmdDir := filepath.Join(tmpDir, "cmd")
-	if err := os.MkdirAll(cmdDir, 0755); err != nil {
+	if err := os.MkdirAll(cmdDir, 0o755); err != nil {
 		t.Fatalf("Failed to create cmd directory: %v", err)
 	}
 

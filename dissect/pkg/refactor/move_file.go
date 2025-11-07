@@ -2,6 +2,7 @@ package refactor
 
 import (
 	"fmt"
+	"go/ast"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -14,7 +15,6 @@ import (
 	"github.com/neongreen/mono/dissect/pkg/symbols"
 	"github.com/neongreen/mono/dissect/pkg/typeinfo"
 	"github.com/neongreen/mono/dissect/pkg/utils"
-	"go/ast"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -726,7 +726,7 @@ func validateBatchMoves(moveOps []MoveOp) error {
 func performPhysicalMove(from, to string) error {
 	// Create target directory if needed
 	targetDir := filepath.Dir(to)
-	if err := os.MkdirAll(targetDir, 0755); err != nil {
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create target directory: %w", err)
 	}
 

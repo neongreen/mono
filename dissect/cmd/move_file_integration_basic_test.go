@@ -18,14 +18,14 @@ func TestMoveFileMultipleImporters(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
 	// Create source file in helper/util.go
 	helperDir := filepath.Join(tmpDir, "helper")
-	err = os.MkdirAll(helperDir, 0755)
+	err = os.MkdirAll(helperDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create helper dir: %v", err)
 	}
@@ -41,7 +41,7 @@ func Helper() int {
 	return 42
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -58,14 +58,14 @@ func main() {
 	println(s, n)
 }
 `
-	err = os.WriteFile(importer1, []byte(importer1Content), 0644)
+	err = os.WriteFile(importer1, []byte(importer1Content), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write importer1: %v", err)
 	}
 
 	// Create importer 2 in subdirectory
 	handlersDir := filepath.Join(tmpDir, "handlers")
-	err = os.MkdirAll(handlersDir, 0755)
+	err = os.MkdirAll(handlersDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create handlers dir: %v", err)
 	}
@@ -79,14 +79,14 @@ func GetUtil() string {
 	return helper.Util()
 }
 `
-	err = os.WriteFile(importer2, []byte(importer2Content), 0644)
+	err = os.WriteFile(importer2, []byte(importer2Content), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write importer2: %v", err)
 	}
 
 	// Create importer 3 in sibling package
 	libDir := filepath.Join(tmpDir, "lib")
-	err = os.MkdirAll(libDir, 0755)
+	err = os.MkdirAll(libDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create lib dir: %v", err)
 	}
@@ -98,7 +98,7 @@ import "test/helper"
 
 var DefaultHelper = helper.Helper()
 `
-	err = os.WriteFile(importer3, []byte(importer3Content), 0644)
+	err = os.WriteFile(importer3, []byte(importer3Content), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write importer3: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestMoveFileRenameInPlace(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -206,7 +206,7 @@ func AdminCommand() {
 	fmt.Println("admin command")
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -219,7 +219,7 @@ func main() {
 	AdminCommand()
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main file: %v", err)
 	}
@@ -279,14 +279,14 @@ func TestMoveFileCreateTargetDir(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
 	// Create source file in helpers/
 	helpersDir := filepath.Join(tmpDir, "helpers")
-	err = os.MkdirAll(helpersDir, 0755)
+	err = os.MkdirAll(helpersDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create helpers dir: %v", err)
 	}
@@ -298,7 +298,7 @@ func Utility() string {
 	return "utility"
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -314,7 +314,7 @@ func main() {
 	println(s)
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main file: %v", err)
 	}

@@ -48,7 +48,7 @@ func (s *ShimsTool) CreateShim(name, command string) error {
 
 	// Ensure shims directory exists
 	if !s.dryRun {
-		if err := os.MkdirAll(s.shimsDir, 0755); err != nil {
+		if err := os.MkdirAll(s.shimsDir, 0o755); err != nil {
 			return fmt.Errorf("failed to create shims directory %s: %w", s.shimsDir, err)
 		}
 	}
@@ -75,7 +75,7 @@ func (s *ShimsTool) CreateShim(name, command string) error {
 	}
 
 	// Write shim file
-	if err := os.WriteFile(shimPath, []byte(shimContent), 0755); err != nil {
+	if err := os.WriteFile(shimPath, []byte(shimContent), 0o755); err != nil {
 		return fmt.Errorf("failed to write shim file %s: %w", shimPath, err)
 	}
 

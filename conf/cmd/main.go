@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 	"strings"
 
 	"github.com/neongreen/mono/conf/pkg/config"
@@ -34,8 +33,10 @@ tool schemas and provides surgical TOML editing while preserving formatting.`,
 	},
 }
 
-var jjListFlag bool
-var claudeListFlag bool
+var (
+	jjListFlag     bool
+	claudeListFlag bool
+)
 
 // jjCompletion provides schema-aware completion for jj commands
 func jjCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

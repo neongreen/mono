@@ -1,14 +1,13 @@
 package tui
 
 import (
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
-
 	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 )
 
 type mode int

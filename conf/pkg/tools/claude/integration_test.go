@@ -18,7 +18,7 @@ func TestClaudeTool_Integration(t *testing.T) {
 
 	// Create conf config directory
 	configDir := filepath.Join(tmpDir, ".config", "conf")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
@@ -30,7 +30,7 @@ func TestClaudeTool_Integration(t *testing.T) {
 name = "claude"
 path = "` + claudeConfigPath + `"
 `
-	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0644); err != nil {
+	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0o644); err != nil {
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
@@ -137,7 +137,7 @@ func TestClaudeTool_IntegrationWithConfState(t *testing.T) {
 
 	// Create conf config directory
 	configDir := filepath.Join(tmpDir, ".config", "conf")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func TestClaudeTool_IntegrationWithConfState(t *testing.T) {
 name = "claude"
 path = "` + claudeConfigPath + `"
 `
-	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0644); err != nil {
+	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0o644); err != nil {
 		t.Fatalf("Failed to write config: %v", err)
 	}
 

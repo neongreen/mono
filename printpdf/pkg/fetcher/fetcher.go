@@ -117,10 +117,12 @@ func isGitHubURL(urlStr string) bool {
 // - https://github.com/owner/repo/blob/commit-sha/path/to/file.md
 // - https://github.com/owner/repo/pull/123/files#diff-abc123
 // - https://github.com/owner/repo/files/commit-sha/path/to/file.md
-var githubBlobRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)`)
-var githubRawRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/raw/([^/]+)/(.+)`)
-var githubPullFileRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/pull/(\d+)/files`)
-var githubFilesRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/files/([^/]+)/(.+)`)
+var (
+	githubBlobRegex     = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)`)
+	githubRawRegex      = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/raw/([^/]+)/(.+)`)
+	githubPullFileRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/pull/(\d+)/files`)
+	githubFilesRegex    = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/files/([^/]+)/(.+)`)
+)
 
 func fetchGitHubFile(urlStr string) ([]byte, string, error) {
 	// Try to convert blob URL to raw URL

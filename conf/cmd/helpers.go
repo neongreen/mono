@@ -8,7 +8,6 @@ import (
 
 // parseValue attempts to parse a string value into the appropriate type
 func parseValue(value string) any {
-
 	if value == "true" || value == "false" {
 		return value == "true"
 	}

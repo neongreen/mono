@@ -3,9 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"github.com/neongreen/mono/tk/internal/types"
 	"strconv"
 	"strings"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // ResolveTaskReference resolves a user-supplied task reference into a task_uid.

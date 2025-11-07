@@ -99,7 +99,7 @@ func TestJSONEditor_GetValue(t *testing.T) {
 	}
 
 	content, _ := json.MarshalIndent(data, "", "  ")
-	os.WriteFile(testFile, content, 0644)
+	os.WriteFile(testFile, content, 0o644)
 
 	editor := NewJSONEditor(testFile)
 
@@ -171,7 +171,7 @@ func TestJSONEditor_UnsetValue(t *testing.T) {
 	}
 
 	content, _ := json.MarshalIndent(data, "", "  ")
-	os.WriteFile(testFile, content, 0644)
+	os.WriteFile(testFile, content, 0o644)
 
 	editor := NewJSONEditor(testFile)
 
@@ -223,7 +223,7 @@ func TestJSONEditor_GetAllValues(t *testing.T) {
 	}
 
 	content, _ := json.MarshalIndent(expected, "", "  ")
-	os.WriteFile(testFile, content, 0644)
+	os.WriteFile(testFile, content, 0o644)
 
 	editor := NewJSONEditor(testFile)
 

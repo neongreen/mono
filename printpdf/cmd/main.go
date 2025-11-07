@@ -6,11 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/cobra"
-
 	"github.com/neongreen/mono/printpdf/pkg/converter"
 	"github.com/neongreen/mono/printpdf/pkg/fetcher"
 	"github.com/neongreen/mono/printpdf/pkg/pdfutil"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -127,7 +126,7 @@ func runConvert(cmd *cobra.Command, args []string) {
 	var artifactBase string
 	if keepArtifacts {
 		artifactBase = filepath.Join(outputDir, "printpdf-artifacts")
-		if err := os.MkdirAll(artifactBase, 0755); err != nil {
+		if err := os.MkdirAll(artifactBase, 0o755); err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating artifact directory: %v\n", err)
 			os.Exit(1)
 		}
@@ -141,7 +140,7 @@ func runConvert(cmd *cobra.Command, args []string) {
 	}
 
 	// Ensure output directory exists
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		fmt.Fprintf(os.Stderr, "Error creating output directory: %v\n", err)
 		os.Exit(1)
 	}
@@ -157,7 +156,7 @@ func runConvert(cmd *cobra.Command, args []string) {
 		if keepArtifacts {
 			convOptions.KeepIntermediates = true
 			convOptions.IntermediateDir = filepath.Join(artifactBase, conv.Name())
-			if err := os.MkdirAll(convOptions.IntermediateDir, 0755); err != nil {
+			if err := os.MkdirAll(convOptions.IntermediateDir, 0o755); err != nil {
 				fmt.Fprintf(os.Stderr, "Error preparing artifact directory for %s: %v\n", conv.Name(), err)
 				os.Exit(1)
 			}

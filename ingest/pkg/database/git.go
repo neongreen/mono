@@ -48,7 +48,6 @@ func (d *Database) GetOrCreateBlob(content []byte, sha256Hash string) (int64, er
 	var blobID int64
 	err := d.db.QueryRow("SELECT id FROM blobs WHERE sha256 = ?", sha256Hash).Scan(&blobID)
 	if err == nil {
-
 		return blobID, nil
 	}
 	if err != sql.ErrNoRows {

@@ -89,7 +89,8 @@ func fetchAllReleases(owner, repo string) ([]GitHubRelease, error) {
 }
 
 func findPRRelease(owner, repo string,
-	prNum int, project string) (*GitHubRelease, error) {
+	prNum int, project string,
+) (*GitHubRelease, error) {
 	debugLog("Looking for PR #%d in %s/%s (project: %s)", prNum, owner, repo, project)
 
 	releases, err := fetchAllReleases(owner, repo)

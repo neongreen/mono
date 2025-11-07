@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -105,7 +104,7 @@ func Open() (*Database, error) {
 	}
 
 	ingestDir := filepath.Join(homeDir, ".ingest")
-	if err := os.MkdirAll(ingestDir, 0755); err != nil {
+	if err := os.MkdirAll(ingestDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create .ingest directory: %w", err)
 	}
 

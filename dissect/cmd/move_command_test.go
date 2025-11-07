@@ -1,11 +1,12 @@
 package main_test
 
 import (
-	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
 )
 
 func TestMoveCommand(t *testing.T) {
@@ -21,7 +22,7 @@ func TestMoveCommand(t *testing.T) {
 
 go 1.24
 `
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -49,7 +50,7 @@ func Baz() {
 }
 `
 	sourceFile := filepath.Join(tmpDir, "source.go")
-	if err := os.WriteFile(sourceFile, []byte(sourceCode), 0644); err != nil {
+	if err := os.WriteFile(sourceFile, []byte(sourceCode), 0o644); err != nil {
 		t.Fatalf("Failed to create source file: %v", err)
 	}
 
@@ -167,10 +168,10 @@ func HelperTwo() {
 	fmt.Println("This is HelperTwo")
 }
 `
-		if err := os.WriteFile(filepath.Join(tmpDir, "helper1.go"), []byte(helper1Code), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, "helper1.go"), []byte(helper1Code), 0o644); err != nil {
 			t.Fatalf("Failed to create helper1.go: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(tmpDir, "helper2.go"), []byte(helper2Code), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, "helper2.go"), []byte(helper2Code), 0o644); err != nil {
 			t.Fatalf("Failed to create helper2.go: %v", err)
 		}
 
@@ -238,10 +239,10 @@ func GlobHelper() {
 	fmt.Println("This is GlobHelper from glob2")
 }
 `
-		if err := os.WriteFile(filepath.Join(tmpDir, "glob1.go"), []byte(glob1Code), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, "glob1.go"), []byte(glob1Code), 0o644); err != nil {
 			t.Fatalf("Failed to create glob1.go: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(tmpDir, "glob2.go"), []byte(glob2Code), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, "glob2.go"), []byte(glob2Code), 0o644); err != nil {
 			t.Fatalf("Failed to create glob2.go: %v", err)
 		}
 
@@ -307,7 +308,7 @@ func HelperFunc() {
 	fmt.Println("Helper")
 }
 `
-		if err := os.WriteFile(filepath.Join(tmpDir, "tests.go"), []byte(testCode), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, "tests.go"), []byte(testCode), 0o644); err != nil {
 			t.Fatalf("Failed to create tests.go: %v", err)
 		}
 
@@ -373,7 +374,7 @@ func HelperFunc() {
 
 func SomeFunc() {}
 `
-		if err := os.WriteFile(filepath.Join(tmpDir, "nomatch.go"), []byte(noMatchCode), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, "nomatch.go"), []byte(noMatchCode), 0o644); err != nil {
 			t.Fatalf("Failed to create nomatch.go: %v", err)
 		}
 
@@ -394,7 +395,7 @@ func SomeFunc() {}
 
 	t.Run("MoveWithDoubleStarPattern", func(t *testing.T) {
 		// Create nested directory structure with Go files
-		if err := os.MkdirAll(filepath.Join(tmpDir, "pkg/subpkg/deeper"), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(tmpDir, "pkg/subpkg/deeper"), 0o755); err != nil {
 			t.Fatalf("Failed to create nested directories: %v", err)
 		}
 
@@ -417,13 +418,13 @@ func UtilThree() {
 	println("util three")
 }
 `
-		if err := os.WriteFile(filepath.Join(tmpDir, "pkg/util1.go"), []byte(file1Code), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, "pkg/util1.go"), []byte(file1Code), 0o644); err != nil {
 			t.Fatalf("Failed to create pkg/util1.go: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(tmpDir, "pkg/subpkg/util2.go"), []byte(file2Code), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, "pkg/subpkg/util2.go"), []byte(file2Code), 0o644); err != nil {
 			t.Fatalf("Failed to create pkg/subpkg/util2.go: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(tmpDir, "pkg/subpkg/deeper/util3.go"), []byte(file3Code), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, "pkg/subpkg/deeper/util3.go"), []byte(file3Code), 0o644); err != nil {
 			t.Fatalf("Failed to create pkg/subpkg/deeper/util3.go: %v", err)
 		}
 

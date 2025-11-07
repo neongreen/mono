@@ -1,11 +1,12 @@
 package main_test
 
 import (
-	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
 )
 
 // TestMoveEdgeCases tests edge cases and potential issues with moving declarations
@@ -22,7 +23,7 @@ func TestMoveEdgeCases(t *testing.T) {
 
 go 1.24
 `
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(goMod), 0o644); err != nil {
 		t.Fatalf("Failed to create go.mod: %v", err)
 	}
 
@@ -51,7 +52,7 @@ func main() {
 }
 `
 		sourceFile := filepath.Join(tmpDir, "grouped_consts.go")
-		if err := os.WriteFile(sourceFile, []byte(sourceCode), 0644); err != nil {
+		if err := os.WriteFile(sourceFile, []byte(sourceCode), 0o644); err != nil {
 			t.Fatalf("Failed to create source file: %v", err)
 		}
 
@@ -95,10 +96,10 @@ func main() {
 
 		// Create a separate subdirectory for this test
 		testDir := filepath.Join(tmpDir, "methods_test")
-		if err := os.MkdirAll(testDir, 0755); err != nil {
+		if err := os.MkdirAll(testDir, 0o755); err != nil {
 			t.Fatalf("Failed to create test directory: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(testDir, "go.mod"), []byte(goMod), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(testDir, "go.mod"), []byte(goMod), 0o644); err != nil {
 			t.Fatalf("Failed to create go.mod: %v", err)
 		}
 
@@ -120,7 +121,7 @@ func main() {
 }
 `
 		sourceFile := filepath.Join(testDir, "user_source.go")
-		if err := os.WriteFile(sourceFile, []byte(sourceCode), 0644); err != nil {
+		if err := os.WriteFile(sourceFile, []byte(sourceCode), 0o644); err != nil {
 			t.Fatalf("Failed to create source file: %v", err)
 		}
 
@@ -165,10 +166,10 @@ func main() {
 
 		// Create a separate subdirectory for this test
 		testDir := filepath.Join(tmpDir, "import_test")
-		if err := os.MkdirAll(testDir, 0755); err != nil {
+		if err := os.MkdirAll(testDir, 0o755); err != nil {
 			t.Fatalf("Failed to create test directory: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(testDir, "go.mod"), []byte(goMod), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(testDir, "go.mod"), []byte(goMod), 0o644); err != nil {
 			t.Fatalf("Failed to create go.mod: %v", err)
 		}
 
@@ -188,7 +189,7 @@ func main() {
 }
 `
 		sourceFile := filepath.Join(testDir, "source.go")
-		if err := os.WriteFile(sourceFile, []byte(sourceCode), 0644); err != nil {
+		if err := os.WriteFile(sourceFile, []byte(sourceCode), 0o644); err != nil {
 			t.Fatalf("Failed to create source file: %v", err)
 		}
 
@@ -238,10 +239,10 @@ func main() {
 
 		// Create a separate subdirectory for this test
 		testDir := filepath.Join(tmpDir, "dot_import_test")
-		if err := os.MkdirAll(testDir, 0755); err != nil {
+		if err := os.MkdirAll(testDir, 0o755); err != nil {
 			t.Fatalf("Failed to create test directory: %v", err)
 		}
-		if err := os.WriteFile(filepath.Join(testDir, "go.mod"), []byte(goMod), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(testDir, "go.mod"), []byte(goMod), 0o644); err != nil {
 			t.Fatalf("Failed to create go.mod: %v", err)
 		}
 
@@ -258,7 +259,7 @@ func main() {
 }
 `
 		sourceFile := filepath.Join(testDir, "dot_import.go")
-		if err := os.WriteFile(sourceFile, []byte(sourceCode), 0644); err != nil {
+		if err := os.WriteFile(sourceFile, []byte(sourceCode), 0o644); err != nil {
 			t.Fatalf("Failed to create source file: %v", err)
 		}
 

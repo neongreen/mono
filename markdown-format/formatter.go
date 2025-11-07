@@ -12,7 +12,8 @@ import (
 )
 
 func formatMarkdown(input []byte) ( // formatMarkdown formats markdown content with one sentence per line
-	[]byte, error) {
+	[]byte, error,
+) {
 	parser := goldmark.DefaultParser()
 	reader := text.NewReader(input)
 	doc := parser.Parse(reader)
@@ -187,8 +188,7 @@ func writeInlineContent(node ast.Node, source []byte, w io.Writer, splitSentence
 		&buf); err != nil {
 		return err
 	}
-	text :=
-		buf.String()
+	text := buf.String()
 	if splitSentences {
 
 		sentences := splitIntoSentences(text)
@@ -219,30 +219,27 @@ func writeInlineContent(node ast.Node, source []byte, w io.Writer, splitSentence
 }
 
 func collectInlineText(
-	node ast.Node, source []byte, buf *bytes.Buffer) error {
+	node ast.Node, source []byte, buf *bytes.Buffer,
+) error {
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
 		switch n := child.(type) {
 		case *ast.Text:
-			segment :=
-				n.Segment
+			segment := n.Segment
 			buf.Write(segment.
 				Value(source))
 			if n.SoftLineBreak() {
 				buf.Write([]byte(
 					" "))
 			}
-		case
-			*ast.String:
+		case *ast.String:
 			buf.
 				Write(n.Value)
-		case *ast.
-			CodeSpan:
+		case *ast.CodeSpan:
 			buf.Write([]byte("`"))
 			collectInlineText(child, source, buf)
 			buf.
 				Write([]byte("`"))
-		case
-			*ast.Emphasis:
+		case *ast.Emphasis:
 			level := n.Level
 			for range level {
 				buf.Write([]byte("*"))
@@ -298,8 +295,8 @@ func collectInlineText(
 }
 
 func splitIntoSentences(
-	text string) []string {
-
+	text string,
+) []string {
 	protected := text
 	replacements := make(map[string]string)
 	for i, abbr := range commonAbbreviations {
@@ -319,7 +316,6 @@ func splitIntoSentences(
 			for placeholder, abbr := range replacements {
 				part = strings.ReplaceAll(
 					part, placeholder, abbr)
-
 			}
 			sentences = append(sentences, part)
 		}

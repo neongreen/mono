@@ -17,14 +17,14 @@ func TestMoveFileMixedDeclarations(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
 	// Create source file with mixed declarations
 	modelsDir := filepath.Join(tmpDir, "models")
-	err = os.MkdirAll(modelsDir, 0755)
+	err = os.MkdirAll(modelsDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create models dir: %v", err)
 	}
@@ -60,7 +60,7 @@ func (u *User) Validate() error {
 	return nil
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -91,7 +91,7 @@ func main() {
 	println(user.Name, max, def.Name)
 }
 `
-	err = os.WriteFile(importerFile, []byte(importerContent), 0644)
+	err = os.WriteFile(importerFile, []byte(importerContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write importer: %v", err)
 	}
@@ -167,14 +167,14 @@ func TestMoveFilePreservesComments(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	// Create go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
 	// Create source file with various comment styles
 	utilsDir := filepath.Join(tmpDir, "utils")
-	err = os.MkdirAll(utilsDir, 0755)
+	err = os.MkdirAll(utilsDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create utils dir: %v", err)
 	}
@@ -198,7 +198,7 @@ type Config struct {
 	Value string
 }
 `
-	err = os.WriteFile(sourceFile, []byte(sourceContent), 0644)
+	err = os.WriteFile(sourceFile, []byte(sourceContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write source file: %v", err)
 	}
@@ -215,7 +215,7 @@ func main() {
 	println(result, cfg.Value)
 }
 `
-	err = os.WriteFile(mainFile, []byte(mainContent), 0644)
+	err = os.WriteFile(mainFile, []byte(mainContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write main file: %v", err)
 	}

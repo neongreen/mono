@@ -56,7 +56,7 @@ func TestWriteFile(t *testing.T) {
 		initial := `name = "old"
 version = "0.9.0"
 other = "preserved"`
-		if err := os.WriteFile(filePath, []byte(initial), 0644); err != nil {
+		if err := os.WriteFile(filePath, []byte(initial), 0o644); err != nil {
 			t.Fatalf("failed to create initial file: %v", err)
 		}
 
@@ -136,7 +136,7 @@ other = "preserved"`
 		// Try to write to a directory that can't be created (e.g., inside a file)
 		tempDir := t.TempDir()
 		existingFile := filepath.Join(tempDir, "file.txt")
-		if err := os.WriteFile(existingFile, []byte("content"), 0644); err != nil {
+		if err := os.WriteFile(existingFile, []byte("content"), 0o644); err != nil {
 			t.Fatalf("failed to create test file: %v", err)
 		}
 

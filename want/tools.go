@@ -24,12 +24,10 @@ func buildToolInstallationPlan(toolName string) []PlanStep {
 
 	tool, exists := ToolRegistry[toolName]
 	if !exists {
-
 		return steps
 	}
 
 	if tool.MisePackage != "" && !isMiseAvailable() {
-
 		steps = append(steps, buildMiseInstallationSteps()...)
 	}
 
@@ -67,7 +65,6 @@ func buildMiseInstallationSteps() []PlanStep {
 
 	miseTool, exists := ToolRegistry["mise"]
 	if !exists {
-
 		panic("BUG: 'mise' tool not found in ToolRegistry. Please ensure ToolRegistry includes a 'mise' entry with proper installation steps.")
 	}
 
@@ -229,7 +226,7 @@ func performMiseInstallation() error {
 
 		activationLine := fmt.Sprintf("\n# Added by want - enables mise\neval \"$(mise activate %s)\"\n", shellName)
 
-		file, err := os.OpenFile(configFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		file, err := os.OpenFile(configFile, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
 		if err != nil {
 			fmt.Printf("%s Could not automatically add mise activation to %s: %v\n", cli.Warning("⚠"), cli.Path(configFile), err)
 			fmt.Println()
@@ -277,7 +274,6 @@ func performMiseInstallation() error {
 
 // installToolViaMise installs a tool using mise
 func installToolViaMise(tool string, dryRun bool, planJson bool) {
-
 	if tool == "mise" {
 		if isMiseAvailable() {
 			fmt.Printf("✓ mise is already available\n")
@@ -337,7 +333,6 @@ func installToolViaMise(tool string, dryRun bool, planJson bool) {
 	}
 
 	if registryTool, inRegistry := ToolRegistry[tool]; inRegistry && registryTool.MisePackage != "" {
-
 		plan.Steps = buildToolInstallationPlan(tool)
 	} else {
 

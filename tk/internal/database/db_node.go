@@ -34,7 +34,6 @@ func (d *DB) GetOrCreateNodeID() (string, error) {
 
 // RegenerateNodeID generates a new node ID and updates the metadata
 func (d *DB) RegenerateNodeID() (string, error) {
-
 	newNodeID, err := generateNodeID(6)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate node ID: %w", err)

@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/neongreen/mono/tk/internal/database"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
 )
 

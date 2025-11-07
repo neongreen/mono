@@ -9,10 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neongreen/mono/ingest/pkg/database"
-
 	gh "github.com/google/go-github/v61/github"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/neongreen/mono/ingest/pkg/database"
 )
 
 type fakeSession struct {

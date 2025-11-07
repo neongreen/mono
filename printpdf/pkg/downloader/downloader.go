@@ -26,7 +26,7 @@ func New() (*ToolDownloader, error) {
 	}
 
 	cacheDir := filepath.Join(homeDir, ".cache", "printpdf")
-	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+	if err := os.MkdirAll(cacheDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
@@ -45,7 +45,7 @@ func (td *ToolDownloader) GetTool(name, version, downloadURL string) (string, er
 
 	// Download and extract
 	fmt.Printf("Downloading %s %s...\n", name, version)
-	if err := os.MkdirAll(toolDir, 0755); err != nil {
+	if err := os.MkdirAll(toolDir, 0o755); err != nil {
 		return "", fmt.Errorf("failed to create tool directory: %w", err)
 	}
 
@@ -74,7 +74,7 @@ func (td *ToolDownloader) GetTool(name, version, downloadURL string) (string, er
 		if err := os.Rename(tempFile, binPath); err != nil {
 			return "", fmt.Errorf("failed to move binary: %w", err)
 		}
-		if err := os.Chmod(binPath, 0755); err != nil {
+		if err := os.Chmod(binPath, 0o755); err != nil {
 			return "", fmt.Errorf("failed to make executable: %w", err)
 		}
 		return binPath, nil
@@ -132,11 +132,11 @@ func (td *ToolDownloader) extractTarGz(src, dest string) error {
 
 		switch header.Typeflag {
 		case tar.TypeDir:
-			if err := os.MkdirAll(target, 0755); err != nil {
+			if err := os.MkdirAll(target, 0o755); err != nil {
 				return err
 			}
 		case tar.TypeReg:
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 				return err
 			}
 			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
@@ -165,13 +165,13 @@ func (td *ToolDownloader) extractZip(src, dest string) error {
 		target := filepath.Join(dest, f.Name)
 
 		if f.FileInfo().IsDir() {
-			if err := os.MkdirAll(target, 0755); err != nil {
+			if err := os.MkdirAll(target, 0o755); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 			return err
 		}
 
@@ -214,7 +214,7 @@ func (td *ToolDownloader) findExecutable(dir, name string) (string, error) {
 		for _, match := range matches {
 			if info, err := os.Stat(match); err == nil && !info.IsDir() {
 				// Make sure it's executable
-				if err := os.Chmod(match, 0755); err == nil {
+				if err := os.Chmod(match, 0o755); err == nil {
 					return match, nil
 				}
 			}

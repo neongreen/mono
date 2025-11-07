@@ -3,10 +3,11 @@ package render
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/neongreen/mono/claude-trace/pkg/parser"
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"strings"
 	"time"
+
+	"github.com/neongreen/mono/claude-trace/pkg/parser"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 )
 
 // TraceData represents the intermediate representation for rendering traces

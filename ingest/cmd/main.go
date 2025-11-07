@@ -4,16 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/neongreen/mono/ingest/pkg/database"
-	"github.com/neongreen/mono/ingest/pkg/jobs"
-	mcppkg "github.com/neongreen/mono/ingest/pkg/mcp"
-	"github.com/neongreen/mono/ingest/pkg/runconfig"
-	"github.com/neongreen/mono/lib/version"
 	"log"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/neongreen/mono/ingest/pkg/database"
+	"github.com/neongreen/mono/ingest/pkg/jobs"
+	mcppkg "github.com/neongreen/mono/ingest/pkg/mcp"
+	"github.com/neongreen/mono/ingest/pkg/runconfig"
+	"github.com/neongreen/mono/lib/version"
 	"github.com/spf13/cobra"
 )
 

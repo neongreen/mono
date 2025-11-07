@@ -23,7 +23,6 @@ func getCompoundHandler(command string) (CompoundHandler, bool) {
 
 // isCommandSafe checks if a command is read-only/safe (doesn't modify system state)
 func isCommandSafe(command string) bool {
-
 	safeCommands := []string{
 		"ps", "top", "uptime", "whoami", "id", "hostname", "uname",
 		"df", "du", "free", "vmstat", "iostat", "netstat", "ss",

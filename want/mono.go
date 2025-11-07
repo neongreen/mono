@@ -144,7 +144,6 @@ func createGoBuildCommand(args ...string) *exec.Cmd {
 	}
 
 	if !isMiseAvailable() {
-
 		return exec.Command("go", args...)
 	}
 
@@ -280,7 +279,7 @@ func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
 		os.Exit(1)
 	}
 
-	if err := os.Chmod(destPath, 0755); err != nil {
+	if err := os.Chmod(destPath, 0o755); err != nil {
 		fmt.Printf("Warning: Failed to make binary executable: %v\n", err)
 	}
 
@@ -307,7 +306,6 @@ func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
 
 // buildMonoFromSource builds a project from a branch or commit in the mono repository
 func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bool, dryRun bool, planJson bool) {
-
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Printf("Error: Failed to get home directory: %v\n", err)
@@ -431,7 +429,7 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 		os.Exit(1)
 	}
 
-	if err := os.Chmod(destPath, 0755); err != nil {
+	if err := os.Chmod(destPath, 0o755); err != nil {
 		fmt.Printf("Warning: Failed to make binary executable: %v\n", err)
 	}
 
@@ -458,7 +456,6 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 
 // buildMonoFromPR builds a project from a PR branch
 func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
-
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Printf("Error: Failed to get home directory: %v\n", err)
@@ -574,7 +571,7 @@ func buildMonoFromPR(project string, prNumber int, dryRun bool, planJson bool) {
 		os.Exit(1)
 	}
 
-	if err := os.Chmod(destPath, 0755); err != nil {
+	if err := os.Chmod(destPath, 0o755); err != nil {
 		fmt.Printf("Warning: Failed to make binary executable: %v\n", err)
 	}
 

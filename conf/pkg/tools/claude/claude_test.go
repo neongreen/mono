@@ -15,7 +15,7 @@ func setupTestConfig(t *testing.T) (string, func()) {
 	claudeConfigPath := filepath.Join(tmpDir, ".config", "claude", "config.json")
 
 	// Create conf config directory
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
@@ -27,7 +27,7 @@ func setupTestConfig(t *testing.T) (string, func()) {
 name = "claude"
 path = "` + claudeConfigPath + `"
 `
-	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0644); err != nil {
+	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0o644); err != nil {
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
@@ -84,9 +84,9 @@ func TestClaudeTool_GetConfig(t *testing.T) {
 		"apiKeyHelper":          "/path/to/helper.sh",
 	}
 
-	os.MkdirAll(filepath.Dir(claudeConfigPath), 0755)
+	os.MkdirAll(filepath.Dir(claudeConfigPath), 0o755)
 	content, _ := json.MarshalIndent(data, "", "  ")
-	os.WriteFile(claudeConfigPath, content, 0644)
+	os.WriteFile(claudeConfigPath, content, 0o644)
 
 	tool, err := NewClaudeTool()
 	if err != nil {
@@ -140,9 +140,9 @@ func TestClaudeTool_UnsetConfig(t *testing.T) {
 		"alwaysThinkingEnabled": true,
 	}
 
-	os.MkdirAll(filepath.Dir(claudeConfigPath), 0755)
+	os.MkdirAll(filepath.Dir(claudeConfigPath), 0o755)
 	content, _ := json.MarshalIndent(data, "", "  ")
-	os.WriteFile(claudeConfigPath, content, 0644)
+	os.WriteFile(claudeConfigPath, content, 0o644)
 
 	tool, err := NewClaudeTool()
 	if err != nil {

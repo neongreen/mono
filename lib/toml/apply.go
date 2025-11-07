@@ -38,11 +38,11 @@ func WriteFile(path string, values map[string]any) error {
 		return fmt.Errorf("failed to apply values to %s: %w", path, err)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("failed to create directory for %s: %w", path, err)
 	}
 
-	if err := os.WriteFile(path, doc.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(path, doc.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("failed to write file %s: %w", path, err)
 	}
 

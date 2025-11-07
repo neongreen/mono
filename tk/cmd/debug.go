@@ -178,7 +178,7 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("failed to read database: %w", err)
 			}
-			if err := os.WriteFile(backupPath, data, 0644); err != nil {
+			if err := os.WriteFile(backupPath, data, 0o644); err != nil {
 				return fmt.Errorf("failed to create backup: %w", err)
 			}
 			if debug {

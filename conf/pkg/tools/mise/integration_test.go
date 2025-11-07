@@ -17,7 +17,7 @@ func TestMiseToolRealFileOperations(t *testing.T) {
 
 	// Create mise config directory structure
 	miseConfigDir := filepath.Join(tempHome, ".config", "mise")
-	if err := os.MkdirAll(miseConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(miseConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create mise config directory: %v", err)
 	}
 
@@ -80,7 +80,7 @@ verbose = true
 [env]
 NODE_ENV = "development"
 `
-		if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 			t.Fatalf("Failed to write initial config: %v", err)
 		}
 
@@ -139,7 +139,7 @@ NODE_ENV = "development"
 		initialConfig := `[settings]
 experimental = true
 `
-		if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 			t.Fatalf("Failed to write initial config: %v", err)
 		}
 
@@ -203,7 +203,7 @@ verbose = true
 NODE_ENV = "development"
 DEBUG = "true"
 `
-		if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 			t.Fatalf("Failed to write initial config: %v", err)
 		}
 
@@ -250,7 +250,7 @@ DEBUG = "true"
 		initialConfig := `[settings]
 experimental = false
 `
-		if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 			t.Fatalf("Failed to write initial config: %v", err)
 		}
 
@@ -355,7 +355,7 @@ func TestMiseToolConfigPathValidation(t *testing.T) {
 
 	// Create mise config directory
 	miseConfigDir := filepath.Join(tempHome, ".config", "mise")
-	if err := os.MkdirAll(miseConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(miseConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create mise config directory: %v", err)
 	}
 
@@ -365,7 +365,7 @@ func TestMiseToolConfigPathValidation(t *testing.T) {
 	initialConfig := `[settings]
 experimental = false
 `
-	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 		t.Fatalf("Failed to write initial config: %v", err)
 	}
 
@@ -409,7 +409,7 @@ func TestMiseToolListCommonSettings(t *testing.T) {
 
 	// Create mise config directory
 	miseConfigDir := filepath.Join(tempHome, ".config", "mise")
-	if err := os.MkdirAll(miseConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(miseConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create mise config directory: %v", err)
 	}
 
@@ -423,7 +423,7 @@ jobs = 4
 [env]
 NODE_ENV = "development"
 `
-	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 		t.Fatalf("Failed to write initial config: %v", err)
 	}
 
@@ -487,7 +487,7 @@ func TestMiseToolConcurrentAccess(t *testing.T) {
 
 	// Create mise config directory
 	miseConfigDir := filepath.Join(tempHome, ".config", "mise")
-	if err := os.MkdirAll(miseConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(miseConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create mise config directory: %v", err)
 	}
 
@@ -501,7 +501,7 @@ jobs = 2
 [env]
 NODE_ENV = "test"
 `
-	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0o644); err != nil {
 		t.Fatalf("Failed to write initial config: %v", err)
 	}
 

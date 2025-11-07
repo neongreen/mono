@@ -72,23 +72,23 @@ func TestBasicFunctionality(t *testing.T) {
 
 	// Create several commits
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "one .txt file", "one.txt")
 
 	multi1File := filepath.Join(repoDir, "multi1.txt")
 	multi2File := filepath.Join(repoDir, "multi2.txt")
-	if err := os.WriteFile(multi1File, []byte("Line A\nLine B\n"), 0644); err != nil {
+	if err := os.WriteFile(multi1File, []byte("Line A\nLine B\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write multi1.txt: %v", err)
 	}
-	if err := os.WriteFile(multi2File, []byte("Another file\n"), 0644); err != nil {
+	if err := os.WriteFile(multi2File, []byte("Another file\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write multi2.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "multiple .txt files", "multi1.txt", "multi2.txt")
 
 	thirdFile := filepath.Join(repoDir, "third.txt")
-	if err := os.WriteFile(thirdFile, []byte("Third commit\n"), 0644); err != nil {
+	if err := os.WriteFile(thirdFile, []byte("Third commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write third.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "another single .txt file", "third.txt")
@@ -146,19 +146,19 @@ func TestErrorHandlingContinue(t *testing.T) {
 
 	// Create commits
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "one .txt file", "one.txt")
 
 	failmeFile := filepath.Join(repoDir, "failme.txt")
-	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write failme.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
 
 	thirdFile := filepath.Join(repoDir, "third.txt")
-	if err := os.WriteFile(thirdFile, []byte("Third commit\n"), 0644); err != nil {
+	if err := os.WriteFile(thirdFile, []byte("Third commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write third.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "another single .txt file", "third.txt")
@@ -196,19 +196,19 @@ func TestErrorHandlingStop(t *testing.T) {
 
 	// Create commits
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "one .txt file", "one.txt")
 
 	failmeFile := filepath.Join(repoDir, "failme.txt")
-	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write failme.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
 
 	thirdFile := filepath.Join(repoDir, "third.txt")
-	if err := os.WriteFile(thirdFile, []byte("Third commit\n"), 0644); err != nil {
+	if err := os.WriteFile(thirdFile, []byte("Third commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write third.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "another single .txt file", "third.txt")
@@ -245,19 +245,19 @@ func TestErrorHandlingFatal(t *testing.T) {
 
 	// Create commits
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "one .txt file", "one.txt")
 
 	failmeFile := filepath.Join(repoDir, "failme.txt")
-	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write failme.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
 
 	thirdFile := filepath.Join(repoDir, "third.txt")
-	if err := os.WriteFile(thirdFile, []byte("Third commit\n"), 0644); err != nil {
+	if err := os.WriteFile(thirdFile, []byte("Third commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write third.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "another single .txt file", "third.txt")
@@ -294,7 +294,7 @@ func TestParentRewriting(t *testing.T) {
 
 	// Create a simple commit
 	file1 := filepath.Join(repoDir, "file1.txt")
-	if err := os.WriteFile(file1, []byte("content1\n"), 0644); err != nil {
+	if err := os.WriteFile(file1, []byte("content1\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write file1.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "file1.txt")
@@ -343,13 +343,13 @@ func TestWorkspaceCleanupOnStop(t *testing.T) {
 
 	// Create commits
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "one .txt file", "one.txt")
 
 	failmeFile := filepath.Join(repoDir, "failme.txt")
-	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write failme.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
@@ -407,13 +407,13 @@ func TestWorkspaceCleanupOnFatal(t *testing.T) {
 
 	// Create commits
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "one .txt file", "one.txt")
 
 	failmeFile := filepath.Join(repoDir, "failme.txt")
-	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write failme.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
@@ -471,13 +471,13 @@ func TestDirectModeBasic(t *testing.T) {
 
 	// Create several commits
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
 
 	twoFile := filepath.Join(repoDir, "two.txt")
-	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0644); err != nil {
+	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write two.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "second commit", "two.txt")
@@ -522,19 +522,19 @@ func TestDirectModeErrorHandling(t *testing.T) {
 
 	// Create commits
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
 
 	failmeFile := filepath.Join(repoDir, "failme.txt")
-	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write failme.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
 
 	twoFile := filepath.Join(repoDir, "two.txt")
-	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0644); err != nil {
+	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write two.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "second commit", "two.txt")
@@ -572,13 +572,13 @@ func TestDirectModeStop(t *testing.T) {
 
 	// Create commits
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
 
 	failmeFile := filepath.Join(repoDir, "failme.txt")
-	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0644); err != nil {
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write failme.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
@@ -611,7 +611,7 @@ func TestDirectModeNoWorkspaces(t *testing.T) {
 
 	// Create a commit
 	oneFile := filepath.Join(repoDir, "one.txt")
-	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0644); err != nil {
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
 		t.Fatalf("Failed to write one.txt: %v", err)
 	}
 	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")

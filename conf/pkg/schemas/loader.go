@@ -2,8 +2,9 @@ package schemas
 
 import (
 	"fmt"
-	"github.com/santhosh-tekuri/jsonschema/v5"
 	"strings"
+
+	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
 // SchemaLoader handles loading and parsing of configuration schemas

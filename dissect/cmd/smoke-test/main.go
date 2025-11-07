@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/golang-cz/devslog"
-
 	"github.com/neongreen/mono/dissect/pkg/externaltest"
 )
 

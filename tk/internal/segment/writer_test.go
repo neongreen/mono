@@ -196,7 +196,7 @@ func TestCalculateSHA256(t *testing.T) {
 	testFile := filepath.Join(tempDir, "test.txt")
 
 	content := []byte("test content")
-	if err := os.WriteFile(testFile, content, 0644); err != nil {
+	if err := os.WriteFile(testFile, content, 0o644); err != nil {
 		t.Fatalf("failed to write test file: %v", err)
 	}
 

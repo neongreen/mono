@@ -71,10 +71,10 @@ func (suite *GoldenTestSuite) Run(t *testing.T) {
 	}
 
 	// Ensure directories exist
-	if err := os.MkdirAll(suite.config.OutputDir, 0755); err != nil {
+	if err := os.MkdirAll(suite.config.OutputDir, 0o755); err != nil {
 		t.Fatalf("Failed to create output directory: %v", err)
 	}
-	if err := os.MkdirAll(suite.config.GoldenDir, 0755); err != nil {
+	if err := os.MkdirAll(suite.config.GoldenDir, 0o755); err != nil {
 		t.Fatalf("Failed to create golden directory: %v", err)
 	}
 
@@ -204,7 +204,7 @@ func (suite *GoldenTestSuite) updateGoldenImages(t *testing.T, outputDir, golden
 	}
 
 	// Create golden directory
-	if err := os.MkdirAll(goldenDir, 0755); err != nil {
+	if err := os.MkdirAll(goldenDir, 0o755); err != nil {
 		t.Fatalf("Failed to create golden directory: %v", err)
 	}
 

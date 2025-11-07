@@ -62,6 +62,7 @@ func installGhStub(t *testing.T, stdout string, exitCode int) {
 	}
 	t.Setenv("PATH", dir+string(os.PathListSeparator)+originalPath)
 }
+
 func TestGetCurrentPlatform(t *testing.T) {
 	platform := GetCurrentPlatform()
 

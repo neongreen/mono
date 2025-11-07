@@ -7,9 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	listReleases bool
-)
+var listReleases bool
 
 var monoCmd = &cobra.Command{
 	Use:   "mono <project>[@version]",

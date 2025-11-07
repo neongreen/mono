@@ -3,10 +3,11 @@ package viewer
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/neongreen/mono/claude-trace/pkg/render"
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"log"
 	"net/http"
+
+	"github.com/neongreen/mono/claude-trace/pkg/render"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 )
 
 // Server provides the web viewer for traces

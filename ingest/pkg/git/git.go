@@ -98,7 +98,6 @@ func WalkRepository(repoPath string, progressCallback func(int)) ([]CommitInfo, 
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to iterate commits: %w", err)
 	}
@@ -137,7 +136,6 @@ func getFilesFromCommit(commit *object.Commit) ([]FileInfo, error) {
 		files = append(files, fileInfo)
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +183,6 @@ func GetRepoMetadata(repoPath string) (*RepoMetadata, error) {
 		metadata.Refs = append(metadata.Refs, refInfo)
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to iterate references: %w", err)
 	}

@@ -10,12 +10,11 @@ import (
 	"testing"
 
 	"github.com/golang-cz/devslog"
-	"github.com/pelletier/go-toml/v2"
-
 	main "github.com/neongreen/mono/dissect/cmd"
 	"github.com/neongreen/mono/dissect/pkg/externaltest"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"github.com/neongreen/mono/dissect/pkg/testutils"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // Run this to init logging
@@ -56,10 +55,10 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 	goBuildCache := filepath.Join(cacheDir, "build")
 
 	// Create cache directories if they don't exist
-	if err := os.MkdirAll(goModCache, 0755); err != nil {
+	if err := os.MkdirAll(goModCache, 0o755); err != nil {
 		t.Fatalf("Failed to create Go module cache directory: %v", err)
 	}
-	if err := os.MkdirAll(goBuildCache, 0755); err != nil {
+	if err := os.MkdirAll(goBuildCache, 0o755); err != nil {
 		t.Fatalf("Failed to create Go build cache directory: %v", err)
 	}
 
@@ -81,10 +80,10 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 	for filePath, content := range testData.FilesIn {
 		fullPath := filepath.Join(tmpProjectDir, filePath)
 		dir := filepath.Dir(fullPath)
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			t.Fatalf("Failed to create directory %s: %v", dir, err)
 		}
-		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
 			t.Fatalf("Failed to create file %s: %v", fullPath, err)
 		}
 		slog.Debug("Created file from test data", "file", fullPath)
@@ -142,7 +141,7 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 			if normalizeErr != nil {
 				return normalizeErr
 			}
-			if writeErr := os.WriteFile(path, []byte(normalizedContent), 0644); writeErr != nil {
+			if writeErr := os.WriteFile(path, []byte(normalizedContent), 0o644); writeErr != nil {
 				return writeErr
 			}
 		}

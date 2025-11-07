@@ -16,7 +16,6 @@ var markCmd = &cobra.Command{
 	Args: func(cmd *cobra.Command, args []string) error {
 		unset, _ := cmd.Flags().GetBool("unset")
 		if unset {
-
 			return cobra.ExactArgs(1)(cmd, args)
 		}
 

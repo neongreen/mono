@@ -1,17 +1,18 @@
 package main
 
 import (
-	"github.com/neongreen/mono/dissect/pkg/commands"
-	"github.com/neongreen/mono/dissect/pkg/gopls"
-	"github.com/neongreen/mono/dissect/pkg/goutils"
-	"github.com/neongreen/mono/dissect/pkg/refactor"
-	"github.com/neongreen/mono/dissect/pkg/utils"
 	"go/ast"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/neongreen/mono/dissect/pkg/commands"
+	"github.com/neongreen/mono/dissect/pkg/gopls"
+	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/refactor"
+	"github.com/neongreen/mono/dissect/pkg/utils"
 )
 
 type RefactorStatus int
@@ -123,7 +124,7 @@ func ProcessFile(absPath string, goplsPath string, goimportsPath string) (status
 
 				// Create target directory if it doesn't exist
 				if _, err := os.Stat(filepath.Dir(targetFilePath)); os.IsNotExist(err) {
-					err := os.MkdirAll(filepath.Dir(targetFilePath), 0755)
+					err := os.MkdirAll(filepath.Dir(targetFilePath), 0o755)
 					if err != nil {
 						slog.Error("Error creating target directory", "dir", filepath.Dir(targetFilePath), "error", err)
 						return Failed, "", err
@@ -203,7 +204,7 @@ func ProcessFile(absPath string, goplsPath string, goimportsPath string) (status
 						newData = strings.ReplaceAll(string(data), tempFuncName, targetReference)
 					}
 					if newData != string(data) {
-						err = os.WriteFile(goFile, []byte(newData), 0644)
+						err = os.WriteFile(goFile, []byte(newData), 0o644)
 						if err != nil {
 							slog.Error("Error writing Go file", "file", goFile, "error", err)
 							return Failed, "", err

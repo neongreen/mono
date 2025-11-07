@@ -49,8 +49,7 @@ func parseUserMessage(raw map[string]any) *UserMessage {
 	msg := &UserMessage{CWD: getString(raw, "cwd")}
 	if message, ok := raw["message"].(map[string]any); ok {
 		if contentStr, ok := message["content"].(string); ok {
-			msg.Content =
-				contentStr
+			msg.Content = contentStr
 		} else if contentArr, ok := message["content"].([]any); ok { // Handle array content - extract text from text blocks
 			var texts []string
 			for _, c := range contentArr {
@@ -93,8 +92,7 @@ func parseContentBlock(raw map[string]any) ContentBlock {
 	case "text":
 		block.Type = ContentTypeText
 		block.Text = getString(raw, "text")
-	case
-		"thinking":
+	case "thinking":
 		block.Type = ContentTypeThinking
 		block.Thinking = getString(raw,
 			"thinking",
@@ -113,8 +111,7 @@ func parseContentBlock(raw map[string]any) ContentBlock {
 // parseToolResult extracts tool result data from raw JSONL item
 func parseToolResult(raw map[string]any) *ToolResult {
 	result := &ToolResult{ToolUseID: getString(raw, "tool_use_id"), Content: getString(raw, "content")}
-	if isError, ok :=
-		raw["is_error"].(bool); ok {
+	if isError, ok := raw["is_error"].(bool); ok {
 		result.IsError = isError
 	}
 	return result

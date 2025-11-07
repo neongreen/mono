@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"log"
 	"slices"
 
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"github.com/spf13/cobra"
 )
 

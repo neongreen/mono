@@ -81,7 +81,7 @@ email = "bob@example.com"
 [snapshot]
 max-new-file-size = 1024
 `
-	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	err = os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
@@ -131,7 +131,7 @@ email = "charlie@example.com"
 [snapshot]
 max-new-file-size = 2048
 `
-	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	err = os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
@@ -218,7 +218,7 @@ other_key = 42
 [other_section]
 some_setting = true
 `
-	err = os.WriteFile(testFile, []byte(initialContent), 0644)
+	err = os.WriteFile(testFile, []byte(initialContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write initial test file: %v", err)
 	}
@@ -328,7 +328,7 @@ name = "Alice"
 ".." = ["bar"]
 normal = "baz"
 `
-	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	err = os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}

@@ -331,10 +331,14 @@ func TestMetadata_EventsOutOfOrder(t *testing.T) {
 
 	// Metadata events to test ordering
 	metaEvents := []types.Event{
-		{ID: "ev-2-node1", TS: 2, CreatedAt: time.Now(), Actor: "claude", Role: "agent", Kind: string(types.EventKindTaskMetaSet),
-			Payload: marshalPayload(types.TaskMetaSetPayload{TaskUUID: "tsk_123", Key: "priority", Value: json.RawMessage(`3`)})},
-		{ID: "ev-3-node1", TS: 3, CreatedAt: time.Now(), Actor: "alice", Role: "human", Kind: string(types.EventKindTaskMetaSet),
-			Payload: marshalPayload(types.TaskMetaSetPayload{TaskUUID: "tsk_123", Key: "priority", Value: json.RawMessage(`1`)})},
+		{
+			ID: "ev-2-node1", TS: 2, CreatedAt: time.Now(), Actor: "claude", Role: "agent", Kind: string(types.EventKindTaskMetaSet),
+			Payload: marshalPayload(types.TaskMetaSetPayload{TaskUUID: "tsk_123", Key: "priority", Value: json.RawMessage(`3`)}),
+		},
+		{
+			ID: "ev-3-node1", TS: 3, CreatedAt: time.Now(), Actor: "alice", Role: "human", Kind: string(types.EventKindTaskMetaSet),
+			Payload: marshalPayload(types.TaskMetaSetPayload{TaskUUID: "tsk_123", Key: "priority", Value: json.RawMessage(`1`)}),
+		},
 	}
 
 	// Test with metadata events in chronological order

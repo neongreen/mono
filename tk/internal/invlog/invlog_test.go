@@ -25,7 +25,7 @@ func TestWriteLog(t *testing.T) {
 
 	// Create .tk directory in temp home
 	tkDir := filepath.Join(tmpDir, ".tk")
-	if err := os.MkdirAll(tkDir, 0755); err != nil {
+	if err := os.MkdirAll(tkDir, 0o755); err != nil {
 		t.Fatalf("failed to create .tk dir: %v", err)
 	}
 
@@ -98,7 +98,7 @@ func TestWriteLogAppend(t *testing.T) {
 
 	// Create .tk directory in temp home
 	tkDir := filepath.Join(tmpDir, ".tk")
-	if err := os.MkdirAll(tkDir, 0755); err != nil {
+	if err := os.MkdirAll(tkDir, 0o755); err != nil {
 		t.Fatalf("failed to create .tk dir: %v", err)
 	}
 

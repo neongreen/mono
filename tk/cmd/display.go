@@ -134,7 +134,6 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 
 // outputTasksJSON outputs tasks as JSON, respecting grouping
 func outputTasksJSON(db *database.DB, tasks []*types.Task, groupBy string) error {
-
 	for _, task := range tasks {
 		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {

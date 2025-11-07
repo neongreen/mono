@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/tk/internal/database"
 	"os"
 	"path/filepath"
 
 	"github.com/neongreen/mono/tk/internal/collision"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"

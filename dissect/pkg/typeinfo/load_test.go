@@ -170,7 +170,7 @@ func TestLoadPackages_MultiplePatterns(t *testing.T) {
 
 	// Create pkg1
 	pkg1Dir := filepath.Join(tmpDir, "pkg1")
-	if err := os.MkdirAll(pkg1Dir, 0755); err != nil {
+	if err := os.MkdirAll(pkg1Dir, 0o755); err != nil {
 		t.Fatalf("Failed to create pkg1: %v", err)
 	}
 	createFileInDir(t, pkg1Dir, "main.go", `package pkg1
@@ -182,7 +182,7 @@ func Func1() string {
 
 	// Create pkg2
 	pkg2Dir := filepath.Join(tmpDir, "pkg2")
-	if err := os.MkdirAll(pkg2Dir, 0755); err != nil {
+	if err := os.MkdirAll(pkg2Dir, 0o755); err != nil {
 		t.Fatalf("Failed to create pkg2: %v", err)
 	}
 	createFileInDir(t, pkg2Dir, "main.go", `package pkg2
@@ -214,7 +214,7 @@ func TestLoadPackages_DependentPackages(t *testing.T) {
 
 	// Create util package
 	utilDir := filepath.Join(tmpDir, "util")
-	if err := os.MkdirAll(utilDir, 0755); err != nil {
+	if err := os.MkdirAll(utilDir, 0o755); err != nil {
 		t.Fatalf("Failed to create util: %v", err)
 	}
 	createFileInDir(t, utilDir, "util.go", `package util
@@ -265,14 +265,14 @@ func createTempPackage(t *testing.T, files map[string]string) string {
 
 	// Create go.mod
 	gomod := "module test\n\ngo 1.21\n"
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0o644); err != nil {
 		os.RemoveAll(tmpDir)
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
 
 	// Create all files
 	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0o644); err != nil {
 			os.RemoveAll(tmpDir)
 			t.Fatalf("Failed to write %s: %v", name, err)
 		}
@@ -283,7 +283,7 @@ func createTempPackage(t *testing.T, files map[string]string) string {
 
 func createFileInDir(t *testing.T, dir, name, content string) {
 	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
 		t.Fatalf("Failed to write %s: %v", name, err)
 	}
 }

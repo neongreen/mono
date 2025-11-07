@@ -8,7 +8,6 @@ import (
 // ComputeBlocked computes which tasks are blocked based on the blocks relation
 // and the blocking axis configuration
 func ComputeBlocked(g *relations.RelationsGraph, tasks map[string]*types.Task, blockingAxis string, doneStates []string) {
-
 	doneSet := make(map[string]bool)
 	for _, state := range doneStates {
 		doneSet[state] = true
@@ -62,7 +61,6 @@ func ComputeBlocked(g *relations.RelationsGraph, tasks map[string]*types.Task, b
 
 // GetTransitiveBlockers returns all transitive blockers for a task
 func GetTransitiveBlockers(g *relations.RelationsGraph, taskUUID string, tasks map[string]*types.Task, blockingAxis string, doneStates []string, maxDepth int) []types.Blocker {
-
 	doneSet := make(map[string]bool)
 	for _, state := range doneStates {
 		doneSet[state] = true

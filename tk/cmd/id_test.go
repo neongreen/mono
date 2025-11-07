@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"encoding/json"
-	"github.com/neongreen/mono/tk/internal/types"
 	"strings"
 	"testing"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestDescribeTask(t *testing.T) {

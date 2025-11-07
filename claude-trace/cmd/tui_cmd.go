@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
-	"github.com/neongreen/mono/claude-trace/pkg/tui"
 	"log"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
+	"github.com/neongreen/mono/claude-trace/pkg/tui"
 	"github.com/spf13/cobra"
 )
 

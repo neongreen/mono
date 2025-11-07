@@ -2,9 +2,10 @@ package database
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/tk/internal/types"
 	"strconv"
 	"strings"
+
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // ResolveTaskIDToUUID resolves a task reference to its UUID (legacy helper).
@@ -16,7 +17,6 @@ func (d *DB) ResolveTaskIDToUUID(taskID string) (string, error) {
 // Accepts formats: "1", "tk-1", "foo-2", "tk-1-abc123"
 // Returns an error if the ID is ambiguous or doesn't exist
 func (d *DB) ResolveTaskID(shortID string) (string, error) {
-
 	hyphenCount := strings.Count(shortID, "-")
 	if hyphenCount >= 2 {
 		// Verify it exists
@@ -136,7 +136,6 @@ func (d *DB) ResolveTaskID(shortID string) (string, error) {
 
 // GetAllTaskIDs returns all task IDs in the database
 func (d *DB) GetAllTaskIDs() ([]string, error) {
-
 	query := `SELECT DISTINCT task_uid FROM tasks ORDER BY created_at`
 	rows, err := d.Db.Query(query)
 	if err != nil {

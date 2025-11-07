@@ -144,7 +144,7 @@ func TestExpandGlobs(t *testing.T) {
 	testFiles := []string{"db.go", "db_events.go", "db_test.go", "main.go", "util.go"}
 	for _, f := range testFiles {
 		path := filepath.Join(tmpDir, f)
-		if err := os.WriteFile(path, []byte("package main\n"), 0644); err != nil {
+		if err := os.WriteFile(path, []byte("package main\n"), 0o644); err != nil {
 			t.Fatalf("Failed to create test file %s: %v", f, err)
 		}
 	}

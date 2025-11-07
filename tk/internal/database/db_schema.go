@@ -57,7 +57,6 @@ func (d *DB) GetDBVersion() (int, error) {
 	var versionStr string
 	err := d.Db.QueryRow("SELECT value FROM metadata WHERE key = 'db_version'").Scan(&versionStr)
 	if err == sql.ErrNoRows {
-
 		return 4, nil
 	}
 	if err != nil {

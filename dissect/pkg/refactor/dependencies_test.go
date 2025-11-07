@@ -25,7 +25,7 @@ func foo() string {
 	return "helper"
 }
 `
-	err = os.WriteFile(helperFile, []byte(helperContent), 0644)
+	err = os.WriteFile(helperFile, []byte(helperContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write helper file: %v", err)
 	}
@@ -38,13 +38,13 @@ func bar() {
 	foo()
 }
 `
-	err = os.WriteFile(callerFile, []byte(callerContent), 0644)
+	err = os.WriteFile(callerFile, []byte(callerContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write caller file: %v", err)
 	}
 
 	// Initialize go.mod
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -93,7 +93,7 @@ var helperVar = 42
 type helperType struct{}
 const helperConst = "const"
 `
-	err = os.WriteFile(defsFile, []byte(defsContent), 0644)
+	err = os.WriteFile(defsFile, []byte(defsContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write defs file: %v", err)
 	}
@@ -109,12 +109,12 @@ func use() {
 	_ = helperConst
 }
 `
-	err = os.WriteFile(callerFile, []byte(callerContent), 0644)
+	err = os.WriteFile(callerFile, []byte(callerContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write caller file: %v", err)
 	}
 
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestAnalyzeMoveDependenciesExportedIgnored(t *testing.T) {
 func ExportedFunc() {}
 func unexportedFunc() {}
 `
-	err = os.WriteFile(defsFile, []byte(defsContent), 0644)
+	err = os.WriteFile(defsFile, []byte(defsContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write defs file: %v", err)
 	}
@@ -180,12 +180,12 @@ func use() {
 	unexportedFunc()
 }
 `
-	err = os.WriteFile(callerFile, []byte(callerContent), 0644)
+	err = os.WriteFile(callerFile, []byte(callerContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write caller file: %v", err)
 	}
 
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}
@@ -226,12 +226,12 @@ func helper() {
 	helper()
 }
 `
-	err = os.WriteFile(file, []byte(content), 0644)
+	err = os.WriteFile(file, []byte(content), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write file: %v", err)
 	}
 
-	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0644)
+	err = os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte("module test\n\ngo 1.21\n"), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod: %v", err)
 	}

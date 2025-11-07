@@ -21,7 +21,7 @@ func TestCollisionDetection_LocalNodeInRemote(t *testing.T) {
 	// Setup: Create a temporary directory for test segments
 	tempDir := t.TempDir()
 	segmentDir := filepath.Join(tempDir, "segments")
-	if err := os.MkdirAll(segmentDir, 0755); err != nil {
+	if err := os.MkdirAll(segmentDir, 0o755); err != nil {
 		t.Fatalf("failed to create segment dir: %v", err)
 	}
 
@@ -95,7 +95,7 @@ func TestCollisionDetection_LocalNodeInRemote(t *testing.T) {
 func TestCollisionDetection_OnlyRemoteNodes(t *testing.T) {
 	tempDir := t.TempDir()
 	segmentDir := filepath.Join(tempDir, "segments")
-	if err := os.MkdirAll(segmentDir, 0755); err != nil {
+	if err := os.MkdirAll(segmentDir, 0o755); err != nil {
 		t.Fatalf("failed to create segment dir: %v", err)
 	}
 

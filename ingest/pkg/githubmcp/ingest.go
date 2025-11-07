@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/neongreen/mono/ingest/pkg/database"
-
 	gh "github.com/google/go-github/v61/github"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/neongreen/mono/ingest/pkg/database"
 )
 
 // ToolCaller represents the MCP session subset required for GitHub ingestion.

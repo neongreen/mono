@@ -77,12 +77,12 @@ func (e *TOMLEditor) SetValue(path string, value any) error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(e.filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
 	// Write the file with preserved formatting
-	if err := os.WriteFile(e.filePath, doc.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(e.filePath, doc.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -144,7 +144,7 @@ func (e *TOMLEditor) UnsetValue(path string) error {
 	}
 
 	// Write the file
-	if err := os.WriteFile(e.filePath, doc.Bytes(), 0644); err != nil {
+	if err := os.WriteFile(e.filePath, doc.Bytes(), 0o644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -227,7 +227,7 @@ func (e *TOMLEditor) SetAllValues(values map[string]any) error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(e.filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 

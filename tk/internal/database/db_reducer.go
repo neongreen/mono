@@ -15,7 +15,6 @@ import (
 // - Cache is invalidated on any event insertion
 // If config pointer doesn't match, we rebuild the reducer (safe but may miss some cache hits).
 func (d *DB) GetCachedReducerWithConfig(config *sync.Config) (*reducer.Reducer, error) {
-
 	if d.reducerCache != nil && d.reducerConfig == config {
 		return d.reducerCache, nil
 	}

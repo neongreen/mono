@@ -26,7 +26,7 @@ func ICloudDrivePath() (string, error) {
 
 	// Create conf directory in iCloud Drive if it doesn't exist
 	confPath := filepath.Join(icloudPath, "conf")
-	if err := os.MkdirAll(confPath, 0755); err != nil {
+	if err := os.MkdirAll(confPath, 0o755); err != nil {
 		return "", fmt.Errorf("failed to create conf directory in iCloud Drive: %w", err)
 	}
 
@@ -78,7 +78,7 @@ func UploadToICloud(toolName string, values map[string]any) error {
 	}
 
 	// Write to iCloud
-	if err := os.WriteFile(toolPath, data, 0644); err != nil {
+	if err := os.WriteFile(toolPath, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write to iCloud: %w", err)
 	}
 

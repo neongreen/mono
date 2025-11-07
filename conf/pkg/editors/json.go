@@ -70,7 +70,7 @@ func (e *JSONEditor) SetValue(path string, value any) error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(e.filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -80,7 +80,7 @@ func (e *JSONEditor) SetValue(path string, value any) error {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	if err := os.WriteFile(e.filePath, output, 0644); err != nil {
+	if err := os.WriteFile(e.filePath, output, 0o644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -147,7 +147,7 @@ func (e *JSONEditor) UnsetValue(path string) error {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	if err := os.WriteFile(e.filePath, output, 0644); err != nil {
+	if err := os.WriteFile(e.filePath, output, 0o644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
@@ -247,7 +247,7 @@ func (e *JSONEditor) SetAllValues(values map[string]any) error {
 
 	// Ensure directory exists
 	dir := filepath.Dir(e.filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -257,7 +257,7 @@ func (e *JSONEditor) SetAllValues(values map[string]any) error {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
 	}
 
-	if err := os.WriteFile(e.filePath, output, 0644); err != nil {
+	if err := os.WriteFile(e.filePath, output, 0o644); err != nil {
 		return fmt.Errorf("failed to write file: %w", err)
 	}
 
