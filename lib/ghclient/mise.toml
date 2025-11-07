@@ -1,5 +1,0 @@
-[tasks.fmt]
-run = "golangci-lint fmt ./..."
-
-[tasks.test]
-run = "go test ./..."

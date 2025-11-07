@@ -9,7 +9,7 @@ Traditional Go unit tests for individual components:
 
 ```bash
 # Run all unit tests
-mise run //printpdf:test
+mise run printpdf:test
 
 # Or manually
 go test ./pkg/converter ./pkg/fetcher
@@ -27,10 +27,10 @@ Comprehensive end-to-end tests that generate PDFs and compare visual output:
 
 ```bash
 # Run golden tests (requires tools)
-mise run //printpdf:test-golden
+mise run printpdf:test-golden
 
 # Update golden references
-mise run //printpdf:update-goldens
+mise run printpdf:update-goldens
 ```
 
 **Location**: `pkg/golden/`
@@ -60,7 +60,7 @@ brew install poppler imagemagick
 
 ### Quick Unit Tests
 ```bash
-mise run //printpdf:test
+mise run printpdf:test
 ```
 
 ### Full Golden Test Suite  
@@ -69,7 +69,7 @@ mise run //printpdf:test
 which pdftoppm imagemagick weasyprint
 
 # Run golden tests
-mise run //printpdf:test-golden
+mise run printpdf:test-golden
 ```
 
 ### Single Test Case
@@ -84,7 +84,7 @@ go test ./pkg/golden -run TestGoldenSuite/basic-markdown -v
 
 ```bash
 # Generate new golden references
-mise run //printpdf:update-goldens
+mise run printpdf:update-goldens
 
 # Review generated images
 ls -la pkg/golden/testdata/golden/

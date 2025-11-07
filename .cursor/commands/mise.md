@@ -1,13 +1,16 @@
-This command is for performing the requests related to Mise and especially Mise tasks. 
+This command is for performing the requests related to Mise and especially Mise tasks.
 
 For example, if the user asks to add a new task:
 
 > Add cloc --by-file --include-lang=Go .
 
-You should add the task to the `mise.toml` file in the repository root.
+You should add the task to the top-level `mise.toml` file in the repository root.
 
-You should intelligently guess which mise.toml file the task should be added to.
-It can be the repository root, it can be an existing mise.toml file in the project directory, or it can even be a new mise file if a project doesn't have it yet. 
+All project tasks should use the project-name prefix format: `project-name:task-name`.
+For example:
+- `conf:test` for running conf tests
+- `tk:build` for building tk
+- `mdbook-comments:dev` for running mdbook-comments dev server
 
 You should guess the name of the task, or propose several options if not obvious.
 If you propose options:
