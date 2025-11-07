@@ -5,6 +5,7 @@ linters:
   - modernize
   - unused
   - staticcheck
+  - govet
 
   # default: all
   # disable:
@@ -37,6 +38,9 @@ linters:
       min-complexity: 15
     govet:
       enable-all: true
+      disable:
+        - shadow  # Don't complain about 'err' being shadowed
+        - fieldalignment  # We don't care about field alignment
     lll:
       line-length: 150
   exclusions:

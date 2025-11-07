@@ -6,22 +6,6 @@ import (
 	"testing"
 )
 
-func TestNewJJSchemaParser(t *testing.T) {
-	parser, err := NewJJSchemaParser()
-	if err != nil {
-		t.Fatalf("Failed to create jj schema parser: %v", err)
-	}
-
-	if parser == nil {
-		t.Fatal("Parser should not be nil")
-	}
-
-	// The parser should have either the new jsonschema-based parser or the legacy schema
-	if parser.parser == nil && parser.schema == nil {
-		t.Fatal("Parser should have either parser or schema initialized")
-	}
-}
-
 func TestJJSchemaParser_GetCompletionOptions_TopLevel(t *testing.T) {
 	parser, err := NewJJSchemaParser()
 	if err != nil {

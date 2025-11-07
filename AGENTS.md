@@ -157,6 +157,28 @@ Key standards:
 
 ------------------------------------------------------------
 
+## Testing Guidelines
+
+**Do not write useless tests. See [BULLSHIT_TESTS.md](./BULLSHIT_TESTS.md) for examples of tests to avoid.**
+
+Avoid tests that:
+- Verify that constructors return non-nil
+- Check that struct fields were assigned the values passed to constructors
+- Test that basic language features work (field assignment, struct creation)
+- Verify that framework registration happened (Cobra commands, HTTP routes)
+- Test library functionality instead of your application logic
+
+Write tests that:
+- Verify business logic and algorithms
+- Test error conditions and edge cases
+- Validate data transformations
+- Check integration between components
+- Exercise failure modes and recovery
+
+See [BULLSHIT_TESTS.md](./BULLSHIT_TESTS.md) for detailed examples of what was removed and why.
+
+------------------------------------------------------------
+
 ## Version Subcommand Pattern
 
 **All Go CLI tools must implement a `version` subcommand using the shared `lib/version` package.**

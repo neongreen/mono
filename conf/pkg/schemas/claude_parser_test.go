@@ -5,21 +5,6 @@ import (
 	"testing"
 )
 
-func TestNewClaudeSchemaParser(t *testing.T) {
-	parser, err := NewClaudeSchemaParser()
-	if err != nil {
-		t.Fatalf("Failed to create Claude schema parser: %v", err)
-	}
-
-	if parser == nil {
-		t.Fatal("Expected parser to be non-nil")
-	}
-
-	if parser.schema == nil {
-		t.Fatal("Expected schema to be non-nil")
-	}
-}
-
 func TestClaudeSchemaParser_ValidatePath(t *testing.T) {
 	parser, err := NewClaudeSchemaParser()
 	if err != nil {

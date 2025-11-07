@@ -9,42 +9,6 @@ import (
 	"github.com/neongreen/mono/tk/internal/sync"
 )
 
-func TestNewSegmentWriter(t *testing.T) {
-	sw := NewSegmentWriter("/tmp/test", "personal", "node123", 1, 1024*1024, 60)
-
-	if sw == nil {
-		t.Fatal("NewSegmentWriter() returned nil")
-	}
-
-	if sw.remotePath != "/tmp/test" {
-		t.Errorf("remotePath = %v, want %v", sw.remotePath, "/tmp/test")
-	}
-
-	if sw.space != "personal" {
-		t.Errorf("space = %v, want %v", sw.space, "personal")
-	}
-
-	if sw.node != "node123" {
-		t.Errorf("node = %v, want %v", sw.node, "node123")
-	}
-
-	if sw.segmentSeq != 1 {
-		t.Errorf("segmentSeq = %v, want %v", sw.segmentSeq, 1)
-	}
-
-	if sw.maxBytes != 1024*1024 {
-		t.Errorf("maxBytes = %v, want %v", sw.maxBytes, 1024*1024)
-	}
-
-	if sw.maxAge != 60 {
-		t.Errorf("maxAge = %v, want %v", sw.maxAge, 60)
-	}
-
-	if len(sw.events) != 0 {
-		t.Errorf("events length = %v, want %v", len(sw.events), 0)
-	}
-}
-
 func TestSegmentWriter_AddEvent(t *testing.T) {
 	sw := NewSegmentWriter("/tmp/test", "personal", "node123", 1, 1024*1024, 60)
 

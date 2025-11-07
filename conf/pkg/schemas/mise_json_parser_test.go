@@ -5,22 +5,6 @@ import (
 	"testing"
 )
 
-func TestNewMiseSchemaParser(t *testing.T) {
-	parser, err := NewMiseSchemaParser()
-	if err != nil {
-		t.Fatalf("Failed to create Mise schema parser: %v", err)
-	}
-
-	if parser == nil {
-		t.Fatal("Expected parser to be non-nil")
-	}
-
-	// The parser should have either the new jsonschema-based parser or the legacy schema
-	if parser.parser == nil && parser.schema == nil {
-		t.Fatal("Parser should have either parser or schema initialized")
-	}
-}
-
 func TestMiseSchemaParser_ValidatePath(t *testing.T) {
 	parser, err := NewMiseSchemaParser()
 	if err != nil {
