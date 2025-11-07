@@ -83,8 +83,9 @@ All project tasks are defined in the top-level `mise.toml` file with project-nam
 
 - **`project-name:run`** - Build and run the project (for applications)
 - **`project-name:test`** - Run all tests
-- **`project-name:fmt`** - Format code
 - **`project-name:build`** - Build binary
+
+For code formatting, use the top-level `fmt` task which formats all Go code in the monorepo.
 
 These namespaced tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
 

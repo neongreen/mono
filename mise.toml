@@ -54,7 +54,7 @@ run = "GITHUB_TOKEN=$(gh auth token) pinact run --check --diff --verify"
 
 [tasks."lint:actions"]
 description = "Lint GitHub Actions workflows"
-depends = ["//:lint:actions:*"]
+depends = ["lint:actions:actionlint", "lint:actions:pinact"]
 
 
 [tasks."go:tidy"]
@@ -591,16 +591,6 @@ run = "go test ./cmd ./pkg/integration"
 description = "Run tests for lib/ghclient"
 dir = "lib/ghclient"
 run = "go test ./..."
-
-# ============================================================================
-# lib/ghrelease
-# ============================================================================
-
-
-# ============================================================================
-# lib/toml
-# ============================================================================
-
 
 # ============================================================================
 # markdown-format
