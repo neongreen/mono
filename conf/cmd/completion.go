@@ -1,7 +1,8 @@
-package main
+package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/neongreen/mono/conf/pkg/schemas"
@@ -195,4 +196,54 @@ func starshipCompletion(args []string, toComplete string) ([]string, cobra.Shell
 		handleStringType:        true,
 		showIntegerCurrentValue: false,
 	})
+}
+
+var completionCmd = &cobra.Command{
+	Use:   "completion [bash|zsh|fish]",
+	Short: "Generate schema-aware shell completion scripts",
+	Long: `Generate shell completion scripts with intelligent schema-aware suggestions.
+
+The completion system provides:
+- Configuration path completion from actual schemas
+- Type-aware value suggestions (boolean, enum, etc.)
+- Current value display for existing settings
+- Descriptions for all configuration options
+
+Quick setup (recommended):
+  # Bash - add to ~/.bashrc
+  eval "$(conf completion bash)"
+
+  # Zsh - add to ~/.zshrc
+  eval "$(conf completion zsh)"
+
+  # Fish - add to ~/.config/fish/config.fish
+  conf completion fish | source
+
+Persistent installation (alternative):
+  # Bash
+  conf completion bash > ~/.local/share/bash-completion/completions/conf
+
+  # Zsh
+  conf completion zsh > ~/.oh-my-zsh/completions/_conf
+
+  # Fish
+  conf completion fish > ~/.config/fish/completions/conf.fish
+
+After adding to your shell config, restart your shell or source the file.`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		shell := args[0]
+		switch shell {
+		case "bash":
+			rootCmd.GenBashCompletion(os.Stdout)
+		case "zsh":
+			rootCmd.GenZshCompletion(os.Stdout)
+		case "fish":
+			rootCmd.GenFishCompletion(os.Stdout, true)
+		default:
+			fmt.Fprintf(os.Stderr, "Unsupported shell: %s\n", shell)
+			fmt.Fprintln(os.Stderr, "\nSupported shells: bash, zsh, fish")
+			os.Exit(1)
+		}
+	},
 }

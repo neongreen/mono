@@ -1,9 +1,7 @@
-package main
+package cmd
 
 import (
 	"github.com/neongreen/mono/lib/version"
 )
 
-func init() {
-	rootCmd.AddCommand(version.NewVersionCommand("conf"))
-}
+var versionCmd = version.NewVersionCommand("conf")

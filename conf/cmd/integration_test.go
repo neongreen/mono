@@ -1,4 +1,4 @@
-package main
+package cmd_test
 
 import (
 	"bytes"
