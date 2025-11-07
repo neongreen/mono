@@ -55,6 +55,7 @@ var (
 	showVersion     bool
 	ignoreImmutable bool
 	jobs            int
+	repoURL         string
 )
 
 var rootCmd = &cobra.Command{
@@ -87,6 +88,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Show version information")
 	rootCmd.Flags().BoolVar(&ignoreImmutable, "ignore-immutable", false, "Allow rewriting immutable commits")
 	rootCmd.Flags().IntVarP(&jobs, "jobs", "j", 1, "Number of parallel workers (only for workspace mode, not direct mode)")
+	rootCmd.Flags().StringVar(&repoURL, "repo-untested", "", "Clone and work on a remote repository (e.g., https://github.com/user/repo) [AI-written, untested]")
 }
 
 func main() {
@@ -124,8 +126,23 @@ func runCommand(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("parallel processing is not supported in direct mode")
 	}
 
+	// Handle --repo flag: clone repository to temp directory
+	var repoDir string
+	var cleanupRepo func()
+	if repoURL != "" {
+		var err error
+		repoDir, cleanupRepo, err = cloneRepository(repoURL)
+		if err != nil {
+			return fmt.Errorf("failed to clone repository: %w", err)
+		}
+		defer cleanupRepo()
+		fmt.Fprintf(os.Stderr, "Cloned repository to %s\n\n", cli.Key(repoDir))
+	} else {
+		repoDir = "."
+	}
+
 	// Get current operation ID
-	beforeOp, err := getCurrentOpID()
+	beforeOp, err := getCurrentOpID(repoDir)
 	if err != nil {
 		return fmt.Errorf("failed to get current operation ID: %w", err)
 	}
@@ -135,15 +152,22 @@ func runCommand(cmd *cobra.Command, args []string) error {
 
 	// Use direct mode if requested
 	if directMode {
-		return runDirectMode(command, strategy, beforeOp)
+		err := runDirectMode(command, strategy, beforeOp, repoDir)
+		if err != nil {
+			return err
+		}
+		if repoURL != "" {
+			return promptPush(repoDir)
+		}
+		return nil
 	}
 
 	// Create and manage workspace
-	workspacePath, workspaceName, err := createWorkspace()
+	workspacePath, workspaceName, err := createWorkspace(repoDir)
 	if err != nil {
 		return fmt.Errorf("failed to create workspace: %w", err)
 	}
-	defer forgetWorkspace(workspaceName)
+	defer forgetWorkspace(workspaceName, repoDir)
 
 	// Get workspace change
 	workspaceChanges, err := getChangeList(fmt.Sprintf("%s@", workspaceName), workspacePath)
@@ -164,7 +188,7 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	totalChanges := len(changes)
 	if totalChanges == 0 {
 		fmt.Fprintf(os.Stderr, "No changes found to process.\n")
-		abandonChanges([]*Change{workspaceChange})
+		abandonChanges([]*Change{workspaceChange}, repoDir)
 		return nil
 	}
 
@@ -174,7 +198,7 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	var processErr error
 
 	if jobs > 1 {
-		newChanges, allSuccessful, processErr = processChangesParallel(workspacePath, changes, command, strategy, jobs)
+		newChanges, allSuccessful, processErr = processChangesParallel(workspacePath, changes, command, strategy, jobs, repoDir)
 
 		// In parallel mode, workers create changes in their own workspaces, so the base workspace
 		// is now stale. Update it before attempting to rewrite parents, otherwise jj edit/restore
@@ -187,14 +211,14 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	// Rewrite parents
 	modifiedCount := rewriteParents(workspacePath, newChanges)
 
-	// Update stale workspaces in the main directory
-	runJJ([]string{"workspace", "update-stale"}, ".")
+	// Update stale workspaces
+	runJJ([]string{"workspace", "update-stale"}, repoDir)
 	runJJ([]string{"workspace", "update-stale"}, workspacePath)
 
 	// Abandon all created changes
 	allChanges := append([]*Change{}, newChanges...)
 	allChanges = append(allChanges, workspaceChange)
-	abandonChanges(allChanges)
+	abandonChanges(allChanges, repoDir)
 
 	fmt.Fprintf(os.Stderr, "%s %d/%d commits.\n", cli.Success("Rewrote"), modifiedCount, totalChanges)
 	if !allSuccessful {
@@ -202,7 +226,7 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	}
 
 	// Get after operation ID
-	afterOp, err := getCurrentOpID()
+	afterOp, err := getCurrentOpID(repoDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Couldn't get current operation ID. Likely a bug in jj-run.\n")
 		return fmt.Errorf("failed to get after operation ID: %w", err)
@@ -218,12 +242,17 @@ func runCommand(cmd *cobra.Command, args []string) error {
 		return processErr
 	}
 
+	// Prompt to push if working on a remote repo
+	if repoURL != "" {
+		return promptPush(repoDir)
+	}
+
 	return nil
 }
 
-func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) error {
+func runDirectMode(command string, strategy ErrorStrategy, beforeOp string, repoDir string) error {
 	// Get changes to process (exclude root)
-	changes, err := getChangeList(fmt.Sprintf("(%s) ~ root()", revset), ".")
+	changes, err := getChangeList(fmt.Sprintf("(%s) ~ root()", revset), repoDir)
 	if err != nil {
 		return fmt.Errorf("failed to get change list: %w", err)
 	}
@@ -249,7 +278,7 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) erro
 		fmt.Fprintf(os.Stderr, "Processing change %d/%d %s: %s\n", idx+1, totalChanges, changeID[:12], message)
 
 		// Edit this change (make it the working copy)
-		if _, err := runJJOutput([]string{"edit", changeID}, "."); err != nil {
+		if _, err := runJJOutput([]string{"edit", changeID}, repoDir); err != nil {
 			fmt.Fprintf(os.Stderr, "%s %v\n", cli.Error("Error editing change:"), err)
 			allSuccessful = false
 			exitEarly, handlerErr := handleError(strategy, changeID[:12], err)
@@ -259,8 +288,8 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) erro
 			continue
 		}
 
-		// Run the command in the main repository
-		result, err := runShellCommand(command, ".")
+		// Run the command in the repository
+		result, err := runShellCommand(command, repoDir)
 		printCommandResult(result, err)
 
 		if err != nil {
@@ -280,7 +309,7 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) erro
 	}
 
 	// Get after operation ID
-	afterOp, err := getCurrentOpID()
+	afterOp, err := getCurrentOpID(repoDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Couldn't get current operation ID. Likely a bug in jj-run.\n")
 		return fmt.Errorf("failed to get after operation ID: %w", err)
@@ -298,15 +327,66 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string) erro
 	return nil
 }
 
-func getCurrentOpID() (string, error) {
-	out, err := runJJOutput([]string{"op", "log", "-n1", "-Tid", "--no-graph", "--no-pager"}, ".")
+func cloneRepository(url string) (string, func(), error) {
+	// Create a temporary directory for the cloned repo
+	tempDir, err := os.MkdirTemp("", "jj-run-repo-")
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to create temp directory: %w", err)
+	}
+
+	cleanup := func() {
+		os.RemoveAll(tempDir)
+	}
+
+	// Clone using jj git clone
+	fmt.Fprintf(os.Stderr, "Cloning repository from %s...\n", cli.Key(url))
+	cmd := exec.Command("jj", "git", "clone", url, tempDir)
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Run(); err != nil {
+		cleanup()
+		return "", nil, fmt.Errorf("failed to clone repository: %w", err)
+	}
+
+	return tempDir, cleanup, nil
+}
+
+func promptPush(repoDir string) error {
+	fmt.Fprintf(os.Stderr, "\n%s\n", cli.Header("Ready to push changes"))
+	fmt.Fprintf(os.Stderr, "Do you want to push the changes? [y/N]: ")
+
+	var response string
+	fmt.Scanln(&response)
+
+	response = strings.ToLower(strings.TrimSpace(response))
+	if response == "y" || response == "yes" {
+		fmt.Fprintf(os.Stderr, "Pushing changes...\n")
+		cmd := exec.Command("jj", "git", "push")
+		cmd.Dir = repoDir
+		cmd.Stdout = os.Stderr
+		cmd.Stderr = os.Stderr
+
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to push: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "%s\n", cli.Success("Changes pushed successfully"))
+	} else {
+		fmt.Fprintf(os.Stderr, "Push skipped. You can manually push from: %s\n", cli.Key(repoDir))
+	}
+
+	return nil
+}
+
+func getCurrentOpID(cwd string) (string, error) {
+	out, err := runJJOutput([]string{"op", "log", "-n1", "-Tid", "--no-graph", "--no-pager"}, cwd)
 	if err != nil {
 		return "", err
 	}
 	return strings.TrimSpace(out), nil
 }
 
-func createWorkspace() (string, string, error) {
+func createWorkspace(repoDir string) (string, string, error) {
 	// Create a temporary directory
 	tempDir, err := os.MkdirTemp("", "jj-run-")
 	if err != nil {
@@ -318,15 +398,15 @@ func createWorkspace() (string, string, error) {
 	workspacePath := filepath.Join(tempDir, workspaceName)
 
 	// Add the workspace
-	if _, err := runJJOutput([]string{"workspace", "add", workspacePath}, "."); err != nil {
+	if _, err := runJJOutput([]string{"workspace", "add", workspacePath}, repoDir); err != nil {
 		return "", "", fmt.Errorf("failed to add workspace: %w", err)
 	}
 
 	return workspacePath, workspaceName, nil
 }
 
-func forgetWorkspace(workspaceName string) {
-	runJJ([]string{"workspace", "forget", workspaceName}, ".")
+func forgetWorkspace(workspaceName string, repoDir string) {
+	runJJ([]string{"workspace", "forget", workspaceName}, repoDir)
 }
 
 func getChangeList(revset string, cwd string) ([]*Change, error) {
@@ -414,7 +494,7 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 	return newChanges, allSuccessful, nil
 }
 
-func processChangesParallel(baseWorkspace string, changes []*Change, command string, strategy ErrorStrategy, numWorkers int) ([]*Change, bool, error) {
+func processChangesParallel(baseWorkspace string, changes []*Change, command string, strategy ErrorStrategy, numWorkers int, repoDir string) ([]*Change, bool, error) {
 	totalChanges := len(changes)
 
 	// Create channels for job distribution and result collection
@@ -431,12 +511,12 @@ func processChangesParallel(baseWorkspace string, changes []*Change, command str
 			defer wg.Done()
 
 			// Create workspace for this worker
-			workspacePath, workspaceName, err := createWorkspace()
+			workspacePath, workspaceName, err := createWorkspace(repoDir)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, cli.Error("Worker %d: failed to create workspace:")+" %v\n", workerID, err)
 				return
 			}
-			defer forgetWorkspace(workspaceName)
+			defer forgetWorkspace(workspaceName, repoDir)
 
 			// Process jobs
 			for job := range jobs {
@@ -582,14 +662,14 @@ func rewriteParents(workspacePath string, changes []*Change) int {
 	return modifiedCount
 }
 
-func abandonChanges(changes []*Change) {
+func abandonChanges(changes []*Change, repoDir string) {
 	for _, change := range changes {
 		// Only print first 12 chars when abandoning
 		shortID := change.ChangeID
 		if len(shortID) > 12 {
 			shortID = shortID[:12]
 		}
-		runJJ([]string{"abandon", fmt.Sprintf("present(%s)", shortID), "--ignore-working-copy"}, ".")
+		runJJ([]string{"abandon", fmt.Sprintf("present(%s)", shortID), "--ignore-working-copy"}, repoDir)
 	}
 }
 
