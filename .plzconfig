@@ -1,0 +1,9 @@
+[please]
+version = 17.23.0
+
+[build]
+path = ~/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+[parse]
+preloadsubincludes = //third_party/go:go_defs
+

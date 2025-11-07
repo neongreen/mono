@@ -28,3 +28,4 @@ markdown-format/markdown-format
 !.beads/*.jsonl
 .gocache
 actionlint
+plz-out/

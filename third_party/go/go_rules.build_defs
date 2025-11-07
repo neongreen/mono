@@ -1,0 +1,51 @@
+"""Simple Go build rules for Please"""
+
+GO = "/usr/local/go/bin/go"
+MODULE_ROOT = "/home/user/mono"
+
+def go_library(name:str, srcs:list, deps:list=[], visibility:list=None):
+    """Builds a Go library"""
+    # Need to build from module root to have access to go.mod
+    # Use -mod=readonly to prevent downloads, rely on existing module cache
+    pkg_path = "github.com/neongreen/mono/$PKG"
+    return build_rule(
+        name = name,
+        srcs = srcs,
+        deps = deps,
+        visibility = visibility,
+        building_description = "Compiling Go library...",
+        cmd = f'cd {MODULE_ROOT} && GOPROXY=off {GO} build -mod=readonly -buildmode=archive -o $OUT {pkg_path}',
+        output_is_complete = True,
+    )
+
+def go_binary(name:str, srcs:list, deps:list=[], visibility:list=None):
+    """Builds a Go binary"""
+    # Need to build from module root to have access to go.mod
+    # Use -mod=readonly to prevent downloads, rely on existing module cache
+    pkg_path = "github.com/neongreen/mono/$PKG"
+    return build_rule(
+        name = name,
+        srcs = srcs,
+        deps = deps,
+        outs = [name],
+        visibility = visibility,
+        binary = True,
+        building_description = "Building Go binary...",
+        cmd = f'cd {MODULE_ROOT} && GOPROXY=off {GO} build -mod=readonly -o $OUT {pkg_path}',
+    )
+
+def go_test(name:str, srcs:list, deps:list=[], visibility:list=None):
+    """Builds and runs Go tests"""
+    # Use -mod=readonly to prevent downloads, rely on existing module cache
+    pkg_path = "github.com/neongreen/mono/$PKG"
+    return build_rule(
+        name = name,
+        srcs = srcs,
+        deps = deps,
+        visibility = visibility,
+        test = True,
+        no_test_output = False,
+        building_description = "Compiling Go test...",
+        cmd = f'cd {MODULE_ROOT} && GOPROXY=off {GO} test -c -mod=readonly -o $OUT {pkg_path}',
+        test_cmd = '$TEST',
+    )
