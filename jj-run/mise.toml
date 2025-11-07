@@ -3,7 +3,7 @@ go = "1.24.7"
 
 [tasks.run]
 description = "Build and run jj-run"
-run = "go run ./cmd/main.go"
+run = "go run ./cmd"
 
 [tasks.test]
 description = "Run all tests"
@@ -11,7 +11,7 @@ run = "go test -v ./..."
 
 [tasks.build]
 description = "Build jj-run binary"
-run = "go build -o jj-run ./cmd/main.go"
+run = "go build -o jj-run ./cmd"
 
 [tasks.fmt]
 description = "Format Go code"
