@@ -25,6 +25,8 @@ linters:
   #   - wsl
   #   - wsl_v5
   #   - nlreturn
+  #   # False positives
+  #   # - nilerr  # Routinely flags graceful degradation patterns as bugs (e.g., fallback to UID when name lookup fails)
   settings:
     staticcheck:
       checks:

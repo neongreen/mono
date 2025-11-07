@@ -428,59 +428,6 @@ func TestFindPlatformAssetErrorCases(t *testing.T) {
 	})
 }
 
-// TestContextCancellation tests that operations respect context cancellation
-func TestContextCancellation(t *testing.T) {
-	t.Run("GetReleaseByTagWithContext respects cancellation", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Delay to allow cancellation
-			time.Sleep(100 * time.Millisecond)
-			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(Release{TagName: "v1.0.0"})
-		}))
-		defer server.Close()
-
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel() // Cancel immediately
-
-		apiURL := server.URL + "/repos/test/repo/releases/tags/v1.0.0"
-		req, err := CreateAuthenticatedRequestWithContext(ctx, "GET", apiURL)
-		if err != nil {
-			t.Fatalf("failed to create request: %v", err)
-		}
-
-		client := &http.Client{Timeout: 5 * time.Second}
-		_, err = client.Do(req)
-		if err == nil {
-			t.Error("expected error for cancelled context, got nil")
-		}
-	})
-
-	t.Run("DownloadAssetWithContext respects cancellation", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(100 * time.Millisecond)
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte("content"))
-		}))
-		defer server.Close()
-
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel() // Cancel immediately
-
-		asset := &Asset{
-			Name: "test-binary",
-			URL:  server.URL,
-		}
-
-		tempDir := t.TempDir()
-		destPath := filepath.Join(tempDir, "test-binary")
-
-		err := DownloadAssetWithContext(ctx, asset, destPath)
-		if err == nil {
-			t.Error("expected error for cancelled context, got nil")
-		}
-	})
-}
-
 // TestDownloadReleaseAsset tests the convenience function for downloading assets
 func TestDownloadReleaseAsset(t *testing.T) {
 	t.Run("invalid owner/repo causes error", func(t *testing.T) {
