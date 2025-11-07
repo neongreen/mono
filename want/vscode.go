@@ -11,13 +11,14 @@ import (
 	"github.com/neongreen/mono/lib/ghclient"
 )
 
-// NOTE: Build steps for tk-vscode are defined in tk-vscode/mise.toml
-// If you update the build process here, also update tk-vscode/mise.toml
-// to keep them in sync. The mise tasks define the canonical build process.
-// Task names used: "install-deps", "build", "install"
+// NOTE: Build tasks for tk-vscode are defined in the top-level mise.toml
+// If you update the build process here, also update /mise.toml to keep them in sync.
+// The mise tasks define the canonical build process.
+// Task names used: "tk-vscode:install-deps", "tk-vscode:build", "tk-vscode:install"
+// See: /mise.toml (search for "tk-vscode")
 
 // createMiseRunCommand creates a command to run a mise task.
-// Example: createMiseRunCommand("install-deps") runs the install-deps task from the local mise.toml.
+// Example: createMiseRunCommand("tk-vscode:install-deps") runs the tk-vscode:install-deps task.
 func createMiseRunCommand(taskPath string) *exec.Cmd {
 	if !isMiseAvailable() {
 		// If mise is not available, fail with a helpful error
@@ -50,19 +51,19 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 			{
 				Type:        "install",
 				Description: "Install dependencies",
-				Command:     "cd tk-vscode && mise run install-deps",
+				Command:     "cd tk-vscode && mise run tk-vscode:install-deps",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Build extension (compile & package)",
-				Command:     "cd tk-vscode && mise run build",
+				Command:     "cd tk-vscode && mise run tk-vscode:build",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Install VS Code extension",
-				Command:     "cd tk-vscode && mise run install",
+				Command:     "cd tk-vscode && mise run tk-vscode:install",
 				Automatic:   true,
 			},
 		},
@@ -136,7 +137,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Println("\nInstalling dependencies...")
-	cmd = createMiseRunCommand("install-deps")
+	cmd = createMiseRunCommand("tk-vscode:install-deps")
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
@@ -147,7 +148,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Println("\nBuilding extension (compile & package)...")
-	cmd = createMiseRunCommand("build")
+	cmd = createMiseRunCommand("tk-vscode:build")
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
@@ -178,7 +179,7 @@ func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isC
 	}
 
 	fmt.Printf("\nInstalling extension from %s...\n", filepath.Base(vsixFile))
-	cmd = createMiseRunCommand("install")
+	cmd = createMiseRunCommand("tk-vscode:install")
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
@@ -212,19 +213,19 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 			{
 				Type:        "install",
 				Description: "Install dependencies",
-				Command:     "cd tk-vscode && mise run install-deps",
+				Command:     "cd tk-vscode && mise run tk-vscode:install-deps",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Build extension (compile & package)",
-				Command:     "cd tk-vscode && mise run build",
+				Command:     "cd tk-vscode && mise run tk-vscode:build",
 				Automatic:   true,
 			},
 			{
 				Type:        "install",
 				Description: "Install VS Code extension",
-				Command:     "cd tk-vscode && mise run install",
+				Command:     "cd tk-vscode && mise run tk-vscode:install",
 				Automatic:   true,
 			},
 		},
@@ -294,7 +295,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Println("\nInstalling dependencies...")
-	cmd = createMiseRunCommand("install-deps")
+	cmd = createMiseRunCommand("tk-vscode:install-deps")
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
@@ -305,7 +306,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Println("\nBuilding extension (compile & package)...")
-	cmd = createMiseRunCommand("build")
+	cmd = createMiseRunCommand("tk-vscode:build")
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout
@@ -336,7 +337,7 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	}
 
 	fmt.Printf("\nInstalling extension from %s...\n", filepath.Base(vsixFile))
-	cmd = createMiseRunCommand("install")
+	cmd = createMiseRunCommand("tk-vscode:install")
 	cmd.Dir = projectDir
 	setMiseTrustedPath(cmd, tmpDir)
 	cmd.Stdout = os.Stdout

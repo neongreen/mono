@@ -38,6 +38,10 @@ golangci-lint fmt .
 cd mdbook-comments && cargo fmt
 """
 
+# NOTE: Project run tasks (tk, conf, printpdf, etc.) are intentionally flat names
+# without the :run suffix for convenience, since running is the most common operation.
+# All other tasks remain namespaced (project:test, project:build, etc.).
+
 
 [tasks."jj:track"]
 description = "Track all remote bookmarks"
@@ -443,6 +447,9 @@ run = """
 
 # ============================================================================
 # tk-vscode
+# NOTE: These tasks are also used by want/vscode.go for building tk-vscode
+# from PRs/branches. If you rename or change these tasks, update want/vscode.go.
+# See: want/vscode.go (search for "tk-vscode")
 # ============================================================================
 
 [tasks."tk-vscode:install-deps"]
@@ -492,7 +499,7 @@ run = "go build -o conf ./cmd/main.go"
 # claude-trace
 # ============================================================================
 
-[tasks."claude-trace"]
+[tasks.claude-trace]
 description = "Build and run claude-trace"
 dir = "claude-trace"
 run = "go run ./cmd"
@@ -547,7 +554,7 @@ run = "go test -run=^$ ./..."
 # jj-run
 # ============================================================================
 
-[tasks."jj-run"]
+[tasks.jj-run]
 description = "Build and run jj-run"
 dir = "jj-run"
 run = "go run ./cmd"
@@ -597,7 +604,7 @@ run = "go test ./..."
 # markdown-format
 # ============================================================================
 
-[tasks."markdown-format"]
+[tasks.markdown-format]
 description = "Build and run markdown-format"
 dir = "markdown-format"
 run = "go run ."
