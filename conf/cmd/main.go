@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	
 
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/diff"
-	
+
 	"github.com/neongreen/mono/conf/pkg/sync"
 	"github.com/neongreen/mono/conf/pkg/tools"
 	claudetool "github.com/neongreen/mono/conf/pkg/tools/claude"
