@@ -55,11 +55,6 @@ func (p *Projects) MarkdownFormat() *MarkdownFormatProject {
 	return &MarkdownFormatProject{Dagger: p.Dagger}
 }
 
-// BeadsMerge returns the beads-merge project
-func (p *Projects) BeadsMerge() *BeadsMergeProject {
-	return &BeadsMergeProject{Dagger: p.Dagger}
-}
-
 // JjRun returns the jj-run project
 func (p *Projects) JjRun() *JjRunProject {
 	return &JjRunProject{Dagger: p.Dagger}

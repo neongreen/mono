@@ -19,8 +19,7 @@
     "prrun/**",
     "claude-trace/**",
     "want/**",
-    "markdown-format/**",
-    "beads-merge/**"
+    "markdown-format/**"
   ],
   "source": ".dagger"
 }
