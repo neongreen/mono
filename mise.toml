@@ -2,6 +2,8 @@
 GOWORK = "auto"
 GOPRIVATE = "github.com/neongreen/mono"
 GONOSUMDB = "github.com/neongreen/mono"
+# Prevent Go from auto-upgrading to newer versions (fixes version mismatch errors)
+GOTOOLCHAIN = "local"
 
 [tools]
 go = "1.24.7"
@@ -506,7 +508,7 @@ run = "npm run watch"
 [tasks.conf]
 description = "Build and run conf"
 dir = "conf"
-run = "go run ./cmd/main.go"
+run = "go run ./cmd/"
 
 [tasks."conf:test"]
 description = "Run all tests for conf"
@@ -516,7 +518,7 @@ run = "go test -v ./..."
 [tasks."conf:build"]
 description = "Build conf binary"
 dir = "conf"
-run = "go build -o conf ./cmd/main.go"
+run = "go build -o conf ./cmd/"
 
 
 # ============================================================================
