@@ -58,6 +58,24 @@ When you are asked to do something "always" or "never", you must also record thi
 
 **Always use `mise` for building and running Go projects. Never use `go build` or `go run` directly.**
 
+### Installing mise in Agent Environments
+
+If you're working in an agent/web environment without mise installed:
+
+```bash
+# Install mise
+curl https://mise.jdx.dev/install.sh | sh
+
+# Add to PATH and trust the config
+export PATH="$HOME/.local/bin:$PATH"
+mise trust
+
+# Verify installation
+mise tasks
+```
+
+Mise will automatically install required tools (Go, Node, Rust, etc.) when you run tasks.
+
 ### Running Go Projects
 
 Use the mise task syntax from the monorepo root:
