@@ -21,6 +21,7 @@ gotestsum = "latest"
 fnox = "latest"
 opentofu = "latest"
 spacectl = "latest"
+kubectl = "latest"
 
 # ============================================================================
 # Top-level tasks
@@ -791,4 +792,32 @@ run = '''
 set -euo pipefail
 fnox exec -- spacectl stack outputs --id mono-cloud-01 -o json \
   | jq -r '.[] | select(.id=="server_ipv4") | .value | fromjson'
+'''
+
+[tasks."cloud:kubeconfig"]
+description = "Fetch k3s kubeconfig from server and patch server IP"
+dir = "cloud"
+tools.jq = "latest"
+quiet = true
+run = '''
+set -euo pipefail
+IP=$(mise run cloud:ip | tail -1)
+ssh -o StrictHostKeyChecking=no root@"$IP" 'cat /etc/rancher/k3s/k3s.yaml' > kubeconfig
+# Replace default localhost server with public IP
+perl -pi -e "s#https://127\\.0\\.0\\.1:6443#https://$IP:6443#g" kubeconfig
+chmod 600 kubeconfig
+echo "KUBECONFIG=$(pwd)/kubeconfig"
+'''
+
+[tasks."cloud:kubectl"]
+description = "Run kubectl with kubeconfig automatically set (ensures kubeconfig exists first)"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+# Ensure kubeconfig exists
+if [ ! -f kubeconfig ]; then
+  mise run cloud:kubeconfig >/dev/null 2>&1
+fi
+KUBECONFIG="$(pwd)/kubeconfig" kubectl "$@"
 '''

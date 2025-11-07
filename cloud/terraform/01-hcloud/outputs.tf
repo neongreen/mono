@@ -1,5 +1,5 @@
 output "server_type" {
-  value = data.hcloud_server_type.cpx11.id  # Smallest vCPU server
+  value = data.hcloud_server_type.cpx21.id  # CPX21 server type
 }
 
 output "image" {

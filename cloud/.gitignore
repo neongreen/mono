@@ -15,3 +15,7 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Kubeconfig dumps (avoid accidental commits)
+kubeconfig
+kubeconfig.*

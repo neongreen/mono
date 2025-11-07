@@ -1,7 +1,6 @@
-# Read-only lookups to verify connectivity; no resources created.
-
-data "hcloud_server_type" "cpx11" {
-  name = "cpx11"
+# Data sources: look up Hetzner Cloud resources (no creation)
+data "hcloud_server_type" "cpx21" {
+  name = "cpx21"
 }
 
 data "hcloud_image" "ubuntu_2404" {
@@ -12,11 +11,13 @@ data "hcloud_location" "nbg1" {
   name = "nbg1"
 }
 
+# Network: private network for VMs
 resource "hcloud_network" "main" {
   name     = "mono-net"
   ip_range = "10.0.0.0/16"
 }
 
+# Subnet: subnet within the network
 resource "hcloud_network_subnet" "main" {
   network_id   = hcloud_network.main.id
   type         = "cloud"
@@ -24,6 +25,7 @@ resource "hcloud_network_subnet" "main" {
   ip_range     = "10.0.0.0/24"
 }
 
+# Firewall: rules for inbound traffic
 resource "hcloud_firewall" "default" {
   name = "mono-fw"
 
@@ -53,26 +55,68 @@ resource "hcloud_firewall" "default" {
     port       = "443"
     source_ips = ["0.0.0.0/0", "::/0"]
   }
+
+  # k3s API server
+  rule {
+    direction  = "in"
+    protocol   = "tcp"
+    port       = "6443"
+    source_ips = ["0.0.0.0/0", "::/0"]
+  }
+
+  # kubelet read-only metrics / node API (for remote admin)
+  rule {
+    direction  = "in"
+    protocol   = "tcp"
+    port       = "10250"
+    source_ips = ["0.0.0.0/0", "::/0"]
+  }
 }
 
+# SSH key: your public key for server access
 resource "hcloud_ssh_key" "workstation" {
   name       = "workstation"
   public_key = file("${path.module}/ssh_key.pub")
 }
 
+# Server: VM running Ubuntu with k3s installed
 resource "hcloud_server" "vm1" {
   name        = "vm1"
   image       = data.hcloud_image.ubuntu_2404.id
-  server_type = data.hcloud_server_type.cpx11.id
+  server_type = data.hcloud_server_type.cpx21.id
   location    = data.hcloud_location.nbg1.id
   ssh_keys    = [hcloud_ssh_key.workstation.id]
+
+  # Cloud-init: runs on first boot to configure the server
+  user_data = <<-CLOUDCFG
+  #cloud-config
+  hostname: vm1
+  package_update: true
+  package_upgrade: true
+
+  users:
+    - name: emily
+      groups: sudo
+      shell: /bin/bash
+      sudo: ['ALL=(ALL) NOPASSWD:ALL']
+      ssh_authorized_keys:
+        - ${file("${path.module}/ssh_key.pub")}
+
+  ssh_pwauth: false
+
+  runcmd:
+    # Install k3s (lightweight Kubernetes)
+    - curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 0644 --disable traefik" sh -s -
+  CLOUDCFG
 }
 
+# Network attachment: connect server to private network
 resource "hcloud_server_network" "vm1" {
   server_id  = hcloud_server.vm1.id
   network_id = hcloud_network.main.id
 }
 
+# Firewall attachment: apply firewall rules to server
 resource "hcloud_firewall_attachment" "vm1" {
   firewall_id = hcloud_firewall.default.id
   server_ids  = [hcloud_server.vm1.id]
