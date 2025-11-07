@@ -50,14 +50,3 @@ Human-readable conversation with:
 - Collapsible thinking sections
 - Timestamps in readable format
 
-------------------------------------------------------------
-
-## Code Formatting
-
-**All Go code must be formatted with `golangci-lint fmt` before work is considered complete.**
-
-Before submitting any changes:
-- Run `golangci-lint fmt ./...` in the claude-trace directory
-- Ensure all Go files are properly formatted
-- This applies to both new and modified Go code
-

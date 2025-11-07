@@ -20,8 +20,8 @@ This document contains guidelines for AI agents and automated tools working on p
 
 - All tools are written in Go unless stated otherwise.
 - All new projects are created as top-level folders in the repository unless stated otherwise.
-- All projects must contain a `mise.toml`. Check existing `mise.toml` files to see what is expected from you.
 - All new Go projects must have CI workflows in `.github/workflows/<project-name>.yml`. Check existing workflow files to see what is expected from you.
+- All project tasks are defined in the top-level `mise.toml` file with project-name prefixes (e.g., `project-name:task-name`).
 - Always create commits with `jj commit -m "commit message"` (use the `-m` flag explicitly).
 - In all prose that you write, don't be excited, don't use emojis unless necessary, and don't use pervasive bold text.
 - All temporary files (like summaries of fixes you did, one-off scripts you wrote during PR development, etc) must have names prefixed with `ai-temp-`.
@@ -58,46 +58,67 @@ When you are asked to do something "always" or "never", you must also record thi
 
 **Always use `mise` for building and running Go projects. Never use `go build` or `go run` directly.**
 
+### Installing mise in Agent Environments
+
+If you're working in an agent/web environment without mise installed:
+
+```bash
+# Install mise
+curl https://mise.jdx.dev/install.sh | sh
+
+# Add to PATH and trust the config
+export PATH="$HOME/.local/bin:$PATH"
+mise trust
+
+# Verify installation
+mise tasks
+```
+
+Mise will automatically install required tools (Go, Node, Rust, etc.) when you run tasks.
+
 ### Running Go Projects
 
 Use the mise task syntax from the monorepo root:
 ```bash
-mise run //project-name:task-name
+mise run project-name:task-name
 ```
 
 Examples:
-- `mise run //claude-trace:run` - Run claude-trace with default command (TUI mode)
-- `mise run //claude-trace:run list` - Run claude-trace list command
-- `mise run //claude-trace:run extract -o output` - Run claude-trace extract command
+- `mise run claude-trace` - Run claude-trace with default command (TUI mode)
+- `mise run jj-run:test` - Run tests for jj-run
+- `mise run printpdf:build` - Build printpdf binary
 
 ### Why mise?
 
 - Ensures correct Go version is used
 - Manages dependencies consistently
 - Provides consistent build environment
-- Defined in each project's `mise.toml` file
+- All tasks are centrally defined in the top-level `mise.toml` file
 
 ### Project Tasks
 
-All projects should define standard tasks in their `mise.toml` where applicable:
+All project tasks are defined in the top-level `mise.toml` file with project-name prefixes. Standard tasks where applicable:
 
-- **`run`** - Build and run the project (for applications)
-- **`test`** - Run all tests
+- **`project-name`** - Build and run the project (for applications)
+- **`project-name:test`** - Run all tests
+- **`project-name:build`** - Build binary
 
-These tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
+For code formatting, use the top-level `fmt` task which formats all Go code in the monorepo.
+
+These namespaced tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
 
 ------------------------------------------------------------
 
 ## Code Formatting
 
-**All Go code must be formatted with `golangci-lint fmt` before work is considered complete.**
+**All Go code must be formatted before work is considered complete.**
 
 Before submitting any changes to Go projects:
-- Run `golangci-lint fmt ./...` in the project directory
-- Ensure all Go files are properly formatted
-- This applies to both new and modified Go code
+- Run `mise run fmt` from the repository root
+- This formats all Go code in the monorepo using `golangci-lint fmt`
+- Applies to both new and modified Go code
 
-The `golangci-lint fmt` tool ensures consistent formatting across all Go code in the monorepo and is a standard requirement for Go development.
+The centralized `fmt` task ensures consistent formatting across all Go code in the monorepo.
 
 ------------------------------------------------------------
 

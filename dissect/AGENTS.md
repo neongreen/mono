@@ -105,13 +105,3 @@ The only exception is when dealing with non-Go files or when the output is for d
 - Don't assume glob patterns work the same across all implementations
 - Test the actual use case (nested directories) not just simplified scenarios
 
--------------------------------------------------
-
-## Code Formatting
-
-**All Go code must be formatted with `golangci-lint fmt` before work is considered complete.**
-
-Before submitting any changes:
-- Run `golangci-lint fmt ./...` in the dissect directory
-- Ensure all Go files are properly formatted
-- This applies to both new and modified Go code

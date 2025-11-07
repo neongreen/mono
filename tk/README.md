@@ -58,7 +58,7 @@ go build -o tk .
 ### Using mise
 
 ```bash
-mise run //tk:run
+mise run tk
 ```
 
 ## Usage
@@ -622,6 +622,6 @@ golangci-lint fmt ./...
 
 Run via mise:
 ```bash
-mise run //tk:run new "test task"
-mise run //tk:run ls
+mise run tk new "test task"
+mise run tk ls
 ```
