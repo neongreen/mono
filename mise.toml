@@ -747,7 +747,7 @@ run = "go test ./..."
 # cloud (OpenTofu)
 # ============================================================================
 
-[tasks."cloud:tf:validate"]
+[tasks."cloud:validate"]
 description = "Validate all OpenTofu modules under cloud/terraform"
 run = '''
 set -euo pipefail
@@ -762,4 +762,33 @@ for dir in $(find cloud/terraform -type f -name '*.tf' -exec dirname {} \; | sor
     tofu validate
   )
 done
+'''
+
+[tasks."cloud:deploy:hcloud"]
+description = "Deploy cloud/terraform/01-hcloud with auto-confirm"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+fnox exec -- spacectl stack deploy --id mono-cloud-01 --auto-confirm --tail
+'''
+
+[tasks."cloud:outputs:hcloud"]
+description = "Show current outputs for 01-hcloud stack"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+fnox exec -- spacectl stack outputs --id mono-cloud-01
+'''
+
+[tasks."cloud:ip"]
+description = "Print server IPv4 from 01-hcloud outputs"
+tools.jq = "latest"
+quiet = true
+dir = "cloud"
+run = '''
+set -euo pipefail
+fnox exec -- spacectl stack outputs --id mono-cloud-01 -o json \
+  | jq -r '.[] | select(.id=="server_ipv4") | .value | fromjson'
 '''
