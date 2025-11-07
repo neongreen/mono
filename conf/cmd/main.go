@@ -1512,11 +1512,6 @@ func readFileContentSafe(path string) (string, error) {
 	return string(content), nil
 }
 
-// applyToolValue applies a single configuration value to a tool
-func applyToolValue(toolName, path string, value any) error {
-	return tools.ApplyToolValue(toolName, path, value)
-}
-
 // showToolStatus shows drift status for a specific tool
 func showToolStatus(conf *config.Config, toolName string) error {
 	tool, exists := conf.GetTool(toolName)

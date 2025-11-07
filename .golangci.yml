@@ -1,23 +1,28 @@
 version: "2"
 linters:
-  default: all
-  disable:
-    # - depguard
-    # - exhaustruct
-    # - gochecknoglobals
-    # - gochecknoinits
-    # - mnd
-    # Stuff I disagree with
-    - noinlineerr
-    - varnamelen
-    # This actually returns good suggestions but we should autofix them, not enforce them
-    - whitespace
-    # Idk, something about "error is unwrapped"
-    - wrapcheck
-    # Whitespace linters
-    - wsl
-    - wsl_v5
-    - nlreturn
+  default: none
+  enable:
+  - modernize
+  - unused
+
+  # default: all
+  # disable:
+  #   # - depguard
+  #   # - exhaustruct
+  #   # - gochecknoglobals
+  #   # - gochecknoinits
+  #   # - mnd
+  #   # Stuff I disagree with
+  #   - noinlineerr
+  #   - varnamelen
+  #   # This actually returns good suggestions but we should autofix them, not enforce them
+  #   - whitespace
+  #   # Idk, something about "error is unwrapped"
+  #   - wrapcheck
+  #   # Whitespace linters
+  #   - wsl
+  #   - wsl_v5
+  #   - nlreturn
   settings:
     errcheck:
       check-type-assertions: true

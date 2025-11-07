@@ -13,21 +13,6 @@ import (
 
 var ToolRegistry = cmd.ToolRegistry
 
-// ensureToolAvailable checks if a tool is available and returns installation steps if not
-func ensureToolAvailable(toolName string) (available bool, installSteps []PlanStep) {
-	if isToolAvailable(toolName) {
-		return true, nil
-	}
-
-	tool, exists := ToolRegistry[toolName]
-	if !exists {
-
-		return false, nil
-	}
-
-	return false, []PlanStep{tool.InstallStep}
-}
-
 // buildToolInstallationPlan creates a complete installation plan for a tool
 // It handles dependencies (like mise) automatically based on the registry
 func buildToolInstallationPlan(toolName string) []PlanStep {

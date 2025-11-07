@@ -685,17 +685,6 @@ func parseBeadsNumber(id string) (int64, error) {
 	return strconv.ParseInt(parts[1], 10, 64)
 }
 
-// getNextAvailableNumber finds the next available task number for a project
-func getNextAvailableNumber(db *database.DB, projectUID string) int64 {
-	var maxNumber int64
-	db.Db.QueryRow(`
-		SELECT COALESCE(MAX(number), 0) 
-		FROM task_numbers 
-		WHERE project_uid = ?
-	`, projectUID).Scan(&maxNumber)
-	return maxNumber + 1
-}
-
 // addRenumberNote adds a note to a task explaining it was renumbered during import
 func addRenumberNote(db *database.DB, taskUID, originalID string, newNumber int64) error {
 	note := fmt.Sprintf("Note: Original beads ID was %s (non-numeric), renumbered to %d during import",

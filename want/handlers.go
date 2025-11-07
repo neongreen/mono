@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,69 +17,6 @@ import (
 // Type aliases for cmd package types
 type FulfillmentPlan = cmd.FulfillmentPlan
 type PlanStep = cmd.PlanStep
-
-func handleWant(args []string) {
-
-	fs := flag.NewFlagSet("want", flag.ExitOnError)
-	dryRun := fs.Bool("dry-run", false, "Show what would be done without doing it")
-	planJson := fs.Bool("plan-json", false, "Output the fulfillment plan as JSON")
-	fs.Parse(args)
-
-	if fs.NArg() == 0 {
-		fmt.Println("Error: no requirement specified")
-		fmt.Println("Usage: want [--dry-run] [--plan-json] <requirement>")
-		os.Exit(1)
-	}
-
-	requirement := fs.Arg(0)
-	remainingArgs := fs.Args()[1:]
-
-	if handler, ok := getCompoundHandler(requirement); ok {
-		handler(remainingArgs, *dryRun, *planJson)
-		return
-	}
-
-	if strings.Contains(requirement, "github.com") && (strings.Contains(requirement, "/releases/download/") || strings.Contains(requirement, "/releases/tag/")) {
-		handleGitHubAsset(requirement, *dryRun, *planJson)
-		return
-	}
-
-	if strings.Contains(requirement, "/") && (strings.Contains(requirement, "github.com") || strings.Contains(requirement, ".git")) {
-		fmt.Printf("Error: Git repository cloning is not yet implemented\n")
-		fmt.Printf("Requirement: %s\n", requirement)
-		os.Exit(1)
-	}
-
-	installToolViaMise(requirement, *dryRun, *planJson)
-}
-
-func handleList() {
-	fmt.Println(cli.Muted("MVP: No requirements tracked yet"))
-	fmt.Println("\nThis command will show:")
-	fmt.Println("  • Tools installed via want")
-	fmt.Println("  • Repositories cloned via want")
-	fmt.Println("  • Their current status")
-}
-
-func handleCheck() {
-	fmt.Println(cli.Muted("MVP: No requirements to check"))
-	fmt.Println("\nThis command will verify:")
-	fmt.Println("  • Whether tracked requirements are still available")
-	fmt.Println("  • Whether repositories are still cloned")
-	fmt.Println("  • Status of each requirement")
-}
-
-func handleForget() {
-	if len(os.Args) < 3 {
-		cli.PrintError("Error: no requirement specified")
-		fmt.Println("Usage: want forget <requirement>")
-		os.Exit(1)
-	}
-
-	requirement := os.Args[2]
-	fmt.Printf("%s Would forget: %s\n", cli.Muted("MVP:"), cli.Key(requirement))
-	fmt.Println("This command will remove the requirement from tracking without uninstalling.")
-}
 
 // handleJsonCommand handles "want json <command>" - converts command output to JSON
 func handleJsonCommand(args []string, dryRun bool, planJson bool) {
@@ -646,73 +582,4 @@ func handleGitHubAsset(url string, dryRun bool, planJson bool) {
 	} else {
 		fmt.Printf("%s Binary is available in your PATH as: %s\n", cli.Success("✓"), cli.Key(destFile))
 	}
-}
-
-// handleMono handles installation of tools from the neongreen/mono repository
-func handleMono() {
-
-	fs := flag.NewFlagSet("mono", flag.ExitOnError)
-	dryRun := fs.Bool("dry-run", false, "Show what would be done without doing it")
-	planJson := fs.Bool("plan-json", false, "Output the fulfillment plan as JSON")
-	listFlag := fs.Bool("list", false, "List all releases and open PRs")
-
-	// Reorder args to move flags before positional arguments
-	// This allows "want mono printpdf --list" to work
-	args := os.Args[2:]
-	var flags []string
-	var positional []string
-	for _, arg := range args {
-		if strings.HasPrefix(arg, "-") {
-			flags = append(flags, arg)
-		} else {
-			positional = append(positional, arg)
-		}
-	}
-	reorderedArgs := append(flags, positional...)
-
-	fs.Parse(reorderedArgs)
-
-	if fs.NArg() == 0 {
-		fmt.Println("Error: no project specified")
-		fmt.Println("Usage: want mono <project> [--list]")
-		fmt.Println("       want mono <project@version> [--dry-run] [--plan-json]")
-		fmt.Println("\nExamples:")
-		fmt.Println("  want mono printpdf                     # Build printpdf from main branch (default)")
-		fmt.Println("  want mono printpdf --list              # List all releases and open PRs for printpdf")
-		fmt.Println("  want mono printpdf@main.1              # Install printpdf version main.1")
-		fmt.Println("  want mono dissect@feature-branch       # Build dissect from a specific branch")
-		fmt.Println("  want mono want@abc1234                 # Build want from a specific commit")
-		fmt.Println("  want mono dissect@pr-42 --dry-run      # Preview building from PR #42")
-		fmt.Println("  want mono printpdf@main.1 --plan-json  # Show installation plan as JSON")
-		os.Exit(1)
-	}
-
-	arg := fs.Arg(0)
-
-	if *listFlag {
-		listMonoReleases(arg)
-		return
-	}
-
-	parts := strings.Split(arg, "@")
-	if len(parts) == 1 {
-		// Default to main branch when no version is specified
-		parts = []string{parts[0], "main"}
-	}
-
-	if len(parts) != 2 {
-		fmt.Printf("Error: Invalid format '%s'\n", arg)
-		fmt.Println("Expected: <project>, <project>@<version>, or <project> --list")
-		fmt.Println("\nExamples:")
-		fmt.Println("  want mono printpdf            # Defaults to main branch")
-		fmt.Println("  want mono printpdf@main.1")
-		fmt.Println("  want mono dissect@pr-42")
-		fmt.Println("  want mono printpdf --list")
-		os.Exit(1)
-	}
-
-	project := parts[0]
-	version := parts[1]
-
-	installMonoRelease(project, version, *dryRun, *planJson)
 }

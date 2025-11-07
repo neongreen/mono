@@ -369,17 +369,6 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 	return newChanges, allSuccessful, nil
 }
 
-func getChangeMetadata(changeID string, cwd string) (*Change, error) {
-	changes, err := getChangeList(changeID, cwd)
-	if err != nil {
-		return nil, err
-	}
-	if len(changes) == 0 {
-		return nil, fmt.Errorf("no change found for ID: %s", changeID)
-	}
-	return changes[0], nil
-}
-
 func isChangeEmpty(workspacePath string, changeID string) (bool, error) {
 	out, err := runJJOutput(
 		[]string{"log", "-T", "json(empty)", "-r", fmt.Sprintf("present(%s)", changeID), "--no-graph"},

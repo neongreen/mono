@@ -3,8 +3,6 @@ package converter
 import (
 	"fmt"
 	"strings"
-
-	"github.com/neongreen/mono/printpdf/pkg/fetcher"
 )
 
 // PageOptions contains page layout options for PDF conversion
@@ -189,18 +187,4 @@ func ParseConverterList(convertersStr string) []Converter {
 		}
 	}
 	return converters
-}
-
-// prepareContent converts content to the appropriate format for conversion
-func prepareContent(content []byte, contentType string) ([]byte, error) {
-	switch contentType {
-	case fetcher.ContentTypeMarkdown:
-		// Keep as markdown - converters will handle it
-		return content, nil
-	case fetcher.ContentTypeHTML:
-		// Keep as HTML - converters will handle it
-		return content, nil
-	default:
-		return nil, fmt.Errorf("unsupported content type: %s", contentType)
-	}
 }

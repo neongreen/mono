@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -130,11 +128,4 @@ func CalculateColumnWidths(tasks []*types.Task, displayIDs map[string]string, co
 	widths.Title = max(remainingSpace, constraints.TitleMinWidth)
 
 	return widths
-}
-
-// stringWidth returns the display width of a string (handles color codes)
-func stringWidth(s string) int {
-	// For now, just use string length
-	// TODO: strip ANSI color codes if needed
-	return len(strings.TrimSpace(s))
 }

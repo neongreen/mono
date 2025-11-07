@@ -34,11 +34,6 @@ func (f *fakeSession) enqueue(tool string, args map[string]any, payload any) {
 	f.responses[key] = append(f.responses[key], textResult(string(data)))
 }
 
-func (f *fakeSession) enqueueError(tool string, args map[string]any, err error) {
-	key := responseKey(tool, args)
-	f.errors[key] = err
-}
-
 func (f *fakeSession) CallTool(_ context.Context, tool string, args map[string]any) (*sdkmcp.CallToolResult, error) {
 	key := responseKey(tool, args)
 	f.calls = append(f.calls, key)

@@ -223,11 +223,6 @@ func (s *Session) ReadResource(ctx context.Context, params *sdkmcp.ReadResourceP
 	return result, nil
 }
 
-// Internal client session access for advanced use cases.
-func (s *Session) raw() *sdkmcp.ClientSession {
-	return s.session
-}
-
 func (s *Session) retryOperation(ctx context.Context, op func() error) error {
 	backoff := s.SessionRetry.InitialBackoff
 	if backoff <= 0 {

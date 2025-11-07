@@ -264,37 +264,6 @@ func (c *Config) Save() error {
 	return nil
 }
 
-// savePerToolConfigs saves values to per-tool config files if they exist
-func (c *Config) savePerToolConfigs() error {
-	configDir, err := ConfigDir()
-	if err != nil {
-		return err
-	}
-
-	for toolName, tool := range c.Tools {
-		perToolPath := filepath.Join(configDir, toolName+".toml")
-
-		// Check if per-tool file exists
-		if _, err := os.Stat(perToolPath); err != nil {
-			// Per-tool file doesn't exist, keep values in config.toml
-			continue
-		}
-
-		// Per-tool file exists, save values there
-		if tool.Values != nil && len(tool.Values) > 0 {
-			if err := tomlcp.WriteFile(perToolPath, tool.Values); err != nil {
-				return fmt.Errorf("failed to write per-tool config %s: %w", perToolPath, err)
-			}
-
-			// Remove values from main config since they're in per-tool file
-			tool.Values = nil
-			c.Tools[toolName] = tool
-		}
-	}
-
-	return nil
-}
-
 // GetTool returns the configuration for a specific tool with expanded paths
 func (c *Config) GetTool(name string) (ToolConfig, bool) {
 	tool, exists := c.Tools[name]
