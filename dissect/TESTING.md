@@ -527,7 +527,7 @@ go install golang.org/x/tools/gopls@latest
 
 Check import formatting:
 ```bash
-go fmt ./...
+golangci-lint fmt ./...
 goimports -w .
 ```
 

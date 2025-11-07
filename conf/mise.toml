@@ -15,4 +15,4 @@ run = "go build -o conf ./cmd/main.go"
 
 [tasks.fmt]
 description = "Format Go code"
-run = "go fmt ./..."
+run = "golangci-lint fmt ./..."

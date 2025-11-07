@@ -12,4 +12,4 @@ run = "go test ./cmd ./pkg/integration"
 
 [tasks.fmt]
 description = "Format Go code"
-run = "go fmt ./..."
+run = "golangci-lint fmt ./..."

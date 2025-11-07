@@ -270,12 +270,12 @@ pkg/
 
 ## Code Formatting
 
-**All Go code must be formatted with `go fmt` before work is considered complete.**
+**All Go code must be formatted with `golangci-lint fmt` before work is considered complete.**
 
 This is already documented in `AGENTS.md` but repeated here:
 
 ```bash
-go fmt ./...
+golangci-lint fmt ./...
 ```
 
 ## Documentation Comments

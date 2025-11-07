@@ -15,4 +15,4 @@ run = "go build -o jj-run ./cmd"
 
 [tasks.fmt]
 description = "Format Go code"
-run = "go fmt ./..."
+run = "golangci-lint fmt ./..."

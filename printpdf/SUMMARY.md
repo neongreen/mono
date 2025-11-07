@@ -106,7 +106,7 @@ printpdf -o ./pdfs document.md
 - ✅ Unit tests for fetcher package
 - ✅ Manual testing with various inputs
 - ✅ Sample generation verified
-- ✅ All code formatted with `go fmt`
+- ✅ All code formatted with `golangci-lint fmt`
 - ✅ Build passes with `go build`
 
 ## Dependencies

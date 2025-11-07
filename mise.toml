@@ -43,7 +43,7 @@ depends = ["//:lint:actions:*"]
 
 [tasks."go:fmt"]
 description = "Format Go code in the unified module"
-run = "go fmt ./..."
+run = "golangci-lint fmt ./..."
 
 [tasks."go:tidy"]
 description = "Synchronize Go dependencies"

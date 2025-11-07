@@ -109,7 +109,7 @@ All features verified through manual integration testing:
 
 - ✅ All existing tests still passing
 - ✅ No security vulnerabilities (CodeQL clean)
-- ✅ Code formatted with `go fmt`
+- ✅ Code formatted with `golangci-lint fmt`
 - ✅ Backward compatible (append-only events)
 - ✅ Zero breaking changes to existing functionality
 

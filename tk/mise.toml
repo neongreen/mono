@@ -4,7 +4,7 @@ run = "go run ."
 
 [tasks.fmt]
 description = "Format Go code"
-run = "go fmt ./..."
+run = "golangci-lint fmt ./..."
 
 [tasks.check]
 description = "Check that Go code and tests compile and type check"
