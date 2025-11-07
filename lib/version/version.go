@@ -58,6 +58,20 @@ func init() {
 	}
 }
 
+// PrintVersion prints version information for the given tool name.
+func PrintVersion(toolName string) {
+	// Format build time as human-readable in local time
+	buildTimeStr := BuildTime
+	if t, err := time.Parse(time.RFC3339, BuildTime); err == nil {
+		buildTimeStr = t.Local().Format("Jan 2, 2006 15:04 MST")
+	}
+
+	fmt.Printf("%s version %s\n", toolName, Version)
+	fmt.Printf("  commit: %s\n", GitCommit)
+	fmt.Printf("  built:  %s\n", buildTimeStr)
+	fmt.Printf("  go:     %s\n", runtime.Version())
+}
+
 // NewVersionCommand creates a new version command for the given tool name.
 // The tool name is used to customize the output (e.g., "tk version 1.0.0").
 func NewVersionCommand(toolName string) *cobra.Command {

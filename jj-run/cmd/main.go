@@ -35,6 +35,7 @@ var (
 	revset      string
 	errStrategy string
 	directMode  bool
+	showVersion bool
 )
 
 var rootCmd = &cobra.Command{
@@ -47,6 +48,13 @@ Uses a temporary workspace for each run, so your main repo doesn't change while 
 
 Direct mode (--direct): Instead of using temporary workspaces, directly edits each revision in place.
 Useful for metadata changes (e.g., changing commit descriptions, authors) that don't require file isolation.`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		// Allow 0 args if --version is specified
+		if showVersion {
+			return nil
+		}
+		return cobra.MinimumNArgs(1)(cmd, args)
+	},
 	RunE: runCommand,
 }
 
@@ -54,7 +62,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&revset, "revset", "r", "reachable(@, mutable())", "Revset to process")
 	rootCmd.Flags().StringVarP(&errStrategy, "err-strategy", "e", "continue", "Error handling strategy (continue|stop|fatal)")
 	rootCmd.Flags().BoolVarP(&directMode, "direct", "d", false, "Direct mode: edit each revision in place without worktrees")
-	rootCmd.AddCommand(version.NewVersionCommand("jj-run"))
+	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Show version information")
 }
 
 func main() {
@@ -65,10 +73,11 @@ func main() {
 }
 
 func runCommand(cmd *cobra.Command, args []string) error {
-	// Check if the first argument is a known subcommand
-	// If so, Cobra should have handled it, but if we're here, it means it didn't match
-	// This can happen if the subcommand wasn't registered properly
-	// For now, we'll just proceed with the original behavior
+	// Handle --version flag
+	if showVersion {
+		version.PrintVersion("jj-run")
+		return nil
+	}
 
 	// Check if we have at least one argument
 	if len(args) == 0 {
