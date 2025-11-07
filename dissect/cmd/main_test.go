@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang-cz/devslog"
 	main "github.com/neongreen/mono/dissect/cmd"
+	"github.com/neongreen/mono/dissect/pkg/dependencies"
 	"github.com/neongreen/mono/dissect/pkg/externaltest"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"github.com/neongreen/mono/dissect/pkg/testutils"
@@ -21,7 +22,25 @@ import (
 func init() {
 	// Init logging
 	slog.SetDefault(slog.New(devslog.NewHandler(os.Stdout, &devslog.Options{HandlerOptions: &slog.HandlerOptions{Level: slog.LevelDebug, AddSource: true}, NewLineAfterLog: true})))
-	// Note: gopls and goimports are now automatically installed by the dependency manager
+}
+
+// setupTools ensures gopls and goimports are installed and returns their paths.
+// This is a test helper that mimics production code behavior.
+func setupTools(t *testing.T, moduleRoot string) (goplsPath, goimportsPath string) {
+	t.Helper()
+	depMgr := dependencies.NewManager(moduleRoot)
+	
+	goplsPath, err := depMgr.EnsureGopls()
+	if err != nil {
+		t.Fatalf("Failed to setup gopls: %v", err)
+	}
+	
+	goimportsPath, err = depMgr.EnsureGoimports()
+	if err != nil {
+		t.Fatalf("Failed to setup goimports: %v", err)
+	}
+	
+	return goplsPath, goimportsPath
 }
 
 // testFiles represents the structure of our TOML test files.
@@ -102,12 +121,14 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 		t.Fatalf("go mod tidy failed: %v\nOutput: %s", tidyErr, tidyOutput)
 	}
 
+	// Setup tools (gopls and goimports)
+	goplsPath, goimportsPath := setupTools(t, tmpProjectDir)
+
 	// Run dissect
 	for filePath := range testData.FilesIn {
 		if strings.HasSuffix(filePath, ".go") {
 			slog.Debug("Found Go file for dissect", "file", filePath)
-			// Use hardcoded tool names for tests - tools will be installed automatically if needed
-			main.ProcessFile(filepath.Join(tmpProjectDir, filePath), "gopls", "goimports")
+			main.ProcessFile(filepath.Join(tmpProjectDir, filePath), goplsPath, goimportsPath)
 		} else {
 			slog.Debug("Skipping non-Go file for dissect", "file", filePath)
 		}
@@ -243,6 +264,10 @@ func TestExternalProjects(t *testing.T) {
 	// Get show diff flag from environment
 	showDiff := os.Getenv("DISSECT_SHOW_DIFF") == "1" || os.Getenv("DISSECT_SHOW_DIFF") == "true"
 
+	// Setup tools once for all external project tests
+	repoRoot := findRepoRoot(t)
+	goplsPath, goimportsPath := setupTools(t, repoRoot)
+
 	// Run test for each known project
 	for projectName := range externaltest.KnownProjects {
 		t.Run(projectName, func(t *testing.T) {
@@ -257,10 +282,9 @@ func TestExternalProjects(t *testing.T) {
 				config.ShowDiff = true
 			}
 
-			// Inject ProcessFile dependency
+			// Inject ProcessFile dependency with installed tools
 			config.ProcessFile = func(absPath string) (int, string, error) {
-				// Use hardcoded tool names for tests - tools will be installed automatically if needed
-				status, exclusionReason, err := main.ProcessFile(absPath, "gopls", "goimports")
+				status, exclusionReason, err := main.ProcessFile(absPath, goplsPath, goimportsPath)
 				return int(status), exclusionReason, err
 			}
 
