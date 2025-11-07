@@ -94,13 +94,13 @@ func ComputeFileHash(path string) (string, error) {
 	return hex.EncodeToString(hash[:]), nil
 }
 
-func metadataToMap(m *SyncMetadata) (map[string]interface{}, error) {
+func metadataToMap(m *SyncMetadata) (map[string]any, error) {
 	data, err := tomlv2.Marshal(m)
 	if err != nil {
 		return nil, err
 	}
 
-	var result map[string]interface{}
+	var result map[string]any
 	if err := tomlv2.Unmarshal(data, &result); err != nil {
 		return nil, err
 	}

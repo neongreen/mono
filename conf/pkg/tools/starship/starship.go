@@ -49,7 +49,7 @@ func (s *StarshipTool) SetDryRun(dryRun bool) {
 }
 
 // SetConfig sets a configuration value using dotted path notation
-func (s *StarshipTool) SetConfig(path string, value interface{}) error {
+func (s *StarshipTool) SetConfig(path string, value any) error {
 	// Validate the path is reasonable (basic validation)
 	if !s.isValidPath(path) {
 		return s.createInvalidPathError(path)
@@ -64,7 +64,7 @@ func (s *StarshipTool) SetConfig(path string, value interface{}) error {
 }
 
 // GetConfig retrieves a configuration value using dotted path notation
-func (s *StarshipTool) GetConfig(path string) (interface{}, error) {
+func (s *StarshipTool) GetConfig(path string) (any, error) {
 	// Validate the path is reasonable (basic validation)
 	if !s.isValidPath(path) {
 		return nil, s.createInvalidPathError(path)
@@ -95,7 +95,7 @@ func (s *StarshipTool) UnsetConfig(path string) error {
 }
 
 // PreviewSetConfig shows what setting a config value would do without doing it
-func (s *StarshipTool) PreviewSetConfig(path string, value interface{}) (string, error) {
+func (s *StarshipTool) PreviewSetConfig(path string, value any) (string, error) {
 	// Validate the path is reasonable (basic validation)
 	if !s.isValidPath(path) {
 		return "", s.createInvalidPathError(path)
@@ -117,7 +117,7 @@ func (s *StarshipTool) IsDryRun() bool {
 // SetAllValues sets multiple configuration values from a nested map structure
 // This is more efficient than setting individual paths as it avoids the need
 // to flatten/unflatten the structure and parse quoted keys
-func (s *StarshipTool) SetAllValues(values map[string]interface{}) error {
+func (s *StarshipTool) SetAllValues(values map[string]any) error {
 	if s.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil
@@ -209,6 +209,6 @@ type CommonSetting struct {
 }
 
 // GetAllValues returns all configuration values from the starship config file as a nested map
-func (s *StarshipTool) GetAllValues() (map[string]interface{}, error) {
+func (s *StarshipTool) GetAllValues() (map[string]any, error) {
 	return s.editor.GetAllValues()
 }

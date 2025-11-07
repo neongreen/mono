@@ -1,6 +1,7 @@
 package schemas
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -31,13 +32,7 @@ func TestJSONSchemaParser_WithJJSchema(t *testing.T) {
 			t.Error("Expected some paths")
 		}
 		// Check for a known path
-		found := false
-		for _, p := range paths {
-			if p == "user.name" {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(paths, "user.name")
 		if !found {
 			t.Error("Expected to find user.name in paths")
 		}

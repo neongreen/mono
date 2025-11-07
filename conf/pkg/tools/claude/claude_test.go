@@ -62,7 +62,7 @@ func TestClaudeTool_SetConfig(t *testing.T) {
 		t.Fatalf("Failed to read config: %v", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestClaudeTool_GetConfig(t *testing.T) {
 	defer cleanup()
 
 	// Create initial config
-	data := map[string]interface{}{
+	data := map[string]any{
 		"model":                 "sonnet",
 		"alwaysThinkingEnabled": true,
 		"outputStyle":           "markdown",
@@ -97,7 +97,7 @@ func TestClaudeTool_GetConfig(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     string
-		expected interface{}
+		expected any
 	}{
 		{
 			name:     "get model",
@@ -135,7 +135,7 @@ func TestClaudeTool_UnsetConfig(t *testing.T) {
 	defer cleanup()
 
 	// Create initial config
-	data := map[string]interface{}{
+	data := map[string]any{
 		"model":                 "sonnet",
 		"alwaysThinkingEnabled": true,
 	}
@@ -179,7 +179,7 @@ func TestClaudeTool_SetAllValues(t *testing.T) {
 		t.Fatalf("Failed to create Claude tool: %v", err)
 	}
 
-	values := map[string]interface{}{
+	values := map[string]any{
 		"model":                 "sonnet",
 		"alwaysThinkingEnabled": true,
 		"outputStyle":           "markdown",

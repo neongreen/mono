@@ -138,11 +138,11 @@ func runSmokeTest(config externaltest.ProjectConfig) *externaltest.TestResult {
 type mockLogger struct{}
 
 func (m *mockLogger) Helper() {}
-func (m *mockLogger) Fatalf(format string, args ...interface{}) {
+func (m *mockLogger) Fatalf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format+"\n", args...)
 	os.Exit(1)
 }
-func (m *mockLogger) Logf(format string, args ...interface{}) { fmt.Printf(format+"\n", args...) }
+func (m *mockLogger) Logf(format string, args ...any) { fmt.Printf(format+"\n", args...) }
 
 // extractProjectName extracts a project name from a git URL
 func extractProjectName(url string) string {

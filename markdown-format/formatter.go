@@ -166,10 +166,10 @@ func writeListItemContent(item *ast.ListItem, source []byte, w io.Writer) error 
 
 			nestedContent := nestedBuf.String()
 			if strings.TrimSpace(nestedContent) != "" {
-				lines := strings.Split(strings.
+				lines := strings.SplitSeq(strings.
 					TrimRight(nestedContent, "\n"),
 					"\n")
-				for _, line := range lines {
+				for line := range lines {
 					w.Write([]byte("  "))
 					w.Write(
 						[]byte(line))
@@ -244,11 +244,11 @@ func collectInlineText(
 		case
 			*ast.Emphasis:
 			level := n.Level
-			for i := 0; i < level; i++ {
+			for range level {
 				buf.Write([]byte("*"))
 			}
 			collectInlineText(child, source, buf)
-			for i := 0; i < level; i++ {
+			for range level {
 				buf.
 					Write([]byte("*"))
 			}

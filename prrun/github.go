@@ -17,7 +17,7 @@ var (
 	prURLRegex = regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/pull/(\d+)`)
 )
 
-func debugLog(format string, args ...interface{}) {
+func debugLog(format string, args ...any) {
 	if debugMode {
 		fmt.Fprintf(os.Stderr, "[DEBUG] "+format+"\n", args...)
 	}

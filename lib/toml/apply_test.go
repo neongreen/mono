@@ -15,7 +15,7 @@ func TestWriteFile(t *testing.T) {
 		tempDir := t.TempDir()
 		filePath := filepath.Join(tempDir, "test.toml")
 
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name":    "test",
 			"version": "1.0.0",
 			"enabled": true,
@@ -61,7 +61,7 @@ other = "preserved"`
 		}
 
 		// Update with new values
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name":    "new",
 			"version": "1.0.0",
 		}
@@ -92,7 +92,7 @@ other = "preserved"`
 		tempDir := t.TempDir()
 		filePath := filepath.Join(tempDir, "subdir1", "subdir2", "test.toml")
 
-		values := map[string]interface{}{
+		values := map[string]any{
 			"test": "value",
 		}
 
@@ -110,8 +110,8 @@ other = "preserved"`
 		tempDir := t.TempDir()
 		filePath := filepath.Join(tempDir, "test.toml")
 
-		values := map[string]interface{}{
-			"database": map[string]interface{}{
+		values := map[string]any{
+			"database": map[string]any{
 				"host": "localhost",
 				"port": 5432,
 			},
@@ -141,7 +141,7 @@ other = "preserved"`
 		}
 
 		invalidPath := filepath.Join(existingFile, "subdir", "test.toml")
-		values := map[string]interface{}{"test": "value"}
+		values := map[string]any{"test": "value"}
 
 		err := WriteFile(invalidPath, values)
 		if err == nil {
@@ -158,7 +158,7 @@ func TestApplyMap(t *testing.T) {
 			t.Fatalf("ParseString() error = %v", err)
 		}
 
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name":    "test",
 			"version": "1.0.0",
 		}
@@ -183,7 +183,7 @@ version = "0.9.0"`)
 			t.Fatalf("ParseString() error = %v", err)
 		}
 
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name": "new",
 		}
 
@@ -208,7 +208,7 @@ other = "value"`)
 			t.Fatalf("ParseString() error = %v", err)
 		}
 
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name": "updated",
 		}
 
@@ -234,8 +234,8 @@ other = "value"`)
 			t.Fatalf("ParseString() error = %v", err)
 		}
 
-		values := map[string]interface{}{
-			"database": map[string]interface{}{
+		values := map[string]any{
+			"database": map[string]any{
 				"host": "localhost",
 				"port": 5432,
 			},
@@ -256,7 +256,7 @@ other = "value"`)
 
 	t.Run("returns error for nil document", func(t *testing.T) {
 		var doc *Document
-		values := map[string]interface{}{"test": "value"}
+		values := map[string]any{"test": "value"}
 
 		err := doc.ApplyMap(values)
 		if err == nil {
@@ -273,8 +273,8 @@ other = "value"`)
 			t.Fatalf("ParseString() error = %v", err)
 		}
 
-		values := map[string]interface{}{
-			"items": []interface{}{"a", "b", "c"},
+		values := map[string]any{
+			"items": []any{"a", "b", "c"},
 		}
 
 		err = doc.ApplyMap(values)
@@ -299,7 +299,7 @@ other = "value"`)
 			t.Fatalf("ParseString() error = %v", err)
 		}
 
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name": "updated",
 		}
 
@@ -325,7 +325,7 @@ other = "value"`)
 			t.Fatalf("ParseString() error = %v", err)
 		}
 
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name":    "test",
 			"version": "1.0.0",
 		}
@@ -349,7 +349,7 @@ other = "value"`)
 			t.Fatalf("ParseString() error = %v", err)
 		}
 
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name": "test",
 		}
 
@@ -365,7 +365,7 @@ other = "value"`)
 
 	t.Run("returns error for nil document", func(t *testing.T) {
 		var doc *Document
-		values := map[string]interface{}{"test": "value"}
+		values := map[string]any{"test": "value"}
 
 		err := doc.ReplaceMap(values)
 		if err == nil {
@@ -380,7 +380,7 @@ other = "value"`)
 // TestFlattenValues tests flattening nested maps
 func TestFlattenValues(t *testing.T) {
 	t.Run("flattens simple map", func(t *testing.T) {
-		values := map[string]interface{}{
+		values := map[string]any{
 			"name":    "test",
 			"version": "1.0.0",
 		}
@@ -398,8 +398,8 @@ func TestFlattenValues(t *testing.T) {
 	})
 
 	t.Run("flattens nested map", func(t *testing.T) {
-		values := map[string]interface{}{
-			"database": map[string]interface{}{
+		values := map[string]any{
+			"database": map[string]any{
 				"host": "localhost",
 				"port": 5432,
 			},
@@ -425,7 +425,7 @@ func TestFlattenValues(t *testing.T) {
 	})
 
 	t.Run("handles special characters in keys", func(t *testing.T) {
-		values := map[string]interface{}{
+		values := map[string]any{
 			"key.with.dots":   "value1",
 			"key with spaces": "value2",
 		}
@@ -445,9 +445,9 @@ func TestFlattenValues(t *testing.T) {
 	})
 
 	t.Run("handles deeply nested maps", func(t *testing.T) {
-		values := map[string]interface{}{
-			"level1": map[string]interface{}{
-				"level2": map[string]interface{}{
+		values := map[string]any{
+			"level1": map[string]any{
+				"level2": map[string]any{
 					"level3": "value",
 				},
 			},
@@ -463,7 +463,7 @@ func TestFlattenValues(t *testing.T) {
 // TestNormalizeValues tests value normalization
 func TestNormalizeValues(t *testing.T) {
 	t.Run("normalizes simple values", func(t *testing.T) {
-		values := map[string]interface{}{
+		values := map[string]any{
 			"string": "test",
 			"number": 42,
 			"bool":   true,
@@ -482,14 +482,14 @@ func TestNormalizeValues(t *testing.T) {
 	})
 
 	t.Run("normalizes nested maps", func(t *testing.T) {
-		values := map[string]interface{}{
-			"outer": map[string]interface{}{
+		values := map[string]any{
+			"outer": map[string]any{
 				"inner": "value",
 			},
 		}
 
 		result := normalizeValues(values)
-		outer, ok := result["outer"].(map[string]interface{})
+		outer, ok := result["outer"].(map[string]any)
 		if !ok {
 			t.Fatal("outer should be a map")
 		}
@@ -506,12 +506,12 @@ func TestNormalizeValues(t *testing.T) {
 	})
 
 	t.Run("normalizes arrays", func(t *testing.T) {
-		values := map[string]interface{}{
-			"items": []interface{}{"a", "b", "c"},
+		values := map[string]any{
+			"items": []any{"a", "b", "c"},
 		}
 
 		result := normalizeValues(values)
-		items, ok := result["items"].([]interface{})
+		items, ok := result["items"].([]any)
 		if !ok {
 			t.Fatal("items should be an array")
 		}
@@ -521,14 +521,14 @@ func TestNormalizeValues(t *testing.T) {
 	})
 
 	t.Run("handles dotted keys", func(t *testing.T) {
-		values := map[string]interface{}{
+		values := map[string]any{
 			"database.host": "localhost",
 			"database.port": 5432,
 		}
 
 		result := normalizeValues(values)
 		// Should create nested structure
-		if database, ok := result["database"].(map[string]interface{}); ok {
+		if database, ok := result["database"].(map[string]any); ok {
 			if database["host"] != "localhost" {
 				t.Errorf("database.host = %v, want %q", database["host"], "localhost")
 			}
@@ -592,7 +592,7 @@ func TestHelperFunctions(t *testing.T) {
 			t.Error("ensureMap(nil) should return non-nil map")
 		}
 
-		existingMap := map[string]interface{}{"test": "value"}
+		existingMap := map[string]any{"test": "value"}
 		result = ensureMap(existingMap)
 		if result["test"] != "value" {
 			t.Error("ensureMap should preserve existing values")
@@ -600,7 +600,7 @@ func TestHelperFunctions(t *testing.T) {
 	})
 
 	t.Run("setNestedValue creates nested structure", func(t *testing.T) {
-		m := make(map[string]interface{})
+		m := make(map[string]any)
 		key, err := parser.ParseKey("database.host")
 		if err != nil {
 			t.Fatalf("ParseKey() error = %v", err)
@@ -608,7 +608,7 @@ func TestHelperFunctions(t *testing.T) {
 
 		setNestedValue(m, key, "localhost")
 
-		database, ok := m["database"].(map[string]interface{})
+		database, ok := m["database"].(map[string]any)
 		if !ok {
 			t.Fatal("database should be a map")
 		}
@@ -618,7 +618,7 @@ func TestHelperFunctions(t *testing.T) {
 	})
 
 	t.Run("setNestedValue handles empty key", func(t *testing.T) {
-		m := make(map[string]interface{})
+		m := make(map[string]any)
 		key := parser.Key{}
 
 		// Should not panic

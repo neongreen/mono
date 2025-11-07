@@ -177,7 +177,7 @@ func ParseConverterList(convertersStr string) []Converter {
 	}
 
 	var converters []Converter
-	for _, name := range strings.Split(convertersStr, ",") {
+	for name := range strings.SplitSeq(convertersStr, ",") {
 		name = strings.TrimSpace(name)
 		switch strings.ToLower(name) {
 		case "typst":

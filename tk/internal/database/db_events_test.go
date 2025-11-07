@@ -29,7 +29,7 @@ func setupTestDB(t *testing.T) *DB {
 }
 
 func makeTaskCreatedPayload(taskUID string) json.RawMessage {
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"task_uid":     taskUID,
 		"project_uid":  "prj_test",
 		"title":        "Test Task",
@@ -41,7 +41,7 @@ func makeTaskCreatedPayload(taskUID string) json.RawMessage {
 }
 
 func makeStatusSetPayload(taskUID string, state string) json.RawMessage {
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"task_uuid": taskUID,
 		"task_id":   "",
 		"axis":      "generic",

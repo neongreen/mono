@@ -11,7 +11,7 @@ import (
 // It now wraps JSONSchemaParser which uses the jsonschema library properly
 type JJSchemaParser struct {
 	// Legacy field kept for compatibility, but not used
-	schema map[string]interface{}
+	schema map[string]any
 	// New field using proper jsonschema library
 	parser *JSONSchemaParser
 }
@@ -22,7 +22,7 @@ func NewJJSchemaParser() (*JJSchemaParser, error) {
 	parser, err := CompileJJSchema()
 	if err != nil {
 		// Fall back to manual parsing if compilation fails
-		var schema map[string]interface{}
+		var schema map[string]any
 		if unmarshalErr := json.Unmarshal([]byte(JJSchema), &schema); unmarshalErr != nil {
 			return nil, fmt.Errorf("failed to parse jj schema JSON: %w (jsonschema error: %v)", unmarshalErr, err)
 		}
@@ -49,7 +49,7 @@ func (p *JJSchemaParser) GetCompletionOptions(path string) []CompletionOption {
 	var options []CompletionOption
 
 	// Get the properties from the schema
-	properties, ok := p.schema["properties"].(map[string]interface{})
+	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
 		return options
 	}
@@ -57,7 +57,7 @@ func (p *JJSchemaParser) GetCompletionOptions(path string) []CompletionOption {
 	if path == "" {
 		// Return top-level properties
 		for name, prop := range properties {
-			if propMap, ok := prop.(map[string]interface{}); ok {
+			if propMap, ok := prop.(map[string]any); ok {
 				option := CompletionOption{
 					Name:        name,
 					Type:        getTypeFromProperty(propMap),
@@ -80,7 +80,7 @@ func (p *JJSchemaParser) GetCompletionOptions(path string) []CompletionOption {
 }
 
 // getNestedCompletionOptions navigates through nested properties to find completion options
-func (p *JJSchemaParser) getNestedCompletionOptions(properties map[string]interface{}, path string) []CompletionOption {
+func (p *JJSchemaParser) getNestedCompletionOptions(properties map[string]any, path string) []CompletionOption {
 	var options []CompletionOption
 
 	parts := strings.Split(path, ".")
@@ -89,12 +89,12 @@ func (p *JJSchemaParser) getNestedCompletionOptions(properties map[string]interf
 	// Navigate through the path
 	for i, part := range parts {
 		if prop, exists := current[part]; exists {
-			if propMap, ok := prop.(map[string]interface{}); ok {
+			if propMap, ok := prop.(map[string]any); ok {
 				if i == len(parts)-1 {
 					// This is the final part - return its sub-properties
-					if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 						for name, nestedProp := range nestedProps {
-							if nestedPropMap, ok := nestedProp.(map[string]interface{}); ok {
+							if nestedPropMap, ok := nestedProp.(map[string]any); ok {
 								option := CompletionOption{
 									Name:        name,
 									Type:        getTypeFromProperty(nestedPropMap),
@@ -107,7 +107,7 @@ func (p *JJSchemaParser) getNestedCompletionOptions(properties map[string]interf
 					return options
 				} else {
 					// Continue navigating
-					if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 						current = nestedProps
 					} else {
 						return options // Can't navigate further
@@ -134,7 +134,7 @@ func (p *JJSchemaParser) GetAllPaths() []string {
 	// Fallback to legacy implementation
 	var paths []string
 
-	properties, ok := p.schema["properties"].(map[string]interface{})
+	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
 		return paths
 	}
@@ -145,7 +145,7 @@ func (p *JJSchemaParser) GetAllPaths() []string {
 }
 
 // collectAllPaths recursively collects all possible paths
-func (p *JJSchemaParser) collectAllPaths(properties map[string]interface{}, prefix string) []string {
+func (p *JJSchemaParser) collectAllPaths(properties map[string]any, prefix string) []string {
 	var paths []string
 
 	for name, prop := range properties {
@@ -158,8 +158,8 @@ func (p *JJSchemaParser) collectAllPaths(properties map[string]interface{}, pref
 
 		paths = append(paths, currentPath)
 
-		if propMap, ok := prop.(map[string]interface{}); ok {
-			if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+		if propMap, ok := prop.(map[string]any); ok {
+			if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 				nestedPaths := p.collectAllPaths(nestedProps, currentPath)
 				paths = append(paths, nestedPaths...)
 			}
@@ -181,31 +181,31 @@ func (p *JJSchemaParser) ValidatePath(path string) bool {
 		return true
 	}
 
-	properties, ok := p.schema["properties"].(map[string]interface{})
+	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
 		return false
 	}
 
 	parts := strings.Split(path, ".")
 	current := properties
-	var currentPropSchema map[string]interface{}
+	var currentPropSchema map[string]any
 
 	for i, part := range parts {
 		// First, try to find the property in the current properties map
 		if prop, exists := current[part]; exists {
-			if propMap, ok := prop.(map[string]interface{}); ok {
+			if propMap, ok := prop.(map[string]any); ok {
 				currentPropSchema = propMap
 				if i == len(parts)-1 {
 					// This is the final part - it's valid
 					return true
 				}
 				// Continue navigating if there are nested properties
-				if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+				if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 					current = nestedProps
 					continue
 				}
 				// No explicit nested properties - check if this property allows additionalProperties
-				if additionalProps, ok := propMap["additionalProperties"].(map[string]interface{}); ok {
+				if additionalProps, ok := propMap["additionalProperties"].(map[string]any); ok {
 					// The property has additionalProperties - check if the remaining path is valid
 					// under the additionalProperties schema
 					return p.validateAgainstSchema(additionalProps, parts[i+1:])
@@ -218,7 +218,7 @@ func (p *JJSchemaParser) ValidatePath(path string) bool {
 
 		// Property doesn't exist in explicit properties - check if we're inside a property with additionalProperties
 		if currentPropSchema != nil {
-			if additionalProps, ok := currentPropSchema["additionalProperties"].(map[string]interface{}); ok {
+			if additionalProps, ok := currentPropSchema["additionalProperties"].(map[string]any); ok {
 				// Current property allows additionalProperties - validate remaining path against that schema
 				return p.validateAgainstSchema(additionalProps, parts[i:])
 			}
@@ -234,7 +234,7 @@ func (p *JJSchemaParser) ValidatePath(path string) bool {
 // validateAgainstSchema validates a path against a schema definition
 // This is used to validate paths under additionalProperties
 // parts[0] is the current property name to validate, parts[1:] are the remaining path segments
-func (p *JJSchemaParser) validateAgainstSchema(schema map[string]interface{}, parts []string) bool {
+func (p *JJSchemaParser) validateAgainstSchema(schema map[string]any, parts []string) bool {
 	if len(parts) == 0 {
 		return true
 	}
@@ -249,10 +249,10 @@ func (p *JJSchemaParser) validateAgainstSchema(schema map[string]interface{}, pa
 
 	// More parts remaining - check if the schema defines a structure that allows deeper nesting
 	// First, check if the schema has explicit properties
-	if nestedProps, ok := schema["properties"].(map[string]interface{}); ok {
+	if nestedProps, ok := schema["properties"].(map[string]any); ok {
 		// The schema has explicit properties - check if parts[1] is one of them
 		if prop, exists := nestedProps[parts[1]]; exists {
-			if propMap, ok := prop.(map[string]interface{}); ok {
+			if propMap, ok := prop.(map[string]any); ok {
 				// Found the property - continue validation with remaining parts
 				return p.validateAgainstSchema(propMap, parts[2:])
 			}
@@ -260,7 +260,7 @@ func (p *JJSchemaParser) validateAgainstSchema(schema map[string]interface{}, pa
 			return false
 		}
 		// parts[1] not in explicit properties - check if schema has additionalProperties
-		if additionalProps, ok := schema["additionalProperties"].(map[string]interface{}); ok {
+		if additionalProps, ok := schema["additionalProperties"].(map[string]any); ok {
 			return p.validateAgainstSchema(additionalProps, parts[1:])
 		}
 		// No additionalProperties and parts[1] not in properties - invalid
@@ -268,7 +268,7 @@ func (p *JJSchemaParser) validateAgainstSchema(schema map[string]interface{}, pa
 	}
 
 	// No explicit properties - check if schema has additionalProperties
-	if additionalProps, ok := schema["additionalProperties"].(map[string]interface{}); ok {
+	if additionalProps, ok := schema["additionalProperties"].(map[string]any); ok {
 		// Schema allows any nested property - validate remaining path against additionalProperties
 		return p.validateAgainstSchema(additionalProps, parts[1:])
 	}
@@ -299,7 +299,7 @@ func (p *JJSchemaParser) GetPropertyInfo(path string) (PropertyInfo, error) {
 		return PropertyInfo{}, fmt.Errorf("empty path")
 	}
 
-	properties, ok := p.schema["properties"].(map[string]interface{})
+	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
 		return PropertyInfo{}, fmt.Errorf("no properties found in schema")
 	}
@@ -309,7 +309,7 @@ func (p *JJSchemaParser) GetPropertyInfo(path string) (PropertyInfo, error) {
 
 	for i, part := range parts {
 		if prop, exists := current[part]; exists {
-			if propMap, ok := prop.(map[string]interface{}); ok {
+			if propMap, ok := prop.(map[string]any); ok {
 				if i == len(parts)-1 {
 					// This is the target property
 					return PropertyInfo{
@@ -321,7 +321,7 @@ func (p *JJSchemaParser) GetPropertyInfo(path string) (PropertyInfo, error) {
 					}, nil
 				} else {
 					// Continue navigating
-					if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 						current = nestedProps
 					} else {
 						return PropertyInfo{}, fmt.Errorf("cannot navigate to %s: no nested properties", part)
@@ -343,7 +343,7 @@ type PropertyInfo struct {
 	Name        string
 	Type        string
 	Description string
-	Default     interface{}
+	Default     any
 	Enum        []string
 }
 
@@ -352,9 +352,9 @@ type SettingInfo struct {
 	Path         string
 	Type         string
 	Description  string
-	Default      interface{}
+	Default      any
 	Enum         []string
-	CurrentValue interface{}
+	CurrentValue any
 	IsSet        bool
 }
 
@@ -368,7 +368,7 @@ func (p *JJSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
 	// Fallback to legacy implementation
 	var settings []SettingInfo
 
-	properties, ok := p.schema["properties"].(map[string]interface{})
+	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
 		return settings
 	}
@@ -384,7 +384,7 @@ func (p *JJSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
 }
 
 // collectAllSettingsWithInfo recursively collects all settings with their information
-func (p *JJSchemaParser) collectAllSettingsWithInfo(properties map[string]interface{}, prefix string) []SettingInfo {
+func (p *JJSchemaParser) collectAllSettingsWithInfo(properties map[string]any, prefix string) []SettingInfo {
 	var settings []SettingInfo
 
 	for name, prop := range properties {
@@ -395,7 +395,7 @@ func (p *JJSchemaParser) collectAllSettingsWithInfo(properties map[string]interf
 			currentPath = prefix + "." + name
 		}
 
-		if propMap, ok := prop.(map[string]interface{}); ok {
+		if propMap, ok := prop.(map[string]any); ok {
 			// Add this setting to the list
 			setting := SettingInfo{
 				Path:        currentPath,
@@ -408,7 +408,7 @@ func (p *JJSchemaParser) collectAllSettingsWithInfo(properties map[string]interf
 			settings = append(settings, setting)
 
 			// Recursively collect nested settings
-			if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+			if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 				nestedSettings := p.collectAllSettingsWithInfo(nestedProps, currentPath)
 				settings = append(settings, nestedSettings...)
 			}
@@ -419,30 +419,30 @@ func (p *JJSchemaParser) collectAllSettingsWithInfo(properties map[string]interf
 }
 
 // Helper functions to extract information from property maps
-func getTypeFromProperty(prop map[string]interface{}) string {
+func getTypeFromProperty(prop map[string]any) string {
 	if t, ok := prop["type"].(string); ok {
 		return t
 	}
 	return "unknown"
 }
 
-func getDescriptionFromProperty(prop map[string]interface{}) string {
+func getDescriptionFromProperty(prop map[string]any) string {
 	if desc, ok := prop["description"].(string); ok {
 		return desc
 	}
 	return ""
 }
 
-func getDefaultFromProperty(prop map[string]interface{}) interface{} {
+func getDefaultFromProperty(prop map[string]any) any {
 	if def, ok := prop["default"]; ok {
 		return def
 	}
 	return nil
 }
 
-func getEnumFromProperty(prop map[string]interface{}) []string {
+func getEnumFromProperty(prop map[string]any) []string {
 	if enumInterface, ok := prop["enum"]; ok {
-		if enumSlice, ok := enumInterface.([]interface{}); ok {
+		if enumSlice, ok := enumInterface.([]any); ok {
 			var enumStrings []string
 			for _, item := range enumSlice {
 				if str, ok := item.(string); ok {

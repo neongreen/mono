@@ -84,7 +84,7 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 
 	// Render frontmatter if present
 	if meta := frontmatter.Get(ctx); meta != nil {
-		var data map[string]interface{}
+		var data map[string]any
 		if err := meta.Decode(&data); err == nil && len(data) > 0 {
 			buf.WriteString(renderFrontmatterTypst(data))
 			buf.WriteString("\n")
@@ -100,7 +100,7 @@ func convertMarkdownToTypst(markdown []byte, options PageOptions) (string, error
 }
 
 // renderFrontmatterTypst renders frontmatter as a Typst styled block
-func renderFrontmatterTypst(data map[string]interface{}) string {
+func renderFrontmatterTypst(data map[string]any) string {
 	var buf strings.Builder
 	buf.WriteString("#block(\n")
 	buf.WriteString("  fill: rgb(\"#f6f8fa\"),\n")

@@ -2,6 +2,7 @@ package mise
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/neongreen/mono/conf/pkg/config"
@@ -59,7 +60,7 @@ func (m *MiseTool) SetDryRun(dryRun bool) {
 }
 
 // SetConfig sets a configuration value using dotted path notation
-func (m *MiseTool) SetConfig(path string, value interface{}) error {
+func (m *MiseTool) SetConfig(path string, value any) error {
 	// Validate the path exists in schema
 	if !m.ValidatePath(path) {
 		return fmt.Errorf("invalid configuration path: %s", path)
@@ -74,7 +75,7 @@ func (m *MiseTool) SetConfig(path string, value interface{}) error {
 }
 
 // GetConfig retrieves a configuration value using dotted path notation
-func (m *MiseTool) GetConfig(path string) (interface{}, error) {
+func (m *MiseTool) GetConfig(path string) (any, error) {
 	// Validate the path exists in schema
 	if !m.ValidatePath(path) {
 		return nil, fmt.Errorf("invalid configuration path: %s", path)
@@ -105,7 +106,7 @@ func (m *MiseTool) UnsetConfig(path string) error {
 }
 
 // PreviewSetConfig shows what setting a config value would do without doing it
-func (m *MiseTool) PreviewSetConfig(path string, value interface{}) (string, error) {
+func (m *MiseTool) PreviewSetConfig(path string, value any) (string, error) {
 	// Validate the path exists in schema
 	if !m.ValidatePath(path) {
 		return "", fmt.Errorf("invalid configuration path: %s", path)
@@ -153,13 +154,7 @@ func (m *MiseTool) ValidatePath(path string) bool {
 
 	// Allow common mise patterns even if not in schema
 	commonPrefixes := []string{"tools", "env", "tasks", "settings", "alias", "python", "ruby", "node"}
-	for _, prefix := range commonPrefixes {
-		if topLevel == prefix {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(commonPrefixes, topLevel)
 }
 
 // GetConfigPath returns the path to the mise configuration file
@@ -175,7 +170,7 @@ func (m *MiseTool) IsDryRun() bool {
 // SetAllValues sets multiple configuration values from a nested map structure
 // This is more efficient than setting individual paths as it avoids the need
 // to flatten/unflatten the structure and parse quoted keys
-func (m *MiseTool) SetAllValues(values map[string]interface{}) error {
+func (m *MiseTool) SetAllValues(values map[string]any) error {
 	if m.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil
@@ -281,6 +276,6 @@ func containsSubstring(s, substr string) bool {
 }
 
 // GetAllValues returns all configuration values from the mise config file as a nested map
-func (m *MiseTool) GetAllValues() (map[string]interface{}, error) {
+func (m *MiseTool) GetAllValues() (map[string]any, error) {
 	return m.editor.GetAllValues()
 }

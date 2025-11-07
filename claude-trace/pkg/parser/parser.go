@@ -66,9 +66,9 @@ const (
 )
 
 type ToolUse struct {
-	ID    string                 `json:"id"`
-	Name  string                 `json:"name"`
-	Input map[string]interface{} `json:"input,omitempty"`
+	ID    string         `json:"id"`
+	Name  string         `json:"name"`
+	Input map[string]any `json:"input,omitempty"`
 }
 
 type ToolResult struct {
@@ -99,7 +99,7 @@ func parseJSONLTrace(content string) (*ParsedTrace, error) {
 			continue
 		}
 
-		var raw map[string]interface{}
+		var raw map[string]any
 		if err := json.Unmarshal([]byte(line), &raw); err != nil {
 			continue // Skip malformed lines
 		}

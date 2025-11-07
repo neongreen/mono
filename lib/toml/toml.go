@@ -64,7 +64,7 @@ func ParseString(input string) (*Document, error) {
 
 // Get retrieves a value at the given dotted path (e.g., "server.host").
 // Returns nil if the path doesn't exist.
-func (d *Document) Get(path string) (interface{}, error) {
+func (d *Document) Get(path string) (any, error) {
 	keys, err := parseKeyPath(path)
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (d *Document) Get(path string) (interface{}, error) {
 // Set sets a value at the given dotted path, creating intermediate sections
 // if necessary. The value can be a string, int, float64, bool, or []interface{}.
 // This method preserves the original style (dotted keys vs sections, quote styles).
-func (d *Document) Set(path string, value interface{}) error {
+func (d *Document) Set(path string, value any) error {
 	keys, err := parseKeyPath(path)
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (d *Document) Set(path string, value interface{}) error {
 }
 
 // updateExistingKey updates an existing key while preserving its formatting
-func (d *Document) updateExistingKey(entry *tomledit.Entry, value interface{}) error {
+func (d *Document) updateExistingKey(entry *tomledit.Entry, value any) error {
 	oldValue := entry.KeyValue.Value
 
 	// Try to format the new value in the same style as the old value
@@ -121,7 +121,7 @@ func (d *Document) updateExistingKey(entry *tomledit.Entry, value interface{}) e
 }
 
 // formatValuePreservingStyle formats a value trying to match the style of an existing value
-func (d *Document) formatValuePreservingStyle(value interface{}, existingValue parser.Value) (parser.Value, error) {
+func (d *Document) formatValuePreservingStyle(value any, existingValue parser.Value) (parser.Value, error) {
 	// For strings, try to preserve quote style
 	if strValue, ok := value.(string); ok {
 		if token, ok := existingValue.X.(parser.Token); ok {
@@ -157,7 +157,7 @@ func (d *Document) formatValuePreservingStyle(value interface{}, existingValue p
 }
 
 // addNewKey adds a new key in an appropriate style (dotted key vs section)
-func (d *Document) addNewKey(keys parser.Key, value interface{}) error {
+func (d *Document) addNewKey(keys parser.Key, value any) error {
 	// Format the value
 	valueStr, err := FormatValueToString(value)
 	if err != nil {
@@ -368,7 +368,7 @@ func parseKeyPath(path string) (parser.Key, error) {
 }
 
 // parseValue converts a parser.Value into a Go value.
-func parseValue(v parser.Value) (interface{}, error) {
+func parseValue(v parser.Value) (any, error) {
 	switch datum := v.X.(type) {
 	case parser.Token:
 		// Get the string representation and parse it
@@ -402,7 +402,7 @@ func parseValue(v parser.Value) (interface{}, error) {
 		return text, nil
 
 	case parser.Array:
-		result := make([]interface{}, 0, len(datum))
+		result := make([]any, 0, len(datum))
 		for _, item := range datum {
 			if arrayItem, ok := item.(parser.Value); ok {
 				val, err := parseValue(arrayItem)
@@ -415,7 +415,7 @@ func parseValue(v parser.Value) (interface{}, error) {
 		return result, nil
 
 	case parser.Inline:
-		result := make(map[string]interface{})
+		result := make(map[string]any)
 		for _, kv := range datum {
 			val, err := parseValue(kv.Value)
 			if err != nil {
@@ -432,7 +432,7 @@ func parseValue(v parser.Value) (interface{}, error) {
 
 // FormatValueToString converts a Go value into a TOML value string.
 // This is useful for displaying values in a TOML-compatible format.
-func FormatValueToString(v interface{}) (string, error) {
+func FormatValueToString(v any) (string, error) {
 	switch val := v.(type) {
 	case string:
 		// Quote and escape the string
@@ -453,7 +453,7 @@ func FormatValueToString(v interface{}) (string, error) {
 		}
 		return "false", nil
 
-	case []interface{}:
+	case []any:
 		parts := make([]string, len(val))
 		for i, item := range val {
 			s, err := FormatValueToString(item)
@@ -478,7 +478,7 @@ func FormatValueToString(v interface{}) (string, error) {
 		}
 		return "[" + strings.Join(parts, ", ") + "]", nil
 
-	case map[string]interface{}:
+	case map[string]any:
 		parts := make([]string, 0, len(val))
 		for k, v := range val {
 			vs, err := FormatValueToString(v)

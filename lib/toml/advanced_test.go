@@ -240,7 +240,7 @@ hosts = [
 	// Test various operations
 	tests := []struct {
 		path  string
-		value interface{}
+		value any
 	}{
 		{"title", "TOML Example Updated"},
 		{"database.connection_max", 10000},
@@ -303,7 +303,7 @@ url = "postgres://localhost/db"
 
 	// Test concurrent reads (writes would need synchronization from the caller)
 	done := make(chan bool)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			val, _ := doc.Get("server.host")
 			if val != "localhost" {
@@ -313,7 +313,7 @@ url = "postgres://localhost/db"
 		}()
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 }
@@ -322,11 +322,11 @@ url = "postgres://localhost/db"
 func TestEmptyValues(t *testing.T) {
 	tests := []struct {
 		name  string
-		value interface{}
+		value any
 	}{
 		{"empty string", ""},
-		{"empty array", []interface{}{}},
-		{"empty map", map[string]interface{}{}},
+		{"empty array", []any{}},
+		{"empty map", map[string]any{}},
 	}
 
 	for _, tt := range tests {
@@ -350,12 +350,12 @@ func TestEmptyValues(t *testing.T) {
 				if _, ok := got.(string); !ok {
 					t.Errorf("Expected string, got %T", got)
 				}
-			case []interface{}:
-				if _, ok := got.([]interface{}); !ok {
+			case []any:
+				if _, ok := got.([]any); !ok {
 					t.Errorf("Expected []interface{}, got %T", got)
 				}
-			case map[string]interface{}:
-				if _, ok := got.(map[string]interface{}); !ok {
+			case map[string]any:
+				if _, ok := got.(map[string]any); !ok {
 					t.Errorf("Expected map[string]interface{}, got %T", got)
 				}
 			}
@@ -382,7 +382,7 @@ port = 8080
 	}
 
 	// Update multiple values
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"app.name":        "newapp",
 		"app.version":     2,
 		"app.debug":       true,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"log"
+	"slices"
 
 	"github.com/spf13/cobra"
 )
@@ -19,13 +20,7 @@ func runList(cmd *cobra.Command, args []string) {
 	totalTraces := 0
 	foundLocations := 0
 	for _, location := range allLocations {
-		exists := false
-		for _, existingPath := range existingPaths {
-			if existingPath == location {
-				exists = true
-				break
-			}
-		}
+		exists := slices.Contains(existingPaths, location)
 		if exists {
 			count, err := storage.CountTracesInDirectory(location)
 			if err != nil {

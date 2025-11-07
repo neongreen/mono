@@ -1,7 +1,6 @@
 package github
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -116,8 +115,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewClientWithContext(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	client := NewClientWithContext(ctx)
 	if client.ctx != ctx {

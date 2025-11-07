@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -70,11 +71,12 @@ func responseKey(tool string, args map[string]any) string {
 			}
 		}
 	}
-	result := tool
+	var result strings.Builder
+	result.WriteString(tool)
 	for _, p := range parts {
-		result += fmt.Sprintf("|%s=%v", p.k, p.v)
+		result.WriteString(fmt.Sprintf("|%s=%v", p.k, p.v))
 	}
-	return result
+	return result.String()
 }
 
 func textResult(text string) *sdkmcp.CallToolResult {

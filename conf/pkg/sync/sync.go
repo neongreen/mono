@@ -2,6 +2,7 @@ package sync
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 
@@ -33,7 +34,7 @@ func ICloudDrivePath() (string, error) {
 }
 
 // DownloadFromICloud downloads a tool's config from iCloud Drive
-func DownloadFromICloud(toolName string) (map[string]interface{}, error) {
+func DownloadFromICloud(toolName string) (map[string]any, error) {
 	icloudPath, err := ICloudDrivePath()
 	if err != nil {
 		return nil, err
@@ -53,7 +54,7 @@ func DownloadFromICloud(toolName string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to read iCloud config: %w", err)
 	}
 
-	var values map[string]interface{}
+	var values map[string]any
 	if err := toml.Unmarshal(data, &values); err != nil {
 		return nil, fmt.Errorf("failed to parse iCloud config: %w", err)
 	}
@@ -62,7 +63,7 @@ func DownloadFromICloud(toolName string) (map[string]interface{}, error) {
 }
 
 // UploadToICloud uploads a tool's config to iCloud Drive
-func UploadToICloud(toolName string, values map[string]interface{}) error {
+func UploadToICloud(toolName string, values map[string]any) error {
 	icloudPath, err := ICloudDrivePath()
 	if err != nil {
 		return err
@@ -86,14 +87,12 @@ func UploadToICloud(toolName string, values map[string]interface{}) error {
 
 // MergeConfigs merges local and iCloud configs
 // For conflicting keys, uses Last-Write-Wins based on file modification times
-func MergeConfigs(local, icloud map[string]interface{}, localMtime, icloudMtime int64) map[string]interface{} {
+func MergeConfigs(local, icloud map[string]any, localMtime, icloudMtime int64) map[string]any {
 	localFlat := config.FlattenValues(local)
 	icloudFlat := config.FlattenValues(icloud)
 
-	resultFlat := make(map[string]interface{}, len(localFlat))
-	for k, v := range localFlat {
-		resultFlat[k] = v
-	}
+	resultFlat := make(map[string]any, len(localFlat))
+	maps.Copy(resultFlat, localFlat)
 
 	// Add/override with iCloud keys
 	for k, v := range icloudFlat {
@@ -106,14 +105,14 @@ func MergeConfigs(local, icloud map[string]interface{}, localMtime, icloudMtime 
 }
 
 // GetLocalValues returns the values for a tool from local config
-func GetLocalValues(conf *config.Config, toolName string) (map[string]interface{}, error) {
+func GetLocalValues(conf *config.Config, toolName string) (map[string]any, error) {
 	tool, exists := conf.GetTool(toolName)
 	if !exists {
 		return nil, fmt.Errorf("tool %s not configured", toolName)
 	}
 
 	if tool.Values == nil {
-		return make(map[string]interface{}), nil
+		return make(map[string]any), nil
 	}
 
 	return tool.Values, nil

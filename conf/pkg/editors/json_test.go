@@ -16,15 +16,15 @@ func TestJSONEditor_SetValue(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     string
-		value    interface{}
-		expected map[string]interface{}
+		value    any
+		expected map[string]any
 	}{
 		{
 			name:  "set simple string value",
 			path:  "user.name",
 			value: "Alice",
-			expected: map[string]interface{}{
-				"user": map[string]interface{}{
+			expected: map[string]any{
+				"user": map[string]any{
 					"name": "Alice",
 				},
 			},
@@ -33,11 +33,11 @@ func TestJSONEditor_SetValue(t *testing.T) {
 			name:  "set boolean value",
 			path:  "settings.enabled",
 			value: true,
-			expected: map[string]interface{}{
-				"user": map[string]interface{}{
+			expected: map[string]any{
+				"user": map[string]any{
 					"name": "Alice",
 				},
-				"settings": map[string]interface{}{
+				"settings": map[string]any{
 					"enabled": true,
 				},
 			},
@@ -46,11 +46,11 @@ func TestJSONEditor_SetValue(t *testing.T) {
 			name:  "set number value",
 			path:  "settings.timeout",
 			value: float64(30),
-			expected: map[string]interface{}{
-				"user": map[string]interface{}{
+			expected: map[string]any{
+				"user": map[string]any{
 					"name": "Alice",
 				},
-				"settings": map[string]interface{}{
+				"settings": map[string]any{
 					"enabled": true,
 					"timeout": float64(30),
 				},
@@ -70,7 +70,7 @@ func TestJSONEditor_SetValue(t *testing.T) {
 				t.Fatalf("Failed to read file: %v", err)
 			}
 
-			var result map[string]interface{}
+			var result map[string]any
 			if err := json.Unmarshal(content, &result); err != nil {
 				t.Fatalf("Failed to parse JSON: %v", err)
 			}
@@ -87,12 +87,12 @@ func TestJSONEditor_GetValue(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.json")
 
 	// Create initial JSON file
-	data := map[string]interface{}{
-		"user": map[string]interface{}{
+	data := map[string]any{
+		"user": map[string]any{
 			"name":  "Alice",
 			"email": "alice@example.com",
 		},
-		"settings": map[string]interface{}{
+		"settings": map[string]any{
 			"enabled": true,
 			"timeout": float64(30),
 		},
@@ -106,7 +106,7 @@ func TestJSONEditor_GetValue(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     string
-		expected interface{}
+		expected any
 		wantErr  bool
 	}{
 		{
@@ -130,7 +130,7 @@ func TestJSONEditor_GetValue(t *testing.T) {
 		{
 			name:     "get nested object",
 			path:     "user",
-			expected: map[string]interface{}{"name": "Alice", "email": "alice@example.com"},
+			expected: map[string]any{"name": "Alice", "email": "alice@example.com"},
 			wantErr:  false,
 		},
 		{
@@ -160,12 +160,12 @@ func TestJSONEditor_UnsetValue(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.json")
 
 	// Create initial JSON file
-	data := map[string]interface{}{
-		"user": map[string]interface{}{
+	data := map[string]any{
+		"user": map[string]any{
 			"name":  "Alice",
 			"email": "alice@example.com",
 		},
-		"settings": map[string]interface{}{
+		"settings": map[string]any{
 			"enabled": true,
 		},
 	}
@@ -212,12 +212,12 @@ func TestJSONEditor_GetAllValues(t *testing.T) {
 	testFile := filepath.Join(tmpDir, "test.json")
 
 	// Create initial JSON file
-	expected := map[string]interface{}{
-		"user": map[string]interface{}{
+	expected := map[string]any{
+		"user": map[string]any{
 			"name":  "Alice",
 			"email": "alice@example.com",
 		},
-		"settings": map[string]interface{}{
+		"settings": map[string]any{
 			"enabled": true,
 		},
 	}
@@ -243,12 +243,12 @@ func TestJSONEditor_SetAllValues(t *testing.T) {
 
 	editor := NewJSONEditor(testFile)
 
-	values := map[string]interface{}{
-		"user": map[string]interface{}{
+	values := map[string]any{
+		"user": map[string]any{
 			"name":  "Bob",
 			"email": "bob@example.com",
 		},
-		"settings": map[string]interface{}{
+		"settings": map[string]any{
 			"theme": "dark",
 		},
 	}
@@ -263,7 +263,7 @@ func TestJSONEditor_SetAllValues(t *testing.T) {
 		t.Fatalf("Failed to read file: %v", err)
 	}
 
-	var result map[string]interface{}
+	var result map[string]any
 	if err := json.Unmarshal(content, &result); err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
@@ -291,7 +291,7 @@ func TestJSONEditor_DryRun(t *testing.T) {
 }
 
 // Helper function for deep equality comparison
-func deepEqual(a, b interface{}) bool {
+func deepEqual(a, b any) bool {
 	aJSON, _ := json.Marshal(a)
 	bJSON, _ := json.Marshal(b)
 	return string(aJSON) == string(bJSON)

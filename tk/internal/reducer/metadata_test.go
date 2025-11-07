@@ -9,7 +9,7 @@ import (
 )
 
 // marshalPayload is a local test helper (can't use testutil due to import cycle)
-func marshalPayload(v interface{}) json.RawMessage {
+func marshalPayload(v any) json.RawMessage {
 	data, _ := json.Marshal(v)
 	return json.RawMessage(data)
 }

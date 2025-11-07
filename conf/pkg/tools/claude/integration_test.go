@@ -43,7 +43,7 @@ path = "` + claudeConfigPath + `"
 	// Test setting various configuration values
 	testCases := []struct {
 		path  string
-		value interface{}
+		value any
 	}{
 		{"model", "sonnet"},
 		{"alwaysThinkingEnabled", true},
@@ -63,7 +63,7 @@ path = "` + claudeConfigPath + `"
 		t.Fatalf("Failed to read config file: %v", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
@@ -112,7 +112,7 @@ path = "` + claudeConfigPath + `"
 		t.Fatalf("Failed to read config file: %v", err)
 	}
 
-	var finalData map[string]interface{}
+	var finalData map[string]any
 	if err := json.Unmarshal(content, &finalData); err != nil {
 		t.Fatalf("Failed to parse JSON after unset: %v", err)
 	}
@@ -189,7 +189,7 @@ path = "` + claudeConfigPath + `"
 		t.Fatalf("Failed to read config file: %v", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}

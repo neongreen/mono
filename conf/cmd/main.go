@@ -1043,7 +1043,7 @@ func importTool(conf *config.Config, toolName string, dryRun bool) error {
 }
 
 // getTargetConfigValues reads all values from a tool's target config file
-func getTargetConfigValues(toolName string) (map[string]interface{}, error) {
+func getTargetConfigValues(toolName string) (map[string]any, error) {
 	switch toolName {
 	case "jj":
 		jjTool, err := jjtool.NewJJTool()
@@ -1513,7 +1513,7 @@ func readFileContentSafe(path string) (string, error) {
 }
 
 // applyToolValue applies a single configuration value to a tool
-func applyToolValue(toolName, path string, value interface{}) error {
+func applyToolValue(toolName, path string, value any) error {
 	return tools.ApplyToolValue(toolName, path, value)
 }
 

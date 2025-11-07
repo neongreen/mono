@@ -13,7 +13,7 @@ type SegmentEvent struct {
 	Actor   string          `json:"actor"`
 	Role    string          `json:"role"`
 	Kind    string          `json:"kind"`
-	Payload interface{}     `json:"payload"`
+	Payload any             `json:"payload"`
 	Ctx     *SegmentContext `json:"ctx"`
 }
 

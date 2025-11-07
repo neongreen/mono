@@ -208,10 +208,10 @@ func (s *ShimsTool) extractCommandFromShim(shimPath string) (string, error) {
 		return "", err
 	}
 
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "# Command: ") {
-			return strings.TrimPrefix(line, "# Command: "), nil
+	lines := strings.SplitSeq(string(content), "\n")
+	for line := range lines {
+		if after, ok := strings.CutPrefix(line, "# Command: "); ok {
+			return after, nil
 		}
 	}
 

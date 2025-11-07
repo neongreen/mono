@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 
@@ -41,7 +42,7 @@ func TestCollisionDetection_LocalNodeInRemote(t *testing.T) {
 			Actor:   "test-user",
 			Role:    "human",
 			Kind:    "task.created",
-			Payload: map[string]interface{}{"title": "Test task"},
+			Payload: map[string]any{"title": "Test task"},
 		},
 		{
 			Schema:  "v1",
@@ -53,7 +54,7 @@ func TestCollisionDetection_LocalNodeInRemote(t *testing.T) {
 			Actor:   "test-user",
 			Role:    "human",
 			Kind:    "task.created",
-			Payload: map[string]interface{}{"title": "Another task"},
+			Payload: map[string]any{"title": "Another task"},
 		},
 	}
 
@@ -83,13 +84,7 @@ func TestCollisionDetection_LocalNodeInRemote(t *testing.T) {
 
 	// Also check that non-local nodes were recorded
 	seenNodes := checker.GetSeenNodes()
-	foundOtherNode := false
-	for _, node := range seenNodes {
-		if node == "node-xyz789" {
-			foundOtherNode = true
-			break
-		}
-	}
+	foundOtherNode := slices.Contains(seenNodes, "node-xyz789")
 	if !foundOtherNode {
 		t.Errorf("Expected to see node-xyz789 in seenNodes, but it was not found")
 	}
@@ -119,7 +114,7 @@ func TestCollisionDetection_OnlyRemoteNodes(t *testing.T) {
 			Actor:   "test-user",
 			Role:    "human",
 			Kind:    "task.created",
-			Payload: map[string]interface{}{"title": "Test task"},
+			Payload: map[string]any{"title": "Test task"},
 		},
 		{
 			Schema:  "v1",
@@ -131,7 +126,7 @@ func TestCollisionDetection_OnlyRemoteNodes(t *testing.T) {
 			Actor:   "test-user",
 			Role:    "human",
 			Kind:    "task.created",
-			Payload: map[string]interface{}{"title": "Another task"},
+			Payload: map[string]any{"title": "Another task"},
 		},
 	}
 

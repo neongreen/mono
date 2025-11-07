@@ -7,7 +7,7 @@ import (
 )
 
 // parseValue attempts to parse a string value into the appropriate type
-func parseValue(value string) interface{} {
+func parseValue(value string) any {
 
 	if value == "true" || value == "false" {
 		return value == "true"
@@ -25,7 +25,7 @@ func parseValue(value string) interface{} {
 }
 
 // formatValueAsTOML formats a value as TOML-compatible string representation
-func formatValueAsTOML(value interface{}) string {
+func formatValueAsTOML(value any) string {
 	if value == nil {
 		return "(not set)"
 	}

@@ -1,6 +1,7 @@
 package schemas
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -138,13 +139,7 @@ func TestMiseSchemaParser_GetAllPaths(t *testing.T) {
 	}
 
 	for _, expectedPath := range expectedPaths {
-		found := false
-		for _, path := range paths {
-			if path == expectedPath {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(paths, expectedPath)
 		if !found {
 			t.Errorf("Expected path %q not found in results", expectedPath)
 		}

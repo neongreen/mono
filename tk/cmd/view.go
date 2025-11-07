@@ -127,8 +127,8 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 			}
 			if note.Markdown != "" {
 				// Indent note content
-				lines := strings.Split(note.Markdown, "\n")
-				for _, line := range lines {
+				lines := strings.SplitSeq(note.Markdown, "\n")
+				for line := range lines {
 					fmt.Printf("  %s\n", line)
 				}
 			}
@@ -150,7 +150,7 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 			meta := task.Metadata[key]
 
 			// Display effective value
-			var effectiveValue interface{}
+			var effectiveValue any
 			if err := json.Unmarshal(meta.Effective, &effectiveValue); err == nil {
 				fmt.Printf("  %s: %v", key, formatMetadataValue(effectiveValue))
 
@@ -176,16 +176,16 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 }
 
 // formatMetadataValue formats a metadata value for display
-func formatMetadataValue(value interface{}) string {
+func formatMetadataValue(value any) string {
 	switch v := value.(type) {
-	case []interface{}:
+	case []any:
 		// Format arrays
 		var items []string
 		for _, item := range v {
 			items = append(items, fmt.Sprintf("%v", item))
 		}
 		return "[" + strings.Join(items, ", ") + "]"
-	case map[string]interface{}:
+	case map[string]any:
 		// Format objects as JSON
 		data, _ := json.Marshal(v)
 		return string(data)

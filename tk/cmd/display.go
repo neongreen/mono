@@ -94,7 +94,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 		// Extract priority
 		priority := ""
 		if meta, ok := task.Metadata["priority"]; ok {
-			var p interface{}
+			var p any
 			if err := json.Unmarshal(meta.Effective, &p); err == nil {
 				priority = fmt.Sprintf("%v", p)
 			}
@@ -103,7 +103,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 		// Extract labels
 		labelsStr := ""
 		if meta, ok := task.Metadata["labels"]; ok {
-			var labels []interface{}
+			var labels []any
 			if err := json.Unmarshal(meta.Effective, &labels); err == nil && len(labels) > 0 {
 				var labelStrs []string
 				for _, l := range labels {

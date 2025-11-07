@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"slices"
 	"sort"
 	"strings"
 	"testing"
@@ -91,12 +92,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 }
 
 func contains(slice []string, str string) bool {
-	for _, s := range slice {
-		if s == str {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(slice, str)
 }
 
 func TestLsWithoutProjectFilterShowsAllProjects(t *testing.T) {

@@ -179,7 +179,7 @@ func MustJSON(t *testing.T, v any) json.RawMessage {
 }
 
 // MarshalPayload marshals a value to JSON without test context
-func MarshalPayload(v interface{}) json.RawMessage {
+func MarshalPayload(v any) json.RawMessage {
 	data, _ := json.Marshal(v)
 	return json.RawMessage(data)
 }

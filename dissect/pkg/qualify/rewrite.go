@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"log/slog"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/neongreen/mono/dissect/pkg/goutils"
@@ -151,11 +152,9 @@ func QualifyReferences(
 			}
 		case *ast.ValueSpec:
 			// Skip variable/const names in declaration (but not type references)
-			for _, name := range p.Names {
-				if name == ident {
-					slog.Debug("Skipping variable name in declaration", "name", ident.Name)
-					return true
-				}
+			if slices.Contains(p.Names, ident) {
+				slog.Debug("Skipping variable name in declaration", "name", ident.Name)
+				return true
 			}
 		}
 
@@ -168,11 +167,8 @@ func QualifyReferences(
 			canQualify = false
 		case *ast.Field:
 			// Don't qualify field names in struct definitions
-			for _, name := range p.Names {
-				if name == ident {
-					canQualify = false
-					break
-				}
+			if slices.Contains(p.Names, ident) {
+				canQualify = false
 			}
 		case *ast.AssignStmt:
 			// Check if ident is on the left side of assignment (definition)

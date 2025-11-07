@@ -2,6 +2,7 @@ package claude
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
@@ -58,7 +59,7 @@ func (c *ClaudeTool) SetDryRun(dryRun bool) {
 }
 
 // SetConfig sets a configuration value using dotted path notation
-func (c *ClaudeTool) SetConfig(path string, value interface{}) error {
+func (c *ClaudeTool) SetConfig(path string, value any) error {
 	// Validate the path exists in schema
 	if !c.parser.ValidatePath(path) {
 		return c.createInvalidPathError(path)
@@ -73,7 +74,7 @@ func (c *ClaudeTool) SetConfig(path string, value interface{}) error {
 }
 
 // GetConfig retrieves a configuration value using dotted path notation
-func (c *ClaudeTool) GetConfig(path string) (interface{}, error) {
+func (c *ClaudeTool) GetConfig(path string) (any, error) {
 	// Validate the path exists in schema
 	if !c.parser.ValidatePath(path) {
 		return nil, c.createInvalidPathError(path)
@@ -104,7 +105,7 @@ func (c *ClaudeTool) UnsetConfig(path string) error {
 }
 
 // PreviewSetConfig shows what setting a config value would do without doing it
-func (c *ClaudeTool) PreviewSetConfig(path string, value interface{}) (string, error) {
+func (c *ClaudeTool) PreviewSetConfig(path string, value any) (string, error) {
 	// Validate the path exists in schema
 	if !c.parser.ValidatePath(path) {
 		return "", fmt.Errorf("invalid configuration path: %s", path)
@@ -134,12 +135,12 @@ func (c *ClaudeTool) IsDryRun() bool {
 }
 
 // GetAllValues returns all configuration values from the Claude config file as a nested map
-func (c *ClaudeTool) GetAllValues() (map[string]interface{}, error) {
+func (c *ClaudeTool) GetAllValues() (map[string]any, error) {
 	return c.editor.GetAllValues()
 }
 
 // SetAllValues sets multiple configuration values from a nested map structure
-func (c *ClaudeTool) SetAllValues(values map[string]interface{}) error {
+func (c *ClaudeTool) SetAllValues(values map[string]any) error {
 	if c.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil
@@ -164,18 +165,19 @@ func (c *ClaudeTool) createInvalidPathError(path string) error {
 		}
 	}
 
-	errorMsg := fmt.Sprintf("invalid configuration path: %s", path)
+	var errorMsg strings.Builder
+	errorMsg.WriteString(fmt.Sprintf("invalid configuration path: %s", path))
 
 	if len(suggestions) > 0 {
-		errorMsg += "\n\nDid you mean one of these?"
+		errorMsg.WriteString("\n\nDid you mean one of these?")
 		for _, suggestion := range suggestions {
-			errorMsg += fmt.Sprintf("\n  - %s", suggestion)
+			errorMsg.WriteString(fmt.Sprintf("\n  - %s", suggestion))
 		}
 	} else {
-		errorMsg += "\n\nUse 'conf claude list' to see available configuration options"
+		errorMsg.WriteString("\n\nUse 'conf claude list' to see available configuration options")
 	}
 
-	return fmt.Errorf("%s", errorMsg)
+	return fmt.Errorf("%s", errorMsg.String())
 }
 
 // containsSubstring checks if s contains substr (case-insensitive)

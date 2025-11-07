@@ -8,12 +8,12 @@ import (
 func TestFormatWriteToolArguments(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    map[string]interface{}
+		input    map[string]any
 		expected string
 	}{
 		{
 			name: "normal write tool arguments",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"file_path": "/path/to/file.txt",
 				"content":   "Hello, world!",
 			},
@@ -21,7 +21,7 @@ func TestFormatWriteToolArguments(t *testing.T) {
 		},
 		{
 			name: "write tool with unexpected fields",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"file_path":     "/path/to/file.txt",
 				"content":       "Hello, world!",
 				"extra_field":   "unexpected",
@@ -31,14 +31,14 @@ func TestFormatWriteToolArguments(t *testing.T) {
 		},
 		{
 			name: "write tool with only file_path",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"file_path": "/path/to/file.txt",
 			},
 			expected: "**File:** `/path/to/file.txt`\n\n",
 		},
 		{
 			name: "write tool with only content",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"content": "Hello, world!",
 			},
 			expected: "**Content:**\n```\nHello, world!\n```\n\n",
@@ -59,13 +59,13 @@ func TestFormatToolArguments(t *testing.T) {
 	tests := []struct {
 		name     string
 		toolName string
-		input    map[string]interface{}
+		input    map[string]any
 		contains string
 	}{
 		{
 			name:     "write tool (lowercase)",
 			toolName: "write",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"file_path": "/test.txt",
 				"content":   "test",
 			},
@@ -74,7 +74,7 @@ func TestFormatToolArguments(t *testing.T) {
 		{
 			name:     "write tool (uppercase)",
 			toolName: "Write",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"file_path": "/test.txt",
 				"content":   "test",
 			},
@@ -83,7 +83,7 @@ func TestFormatToolArguments(t *testing.T) {
 		{
 			name:     "other tool",
 			toolName: "read_file",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"path": "/test.txt",
 			},
 			contains: "```json",

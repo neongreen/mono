@@ -11,7 +11,7 @@ import (
 // It now wraps JSONSchemaParser which uses the jsonschema library properly
 type ClaudeSchemaParser struct {
 	// Legacy field kept for compatibility, but not used
-	schema map[string]interface{}
+	schema map[string]any
 	// New field using proper jsonschema library
 	parser *JSONSchemaParser
 }
@@ -22,7 +22,7 @@ func NewClaudeSchemaParser() (*ClaudeSchemaParser, error) {
 	parser, err := CompileClaudeSchema()
 	if err != nil {
 		// Fall back to manual parsing if compilation fails
-		var schema map[string]interface{}
+		var schema map[string]any
 		if unmarshalErr := json.Unmarshal([]byte(ClaudeSchema), &schema); unmarshalErr != nil {
 			return nil, fmt.Errorf("failed to parse Claude schema JSON: %w (jsonschema error: %v)", unmarshalErr, err)
 		}
@@ -49,7 +49,7 @@ func (p *ClaudeSchemaParser) GetCompletionOptions(path string) []CompletionOptio
 	var options []CompletionOption
 
 	// Get the properties from the schema
-	properties, ok := p.schema["properties"].(map[string]interface{})
+	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
 		return options
 	}
@@ -57,7 +57,7 @@ func (p *ClaudeSchemaParser) GetCompletionOptions(path string) []CompletionOptio
 	if path == "" {
 		// Return top-level properties
 		for name, prop := range properties {
-			if propMap, ok := prop.(map[string]interface{}); ok {
+			if propMap, ok := prop.(map[string]any); ok {
 				option := CompletionOption{
 					Name:        name,
 					Type:        getTypeFromProperty(propMap),
@@ -80,7 +80,7 @@ func (p *ClaudeSchemaParser) GetCompletionOptions(path string) []CompletionOptio
 }
 
 // getNestedCompletionOptions navigates through nested properties to find completion options
-func (p *ClaudeSchemaParser) getNestedCompletionOptions(properties map[string]interface{}, path string) []CompletionOption {
+func (p *ClaudeSchemaParser) getNestedCompletionOptions(properties map[string]any, path string) []CompletionOption {
 	var options []CompletionOption
 
 	parts := strings.Split(path, ".")
@@ -89,12 +89,12 @@ func (p *ClaudeSchemaParser) getNestedCompletionOptions(properties map[string]in
 	// Navigate through the path
 	for i, part := range parts {
 		if prop, exists := current[part]; exists {
-			if propMap, ok := prop.(map[string]interface{}); ok {
+			if propMap, ok := prop.(map[string]any); ok {
 				if i == len(parts)-1 {
 					// This is the final part - return its sub-properties
-					if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 						for name, nestedProp := range nestedProps {
-							if nestedPropMap, ok := nestedProp.(map[string]interface{}); ok {
+							if nestedPropMap, ok := nestedProp.(map[string]any); ok {
 								option := CompletionOption{
 									Name:        name,
 									Type:        getTypeFromProperty(nestedPropMap),
@@ -107,7 +107,7 @@ func (p *ClaudeSchemaParser) getNestedCompletionOptions(properties map[string]in
 					return options
 				} else {
 					// Continue navigating
-					if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+					if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 						current = nestedProps
 					} else {
 						return options // Can't navigate further
@@ -136,7 +136,7 @@ func (p *ClaudeSchemaParser) ValidatePath(path string) bool {
 		return true
 	}
 
-	properties, ok := p.schema["properties"].(map[string]interface{})
+	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
 		return false
 	}
@@ -156,8 +156,8 @@ func (p *ClaudeSchemaParser) ValidatePath(path string) bool {
 		}
 
 		// Need to navigate deeper
-		if propMap, ok := prop.(map[string]interface{}); ok {
-			if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+		if propMap, ok := prop.(map[string]any); ok {
+			if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 				current = nestedProps
 			} else {
 				// Can't navigate further but the path continues
@@ -181,7 +181,7 @@ func (p *ClaudeSchemaParser) GetAllPaths() []string {
 	// Fallback to legacy implementation
 	var paths []string
 
-	properties, ok := p.schema["properties"].(map[string]interface{})
+	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
 		return paths
 	}
@@ -195,7 +195,7 @@ func (p *ClaudeSchemaParser) GetAllPaths() []string {
 }
 
 // collectPaths recursively collects all paths from the schema
-func (p *ClaudeSchemaParser) collectPaths(properties map[string]interface{}, prefix string, paths *[]string) {
+func (p *ClaudeSchemaParser) collectPaths(properties map[string]any, prefix string, paths *[]string) {
 	for name, prop := range properties {
 		fullPath := name
 		if prefix != "" {
@@ -205,8 +205,8 @@ func (p *ClaudeSchemaParser) collectPaths(properties map[string]interface{}, pre
 		*paths = append(*paths, fullPath)
 
 		// Check if this property has nested properties
-		if propMap, ok := prop.(map[string]interface{}); ok {
-			if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+		if propMap, ok := prop.(map[string]any); ok {
+			if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 				p.collectPaths(nestedProps, fullPath, paths)
 			}
 		}
@@ -223,7 +223,7 @@ func (p *ClaudeSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
 	// Fallback to legacy implementation
 	var settings []SettingInfo
 
-	properties, ok := p.schema["properties"].(map[string]interface{})
+	properties, ok := p.schema["properties"].(map[string]any)
 	if !ok {
 		return settings
 	}
@@ -239,14 +239,14 @@ func (p *ClaudeSchemaParser) GetAllSettingsWithInfo() []SettingInfo {
 }
 
 // collectSettingsInfo recursively collects setting information from the schema
-func (p *ClaudeSchemaParser) collectSettingsInfo(properties map[string]interface{}, prefix string, settings *[]SettingInfo) {
+func (p *ClaudeSchemaParser) collectSettingsInfo(properties map[string]any, prefix string, settings *[]SettingInfo) {
 	for name, prop := range properties {
 		fullPath := name
 		if prefix != "" {
 			fullPath = prefix + "." + name
 		}
 
-		if propMap, ok := prop.(map[string]interface{}); ok {
+		if propMap, ok := prop.(map[string]any); ok {
 			setting := SettingInfo{
 				Path:        fullPath,
 				Type:        getTypeFromProperty(propMap),
@@ -261,7 +261,7 @@ func (p *ClaudeSchemaParser) collectSettingsInfo(properties map[string]interface
 			*settings = append(*settings, setting)
 
 			// Check if this property has nested properties
-			if nestedProps, ok := propMap["properties"].(map[string]interface{}); ok {
+			if nestedProps, ok := propMap["properties"].(map[string]any); ok {
 				p.collectSettingsInfo(nestedProps, fullPath, settings)
 			}
 		}

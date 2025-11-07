@@ -609,8 +609,8 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 
 	// Special handling for tk-vscode extension
 	if project == "tk-vscode" {
-		if strings.HasPrefix(version, "pr-") {
-			prStr := strings.TrimPrefix(version, "pr-")
+		if after, ok := strings.CutPrefix(version, "pr-"); ok {
+			prStr := after
 			parts := strings.Split(prStr, ".")
 			var prNumber int
 			n, err := fmt.Sscanf(parts[0], "%d", &prNumber)
@@ -637,9 +637,9 @@ func installMonoRelease(project, version string, dryRun bool, planJson bool) {
 		return
 	}
 
-	if strings.HasPrefix(version, "pr-") {
+	if after, ok := strings.CutPrefix(version, "pr-"); ok {
 
-		prStr := strings.TrimPrefix(version, "pr-")
+		prStr := after
 
 		parts := strings.Split(prStr, ".")
 		var prNumber int

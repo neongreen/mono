@@ -365,7 +365,7 @@ func checkEventOrdering(db *database.DB, report *DoctorReport) error {
 }
 
 func extractTaskUUIDFromEvent(e types.Event) string {
-	var payload map[string]interface{}
+	var payload map[string]any
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return ""
 	}
@@ -396,7 +396,7 @@ func GetNumberCollisions(db *database.DB, projectFilter string) ([]DoctorCollisi
         SELECT project_uid, number
         FROM task_numbers
     `
-	var args []interface{}
+	var args []any
 	if projectFilter != "" {
 		baseQuery += " WHERE project_uid = ?"
 		args = append(args, projectFilter)

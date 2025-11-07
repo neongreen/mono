@@ -36,7 +36,7 @@ func TestColorFunctions(t *testing.T) {
 func TestValue(t *testing.T) {
 	tests := []struct {
 		name  string
-		input interface{}
+		input any
 	}{
 		{"string", "test"},
 		{"int", 42},
@@ -56,14 +56,14 @@ func TestValue(t *testing.T) {
 func TestFormatFunctions(t *testing.T) {
 	tests := []struct {
 		name   string
-		fn     func(string, ...interface{}) string
+		fn     func(string, ...any) string
 		format string
-		args   []interface{}
+		args   []any
 		want   string
 	}{
-		{"Successf", Successf, "test %d", []interface{}{42}, "42"},
-		{"Warningf", Warningf, "test %s", []interface{}{"foo"}, "foo"},
-		{"Errorf", Errorf, "test %s", []interface{}{"bar"}, "bar"},
+		{"Successf", Successf, "test %d", []any{42}, "42"},
+		{"Warningf", Warningf, "test %s", []any{"foo"}, "foo"},
+		{"Errorf", Errorf, "test %s", []any{"bar"}, "bar"},
 	}
 
 	for _, tt := range tests {

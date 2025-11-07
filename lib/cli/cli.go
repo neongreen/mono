@@ -66,7 +66,7 @@ func Path(s string) string {
 }
 
 // Value returns a green-colored string for configured values.
-func Value(v interface{}) string {
+func Value(v any) string {
 	return valueColor.Sprint(v)
 }
 
@@ -93,52 +93,52 @@ func Header(s string) string {
 // Sprintf variants for formatted strings
 
 // Successf returns a formatted green-colored string.
-func Successf(format string, a ...interface{}) string {
+func Successf(format string, a ...any) string {
 	return successColor.Sprintf(format, a...)
 }
 
 // Warningf returns a formatted yellow-colored string.
-func Warningf(format string, a ...interface{}) string {
+func Warningf(format string, a ...any) string {
 	return warningColor.Sprintf(format, a...)
 }
 
 // Errorf returns a formatted red-colored string.
-func Errorf(format string, a ...interface{}) string {
+func Errorf(format string, a ...any) string {
 	return errorColor.Sprintf(format, a...)
 }
 
 // Keyf returns a formatted cyan bold-colored string.
-func Keyf(format string, a ...interface{}) string {
+func Keyf(format string, a ...any) string {
 	return keyColor.Sprintf(format, a...)
 }
 
 // Pathf returns a formatted cyan-colored string.
-func Pathf(format string, a ...interface{}) string {
+func Pathf(format string, a ...any) string {
 	return pathColor.Sprintf(format, a...)
 }
 
 // Valuef returns a formatted green-colored string.
-func Valuef(format string, a ...interface{}) string {
+func Valuef(format string, a ...any) string {
 	return valueColor.Sprintf(format, a...)
 }
 
 // Typef returns a formatted yellow-colored string.
-func Typef(format string, a ...interface{}) string {
+func Typef(format string, a ...any) string {
 	return typeColor.Sprintf(format, a...)
 }
 
 // Secondaryf returns a formatted blue-colored string.
-func Secondaryf(format string, a ...interface{}) string {
+func Secondaryf(format string, a ...any) string {
 	return secondaryColor.Sprintf(format, a...)
 }
 
 // Mutedf returns a formatted bright-black-colored string.
-func Mutedf(format string, a ...interface{}) string {
+func Mutedf(format string, a ...any) string {
 	return mutedColor.Sprintf(format, a...)
 }
 
 // Headerf returns a formatted bold string.
-func Headerf(format string, a ...interface{}) string {
+func Headerf(format string, a ...any) string {
 	return headerColor.Sprintf(format, a...)
 }
 

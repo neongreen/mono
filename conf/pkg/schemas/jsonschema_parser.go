@@ -254,7 +254,7 @@ func getSchemaType(schema *jsonschema.Schema) string {
 	return "unknown"
 }
 
-func getSchemaDefault(schema *jsonschema.Schema) interface{} {
+func getSchemaDefault(schema *jsonschema.Schema) any {
 	if schema == nil {
 		return nil
 	}

@@ -47,14 +47,14 @@ func (d *Database) UpdateRunItemCount(runID int64) error {
 	}
 
 	var query string
-	var args []interface{}
+	var args []any
 	switch runType {
 	case "git":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM commits WHERE run_id = ?) WHERE id = ?"
-		args = []interface{}{runID, runID}
+		args = []any{runID, runID}
 	case "fs":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM fs_entries WHERE run_id = ?) WHERE id = ?"
-		args = []interface{}{runID, runID}
+		args = []any{runID, runID}
 	case "cmd":
 		lineCount, err := d.totalCommandOutputLines(runID)
 		if err != nil {
@@ -67,13 +67,13 @@ func (d *Database) UpdateRunItemCount(runID int64) error {
 		return nil
 	case "github":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM github_issues WHERE run_id = ?) + (SELECT COUNT(*) FROM github_prs WHERE run_id = ?) WHERE id = ?"
-		args = []interface{}{runID, runID, runID}
+		args = []any{runID, runID, runID}
 	case "linear":
 		query = "UPDATE runs SET item_count = (SELECT COUNT(*) FROM linear_issues WHERE run_id = ?) WHERE id = ?"
-		args = []interface{}{runID, runID}
+		args = []any{runID, runID}
 	default:
 		query = "UPDATE runs SET item_count = 0 WHERE id = ?"
-		args = []interface{}{runID}
+		args = []any{runID}
 	}
 
 	_, err = d.db.Exec(query, args...)

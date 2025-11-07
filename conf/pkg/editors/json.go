@@ -38,14 +38,14 @@ func (e *JSONEditor) SetDryRun(dryRun bool) {
 }
 
 // SetValue sets a value at the specified dotted path
-func (e *JSONEditor) SetValue(path string, value interface{}) error {
+func (e *JSONEditor) SetValue(path string, value any) error {
 	if e.dryRun {
 		fmt.Printf("DRY RUN: Would set %s = %v in %s\n", path, value, e.filePath)
 		return nil
 	}
 
 	// Read existing file content if it exists
-	var data map[string]interface{}
+	var data map[string]any
 
 	if _, err := os.Stat(e.filePath); err == nil {
 		content, err := os.ReadFile(e.filePath)
@@ -57,7 +57,7 @@ func (e *JSONEditor) SetValue(path string, value interface{}) error {
 			return fmt.Errorf("failed to parse JSON: %w", err)
 		}
 	} else {
-		data = make(map[string]interface{})
+		data = make(map[string]any)
 	}
 
 	// Parse the path and set the value
@@ -88,7 +88,7 @@ func (e *JSONEditor) SetValue(path string, value interface{}) error {
 }
 
 // GetValue retrieves a value at the specified dotted path
-func (e *JSONEditor) GetValue(path string) (interface{}, error) {
+func (e *JSONEditor) GetValue(path string) (any, error) {
 	content, err := os.ReadFile(e.filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -100,7 +100,7 @@ func (e *JSONEditor) GetValue(path string) (interface{}, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
@@ -126,7 +126,7 @@ func (e *JSONEditor) UnsetValue(path string) error {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		return fmt.Errorf("failed to parse JSON: %w", err)
 	}
@@ -155,9 +155,9 @@ func (e *JSONEditor) UnsetValue(path string) error {
 }
 
 // PreviewSetValue shows what setting a value would do without doing it
-func (e *JSONEditor) PreviewSetValue(path string, value interface{}) (string, error) {
+func (e *JSONEditor) PreviewSetValue(path string, value any) (string, error) {
 	// Read existing file content if it exists
-	var data map[string]interface{}
+	var data map[string]any
 
 	if _, err := os.Stat(e.filePath); err == nil {
 		content, err := os.ReadFile(e.filePath)
@@ -169,7 +169,7 @@ func (e *JSONEditor) PreviewSetValue(path string, value interface{}) (string, er
 			return "", fmt.Errorf("failed to parse JSON: %w", err)
 		}
 	} else {
-		data = make(map[string]interface{})
+		data = make(map[string]any)
 	}
 
 	// Parse the path and set the value
@@ -196,7 +196,7 @@ func (e *JSONEditor) PreviewUnsetValue(path string) (string, error) {
 		return "", fmt.Errorf("failed to read file: %w", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		return "", fmt.Errorf("failed to parse JSON: %w", err)
 	}
@@ -221,16 +221,16 @@ func (e *JSONEditor) PreviewUnsetValue(path string) (string, error) {
 }
 
 // GetAllValues returns all configuration values as a nested map
-func (e *JSONEditor) GetAllValues() (map[string]interface{}, error) {
+func (e *JSONEditor) GetAllValues() (map[string]any, error) {
 	content, err := os.ReadFile(e.filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return make(map[string]interface{}), nil
+			return make(map[string]any), nil
 		}
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
@@ -239,7 +239,7 @@ func (e *JSONEditor) GetAllValues() (map[string]interface{}, error) {
 }
 
 // SetAllValues sets multiple configuration values from a nested map structure
-func (e *JSONEditor) SetAllValues(values map[string]interface{}) error {
+func (e *JSONEditor) SetAllValues(values map[string]any) error {
 	if e.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil
@@ -266,7 +266,7 @@ func (e *JSONEditor) SetAllValues(values map[string]interface{}) error {
 
 // Helper functions for nested map operations
 
-func setNestedValue(m map[string]interface{}, key parser.Key, value interface{}) {
+func setNestedValue(m map[string]any, key parser.Key, value any) {
 	if len(key) == 0 {
 		return
 	}
@@ -276,15 +276,15 @@ func setNestedValue(m map[string]interface{}, key parser.Key, value interface{})
 		part := key[i]
 		next, ok := current[part]
 		if !ok {
-			nextMap := make(map[string]interface{})
+			nextMap := make(map[string]any)
 			current[part] = nextMap
 			current = nextMap
 			continue
 		}
 
-		nextMap, ok := next.(map[string]interface{})
+		nextMap, ok := next.(map[string]any)
 		if !ok {
-			nextMap = make(map[string]interface{})
+			nextMap = make(map[string]any)
 			current[part] = nextMap
 		}
 		current = nextMap
@@ -293,13 +293,13 @@ func setNestedValue(m map[string]interface{}, key parser.Key, value interface{})
 	current[key[len(key)-1]] = value
 }
 
-func getNestedValue(m map[string]interface{}, key parser.Key) (interface{}, error) {
+func getNestedValue(m map[string]any, key parser.Key) (any, error) {
 	if len(key) == 0 {
 		return nil, fmt.Errorf("empty key")
 	}
 
 	current := m
-	for i := 0; i < len(key); i++ {
+	for i := range key {
 		part := key[i]
 		val, ok := current[part]
 		if !ok {
@@ -310,7 +310,7 @@ func getNestedValue(m map[string]interface{}, key parser.Key) (interface{}, erro
 			return val, nil
 		}
 
-		nextMap, ok := val.(map[string]interface{})
+		nextMap, ok := val.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("path is not a map at: %s", strings.Join(key[:i+1], "."))
 		}
@@ -320,18 +320,18 @@ func getNestedValue(m map[string]interface{}, key parser.Key) (interface{}, erro
 	return nil, fmt.Errorf("unexpected end of path")
 }
 
-func unsetNestedValue(m map[string]interface{}, key parser.Key) bool {
+func unsetNestedValue(m map[string]any, key parser.Key) bool {
 	if len(key) == 0 {
 		return false
 	}
 
 	current := m
-	stack := make([]map[string]interface{}, 0, len(key))
+	stack := make([]map[string]any, 0, len(key))
 	stack = append(stack, current)
 
 	for i := 0; i < len(key)-1; i++ {
 		part := key[i]
-		next, ok := current[part].(map[string]interface{})
+		next, ok := current[part].(map[string]any)
 		if !ok {
 			return false
 		}
@@ -349,7 +349,7 @@ func unsetNestedValue(m map[string]interface{}, key parser.Key) bool {
 	for i := len(stack) - 1; i > 0; i-- {
 		parent := stack[i-1]
 		childKey := key[i-1]
-		child, ok := parent[childKey].(map[string]interface{})
+		child, ok := parent[childKey].(map[string]any)
 		if !ok {
 			break
 		}

@@ -39,8 +39,8 @@ type TestResult struct {
 // Logger interface for testing
 type Logger interface {
 	Helper()
-	Fatalf(format string, args ...interface{})
-	Logf(format string, args ...interface{})
+	Fatalf(format string, args ...any)
+	Logf(format string, args ...any)
 }
 
 // RunExternalProjectTest clones a project, runs dissect, and validates the results
@@ -287,8 +287,8 @@ func findNewGoFiles(dir string) []string {
 	if err != nil {
 		return newFiles
 	}
-	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(strings.TrimSpace(string(output)), "\n")
+	for line := range lines {
 		if line != "" {
 			newFiles = append(newFiles, line)
 		}

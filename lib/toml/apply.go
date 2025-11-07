@@ -15,7 +15,7 @@ import (
 // WriteFile writes the provided values to the given TOML file while preserving
 // all existing comments and formatting. Missing parent directories are created
 // automatically.
-func WriteFile(path string, values map[string]interface{}) error {
+func WriteFile(path string, values map[string]any) error {
 	content, err := os.ReadFile(path)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to read file %s: %w", path, err)
@@ -52,7 +52,7 @@ func WriteFile(path string, values map[string]interface{}) error {
 // ApplyMap merges the provided nested map into the document, preserving
 // any existing keys that are not present in values. This allows partial
 // updates without affecting unmanaged configuration.
-func (d *Document) ApplyMap(values map[string]interface{}) error {
+func (d *Document) ApplyMap(values map[string]any) error {
 	if d == nil {
 		return fmt.Errorf("cannot apply values to a nil document")
 	}
@@ -79,14 +79,14 @@ func (d *Document) ApplyMap(values map[string]interface{}) error {
 // ReplaceMap updates the document with the provided nested map and removes any
 // keys that are not present in values. Use ApplyMap instead if you want to
 // preserve unmanaged keys.
-func (d *Document) ReplaceMap(values map[string]interface{}) error {
+func (d *Document) ReplaceMap(values map[string]any) error {
 	if d == nil {
 		return fmt.Errorf("cannot apply values to a nil document")
 	}
 
 	desired := flattenValues(values)
 
-	var existing map[string]interface{}
+	var existing map[string]any
 	if data := d.Bytes(); len(data) > 0 {
 		if err := tomlv2.Unmarshal(data, &existing); err != nil {
 			return fmt.Errorf("failed to parse existing document: %w", err)
@@ -119,18 +119,18 @@ func (d *Document) ReplaceMap(values map[string]interface{}) error {
 	return nil
 }
 
-func flattenValues(values map[string]interface{}) map[string]interface{} {
+func flattenValues(values map[string]any) map[string]any {
 	if values == nil {
-		return map[string]interface{}{}
+		return map[string]any{}
 	}
 
-	result := make(map[string]interface{})
+	result := make(map[string]any)
 	normalized := normalizeValues(values)
 	flattenRecursive(normalized, "", result)
 	return result
 }
 
-func flattenRecursive(values map[string]interface{}, prefix string, result map[string]interface{}) {
+func flattenRecursive(values map[string]any, prefix string, result map[string]any) {
 	if values == nil {
 		return
 	}
@@ -143,7 +143,7 @@ func flattenRecursive(values map[string]interface{}, prefix string, result map[s
 			fullKey = prefix + "." + formattedKey
 		}
 
-		if nested, ok := val.(map[string]interface{}); ok {
+		if nested, ok := val.(map[string]any); ok {
 			flattenRecursive(nested, fullKey, result)
 			continue
 		}
@@ -172,12 +172,12 @@ func isBareKey(key string) bool {
 	return true
 }
 
-func normalizeValues(values map[string]interface{}) map[string]interface{} {
+func normalizeValues(values map[string]any) map[string]any {
 	if values == nil {
 		return nil
 	}
 
-	normalized := make(map[string]interface{}, len(values))
+	normalized := make(map[string]any, len(values))
 	for rawKey, rawVal := range values {
 		normalizedVal := normalizeValue(rawVal)
 		key, err := parser.ParseKey(rawKey)
@@ -194,12 +194,12 @@ func normalizeValues(values map[string]interface{}) map[string]interface{} {
 	return normalized
 }
 
-func normalizeValue(value interface{}) interface{} {
+func normalizeValue(value any) any {
 	switch v := value.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		return normalizeValues(v)
-	case map[interface{}]interface{}:
-		converted := make(map[string]interface{}, len(v))
+	case map[any]any:
+		converted := make(map[string]any, len(v))
 		for k, elem := range v {
 			strKey, ok := k.(string)
 			if !ok {
@@ -208,8 +208,8 @@ func normalizeValue(value interface{}) interface{} {
 			converted[strKey] = normalizeValue(elem)
 		}
 		return normalizeValues(converted)
-	case []interface{}:
-		out := make([]interface{}, len(v))
+	case []any:
+		out := make([]any, len(v))
 		for i, elem := range v {
 			out[i] = normalizeValue(elem)
 		}
@@ -219,7 +219,7 @@ func normalizeValue(value interface{}) interface{} {
 	}
 }
 
-func setNestedValue(m map[string]interface{}, key parser.Key, value interface{}) {
+func setNestedValue(m map[string]any, key parser.Key, value any) {
 	if len(key) == 0 {
 		return
 	}
@@ -229,15 +229,15 @@ func setNestedValue(m map[string]interface{}, key parser.Key, value interface{})
 		part := key[i]
 		next, ok := current[part]
 		if !ok {
-			nextMap := make(map[string]interface{})
+			nextMap := make(map[string]any)
 			current[part] = nextMap
 			current = nextMap
 			continue
 		}
 
-		nextMap, ok := next.(map[string]interface{})
+		nextMap, ok := next.(map[string]any)
 		if !ok {
-			nextMap = make(map[string]interface{})
+			nextMap = make(map[string]any)
 			current[part] = nextMap
 		}
 		current = nextMap
@@ -246,9 +246,9 @@ func setNestedValue(m map[string]interface{}, key parser.Key, value interface{})
 	current[key[len(key)-1]] = normalizeValue(value)
 }
 
-func ensureMap(m map[string]interface{}) map[string]interface{} {
+func ensureMap(m map[string]any) map[string]any {
 	if m == nil {
-		return make(map[string]interface{})
+		return make(map[string]any)
 	}
 	return m
 }

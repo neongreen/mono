@@ -62,7 +62,7 @@ max_connections = 100
 	doc.Set("server.allowed_hosts", []string{"localhost", "127.0.0.1", "example.com"})
 
 	allowedHosts, _ := doc.Get("server.allowed_hosts")
-	if hosts, ok := allowedHosts.([]interface{}); ok {
+	if hosts, ok := allowedHosts.([]any); ok {
 		fmt.Println("Allowed hosts:")
 		for i, h := range hosts {
 			fmt.Printf("  %d. %v\n", i+1, h)
@@ -74,14 +74,14 @@ max_connections = 100
 	fmt.Println("Example 4: Working with Inline Tables")
 	fmt.Println(strings.Repeat("-", 40))
 
-	doc.Set("admin", map[string]interface{}{
+	doc.Set("admin", map[string]any{
 		"name":  "Alice",
 		"email": "alice@example.com",
 		"role":  "superuser",
 	})
 
 	admin, _ := doc.Get("admin")
-	if adminTable, ok := admin.(map[string]interface{}); ok {
+	if adminTable, ok := admin.(map[string]any); ok {
 		fmt.Println("Admin info:")
 		fmt.Printf("  Name: %v\n", adminTable["name"])
 		fmt.Printf("  Email: %v\n", adminTable["email"])

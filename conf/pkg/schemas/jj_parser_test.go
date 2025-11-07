@@ -1,6 +1,7 @@
 package schemas
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -214,13 +215,7 @@ func TestJJSchemaParser_GetAllPaths(t *testing.T) {
 	// Check for expected paths
 	expectedPaths := []string{"user", "user.name", "user.email"}
 	for _, expected := range expectedPaths {
-		found := false
-		for _, path := range paths {
-			if path == expected {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(paths, expected)
 		if !found {
 			t.Errorf("Should find path '%s'", expected)
 		}
@@ -305,7 +300,7 @@ func TestJJSchemaParser_HandlesMissingProperties(t *testing.T) {
 
 func TestHelperFunctions(t *testing.T) {
 	// Test getTypeFromProperty
-	prop := map[string]interface{}{
+	prop := map[string]any{
 		"type":        "string",
 		"description": "Test property",
 	}
@@ -319,7 +314,7 @@ func TestHelperFunctions(t *testing.T) {
 	}
 
 	// Test with missing properties
-	emptyProp := map[string]interface{}{}
+	emptyProp := map[string]any{}
 	if getTypeFromProperty(emptyProp) != "unknown" {
 		t.Error("Should return 'unknown' for missing type")
 	}
@@ -329,7 +324,7 @@ func TestHelperFunctions(t *testing.T) {
 	}
 
 	// Test getDefaultFromProperty
-	propWithDefault := map[string]interface{}{
+	propWithDefault := map[string]any{
 		"default": "test_value",
 	}
 
@@ -342,8 +337,8 @@ func TestHelperFunctions(t *testing.T) {
 	}
 
 	// Test getEnumFromProperty
-	propWithEnum := map[string]interface{}{
-		"enum": []interface{}{"option1", "option2", "option3"},
+	propWithEnum := map[string]any{
+		"enum": []any{"option1", "option2", "option3"},
 	}
 
 	enum := getEnumFromProperty(propWithEnum)

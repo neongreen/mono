@@ -192,7 +192,7 @@ func (d *DB) GetTaskIDsByProjects(projects []string) ([]string, error) {
 		ORDER BY created_at
 	`, placeholders)
 
-	args := make([]interface{}, len(projectUIDs))
+	args := make([]any, len(projectUIDs))
 	for i, projectUID := range projectUIDs {
 		args[i] = projectUID
 	}

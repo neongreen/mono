@@ -201,7 +201,7 @@ func TestNestednessStylePreservation(t *testing.T) {
 		name           string
 		input          string
 		modifyKey      string
-		modifyValue    interface{}
+		modifyValue    any
 		shouldContain  []string
 		shouldNotMatch []string // Patterns that should NOT appear (e.g., unwanted section headers)
 	}{

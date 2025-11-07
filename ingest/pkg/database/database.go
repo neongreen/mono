@@ -410,7 +410,7 @@ func (d *Database) ensureColumn(table, column, columnType string) error {
 }
 
 // Query executes a SQL query and returns results as JSON-serializable data
-func (d *Database) Query(query string) ([]map[string]interface{}, error) {
+func (d *Database) Query(query string) ([]map[string]any, error) {
 	rows, err := d.db.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
@@ -422,11 +422,11 @@ func (d *Database) Query(query string) ([]map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to get columns: %w", err)
 	}
 
-	var results []map[string]interface{}
+	var results []map[string]any
 	for rows.Next() {
 		// Create a slice of interface{} to hold each column's value
-		values := make([]interface{}, len(columns))
-		valuePtrs := make([]interface{}, len(columns))
+		values := make([]any, len(columns))
+		valuePtrs := make([]any, len(columns))
 		for i := range columns {
 			valuePtrs[i] = &values[i]
 		}
@@ -436,7 +436,7 @@ func (d *Database) Query(query string) ([]map[string]interface{}, error) {
 		}
 
 		// Create a map for this row
-		row := make(map[string]interface{})
+		row := make(map[string]any)
 		for i, col := range columns {
 			val := values[i]
 			// Convert []byte to string for better JSON output

@@ -58,7 +58,7 @@ func TestSegmentWriter_AddEvent(t *testing.T) {
 		Actor:   "test-user",
 		Role:    "human",
 		Kind:    "task.created",
-		Payload: map[string]interface{}{"title": "Test task"},
+		Payload: map[string]any{"title": "Test task"},
 	}
 
 	sw.AddEvent(event)
@@ -80,7 +80,7 @@ func TestSegmentWriter_ShouldRotate_BySize(t *testing.T) {
 	}
 
 	// Add enough events to exceed maxBytes
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		event := sync.SegmentEvent{
 			Schema:  "v1",
 			ID:      "event" + string(rune(i)),
@@ -91,7 +91,7 @@ func TestSegmentWriter_ShouldRotate_BySize(t *testing.T) {
 			Actor:   "test-user",
 			Role:    "human",
 			Kind:    "task.created",
-			Payload: map[string]interface{}{"title": "Test task with some content to make it bigger"},
+			Payload: map[string]any{"title": "Test task with some content to make it bigger"},
 		}
 		sw.AddEvent(event)
 	}
@@ -117,7 +117,7 @@ func TestSegmentWriter_ShouldRotate_ByAge(t *testing.T) {
 		Actor:   "test-user",
 		Role:    "human",
 		Kind:    "task.created",
-		Payload: map[string]interface{}{"title": "Test"},
+		Payload: map[string]any{"title": "Test"},
 	}
 	sw.AddEvent(event)
 
@@ -140,7 +140,7 @@ func TestSegmentWriter_WriteSegment(t *testing.T) {
 		Actor:   "test-user",
 		Role:    "human",
 		Kind:    "task.created",
-		Payload: map[string]interface{}{"title": "Test task"},
+		Payload: map[string]any{"title": "Test task"},
 	}
 	sw.AddEvent(event)
 

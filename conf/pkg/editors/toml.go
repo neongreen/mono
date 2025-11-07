@@ -38,7 +38,7 @@ func (e *TOMLEditor) SetDryRun(dryRun bool) {
 }
 
 // SetValue sets a value at the specified dotted path, preserving existing formatting
-func (e *TOMLEditor) SetValue(path string, value interface{}) error {
+func (e *TOMLEditor) SetValue(path string, value any) error {
 	if e.dryRun {
 		fmt.Printf("DRY RUN: Would set %s = %v in %s\n", path, value, e.filePath)
 		return nil
@@ -90,7 +90,7 @@ func (e *TOMLEditor) SetValue(path string, value interface{}) error {
 }
 
 // GetValue retrieves a value at the specified dotted path
-func (e *TOMLEditor) GetValue(path string) (interface{}, error) {
+func (e *TOMLEditor) GetValue(path string) (any, error) {
 	content, err := os.ReadFile(e.filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -152,7 +152,7 @@ func (e *TOMLEditor) UnsetValue(path string) error {
 }
 
 // PreviewSetValue shows what setting a value would do without actually doing it
-func (e *TOMLEditor) PreviewSetValue(path string, value interface{}) (string, error) {
+func (e *TOMLEditor) PreviewSetValue(path string, value any) (string, error) {
 	var preview strings.Builder
 
 	// Check if file exists
@@ -198,18 +198,18 @@ func (e *TOMLEditor) PreviewUnsetValue(path string) (string, error) {
 }
 
 // GetAllValues reads all values from the TOML file and returns them as a nested map
-func (e *TOMLEditor) GetAllValues() (map[string]interface{}, error) {
+func (e *TOMLEditor) GetAllValues() (map[string]any, error) {
 	content, err := os.ReadFile(e.filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Return empty map if file doesn't exist
-			return make(map[string]interface{}), nil
+			return make(map[string]any), nil
 		}
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
 	// Parse TOML into nested map structure
-	var data map[string]interface{}
+	var data map[string]any
 	if err := tomlv2.Unmarshal(content, &data); err != nil {
 		return nil, fmt.Errorf("failed to parse TOML: %w", err)
 	}
@@ -219,7 +219,7 @@ func (e *TOMLEditor) GetAllValues() (map[string]interface{}, error) {
 
 // SetAllValues sets all values from a nested map structure, replacing the entire file
 // This is more efficient than setting individual paths when applying bulk updates
-func (e *TOMLEditor) SetAllValues(values map[string]interface{}) error {
+func (e *TOMLEditor) SetAllValues(values map[string]any) error {
 	if e.dryRun {
 		fmt.Printf("DRY RUN: Would set all values in %s\n", e.filePath)
 		return nil

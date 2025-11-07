@@ -7,7 +7,7 @@ import (
 )
 
 // formatToolArguments formats tool arguments in a human-readable way
-func formatToolArguments(toolName string, input map[string]interface{}) string {
+func formatToolArguments(toolName string, input map[string]any) string {
 	var sb strings.Builder
 	switch strings.ToLower(toolName) {
 	case "write":
@@ -22,7 +22,7 @@ func formatToolArguments(toolName string, input map[string]interface{}) string {
 }
 
 // formatWriteToolArguments formats the "write" tool arguments nicely
-func formatWriteToolArguments(input map[string]interface{}) string {
+func formatWriteToolArguments(input map[string]any) string {
 	var sb strings.Builder
 
 	filePath, hasFilePath := input["file_path"].(string)

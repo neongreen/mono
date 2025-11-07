@@ -40,14 +40,14 @@ func TestIsJSONL(t *testing.T) {
 func TestParseUserMessage(t *testing.T) {
 	tests := []struct {
 		name     string
-		raw      map[string]interface{}
+		raw      map[string]any
 		expected *UserMessage
 	}{
 		{
 			name: "simple user message",
-			raw: map[string]interface{}{
+			raw: map[string]any{
 				"cwd": "/home/user",
-				"message": map[string]interface{}{
+				"message": map[string]any{
 					"content": "hello world",
 				},
 			},
@@ -58,11 +58,11 @@ func TestParseUserMessage(t *testing.T) {
 		},
 		{
 			name: "user message with array content",
-			raw: map[string]interface{}{
+			raw: map[string]any{
 				"cwd": "/home/user",
-				"message": map[string]interface{}{
-					"content": []interface{}{
-						map[string]interface{}{
+				"message": map[string]any{
+					"content": []any{
+						map[string]any{
 							"type": "text",
 							"text": "hello world",
 						},
@@ -91,15 +91,15 @@ func TestParseUserMessage(t *testing.T) {
 
 func TestParseJSONLItem_ToolResult(t *testing.T) {
 	// This is the key test - tool results have type:"user" but contain tool_result in content
-	raw := map[string]interface{}{
+	raw := map[string]any{
 		"type":      "user",
 		"cwd":       "/home/user",
 		"uuid":      "test-uuid",
 		"timestamp": "2025-10-05T10:18:44.315Z",
-		"message": map[string]interface{}{
+		"message": map[string]any{
 			"role": "user",
-			"content": []interface{}{
-				map[string]interface{}{
+			"content": []any{
+				map[string]any{
 					"tool_use_id": "toolu_123",
 					"type":        "tool_result",
 					"content":     "No files found",
@@ -132,12 +132,12 @@ func TestParseJSONLItem_ToolResult(t *testing.T) {
 }
 
 func TestParseJSONLItem_UserMessage(t *testing.T) {
-	raw := map[string]interface{}{
+	raw := map[string]any{
 		"type":      "user",
 		"cwd":       "/home/user",
 		"uuid":      "test-uuid",
 		"timestamp": "2025-10-05T10:18:34.589Z",
-		"message": map[string]interface{}{
+		"message": map[string]any{
 			"role":    "user",
 			"content": "Hello, how are you?",
 		},
@@ -159,23 +159,23 @@ func TestParseJSONLItem_UserMessage(t *testing.T) {
 }
 
 func TestParseAssistantMessage(t *testing.T) {
-	raw := map[string]interface{}{
-		"message": map[string]interface{}{
+	raw := map[string]any{
+		"message": map[string]any{
 			"model": "claude-sonnet-4",
-			"content": []interface{}{
-				map[string]interface{}{
+			"content": []any{
+				map[string]any{
 					"type": "text",
 					"text": "Hello!",
 				},
-				map[string]interface{}{
+				map[string]any{
 					"type":     "thinking",
 					"thinking": "Let me think...",
 				},
-				map[string]interface{}{
+				map[string]any{
 					"type": "tool_use",
 					"id":   "tool-123",
 					"name": "read_file",
-					"input": map[string]interface{}{
+					"input": map[string]any{
 						"path": "/test.txt",
 					},
 				},

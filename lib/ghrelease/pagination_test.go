@@ -10,7 +10,7 @@ import (
 func TestListReleasesWithPagination(t *testing.T) {
 	// Create mock releases
 	page1Releases := make([]Release, 100)
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		page1Releases[i] = Release{
 			TagName: "v1." + string(rune('0'+i)),
 			Name:    "Release " + string(rune('0'+i)),
@@ -18,7 +18,7 @@ func TestListReleasesWithPagination(t *testing.T) {
 	}
 
 	page2Releases := make([]Release, 50)
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		page2Releases[i] = Release{
 			TagName: "v2." + string(rune('0'+i)),
 			Name:    "Release " + string(rune('0'+i)),

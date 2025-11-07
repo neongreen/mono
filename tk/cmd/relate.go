@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -45,13 +46,7 @@ Examples:
 
 		// Validate relation type
 		validTypes := []string{"blocks", "blocked_by", "subtask", "parent", "related", "duplicate_of", "supersedes"}
-		valid := false
-		for _, t := range validTypes {
-			if relationType == t {
-				valid = true
-				break
-			}
-		}
+		valid := slices.Contains(validTypes, relationType)
 		if !valid {
 			return fmt.Errorf("invalid relation type %q, must be one of: %s", relationType, strings.Join(validTypes, ", "))
 		}

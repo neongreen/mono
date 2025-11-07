@@ -448,7 +448,7 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 		}
 
 		// Create target file with package declaration
-		err = os.WriteFile(targetFile, []byte(fmt.Sprintf("package %s\n", packageName)), 0644)
+		err = os.WriteFile(targetFile, fmt.Appendf(nil, "package %s\n", packageName), 0644)
 		if err != nil {
 			return fmt.Errorf("error creating target file: %w", err)
 		}

@@ -73,7 +73,7 @@ func renderSettingsTable(settings []schemas.SettingInfo, configPath string) {
 }
 
 // formatValue formats an interface{} value for display
-func formatValue(v interface{}) string {
+func formatValue(v any) string {
 	if v == nil {
 		return "nil"
 	}
@@ -82,7 +82,7 @@ func formatValue(v interface{}) string {
 	case string:
 		// Quote strings for clarity
 		return fmt.Sprintf("%q", val)
-	case []interface{}:
+	case []any:
 		// Format arrays
 		if len(val) == 0 {
 			return "[]"
@@ -92,7 +92,7 @@ func formatValue(v interface{}) string {
 			parts[i] = formatValue(item)
 		}
 		return "[" + strings.Join(parts, ", ") + "]"
-	case map[string]interface{}:
+	case map[string]any:
 		// Format objects
 		if len(val) == 0 {
 			return "{}"

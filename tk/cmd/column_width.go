@@ -127,11 +127,7 @@ func CalculateColumnWidths(tasks []*types.Task, displayIDs map[string]string, co
 
 	// Title gets all remaining space, but at least TitleMinWidth
 	remainingSpace := constraints.TermWidth - usedSpace
-	if remainingSpace < constraints.TitleMinWidth {
-		widths.Title = constraints.TitleMinWidth
-	} else {
-		widths.Title = remainingSpace
-	}
+	widths.Title = max(remainingSpace, constraints.TitleMinWidth)
 
 	return widths
 }

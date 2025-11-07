@@ -98,7 +98,7 @@ Examples:
 			createdAtStr := e.CreatedAt.Format("2006-01-02 15:04:05")
 			if verbose {
 				// Pretty print payload JSON
-				var payloadMap map[string]interface{}
+				var payloadMap map[string]any
 				if err := json.Unmarshal(e.Payload, &payloadMap); err == nil {
 					payloadJSON, _ := json.MarshalIndent(payloadMap, "", "  ")
 					t.AppendRow(table.Row{e.ID, e.TS, e.Kind, e.Actor, e.Role, createdAtStr, string(payloadJSON)})
@@ -192,7 +192,7 @@ Examples:
 
 		if len(events) == 0 {
 			if jsonOutput {
-				output := map[string]interface{}{
+				output := map[string]any{
 					"total":    0,
 					"by_kind":  map[string]int{},
 					"by_actor": map[string]int{},
@@ -218,7 +218,7 @@ Examples:
 		}
 
 		if jsonOutput {
-			output := map[string]interface{}{
+			output := map[string]any{
 				"total":    len(events),
 				"by_kind":  kindCounts,
 				"by_actor": actorCounts,

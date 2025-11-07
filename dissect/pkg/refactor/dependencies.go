@@ -168,7 +168,7 @@ func isUnexported(name string) bool {
 }
 
 // determineKind determines the kind of an object (func, var, type, const, method).
-func determineKind(obj interface{}) string {
+func determineKind(obj any) string {
 	switch obj.(type) {
 	case *types.Func:
 		// Check if it's a method by seeing if it has a receiver

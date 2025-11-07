@@ -207,7 +207,7 @@ Examples:
 // eventToSegmentEvent converts an types.Event to a SegmentEvent
 func eventToSegmentEvent(e types.Event, space, nodeID string) (sync.SegmentEvent, error) {
 	// Parse payload to the right type
-	var payload interface{}
+	var payload any
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
 		return sync.SegmentEvent{}, fmt.Errorf("failed to unmarshal payload: %w", err)
 	}
