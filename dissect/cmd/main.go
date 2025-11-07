@@ -161,6 +161,7 @@ func init() {
 	// Add subcommands
 	rootCmd.AddCommand(explodeCmd)
 	rootCmd.AddCommand(moveCmd)
+	rootCmd.AddCommand(listCmd)
 }
 
 func main() {
