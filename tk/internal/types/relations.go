@@ -2,11 +2,11 @@ package types
 
 // Relations represents all relations for a task
 type Relations struct {
-	Blocks     RelationSet `json:"blocks,omitempty"`     // Tasks this task blocks
-	Subtask    RelationSet `json:"subtask,omitempty"`    // Parent/children for subtasks
-	Related    RelationSet `json:"related,omitempty"`    // Related tasks
-	Duplicate  RelationSet `json:"duplicate,omitempty"`  // Duplicate tasks
-	Supersedes RelationSet `json:"supersedes,omitempty"` // Tasks this supersedes
+	Blocks     RelationSet `json:"blocks,omitzero"`     // Tasks this task blocks
+	Subtask    RelationSet `json:"subtask,omitzero"`    // Parent/children for subtasks
+	Related    RelationSet `json:"related,omitzero"`    // Related tasks
+	Duplicate  RelationSet `json:"duplicate,omitzero"`  // Duplicate tasks
+	Supersedes RelationSet `json:"supersedes,omitzero"` // Tasks this supersedes
 }
 
 // RelationSet represents directional relations
