@@ -2,8 +2,6 @@ module github.com/neongreen/mono
 
 go 1.24.7
 
-toolchain go1.24.7
-
 require (
 	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/charmbracelet/bubbles v0.21.0
