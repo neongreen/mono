@@ -27,24 +27,15 @@ gotestsum = "latest"
 description = "Count lines of Go code by file"
 run = "cloc --by-file --include-lang=Go ."
 
+[tasks.fmt]
+description = "Format all Go code"
+run = "golangci-lint fmt ."
+
 [tasks.fmt-all]
-description = "Format everything"
+description = "Format everything (Go and Rust)"
 run = """
-mise run go:fmt
-mise run claude-trace:fmt
-mise run conf:fmt
-mise run dissect:fmt
-mise run ingest:fmt
-mise run jj-run:fmt
-mise run lib-ghclient:fmt
-mise run lib-ghrelease:fmt
-mise run lib-toml:fmt
-mise run markdown-format:fmt
-mise run mdbook-comments:fmt
-mise run printpdf:fmt
-mise run prrun:fmt
-mise run tk:fmt
-mise run want:fmt
+golangci-lint fmt .
+cd mdbook-comments && cargo fmt
 """
 
 [tasks."jj:track"]
@@ -65,9 +56,6 @@ run = "GITHUB_TOKEN=$(gh auth token) pinact run --check --diff --verify"
 description = "Lint GitHub Actions workflows"
 depends = ["//:lint:actions:*"]
 
-[tasks."go:fmt"]
-description = "Format Go code in the unified module"
-run = "golangci-lint fmt ./..."
 
 [tasks."go:tidy"]
 description = "Synchronize Go dependencies"
@@ -498,10 +486,6 @@ description = "Build conf binary"
 dir = "conf"
 run = "go build -o conf ./cmd/main.go"
 
-[tasks."conf:fmt"]
-description = "Format Go code in conf"
-dir = "conf"
-run = "golangci-lint fmt ./..."
 
 # ============================================================================
 # claude-trace
@@ -517,10 +501,6 @@ description = "Run tests for claude-trace"
 dir = "claude-trace"
 run = "go test ./..."
 
-[tasks."claude-trace:fmt"]
-description = "Format Go code in claude-trace"
-dir = "claude-trace"
-run = "golangci-lint fmt ./..."
 
 [tasks."claude-trace:check"]
 description = "Check that Go code and tests compile and type check"
@@ -556,10 +536,6 @@ cd {{cwd}}
 "$DIR/_build/dissect"
 """
 
-[tasks."dissect:fmt"]
-description = "Format Go code in dissect"
-dir = "dissect"
-run = "golangci-lint fmt ./..."
 
 [tasks."dissect:check"]
 description = "Check that Go code and tests compile and type check"
@@ -585,10 +561,6 @@ description = "Build jj-run binary"
 dir = "jj-run"
 run = "go build -o jj-run ./cmd"
 
-[tasks."jj-run:fmt"]
-description = "Format Go code in jj-run"
-dir = "jj-run"
-run = "golangci-lint fmt ./..."
 
 # ============================================================================
 # ingest
@@ -609,19 +581,11 @@ description = "Run ingest CLI and integration suites"
 dir = "ingest"
 run = "go test ./cmd ./pkg/integration"
 
-[tasks."ingest:fmt"]
-description = "Format Go code in ingest"
-dir = "ingest"
-run = "golangci-lint fmt ./..."
 
 # ============================================================================
 # lib/ghclient
 # ============================================================================
 
-[tasks."lib-ghclient:fmt"]
-description = "Format Go code in lib/ghclient"
-dir = "lib/ghclient"
-run = "golangci-lint fmt ./..."
 
 [tasks."lib-ghclient:test"]
 description = "Run tests for lib/ghclient"
@@ -632,19 +596,11 @@ run = "go test ./..."
 # lib/ghrelease
 # ============================================================================
 
-[tasks."lib-ghrelease:fmt"]
-description = "Format Go code in lib/ghrelease"
-dir = "lib/ghrelease"
-run = "golangci-lint fmt ./..."
 
 # ============================================================================
 # lib/toml
 # ============================================================================
 
-[tasks."lib-toml:fmt"]
-description = "Format Go code in lib/toml"
-dir = "lib/toml"
-run = "golangci-lint fmt ./..."
 
 # ============================================================================
 # markdown-format
@@ -660,10 +616,6 @@ description = "Run tests for markdown-format"
 dir = "markdown-format"
 run = "go test ./..."
 
-[tasks."markdown-format:fmt"]
-description = "Format Go code in markdown-format"
-dir = "markdown-format"
-run = "golangci-lint fmt ./..."
 
 [tasks."markdown-format:check"]
 description = "Check that Go code and tests compile and type check"
@@ -679,10 +631,6 @@ description = "Build and run printpdf"
 dir = "printpdf"
 run = "go run ./cmd"
 
-[tasks."printpdf:fmt"]
-description = "Format Go code in printpdf"
-dir = "printpdf"
-run = "golangci-lint fmt ./..."
 
 [tasks."printpdf:check"]
 description = "Check that Go code and tests compile and type check"
@@ -718,10 +666,6 @@ description = "Build and run prrun"
 dir = "prrun"
 run = "go run ."
 
-[tasks."prrun:fmt"]
-description = "Format Go code in prrun"
-dir = "prrun"
-run = "golangci-lint fmt ./..."
 
 [tasks."prrun:check"]
 description = "Check that Go code and tests compile and type check"
@@ -747,10 +691,6 @@ description = "Build and run tk"
 dir = "tk"
 run = "go run ."
 
-[tasks."tk:fmt"]
-description = "Format Go code in tk"
-dir = "tk"
-run = "golangci-lint fmt ./..."
 
 [tasks."tk:check"]
 description = "Check that Go code and tests compile and type check"
@@ -771,10 +711,6 @@ description = "Build and run want"
 dir = "want"
 run = "go run ."
 
-[tasks."want:fmt"]
-description = "Format Go code in want"
-dir = "want"
-run = "golangci-lint fmt ./..."
 
 [tasks."want:check"]
 description = "Check that Go code and tests compile and type check"
