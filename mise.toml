@@ -38,6 +38,50 @@ golangci-lint fmt .
 cd mdbook-comments && cargo fmt
 """
 
+# ============================================================================
+# Project aliases (mise run <project> -> mise run <project>:run)
+# ============================================================================
+
+[tasks.claude-trace]
+description = "Build and run claude-trace"
+depends = ["claude-trace:run"]
+
+[tasks.conf]
+description = "Build and run conf"
+depends = ["conf:run"]
+
+[tasks.dissect]
+description = "Build and run dissect"
+depends = ["dissect:run"]
+
+[tasks.ingest]
+description = "Build and run the ingest CLI"
+depends = ["ingest:run"]
+
+[tasks.jj-run]
+description = "Build and run jj-run"
+depends = ["jj-run:run"]
+
+[tasks.markdown-format]
+description = "Build and run markdown-format"
+depends = ["markdown-format:run"]
+
+[tasks.printpdf]
+description = "Build and run printpdf"
+depends = ["printpdf:run"]
+
+[tasks.prrun]
+description = "Build and run prrun"
+depends = ["prrun:run"]
+
+[tasks.tk]
+description = "Build and run tk"
+depends = ["tk:run"]
+
+[tasks.want]
+description = "Build and run want"
+depends = ["want:run"]
+
 [tasks."jj:track"]
 description = "Track all remote bookmarks"
 run = """
