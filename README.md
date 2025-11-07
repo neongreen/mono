@@ -10,7 +10,7 @@ This repository contains multiple independent projects.
 | [markdown-format](markdown-format/) | alpha | Markdown formatter; command surface and formatting rules are still evolving. |
 | [prrun](prrun/) | deprecated | Was designed to run binaries from PR releases; PR releases are no longer created. |
 | [printpdf](printpdf/) | beta | Markdown/web-to-PDF tool; rendering pipeline has known gaps documented in project issues. |
-| [beads-merge](beads-merge/) | alpha | 3-way merge tool for beads `.jsonl` issue files; designed for jj version control. |
+| beads-merge | merged | Merged into [beads](https://github.com/steveyegge/beads). See [#240](https://github.com/neongreen/mono/issues/240). |
 | [ingest](ingest/) | pre-alpha | Data ingestion orchestrator; schema and connectors change frequently. |
 | [diagram-dsl](diagram-dsl/) | pre-alpha | TypeScript DSL for diagrams; layout system under active refactor. |
 | [mdbook-comments](mdbook-comments/) | alpha | mdbook preprocessor for paragraph-level commenting with Supabase backend. |
