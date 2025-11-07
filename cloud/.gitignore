@@ -1,0 +1,17 @@
+# OpenTofu/Terraform local artifacts
+.terraform/
+.tofu/
+terraform.tfstate
+terraform.tfstate.*
+crash.log
+crash.*.log
+
+# Local variable files (often contain secrets)
+*.tfvars
+*.tfvars.json
+
+# Local override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
