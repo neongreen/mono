@@ -10,4 +10,12 @@ output "location" {
   value = data.hcloud_location.nbg1.id  # German data center
 }
 
+output "network_id" {
+  value = hcloud_network.main.id
+}
+
+output "firewall_id" {
+  value = hcloud_firewall.default.id
+}
+
 
