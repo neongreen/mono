@@ -767,13 +767,13 @@ for dir in $(find cloud/terraform -type f -name '*.tf' -exec dirname {} \; | sor
 done
 '''
 
-[tasks."cloud:deploy:hcloud"]
-description = "Deploy cloud/terraform/01-hcloud with auto-confirm"
+[tasks."cloud:watch"]
+description = "Watch/tail logs of the latest Spacelift run for 01-hcloud stack"
 dir = "cloud"
 quiet = true
 run = '''
 set -euo pipefail
-fnox exec -- spacectl stack deploy --id mono-cloud-01 --auto-confirm --tail
+fnox exec -- spacectl stack logs --id mono-cloud-01 --run-latest --tail
 '''
 
 [tasks."cloud:outputs:hcloud"]
@@ -803,22 +803,35 @@ tools.jq = "latest"
 quiet = true
 run = '''
 set -euo pipefail
-IP=$(mise run cloud:ip | tail -1)
-ssh -o StrictHostKeyChecking=no root@"$IP" 'cat /etc/rancher/k3s/k3s.yaml' > kubeconfig
+# Get IP directly (avoid nested mise calls)
+IP=$(fnox exec -- spacectl stack outputs --id mono-cloud-01 -o json \
+  | jq -r '.[] | select(.id=="server_ipv4") | .value | fromjson' | tr -d '\n\r')
+# Check if k3s is ready (kubeconfig exists on server)
+if ! ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "root@${IP}" 'test -f /etc/rancher/k3s/k3s.yaml' 2>/dev/null; then
+  echo "Error: k3s not ready yet on server. Wait a minute for cloud-init to finish." >&2
+  exit 1
+fi
+ssh -o StrictHostKeyChecking=no "root@${IP}" 'cat /etc/rancher/k3s/k3s.yaml' > kubeconfig
 # Replace default localhost server with public IP
-perl -pi -e "s#https://127\\.0\\.0\\.1:6443#https://$IP:6443#g" kubeconfig
+perl -pi -e "s#https://127\\.0\\.0\\.1:6443#https://${IP}:6443#g" kubeconfig
 chmod 600 kubeconfig
 echo "KUBECONFIG=$(pwd)/kubeconfig"
 '''
 
 [tasks."cloud:kubectl"]
-description = "Run kubectl with kubeconfig automatically set (ensures kubeconfig exists first)"
+description = "Run kubectl with kubeconfig automatically set (ensures kubeconfig exists and is valid first)"
 dir = "cloud"
 quiet = true
 run = '''
 set -euo pipefail
-# Ensure kubeconfig exists
-if [ ! -f kubeconfig ]; then
+# Ensure kubeconfig exists and is not empty
+if [ ! -s kubeconfig ]; then
+  echo "Fetching kubeconfig..." >&2
+  mise run cloud:kubeconfig >/dev/null 2>&1
+fi
+# Verify kubeconfig is valid (has server URL)
+if ! grep -q "server:" kubeconfig 2>/dev/null; then
+  echo "Error: kubeconfig appears invalid, re-fetching..." >&2
   mise run cloud:kubeconfig >/dev/null 2>&1
 fi
 KUBECONFIG="$(pwd)/kubeconfig" kubectl "$@"
