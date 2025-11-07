@@ -79,7 +79,7 @@ func (m *Manager) findOrInstall(tool string, importPath string) (string, error) 
 	installCmd.Dir = m.projectDir
 	installCmd.Env = append(os.Environ(), fmt.Sprintf("GOBIN=%s", gobin))
 
-	// Set timeout for installation (30 seconds)
+	// Set timeout for installation (2 minutes for gopls which can be slow)
 	done := make(chan error, 1)
 	go func() {
 		done <- installCmd.Run()
@@ -90,8 +90,8 @@ func (m *Manager) findOrInstall(tool string, importPath string) (string, error) 
 		if err != nil {
 			return "", fmt.Errorf("failed to install %s: %w", tool, err)
 		}
-	case <-time.After(30 * time.Second):
-		return "", fmt.Errorf("installation of %s timed out after 30 seconds", tool)
+	case <-time.After(2 * time.Minute):
+		return "", fmt.Errorf("installation of %s timed out after 2 minutes", tool)
 	}
 
 	// Verify installation
