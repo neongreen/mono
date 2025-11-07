@@ -1,8 +1,4 @@
 [[project]]
-dir = "beads-merge"
-module = "github.com/neongreen/mono/beads-merge"
-
-[[project]]
 dir = "claude-trace"
 module = "claude-trace"
 

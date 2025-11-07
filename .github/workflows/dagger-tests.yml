@@ -3,7 +3,6 @@ name: Dagger Tests
 on:
   push:
     paths:
-      - "beads-merge/**"
       - "claude-trace/**"
       - "conf/**"
       - "dissect/**"
@@ -36,9 +35,6 @@ jobs:
         id: filter
         with:
           filters: |
-            beads-merge:
-              - 'beads-merge/**'
-              - '.dagger/**'
             claude-trace:
               - 'claude-trace/**'
               - '.dagger/**'

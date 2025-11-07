@@ -46,10 +46,6 @@ func (m *Dagger) Build(ctx context.Context) error {
 		_, err := p.MarkdownFormat().Build(ctx)
 		return err
 	})
-	jobs = jobs.WithJob("build beads-merge", func(ctx context.Context) error {
-		_, err := p.BeadsMerge().Build(ctx)
-		return err
-	})
 	jobs = jobs.WithJob("build jj-run", func(ctx context.Context) error {
 		_, err := p.JjRun().Build(ctx)
 		return err
@@ -99,10 +95,6 @@ func (m *Dagger) Test(ctx context.Context,
 	})
 	jobs = jobs.WithJob("test markdown-format", func(ctx context.Context) error {
 		_, err := p.MarkdownFormat().Test(ctx, format)
-		return err
-	})
-	jobs = jobs.WithJob("test beads-merge", func(ctx context.Context) error {
-		_, err := p.BeadsMerge().Test(ctx, format)
 		return err
 	})
 	jobs = jobs.WithJob("test jj-run", func(ctx context.Context) error {
@@ -163,10 +155,6 @@ func (m *Dagger) Lint(ctx context.Context) error {
 	})
 	jobs = jobs.WithJob("lint markdown-format", func(ctx context.Context) error {
 		_, err := p.MarkdownFormat().Lint(ctx)
-		return err
-	})
-	jobs = jobs.WithJob("lint beads-merge", func(ctx context.Context) error {
-		_, err := p.BeadsMerge().Lint(ctx)
 		return err
 	})
 	jobs = jobs.WithJob("lint jj-run", func(ctx context.Context) error {
