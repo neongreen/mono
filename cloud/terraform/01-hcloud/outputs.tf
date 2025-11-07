@@ -18,4 +18,12 @@ output "firewall_id" {
   value = hcloud_firewall.default.id
 }
 
+output "server_id" {
+  value = hcloud_server.vm1.id
+}
+
+output "server_ipv4" {
+  value = hcloud_server.vm1.ipv4_address
+}
+
 
