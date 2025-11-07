@@ -1,5 +1,5 @@
 output "server_type" {
-  value = data.hcloud_server_type.cpx11.id
+  value = data.hcloud_server_type.cpx11.id  # Smallest vCPU server
 }
 
 output "image" {
@@ -7,7 +7,7 @@ output "image" {
 }
 
 output "location" {
-  value = data.hcloud_location.nbg1.id
+  value = data.hcloud_location.nbg1.id  # German data center
 }
 
 
