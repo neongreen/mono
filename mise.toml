@@ -578,6 +578,7 @@ description = "Fetch Go tools (including gopls) for AI to inspect"
 dir = "dissect"
 run = "git clone https://github.com/golang/tools.git _gotools"
 
+# Not using "go run" because we want it to be fast
 [tasks.dissect]
 description = "Run the dissect project"
 depends = ["dissect:build"]
@@ -612,7 +613,7 @@ description = "Build jj-run binary"
 dir = "jj-run"
 run = """
 go build -trimpath -o {{cwd}}/_build/jj-run ./cmd
-{{cwd}}/_build/jj-run version
+{{cwd}}/_build/jj-run --version
 echo "{{cwd}}/_build/jj-run"
 """
 
@@ -624,7 +625,7 @@ echo "{{cwd}}/_build/jj-run"
 [tasks.ingest]
 description = "Build and run the ingest CLI"
 dir = "ingest"
-run = "go run ./cmd/ingest"
+run = "go run ./cmd"
 
 [tasks."ingest:test"]
 description = "Run all ingest tests"
@@ -640,7 +641,7 @@ run = "go test ./cmd ./pkg/integration"
 description = "Build ingest binary"
 dir = "ingest"
 run = """
-go build -trimpath -o {{cwd}}/_build/ingest ./cmd/ingest
+go build -trimpath -o {{cwd}}/_build/ingest ./cmd
 {{cwd}}/_build/ingest version
 echo "{{cwd}}/_build/ingest"
 """
@@ -670,13 +671,12 @@ description = "Run tests for markdown-format"
 dir = "markdown-format"
 run = "go test ./..."
 
-
 [tasks."markdown-format:build"]
 description = "Build markdown-format binary"
 dir = "markdown-format"
 run = """
 go build -trimpath -o {{cwd}}/_build/markdown-format .
-{{cwd}}/_build/markdown-format version
+{{cwd}}/_build/markdown-format -help
 echo "{{cwd}}/_build/markdown-format"
 """
 
@@ -733,7 +733,6 @@ description = "Build and run prrun"
 dir = "prrun"
 run = "go run ."
 
-
 [tasks."prrun:check"]
 description = "Check that Go code and tests compile and type check"
 dir = "prrun"
@@ -754,7 +753,7 @@ description = "Build prrun binary"
 dir = "prrun"
 run = """
 go build -trimpath -o {{cwd}}/_build/prrun .
-{{cwd}}/_build/prrun version
+{{cwd}}/_build/prrun --version
 echo "{{cwd}}/_build/prrun"
 """
 
