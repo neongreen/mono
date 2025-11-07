@@ -735,48 +735,101 @@ func starshipCompletion(cmd *cobra.Command, args []string, toComplete string) ([
 
 	switch len(args) {
 	case 0:
-		// First argument: complete config paths from common settings
-		settings := starshipTool.ListCommonSettings()
+		// First argument: complete config paths from schema
+		settings, err := starshipTool.ListAllSettings()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+
 		var completions []string
 		for _, setting := range settings {
 			if strings.HasPrefix(setting.Path, toComplete) {
-				completion := fmt.Sprintf("%s\t%s", setting.Path, setting.Description)
+				description := setting.Description
+				if description == "" {
+					description = fmt.Sprintf("Type: %s", setting.Type)
+				}
+
+				// Add current value info if set
+				valueInfo := ""
+				if setting.IsSet {
+					valueInfo = fmt.Sprintf(" (current: %v)", setting.CurrentValue)
+				}
+
+				// Format: path<tab>description + value info
+				completion := fmt.Sprintf("%s\t%s%s", setting.Path, description, valueInfo)
 				completions = append(completions, completion)
 			}
 		}
 		return completions, cobra.ShellCompDirectiveDefault
 
 	case 1:
-		// Second argument: provide type-based suggestions
+		// Second argument: complete values based on schema info for the given path
 		configPath := args[0]
-		settings := starshipTool.ListCommonSettings()
 
+		// Get property info for this path
+		settings, err := starshipTool.ListAllSettings()
+		if err != nil {
+			return nil, cobra.ShellCompDirectiveError
+		}
+
+		var targetSetting *schemas.SettingInfo
 		for _, setting := range settings {
 			if setting.Path == configPath {
-				switch setting.Type {
-				case "boolean":
-					var completions []string
-					for _, val := range []string{"true", "false"} {
-						if strings.HasPrefix(val, toComplete) {
-							completions = append(completions, fmt.Sprintf("%s\tBoolean value", val))
-						}
-					}
-					return completions, cobra.ShellCompDirectiveDefault
-				case "integer":
-					// Show example as suggestion
-					if strings.HasPrefix(setting.Example, toComplete) {
-						return []string{fmt.Sprintf("%s\tExample value", setting.Example)}, cobra.ShellCompDirectiveDefault
-					}
-				case "string":
-					// Show example as suggestion
-					if strings.HasPrefix(setting.Example, toComplete) {
-						return []string{fmt.Sprintf("%s\tExample value", setting.Example)}, cobra.ShellCompDirectiveDefault
-					}
-				}
+				targetSetting = &setting
 				break
 			}
 		}
-		return nil, cobra.ShellCompDirectiveDefault
+
+		if targetSetting == nil {
+			return nil, cobra.ShellCompDirectiveDefault
+		}
+
+		var completions []string
+
+		// If setting has enum values, complete with those
+		if len(targetSetting.Enum) > 0 {
+			for _, enumVal := range targetSetting.Enum {
+				if strings.HasPrefix(enumVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tValid enum value", enumVal))
+				}
+			}
+			return completions, cobra.ShellCompDirectiveDefault
+		}
+
+		// Provide type-based suggestions
+		switch targetSetting.Type {
+		case "boolean":
+			for _, val := range []string{"true", "false"} {
+				if strings.HasPrefix(val, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tBoolean value", val))
+				}
+			}
+		case "string":
+			// Show current value as suggestion if set
+			if targetSetting.IsSet && targetSetting.CurrentValue != nil {
+				currentVal := fmt.Sprintf("%v", targetSetting.CurrentValue)
+				if strings.HasPrefix(currentVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tCurrent value", currentVal))
+				}
+			}
+			// Show default value as suggestion if available
+			if targetSetting.Default != nil {
+				defaultVal := fmt.Sprintf("%v", targetSetting.Default)
+				if strings.HasPrefix(defaultVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tDefault value", defaultVal))
+				}
+			}
+		case "integer", "number":
+			// Show default value as suggestion if available
+			if targetSetting.Default != nil {
+				defaultVal := fmt.Sprintf("%v", targetSetting.Default)
+				if strings.HasPrefix(defaultVal, toComplete) {
+					completions = append(completions, fmt.Sprintf("%s\tDefault value", defaultVal))
+				}
+			}
+		}
+
+		return completions, cobra.ShellCompDirectiveDefault
 
 	default:
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -785,8 +838,8 @@ func starshipCompletion(cmd *cobra.Command, args []string, toComplete string) ([
 
 var starshipListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List common starship configuration options",
-	Long:  `Display a list of commonly used starship configuration options with descriptions and examples.`,
+	Short: "List all starship configuration options",
+	Long:  `Display a list of all starship configuration options with descriptions, types, and current values.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		starshipTool, err := starshiptool.NewStarshipTool()
 		if err != nil {
@@ -794,20 +847,13 @@ var starshipListCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		starshipSettings := starshipTool.ListCommonSettings()
-
-		// Convert to CommonSetting for rendering
-		settings := make([]CommonSetting, len(starshipSettings))
-		for i, s := range starshipSettings {
-			settings[i] = CommonSetting{
-				Path:        s.Path,
-				Type:        s.Type,
-				Description: s.Description,
-				Example:     s.Example,
-			}
+		settings, err := starshipTool.ListAllSettings()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to list settings: %v\n", err)
+			os.Exit(1)
 		}
 
-		renderCommonSettingsTable(settings, starshipTool.GetConfigPath())
+		renderSettingsTable(settings, starshipTool.GetConfigPath())
 	},
 }
 
@@ -833,20 +879,13 @@ Examples:
 
 		// Default to list when no arguments provided
 		if len(args) == 0 {
-			starshipSettings := starshipTool.ListCommonSettings()
-
-			// Convert to CommonSetting for rendering
-			settings := make([]CommonSetting, len(starshipSettings))
-			for i, s := range starshipSettings {
-				settings[i] = CommonSetting{
-					Path:        s.Path,
-					Type:        s.Type,
-					Description: s.Description,
-					Example:     s.Example,
-				}
+			settings, err := starshipTool.ListAllSettings()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error: Failed to list settings: %v\n", err)
+				os.Exit(1)
 			}
 
-			renderCommonSettingsTable(settings, starshipTool.GetConfigPath())
+			renderSettingsTable(settings, starshipTool.GetConfigPath())
 			return
 		}
 

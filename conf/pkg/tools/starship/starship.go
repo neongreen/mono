@@ -5,12 +5,14 @@ import (
 
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
+	"github.com/neongreen/mono/conf/pkg/schemas"
 )
 
 // StarshipTool implements starship configuration management
 type StarshipTool struct {
 	configPath string
 	editor     *editors.TOMLEditor
+	parser     *schemas.StarshipSchemaParser
 	dryRun     bool
 }
 
@@ -35,9 +37,16 @@ func NewStarshipToolWithDryRun(dryRun bool) (*StarshipTool, error) {
 	// Create TOML editor for starship config file
 	editor := editors.NewTOMLEditorWithDryRun(starshipConfig.ConfigPath, dryRun)
 
+	// Create starship schema parser
+	parser, err := schemas.NewStarshipSchemaParser()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create starship schema parser: %w", err)
+	}
+
 	return &StarshipTool{
 		configPath: starshipConfig.ConfigPath,
 		editor:     editor,
+		parser:     parser,
 		dryRun:     dryRun,
 	}, nil
 }
@@ -211,4 +220,23 @@ type CommonSetting struct {
 // GetAllValues returns all configuration values from the starship config file as a nested map
 func (s *StarshipTool) GetAllValues() (map[string]any, error) {
 	return s.editor.GetAllValues()
+}
+
+// ListAllSettings returns comprehensive information about all starship settings from schema
+func (s *StarshipTool) ListAllSettings() ([]schemas.SettingInfo, error) {
+	// Get all settings from schema
+	schemaSettings := s.parser.GetAllSettingsWithInfo()
+
+	// Enhance with current values
+	for i := range schemaSettings {
+		currentValue, err := s.editor.GetValue(schemaSettings[i].Path)
+		if err == nil && currentValue != nil {
+			schemaSettings[i].CurrentValue = currentValue
+			schemaSettings[i].IsSet = true
+		} else {
+			schemaSettings[i].IsSet = false
+		}
+	}
+
+	return schemaSettings, nil
 }

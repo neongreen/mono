@@ -1,0 +1,23 @@
+# Schema Metadata for starship.json
+
+## Source Information
+- **Source URL**: https://starship.rs/config-schema.json
+- **Alternative URL**: https://github.com/starship/starship
+- **Downloaded Date**: 2025-11-07
+- **Official Documentation**: https://starship.rs/config/
+- **License**: ISC (per Starship project)
+
+## Modifications
+- **Date**: 2025-11-07
+- **Modified by**: N/A
+- **Reason**: Using official schema as-is, no modifications
+- **Changes**: None - official schema is used directly
+
+## Update History
+- 2025-11-07: Downloaded schema from Starship website
+
+## Notes
+- Official schema from Starship project
+- Uses JSON Schema Draft 2020-12
+- To update: Download from https://starship.rs/config-schema.json
+- See AGENTS.md for schema source policy
