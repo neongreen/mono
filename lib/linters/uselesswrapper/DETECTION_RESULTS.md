@@ -5,12 +5,14 @@ This document shows the results of running the `uselesswrapper` linter on the tk
 ## How to Run
 
 ```bash
-# Build the linter
-cd lib/linters/uselesswrapper
-go build -o uselesswrapper ./cmd/uselesswrapper
+# From repository root, build the linter
+go build -o uselesswrapper ./lib/linters/uselesswrapper/cmd/uselesswrapper
 
 # Run on the tk package
-./uselesswrapper ../../tk/...
+./uselesswrapper ./tk/...
+
+# Or run without building (slower but simpler)
+go run ./lib/linters/uselesswrapper/cmd/uselesswrapper ./tk/...
 ```
 
 ## Results

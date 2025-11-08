@@ -34,15 +34,31 @@ Successfully created a custom Go static analyzer that detects useless function w
 ## How to Use
 
 ```bash
-# Build the tool
-cd lib/linters/uselesswrapper
-go build -o uselesswrapper ./cmd/uselesswrapper
+# From repository root, build the tool
+go build -o uselesswrapper ./lib/linters/uselesswrapper/cmd/uselesswrapper
 
 # Run on a package
 ./uselesswrapper ./path/to/package
 
 # Run on entire module
 ./uselesswrapper ./...
+
+# Or run without building
+go run ./lib/linters/uselesswrapper/cmd/uselesswrapper ./...
+```
+
+## Monorepo Integration
+
+This linter is part of the monorepo and uses the root `go.mod`:
+- No separate module needed
+- Shares dependencies with other tools in the repo
+- Can be easily imported by other packages in the monorepo
+
+To add as a mise task, add to root `mise.toml`:
+```toml
+[tasks."lint:uselesswrapper"]
+description = "Detect useless function wrappers"
+run = "go run ./lib/linters/uselesswrapper/cmd/uselesswrapper ./..."
 ```
 
 ## Results on tk Codebase
