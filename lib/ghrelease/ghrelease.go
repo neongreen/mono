@@ -61,6 +61,7 @@ func GetCurrentPlatform() Platform {
 }
 
 // GetGitHubToken retrieves a GitHub token using the shared client utilities.
+//nolint:uselesswrapper // Provides stable public API for the package
 func GetGitHubToken() string {
 	return ghclient.GetToken()
 }

@@ -19,6 +19,7 @@ package uselesswrapper
 import (
 	"go/ast"
 	"go/types"
+	"strings"
 
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/passes/inspect"
@@ -32,7 +33,7 @@ var Analyzer = &analysis.Analyzer{
 	Requires: []*analysis.Analyzer{inspect.Analyzer},
 }
 
-func run(pass *analysis.Pass) (interface{}, error) {
+func run(pass *analysis.Pass) (any, error) {
 	inspect := pass.ResultOf[inspect.Analyzer].(*inspector.Inspector)
 
 	nodeFilter := []ast.Node{
@@ -49,6 +50,11 @@ func run(pass *analysis.Pass) (interface{}, error) {
 
 		// Skip methods (functions with receivers)
 		if funcDecl.Recv != nil {
+			return
+		}
+
+		// Check for nolint comment
+		if hasNolintComment(funcDecl, pass) {
 			return
 		}
 
@@ -84,6 +90,38 @@ func run(pass *analysis.Pass) (interface{}, error) {
 	})
 
 	return nil, nil
+}
+
+// hasNolintComment checks if a function has a nolint comment for uselesswrapper
+func hasNolintComment(funcDecl *ast.FuncDecl, pass *analysis.Pass) bool {
+	// Find the file containing this function
+	var file *ast.File
+	for _, f := range pass.Files {
+		if f.Pos() <= funcDecl.Pos() && funcDecl.End() <= f.End() {
+			file = f
+			break
+		}
+	}
+	if file == nil {
+		return false
+	}
+
+	// Check all comments in the file
+	for _, cg := range file.Comments {
+		// Only check comments that end before or at the start of the function
+		if cg.End() <= funcDecl.Pos() {
+			// Check if this comment group is close enough to the function (within a few lines)
+			for _, comment := range cg.List {
+				text := comment.Text
+				// Support both //nolint and //nolint:uselesswrapper
+				if strings.Contains(text, "nolint") &&
+					(strings.Contains(text, "uselesswrapper") || !strings.Contains(text, ":")) {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // isPassthroughCall checks if a call expression passes all function parameters unchanged

@@ -9,6 +9,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -84,7 +85,7 @@ Examples:
 		relationType = normalizedType
 
 		// Get current user
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}

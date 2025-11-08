@@ -50,7 +50,7 @@ Examples:
 
 func init() {
 	monoCmd.Flags().BoolVar(&listReleases, "list", false, "List all releases and open PRs")
-	rootCmd.AddCommand(monoCmd)
+	RootCmd.AddCommand(monoCmd)
 }
 
 // These functions will be properly wired up to the main package implementations

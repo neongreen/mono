@@ -222,11 +222,13 @@ func writeSegments(
 }
 
 // LoadExportState loads the export state from a file
+//nolint:uselesswrapper // Type-safe wrapper for LoadJSON
 func LoadExportState(path string) (*ExportState, error) {
 	return LoadJSON[ExportState](path)
 }
 
 // SaveExportState saves the export state to a file
+//nolint:uselesswrapper // Type-safe wrapper for SaveJSON
 func SaveExportState(path string, state *ExportState) error {
 	return SaveJSON(path, state)
 }

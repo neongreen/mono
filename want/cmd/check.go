@@ -26,5 +26,5 @@ This command will verify:
 }
 
 func init() {
-	rootCmd.AddCommand(checkCmd)
+	RootCmd.AddCommand(checkCmd)
 }

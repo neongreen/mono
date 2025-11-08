@@ -1,6 +1,7 @@
 package cmd
 
 import (
+        "github.com/neongreen/mono/tk/internal/utils"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -34,7 +35,7 @@ var noteCmd = &cobra.Command{
 			displayID = taskRef
 		}
 
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}

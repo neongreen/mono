@@ -32,6 +32,7 @@ This repository contains multiple independent projects.
 | [toml](lib/toml/) | beta | Surgical TOML editor with comment preservation; used by conf. |
 | [version](lib/version/) | stable | Shared version command implementation for CLI tools. |
 | [cli](lib/cli/) | stable | Unified CLI color/styling utilities for all tools. |
+| [linters/uselesswrapper](lib/linters/uselesswrapper/) | alpha | Static analysis tool that detects useless function wrappers; integrated via Dagger and mise. |
 
 ## Infrastructure
 

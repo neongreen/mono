@@ -1,6 +1,7 @@
 package cmd
 
 import (
+        "github.com/neongreen/mono/tk/internal/utils"
 	"fmt"
 	"strconv"
 	"strings"
@@ -116,7 +117,7 @@ func moveTask(db *database.DB, taskRef string, targetSpec string, opts tasks.Mov
 		return err
 	}
 
-	currentUser, err := getCurrentUser()
+	currentUser, err := utils.GetCurrentUser()
 	if err != nil {
 		return err
 	}

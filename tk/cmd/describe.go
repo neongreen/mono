@@ -1,6 +1,7 @@
 package cmd
 
 import (
+        "github.com/neongreen/mono/tk/internal/utils"
 	"fmt"
 	"strings"
 
@@ -25,7 +26,7 @@ var describeCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}

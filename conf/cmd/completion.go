@@ -235,11 +235,11 @@ After adding to your shell config, restart your shell or source the file.`,
 		shell := args[0]
 		switch shell {
 		case "bash":
-			rootCmd.GenBashCompletion(os.Stdout)
+			RootCmd.GenBashCompletion(os.Stdout)
 		case "zsh":
-			rootCmd.GenZshCompletion(os.Stdout)
+			RootCmd.GenZshCompletion(os.Stdout)
 		case "fish":
-			rootCmd.GenFishCompletion(os.Stdout, true)
+			RootCmd.GenFishCompletion(os.Stdout, true)
 		default:
 			fmt.Fprintf(os.Stderr, "Unsupported shell: %s\n", shell)
 			fmt.Fprintln(os.Stderr, "\nSupported shells: bash, zsh, fish")

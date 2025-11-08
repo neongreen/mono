@@ -43,6 +43,7 @@ func (p ProjectUID) String() string { return string(p) }
 type ProjectRef string
 
 // NewProjectRef creates an unresolved project reference from a string
+//nolint:uselesswrapper // Type constructor for semantic clarity
 func NewProjectRef(s string) ProjectRef {
 	return ProjectRef(s)
 }
@@ -112,6 +113,7 @@ func (t TaskUID) String() string { return string(t) }
 type TaskRef string
 
 // NewTaskRef creates an unresolved task reference from a string
+//nolint:uselesswrapper // Type constructor for semantic clarity
 func NewTaskRef(s string) TaskRef {
 	return TaskRef(s)
 }

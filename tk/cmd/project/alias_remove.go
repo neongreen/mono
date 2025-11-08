@@ -7,6 +7,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +41,7 @@ var AliasRemoveCmd = &cobra.Command{
 		}
 
 		// Get current user
-		actor, err := getCurrentUser()
+		actor, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}
