@@ -449,7 +449,7 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	// Finalize relations with config
-	config := &remote.Config{
+	config := &config.Config{
 		Blocking: remote.BlockingConfig{
 			BlockingAxis: "generic",
 			DoneStates:   []string{"done"},
@@ -631,7 +631,7 @@ func TestRelationRemovalIntegration(t *testing.T) {
 	}
 	reducer.Apply(addEvent)
 
-	config := &remote.Config{
+	config := &config.Config{
 		Blocking: remote.BlockingConfig{
 			BlockingAxis: "generic",
 			DoneStates:   []string{"done"},

@@ -97,8 +97,8 @@ func TestSaveAndLoadConfig(t *testing.T) {
 	})
 
 	// Create a test config
-	testConfig := &remote.Config{
-		Remotes: map[string]remote.RemoteConfig{
+	testConfig := &config.Config{
+		Remotes: map[string]config.RemoteConfig{
 			"test": {
 				Type:   "folder",
 				Path:   "/tmp/test-remote",

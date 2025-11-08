@@ -26,7 +26,7 @@ var debugEventsCmd = &cobra.Command{
 		}
 
 		// Get the first remote
-		var remoteConfig remote.RemoteConfig
+		var remoteConfig config.RemoteConfig
 		var remoteName string
 		for name, r := range config.Remotes {
 			remoteConfig = r

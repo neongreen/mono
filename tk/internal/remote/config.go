@@ -26,7 +26,7 @@ func AddRemote(cfg *Config, name, remoteType, path string) error {
 	}
 
 	// Add remote with default configuration
-	cfg.Remotes[name] = RemoteConfig{
+	cfg.Remotes[name] = config.RemoteConfig{
 		Type:   remoteType,
 		Path:   expandedPath,
 		Spaces: []string{"personal"},
@@ -50,7 +50,7 @@ func RemoveRemote(cfg *Config, name string) error {
 }
 
 // GetRemote retrieves a specific remote from the configuration
-func GetRemote(cfg *Config, name string) (*RemoteConfig, error) {
+func GetRemote(cfg *Config, name string) (*config.RemoteConfig, error) {
 	remote, exists := cfg.Remotes[name]
 	if !exists {
 		return nil, fmt.Errorf("remote '%s' not found", name)
@@ -59,7 +59,7 @@ func GetRemote(cfg *Config, name string) (*RemoteConfig, error) {
 }
 
 // ListRemotes returns all configured remotes
-func ListRemotes(cfg *Config) map[string]RemoteConfig {
+func ListRemotes(cfg *Config) map[string]config.RemoteConfig {
 	return cfg.Remotes
 }
 
