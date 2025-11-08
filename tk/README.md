@@ -375,7 +375,7 @@ tk remote add icloud folder ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-e
 
 Initial sync on Machine A:
 ```bash
-tk export --all icloud  # Export all existing events
+tk push --all icloud    # Export all existing events
 tk sync icloud          # Push to iCloud
 ```
 
@@ -402,7 +402,7 @@ Shows divergence between local and remote segments.
 
 ### Individual sync operations
 
-- `tk export [remote]` - Export local events to segments
+- `tk push [remote]` - Export local events and push segments to remote
 - `tk ingest [remote|file]` - Ingest events from segments
 - `tk pull [remote]` - Pull segments from remote
 - `tk push [remote]` - Push segments to remote

@@ -161,7 +161,6 @@ This is useful for:
 	rootCmd.AddCommand(graphCmd)
 	rootCmd.AddCommand(conflictsCmd)
 	rootCmd.AddCommand(remoteCmd)
-	rootCmd.AddCommand(exportCmd)
 	rootCmd.AddCommand(ingestCmd)
 	rootCmd.AddCommand(importBeadsCmd)
 	rootCmd.AddCommand(pushCmd)

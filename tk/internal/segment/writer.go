@@ -80,10 +80,7 @@ func (sw *SegmentWriter) WriteSegment() (*SegmentInfo, error) {
 		return nil, fmt.Errorf("failed to create segment directory: %w", err)
 	}
 
-	filename := fmt.Sprintf("%s_%s_v1_s%06d.jsonl.zst",
-		now.Format("2006-01-02T15-04-05Z"),
-		sw.node,
-		sw.segmentSeq)
+	filename := GenerateSegmentFilename(now, sw.node, "v1", sw.segmentSeq)
 
 	fullPath := filepath.Join(dateDir, filename)
 	partialPath := fullPath + ".partial"

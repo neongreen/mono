@@ -122,6 +122,13 @@ func Export(db *database.DB, params ExportParams) (*ExportResult, error) {
 		return nil, fmt.Errorf("failed to update local index: %w", err)
 	}
 
+	// Cache segment files under state directory for restoration
+	for _, seg := range segmentsWritten {
+		if err := CacheSegmentFile(params.StateDir, params.RemoteName, params.RemoteConfig.Path, seg); err != nil {
+			return nil, err
+		}
+	}
+
 	log.Info("export: completed", "events_exported", len(eventsToExport), "segments_written", len(segmentsWritten))
 	return &ExportResult{
 		EventsExported:  len(eventsToExport),

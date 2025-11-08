@@ -57,7 +57,7 @@ When concurrent claims exist (same Lamport timestamp), the claim with highest au
 - `tk node regen` - Regenerate node ID (use with caution)
 - `tk remote add <name> folder <path>` - Add a sync remote
 - `tk remote ls` - List configured remotes
-- `tk export [remote]` - Export local events to segments
+- `tk push [remote]` - Export local events and push to remote
 - `tk ingest [remote|file]` - Ingest events from segments
 - `tk pull [remote]` - Pull segments from remote
 - `tk push [remote]` - Push segments to remote

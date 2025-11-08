@@ -28,7 +28,7 @@ SAFE USAGE FOR MULTI-MACHINE SETUPS:
      rm -rf ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events/personal/segments/*
      rm -f ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events/personal/index.json
 3. Run this repair on ONE machine (the "source of truth")
-4. Run 'tk export' then 'tk push <remote>' to repopulate remote with fixed timestamps
+4. Run 'tk push <remote>' to repopulate the remote with fixed timestamps
 5. On OTHER machines: DELETE local database, then 'tk pull <remote>' + 'tk ingest'
 6. Verify: 'tk debug doctor' should be clean on all machines
 

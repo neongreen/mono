@@ -7,11 +7,23 @@ import (
 	"path/filepath"
 
 	"github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/segment"
 )
 
 // PushResult contains the result of a push operation
 type PushResult struct {
 	SegmentsPushed int
+}
+
+// PushParams captures the inputs required for a push operation.
+type PushParams struct {
+	RemoteName   string
+	RemoteConfig config.RemoteConfig
+	Space        string
+	StateDir     string
+	SyncConfig   config.SyncConfig
+	ExportAll    bool
 }
 
 // PullResult contains the result of a pull operation
@@ -20,12 +32,33 @@ type PullResult struct {
 }
 
 // Push pushes local segments to a remote
-func Push(remoteName string, remote config.RemoteConfig, space string, stateDir string) (*PushResult, error) {
-	log := slog.With("remote", remoteName, "space", space)
-	log.Debug("push: starting", "remote_path", remote.Path)
+func Push(db *database.DB, params PushParams) (*PushResult, error) {
+	log := slog.With("remote", params.RemoteName, "space", params.Space)
+	log.Debug("push: starting", "remote_path", params.RemoteConfig.Path)
+
+	// Get current node ID
+	nodeID, err := db.GetOrCreateNodeID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get node ID: %w", err)
+	}
+	log.Debug("push: got node ID", "node_id", nodeID)
+
+	// First export any local events to segments
+	exportResult, err := Export(db, ExportParams{
+		RemoteName:   params.RemoteName,
+		RemoteConfig: params.RemoteConfig,
+		Space:        params.Space,
+		ExportAll:    params.ExportAll,
+		StateDir:     params.StateDir,
+		SyncConfig:   params.SyncConfig,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to export events before push: %w", err)
+	}
+	log.Info("push: export completed", "segments_written", exportResult.SegmentsWritten, "events_exported", exportResult.EventsExported)
 
 	// Load local index mirror
-	localIndexPath := filepath.Join(stateDir, "remotes", remoteName, space, "index.json")
+	localIndexPath := filepath.Join(params.StateDir, "remotes", params.RemoteName, params.Space, "index.json")
 	log.Debug("push: loading local index", "path", localIndexPath)
 	localIndex, err := LoadIndexFile(localIndexPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -37,8 +70,27 @@ func Push(remoteName string, remote config.RemoteConfig, space string, stateDir 
 	}
 	log.Info("push: local index loaded", "segments", len(localIndex.Segments))
 
+	// Try to restore missing segments from cache (for current node only)
+	// This helps if the remote was accidentally cleared but we have cached copies
+	restoredCount := 0
+	for _, seg := range localIndex.Segments {
+		if !segment.SegmentBelongsToNode(seg.Rel, nodeID) {
+			continue // Other nodes' segments aren't our responsibility
+		}
+		wasRestored, err := RestoreSegmentFromCache(params.StateDir, params.RemoteName, params.RemoteConfig.Path, seg)
+		if err != nil {
+			return nil, err
+		}
+		if wasRestored {
+			restoredCount++
+		}
+	}
+	if restoredCount > 0 {
+		log.Info("push: restored segments from cache", "count", restoredCount)
+	}
+
 	// Check if remote index exists
-	remoteIndexPath := filepath.Join(remote.Path, space, "index.json")
+	remoteIndexPath := filepath.Join(params.RemoteConfig.Path, params.Space, "index.json")
 	log.Debug("push: loading remote index", "path", remoteIndexPath)
 	remoteIndex, err := LoadIndexFile(remoteIndexPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -50,7 +102,7 @@ func Push(remoteName string, remote config.RemoteConfig, space string, stateDir 
 		log.Debug("push: remote index not found, creating new index")
 		remoteIndex = &IndexFile{
 			Schema:   "tk.index.v1",
-			Space:    space,
+			Space:    params.Space,
 			Segments: []SegmentInfo{},
 		}
 	} else {
@@ -77,25 +129,28 @@ func Push(remoteName string, remote config.RemoteConfig, space string, stateDir 
 		return &PushResult{SegmentsPushed: 0}, nil
 	}
 
-	// Log each segment to push with details
-	for i, seg := range segmentsToPush {
-		segFullPath := filepath.Join(remote.Path, seg.Rel)
-		segExists := false
+	// Verify each segment exists before adding to remote index
+	// Only add segments that actually exist on the remote filesystem
+	var verifiedSegments []SegmentInfo
+	for _, seg := range segmentsToPush {
+		segFullPath := filepath.Join(params.RemoteConfig.Path, seg.Rel)
 		if stat, err := os.Stat(segFullPath); err == nil {
-			segExists = true
-			log.Debug("push: segment to push", "index", i, "rel_path", seg.Rel, "full_path", segFullPath, "exists", segExists, "size", stat.Size())
+			log.Debug("push: segment verified", "rel_path", seg.Rel, "size", stat.Size())
+			verifiedSegments = append(verifiedSegments, seg)
 		} else {
-			log.Debug("push: segment to push", "index", i, "rel_path", seg.Rel, "full_path", segFullPath, "exists", segExists, "error", err)
+			log.Debug("push: segment not found at remote, skipping", "rel_path", seg.Rel)
 		}
 	}
 
-	// Copy segment files to remote (they should already exist locally in the remote path)
-	// Since we're using folder remotes, the segments are already written to the remote path
-	// We just need to update the index
-	log.Debug("push: segments should already exist at remote path, only updating index")
+	if len(verifiedSegments) == 0 {
+		log.Debug("push: no verified segments to add to remote index")
+		return &PushResult{SegmentsPushed: 0}, nil
+	}
 
-	// Add new segments to remote index
-	remoteIndex.Segments = append(remoteIndex.Segments, segmentsToPush...)
+	log.Debug("push: adding verified segments to remote index", "count", len(verifiedSegments))
+
+	// Add verified segments to remote index
+	remoteIndex.Segments = append(remoteIndex.Segments, verifiedSegments...)
 	log.Debug("push: added segments to remote index", "new_total", len(remoteIndex.Segments))
 
 	// Save remote index
@@ -104,8 +159,8 @@ func Push(remoteName string, remote config.RemoteConfig, space string, stateDir 
 		return nil, fmt.Errorf("failed to save remote index: %w", err)
 	}
 
-	log.Info("push: completed", "segments_pushed", len(segmentsToPush))
-	return &PushResult{SegmentsPushed: len(segmentsToPush)}, nil
+	log.Info("push: completed", "segments_pushed", len(verifiedSegments))
+	return &PushResult{SegmentsPushed: len(verifiedSegments)}, nil
 }
 
 // Pull pulls segments from a remote
