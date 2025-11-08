@@ -13,8 +13,15 @@ import { rotateStatus, markDone, editTitle, createTask, createProject, deleteTas
 
 const execFileAsync = promisify(execFile);
 
-// escapeMarkdown escapes special characters in markdown to prevent interpretation
-// Detail view using WebView
+// Update UI context variables based on configuration
+async function updateUIContext(): Promise<void> {
+  const configuration = vscode.workspace.getConfiguration('tk');
+  const showDeleteButton = configuration.get<boolean>('ui.showDeleteButton', true);
+  const showEditTitleButton = configuration.get<boolean>('ui.showEditTitleButton', true);
+
+  await vscode.commands.executeCommand('setContext', 'tk.ui.showDeleteButton', showDeleteButton);
+  await vscode.commands.executeCommand('setContext', 'tk.ui.showEditTitleButton', showEditTitleButton);
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   const decorationProvider = new TkDecorationProvider();
@@ -35,6 +42,51 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Set initial context
   void updateToggleDoneButton(provider);
+  void updateUIContext();
+
+  // Set up auto-refresh if enabled (tk-vsc-35)
+  let autoRefreshTimer: NodeJS.Timeout | undefined;
+
+  function setupAutoRefresh() {
+    // Clear existing timer
+    if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = undefined;
+    }
+
+    const configuration = vscode.workspace.getConfiguration('tk');
+    const enabled = configuration.get<boolean>('autoRefresh.enabled', false);
+    const intervalSeconds = configuration.get<number>('autoRefresh.intervalSeconds', 5);
+
+    if (enabled && intervalSeconds > 0) {
+      autoRefreshTimer = setInterval(() => {
+        void provider.refresh();
+      }, intervalSeconds * 1000);
+    }
+  }
+
+  setupAutoRefresh();
+
+  // Listen for configuration changes
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('tk.ui')) {
+        void updateUIContext();
+      }
+      if (e.affectsConfiguration('tk.autoRefresh')) {
+        setupAutoRefresh();
+      }
+    })
+  );
+
+  // Clean up timer on deactivation
+  context.subscriptions.push(
+    new vscode.Disposable(() => {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+      }
+    })
+  );
 
   context.subscriptions.push(
     vscode.window.registerFileDecorationProvider(decorationProvider),
@@ -78,5 +130,5 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {
-  // Nothing to clean up.
+  // Auto-refresh timer is cleaned up automatically via context.subscriptions
 }

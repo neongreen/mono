@@ -8,7 +8,23 @@ const vscode = acquireVsCodeApi();
 window.addEventListener('message', (event) => {
   const message = event.data;
   if (message.type === 'updateTask') {
-    render(<App task={message.task} allTasks={message.allTasks} vscode={vscode} />, document.body);
+    // Apply font settings to document root (tk-vsc-94)
+    if (message.fontFamily) {
+      document.documentElement.style.setProperty('--font-family', message.fontFamily);
+    }
+    if (message.fontSize) {
+      document.documentElement.style.setProperty('--font-size', `${message.fontSize}px`);
+    }
+
+    render(
+      <App
+        task={message.task}
+        allTasks={message.allTasks}
+        vscode={vscode}
+        showDeleteButton={message.showDeleteButton}
+      />,
+      document.body
+    );
   } else if (message.type === 'clear') {
     render(<App task={null} vscode={vscode} />, document.body);
   }

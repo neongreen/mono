@@ -1,7 +1,8 @@
 body {
   padding: 12px;
-  font-family: var(--vscode-font-family);
-  font-size: var(--vscode-font-size);
+  /* Use custom font if set, otherwise fall back to VS Code default (tk-vsc-94) */
+  font-family: var(--font-family, var(--vscode-font-family));
+  font-size: var(--font-size, var(--vscode-font-size));
   color: var(--vscode-foreground);
   line-height: 1.5;
   margin: 0;
@@ -175,6 +176,16 @@ body {
 
 .btn-secondary:hover {
   background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.btn-danger {
+  background-color: var(--vscode-inputValidation-errorBackground);
+  color: var(--vscode-inputValidation-errorForeground);
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+}
+
+.btn-danger:hover {
+  opacity: 0.8;
 }
 
 .btn-small {

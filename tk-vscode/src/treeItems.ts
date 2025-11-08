@@ -47,25 +47,31 @@ export class TaskTreeItem extends vscode.TreeItem {
     }
     const blocked = task.blocked ? 'yes' : 'no';
 
-    const tooltip = new vscode.MarkdownString();
-    tooltip.appendMarkdown(`**${escapeMarkdown(label)}**\n\n`);
-    if (task.title) {
-      tooltip.appendMarkdown(`${escapeMarkdown(task.title)}\n\n`);
-    }
-    tooltip.appendMarkdown(`Status: ${state}\n`);
-    tooltip.appendMarkdown(`Blocked: ${blocked}`);
-    if (task.blockers && task.blockers.length > 0) {
-      const blockersList = task.blockers
-        .map((blocker) => `${blocker.display_id ?? ''} ${blocker.title ?? ''}`.trim())
-        .filter((entry) => entry.length > 0)
-        .join('\n');
-      if (blockersList.length > 0) {
-        tooltip.appendMarkdown(`\nBlockers:\n${blockersList}`);
-      }
-    }
-    tooltip.isTrusted = false;
+    // Check if tooltips are enabled (tk-vsc-99)
+    const configuration = vscode.workspace.getConfiguration('tk');
+    const showTooltips = configuration.get<boolean>('ui.showTooltips', true);
 
-    this.tooltip = tooltip;
+    if (showTooltips) {
+      const tooltip = new vscode.MarkdownString();
+      tooltip.appendMarkdown(`**${escapeMarkdown(label)}**\n\n`);
+      if (task.title) {
+        tooltip.appendMarkdown(`${escapeMarkdown(task.title)}\n\n`);
+      }
+      tooltip.appendMarkdown(`Status: ${state}\n`);
+      tooltip.appendMarkdown(`Blocked: ${blocked}`);
+      if (task.blockers && task.blockers.length > 0) {
+        const blockersList = task.blockers
+          .map((blocker) => `${blocker.display_id ?? ''} ${blocker.title ?? ''}`.trim())
+          .filter((entry) => entry.length > 0)
+          .join('\n');
+        if (blockersList.length > 0) {
+          tooltip.appendMarkdown(`\nBlockers:\n${blockersList}`);
+        }
+      }
+      tooltip.isTrusted = false;
+
+      this.tooltip = tooltip;
+    }
     this.contextValue = 'tkTask';
 
     // Set icon based on status and blocked state with colors

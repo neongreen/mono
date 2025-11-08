@@ -147,7 +147,7 @@
       "view/item/context": [
         {
           "command": "tk.editTitle",
-          "when": "view == tkExplorer && viewItem == tkTask",
+          "when": "view == tkExplorer && viewItem == tkTask && tk.ui.showEditTitleButton",
           "group": "inline"
         },
         {
@@ -157,7 +157,7 @@
         },
         {
           "command": "tk.deleteTask",
-          "when": "view == tkExplorer && viewItem == tkTask",
+          "when": "view == tkExplorer && viewItem == tkTask && tk.ui.showDeleteButton",
           "group": "inline"
         },
         {
@@ -217,6 +217,42 @@
             "none"
           ],
           "description": "Value passed to --group when listing tasks."
+        },
+        "tk.taskDetails.fontFamily": {
+          "type": "string",
+          "default": "",
+          "description": "Font family for task details. Leave empty to use system default."
+        },
+        "tk.taskDetails.fontSize": {
+          "type": "number",
+          "default": 14,
+          "description": "Font size for task details in pixels."
+        },
+        "tk.ui.showDeleteButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show delete button in tree view. If disabled, delete button will appear in task details instead."
+        },
+        "tk.ui.showEditTitleButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show edit title button in tree view."
+        },
+        "tk.ui.showTooltips": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show tooltips when hovering over tasks in the tree view."
+        },
+        "tk.autoRefresh.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic refresh of the task list."
+        },
+        "tk.autoRefresh.intervalSeconds": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Auto-refresh interval in seconds."
         }
       }
     },

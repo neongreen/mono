@@ -39,6 +39,8 @@ export class TaskDetailProvider implements vscode.WebviewViewProvider {
         await this.handleTitleEdit(message.newTitle);
       } else if (message.type === 'addNote' && this.currentTask) {
         await this.handleAddNote(message.markdown);
+      } else if (message.type === 'deleteTask' && message.taskId) {
+        await this.handleDeleteTask(message.taskId);
       }
     });
 
@@ -126,6 +128,27 @@ export class TaskDetailProvider implements vscode.WebviewViewProvider {
     }
   }
 
+  private async handleDeleteTask(taskId: string): Promise<void> {
+    try {
+      const { binary, cwd } = getTkConfig();
+      const args = ['rm', taskId];
+
+      await execFileAsync(binary, args, {
+        cwd,
+        env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+      });
+
+      // Clear the detail view after deleting
+      this.clear();
+
+      // Trigger a refresh of the tree view
+      void vscode.commands.executeCommand('tk.refresh');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      void vscode.window.showErrorMessage(`Failed to delete task: ${message}`);
+    }
+  }
+
   private async refreshCurrentTask(): Promise<void> {
     if (!this.currentTask || !this.currentTask.display_id) {
       return;
@@ -172,10 +195,19 @@ export class TaskDetailProvider implements vscode.WebviewViewProvider {
 
   private updateView(): void {
     if (this._view && this.currentTask) {
+      // Get font settings (tk-vsc-94)
+      const configuration = vscode.workspace.getConfiguration('tk');
+      const fontFamily = configuration.get<string>('taskDetails.fontFamily', '');
+      const fontSize = configuration.get<number>('taskDetails.fontSize', 14);
+      const showDeleteButton = !configuration.get<boolean>('ui.showDeleteButton', true);
+
       void this._view.webview.postMessage({
         type: 'updateTask',
         task: this.currentTask,
-        allTasks: this.allTasks
+        allTasks: this.allTasks,
+        fontFamily,
+        fontSize,
+        showDeleteButton
       });
     }
   }

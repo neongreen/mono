@@ -8,12 +8,13 @@ interface AppProps {
   task: TkTask | null;
   allTasks?: TkTask[];
   vscode: VSCodeAPI;
+  showDeleteButton?: boolean;
 }
 
-export function App({ task, allTasks, vscode }: AppProps) {
+export function App({ task, allTasks, vscode, showDeleteButton }: AppProps) {
   return (
     <div class="app">
-      {task ? <TaskDetails task={task} allTasks={allTasks} vscode={vscode} /> : <EmptyState />}
+      {task ? <TaskDetails task={task} allTasks={allTasks} vscode={vscode} showDeleteButton={showDeleteButton} /> : <EmptyState />}
     </div>
   );
 }
