@@ -7,7 +7,7 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 - Runs `tk ls --json` in the selected workspace folder (or a configured directory).
 - Shows the tasks grouped using the `--group` flag (prefix by default).
 - Highlights blocked tasks with a dedicated icon.
-- Provides a refresh command to re-run the query on demand.
+- **Refresh button** in the view toolbar to reload tasks from tk on demand.
 - Edit task titles via context menu (uses `tk describe`).
 - Rotate task status using the "Status" button on each task (cycles through: next → wip → done → unset).
 - Create new tasks in a group using the add button on group headers.
