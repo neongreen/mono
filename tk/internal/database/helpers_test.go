@@ -42,10 +42,13 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 	projectUID := string(types.NewProjectUID())
 	now := time.Now()
 
+	// Use a different name than alias to avoid ambiguity
+	projectName := alias + "-project"
+
 	projectPayload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        "local",
-		Name:        alias,
+		Name:        projectName,
 		Description: alias + " project",
 		CreatedBy:   "tester",
 	}

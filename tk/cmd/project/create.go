@@ -3,6 +3,7 @@ package project
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
@@ -10,6 +11,26 @@ import (
 	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
+
+// checkAliasConflict checks if an alias conflicts with existing project names or aliases
+// and logs a warning if found. This is non-fatal to allow the operation to continue.
+func checkAliasConflict(db *database.DB, alias string) {
+	// Check if alias conflicts with an existing project name
+	var nameCount int
+	err := db.Db.QueryRow(`SELECT COUNT(*) FROM projects WHERE name = ?`, alias).Scan(&nameCount)
+	if err == nil && nameCount > 0 {
+		log.Printf("Warning: alias '%s' conflicts with an existing project name\n", alias)
+		return
+	}
+
+	// Check if alias already exists (for any project)
+	var aliasCount int
+	err = db.Db.QueryRow(`SELECT COUNT(*) FROM project_aliases WHERE alias = ?`, alias).Scan(&aliasCount)
+	if err == nil && aliasCount > 0 {
+		log.Printf("Warning: alias '%s' already exists for another project\n", alias)
+		return
+	}
+}
 
 var CreateCmd = &cobra.Command{
 	Use:   "create <name> [description]",
@@ -99,6 +120,9 @@ var CreateCmd = &cobra.Command{
 		// Optionally create an alias
 		alias, _ := cmd.Flags().GetString("alias")
 		if alias != "" {
+			// Check for alias conflicts and warn user
+			checkAliasConflict(db, alias)
+
 			// Create project.alias.add event
 			aliasPayload := types.ProjectAliasAddPayload{
 				ProjectUID: string(projectUID),

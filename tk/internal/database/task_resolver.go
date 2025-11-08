@@ -175,35 +175,127 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 		return "", err
 	}
 
-	// First try to resolve by alias
-	var projectUID string
-	err = db.Db.QueryRow(`
-		SELECT project_uid FROM project_aliases
+	// Find ALL matches (both aliases and names) to detect ambiguity
+	var matchedUIDs []string
+	var matchedNames []string
+
+	// Check aliases
+	rows, err := db.Db.Query(`
+		SELECT project_uid, alias FROM project_aliases
 		WHERE alias = ?
 		ORDER BY CASE WHEN node = ? THEN 0 ELSE 1 END
-		LIMIT 1
-	`, ref.String(), nodeID).Scan(&projectUID)
-	if err == nil {
-		return types.ProjectUID(projectUID), nil
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
+	`, ref.String(), nodeID)
+	if err != nil {
 		return "", fmt.Errorf("failed to resolve project alias %s: %w", ref, err)
 	}
+	defer rows.Close()
 
-	// If no alias found, try to resolve by project name
-	err = db.Db.QueryRow(`
-		SELECT project_uid FROM projects
+	for rows.Next() {
+		var uid, alias string
+		if err := rows.Scan(&uid, &alias); err != nil {
+			return "", fmt.Errorf("failed to scan alias match: %w", err)
+		}
+		matchedUIDs = append(matchedUIDs, uid)
+		matchedNames = append(matchedNames, alias+" (alias)")
+	}
+	if err := rows.Err(); err != nil {
+		return "", fmt.Errorf("failed to iterate aliases: %w", err)
+	}
+
+	// Check project names
+	rows2, err := db.Db.Query(`
+		SELECT project_uid, name FROM projects
 		WHERE name = ?
 		ORDER BY created_at
-		LIMIT 1
-	`, ref.String()).Scan(&projectUID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", fmt.Errorf("project/alias %s not found (checked aliases and project names)", ref)
-	}
+	`, ref.String())
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve project name %s: %w", ref, err)
 	}
-	return types.ProjectUID(projectUID), nil
+	defer rows2.Close()
+
+	for rows2.Next() {
+		var uid, name string
+		if err := rows2.Scan(&uid, &name); err != nil {
+			return "", fmt.Errorf("failed to scan name match: %w", err)
+		}
+		matchedUIDs = append(matchedUIDs, uid)
+		matchedNames = append(matchedNames, name+" (name)")
+	}
+	if err := rows2.Err(); err != nil {
+		return "", fmt.Errorf("failed to iterate projects: %w", err)
+	}
+
+	// No matches - list available projects
+	if len(matchedUIDs) == 0 {
+		availableProjects, err := listAvailableProjects(db)
+		if err != nil {
+			return "", fmt.Errorf("project/alias %q not found", ref)
+		}
+		return "", fmt.Errorf("project/alias %q not found. Available projects: %s", ref, strings.Join(availableProjects, ", "))
+	}
+
+	// Single match - success!
+	if len(matchedUIDs) == 1 {
+		return types.ProjectUID(matchedUIDs[0]), nil
+	}
+
+	// Multiple matches - ambiguous
+	return "", fmt.Errorf("ambiguous project reference %q; matches: %s. Use full project UID to disambiguate", ref, strings.Join(matchedNames, ", "))
+}
+
+// listAvailableProjects returns a list of available project names and aliases
+func listAvailableProjects(db *DB) ([]string, error) {
+	nodeID, err := db.GetOrCreateNodeID()
+	if err != nil {
+		return nil, err
+	}
+
+	var projects []string
+
+	// Get project names
+	rows, err := db.Db.Query(`SELECT name FROM projects ORDER BY name`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		projects = append(projects, name)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Get aliases (preferring local node's aliases)
+	rows2, err := db.Db.Query(`
+		SELECT DISTINCT alias FROM project_aliases
+		ORDER BY CASE WHEN node = ? THEN 0 ELSE 1 END, alias
+	`, nodeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows2.Close()
+
+	aliasesSeen := make(map[string]bool)
+	for rows2.Next() {
+		var alias string
+		if err := rows2.Scan(&alias); err != nil {
+			return nil, err
+		}
+		if !aliasesSeen[alias] {
+			projects = append(projects, alias)
+			aliasesSeen[alias] = true
+		}
+	}
+	if err := rows2.Err(); err != nil {
+		return nil, err
+	}
+
+	return projects, nil
 }
 
 // ResolveProjectByAlias is deprecated - use ResolveProjectRef instead

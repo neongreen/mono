@@ -31,6 +31,9 @@ var AliasAddCmd = &cobra.Command{
 
 		alias := args[1]
 
+		// Check for alias conflicts and warn user
+		checkAliasConflict(db, alias)
+
 		// Get current user and node
 		actor, err := utils.GetCurrentUser()
 		if err != nil {
