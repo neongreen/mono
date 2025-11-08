@@ -127,6 +127,7 @@ This is useful for:
 	RootCmd.AddCommand(dbCmd)
 
 	newCmd.Flags().StringP("project", "p", "tk", "Project alias or UID to use")
+	newCmd.Flags().String("parent", "", "Parent task (creates a subtask relation)")
 	RootCmd.AddCommand(newCmd)
 
 	RootCmd.AddCommand(markCmd)
