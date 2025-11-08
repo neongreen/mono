@@ -150,6 +150,75 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
         </div>
       </div>
 
+      {/* Relations section */}
+      {task.relations && (
+        <div class="section">
+          <div class="section-title">Relations</div>
+          
+          {task.relations.related?.out && task.relations.related.out.length > 0 && (
+            <div class="relation-group">
+              <div class="relation-label">Related:</div>
+              <ul class="relation-list">
+                {task.relations.related.out.map((edge, i) => (
+                  <li key={i}>{edge.dst}{edge.note && ` - ${edge.note}`}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {task.relations.subtask?.children && task.relations.subtask.children.length > 0 && (
+            <div class="relation-group">
+              <div class="relation-label">Subtasks:</div>
+              <ul class="relation-list">
+                {task.relations.subtask.children.map((uuid, i) => (
+                  <li key={i}>{uuid}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {task.relations.subtask?.parent && (
+            <div class="relation-group">
+              <div class="relation-label">Parent:</div>
+              <div class="relation-value">{task.relations.subtask.parent}</div>
+            </div>
+          )}
+
+          {task.relations.blocks?.out && task.relations.blocks.out.length > 0 && (
+            <div class="relation-group">
+              <div class="relation-label">Blocks:</div>
+              <ul class="relation-list">
+                {task.relations.blocks.out.map((edge, i) => (
+                  <li key={i}>{edge.dst}{edge.note && ` - ${edge.note}`}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {task.relations.blocks?.in && task.relations.blocks.in.length > 0 && (
+            <div class="relation-group">
+              <div class="relation-label">Blocked by:</div>
+              <ul class="relation-list">
+                {task.relations.blocks.in.map((edge, i) => (
+                  <li key={i}>{edge.dst}{edge.note && ` - ${edge.note}`}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {task.relations.duplicate_of?.out && task.relations.duplicate_of.out.length > 0 && (
+            <div class="relation-group">
+              <div class="relation-label">Duplicate of:</div>
+              <ul class="relation-list">
+                {task.relations.duplicate_of.out.map((edge, i) => (
+                  <li key={i}>{edge.dst}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
       <div class="section">
         <div class="section-header">
           <div class="section-title">Notes</div>

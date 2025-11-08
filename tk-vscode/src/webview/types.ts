@@ -8,6 +8,31 @@ export interface TkNote {
   timestamp?: string;
 }
 
+export interface RelationEdge {
+  dst?: string;
+  note?: string;
+}
+
+export interface Relations {
+  blocks?: {
+    out?: RelationEdge[];
+    in?: RelationEdge[];
+  };
+  subtask?: {
+    children?: string[];
+    parent?: string;
+  };
+  related?: {
+    out?: RelationEdge[];
+  };
+  duplicate_of?: {
+    out?: RelationEdge[];
+  };
+  supersedes?: {
+    out?: RelationEdge[];
+  };
+}
+
 export interface TkTask {
   uuid?: string;
   display_id?: string;
@@ -20,6 +45,7 @@ export interface TkTask {
   created_at?: string;
   created_by?: string;
   metadata?: Record<string, any>;
+  relations?: Relations;
 }
 
 export interface VSCodeAPI {
