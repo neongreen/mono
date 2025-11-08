@@ -18,6 +18,7 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 - **Add new notes** to tasks from the Task Details panel with markdown support.
 - **Notes are rendered as markdown** with proper formatting for headers, lists, code blocks, links, and more.
 - **Search tasks** using Cmd+F (Mac) or Ctrl+F (Windows/Linux) to filter tasks by title or ID. Press Escape to clear the search.
+- **Quick task creation** with Cmd+N (Mac) or Ctrl+N (Windows/Linux). Auto-detects the project from your current selection or prompts you to choose one.
 
 ## Usage
 
@@ -35,6 +36,7 @@ This extension displays the tasks returned by `tk ls --json` inside the VS Code 
 12. Hover over any task to see its full details in a tooltip, including title, status, and blockers.
 13. **Drag and drop** a task onto a different group to move it to that project.
 14. **Search tasks** by pressing Cmd+F (Mac) or Ctrl+F (Windows/Linux), or click the search icon in the toolbar. Type to filter tasks by title or ID. Groups with no matching tasks are automatically hidden. Press Escape or click the clear search icon to show all tasks again.
+15. **Quick create tasks** by pressing Cmd+N (Mac) or Ctrl+N (Windows/Linux). The extension will use the project of the currently selected task or group. If nothing is selected, it will show a list of projects to choose from.
 
 ## Design Notes
 

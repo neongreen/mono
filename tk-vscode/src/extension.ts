@@ -1075,6 +1075,84 @@ async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<vo
   }
 }
 
+async function quickCreateTask(provider: TkProvider, treeView: vscode.TreeView<TkTreeItem>): Promise<void> {
+  // Try to detect the project from the current selection
+  let projectName: string | undefined;
+  
+  const selection = treeView.selection;
+  if (selection.length > 0) {
+    const selectedItem = selection[0];
+    
+    if (selectedItem instanceof GroupTreeItem) {
+      // Selected a group, use its name as the project
+      projectName = selectedItem.groupName;
+    } else if (selectedItem instanceof TaskTreeItem) {
+      // Selected a task, find its group
+      const group = provider.findGroupForTask(selectedItem);
+      if (group) {
+        projectName = group.groupName;
+      }
+    }
+  }
+  
+  // If no project detected, fetch available projects and let user pick
+  if (!projectName) {
+    try {
+      const projectMap = await fetchProjects();
+      const projectNames = Array.from(projectMap.values()).map(p => p.local_preferred_alias || p.name);
+      
+      if (projectNames.length === 0) {
+        void vscode.window.showErrorMessage('No projects found. Create a project first.');
+        return;
+      }
+      
+      projectName = await vscode.window.showQuickPick(projectNames, {
+        placeHolder: 'Select a project for the new task',
+      });
+      
+      if (!projectName) {
+        return; // User cancelled
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      void vscode.window.showErrorMessage(`Failed to fetch projects: ${message}`);
+      return;
+    }
+  }
+
+  // Prompt for task title
+  const taskTitle = await vscode.window.showInputBox({
+    prompt: `Create new task in "${projectName}"`,
+    placeHolder: 'Enter task title',
+  });
+
+  if (taskTitle === undefined) {
+    return;
+  }
+
+  if (taskTitle.trim() === '') {
+    void vscode.window.showErrorMessage('Task title cannot be empty');
+    return;
+  }
+
+  try {
+    const { binary, cwd } = getTkConfig();
+
+    // Create task with project
+    const args = ['new', '-p', projectName, taskTitle];
+
+    await execFileAsync(binary, args, {
+      cwd,
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    });
+
+    await provider.refresh();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    void vscode.window.showErrorMessage(`Failed to create task: ${message}`);
+  }
+}
+
 async function createProject(provider: TkProvider): Promise<void> {
   const projectName = await vscode.window.showInputBox({
     prompt: 'Create new project',
@@ -1259,6 +1337,9 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand('tk.clearSearch', () => {
       provider.clearSearch();
+    }),
+    vscode.commands.registerCommand('tk.quickCreateTask', async () => {
+      await quickCreateTask(provider, treeView);
     }),
   );
 }

@@ -95,6 +95,10 @@
         "command": "tk.clearSearch",
         "title": "Clear Search",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "tk.quickCreateTask",
+        "title": "Quick Create Task"
       }
     ],
     "menus": {
@@ -232,6 +236,12 @@
         "command": "tk.clearSearch",
         "key": "escape",
         "when": "focusedView == tkExplorer && !inputFocus && tk.searching"
+      },
+      {
+        "command": "tk.quickCreateTask",
+        "key": "ctrl+n",
+        "mac": "cmd+n",
+        "when": "focusedView == tkExplorer && !inputFocus"
       }
     ]
   },
