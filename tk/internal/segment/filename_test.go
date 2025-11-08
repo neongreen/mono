@@ -217,4 +217,3 @@ func TestRoundTrip(t *testing.T) {
 		t.Errorf("Timestamp = %v, want %v", parsed.Timestamp, timestamp)
 	}
 }
-

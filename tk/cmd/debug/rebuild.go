@@ -85,4 +85,3 @@ func init() {
 	RebuildCmd.Flags().Bool("dry-run", false, "Show what would be done without making changes")
 	RebuildCmd.Flags().Bool("verify", false, "Verify projection determinism without rebuilding")
 }
-
