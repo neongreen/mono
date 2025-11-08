@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/klauspost/compress/zstd"
-	"github.com/neongreen/mono/tk/internal/sync"
 )
 
 // SegmentReader reads events from segment files
@@ -21,7 +20,7 @@ func NewSegmentReader(path string) *SegmentReader {
 }
 
 // ReadEvents reads all events from a segment file
-func (sr *SegmentReader) ReadEvents() ([]sync.SegmentEvent, error) {
+func (sr *SegmentReader) ReadEvents() ([]SegmentEvent, error) {
 	f, err := os.Open(sr.path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open segment file: %w", err)
@@ -35,7 +34,7 @@ func (sr *SegmentReader) ReadEvents() ([]sync.SegmentEvent, error) {
 	}
 	defer decoder.Close()
 
-	var events []sync.SegmentEvent
+	var events []SegmentEvent
 	scanner := bufio.NewScanner(decoder)
 
 	// Increase buffer size for large lines
@@ -52,7 +51,7 @@ func (sr *SegmentReader) ReadEvents() ([]sync.SegmentEvent, error) {
 			continue
 		}
 
-		var event sync.SegmentEvent
+		var event SegmentEvent
 		if err := json.Unmarshal(line, &event); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal event on line %d: %w", lineNum, err)
 		}

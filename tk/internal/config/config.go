@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -21,7 +21,7 @@ func GetConfigPath() (string, error) {
 }
 
 // LoadConfig loads the tk configuration file
-func LoadConfig() (*sync.Config, error) {
+func LoadConfig() (*remote.Config, error) {
 	configPath, err := GetConfigPath()
 	if err != nil {
 		return nil, err
@@ -29,10 +29,10 @@ func LoadConfig() (*sync.Config, error) {
 
 	// Return default config if file doesn't exist
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return &sync.Config{
-			Remotes:  make(map[string]sync.RemoteConfig),
-			Sync:     sync.DefaultSyncConfig(),
-			Blocking: sync.DefaultBlockingConfig(),
+		return &remote.Config{
+			Remotes:  make(map[string]remote.RemoteConfig),
+			Sync:     remote.DefaultSyncConfig(),
+			Blocking: remote.DefaultBlockingConfig(),
 		}, nil
 	}
 
@@ -41,24 +41,24 @@ func LoadConfig() (*sync.Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	var config sync.Config
+	var config remote.Config
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
 	// Set defaults if not specified
 	if config.Sync.SegmentMaxBytes == 0 {
-		config.Sync = sync.DefaultSyncConfig()
+		config.Sync = remote.DefaultSyncConfig()
 	}
 	if config.Blocking.BlockingAxis == "" {
-		config.Blocking = sync.DefaultBlockingConfig()
+		config.Blocking = remote.DefaultBlockingConfig()
 	}
 
 	return &config, nil
 }
 
 // SaveConfig saves the tk configuration file
-func SaveConfig(config *sync.Config) error {
+func SaveConfig(config *remote.Config) error {
 	configPath, err := GetConfigPath()
 	if err != nil {
 		return err

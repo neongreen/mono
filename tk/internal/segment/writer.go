@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/klauspost/compress/zstd"
-	"github.com/neongreen/mono/tk/internal/sync"
 )
 
 // SegmentWriter writes events to segment files with compression
@@ -23,7 +22,7 @@ type SegmentWriter struct {
 	startTime    time.Time
 	maxBytes     int64
 	maxAge       int
-	events       []sync.SegmentEvent
+	events       []SegmentEvent
 	bytesWritten int64
 }
 
@@ -37,13 +36,13 @@ func NewSegmentWriter(remotePath, space, node string, segmentSeq int64, maxBytes
 		startTime:    time.Now(),
 		maxBytes:     maxBytes,
 		maxAge:       maxAge,
-		events:       []sync.SegmentEvent{},
+		events:       []SegmentEvent{},
 		bytesWritten: 0,
 	}
 }
 
 // AddEvent adds an event to the current segment
-func (sw *SegmentWriter) AddEvent(event sync.SegmentEvent) {
+func (sw *SegmentWriter) AddEvent(event SegmentEvent) {
 	sw.events = append(sw.events, event)
 	// Rough estimate of bytes
 	eventJSON, _ := json.Marshal(event)
@@ -62,7 +61,7 @@ func (sw *SegmentWriter) ShouldRotate() bool {
 }
 
 // WriteSegment writes the current segment to disk and returns the segment info
-func (sw *SegmentWriter) WriteSegment() (*sync.SegmentInfo, error) {
+func (sw *SegmentWriter) WriteSegment() (*SegmentInfo, error) {
 	if len(sw.events) == 0 {
 		return nil, nil
 	}
@@ -169,7 +168,7 @@ func (sw *SegmentWriter) WriteSegment() (*sync.SegmentInfo, error) {
 		return nil, fmt.Errorf("failed to calculate relative path: %w", err)
 	}
 
-	return &sync.SegmentInfo{
+	return &SegmentInfo{
 		Rel:    relPath,
 		SHA256: sha,
 		Size:   fileInfo.Size(),

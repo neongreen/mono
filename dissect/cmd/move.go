@@ -565,7 +565,7 @@ func moveFunctionWithGopls(sourceFile string, identifier string, targetFile stri
 // these declaration types. Uses goimports for import management.
 // See DESIGN.md for detailed explanation and known limitations.
 func moveDeclarationManually(sourceFile string, identifier string, targetFile string, sourceFset *token.FileSet, declNode ast.Node, goimportsPath string) error {
-	// Read source file
+	// Read source file with comments
 	sourceFileSet, sourceNode, err := goutils.ReadGoFile(sourceFile)
 	if err != nil {
 		return fmt.Errorf("error reading source file: %w", err)
@@ -614,10 +614,26 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 		return fmt.Errorf("declaration not found in source file")
 	}
 
-	// Serialize the declaration with comments using printer
+	// Create a comment map to track all comments in the source file
+	// This includes comments attached to the declaration and all its child nodes
+	cmap := ast.NewCommentMap(sourceFileSet, sourceNode, sourceNode.Comments)
+
+	// Filter the comment map to get only comments associated with this declaration
+	// This includes the Doc comment AND all internal comments (e.g., inside struct literals)
+	declCmap := cmap.Filter(declToMove)
+
+	// Create a synthetic file containing just the declaration we want to move
+	// This allows us to use printer.Fprint with the complete comment list
+	syntheticFile := &ast.File{
+		Name:     sourceNode.Name,
+		Decls:    []ast.Decl{declToMove},
+		Comments: declCmap.Comments(), // Include all associated comments
+	}
+
+	// Serialize the synthetic file (which includes the declaration and all its comments)
 	var declBuf bytes.Buffer
 	cfg := printer.Config{Mode: printer.UseSpaces | printer.TabIndent, Tabwidth: 8}
-	if err := cfg.Fprint(&declBuf, sourceFileSet, declToMove); err != nil {
+	if err := cfg.Fprint(&declBuf, sourceFileSet, syntheticFile); err != nil {
 		return fmt.Errorf("error serializing declaration: %w", err)
 	}
 
@@ -627,14 +643,41 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 		return fmt.Errorf("error reading target file: %w", err)
 	}
 
+	// The serialized output includes "package <name>\n\n", so we need to extract just the declaration
+	declStr := declBuf.String()
+	// Find the first occurrence of the declaration (skip past package line)
+	lines := strings.Split(declStr, "\n")
+	var declLines []string
+	inDecl := false
+	for _, line := range lines {
+		// Skip the package line
+		if strings.HasPrefix(line, "package ") {
+			continue
+		}
+		// Skip empty lines before the declaration starts
+		if !inDecl && strings.TrimSpace(line) == "" {
+			continue
+		}
+		// Once we hit content, we're in the declaration
+		if strings.TrimSpace(line) != "" || inDecl {
+			inDecl = true
+			declLines = append(declLines, line)
+		}
+	}
+
 	// Append the serialized declaration to the target file
-	newContent := string(targetContent) + "\n" + declBuf.String() + "\n"
+	newContent := string(targetContent) + "\n" + strings.Join(declLines, "\n") + "\n"
 	if err := os.WriteFile(targetFile, []byte(newContent), 0o644); err != nil {
 		return fmt.Errorf("error writing target file: %w", err)
 	}
 
 	// Remove the declaration from the source file
 	sourceNode.Decls = append(sourceNode.Decls[:declIndex], sourceNode.Decls[declIndex+1:]...)
+
+	// Update the source file's comment list to remove comments associated with the moved declaration
+	// This prevents orphaned comments from remaining in the source file
+	remainingCmap := cmap.Filter(sourceNode)
+	sourceNode.Comments = remainingCmap.Comments()
 
 	// Write back the source file
 	if err := goutils.WriteGoFile(sourceFile, sourceFileSet, sourceNode); err != nil {

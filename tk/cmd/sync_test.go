@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/neongreen/mono/tk/internal/utils"
@@ -73,7 +74,7 @@ func TestSegmentRoundTrip(t *testing.T) {
 	space := "personal"
 	writer := segment.NewSegmentWriter(remotePath, space, nodeID, 1, 2_000_000, 120)
 
-	segEvent, err := eventToSegmentEvent(event, space, nodeID)
+	segEvent, err := remote.EventToSegmentEvent(event, space, nodeID)
 	if err != nil {
 		t.Fatalf("failed to convert event to segment event: %v", err)
 	}
@@ -167,7 +168,7 @@ func TestDuplicateIngest(t *testing.T) {
 		t.Fatal("expected duplicate error, got nil")
 	}
 
-	if !isDuplicateError(err) {
+	if !remote.IsDuplicateError(err) {
 		t.Errorf("expected duplicate error, got: %v", err)
 	}
 }

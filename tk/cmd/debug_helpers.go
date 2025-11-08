@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/segment"
-	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/spf13/cobra"
 )
 
@@ -26,10 +26,10 @@ var debugEventsCmd = &cobra.Command{
 		}
 
 		// Get the first remote
-		var remote sync.RemoteConfig
+		var remoteConfig remote.RemoteConfig
 		var remoteName string
 		for name, r := range config.Remotes {
-			remote = r
+			remoteConfig = r
 			remoteName = name
 			break
 		}
@@ -41,7 +41,7 @@ var debugEventsCmd = &cobra.Command{
 		fmt.Printf("Searching remote '%s' for events related to task '%s'\n\n", remoteName, taskID)
 
 		// Use configured spaces, or default to "personal"
-		spaces := remote.Spaces
+		spaces := remoteConfig.Spaces
 		if len(spaces) == 0 {
 			spaces = []string{"personal"}
 		}
@@ -49,7 +49,7 @@ var debugEventsCmd = &cobra.Command{
 		foundCount := 0
 		for _, space := range spaces {
 			// Find all segment files for this space
-			segmentsDir := filepath.Join(remote.Path, space, "segments")
+			segmentsDir := filepath.Join(remoteConfig.Path, space, "segments")
 			if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
 				fmt.Printf("No segments directory found for space '%s'\n", space)
 				continue

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/spf13/cobra"
 )
 
@@ -25,13 +26,10 @@ Examples:
 			return err
 		}
 
-		// Check if remote exists
-		if _, exists := config.Remotes[name]; !exists {
-			return fmt.Errorf("remote '%s' not found", name)
+		// Remove remote using business logic
+		if err := remote.RemoveRemote(config, name); err != nil {
+			return err
 		}
-
-		// Remove remote
-		delete(config.Remotes, name)
 
 		// Save config
 		if err := config_pkg.SaveConfig(config); err != nil {

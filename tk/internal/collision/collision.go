@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/segment"
-	"github.com/neongreen/mono/tk/internal/sync"
 )
 
 // NodeCollisionChecker checks for node ID collisions
@@ -91,7 +91,7 @@ func (ncc *NodeCollisionChecker) GetSeenNodes() []string {
 }
 
 // CheckNodeCollision checks for node ID collisions in a remote
-func CheckNodeCollision(db *database.DB, remoteName string, remote sync.RemoteConfig) error {
+func CheckNodeCollision(db *database.DB, remoteName string, remoteConfig remote.RemoteConfig) error {
 	// Get local node ID
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
@@ -101,8 +101,8 @@ func CheckNodeCollision(db *database.DB, remoteName string, remote sync.RemoteCo
 	checker := NewNodeCollisionChecker(nodeID)
 
 	// Scan all segments in the remote
-	for _, space := range remote.Spaces {
-		segmentsDir := filepath.Join(remote.Path, space, "segments")
+	for _, space := range remoteConfig.Spaces {
+		segmentsDir := filepath.Join(remoteConfig.Path, space, "segments")
 		if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
 			continue
 		}
