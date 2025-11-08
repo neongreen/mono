@@ -162,14 +162,14 @@ func (c *Client) ExtractToNewFile(filePath string, funcName string) (newFilePath
 }
 
 // guessGoplsFileName guesses the file name gopls will create.
-// gopls uses lowercase with no separators for simple names.
+// gopls converts to lowercase and keeps underscores and digits.
 func guessGoplsFileName(funcName string) string {
-	// Simple lowercase conversion - gopls removes underscores and makes it lowercase
+	// Convert to lowercase, keeping underscores and digits
 	name := ""
 	for _, r := range funcName {
 		if r >= 'A' && r <= 'Z' {
 			name += string(r + 32) // Convert to lowercase
-		} else if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+		} else if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '_' {
 			name += string(r)
 		}
 	}

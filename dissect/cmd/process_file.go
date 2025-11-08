@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/neongreen/mono/dissect/pkg/commands"
-	"github.com/neongreen/mono/dissect/pkg/gopls"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"github.com/neongreen/mono/dissect/pkg/lsp"
 	"github.com/neongreen/mono/dissect/pkg/refactor"
@@ -102,12 +101,7 @@ func ProcessFile(absPath string, goplsPath string, goimportsPath string, lspClie
 				// Since *we* want to control the file name, we rename the function to a temp name first so that we don't get a clash.
 				// Once the function is moved, we rename it back to the original name and rename the file.
 				renameStart := time.Now()
-				var renameErr error
-				if lspClient != nil {
-					renameErr = lsp.RenameWithClient(lspClient, absPath, funcName, tempFuncName)
-				} else {
-					renameErr = gopls.Rename(goplsPath, absPath, funcName, tempFuncName, moduleRoot)
-				}
+				renameErr := lsp.RenameWithClient(lspClient, absPath, funcName, tempFuncName)
 				if renameErr != nil {
 					slog.Error("Error renaming function", "from", funcName, "to", tempFuncName, "error", renameErr)
 					return Failed, "", renameErr
@@ -116,13 +110,7 @@ func ProcessFile(absPath string, goplsPath string, goimportsPath string, lspClie
 				changedFiles[absPath] = struct{}{}
 
 				extractStart := time.Now()
-				var goplsFilePath string
-				var extractErr error
-				if lspClient != nil {
-					goplsFilePath, extractErr = lsp.ExtractToNewFileWithClient(lspClient, absPath, tempFuncName)
-				} else {
-					goplsFilePath, extractErr = gopls.ExtractToNewFile(goplsPath, absPath, tempFuncName, moduleRoot)
-				}
+				goplsFilePath, extractErr := lsp.ExtractToNewFileWithClient(lspClient, absPath, tempFuncName)
 				if extractErr != nil {
 					slog.Error("Error extracting function with gopls",
 						"file", absPath, "function", tempFuncName, "error", extractErr,
@@ -172,12 +160,7 @@ func ProcessFile(absPath string, goplsPath string, goimportsPath string, lspClie
 						return Failed, "", err
 					}
 					addImportStart := time.Now()
-					var addImportErr error
-					if lspClient != nil {
-						addImportErr = lsp.AddImportWithClient(lspClient, absPath, importPath)
-					} else {
-						addImportErr = gopls.AddImport(goplsPath, absPath, importPath, moduleRoot)
-					}
+					addImportErr := lsp.AddImportWithClient(lspClient, absPath, importPath)
 					if addImportErr != nil {
 						slog.Error("Error adding import", "import", importPath, "to_file", absPath, "error", addImportErr)
 						return Failed, "", addImportErr

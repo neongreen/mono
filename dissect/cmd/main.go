@@ -111,9 +111,9 @@ following Go's best practices for code organization.`,
 		// Get LSP client for the module
 		lspClient, err := lspMgr.GetClient(goplsPath, moduleRoot)
 		if err != nil {
-			slog.Error("Error creating LSP client", "error", err)
-			// Fall back to CLI mode
-			lspClient = nil
+			fmt.Fprintf(os.Stderr, "Error creating LSP client: %v\n", err)
+			fmt.Fprintf(os.Stderr, "LSP mode is required. Cannot fall back to CLI mode.\n")
+			os.Exit(1)
 		}
 
 		refactored := 0
