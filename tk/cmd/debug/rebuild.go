@@ -35,20 +35,20 @@ WARNING: This will temporarily clear all projection tables. The operation is ato
 
 		if dryRun {
 			fmt.Println("Dry run - would rebuild projections from events")
-			
+
 			// Count events
 			events, err := db.GetEvents()
 			if err != nil {
 				return fmt.Errorf("failed to get events: %w", err)
 			}
-			
+
 			fmt.Printf("Would replay %d events in Lamport timestamp order\n", len(events))
 			fmt.Println("\nProjection tables that would be cleared:")
 			fmt.Println("  - task_numbers")
 			fmt.Println("  - tasks")
 			fmt.Println("  - project_aliases")
 			fmt.Println("  - projects")
-			
+
 			return nil
 		}
 
@@ -85,4 +85,3 @@ func init() {
 	RebuildCmd.Flags().Bool("dry-run", false, "Show what would be done without making changes")
 	RebuildCmd.Flags().Bool("verify", false, "Verify projection determinism without rebuilding")
 }
-

@@ -339,4 +339,3 @@ func assertProjectionsEqual(t *testing.T, db1, db2 *DB) {
 	assert.Equal(t, snap1.Tasks, snap2.Tasks, "tasks should be identical")
 	assert.Equal(t, snap1.TaskNumbers, snap2.TaskNumbers, "task numbers should be identical")
 }
-
