@@ -40,12 +40,12 @@ Examples:
 			if err != nil {
 				return err
 			}
-			
+
 			// Print warnings if any
 			for _, projErr := range result.ProjectionErrors {
 				fmt.Fprintf(os.Stderr, "Warning: projection failed for %s\n", projErr)
 			}
-			
+
 			fmt.Printf("Ingested %d events (%d duplicates skipped)\n", result.EventsIngested, result.Duplicates)
 			return nil
 		}
