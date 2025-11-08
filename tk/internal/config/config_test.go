@@ -4,8 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/neongreen/mono/tk/internal/remote"
 )
 
 func TestGetConfigPath(t *testing.T) {
@@ -97,8 +95,8 @@ func TestSaveAndLoadConfig(t *testing.T) {
 	})
 
 	// Create a test config
-	testConfig := &config.Config{
-		Remotes: map[string]config.RemoteConfig{
+	testConfig := &Config{
+		Remotes: map[string]RemoteConfig{
 			"test": {
 				Type:   "folder",
 				Path:   "/tmp/test-remote",
@@ -107,8 +105,8 @@ func TestSaveAndLoadConfig(t *testing.T) {
 				Pull:   true,
 			},
 		},
-		Sync:     remote.DefaultSyncConfig(),
-		Blocking: remote.DefaultBlockingConfig(),
+		Sync:     DefaultSyncConfig(),
+		Blocking: DefaultBlockingConfig(),
 	}
 
 	// Save the config
