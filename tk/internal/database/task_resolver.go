@@ -176,8 +176,8 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 	}
 
 	// Find ALL matches (both aliases and names) to detect ambiguity
-	var matchedUIDs []string
-	var matchedNames []string
+	// Use map to track unique UIDs and their display names
+	matchedProjects := make(map[string][]string) // uid -> list of how it was matched
 
 	// Check aliases
 	rows, err := db.Db.Query(`
@@ -195,8 +195,7 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 		if err := rows.Scan(&uid, &alias); err != nil {
 			return "", fmt.Errorf("failed to scan alias match: %w", err)
 		}
-		matchedUIDs = append(matchedUIDs, uid)
-		matchedNames = append(matchedNames, alias+" (alias)")
+		matchedProjects[uid] = append(matchedProjects[uid], alias+" (alias)")
 	}
 	if err := rows.Err(); err != nil {
 		return "", fmt.Errorf("failed to iterate aliases: %w", err)
@@ -218,15 +217,14 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 		if err := rows2.Scan(&uid, &name); err != nil {
 			return "", fmt.Errorf("failed to scan name match: %w", err)
 		}
-		matchedUIDs = append(matchedUIDs, uid)
-		matchedNames = append(matchedNames, name+" (name)")
+		matchedProjects[uid] = append(matchedProjects[uid], name+" (name)")
 	}
 	if err := rows2.Err(); err != nil {
 		return "", fmt.Errorf("failed to iterate projects: %w", err)
 	}
 
 	// No matches - list available projects
-	if len(matchedUIDs) == 0 {
+	if len(matchedProjects) == 0 {
 		availableProjects, err := listAvailableProjects(db)
 		if err != nil {
 			return "", fmt.Errorf("project/alias %q not found", ref)
@@ -234,13 +232,19 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 		return "", fmt.Errorf("project/alias %q not found. Available projects: %s", ref, strings.Join(availableProjects, ", "))
 	}
 
-	// Single match - success!
-	if len(matchedUIDs) == 1 {
-		return types.ProjectUID(matchedUIDs[0]), nil
+	// Single unique project UID - success!
+	if len(matchedProjects) == 1 {
+		for uid := range matchedProjects {
+			return types.ProjectUID(uid), nil
+		}
 	}
 
-	// Multiple matches - ambiguous
-	return "", fmt.Errorf("ambiguous project reference %q; matches: %s. Use full project UID to disambiguate", ref, strings.Join(matchedNames, ", "))
+	// Multiple different project UIDs - ambiguous
+	var matchDescriptions []string
+	for uid, names := range matchedProjects {
+		matchDescriptions = append(matchDescriptions, fmt.Sprintf("%s: %s", uid, strings.Join(names, ", ")))
+	}
+	return "", fmt.Errorf("ambiguous project reference %q; matches: %s. Use full project UID to disambiguate", ref, strings.Join(matchDescriptions, "; "))
 }
 
 // listAvailableProjects returns a list of available project names and aliases

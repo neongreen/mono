@@ -30,7 +30,7 @@ func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 
 	projectUID, err := ResolveProjectRef(db, types.NewProjectRef(params.ProjectRef))
 	if err != nil {
-		return nil, fmt.Errorf("project/alias %q not found. Create it first with: tk project create <name> --alias %s", params.ProjectRef, params.ProjectRef)
+		return nil, fmt.Errorf("project/alias %q not found. Create it first with: tk project create %s", params.ProjectRef, params.ProjectRef)
 	}
 
 	taskUID := types.NewTaskUID()
