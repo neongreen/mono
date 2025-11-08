@@ -24,7 +24,8 @@
     "commands": [
       {
         "command": "tk.refresh",
-        "title": "tk: Refresh"
+        "title": "tk: Refresh",
+        "icon": "$(refresh)"
       },
       {
         "command": "tk.editTitle",
@@ -99,19 +100,24 @@
           "group": "navigation@1"
         },
         {
-          "command": "tk.expandAll",
+          "command": "tk.refresh",
           "when": "view == tkExplorer",
           "group": "navigation@2"
         },
         {
-          "command": "tk.collapseAll",
+          "command": "tk.expandAll",
           "when": "view == tkExplorer",
           "group": "navigation@3"
         },
         {
-          "command": "tk.createProject",
+          "command": "tk.collapseAll",
           "when": "view == tkExplorer",
           "group": "navigation@4"
+        },
+        {
+          "command": "tk.createProject",
+          "when": "view == tkExplorer",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
