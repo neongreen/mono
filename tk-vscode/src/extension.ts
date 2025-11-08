@@ -17,7 +17,7 @@ interface TkNote {
 interface TkTask {
   uuid?: string;
   display_id?: string;
-  project?: string;
+  project_uuid?: string;
   title?: string;
   axes?: Record<string, AxisStatus | undefined>;
   blocked?: boolean;
