@@ -85,6 +85,16 @@
         "command": "tk.collapseAll",
         "title": "Collapse All",
         "icon": "$(collapse-all)"
+      },
+      {
+        "command": "tk.search",
+        "title": "Search Tasks",
+        "icon": "$(search)"
+      },
+      {
+        "command": "tk.clearSearch",
+        "title": "Clear Search",
+        "icon": "$(clear-all)"
       }
     ],
     "menus": {
@@ -118,6 +128,16 @@
           "command": "tk.createProject",
           "when": "view == tkExplorer",
           "group": "navigation@5"
+        },
+        {
+          "command": "tk.search",
+          "when": "view == tkExplorer && !tk.searching",
+          "group": "navigation@6"
+        },
+        {
+          "command": "tk.clearSearch",
+          "when": "view == tkExplorer && tk.searching",
+          "group": "navigation@6"
         }
       ],
       "view/item/context": [
@@ -201,6 +221,17 @@
         "command": "tk.markDone",
         "key": ".",
         "when": "focusedView == tkExplorer && !inputFocus"
+      },
+      {
+        "command": "tk.search",
+        "key": "ctrl+f",
+        "mac": "cmd+f",
+        "when": "focusedView == tkExplorer && !inputFocus"
+      },
+      {
+        "command": "tk.clearSearch",
+        "key": "escape",
+        "when": "focusedView == tkExplorer && !inputFocus && tk.searching"
       }
     ]
   },

@@ -523,6 +523,7 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   private rawGroups: TkGroup[] = [];
   private rawUngrouped: TkTask[] = [];
   private showDone: boolean = false; // Default: hide done tasks
+  private searchTerm: string = '';
   private groupItems: GroupTreeItem[] = [];
   private treeView?: vscode.TreeView<TkTreeItem>;
   private collapseCounter: number = 0;
@@ -550,6 +551,50 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
     return this.showDone;
   }
 
+  public async search(): Promise<void> {
+    const term = await vscode.window.showInputBox({
+      prompt: 'Search tasks by title or ID',
+      value: this.searchTerm,
+      placeHolder: 'Enter search term...',
+    });
+
+    if (term === undefined) {
+      return; // User cancelled
+    }
+
+    this.searchTerm = term.trim();
+    await this.updateSearchContext();
+    this._onDidChangeTreeData.fire(undefined);
+
+    // Auto-expand all groups when searching to show matches
+    if (this.searchTerm !== '' && this.treeView) {
+      await this.expandAll();
+    }
+  }
+
+  public clearSearch(): void {
+    this.searchTerm = '';
+    void this.updateSearchContext();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
+  public getSearchTerm(): string {
+    return this.searchTerm;
+  }
+
+  private async updateSearchContext(): Promise<void> {
+    await vscode.commands.executeCommand('setContext', 'tk.searching', this.searchTerm !== '');
+    
+    // Update tree view message to show search term
+    if (this.treeView) {
+      if (this.searchTerm !== '') {
+        this.treeView.message = `Searching: "${this.searchTerm}"`;
+      } else {
+        this.treeView.message = undefined;
+      }
+    }
+  }
+
   public async expandAll(): Promise<void> {
     if (!this.treeView) {
       return;
@@ -575,6 +620,38 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       const status = genericAxis?.effective ?? '';
       return status !== 'done'; // Hide done tasks
     });
+  }
+
+  private matchesSearch(task: TkTask): boolean {
+    if (this.searchTerm === '') {
+      return true; // No search term, show all
+    }
+
+    const searchLower = this.searchTerm.toLowerCase();
+    
+    // Match against display_id
+    if (task.display_id?.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+
+    // Match against title
+    if (task.title?.toLowerCase().includes(searchLower)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private filterTasks(tasks: TkTask[]): TkTask[] {
+    // First filter by status (done/not done)
+    let filtered = this.filterTasksByStatus(tasks);
+    
+    // Then filter by search term
+    if (this.searchTerm !== '') {
+      filtered = filtered.filter(task => this.matchesSearch(task));
+    }
+
+    return filtered;
   }
 
   public findGroupForTask(task: TaskTreeItem): GroupTreeItem | undefined {
@@ -633,7 +710,7 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       
       this.groupItems = this.rawGroups
         .map(group => {
-          const filteredTasks = this.filterTasksByStatus(group.tasks);
+          const filteredTasks = this.filterTasks(group.tasks);
           const groupName = group.group ?? 'unnamed';
           // Include collapse counter in ID to force VS Code to forget expansion state when collapsed
           const uniqueId = `${groupName}-${this.collapseCounter}`;
@@ -644,9 +721,10 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
             taskItems,
             uniqueId,
           );
-        });
+        })
+        .filter(group => group.children.length > 0); // Hide empty groups when searching
 
-      const filteredUngrouped = this.filterTasksByStatus(this.rawUngrouped);
+      const filteredUngrouped = this.filterTasks(this.rawUngrouped);
       const ungrouped = filteredUngrouped.map((task) => this.buildTaskTree(task, taskMap));
       allDisplayedTasks.push(...ungrouped);
 
@@ -1175,6 +1253,12 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand('tk.collapseAll', async () => {
       await provider.collapseAllGroups();
+    }),
+    vscode.commands.registerCommand('tk.search', async () => {
+      await provider.search();
+    }),
+    vscode.commands.registerCommand('tk.clearSearch', () => {
+      provider.clearSearch();
     }),
   );
 }
