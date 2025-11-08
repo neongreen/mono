@@ -233,6 +233,11 @@
         "when": "focusedView == tkExplorer && !inputFocus"
       },
       {
+        "command": "tk.search",
+        "key": "/",
+        "when": "focusedView == tkExplorer && !inputFocus"
+      },
+      {
         "command": "tk.clearSearch",
         "key": "escape",
         "when": "focusedView == tkExplorer && !inputFocus && tk.searching"
