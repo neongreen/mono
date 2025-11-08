@@ -29,6 +29,18 @@ var RmCmd = &cobra.Command{
 			return fmt.Errorf("failed to resolve project: %w", err)
 		}
 
+		// Check if project has tasks
+		force, _ := cmd.Flags().GetBool("force")
+		var taskCount int
+		err = db.Db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE project_uid = ?`, projectUID.String()).Scan(&taskCount)
+		if err != nil {
+			return fmt.Errorf("failed to count tasks in project: %w", err)
+		}
+
+		if taskCount > 0 && !force {
+			return fmt.Errorf("cannot delete project %s: it has %d task(s). Use --force to delete anyway", ref, taskCount)
+		}
+
 		// Get current user
 		actor, err := utils.GetCurrentUser()
 		if err != nil {
@@ -74,7 +86,15 @@ var RmCmd = &cobra.Command{
 			return fmt.Errorf("failed to project project deletion: %w", err)
 		}
 
-		fmt.Printf("Deleted project %s\n", projectUID)
+		if taskCount > 0 {
+			fmt.Printf("Deleted project %s (and %d task(s))\n", projectUID, taskCount)
+		} else {
+			fmt.Printf("Deleted project %s\n", projectUID)
+		}
 		return nil
 	},
+}
+
+func init() {
+	RmCmd.Flags().Bool("force", false, "Force deletion even if project has tasks")
 }
