@@ -196,6 +196,8 @@ func (c *Client) applyWorkspaceEdit(edit *WorkspaceEdit) error {
 		}
 		filePath := uri[7:]
 
+		slog.Debug("Applying edits to file", "file", filePath, "editCount", len(docChange.Edits))
+
 		// Read the file
 		content, err := os.ReadFile(filePath)
 		if err != nil {
@@ -206,9 +208,16 @@ func (c *Client) applyWorkspaceEdit(edit *WorkspaceEdit) error {
 		// (LSP guarantees edits don't overlap and are sorted)
 		lines := splitLines(string(content))
 		
+		slog.Debug("File before edits", "lines", len(lines))
+		
 		// Apply edits from last to first to preserve positions
 		for i := len(docChange.Edits) - 1; i >= 0; i-- {
 			edit := docChange.Edits[i]
+			slog.Debug("Applying edit",
+				"index", i,
+				"start", fmt.Sprintf("%d:%d", edit.Range.Start.Line, edit.Range.Start.Character),
+				"end", fmt.Sprintf("%d:%d", edit.Range.End.Line, edit.Range.End.Character),
+				"newText", edit.NewText[:min(50, len(edit.NewText))])
 			lines = applyEdit(lines, edit)
 		}
 

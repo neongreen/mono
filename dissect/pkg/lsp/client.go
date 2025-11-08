@@ -344,6 +344,7 @@ func (c *Client) handleApplyEdit(msg []byte, id interface{}) {
 	if p, ok := req["params"]; ok {
 		paramBytes, _ := json.Marshal(p)
 		json.Unmarshal(paramBytes, &params)
+		slog.Debug("Workspace edit details", "changes", len(params.Edit.DocumentChanges))
 	}
 	
 	slog.Debug("Applying workspace edit from server")
