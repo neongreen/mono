@@ -199,7 +199,7 @@ func (c *Client) applyWorkspaceEdit(edit *WorkspaceEdit) error {
 			}
 			filePath := uri[7:]
 			
-			slog.Info("Creating file", "file", filePath)
+			slog.Debug("Creating file via LSP", "file", filePath)
 			
 			// Create an empty file
 			if err := os.WriteFile(filePath, []byte{}, 0o644); err != nil {
@@ -229,7 +229,7 @@ func (c *Client) applyWorkspaceEdit(edit *WorkspaceEdit) error {
 		}
 		filePath := uri[7:]
 
-		slog.Info("Applying workspace edit", "file", filePath, "editCount", len(docChange.Edits))
+		slog.Debug("Applying text edits via LSP", "file", filePath, "editCount", len(docChange.Edits))
 
 		// Read the file
 		content, err := os.ReadFile(filePath)
@@ -241,37 +241,19 @@ func (c *Client) applyWorkspaceEdit(edit *WorkspaceEdit) error {
 		// (LSP guarantees edits don't overlap and are sorted)
 		lines := splitLines(string(content))
 		
-		slog.Info("File content", "file", filePath, "lines", len(lines), "totalChars", len(content))
-		
 		// Apply edits from last to first to preserve positions
 		for i := len(docChange.Edits) - 1; i >= 0; i-- {
-			edit := docChange.Edits[i]
-			slog.Info("Edit details",
-				"index", i,
-				"startLine", edit.Range.Start.Line,
-				"startChar", edit.Range.Start.Character,
-				"endLine", edit.Range.End.Line,
-				"endChar", edit.Range.End.Character,
-				"newText", edit.NewText)
-			
-			// Show the lines being edited
-			if edit.Range.Start.Line < len(lines) {
-				slog.Info("Line being edited", "lineNum", edit.Range.Start.Line, "content", lines[edit.Range.Start.Line])
-			}
-			
-			lines = applyEdit(lines, edit)
+			lines = applyEdit(lines, docChange.Edits[i])
 		}
 
 		// Write back
 		newContent := joinLines(lines)
 		
-		slog.Info("After edit", "newLines", len(lines), "newTotalChars", len(newContent))
-		
 		if err := os.WriteFile(filePath, []byte(newContent), 0o644); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", filePath, err)
 		}
 
-		slog.Debug("Applied edits to file", "file", filePath, "editCount", len(docChange.Edits))
+		slog.Debug("Applied text edits successfully", "file", filePath)
 	}
 
 	return nil
