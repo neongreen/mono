@@ -35,71 +35,20 @@ func parsePRURL(prURL string) (*PRInfo, error) {
 	return &PRInfo{Owner: matches[1], Repo: matches[2], PRNum: prNum}, nil
 }
 
-// fetchAllReleases fetches all releases from GitHub API with pagination support
-func fetchAllReleases(owner, repo string) ([]GitHubRelease, error) {
-	var allReleases []GitHubRelease
-	page := 1
-	perPage := 100 // Max allowed by GitHub API
-
-	for {
-		apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases?per_page=%d&page=%d",
-			owner, repo, perPage, page)
-
-		debugLog("Fetching releases page %d from: %s", page, apiURL)
-
-		req, err := ghrelease.CreateAuthenticatedRequest("GET", apiURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
-		}
-
-		client := &http.Client{}
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch releases: %w", err)
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
-		}
-
-		var releases []GitHubRelease
-		if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
-			return nil, fmt.Errorf("failed to decode releases: %w", err)
-		}
-
-		debugLog("Found %d releases on page %d", len(releases), page)
-
-		if len(releases) == 0 {
-			break
-		}
-
-		allReleases = append(allReleases, releases...)
-
-		// If we got fewer releases than requested, we've reached the end
-		if len(releases) < perPage {
-			break
-		}
-
-		page++
-	}
-
-	debugLog("Total releases fetched: %d", len(allReleases))
-	return allReleases, nil
-}
-
 func findPRRelease(owner, repo string,
 	prNum int, project string,
-) (*GitHubRelease, error) {
+) (*ghrelease.Release, error) {
 	debugLog("Looking for PR #%d in %s/%s (project: %s)", prNum, owner, repo, project)
 
-	releases, err := fetchAllReleases(owner, repo)
+	releases, err := ghrelease.ListReleases(owner, repo)
 	if err != nil {
 		return nil, err
 	}
 
+	debugLog("Total releases fetched: %d", len(releases))
+
 	prPattern := fmt.Sprintf("pr-%d.", prNum)
-	var matchingReleases []GitHubRelease
+	var matchingReleases []ghrelease.Release
 	for _, release := range releases {
 		tagName := release.TagName
 		if project != "" {
@@ -124,23 +73,8 @@ func findPRRelease(owner, repo string,
 	return &matchingReleases[0], nil
 }
 
-func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, string, error) {
-	// Convert GitHubRelease to ghrelease.Release
-	ghrRelease := &ghrelease.Release{
-		TagName:    release.TagName,
-		Name:       release.Name,
-		Prerelease: release.Prerelease,
-		Assets:     make([]ghrelease.Asset, len(release.Assets)),
-	}
-	for i, asset := range release.Assets {
-		ghrRelease.Assets[i] = ghrelease.Asset{
-			Name:               asset.Name,
-			URL:                asset.URL,
-			BrowserDownloadURL: asset.BrowserDownloadURL,
-		}
-	}
-
-	asset, err := ghrelease.FindPlatformAsset(ghrRelease, projectName)
+func getPlatformBinaryName(release *ghrelease.Release, projectName string) (string, string, error) {
+	asset, err := ghrelease.FindPlatformAsset(release, projectName)
 	if err != nil {
 		return "", "", err
 	}
@@ -149,17 +83,19 @@ func getPlatformBinaryName(release *GitHubRelease, projectName string) (string, 
 }
 
 // findAllPRReleases finds all releases for a given PR number
-func findAllPRReleases(owner, repo string, prNum int) ([]GitHubRelease, error) {
+func findAllPRReleases(owner, repo string, prNum int) ([]ghrelease.Release, error) {
 	debugLog("Looking for all releases for PR #%d in %s/%s", prNum, owner, repo)
 
-	releases, err := fetchAllReleases(owner, repo)
+	releases, err := ghrelease.ListReleases(owner, repo)
 	if err != nil {
 		return nil, err
 	}
 
+	debugLog("Total releases fetched: %d", len(releases))
+
 	// Find all releases for this PR
 	prPattern := fmt.Sprintf("pr-%d.", prNum)
-	var matchingReleases []GitHubRelease
+	var matchingReleases []ghrelease.Release
 	for _, release := range releases {
 		if strings.Contains(release.TagName, prPattern) {
 			debugLog("Found matching release: %s (prerelease=%v)", release.TagName, release.Prerelease)
@@ -183,7 +119,7 @@ func extractProjectFromTag(tag string) string {
 }
 
 // extractUniqueProjects extracts unique project names from a list of releases
-func extractUniqueProjects(releases []GitHubRelease) []string {
+func extractUniqueProjects(releases []ghrelease.Release) []string {
 	projectSet := make(map[string]bool)
 	var uniqueProjects []string
 	for _, r := range releases {

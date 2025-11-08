@@ -7,6 +7,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 func main() {
@@ -73,7 +75,7 @@ func main() {
 	// Only show debug info on errors, not on success
 
 	// Find the PR release (or all releases if no project specified)
-	var release *GitHubRelease
+	var release *ghrelease.Release
 	if projectName != "" {
 		// Project explicitly specified
 		release, err = findPRRelease(prInfo.Owner, prInfo.Repo, prInfo.PRNum, projectName)
