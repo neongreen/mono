@@ -120,6 +120,60 @@ These namespaced tasks ensure consistent commands across all projects and make i
 
 ------------------------------------------------------------
 
+## Go Module Download Issues
+
+**If `go test` or `go build` fails with DNS/network errors when downloading modules, try bypassing the Go proxy.**
+
+### Symptom
+
+When running tests or builds, you see errors like:
+```
+go: downloading modernc.org/sqlite v1.39.1
+dial tcp: lookup storage.googleapis.com on [::1]:53: read udp [::1]:53: connection refused
+```
+
+Some modules download successfully while others fail - this indicates DNS resolution issues for the Go module proxy (`proxy.golang.org`).
+
+### Solution
+
+Use direct downloads instead of the proxy:
+
+```bash
+# Run tests with direct module downloads (no proxy)
+GOPROXY=direct go test ./...
+
+# Build with direct module downloads (no proxy)
+GOPROXY=direct go build ./...
+```
+
+### Why This Works
+
+- Go's default `GOPROXY` is `https://proxy.golang.org,direct`
+- The proxy (`proxy.golang.org`) resolves to `storage.googleapis.com` which may have DNS issues in some environments
+- Setting `GOPROXY=direct` skips the proxy and fetches modules directly from their source repositories (GitHub, etc.)
+- Direct downloads work better in environments with restricted DNS or network configurations
+
+### When to Use
+
+- Claude Code web environments with DNS restrictions
+- Containerized environments with network isolation
+- CI environments with proxy issues
+- Any environment where the Go module proxy is unreachable
+
+### Permanent Configuration
+
+To set this permanently for your shell session:
+```bash
+export GOPROXY=direct
+```
+
+Or configure it in your Go environment:
+```bash
+go env -w GOPROXY=direct
+```
+
+------------------------------------------------------------
+
 ## Code Formatting
 
 **All Go code must be formatted before work is considered complete.**

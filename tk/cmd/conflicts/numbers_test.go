@@ -1,25 +1,26 @@
-package cmd
+package conflicts
 
 import (
 	"testing"
 
 	debug_pkg "github.com/neongreen/mono/tk/cmd/debug"
+	"github.com/neongreen/mono/tk/internal/testutil"
 )
 
 func TestGetNumberCollisionsAll(t *testing.T) {
-	db := openTempDB(t)
+	db := testutil.OpenTempDB(t)
 
-	projectA := seedProject(t, db, "a")
-	projectB := seedProject(t, db, "b")
+	projectA := testutil.SeedProject(t, db, "a")
+	projectB := testutil.SeedProject(t, db, "b")
 
 	node := "NODE_X"
 	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, node); err != nil {
 		t.Fatalf("failed to override node id: %v", err)
 	}
-	seedTaskWithNode(t, db, projectA, "task1", 1, node)
-	seedTaskWithNode(t, db, projectA, "task2", 1, "NODE_Y")
-	seedTaskWithNode(t, db, projectB, "task3", 2, node)
-	seedTaskWithNode(t, db, projectB, "task4", 2, "NODE_Z")
+	testutil.SeedTaskWithNode(t, db, projectA, "task1", 1, node)
+	testutil.SeedTaskWithNode(t, db, projectA, "task2", 1, "NODE_Y")
+	testutil.SeedTaskWithNode(t, db, projectB, "task3", 2, node)
+	testutil.SeedTaskWithNode(t, db, projectB, "task4", 2, "NODE_Z")
 
 	collisions, err := debug_pkg.GetNumberCollisions(db, "")
 	if err != nil {
@@ -31,17 +32,17 @@ func TestGetNumberCollisionsAll(t *testing.T) {
 }
 
 func TestGetNumberCollisionsFilter(t *testing.T) {
-	db := openTempDB(t)
+	db := testutil.OpenTempDB(t)
 
-	project := seedProject(t, db, "a")
-	other := seedProject(t, db, "b")
+	project := testutil.SeedProject(t, db, "a")
+	other := testutil.SeedProject(t, db, "b")
 
 	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', 'NODE_X')`); err != nil {
 		t.Fatalf("failed to override node id: %v", err)
 	}
-	seedTaskWithNode(t, db, project, "task1", 1, "NODE_X")
-	seedTaskWithNode(t, db, project, "task2", 1, "NODE_Y")
-	seedTaskWithNode(t, db, other, "task3", 2, "NODE_X")
+	testutil.SeedTaskWithNode(t, db, project, "task1", 1, "NODE_X")
+	testutil.SeedTaskWithNode(t, db, project, "task2", 1, "NODE_Y")
+	testutil.SeedTaskWithNode(t, db, other, "task3", 2, "NODE_X")
 
 	collisions, err := debug_pkg.GetNumberCollisions(db, project)
 	if err != nil {

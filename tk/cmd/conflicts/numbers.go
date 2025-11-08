@@ -1,4 +1,4 @@
-package cmd
+package conflicts
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var conflictsNumbersCmd = &cobra.Command{
+var NumbersCmd = &cobra.Command{
 	Use:   "numbers",
 	Short: "List task number collisions",
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -70,7 +70,6 @@ var conflictsNumbersCmd = &cobra.Command{
 }
 
 func init() {
-	conflictsNumbersCmd.Flags().String("project", "", "Project alias or UID to inspect")
-	conflictsNumbersCmd.Flags().Bool("json", false, "Output as JSON")
-	conflictsCmd.AddCommand(conflictsNumbersCmd)
+	NumbersCmd.Flags().String("project", "", "Project alias or UID to inspect")
+	NumbersCmd.Flags().Bool("json", false, "Output as JSON")
 }

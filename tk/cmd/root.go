@@ -117,7 +117,6 @@ This is useful for:
 	markCmd.Flags().String("role", "human", "Actor role")
 	markCmd.Flags().Bool("unset", false, "Unset the status (clear it)")
 	rootCmd.AddCommand(markCmd)
-	statusCmd.AddCommand(statusSyncCmd)
 	rootCmd.AddCommand(statusCmd)
 
 	rootCmd.AddCommand(noteCmd)
@@ -154,4 +153,5 @@ This is useful for:
 	rootCmd.AddCommand(syncCmd)
 	rootCmd.AddCommand(debugCmd)
 	rootCmd.AddCommand(projectCmd)
+	rootCmd.AddCommand(metaCmd)
 }

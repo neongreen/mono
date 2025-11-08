@@ -1,50 +1,13 @@
-package cmd
+package node
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
 )
 
-var nodeCmd = &cobra.Command{
-	Use:   "node",
-	Short: "Manage node ID",
-}
-
-var nodeShowCmd = &cobra.Command{
-	Use:   "show",
-	Short: "Show the current node ID",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		jsonOutput, _ := cmd.Flags().GetBool("json")
-
-		db, err := database.OpenExistingDB()
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		nodeID, err := db.GetOrCreateNodeID()
-		if err != nil {
-			return err
-		}
-
-		if jsonOutput {
-			output := map[string]string{"node_id": nodeID}
-			data, err := json.MarshalIndent(output, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to marshal output: %w", err)
-			}
-			fmt.Println(string(data))
-		} else {
-			fmt.Println(nodeID)
-		}
-		return nil
-	},
-}
-
-var nodeRegenCmd = &cobra.Command{
+var RegenCmd = &cobra.Command{
 	Use:   "regen",
 	Short: "Regenerate the node ID (use with caution)",
 	Long: `Regenerates the node ID for this installation.
@@ -98,10 +61,4 @@ Only use this command if you have a node ID collision with another machine.`,
 
 		return nil
 	},
-}
-
-func init() {
-	nodeShowCmd.Flags().Bool("json", false, "Output as JSON")
-	nodeCmd.AddCommand(nodeShowCmd)
-	nodeCmd.AddCommand(nodeRegenCmd)
 }
