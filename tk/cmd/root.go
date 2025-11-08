@@ -113,9 +113,6 @@ This is useful for:
 	newCmd.Flags().StringP("project", "p", "tk", "Project alias or UID to use")
 	rootCmd.AddCommand(newCmd)
 
-	markCmd.Flags().String("axis", "generic", "Status axis")
-	markCmd.Flags().String("role", "human", "Actor role")
-	markCmd.Flags().Bool("unset", false, "Unset the status (clear it)")
 	rootCmd.AddCommand(markCmd)
 	rootCmd.AddCommand(statusCmd)
 
