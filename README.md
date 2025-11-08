@@ -33,6 +33,7 @@ This repository contains multiple independent projects.
 | [version](lib/version/) | stable | Shared version command implementation for CLI tools. |
 | [cli](lib/cli/) | stable | Unified CLI color/styling utilities for all tools. |
 | [linters/uselesswrapper](lib/linters/uselesswrapper/) | alpha | Static analysis tool that detects useless function wrappers; integrated via Dagger and mise. |
+| [parser](lib/parser/) | alpha | HTML article parser with WebAssembly support via wazero; extracts clean content without CGO. |
 
 ## Infrastructure
 
