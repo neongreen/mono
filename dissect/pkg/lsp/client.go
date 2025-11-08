@@ -345,6 +345,10 @@ func (c *Client) handleApplyEdit(msg []byte, id interface{}) {
 		paramBytes, _ := json.Marshal(p)
 		json.Unmarshal(paramBytes, &params)
 		slog.Debug("Workspace edit details", "changes", len(params.Edit.DocumentChanges))
+		
+		// Dump to file for debugging
+		os.WriteFile("/tmp/workspace_edit.json", paramBytes, 0644)
+		slog.Info("Dumped workspace edit to /tmp/workspace_edit.json")
 	}
 	
 	slog.Debug("Applying workspace edit from server")

@@ -47,8 +47,10 @@ type TextDocumentEdit struct {
 	TextDocument struct {
 		URI     string `json:"uri"`
 		Version int    `json:"version,omitempty"`
-	} `json:"textDocument"`
-	Edits []TextEdit `json:"edits"`
+	} `json:"textDocument,omitempty"`
+	Edits []TextEdit `json:"edits,omitempty"`
+	Kind  string     `json:"kind,omitempty"` // "create", "rename", "delete"
+	URI   string     `json:"uri,omitempty"`  // For create/rename/delete operations
 }
 
 // WorkspaceEdit represents changes to multiple resources.
@@ -189,14 +191,45 @@ func findSymbolPosition(filePath string, symbolName string) (*Position, error) {
 // applyWorkspaceEdit applies a workspace edit to the filesystem.
 func (c *Client) applyWorkspaceEdit(edit *WorkspaceEdit) error {
 	for _, docChange := range edit.DocumentChanges {
-		// Parse the URI to get file path
+		// Handle file creation
+		if docChange.Kind == "create" {
+			uri := docChange.URI
+			if len(uri) < 7 || uri[:7] != "file://" {
+				return fmt.Errorf("invalid URI for create: %s", uri)
+			}
+			filePath := uri[7:]
+			
+			slog.Info("Creating file", "file", filePath)
+			
+			// Create an empty file
+			if err := os.WriteFile(filePath, []byte{}, 0o644); err != nil {
+				return fmt.Errorf("failed to create file %s: %w", filePath, err)
+			}
+			continue
+		}
+		
+		// Handle file rename
+		if docChange.Kind == "rename" {
+			// TODO: implement if needed
+			slog.Warn("Rename operation not yet implemented", "kind", docChange.Kind)
+			continue
+		}
+		
+		// Handle file delete
+		if docChange.Kind == "delete" {
+			// TODO: implement if needed
+			slog.Warn("Delete operation not yet implemented", "kind", docChange.Kind)
+			continue
+		}
+		
+		// Handle text document edit
 		uri := docChange.TextDocument.URI
 		if len(uri) < 7 || uri[:7] != "file://" {
 			return fmt.Errorf("invalid URI: %s", uri)
 		}
 		filePath := uri[7:]
 
-		slog.Debug("Applying edits to file", "file", filePath, "editCount", len(docChange.Edits))
+		slog.Info("Applying workspace edit", "file", filePath, "editCount", len(docChange.Edits))
 
 		// Read the file
 		content, err := os.ReadFile(filePath)
@@ -208,21 +241,32 @@ func (c *Client) applyWorkspaceEdit(edit *WorkspaceEdit) error {
 		// (LSP guarantees edits don't overlap and are sorted)
 		lines := splitLines(string(content))
 		
-		slog.Debug("File before edits", "lines", len(lines))
+		slog.Info("File content", "file", filePath, "lines", len(lines), "totalChars", len(content))
 		
 		// Apply edits from last to first to preserve positions
 		for i := len(docChange.Edits) - 1; i >= 0; i-- {
 			edit := docChange.Edits[i]
-			slog.Debug("Applying edit",
+			slog.Info("Edit details",
 				"index", i,
-				"start", fmt.Sprintf("%d:%d", edit.Range.Start.Line, edit.Range.Start.Character),
-				"end", fmt.Sprintf("%d:%d", edit.Range.End.Line, edit.Range.End.Character),
-				"newText", edit.NewText[:min(50, len(edit.NewText))])
+				"startLine", edit.Range.Start.Line,
+				"startChar", edit.Range.Start.Character,
+				"endLine", edit.Range.End.Line,
+				"endChar", edit.Range.End.Character,
+				"newText", edit.NewText)
+			
+			// Show the lines being edited
+			if edit.Range.Start.Line < len(lines) {
+				slog.Info("Line being edited", "lineNum", edit.Range.Start.Line, "content", lines[edit.Range.Start.Line])
+			}
+			
 			lines = applyEdit(lines, edit)
 		}
 
 		// Write back
 		newContent := joinLines(lines)
+		
+		slog.Info("After edit", "newLines", len(lines), "newTotalChars", len(newContent))
+		
 		if err := os.WriteFile(filePath, []byte(newContent), 0o644); err != nil {
 			return fmt.Errorf("failed to write file %s: %w", filePath, err)
 		}
@@ -268,8 +312,31 @@ func applyEdit(lines []string, edit TextEdit) []string {
 	endLine := edit.Range.End.Line
 	endChar := edit.Range.End.Character
 
+	// Special case: inserting into an empty file
+	if len(lines) == 0 && startLine == 0 && endLine == 0 {
+		// Just insert the new text as a new line
+		if len(edit.NewText) > 0 {
+			return []string{edit.NewText}
+		}
+		return lines
+	}
+
+	// Bounds check
 	if startLine < 0 || startLine >= len(lines) {
 		return lines
+	}
+	
+	// If endLine is beyond the document, treat it as end of document
+	if endLine >= len(lines) {
+		endLine = len(lines) - 1
+		// If we're at the end, endChar should be end of last line
+		if endLine >= 0 && len(lines[endLine]) > 0 {
+			endChar = len(lines[endLine])
+			// Don't include the trailing newline in the character count
+			if lines[endLine][len(lines[endLine])-1] == '\n' {
+				endChar = len(lines[endLine]) - 1
+			}
+		}
 	}
 
 	// Single line edit
@@ -280,6 +347,14 @@ func applyEdit(lines []string, edit TextEdit) []string {
 		if len(line) > 0 && line[len(line)-1] == '\n' {
 			lineEnd = "\n"
 			line = line[:len(line)-1]
+		}
+		
+		// Bounds check
+		if startChar > len(line) {
+			startChar = len(line)
+		}
+		if endChar > len(line) {
+			endChar = len(line)
 		}
 		
 		newLine := line[:startChar] + edit.NewText + line[endChar:] + lineEnd
@@ -293,15 +368,7 @@ func applyEdit(lines []string, edit TextEdit) []string {
 	// Lines before the edit
 	result = append(result, lines[:startLine]...)
 	
-	// Bounds check
-	if startLine >= len(lines) {
-		return lines
-	}
-	if endLine >= len(lines) {
-		endLine = len(lines) - 1
-	}
-	
-	// First line of edit
+	// Get first and last lines
 	firstLine := lines[startLine]
 	lineEnd := ""
 	if len(firstLine) > 0 && firstLine[len(firstLine)-1] == '\n' {
@@ -309,7 +376,6 @@ func applyEdit(lines []string, edit TextEdit) []string {
 		firstLine = firstLine[:len(firstLine)-1]
 	}
 	
-	// Last line of edit
 	lastLine := lines[endLine]
 	if len(lastLine) > 0 && lastLine[len(lastLine)-1] == '\n' {
 		lastLine = lastLine[:len(lastLine)-1]
@@ -324,8 +390,14 @@ func applyEdit(lines []string, edit TextEdit) []string {
 	}
 	
 	// Create the merged line
-	merged := firstLine[:startChar] + edit.NewText + lastLine[endChar:] + lineEnd
-	result = append(result, merged)
+	// If we're deleting complete lines (startChar==0 and endChar==0), just delete them
+	merged := firstLine[:startChar] + edit.NewText + lastLine[endChar:]
+	
+	// Only add the merged line if it's not empty or if newText was provided
+	if len(merged) > 0 || len(edit.NewText) > 0 {
+		merged += lineEnd
+		result = append(result, merged)
+	}
 	
 	// Lines after the edit
 	if endLine+1 < len(lines) {
