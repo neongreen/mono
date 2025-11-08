@@ -3,6 +3,7 @@ package readability
 import (
 	_ "embed"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -49,12 +50,22 @@ func (e *NodeJSEngine) Extract(html []byte, sourceURL string) ([]byte, error) {
 
 	// Run Node.js with the bundle
 	cmd := exec.Command("node", bundlePath)
-	cmd.Stdin = nil
 
-	// Create a pipe for stdin
+	// Create pipes for stdin and stdout
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	// Capture stderr for error messages
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stderr pipe: %w", err)
 	}
 
 	// Start the command
@@ -68,13 +79,24 @@ func (e *NodeJSEngine) Extract(html []byte, sourceURL string) ([]byte, error) {
 	}
 	stdin.Close()
 
-	// Wait for command and get output
-	output, err := cmd.Output()
+	// Read stdout
+	output, err := io.ReadAll(stdout)
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			return nil, fmt.Errorf("node process failed: %s", string(exitErr.Stderr))
+		return nil, fmt.Errorf("failed to read stdout: %w", err)
+	}
+
+	// Read stderr
+	stderrOutput, err := io.ReadAll(stderr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read stderr: %w", err)
+	}
+
+	// Wait for command to finish
+	if err := cmd.Wait(); err != nil {
+		if len(stderrOutput) > 0 {
+			return nil, fmt.Errorf("node process failed: %s", string(stderrOutput))
 		}
-		return nil, fmt.Errorf("failed to run node: %w", err)
+		return nil, fmt.Errorf("node process failed: %w", err)
 	}
 
 	return output, nil
