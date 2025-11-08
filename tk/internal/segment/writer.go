@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -63,6 +64,7 @@ func (sw *SegmentWriter) ShouldRotate() bool {
 // WriteSegment writes the current segment to disk and returns the segment info
 func (sw *SegmentWriter) WriteSegment() (*SegmentInfo, error) {
 	if len(sw.events) == 0 {
+		slog.Debug("segment writer: no events to write")
 		return nil, nil
 	}
 
@@ -73,6 +75,7 @@ func (sw *SegmentWriter) WriteSegment() (*SegmentInfo, error) {
 		fmt.Sprintf("%02d", now.Month()),
 		fmt.Sprintf("%02d", now.Day()))
 
+	slog.Debug("segment writer: creating segment directory", "dir", dateDir)
 	if err := os.MkdirAll(dateDir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create segment directory: %w", err)
 	}
@@ -84,6 +87,8 @@ func (sw *SegmentWriter) WriteSegment() (*SegmentInfo, error) {
 
 	fullPath := filepath.Join(dateDir, filename)
 	partialPath := fullPath + ".partial"
+
+	slog.Debug("segment writer: writing segment", "path", fullPath, "events", len(sw.events))
 
 	// Write to temporary file
 	f, err := os.Create(partialPath)
@@ -157,6 +162,7 @@ func (sw *SegmentWriter) WriteSegment() (*SegmentInfo, error) {
 	}
 
 	// Atomic rename
+	slog.Debug("segment writer: renaming temp file", "from", partialPath, "to", fullPath)
 	if err := os.Rename(partialPath, fullPath); err != nil {
 		os.Remove(partialPath)
 		return nil, fmt.Errorf("failed to rename segment file: %w", err)
@@ -168,6 +174,7 @@ func (sw *SegmentWriter) WriteSegment() (*SegmentInfo, error) {
 		return nil, fmt.Errorf("failed to calculate relative path: %w", err)
 	}
 
+	slog.Info("segment writer: segment file written", "path", fullPath, "rel_path", relPath, "size", fileInfo.Size(), "sha256", sha)
 	return &SegmentInfo{
 		Rel:    relPath,
 		SHA256: sha,

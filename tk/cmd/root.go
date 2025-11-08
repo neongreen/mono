@@ -1,13 +1,30 @@
 package cmd
 
 import (
+	"log/slog"
+	"os"
+
+	"github.com/golang-cz/devslog"
 	"github.com/spf13/cobra"
 )
+
+var debugFlag bool
 
 var rootCmd = &cobra.Command{
 	Use:   "tk",
 	Short: "tk - system-wide event-sourced task tracker",
 	Long:  `tk is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if debugFlag {
+			slog.SetDefault(slog.New(
+				devslog.NewHandler(os.Stderr, &devslog.Options{
+					HandlerOptions:  &slog.HandlerOptions{Level: slog.LevelDebug},
+					NewLineAfterLog: true,
+				}),
+			))
+			slog.Debug("debug logging enabled")
+		}
+	},
 }
 
 // Execute runs the root command
@@ -88,6 +105,8 @@ func Execute() error {
 // No grouping - render single table
 
 func init() {
+	rootCmd.PersistentFlags().BoolVar(&debugFlag, "debug", false, "Enable debug logging")
+
 	rootCmd.AddCommand(initCmd)
 
 	dbCmd := &cobra.Command{

@@ -395,6 +395,124 @@ if resp.StatusCode != http.StatusOK {
 
 ------------------------------------------------------------
 
+## Logging Guidelines
+
+**All Go code must follow consistent logging patterns to avoid duplicate and unclear log messages.**
+
+### Core Principle: Log at the Boundaries, Not in Utilities
+
+**Callees (utility functions, library code) should NOT log. Callers (business logic, command handlers) should log.**
+
+### Why This Matters
+
+1. **Avoid duplicates**: If both caller and callee log, you get redundant messages
+2. **Context**: Only the caller knows the business context worth logging
+3. **Reusability**: Utility functions shouldn't pollute logs when used in different contexts
+4. **Separation of concerns**: Low-level functions do work, high-level functions coordinate and log
+
+### The Pattern
+
+```go
+// ❌ BAD: Utility function logs
+func LoadIndexFile(path string) (*IndexFile, error) {
+    slog.Debug("loading index file", "path", path)  // Don't do this
+    data, err := os.ReadFile(path)
+    // ...
+}
+
+// ✅ GOOD: Utility function is silent
+func LoadIndexFile(path string) (*IndexFile, error) {
+    data, err := os.ReadFile(path)
+    if err != nil {
+        return nil, fmt.Errorf("failed to read index: %w", err)  // Just return errors
+    }
+    // ...
+}
+
+// ✅ GOOD: Business logic logs
+func Push(...) error {
+    log := slog.With("remote", remoteName, "space", space)
+    log.Debug("push: loading local index", "path", localIndexPath)
+    localIndex, err := LoadIndexFile(localIndexPath)  // Silent utility
+    if err != nil {
+        log.Error("push: failed to load local index", "error", err)
+        return err
+    }
+    log.Info("push: local index loaded", "segments", len(localIndex.Segments))
+}
+```
+
+### When Lower-Level Code CAN Log
+
+**Exception cases** where lower-level code logs (but still pass logger explicitly):
+
+1. **Long-running background processes** (servers, workers) with no clear caller
+2. **Infrastructure components** (database connection pools, caches)
+3. **Progress updates** for operations taking >1 second
+4. **But**: Pass a logger down explicitly: `func Process(ctx context.Context, log *slog.Logger)`
+
+### Log Message Format
+
+**Make log messages self-descriptive** - include the operation name in the message text:
+
+```go
+// ✅ GOOD: Operation is clear from message
+log.Debug("push: starting", "remote_path", remote.Path)
+log.Debug("push: loading local index", "path", localIndexPath)
+log.Info("push: local index loaded", "segments", len(localIndex.Segments))
+
+// ❌ BAD: Have to read attributes to understand what's happening
+log.Debug("starting", "operation", "push", "remote_path", remote.Path)
+log.Debug("loading local index", "operation", "push", "path", localIndexPath)
+```
+
+### Scoped Loggers
+
+Use `slog.With()` to create scoped loggers with default attributes:
+
+```go
+func Push(remoteName string, remote config.RemoteConfig, space string, stateDir string) error {
+    log := slog.With("remote", remoteName, "space", space)
+    log.Debug("push: starting")  // Automatically includes remote and space
+    log.Debug("push: loading local index", "path", localIndexPath)
+    // ...
+}
+```
+
+### The Decision Rule
+
+**If a function is called from multiple places, it should NOT log.**
+
+Examples:
+- **Utility functions** (`LoadIndexFile`, `SaveIndexFile`, `CalculateSHA256`) - NO logging
+- **Business logic** (Push, Pull, Export, command handlers) - YES logging
+- **Infrastructure** (segment writer writing files) - YES logging with passed logger
+
+### Go Community Consensus
+
+From the Go community and standard library patterns:
+
+1. **"Errors are values"** - return them, don't log them
+2. **Libraries return errors, applications log them** - standard Go proverb
+3. **Log at the edges** - handlers, main functions, top-level business logic
+4. **Pass loggers explicitly** when needed (not via global state)
+
+### Example: tk Push Operation
+
+Good example from `tk/internal/remote/sync.go`:
+
+- `LoadIndexFile()` - utility function, does NOT log
+- `SaveIndexFile()` - utility function, does NOT log  
+- `Push()` - business logic, logs all operations with context
+
+This prevents duplicate messages like:
+```
+[08:34:55] DEBUG  push: loading local index
+[08:34:55] DEBUG  loading index file        ← Duplicate!
+```
+
+------------------------------------------------------------
+
 ## Backwards Compatibility Policy
 
 **Unless explicitly stated otherwise, backwards compatibility is NOT important for ANY project in this repository.**
