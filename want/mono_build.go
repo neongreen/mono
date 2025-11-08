@@ -70,6 +70,12 @@ func printPathInfo(project, destPath string) {
 
 // buildMonoFromLocal builds a project from the local mono repository checkout
 func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
+	// Special handling for tk-vscode extension (local build)
+	if project == "tk-vscode" {
+		buildVSCodeExtensionFromSource(project, "local", "local checkout", false, dryRun, planJson)
+		return
+	}
+
 	// Get current working directory
 	cwd, err := os.Getwd()
 	if err != nil {
