@@ -75,7 +75,7 @@ var blockersCmd = &cobra.Command{
 			}
 
 			for _, blocker := range blockers {
-				blockerDisplay, err := database.RenderTaskDisplayID(db, blocker.TaskUUID)
+				blockerDisplay, err := database.RenderTaskDisplayID(db, blocker.TaskID)
 				if err != nil {
 					blockerDisplay = blocker.TaskDisplayID
 				}
@@ -107,7 +107,7 @@ var blockersCmd = &cobra.Command{
 		t.SetStyle(table.StyleLight)
 
 		for _, blocker := range blockers {
-			blockerDisplay, err := database.RenderTaskDisplayID(db, blocker.TaskUUID)
+			blockerDisplay, err := database.RenderTaskDisplayID(db, blocker.TaskID)
 			if err != nil {
 				blockerDisplay = blocker.TaskDisplayID
 			}

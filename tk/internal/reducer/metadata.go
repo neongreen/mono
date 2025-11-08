@@ -19,10 +19,17 @@ func (r *Reducer) applyTaskMetaSet(e types.Event) error {
 		return fmt.Errorf("invalid JSON in metadata value for key %s", payload.Key)
 	}
 
+	// Resolve task UUID (prefer TaskUUID, fall back to TaskID for legacy events)
+	taskUUID := payload.TaskUUID
+	if taskUUID == "" {
+		// Legacy event - use TaskID field directly as UUID
+		taskUUID = payload.TaskID
+	}
+
 	// Get or create task
-	task, ok := r.tasks[payload.TaskUUID]
+	task, ok := r.tasks[taskUUID]
 	if !ok {
-		return fmt.Errorf("task not found: %s", payload.TaskUUID)
+		return fmt.Errorf("task not found: %s", taskUUID)
 	}
 
 	// Initialize metadata map if needed

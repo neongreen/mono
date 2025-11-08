@@ -25,12 +25,12 @@ func ComputeBlocked(g *relations.RelationsGraph, tasks map[string]*types.Task, b
 		// Check each blocker
 		var activeBlockers []types.Blocker
 		for _, blocker := range blockers {
-			blockerTask, ok := tasks[blocker.TaskUUID]
+			blockerTask, ok := tasks[blocker.TaskID]
 			if !ok {
 
 				activeBlockers = append(activeBlockers, types.Blocker{
-					TaskUUID:      blocker.TaskUUID,
-					TaskDisplayID: blocker.TaskUUID,
+					TaskID:        blocker.TaskID,
+					TaskDisplayID: blocker.TaskID,
 					Title:         "(unknown task)",
 					Distance:      1,
 				})
@@ -46,7 +46,7 @@ func ComputeBlocked(g *relations.RelationsGraph, tasks map[string]*types.Task, b
 
 			if !isDone {
 				activeBlockers = append(activeBlockers, types.Blocker{
-					TaskUUID:      blockerTask.TaskUUID,
+					TaskID:        blockerTask.TaskID,
 					TaskDisplayID: blockerTask.TaskDisplayID,
 					Title:         blockerTask.Title,
 					Distance:      1,
@@ -80,11 +80,11 @@ func GetTransitiveBlockers(g *relations.RelationsGraph, taskUUID string, tasks m
 
 		blockers := g.GetIncomingRelations(uuid, "blocks")
 		for _, blocker := range blockers {
-			blockerTask, ok := tasks[blocker.TaskUUID]
+			blockerTask, ok := tasks[blocker.TaskID]
 			if !ok {
 				result = append(result, types.Blocker{
-					TaskUUID:      blocker.TaskUUID,
-					TaskDisplayID: blocker.TaskUUID,
+					TaskID:        blocker.TaskID,
+					TaskDisplayID: blocker.TaskID,
 					Title:         "(unknown task)",
 					Distance:      distance,
 				})
@@ -100,13 +100,13 @@ func GetTransitiveBlockers(g *relations.RelationsGraph, taskUUID string, tasks m
 
 			if !isDone {
 				result = append(result, types.Blocker{
-					TaskUUID:      blockerTask.TaskUUID,
+					TaskID:        blockerTask.TaskID,
 					TaskDisplayID: blockerTask.TaskDisplayID,
 					Title:         blockerTask.Title,
 					Distance:      distance,
 				})
 
-				dfs(blocker.TaskUUID, distance+1)
+				dfs(blocker.TaskID, distance+1)
 			}
 		}
 	}

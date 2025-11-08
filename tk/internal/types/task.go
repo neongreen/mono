@@ -8,7 +8,7 @@ import (
 
 // Task represents the current state of a task, derived from events
 type Task struct {
-	TaskUUID      string                    `json:"uuid"`              // Canonical immutable UUID
+	TaskID        string                    `json:"id"`                // Canonical immutable UUID
 	TaskDisplayID string                    `json:"display_id"`        // Current display ID
 	Aliases       []string                  `json:"aliases,omitempty"` // Previous IDs (when task was moved)
 	Title         string                    `json:"title"`
@@ -35,12 +35,12 @@ func (t *Task) MarshalJSON() ([]byte, error) {
 		taskCopy.Relations = taskCopy.Relations.Sorted()
 	}
 
-	// Sort blockers by TaskUUID
+	// Sort blockers by TaskID
 	if len(taskCopy.Blockers) > 0 {
 		blockersCopy := make([]Blocker, len(taskCopy.Blockers))
 		copy(blockersCopy, taskCopy.Blockers)
 		sort.Slice(blockersCopy, func(i, j int) bool {
-			return blockersCopy[i].TaskUUID < blockersCopy[j].TaskUUID
+			return blockersCopy[i].TaskID < blockersCopy[j].TaskID
 		})
 		taskCopy.Blockers = blockersCopy
 	}

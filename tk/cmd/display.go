@@ -46,9 +46,9 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 		// Build displayID map for width calculation
 		displayIDs := make(map[string]string)
 		for _, task := range tasks {
-			displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+			displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
 			if err == nil {
-				displayIDs[task.TaskUUID] = displayID
+				displayIDs[task.TaskID] = displayID
 			}
 		}
 
@@ -80,7 +80,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	}
 
 	for _, task := range tasks {
-		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
 		if err != nil {
 			displayID = task.TaskDisplayID
 		}
@@ -134,7 +134,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 // outputTasksJSON outputs tasks as a JSON array
 func outputTasksJSON(db *database.DB, tasks []*types.Task) error {
 	for _, task := range tasks {
-		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+		displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
 		if err != nil {
 			displayID = task.TaskDisplayID
 		}

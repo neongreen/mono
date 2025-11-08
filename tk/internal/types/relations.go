@@ -40,21 +40,21 @@ func (rs RelationSet) Sorted() RelationSet {
 		Parent: rs.Parent,
 	}
 
-	// Sort Out by TaskUUID
+	// Sort Out by TaskID
 	if len(rs.Out) > 0 {
 		result.Out = make([]RelationTarget, len(rs.Out))
 		copy(result.Out, rs.Out)
 		sort.Slice(result.Out, func(i, j int) bool {
-			return result.Out[i].TaskUUID < result.Out[j].TaskUUID
+			return result.Out[i].TaskID < result.Out[j].TaskID
 		})
 	}
 
-	// Sort In by TaskUUID
+	// Sort In by TaskID
 	if len(rs.In) > 0 {
 		result.In = make([]RelationTarget, len(rs.In))
 		copy(result.In, rs.In)
 		sort.Slice(result.In, func(i, j int) bool {
-			return result.In[i].TaskUUID < result.In[j].TaskUUID
+			return result.In[i].TaskID < result.In[j].TaskID
 		})
 	}
 
@@ -70,6 +70,6 @@ func (rs RelationSet) Sorted() RelationSet {
 
 // RelationTarget represents a relation target
 type RelationTarget struct {
-	TaskUUID string `json:"dst"` // Destination task UUID
-	Note     string `json:"note,omitempty"`
+	TaskID string `json:"dst"` // Destination task ID
+	Note   string `json:"note,omitempty"`
 }

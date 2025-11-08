@@ -59,7 +59,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 
 	// Add tasks to groups
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}
@@ -137,7 +137,7 @@ func TestLsWithoutProjectFilterShowsAllProjects(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}
@@ -211,7 +211,7 @@ func TestLsWithProjectFilterShowsOnlyFilteredProject(t *testing.T) {
 		taskUIDSet[id] = true
 	}
 	for _, task := range allTasks {
-		if taskUIDSet[task.TaskUUID] {
+		if taskUIDSet[task.TaskID] {
 			filteredTasks = append(filteredTasks, task)
 		}
 	}
@@ -224,7 +224,7 @@ func TestLsWithProjectFilterShowsOnlyFilteredProject(t *testing.T) {
 	// (this is the key behavior being tested)
 
 	for _, task := range filteredTasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}
@@ -298,7 +298,7 @@ func TestLsWithProjectFilterDoesNotShowEmptyProjects(t *testing.T) {
 		taskUIDSet[id] = true
 	}
 	for _, task := range allTasks {
-		if taskUIDSet[task.TaskUUID] {
+		if taskUIDSet[task.TaskID] {
 			filteredTasks = append(filteredTasks, task)
 		}
 	}
@@ -310,7 +310,7 @@ func TestLsWithProjectFilterDoesNotShowEmptyProjects(t *testing.T) {
 	// When project filter is specified, DON'T get all projects
 
 	for _, task := range filteredTasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}
@@ -388,7 +388,7 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}
