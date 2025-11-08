@@ -16,7 +16,7 @@ func (r *Relations) Sorted() *Relations {
 	if r == nil {
 		return nil
 	}
-	
+
 	return &Relations{
 		Blocks:     r.Blocks.Sorted(),
 		Subtask:    r.Subtask.Sorted(),
@@ -39,7 +39,7 @@ func (rs RelationSet) Sorted() RelationSet {
 	result := RelationSet{
 		Parent: rs.Parent,
 	}
-	
+
 	// Sort Out by TaskUUID
 	if len(rs.Out) > 0 {
 		result.Out = make([]RelationTarget, len(rs.Out))
@@ -48,7 +48,7 @@ func (rs RelationSet) Sorted() RelationSet {
 			return result.Out[i].TaskUUID < result.Out[j].TaskUUID
 		})
 	}
-	
+
 	// Sort In by TaskUUID
 	if len(rs.In) > 0 {
 		result.In = make([]RelationTarget, len(rs.In))
@@ -57,14 +57,14 @@ func (rs RelationSet) Sorted() RelationSet {
 			return result.In[i].TaskUUID < result.In[j].TaskUUID
 		})
 	}
-	
+
 	// Sort Children
 	if len(rs.Children) > 0 {
 		result.Children = make([]string, len(rs.Children))
 		copy(result.Children, rs.Children)
 		sort.Strings(result.Children)
 	}
-	
+
 	return result
 }
 

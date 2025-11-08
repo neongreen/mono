@@ -29,21 +29,21 @@ func (t *Task) MarshalJSON() ([]byte, error) {
 
 	// Make a copy with sorted relations
 	taskCopy := TaskAlias(*t)
-	
+
 	// Sort relations if present
 	if taskCopy.Relations != nil {
 		taskCopy.Relations = taskCopy.Relations.Sorted()
 	}
-	
-	// Sort blockers by TaskUUID
+
+	// Sort blockers by TaskID
 	if len(taskCopy.Blockers) > 0 {
 		blockersCopy := make([]Blocker, len(taskCopy.Blockers))
 		copy(blockersCopy, taskCopy.Blockers)
 		sort.Slice(blockersCopy, func(i, j int) bool {
-			return blockersCopy[i].TaskUUID < blockersCopy[j].TaskUUID
+			return blockersCopy[i].TaskID < blockersCopy[j].TaskID
 		})
 		taskCopy.Blockers = blockersCopy
 	}
-	
+
 	return json.Marshal(&taskCopy)
 }
