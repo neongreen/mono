@@ -19,10 +19,10 @@ build-wasm: build-js
 	@echo "Building WASM module with javy..."
 	@if ! command -v javy >/dev/null 2>&1; then \
 		echo "Error: javy is not installed. Install it from https://github.com/bytecodealliance/javy"; \
-		echo "Quick install: cargo install javy-cli"; \
+		echo "Download from: https://github.com/bytecodealliance/javy/releases"; \
 		exit 1; \
 	fi
-	javy compile js/dist/bundle.js -o parser.wasm
+	javy build js/dist/bundle.js -o parser.wasm
 	@echo "✓ WASM module built: parser.wasm"
 
 # Clean build artifacts
@@ -43,4 +43,4 @@ help:
 	@echo ""
 	@echo "Requirements:"
 	@echo "  - Node.js and npm"
-	@echo "  - javy (install with: cargo install javy-cli)"
+	@echo "  - javy (download from: https://github.com/bytecodealliance/javy/releases)"

@@ -1,8 +1,23 @@
 # Postlight Parser - Go Bindings via WASM
 
-This library provides Go bindings to the excellent [Postlight Parser](https://github.com/postlight/parser) JavaScript library. It extracts clean, structured article content from web pages.
+This library provides Go bindings inspired by the [Postlight Parser](https://github.com/postlight/parser) JavaScript library. It extracts clean, structured article content from web pages using WebAssembly.
 
 **New here?** Check out the [Quick Start Guide](QUICKSTART.md) to get running in 5 minutes!
+
+## Current Status
+
+This library currently uses a **simplified HTML parser** optimized for the WASM/Javy environment. The full Postlight Parser has extensive Node.js dependencies that aren't compatible with the minimal Javy runtime. The current implementation:
+
+- ✅ Extracts article titles from HTML
+- ✅ Extracts main content from body tags
+- ✅ Counts words accurately
+- ✅ Parses URLs and extracts domains
+- ✅ Provides clean Go API via WASM/wazero
+- ⚠️ Does not filter navigation/footer (like full Postlight would)
+- ⚠️ Does not extract metadata (author, dates) yet
+- ⚠️ Basic HTML parsing only (no advanced content extraction)
+
+This serves as a working demonstration of the WASM infrastructure. Future versions could integrate more sophisticated parsing logic.
 
 ## Why WASM?
 
