@@ -127,6 +127,12 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 			}
 		}
 
+		// Display empty titles as "(empty)" in table (not in JSON)
+		title := task.Title
+		if title == "" {
+			title = "(empty)"
+		}
+
 		if showAliases {
 
 			aliasesStr := ""
@@ -137,9 +143,9 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 				}
 				aliasesStr = strings.Join(shortAliases, ", ")
 			}
-			t.AppendRow(table.Row{displayID, aliasesStr, status, priority, labelsStr, task.Title})
+			t.AppendRow(table.Row{displayID, aliasesStr, status, priority, labelsStr, title})
 		} else {
-			t.AppendRow(table.Row{displayID, status, priority, labelsStr, task.Title})
+			t.AppendRow(table.Row{displayID, status, priority, labelsStr, title})
 		}
 	}
 

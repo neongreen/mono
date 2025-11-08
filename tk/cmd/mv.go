@@ -140,7 +140,7 @@ func moveTask(db *database.DB, taskRef string, targetSpec string, opts tasks.Mov
 
 func init() {
 	mvCmd.Flags().Bool("keep", false, "Keep the existing task number in the new project")
-	mvCmd.Flags().Bool("auto", false, "Auto-assign the next available number in the new project")
+	mvCmd.Flags().Bool("auto", true, "Auto-assign the next available number in the new project")
 	mvCmd.Flags().Int64("force", 0, "Force a specific number in the new project")
 	mvCmd.Flags().String("on-collision", "fail", "Collision handling strategy (fail|auto)")
 }
