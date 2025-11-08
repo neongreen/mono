@@ -239,9 +239,9 @@
       },
       {
         "command": "tk.quickCreateTask",
-        "key": "ctrl+n",
-        "mac": "cmd+n",
-        "when": "focusedView == tkExplorer && !inputFocus"
+        "key": "ctrl+r ctrl+r",
+        "mac": "cmd+r cmd+r",
+        "when": "!inputFocus"
       }
     ]
   },

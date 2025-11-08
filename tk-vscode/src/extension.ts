@@ -721,8 +721,7 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
             taskItems,
             uniqueId,
           );
-        })
-        .filter(group => group.children.length > 0); // Hide empty groups when searching
+        });
 
       const filteredUngrouped = this.filterTasks(this.rawUngrouped);
       const ungrouped = filteredUngrouped.map((task) => this.buildTaskTree(task, taskMap));
