@@ -692,7 +692,7 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       // Filter groups first, then create TreeItems to avoid unnecessary object creation
       // Store task items for decoration provider
       const allDisplayedTasks: TaskTreeItem[] = [];
-      
+
       // Build task map for subtask resolution
       const taskMap = new Map<string, TkTask>();
       for (const group of this.rawGroups) {
@@ -707,14 +707,25 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
           taskMap.set(task.uuid, task);
         }
       }
-      
+
+      // Build a set of all task UUIDs that are subtasks of any parent (tk-vsc-67)
+      const allSubtaskUUIDs = new Set<string>();
+      for (const task of taskMap.values()) {
+        const subtaskUUIDs = task.relations?.subtask?.children ?? [];
+        for (const uuid of subtaskUUIDs) {
+          allSubtaskUUIDs.add(uuid);
+        }
+      }
+
       this.groupItems = this.rawGroups
         .map(group => {
           const filteredTasks = this.filterTasks(group.tasks);
+          // Exclude tasks that are subtasks of any parent (tk-vsc-67)
+          const topLevelTasks = filteredTasks.filter(task => !task.uuid || !allSubtaskUUIDs.has(task.uuid));
           const groupName = group.group ?? 'unnamed';
           // Include collapse counter in ID to force VS Code to forget expansion state when collapsed
           const uniqueId = `${groupName}-${this.collapseCounter}`;
-          const taskItems = filteredTasks.map((task) => this.buildTaskTree(task, taskMap));
+          const taskItems = topLevelTasks.map((task) => this.buildTaskTree(task, taskMap));
           allDisplayedTasks.push(...taskItems);
           return new GroupTreeItem(
             groupName,
@@ -724,7 +735,9 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
         });
 
       const filteredUngrouped = this.filterTasks(this.rawUngrouped);
-      const ungrouped = filteredUngrouped.map((task) => this.buildTaskTree(task, taskMap));
+      // Exclude tasks that are subtasks of any parent (tk-vsc-67)
+      const topLevelUngrouped = filteredUngrouped.filter(task => !task.uuid || !allSubtaskUUIDs.has(task.uuid));
+      const ungrouped = topLevelUngrouped.map((task) => this.buildTaskTree(task, taskMap));
       allDisplayedTasks.push(...ungrouped);
 
       // Update decoration provider with the actual displayed items
