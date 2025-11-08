@@ -5,7 +5,7 @@ import (
 	"dagger/internal/parallel"
 )
 
-// Lint all Go projects - runs golangci-lint from workspace root and .dagger directory in parallel
+// Lint all Go projects - runs golangci-lint and uselesswrapper from workspace root and .dagger directory in parallel
 func (m *Dagger) Lint(ctx context.Context) error {
 	repo := dag.CurrentModule().Source().Directory("..")
 
@@ -19,13 +19,30 @@ func (m *Dagger) Lint(ctx context.Context) error {
 
 	jobs := parallel.New()
 
-	// Lint workspace root
-	jobs = jobs.WithJob("lint projects", func(ctx context.Context) error {
+	// Lint workspace root with golangci-lint
+	jobs = jobs.WithJob("lint projects (golangci-lint)", func(ctx context.Context) error {
 		_, err := baseContainer.
 			WithMountedDirectory("/src", repo).
 			WithWorkdir("/src").
 			WithExec([]string{"golangci-lint", "config", "verify"}).
 			WithExec([]string{"golangci-lint", "run"}).
+			Sync(ctx)
+		return err
+	})
+
+	// Lint workspace root with uselesswrapper
+	jobs = jobs.WithJob("lint projects (uselesswrapper)", func(ctx context.Context) error {
+		goContainer := dag.Container().
+			From("golang:1.24.7").
+			WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod")).
+			WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
+			WithEnvVariable("GOPRIVATE", "github.com/neongreen/mono").
+			WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono")
+
+		_, err := goContainer.
+			WithMountedDirectory("/src", repo).
+			WithWorkdir("/src").
+			WithExec([]string{"go", "run", "./lib/linters/uselesswrapper/cmd/uselesswrapper", "./..."}).
 			Sync(ctx)
 		return err
 	})

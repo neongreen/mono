@@ -20,6 +20,7 @@ _build/
 prrun/prrun
 dissect/dissect
 markdown-format/markdown-format
+lib/linters/uselesswrapper/uselesswrapper
 
 # Idk
 actionlint
