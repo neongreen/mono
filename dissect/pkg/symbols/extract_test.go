@@ -5,11 +5,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/neongreen/mono/dissect/internal/testhelpers"
 	"github.com/neongreen/mono/dissect/pkg/typeinfo"
 )
 
 func TestFindExportedSymbols_SingleFunction(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"main.go": `package main
 
 func Hello() string {
@@ -43,7 +44,7 @@ func Hello() string {
 }
 
 func TestFindExportedSymbols_MultipleFunctions(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"funcs.go": `package funcs
 
 func Alpha() {}
@@ -77,7 +78,7 @@ func Gamma() {}
 }
 
 func TestFindExportedSymbols_ExportedType(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"types.go": `package types
 
 type Person struct {
@@ -127,7 +128,7 @@ type Person struct {
 }
 
 func TestFindExportedSymbols_ExportedInterface(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"interfaces.go": `package interfaces
 
 type Reader interface {
@@ -161,7 +162,7 @@ type Reader interface {
 }
 
 func TestFindExportedSymbols_ExportedVar(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"vars.go": `package vars
 
 var DefaultTimeout = 30
@@ -193,7 +194,7 @@ var DefaultTimeout = 30
 }
 
 func TestFindExportedSymbols_ExportedConst(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"consts.go": `package consts
 
 const MaxRetries = 3
@@ -225,7 +226,7 @@ const MaxRetries = 3
 }
 
 func TestFindExportedSymbols_Mixed(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"mixed.go": `package mixed
 
 const Version = "1.0.0"
@@ -279,7 +280,7 @@ func NewConfig() *Config {
 }
 
 func TestFindExportedSymbols_UnexportedIgnored(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"unexported.go": `package unexported
 
 func Exported() {}
@@ -322,7 +323,7 @@ const unexportedConst = "private"
 }
 
 func TestFindExportedSymbols_Methods(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"methods.go": `package methods
 
 type Person struct {
@@ -376,7 +377,7 @@ func (p *Person) SetName(name string) {
 }
 
 func TestFindExportedSymbols_EmptyFile(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"empty.go": `package empty
 `,
 	})
@@ -398,7 +399,7 @@ func TestFindExportedSymbols_EmptyFile(t *testing.T) {
 }
 
 func TestFindExportedSymbols_NonExistentFile(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"exists.go": `package test
 
 func Exists() {}
@@ -417,30 +418,4 @@ func Exists() {}
 	}
 }
 
-// Helper function
-
-func createTempPackage(t *testing.T, files map[string]string) string {
-	t.Helper()
-
-	tmpDir, err := os.MkdirTemp("", "symbols_test_*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-
-	// Create go.mod
-	gomod := "module test\n\ngo 1.21\n"
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0o644); err != nil {
-		os.RemoveAll(tmpDir)
-		t.Fatalf("Failed to write go.mod: %v", err)
-	}
-
-	// Create all files
-	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0o644); err != nil {
-			os.RemoveAll(tmpDir)
-			t.Fatalf("Failed to write %s: %v", name, err)
-		}
-	}
-
-	return tmpDir
-}
+// Helper function moved to dissect/internal/testhelpers

@@ -1,12 +1,9 @@
 package main
 
 import (
-	"os"
 	"runtime"
 	"strings"
 	"testing"
-
-	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 func TestGetPlatformBinaryName(t *testing.T) {
@@ -85,96 +82,5 @@ func TestGetPlatformBinaryName_DoubleDashFormat(t *testing.T) {
 	t.Logf("Download URL: %s", downloadURL)
 }
 
-func TestGetGitHubToken(t *testing.T) {
-	origGithubToken := os.Getenv("GITHUB_TOKEN")
-	origMiseToken := os.Getenv("MISE_GITHUB_TOKEN")
-	defer func() {
-		if origGithubToken !=
-			"" {
-			os.Setenv("GITHUB_TOKEN", origGithubToken)
-		} else {
-			os.Unsetenv("GITHUB_TOKEN")
-		}
-		if origMiseToken != "" {
-			os.Setenv("MISE_GITHUB_TOKEN", origMiseToken)
-		} else {
-			os.Unsetenv("MISE_GITHUB_TOKEN")
-		}
-	}()
-	t.Run("GITHUB_TOKEN takes precedence", func(t *testing.T) {
-		os.Setenv("GITHUB_TOKEN", "github_token")
-		os.Setenv("MISE_GITHUB_TOKEN",
-			"mise_token")
-		token := ghrelease.GetGitHubToken()
-		if token != "github_token" {
-			t.Errorf("GetGitHubToken() = %v, want %v",
-				token, "github_token")
-		}
-	})
-	t.Run("MISE_GITHUB_TOKEN used when GITHUB_TOKEN not set",
-		func(t *testing.T) {
-			os.
-				Unsetenv("GITHUB_TOKEN")
-			os.Setenv("MISE_GITHUB_TOKEN", "mise_token")
-			token := ghrelease.GetGitHubToken()
-			if token != "mise_token" {
-				t.
-					Errorf("GetGitHubToken() = %v, want %v",
-						token,
-						"mise_token")
-			}
-		})
-	t.Run("returns empty string when no tokens available",
-		func(t *testing.T) {
-			os.
-				Unsetenv("GITHUB_TOKEN")
-			os.Unsetenv("MISE_GITHUB_TOKEN")
-			token := ghrelease.GetGitHubToken()
-
-			t.Logf("GetGitHubToken() = %q", token)
-		})
-}
-
-func TestCreateAuthenticatedRequest(t *testing.T) {
-	origGithubToken := os.Getenv("GITHUB_TOKEN")
-	defer func() {
-		if origGithubToken != "" {
-			os.
-				Setenv("GITHUB_TOKEN", origGithubToken)
-		} else {
-			os.
-				Unsetenv("GITHUB_TOKEN")
-		}
-	}()
-	t.Run("adds authorization header when token available", func(t *testing.T) {
-		os.Setenv("GITHUB_TOKEN", "test_token_123")
-		req, err := ghrelease.CreateAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
-		if err != nil {
-			t.Fatalf("CreateAuthenticatedRequest() error = %v", err)
-		}
-		authHeader := req.Header.Get("Authorization")
-		expectedHeader := "Bearer test_token_123"
-		if authHeader !=
-			expectedHeader {
-			t.Errorf("Authorization header = %v, want %v", authHeader,
-
-				expectedHeader)
-		}
-	})
-	t.Run("creates request without authorization when token not available",
-
-		func(t *testing.
-			T,
-		) {
-			os.Unsetenv("GITHUB_TOKEN")
-			os.Unsetenv("MISE_GITHUB_TOKEN")
-			req, err := ghrelease.CreateAuthenticatedRequest("GET", "https://api.github.com/repos/test/test")
-			if err != nil {
-				t.Fatalf("CreateAuthenticatedRequest() error = %v",
-					err)
-			}
-			authHeader := req.Header.Get("Authorization")
-			t.
-				Logf("Authorization header = %q", authHeader)
-		})
-}
+// TestGetGitHubToken and TestCreateAuthenticatedRequest removed - these are library
+// functions already tested in lib/ghrelease/ghrelease_test.go
