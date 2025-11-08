@@ -3,11 +3,11 @@ package project
 import (
 	"encoding/json"
 	"fmt"
-	"os/user"
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +38,7 @@ var CreateCmd = &cobra.Command{
 		}
 
 		// Get current user and node
-		actor, err := getCurrentUser()
+		actor, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}
@@ -150,13 +150,4 @@ var CreateCmd = &cobra.Command{
 
 func init() {
 	CreateCmd.Flags().String("alias", "", "Create an alias for this project on the current node")
-}
-
-// getCurrentUser returns the current user identifier
-func getCurrentUser() (string, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current user: %w", err)
-	}
-	return currentUser.Username, nil
 }

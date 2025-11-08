@@ -3,13 +3,13 @@ package relate
 import (
 	"encoding/json"
 	"fmt"
-	"os/user"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -85,7 +85,7 @@ Examples:
 		relationType = normalizedType
 
 		// Get current user
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}
@@ -145,13 +145,4 @@ Examples:
 
 func init() {
 	AddCmd.Flags().String("note", "", "Optional note for the relation")
-}
-
-// getCurrentUser returns the current user identifier
-func getCurrentUser() (string, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current user: %w", err)
-	}
-	return currentUser.Username, nil
 }

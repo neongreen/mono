@@ -3,11 +3,11 @@ package project
 import (
 	"encoding/json"
 	"fmt"
-	"os/user"
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ var AliasAddCmd = &cobra.Command{
 		alias := args[1]
 
 		// Get current user and node
-		actor, err := getCurrentUser()
+		actor, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}
@@ -87,13 +87,4 @@ var AliasAddCmd = &cobra.Command{
 		fmt.Printf("Added alias '%s' for project %s\n", alias, projectUID)
 		return nil
 	},
-}
-
-// getCurrentUser returns the current user identifier
-func getCurrentUser() (string, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current user: %w", err)
-	}
-	return currentUser.Username, nil
 }
