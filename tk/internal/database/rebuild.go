@@ -83,3 +83,4 @@ func (d *DB) VerifyProjectionDeterminism() error {
 
 	return nil
 }
+

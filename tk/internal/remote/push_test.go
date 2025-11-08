@@ -120,3 +120,4 @@ func TestPushRestoresMissingSegments(t *testing.T) {
 		t.Fatalf("expected remote segment to be restored, but stat failed: %v", err)
 	}
 }
+
