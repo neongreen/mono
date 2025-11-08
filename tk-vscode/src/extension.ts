@@ -4,6 +4,28 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
+// escapeMarkdown escapes special characters in markdown to prevent interpretation
+function escapeMarkdown(text: string): string {
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/`/g, '\\`')
+    .replace(/\*/g, '\\*')
+    .replace(/_/g, '\\_')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/#/g, '\\#')
+    .replace(/\+/g, '\\+')
+    .replace(/-/g, '\\-')
+    .replace(/\./g, '\\.')
+    .replace(/!/g, '\\!')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 interface AxisStatus {
   effective?: string;
 }
@@ -60,7 +82,14 @@ class TaskTreeItem extends vscode.TreeItem {
   public readonly statusColor?: vscode.ThemeColor;
 
   constructor(public readonly task: TkTask) {
-    const label = task.display_id ?? task.title ?? 'unnamed task';
+    // Extract just the number from display_id (e.g., "foo-123" -> "#123")
+    let label = task.display_id ?? task.title ?? 'unnamed task';
+    if (task.display_id) {
+      const match = task.display_id.match(/-(\d+)(?:-\w+)?$/);
+      if (match) {
+        label = `#${match[1]}`;
+      }
+    }
     super(label, vscode.TreeItemCollapsibleState.None);
 
     const genericAxis = task.axes?.['generic'];
@@ -73,9 +102,9 @@ class TaskTreeItem extends vscode.TreeItem {
     const blocked = task.blocked ? 'yes' : 'no';
 
     const tooltip = new vscode.MarkdownString();
-    tooltip.appendMarkdown(`**${label}**\n\n`);
+    tooltip.appendMarkdown(`**${escapeMarkdown(label)}**\n\n`);
     if (task.title) {
-      tooltip.appendMarkdown(`${task.title}\n\n`);
+      tooltip.appendMarkdown(`${escapeMarkdown(task.title)}\n\n`);
     }
     tooltip.appendMarkdown(`Status: ${state}\n`);
     tooltip.appendMarkdown(`Blocked: ${blocked}`);

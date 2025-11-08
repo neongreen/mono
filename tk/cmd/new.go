@@ -10,9 +10,10 @@ import (
 )
 
 var newCmd = &cobra.Command{
-	Use:   "new [title]",
-	Short: "Create a new task",
-	Args:  cobra.ExactArgs(1),
+	Use:     "new [title]",
+	Aliases: []string{"add"},
+	Short:   "Create a new task",
+	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := database.OpenExistingDB()
 		if err != nil {

@@ -15,7 +15,10 @@ import (
 var editCmd = &cobra.Command{
 	Use:   "edit <task> <field> <value>",
 	Short: "Edit task fields (number, title, status)",
-	Args:  cobra.MinimumNArgs(3),
+	Long: `Edit task fields (number, title, status).
+
+For editing just the title, you can also use 'tk describe <task> <new-title>' as a shortcut.`,
+	Args: cobra.MinimumNArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
 		field := strings.ToLower(args[1])

@@ -13,12 +13,11 @@ import (
 )
 
 var showCmd = &cobra.Command{
-	Use:     "show [task-id]",
+	Use:     "show [task-id...]",
 	Aliases: []string{"view"},
 	Short:   "Show task details",
-	Args:    cobra.ExactArgs(1),
+	Args:    cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		taskRef := args[0]
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
 		db, err := database.OpenExistingDB()
@@ -37,32 +36,54 @@ var showCmd = &cobra.Command{
 			return err
 		}
 
-		taskUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
-		if err != nil {
-			return err
-		}
+		var tasks []*types.Task
 
-		task, ok := reducer.GetTask(taskUUID)
-		if !ok {
-			return fmt.Errorf("task not found: %s", taskRef)
-		}
+		// Resolve and fetch all tasks
+		for _, taskRef := range args {
+			taskUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
+			if err != nil {
+				return err
+			}
 
-		displayID, err := database.RenderTaskDisplayID(db, taskUUID)
-		if err != nil {
-			displayID = taskRef
-		}
+			task, ok := reducer.GetTask(taskUUID)
+			if !ok {
+				return fmt.Errorf("task not found: %s", taskRef)
+			}
 
-		taskCopy := *task
-		taskCopy.TaskDisplayID = displayID
+			displayID, err := database.RenderTaskDisplayID(db, taskUUID)
+			if err != nil {
+				displayID = taskRef
+			}
+
+			taskCopy := *task
+			taskCopy.TaskDisplayID = displayID
+			tasks = append(tasks, &taskCopy)
+		}
 
 		if jsonOutput {
-			output, err := json.MarshalIndent(taskCopy, "", "  ")
-			if err != nil {
-				return fmt.Errorf("failed to marshal task: %w", err)
+			// For JSON, output array if multiple tasks, single object if one task
+			if len(tasks) == 1 {
+				output, err := json.MarshalIndent(tasks[0], "", "  ")
+				if err != nil {
+					return fmt.Errorf("failed to marshal task: %w", err)
+				}
+				fmt.Println(string(output))
+			} else {
+				output, err := json.MarshalIndent(tasks, "", "  ")
+				if err != nil {
+					return fmt.Errorf("failed to marshal tasks: %w", err)
+				}
+				fmt.Println(string(output))
 			}
-			fmt.Println(string(output))
 		} else {
-			renderTaskDetails(db, &taskCopy)
+			// For human output, show each task with separator
+			for i, task := range tasks {
+				if i > 0 {
+					fmt.Println("\n" + strings.Repeat("─", 60))
+					fmt.Println()
+				}
+				renderTaskDetails(db, task)
+			}
 		}
 
 		return nil
