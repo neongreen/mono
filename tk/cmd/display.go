@@ -132,6 +132,9 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 }
 
 // outputTasksJSON outputs tasks as a JSON array
+// NOTE: This always returns a flat array of tasks, not grouped JSON.
+// VSCode extension and other clients should group tasks on the client side.
+// See tk-vscode/src/extension.ts:fetchTk for the client-side grouping logic.
 func outputTasksJSON(db *database.DB, tasks []*types.Task) error {
 	for _, task := range tasks {
 		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
@@ -139,6 +142,13 @@ func outputTasksJSON(db *database.DB, tasks []*types.Task) error {
 			displayID = task.TaskDisplayID
 		}
 		task.TaskDisplayID = displayID
+
+		// Populate project UUID from database
+		var projectUID string
+		err = db.Db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, task.TaskUUID).Scan(&projectUID)
+		if err == nil {
+			task.ProjectUUID = projectUID
+		}
 	}
 
 	jsonOutput, err := json.MarshalIndent(tasks, "", "  ")

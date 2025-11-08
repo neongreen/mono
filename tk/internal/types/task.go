@@ -8,9 +8,10 @@ import (
 
 // Task represents the current state of a task, derived from events
 type Task struct {
-	TaskUUID      string                    `json:"uuid"`              // Canonical immutable UUID
-	TaskDisplayID string                    `json:"display_id"`        // Current display ID
-	Aliases       []string                  `json:"aliases,omitempty"` // Previous IDs (when task was moved)
+	TaskUUID      string                    `json:"uuid"`                   // Canonical immutable UUID
+	TaskDisplayID string                    `json:"display_id"`             // Current display ID
+	ProjectUUID   string                    `json:"project_uuid,omitempty"` // Project UUID this task belongs to
+	Aliases       []string                  `json:"aliases,omitempty"`      // Previous IDs (when task was moved)
 	Title         string                    `json:"title"`
 	Axes          map[string]AxisStatus     `json:"axes"`
 	Metadata      map[string]MetadataStatus `json:"metadata,omitempty"` // Metadata with claims
