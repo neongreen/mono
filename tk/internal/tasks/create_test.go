@@ -73,8 +73,14 @@ func TestCreateMultipleTasks(t *testing.T) {
 
 	// Verify sequential numbers
 	var num1, num2 int64
-	db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, result1.TaskUID).Scan(&num1)
-	db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, result2.TaskUID).Scan(&num2)
+	err = db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, result1.TaskUID).Scan(&num1)
+	if err != nil {
+		t.Fatalf("failed to query number for task 1: %v", err)
+	}
+	err = db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, result2.TaskUID).Scan(&num2)
+	if err != nil {
+		t.Fatalf("failed to query number for task 2: %v", err)
+	}
 
 	if num2 != num1+1 {
 		t.Fatalf("expected sequential numbers, got %d and %d", num1, num2)
