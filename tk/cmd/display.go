@@ -221,6 +221,9 @@ func outputTasksJSON(db *database.DB, tasks []*types.Task, groupBy string) error
 			grouped[status] = append(grouped[status], task)
 		}
 
+		// Sort status groups alphabetically for deterministic output
+		sort.Strings(groupOrder)
+
 		output.Groups = make([]GroupedOutput, 0, len(groupOrder))
 		for _, status := range groupOrder {
 			output.Groups = append(output.Groups, GroupedOutput{

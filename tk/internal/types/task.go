@@ -1,6 +1,8 @@
 package types
 
 import (
+	"encoding/json"
+	"sort"
 	"time"
 )
 
@@ -18,4 +20,30 @@ type Task struct {
 	Relations *Relations                `json:"relations,omitempty"` // Task relations
 	Blocked   bool                      `json:"blocked,omitempty"`   // Is this task blocked
 	Blockers  []Blocker                 `json:"blockers,omitempty"`  // List of blocking tasks
+}
+
+// MarshalJSON provides deterministic JSON output by sorting relation slices
+func (t *Task) MarshalJSON() ([]byte, error) {
+	// Create an alias type to avoid infinite recursion
+	type TaskAlias Task
+
+	// Make a copy with sorted relations
+	taskCopy := TaskAlias(*t)
+	
+	// Sort relations if present
+	if taskCopy.Relations != nil {
+		taskCopy.Relations = taskCopy.Relations.Sorted()
+	}
+	
+	// Sort blockers by TaskUUID
+	if len(taskCopy.Blockers) > 0 {
+		blockersCopy := make([]Blocker, len(taskCopy.Blockers))
+		copy(blockersCopy, taskCopy.Blockers)
+		sort.Slice(blockersCopy, func(i, j int) bool {
+			return blockersCopy[i].TaskUUID < blockersCopy[j].TaskUUID
+		})
+		taskCopy.Blockers = blockersCopy
+	}
+	
+	return json.Marshal(&taskCopy)
 }
