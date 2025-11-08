@@ -29,7 +29,7 @@ func buildWithMiseAndCopy(project, workDir, destPath string) error {
 	}
 
 	// Copy the binary from _build to destination
-	buildSource := filepath.Join(projectDir, "_build", project)
+	buildSource := filepath.Join(workDir, "_build", project)
 	destDir := filepath.Dir(destPath)
 	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create destination directory: %w", err)
@@ -112,7 +112,7 @@ func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
 
 	destDir := filepath.Join(homeDir, ".local", "bin")
 	destPath := filepath.Join(destDir, project)
-	buildSource := filepath.Join(projectDir, "_build", project)
+	buildSource := filepath.Join(cwd, "_build", project)
 
 	plan := FulfillmentPlan{
 		Requirement: fmt.Sprintf("mono %s@local", project),
@@ -209,7 +209,7 @@ func buildMonoFromSource(project, refSpec, refDescription string, isCommitSHA bo
 			{
 				Type:        "install",
 				Description: fmt.Sprintf("Copy binary to %s", destPath),
-				Command:     fmt.Sprintf("cp <tmpdir>/%s/_build/%s %s", project, project, destPath),
+				Command:     fmt.Sprintf("cp <tmpdir>/_build/%s %s", project, destPath),
 				Automatic:   true,
 			},
 			{

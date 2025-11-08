@@ -1,20 +1,33 @@
 package cmd
 
 import (
+	"log/slog"
+	"os"
+
+	"github.com/golang-cz/devslog"
 	"github.com/spf13/cobra"
 )
+
+var debugFlag bool
 
 var RootCmd = &cobra.Command{
 	Use:   "tk",
 	Short: "tk - system-wide event-sourced task tracker",
 	Long:  `tk is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if debugFlag {
+			slog.SetDefault(slog.New(
+				devslog.NewHandler(os.Stderr, &devslog.Options{
+					HandlerOptions:  &slog.HandlerOptions{Level: slog.LevelDebug},
+					NewLineAfterLog: true,
+				}),
+			))
+			slog.Debug("debug logging enabled")
+		}
+	},
 }
 
-// Execute runs the root command
-//nolint:uselesswrapper // Provides stable public API
-func Execute() error {
-	return RootCmd.Execute()
-}
+// TODO: move these abandoned comments!
 
 // Always use project-based path
 
@@ -89,6 +102,8 @@ func Execute() error {
 // No grouping - render single table
 
 func init() {
+	RootCmd.PersistentFlags().BoolVar(&debugFlag, "debug", false, "Enable debug logging")
+
 	RootCmd.AddCommand(initCmd)
 
 	dbCmd := &cobra.Command{
@@ -143,7 +158,6 @@ This is useful for:
 	RootCmd.AddCommand(graphCmd)
 	RootCmd.AddCommand(conflictsCmd)
 	RootCmd.AddCommand(remoteCmd)
-	RootCmd.AddCommand(exportCmd)
 	RootCmd.AddCommand(ingestCmd)
 	RootCmd.AddCommand(importBeadsCmd)
 	RootCmd.AddCommand(pushCmd)

@@ -22,6 +22,7 @@ Examples:
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		space, _ := cmd.Flags().GetString("space")
+		exportAll, _ := cmd.Flags().GetBool("all")
 
 		// Get remote name
 		var remoteName string
@@ -55,18 +56,30 @@ Examples:
 			return fmt.Errorf("remote '%s' not found", remoteName)
 		}
 
-		if !remoteConfig.Push {
-			return fmt.Errorf("push is disabled for remote '%s'", remoteName)
-		}
-
-		// Get state directory
 		stateDir, err := config_pkg.GetStateDir()
 		if err != nil {
 			return err
 		}
 
+		if !remoteConfig.Push {
+			return fmt.Errorf("push is disabled for remote '%s'", remoteName)
+		}
+
+		db, err := database.OpenExistingDB()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
 		// Push using business logic
-		result, err := remote.Push(remoteName, remoteConfig, space, stateDir)
+		result, err := remote.Push(db, remote.PushParams{
+			RemoteName:   remoteName,
+			RemoteConfig: remoteConfig,
+			Space:        space,
+			StateDir:     stateDir,
+			SyncConfig:   config.Sync,
+			ExportAll:    exportAll,
+		})
 		if err != nil {
 			return err
 		}
@@ -158,8 +171,7 @@ var syncCmd = &cobra.Command{
 This command performs the full sync flow:
 1. Pull segments from remote
 2. Ingest events from remote segments
-3. Export new local events to segments
-4. Push new segments to remote
+3. Push local events to remote
 
 Examples:
   tk sync icloud
@@ -201,6 +213,11 @@ Examples:
 			return fmt.Errorf("remote '%s' not found", remoteName)
 		}
 
+		stateDir, err := config_pkg.GetStateDir()
+		if err != nil {
+			return err
+		}
+
 		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
@@ -228,18 +245,17 @@ Examples:
 			return fmt.Errorf("ingest failed: %w", err)
 		}
 
-		// 3. Export
-		fmt.Println("Exporting local events...")
-		exportCmd.Flags().Set("space", space)
-		if err := exportCmd.RunE(exportCmd, []string{remoteName}); err != nil {
-			return fmt.Errorf("export failed: %w", err)
-		}
-
-		// 4. Push
+		// 3. Push
 		fmt.Println("Pushing to remote...")
 		if remoteConfig.Push {
-			pushCmd.Flags().Set("space", space)
-			if err := pushCmd.RunE(pushCmd, []string{remoteName}); err != nil {
+			_, err := remote.Push(db, remote.PushParams{
+				RemoteName:   remoteName,
+				RemoteConfig: remoteConfig,
+				Space:        space,
+				StateDir:     stateDir,
+				SyncConfig:   config.Sync,
+			})
+			if err != nil {
 				return fmt.Errorf("push failed: %w", err)
 			}
 		}
@@ -251,6 +267,7 @@ Examples:
 
 func init() {
 	pushCmd.Flags().String("space", "personal", "Space to push")
+	pushCmd.Flags().Bool("all", false, "Export all events before pushing (rebuild segments)")
 	pullCmd.Flags().String("space", "personal", "Space to pull")
 	syncCmd.Flags().String("space", "personal", "Space to sync")
 }
