@@ -84,7 +84,8 @@ func (r *Reducer) applyTaskStatusSet(e types.Event) error {
 	// Resolve task ID to UUID
 	taskUUID := payload.TaskUUID
 	if taskUUID == "" {
-		// Legacy event - look up UUID by task ID
+		// Legacy event fallback - only for reading old pre-UUID events
+		// See tk-190: can be removed after running 'tk migrate compact-remote' on all machines
 		var ok bool
 		taskUUID, ok = r.taskByID[payload.TaskID]
 		if !ok {
@@ -131,7 +132,8 @@ func (r *Reducer) applyTaskNoteAdd(e types.Event) error {
 	// Resolve task ID to UUID
 	taskUUID := payload.TaskUUID
 	if taskUUID == "" {
-		// Legacy event - look up UUID by task ID
+		// Legacy event fallback - only for reading old pre-UUID events
+		// See tk-190: can be removed after running 'tk migrate compact-remote' on all machines
 		var ok bool
 		taskUUID, ok = r.taskByID[payload.TaskID]
 		if !ok {
