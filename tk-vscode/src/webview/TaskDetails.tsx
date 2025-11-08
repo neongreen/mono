@@ -21,9 +21,9 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
     setTitleValue(task.title ?? 'No title');
     setIsEditing(false);
     setIsAddingNote(false);
-  }, [task.task_id, task.task_uuid, task.title]);
+  }, [task.display_id, task.uuid, task.title]);
 
-  const taskId = task.task_id ?? 'unknown';
+  const taskId = task.display_id ?? 'unknown';
   const genericAxis = task.axes?.['generic'];
   const status = genericAxis?.effective ?? 'none';
   const blocked = task.blocked ? 'yes' : 'no';

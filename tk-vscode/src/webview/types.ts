@@ -9,13 +9,17 @@ export interface TkNote {
 }
 
 export interface TkTask {
-  task_uuid?: string;
-  task_id?: string;
+  uuid?: string;
+  display_id?: string;
   title?: string;
   axes?: Record<string, AxisStatus | undefined>;
   blocked?: boolean;
-  blockers?: Array<{ task_id?: string; title?: string }>;
+  blockers?: Array<{ display_id?: string; title?: string }>;
   notes?: TkNote[];
+  project_uuid?: string;
+  created_at?: string;
+  created_by?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface VSCodeAPI {
