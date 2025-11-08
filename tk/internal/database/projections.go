@@ -12,6 +12,31 @@ import (
 // Projection Functions
 // These functions project events from the events table into projection tables
 
+// ProjectEvent projects an event into its respective table based on event kind
+func (d *DB) ProjectEvent(event types.Event) error {
+	switch event.Kind {
+	case string(types.EventKindProjectCreated):
+		return d.ProjectProjectCreatedEvent(event)
+	case string(types.EventKindProjectAliasAdd):
+		return d.ProjectProjectAliasAddEvent(event)
+	case string(types.EventKindProjectAliasRemove):
+		return d.ProjectProjectAliasRemoveEvent(event)
+	case string(types.EventKindProjectDelete):
+		return d.ProjectProjectDeleteEvent(event)
+	case string(types.EventKindTaskCreated):
+		return d.ProjectTaskCreatedEvent(event)
+	case string(types.EventKindTaskNumberSet):
+		return d.ProjectTaskNumberSetEvent(event)
+	case string(types.EventKindTaskRelocate):
+		return d.ProjectTaskRelocateEvent(event)
+	case string(types.EventKindTaskTitleSet):
+		return d.ProjectTaskTitleSetEvent(event)
+	case string(types.EventKindTaskDelete):
+		return d.ProjectTaskDeleteEvent(event)
+	}
+	return nil
+}
+
 // ProjectProjectCreatedEvent projects a project.created event into the projects table (idempotent)
 func (d *DB) ProjectProjectCreatedEvent(e types.Event) error {
 	if e.Kind != string(types.EventKindProjectCreated) {

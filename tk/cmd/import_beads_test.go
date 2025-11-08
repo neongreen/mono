@@ -3,12 +3,12 @@ package cmd
 import (
 	"testing"
 
+	"github.com/neongreen/mono/tk/internal/import/beads"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestExtractPrefixesFromBeads(t *testing.T) {
-	issues := []BeadsIssue{
+	issues := []beads.BeadsIssue{
 		{ID: "mono-1", Title: "Task 1"},
 		{ID: "mono-2", Title: "Task 2"},
 		{ID: "foo-1", Title: "Foo task"},
@@ -16,7 +16,7 @@ func TestExtractPrefixesFromBeads(t *testing.T) {
 		{ID: "bar-5", Title: "Bar task"},
 	}
 
-	grouped := extractPrefixesFromBeads(issues)
+	grouped := beads.ExtractPrefixesFromBeads(issues)
 
 	assert.Len(t, grouped, 3, "should have 3 prefixes")
 	assert.Len(t, grouped["mono"], 2, "mono should have 2 issues")
@@ -25,25 +25,25 @@ func TestExtractPrefixesFromBeads(t *testing.T) {
 }
 
 func TestExtractPrefixesFromBeads_SinglePrefix(t *testing.T) {
-	issues := []BeadsIssue{
+	issues := []beads.BeadsIssue{
 		{ID: "mono-1", Title: "Task 1"},
 		{ID: "mono-2", Title: "Task 2"},
 	}
 
-	grouped := extractPrefixesFromBeads(issues)
+	grouped := beads.ExtractPrefixesFromBeads(issues)
 
 	assert.Len(t, grouped, 1, "should have 1 prefix")
 	assert.Len(t, grouped["mono"], 2, "mono should have 2 issues")
 }
 
 func TestExtractPrefixesFromBeads_SkipsMalformed(t *testing.T) {
-	issues := []BeadsIssue{
+	issues := []beads.BeadsIssue{
 		{ID: "mono-1", Title: "Valid"},
 		{ID: "invalid", Title: "Malformed"},
 		{ID: "mono-2", Title: "Valid"},
 	}
 
-	grouped := extractPrefixesFromBeads(issues)
+	grouped := beads.ExtractPrefixesFromBeads(issues)
 
 	assert.Len(t, grouped, 1, "should have 1 prefix (malformed skipped)")
 	assert.Len(t, grouped["mono"], 2, "mono should have 2 issues")
@@ -85,11 +85,11 @@ func TestParseBeadsNumber(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseBeadsNumber(tt.id)
+			got, err := beads.ParseBeadsNumber(tt.id)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				assert.Equal(t, tt.want, got)
 			}
 		})
@@ -100,24 +100,24 @@ func TestImportBeads_PreservesNumbering(t *testing.T) {
 	db := openTempDB(t)
 
 	// Create project with alias
-	projectUID, err := createProjectForImport(db, "test", "bd-test")
-	require.NoError(t, err)
+	projectUID, err := beads.CreateProjectForImport(db, "test", "bd-test", "test-actor")
+	assert.NoError(t, err)
 
 	// Import issue with specific number
-	issue := BeadsIssue{
+	issue := beads.BeadsIssue{
 		ID:       "test-123",
 		Title:    "Test task",
 		Priority: 1,
 		Status:   "open",
 	}
 
-	taskUID, err := importBeadsIssue(db, issue, projectUID, 123)
-	require.NoError(t, err)
+	taskUID, err := beads.ImportBeadsIssue(db, issue, projectUID, 123)
+	assert.NoError(t, err)
 
 	// Verify task number is 123
 	var number int64
 	err = db.Db.QueryRow("SELECT number FROM task_numbers WHERE task_uid = ?", taskUID).Scan(&number)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, int64(123), number)
 }
 
@@ -125,12 +125,12 @@ func TestImportBeads_AlwaysCreatesNewProject(t *testing.T) {
 	db := openTempDB(t)
 
 	// Create first project with alias "bd-mono"
-	uid1, err := createProjectForImport(db, "mono", "bd-mono")
-	require.NoError(t, err)
+	uid1, err := beads.CreateProjectForImport(db, "mono", "bd-mono", "test-actor")
+	assert.NoError(t, err)
 
 	// Create second project - different alias required (same node can't have duplicate)
-	uid2, err := createProjectForImport(db, "mono", "beads-mono")
-	require.NoError(t, err)
+	uid2, err := beads.CreateProjectForImport(db, "mono", "beads-mono", "test-actor")
+	assert.NoError(t, err)
 
 	// Should be different UIDs
 	assert.NotEqual(t, uid1, uid2, "should create different projects")
@@ -138,24 +138,24 @@ func TestImportBeads_AlwaysCreatesNewProject(t *testing.T) {
 	// Should have different aliases
 	var count int
 	err = db.Db.QueryRow("SELECT COUNT(*) FROM project_aliases WHERE alias = 'bd-mono'").Scan(&count)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 1, count, "should have 1 project with 'bd-mono' alias")
 
 	err = db.Db.QueryRow("SELECT COUNT(*) FROM project_aliases WHERE alias = 'beads-mono'").Scan(&count)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 1, count, "should have 1 project with 'beads-mono' alias")
 }
 
 func TestImportBeads_CreatesSingleAlias(t *testing.T) {
 	db := openTempDB(t)
 
-	projectUID, err := createProjectForImport(db, "test", "bd-test")
-	require.NoError(t, err)
+	projectUID, err := beads.CreateProjectForImport(db, "test", "bd-test", "test-actor")
+	assert.NoError(t, err)
 
 	// Verify only one alias created
 	var aliases []string
 	rows, err := db.Db.Query("SELECT alias FROM project_aliases WHERE project_uid = ?", projectUID)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer rows.Close()
 
 	for rows.Next() {

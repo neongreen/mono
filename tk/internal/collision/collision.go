@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
-	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/segment"
 )
 
@@ -91,7 +91,7 @@ func (ncc *NodeCollisionChecker) GetSeenNodes() []string {
 }
 
 // CheckNodeCollision checks for node ID collisions in a remote
-func CheckNodeCollision(db *database.DB, remoteName string, remoteConfig remote.RemoteConfig) error {
+func CheckNodeCollision(db *database.DB, remoteName string, remoteConfig config.RemoteConfig) error {
 	// Get local node ID
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {

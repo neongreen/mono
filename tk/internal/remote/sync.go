@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/neongreen/mono/tk/internal/config"
 )
 
 // PushResult contains the result of a push operation
@@ -17,7 +19,7 @@ type PullResult struct {
 }
 
 // Push pushes local segments to a remote
-func Push(remoteName string, remote RemoteConfig, space string, stateDir string) (*PushResult, error) {
+func Push(remoteName string, remote config.RemoteConfig, space string, stateDir string) (*PushResult, error) {
 	// Load local index mirror
 	localIndexPath := filepath.Join(stateDir, "remotes", remoteName, space, "index.json")
 	localIndex, err := LoadIndexFile(localIndexPath)
@@ -77,7 +79,7 @@ func Push(remoteName string, remote RemoteConfig, space string, stateDir string)
 }
 
 // Pull pulls segments from a remote
-func Pull(remoteName string, remote RemoteConfig, space string, stateDir string) (*PullResult, error) {
+func Pull(remoteName string, remote config.RemoteConfig, space string, stateDir string) (*PullResult, error) {
 	// Load remote index
 	remoteIndexPath := filepath.Join(remote.Path, space, "index.json")
 	remoteIndex, err := LoadIndexFile(remoteIndexPath)

@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/tasks"
+	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +30,23 @@ var describeCmd = &cobra.Command{
 			return err
 		}
 
-		return editTaskTitle(db, taskRef, title, currentUser)
+		// Resolve task reference
+		taskUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
+		if err != nil {
+			return err
+		}
+
+		// Edit task title using business logic
+		if err := tasks.EditTitle(db, taskUID, title, currentUser); err != nil {
+			return err
+		}
+
+		// Display success message
+		displayID, err := database.RenderTaskDisplayID(db, taskUID)
+		if err != nil {
+			displayID = taskRef
+		}
+		fmt.Printf("Updated title for %s\n", displayID)
+		return nil
 	},
 }

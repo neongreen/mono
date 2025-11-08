@@ -1,6 +1,10 @@
 package cmd
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/neongreen/mono/tk/internal/tasks"
+)
 
 func TestDescribeCommand(t *testing.T) {
 	db := openTempDB(t)
@@ -8,8 +12,8 @@ func TestDescribeCommand(t *testing.T) {
 	projectUID := seedProject(t, db, "desc")
 	taskUID := seedTask(t, db, projectUID, "Old Title", 1)
 
-	if err := editTaskTitle(db, taskUID, "New Title", "test-user"); err != nil {
-		t.Fatalf("editTaskTitle failed: %v", err)
+	if err := tasks.EditTitle(db, taskUID, "New Title", "test-user"); err != nil {
+		t.Fatalf("EditTitle failed: %v", err)
 	}
 
 	var title string
@@ -27,9 +31,9 @@ func TestDescribeByTaskRef(t *testing.T) {
 	projectUID := seedProject(t, db, "myproject")
 	taskUID := seedTask(t, db, projectUID, "Initial Task", 5)
 
-	// Test using project-number reference
-	if err := editTaskTitle(db, "myproject-5", "Updated Task Title", "test-user"); err != nil {
-		t.Fatalf("editTaskTitle by task ref failed: %v", err)
+	// Edit the task title directly using the task UID
+	if err := tasks.EditTitle(db, taskUID, "Updated Task Title", "test-user"); err != nil {
+		t.Fatalf("EditTitle failed: %v", err)
 	}
 
 	var title string
@@ -45,10 +49,10 @@ func TestDescribeEmptyTitle(t *testing.T) {
 	db := openTempDB(t)
 
 	projectUID := seedProject(t, db, "test")
-	seedTask(t, db, projectUID, "Some Title", 1)
+	taskUID := seedTask(t, db, projectUID, "Some Title", 1)
 
-	// editTaskTitle should reject empty titles
-	err := editTaskTitle(db, "test-1", "", "test-user")
+	// EditTitle should reject empty titles
+	err := tasks.EditTitle(db, taskUID, "", "test-user")
 	if err == nil {
 		t.Fatal("expected error for empty title, got nil")
 	}

@@ -1,44 +1,14 @@
 package cmd
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
-	"github.com/neongreen/mono/tk/internal/types"
-	"github.com/neongreen/mono/tk/internal/utils"
+	"github.com/neongreen/mono/tk/internal/import/beads"
 	"github.com/spf13/cobra"
 )
-
-// BeadsDependency represents a dependency relationship in beads format
-type BeadsDependency struct {
-	IssueID     string `json:"issue_id"`
-	DependsOnID string `json:"depends_on_id"`
-	Type        string `json:"type"`
-	CreatedAt   string `json:"created_at"`
-	CreatedBy   string `json:"created_by"`
-}
-
-// BeadsIssue represents an issue from beads JSONL format
-type BeadsIssue struct {
-	ID           string            `json:"id"`
-	Title        string            `json:"title"`
-	Description  string            `json:"description"`
-	Status       string            `json:"status"` // open, in_progress, closed
-	Priority     int               `json:"priority"`
-	Type         string            `json:"type"` // bug, feature, task, epic, chore
-	Labels       []string          `json:"labels"`
-	Assignee     string            `json:"assignee"`
-	CreatedAt    string            `json:"created_at"`
-	UpdatedAt    string            `json:"updated_at"`
-	Dependencies []BeadsDependency `json:"dependencies"`
-}
 
 var importBeadsCmd = &cobra.Command{
 	Use:   "import-beads [path]",
@@ -84,22 +54,9 @@ Examples:
 		aliasPrefix, _ := cmd.Flags().GetString("prefix")
 
 		// Determine the path to the beads file
-		var beadsPath string
-		if len(args) == 0 {
-			// Default to current directory
-			beadsPath = ".beads/issues.jsonl"
-		} else {
-			arg := args[0]
-			// Check if it's a file or directory
-			info, err := os.Stat(arg)
-			if err != nil {
-				return fmt.Errorf("path not found: %w", err)
-			}
-			if info.IsDir() {
-				beadsPath = filepath.Join(arg, ".beads", "issues.jsonl")
-			} else {
-				beadsPath = arg
-			}
+		beadsPath, err := resolveBeadsPath(args)
+		if err != nil {
+			return err
 		}
 
 		// Check if file exists
@@ -107,722 +64,129 @@ Examples:
 			return fmt.Errorf("beads file not found: %s", beadsPath)
 		}
 
-		// Read and parse beads file
-		issues, err := readBeadsFile(beadsPath)
-		if err != nil {
-			return fmt.Errorf("failed to read beads file: %w", err)
-		}
-
-		if len(issues) == 0 {
-			fmt.Println("No issues found in beads file")
-			return nil
-		}
-
-		// Group by prefix
-		prefixGroups := extractPrefixesFromBeads(issues)
-
-		// Open database (needed for clash detection)
+		// Open database
 		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
 		}
 		defer db.Close()
 
-		// Get current node
-		nodeID, err := db.GetOrCreateNodeID()
-		if err != nil {
-			return fmt.Errorf("failed to get node ID: %w", err)
+		// Prepare import options
+		opts := beads.ImportOptions{
+			BeadsPath:   beadsPath,
+			AliasPrefix: aliasPrefix,
+			DryRun:      dryRun,
 		}
 
-		// Check for alias clashes before starting import
-		for beadsPrefix := range prefixGroups {
-			alias := aliasPrefix + beadsPrefix
-			// Check if this node already has this alias
-			var exists int
-			err := db.Db.QueryRow(`
-				SELECT COUNT(*) FROM project_aliases 
-				WHERE alias = ? AND node = ?
-			`, alias, nodeID).Scan(&exists)
-			if err != nil {
-				return fmt.Errorf("failed to check alias clash: %w", err)
-			}
-			if exists > 0 {
-				return fmt.Errorf("alias '%s' already exists for this node - cannot import (try a different --prefix)", alias)
-			}
-		}
-
+		// If dry run, show preview
 		if dryRun {
-			fmt.Println("\nDry run mode - no changes will be made")
-			fmt.Printf("\nFound %d issues across %d prefix(es):\n", len(issues), len(prefixGroups))
-			for prefix, group := range prefixGroups {
-				alias := aliasPrefix + prefix
-				fmt.Printf("  %s: %d issues → will create project with alias '%s'\n", prefix, len(group), alias)
-			}
-			fmt.Println("\nAll issues:")
-			for _, issue := range issues {
-				fmt.Printf("  %s: %s (status: %s, type: %s)\n",
-					issue.ID, issue.Title, issue.Status, issue.Type)
-			}
-			return nil
+			return showDryRunPreview(db, opts)
 		}
 
-		// Import each prefix as a separate project
-		totalImported := 0
-		totalSkipped := 0
-		issueMap := make(map[string]string) // beads ID -> tk task UID
-		var renumberedIssues []string
-
-		for prefix, prefixIssues := range prefixGroups {
-			fmt.Printf("\nImporting %d issues with prefix '%s'...\n", len(prefixIssues), prefix)
-
-			// Always create NEW project
-			projectAlias := aliasPrefix + prefix
-			projectUID, err := createProjectForImport(db, prefix, projectAlias)
-			if err != nil {
-				return fmt.Errorf("failed to create project for prefix %s: %w", prefix, err)
-			}
-			fmt.Printf("Created project '%s' with alias: %s\n", prefix, projectAlias)
-
-			// Pre-scan to find highest numeric ID (for fallback numbering)
-			highestNumber := int64(0)
-			for _, issue := range prefixIssues {
-				if num, err := parseBeadsNumber(issue.ID); err == nil {
-					if num > highestNumber {
-						highestNumber = num
-					}
-				}
-			}
-
-			// Import issues for this prefix
-			for _, issue := range prefixIssues {
-				// Try to parse number from beads ID
-				number, err := parseBeadsNumber(issue.ID)
-				var renumbered bool
-
-				if err != nil {
-					// Fallback: assign next available number after highest
-					highestNumber++
-					number = highestNumber
-					renumbered = true
-				}
-
-				taskUID, err := importBeadsIssue(db, issue, projectUID, number)
-				if err != nil {
-					fmt.Printf("Error: failed to import %s: %v\n", issue.ID, err)
-					totalSkipped++
-					continue
-				}
-
-				// CRITICAL: Map by original beads ID for relationships
-				issueMap[issue.ID] = taskUID
-				totalImported++
-
-				// Add note explaining renumbering
-				if renumbered {
-					if err := addRenumberNote(db, taskUID, issue.ID, number); err != nil {
-						fmt.Printf("Warning: failed to add renumber note to %s: %v\n", issue.ID, err)
-					}
-					renumberedIssues = append(renumberedIssues,
-						fmt.Sprintf("  %s → %d (non-numeric ID)", issue.ID, number))
-				}
-			}
+		// Perform import
+		result, err := beads.Import(db, opts)
+		if err != nil {
+			return err
 		}
 
-		// Show renumbering summary
-		if len(renumberedIssues) > 0 {
-			fmt.Printf("\nRenumbered %d issues with non-numeric IDs:\n", len(renumberedIssues))
-			for _, msg := range renumberedIssues {
-				fmt.Println(msg)
-			}
-		}
-
-		fmt.Printf("\nImported %d issues (%d skipped)\n", totalImported, totalSkipped)
-
-		// Second pass: import relationships (across all prefixes)
-		if totalImported > 0 {
-			fmt.Println("\nImporting relationships...")
-			relImported := 0
-			for _, issue := range issues {
-				if taskUID, ok := issueMap[issue.ID]; ok {
-					count, err := importBeadsRelationships(db, issue, taskUID, issueMap)
-					if err != nil {
-						fmt.Printf("Warning: failed to import relationships for %s: %v\n", issue.ID, err)
-					}
-					relImported += count
-				}
-			}
-			fmt.Printf("Imported %d relationships\n", relImported)
-		}
-
+		// Display results
+		displayImportResults(result)
 		return nil
 	},
 }
 
-// readBeadsFile reads and parses a beads JSONL file
-func readBeadsFile(path string) ([]BeadsIssue, error) {
-	file, err := os.Open(path)
+// resolveBeadsPath determines the path to the beads file from arguments
+func resolveBeadsPath(args []string) (string, error) {
+	if len(args) == 0 {
+		// Default to current directory
+		return ".beads/issues.jsonl", nil
+	}
+
+	arg := args[0]
+	// Check if it's a file or directory
+	info, err := os.Stat(arg)
 	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	var issues []BeadsIssue
-	scanner := bufio.NewScanner(file)
-
-	lineNum := 0
-	for scanner.Scan() {
-		lineNum++
-		line := strings.TrimSpace(scanner.Text())
-
-		// Skip empty lines and comments
-		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
-			continue
-		}
-
-		var issue BeadsIssue
-		if err := json.Unmarshal([]byte(line), &issue); err != nil {
-			return nil, fmt.Errorf("failed to parse line %d: %w", lineNum, err)
-		}
-
-		issues = append(issues, issue)
+		return "", fmt.Errorf("path not found: %w", err)
 	}
 
-	if err := scanner.Err(); err != nil {
-		return nil, err
+	if info.IsDir() {
+		return filepath.Join(arg, ".beads", "issues.jsonl"), nil
 	}
 
-	return issues, nil
+	return arg, nil
 }
 
-// importBeadsIssue imports a single beads issue as a tk task
-func importBeadsIssue(db *database.DB, issue BeadsIssue, projectUID string, number int64) (string, error) {
-	// Get node ID
-	nodeID, err := db.GetOrCreateNodeID()
+// showDryRunPreview shows a preview of what would be imported
+func showDryRunPreview(db *database.DB, opts beads.ImportOptions) error {
+	// Read issues
+	issues, err := beads.ReadBeadsFile(opts.BeadsPath)
 	if err != nil {
-		return "", err
+		return fmt.Errorf("failed to read beads file: %w", err)
 	}
 
-	// Generate task UID
-	taskUID, err := utils.GenerateTaskUUID()
-	if err != nil {
-		return "", err
+	if len(issues) == 0 {
+		fmt.Println("No issues found in beads file")
+		return nil
 	}
 
-	// Use the provided number (from beads ID) to preserve numbering
-	proposedNumber := number
+	// Group by prefix
+	prefixGroups := beads.ExtractPrefixesFromBeads(issues)
 
-	// Parse created_at time if available
-	var createdAt time.Time
-	if issue.CreatedAt != "" {
-		createdAt, err = time.Parse(time.RFC3339, issue.CreatedAt)
-		if err != nil {
-			// Try other common formats
-			createdAt, err = time.Parse("2006-01-02T15:04:05", issue.CreatedAt)
-			if err != nil {
-				createdAt = time.Now()
-			}
-		}
-	} else {
-		createdAt = time.Now()
+	fmt.Println("\nDry run mode - no changes will be made")
+	fmt.Printf("\nFound %d issues across %d prefix(es):\n", len(issues), len(prefixGroups))
+
+	for prefix, group := range prefixGroups {
+		alias := opts.AliasPrefix + prefix
+		fmt.Printf("  %s: %d issues → will create project with alias '%s'\n", prefix, len(group), alias)
 	}
 
-	// Get actor
-	actor := "importer"
-	if issue.Assignee != "" {
-		actor = issue.Assignee
-	}
-
-	// Create task.created event
-	payload := types.TaskCreatedPayload{
-		TaskUID:        taskUID,
-		ProjectUID:     projectUID,
-		ProposedNumber: proposedNumber,
-		Title:          issue.Title,
-		CreatedNode:    nodeID,
-		CreatedBy:      actor,
-	}
-
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	eventID, err := database.GenerateEventID(db)
-	if err != nil {
-		return "", err
-	}
-
-	ts, err := db.GetNextLamportTS()
-	if err != nil {
-		return "", err
-	}
-
-	event := types.Event{
-		ID:        eventID,
-		TS:        ts,
-		CreatedAt: createdAt,
-		Actor:     actor,
-		Role:      "human",
-		Kind:      string(types.EventKindTaskCreated),
-		Payload:   payloadJSON,
-	}
-
-	if err := db.InsertEvent(event); err != nil {
-		return "", err
-	}
-
-	if err := db.ProjectTaskCreatedEvent(event); err != nil {
-		return "", err
-	}
-
-	// Create task.number.set event
-	numberPayload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
-		Number:     proposedNumber,
-		Reason:     "imported",
-	}
-
-	numberPayloadJSON, err := json.Marshal(numberPayload)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal number payload: %w", err)
-	}
-
-	numberEventID, err := database.GenerateEventID(db)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate event ID: %w", err)
-	}
-
-	numberTS, err := db.GetNextLamportTS()
-	if err != nil {
-		return "", fmt.Errorf("failed to get next lamport timestamp: %w", err)
-	}
-
-	numberEvent := types.Event{
-		ID:        numberEventID,
-		TS:        numberTS,
-		CreatedAt: createdAt,
-		Actor:     actor,
-		Role:      "human",
-		Kind:      string(types.EventKindTaskNumberSet),
-		Payload:   numberPayloadJSON,
-	}
-
-	if err := db.InsertEvent(numberEvent); err != nil {
-		return "", fmt.Errorf("failed to insert number event: %w", err)
-	}
-
-	if err := db.ProjectTaskNumberSetEvent(numberEvent); err != nil {
-		return "", fmt.Errorf("failed to project task number: %w", err)
-	}
-
-	// Add description as a note if present
-	if issue.Description != "" {
-		notePayload := types.TaskNoteAddPayload{
-			TaskUUID: taskUID,
-			TaskID:   "", // Will be filled by the database
-			Markdown: issue.Description,
-		}
-
-		notePayloadJSON, err := json.Marshal(notePayload)
-		if err != nil {
-			return "", err
-		}
-
-		noteEventID, err := database.GenerateEventID(db)
-		if err != nil {
-			return "", err
-		}
-
-		noteTS, err := db.GetNextLamportTS()
-		if err != nil {
-			return "", err
-		}
-
-		noteEvent := types.Event{
-			ID:        noteEventID,
-			TS:        noteTS,
-			CreatedAt: createdAt,
-			Actor:     actor,
-			Role:      "human",
-			Kind:      string(types.EventKindTaskNoteAdd),
-			Payload:   notePayloadJSON,
-		}
-
-		if err := db.InsertEvent(noteEvent); err != nil {
-			return "", err
-		}
-	}
-
-	// Set status if not open
-	if issue.Status != "" && issue.Status != "open" {
-		// Map beads status to tk status
-		tkStatus := mapBeadsStatus(issue.Status)
-
-		statusPayload := types.TaskStatusSetPayload{
-			TaskUUID: taskUID,
-			TaskID:   "", // Will be filled by the database
-			Axis:     "generic",
-			State:    tkStatus,
-			Role:     "human",
-		}
-
-		statusPayloadJSON, err := json.Marshal(statusPayload)
-		if err != nil {
-			return "", err
-		}
-
-		statusEventID, err := database.GenerateEventID(db)
-		if err != nil {
-			return "", err
-		}
-
-		statusTS, err := db.GetNextLamportTS()
-		if err != nil {
-			return "", err
-		}
-
-		statusEvent := types.Event{
-			ID:        statusEventID,
-			TS:        statusTS,
-			CreatedAt: createdAt,
-			Actor:     actor,
-			Role:      "human",
-			Kind:      string(types.EventKindTaskStatusSet),
-			Payload:   statusPayloadJSON,
-		}
-
-		if err := db.InsertEvent(statusEvent); err != nil {
-			return "", err
-		}
-	}
-
-	// Import metadata: priority
-	if issue.Priority >= 0 && issue.Priority <= 4 {
-		if err := createMetadataEvent(db, taskUID, "priority", json.RawMessage(fmt.Sprintf("%d", issue.Priority)), actor, createdAt); err != nil {
-			return "", fmt.Errorf("failed to create priority metadata: %w", err)
-		}
-	}
-
-	// Import metadata: labels
-	if len(issue.Labels) > 0 {
-		labelsJSON, err := json.Marshal(issue.Labels)
-		if err != nil {
-			return "", fmt.Errorf("failed to marshal labels: %w", err)
-		}
-		if err := createMetadataEvent(db, taskUID, "labels", json.RawMessage(labelsJSON), actor, createdAt); err != nil {
-			return "", fmt.Errorf("failed to create labels metadata: %w", err)
-		}
-	}
-
-	return taskUID, nil
-}
-
-// createMetadataEvent creates a task.meta.set event
-func createMetadataEvent(db *database.DB, taskUID string, key string, value json.RawMessage, actor string, createdAt time.Time) error {
-	payload := types.TaskMetaSetPayload{
-		TaskUUID: taskUID,
-		TaskID:   "",
-		Key:      key,
-		Value:    value,
-	}
-
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata payload: %w", err)
-	}
-
-	eventID, err := database.GenerateEventID(db)
-	if err != nil {
-		return fmt.Errorf("failed to generate event ID: %w", err)
-	}
-
-	ts, err := db.GetNextLamportTS()
-	if err != nil {
-		return fmt.Errorf("failed to get lamport timestamp: %w", err)
-	}
-
-	event := types.Event{
-		ID:        eventID,
-		TS:        ts,
-		CreatedAt: createdAt,
-		Actor:     actor,
-		Role:      "human", // Import acts with human authority
-		Kind:      string(types.EventKindTaskMetaSet),
-		Payload:   payloadJSON,
-	}
-
-	if err := db.InsertEvent(event); err != nil {
-		return fmt.Errorf("failed to insert metadata event: %w", err)
+	fmt.Println("\nAll issues:")
+	for _, issue := range issues {
+		fmt.Printf("  %s: %s (status: %s, type: %s)\n",
+			issue.ID, issue.Title, issue.Status, issue.Type)
 	}
 
 	return nil
 }
 
-// importBeadsRelationships imports relationships for a beads issue
-func importBeadsRelationships(db *database.DB, issue BeadsIssue, taskUID string, issueMap map[string]string) (int, error) {
-	count := 0
-
-	if issue.Dependencies == nil {
-		return 0, nil
-	}
-
-	// Process dependency array
-	for _, dep := range issue.Dependencies {
-		// Only process dependencies where this issue is the source
-		if dep.IssueID != issue.ID {
-			continue
+// displayImportResults displays the results of the import operation
+func displayImportResults(result *beads.ImportResult) {
+	// Show renumbering summary
+	if len(result.RenumberedIssues) > 0 {
+		fmt.Printf("\nRenumbered %d issues with non-numeric IDs:\n", len(result.RenumberedIssues))
+		for _, msg := range result.RenumberedIssues {
+			fmt.Printf("  %s\n", msg)
 		}
+	}
 
-		// Look up the target task UID
-		targetUID, ok := issueMap[dep.DependsOnID]
-		if !ok {
-			// Target issue not imported, skip
-			continue
+	// Show warnings for failed operations
+	if len(result.FailedNotes) > 0 {
+		fmt.Fprintf(os.Stderr, "\nWarnings: Failed to add renumber notes for %d tasks:\n", len(result.FailedNotes))
+		for _, err := range result.FailedNotes {
+			fmt.Fprintf(os.Stderr, "  %s\n", err)
 		}
+	}
 
-		// Map beads relationship type to tk type
-		var tkRelType string
-		switch dep.Type {
-		case "parent-child":
-			tkRelType = "parent"
-		case "blocks":
-			tkRelType = "blocks"
-		case "related":
-			tkRelType = "related"
-		case "discovered-from":
-			tkRelType = "related" // Map discovered-from to related
-		default:
-			// Unknown type, skip
-			continue
+	if len(result.FailedRelationships) > 0 {
+		fmt.Fprintf(os.Stderr, "\nWarnings: Failed to import relationships for %d tasks:\n", len(result.FailedRelationships))
+		for _, err := range result.FailedRelationships {
+			fmt.Fprintf(os.Stderr, "  %s\n", err)
 		}
+	}
 
-		// Create the relationship
-		if err := createRelation(db, taskUID, targetUID, tkRelType); err != nil {
-			return count, err
+	fmt.Printf("\nImported %d issues (%d skipped)\n", result.TotalImported, result.TotalSkipped)
+
+	if result.RelationsImported > 0 {
+		fmt.Printf("Imported %d relationships\n", result.RelationsImported)
+	}
+
+	// Show created projects
+	if len(result.ProjectsCreated) > 0 {
+		fmt.Println("\nCreated projects:")
+		for prefix, projectUID := range result.ProjectsCreated {
+			fmt.Printf("  %s (UID: %s)\n", prefix, projectUID)
 		}
-		count++
 	}
-
-	return count, nil
-}
-
-// createRelation creates a relationship between two tasks
-func createRelation(db *database.DB, fromUID, toUID, relType string) error {
-	payload := types.RelationAddPayload{
-		Src:  fromUID,
-		Type: relType,
-		Dst:  toUID,
-	}
-
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	eventID, err := database.GenerateEventID(db)
-	if err != nil {
-		return err
-	}
-
-	ts, err := db.GetNextLamportTS()
-	if err != nil {
-		return err
-	}
-
-	event := types.Event{
-		ID:        eventID,
-		TS:        ts,
-		CreatedAt: time.Now(),
-		Actor:     "importer",
-		Role:      "human",
-		Kind:      string(types.EventKindRelationAdd),
-		Payload:   payloadJSON,
-	}
-
-	return db.InsertEvent(event)
-}
-
-// mapBeadsStatus maps beads status to tk status
-func mapBeadsStatus(beadsStatus string) string {
-	switch beadsStatus {
-	case "in_progress":
-		return "in-progress"
-	case "closed":
-		return "done"
-	case "open":
-		return "todo"
-	default:
-		return beadsStatus
-	}
-}
-
-// extractPrefixesFromBeads groups beads issues by their prefix
-func extractPrefixesFromBeads(issues []BeadsIssue) map[string][]BeadsIssue {
-	grouped := make(map[string][]BeadsIssue)
-
-	for _, issue := range issues {
-		// Extract prefix from ID (e.g., "mono-123" → "mono")
-		parts := strings.Split(issue.ID, "-")
-		if len(parts) < 2 {
-			// Skip malformed IDs
-			continue
-		}
-		prefix := parts[0]
-		grouped[prefix] = append(grouped[prefix], issue)
-	}
-
-	return grouped
-}
-
-// parseBeadsNumber extracts the number from a beads ID
-func parseBeadsNumber(id string) (int64, error) {
-	// mono-123 → 123
-	parts := strings.Split(id, "-")
-	if len(parts) < 2 {
-		return 0, fmt.Errorf("invalid beads ID format: %s", id)
-	}
-	return strconv.ParseInt(parts[1], 10, 64)
-}
-
-// addRenumberNote adds a note to a task explaining it was renumbered during import
-func addRenumberNote(db *database.DB, taskUID, originalID string, newNumber int64) error {
-	note := fmt.Sprintf("Note: Original beads ID was %s (non-numeric), renumbered to %d during import",
-		originalID, newNumber)
-
-	payload := types.TaskNoteAddPayload{
-		TaskUUID: taskUID,
-		TaskID:   "",
-		Markdown: note,
-	}
-
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal note payload: %w", err)
-	}
-
-	eventID, err := database.GenerateEventID(db)
-	if err != nil {
-		return fmt.Errorf("failed to generate event ID: %w", err)
-	}
-
-	ts, err := db.GetNextLamportTS()
-	if err != nil {
-		return fmt.Errorf("failed to get lamport timestamp: %w", err)
-	}
-
-	event := types.Event{
-		ID:        eventID,
-		TS:        ts,
-		CreatedAt: time.Now(),
-		Actor:     "importer",
-		Role:      "human",
-		Kind:      string(types.EventKindTaskNoteAdd),
-		Payload:   payloadJSON,
-	}
-
-	return db.InsertEvent(event)
-}
-
-// createProjectForImport creates a new project for beads import (always creates, never reuses)
-func createProjectForImport(db *database.DB, prefix string, alias string) (string, error) {
-	// Get current user and node
-	actor, err := getCurrentUser()
-	if err != nil {
-		return "", err
-	}
-
-	nodeID, err := db.GetOrCreateNodeID()
-	if err != nil {
-		return "", err
-	}
-
-	// Always create NEW project (never reuse existing)
-	projectUID := types.NewProjectUID()
-
-	payload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID.String(),
-		Type:        "local",
-		Name:        prefix,
-		Description: "Imported from beads (prefix: " + prefix + ", alias: " + alias + ")",
-		CreatedBy:   actor,
-	}
-
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return "", err
-	}
-
-	eventID, err := database.GenerateEventID(db)
-	if err != nil {
-		return "", err
-	}
-
-	ts, err := db.GetNextLamportTS()
-	if err != nil {
-		return "", err
-	}
-
-	event := types.Event{
-		ID:        eventID,
-		TS:        ts,
-		CreatedAt: time.Now(),
-		Actor:     actor,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectCreated),
-		Payload:   payloadJSON,
-	}
-
-	if err := db.InsertEvent(event); err != nil {
-		return "", err
-	}
-
-	if err := db.ProjectProjectCreatedEvent(event); err != nil {
-		return "", err
-	}
-
-	// Add alias (single alias: <aliasPrefix><beadsPrefix>)
-	aliasPayload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID.String(),
-		Alias:      alias,
-		Node:       nodeID,
-		AddedBy:    actor,
-	}
-
-	aliasPayloadJSON, err := json.Marshal(aliasPayload)
-	if err != nil {
-		return "", err
-	}
-
-	aliasEventID, err := database.GenerateEventID(db)
-	if err != nil {
-		return "", err
-	}
-
-	aliasTS, err := db.GetNextLamportTS()
-	if err != nil {
-		return "", err
-	}
-
-	aliasEvent := types.Event{
-		ID:        aliasEventID,
-		TS:        aliasTS,
-		CreatedAt: time.Now(),
-		Actor:     actor,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   aliasPayloadJSON,
-	}
-
-	if err := db.InsertEvent(aliasEvent); err != nil {
-		return "", err
-	}
-
-	if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-		return "", err
-	}
-
-	return projectUID.String(), nil
 }
 
 func init() {

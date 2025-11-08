@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"testing"
+
+	"github.com/neongreen/mono/tk/internal/tasks"
 )
 
 func TestEditStatus(t *testing.T) {
@@ -10,8 +12,8 @@ func TestEditStatus(t *testing.T) {
 	projectUID := seedProject(t, db, "alpha")
 	taskUID := seedTask(t, db, projectUID, "Task", 1)
 
-	if err := editTask(db, "alpha-1", "status", "done"); err != nil {
-		t.Fatalf("editTask status failed: %v", err)
+	if err := tasks.EditStatus(db, taskUID, "done", "test-user"); err != nil {
+		t.Fatalf("EditStatus failed: %v", err)
 	}
 
 	var state string
@@ -28,7 +30,7 @@ func TestEditStatus(t *testing.T) {
 		t.Fatalf("expected status done, got %s", state)
 	}
 
-	// ensure status applies to task
+	// Ensure status applies to task
 	reducer := buildReducerFromDB(t, db)
 	task, ok := reducer.GetTask(taskUID)
 	if !ok {

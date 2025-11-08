@@ -1,6 +1,10 @@
 package cmd
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/neongreen/mono/tk/internal/tasks"
+)
 
 func TestEditNumber(t *testing.T) {
 	db := openTempDB(t)
@@ -8,8 +12,8 @@ func TestEditNumber(t *testing.T) {
 	projectUID := seedProject(t, db, "edit")
 	taskUID := seedTask(t, db, projectUID, "edit task", 1)
 
-	if err := editTask(db, "edit-1", "number", "5"); err != nil {
-		t.Fatalf("editTask number failed: %v", err)
+	if err := tasks.EditNumber(db, taskUID, "5", "test-user"); err != nil {
+		t.Fatalf("EditNumber failed: %v", err)
 	}
 
 	var number int64
@@ -27,8 +31,8 @@ func TestEditTitle(t *testing.T) {
 	projectUID := seedProject(t, db, "title")
 	taskUID := seedTask(t, db, projectUID, "Old Title", 3)
 
-	if err := editTask(db, "title-3", "title", "New Title"); err != nil {
-		t.Fatalf("editTask title failed: %v", err)
+	if err := tasks.EditTitle(db, taskUID, "New Title", "test-user"); err != nil {
+		t.Fatalf("EditTitle failed: %v", err)
 	}
 
 	var title string
