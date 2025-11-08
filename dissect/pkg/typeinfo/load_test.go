@@ -4,10 +4,12 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/neongreen/mono/dissect/internal/testhelpers"
 )
 
 func TestLoadPackage_SimplePackage(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"simple.go": `package simple
 
 func Hello() string {
@@ -31,7 +33,7 @@ func Hello() string {
 }
 
 func TestLoadPackage_MultipleFiles(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"file1.go": `package multi
 
 func Func1() string {
@@ -67,7 +69,7 @@ func Func3() string {
 }
 
 func TestLoadPackage_WithTests(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"main.go": `package testpkg
 
 func Add(a, b int) int {
@@ -102,7 +104,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestLoadPackage_TypeInfoPresent(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"types.go": `package types
 
 type Person struct {
@@ -144,7 +146,7 @@ func TestLoadPackage_NonExistentDir(t *testing.T) {
 }
 
 func TestLoadPackage_InvalidCode(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"invalid.go": `package invalid
 
 func Broken() {
@@ -173,7 +175,7 @@ func TestLoadPackages_MultiplePatterns(t *testing.T) {
 	if err := os.MkdirAll(pkg1Dir, 0o755); err != nil {
 		t.Fatalf("Failed to create pkg1: %v", err)
 	}
-	createFileInDir(t, pkg1Dir, "main.go", `package pkg1
+	testhelpers.CreateFileInDir(t, pkg1Dir, "main.go", `package pkg1
 
 func Func1() string {
 	return "pkg1"
@@ -185,7 +187,7 @@ func Func1() string {
 	if err := os.MkdirAll(pkg2Dir, 0o755); err != nil {
 		t.Fatalf("Failed to create pkg2: %v", err)
 	}
-	createFileInDir(t, pkg2Dir, "main.go", `package pkg2
+	testhelpers.CreateFileInDir(t, pkg2Dir, "main.go", `package pkg2
 
 func Func2() string {
 	return "pkg2"
@@ -193,7 +195,7 @@ func Func2() string {
 `)
 
 	// Create go.mod in root
-	createFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
+	testhelpers.CreateFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
 
 	pkgs, err := LoadPackages([]string{"./pkg1", "./pkg2"}, tmpDir)
 	if err != nil {
@@ -217,7 +219,7 @@ func TestLoadPackages_DependentPackages(t *testing.T) {
 	if err := os.MkdirAll(utilDir, 0o755); err != nil {
 		t.Fatalf("Failed to create util: %v", err)
 	}
-	createFileInDir(t, utilDir, "util.go", `package util
+	testhelpers.CreateFileInDir(t, utilDir, "util.go", `package util
 
 func Helper() string {
 	return "helper"
@@ -225,7 +227,7 @@ func Helper() string {
 `)
 
 	// Create main package that imports util
-	createFileInDir(t, tmpDir, "main.go", `package main
+	testhelpers.CreateFileInDir(t, tmpDir, "main.go", `package main
 
 import "test/util"
 
@@ -235,7 +237,7 @@ func main() {
 `)
 
 	// Create go.mod
-	createFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
+	testhelpers.CreateFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
 
 	pkgs, err := LoadPackages([]string{"."}, tmpDir)
 	if err != nil {
@@ -253,37 +255,4 @@ func main() {
 	}
 }
 
-// Helper functions
-
-func createTempPackage(t *testing.T, files map[string]string) string {
-	t.Helper()
-
-	tmpDir, err := os.MkdirTemp("", "typeinfo_test_*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-
-	// Create go.mod
-	gomod := "module test\n\ngo 1.21\n"
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0o644); err != nil {
-		os.RemoveAll(tmpDir)
-		t.Fatalf("Failed to write go.mod: %v", err)
-	}
-
-	// Create all files
-	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0o644); err != nil {
-			os.RemoveAll(tmpDir)
-			t.Fatalf("Failed to write %s: %v", name, err)
-		}
-	}
-
-	return tmpDir
-}
-
-func createFileInDir(t *testing.T, dir, name, content string) {
-	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
-		t.Fatalf("Failed to write %s: %v", name, err)
-	}
-}
+// Helper functions moved to dissect/internal/testhelpers

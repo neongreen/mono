@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/neongreen/mono/dissect/internal/testhelpers"
 	"github.com/neongreen/mono/dissect/pkg/typeinfo"
 	"golang.org/x/tools/go/packages"
 )
 
 func TestFindReferences_SingleUnqualified(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"defs.go": `package test
 
 func Helper() string {
@@ -51,7 +52,7 @@ func Main() {
 }
 
 func TestFindReferences_MultipleUnqualified(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"util.go": `package test
 
 func Util() {}
@@ -94,7 +95,7 @@ func TestFindReferences_QualifiedReference(t *testing.T) {
 	if err := os.MkdirAll(utilDir, 0o755); err != nil {
 		t.Fatalf("Failed to create util dir: %v", err)
 	}
-	createFileInDir(t, utilDir, "util.go", `package util
+	testhelpers.CreateFileInDir(t, utilDir, "util.go", `package util
 
 func Helper() string {
 	return "help"
@@ -102,7 +103,7 @@ func Helper() string {
 `)
 
 	// Create main package that imports util
-	createFileInDir(t, tmpDir, "main.go", `package main
+	testhelpers.CreateFileInDir(t, tmpDir, "main.go", `package main
 
 import "test/util"
 
@@ -112,7 +113,7 @@ func main() {
 `)
 
 	// Create go.mod
-	createFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
+	testhelpers.CreateFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
 
 	// Load both packages
 	pkgs, err := typeinfo.LoadPackages([]string{"./...", "./util"}, tmpDir)
@@ -150,7 +151,7 @@ func TestFindReferences_MixedQualifiedUnqualified(t *testing.T) {
 	if err := os.MkdirAll(utilDir, 0o755); err != nil {
 		t.Fatalf("Failed to create util dir: %v", err)
 	}
-	createFileInDir(t, utilDir, "util.go", `package util
+	testhelpers.CreateFileInDir(t, utilDir, "util.go", `package util
 
 func Helper() string {
 	return "help"
@@ -162,7 +163,7 @@ func UseHelper() {
 `)
 
 	// Create main package that imports util
-	createFileInDir(t, tmpDir, "main.go", `package main
+	testhelpers.CreateFileInDir(t, tmpDir, "main.go", `package main
 
 import "test/util"
 
@@ -171,7 +172,7 @@ func main() {
 }
 `)
 
-	createFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
+	testhelpers.CreateFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
 
 	pkgs, err := typeinfo.LoadPackages([]string{"./..."}, tmpDir)
 	if err != nil {
@@ -203,7 +204,7 @@ func main() {
 }
 
 func TestFindReferences_MultipleSymbols(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"defs.go": `package test
 
 func Alpha() {}
@@ -244,7 +245,7 @@ func Main() {
 }
 
 func TestFindReferences_InFunctionBody(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"code.go": `package test
 
 func Helper() int { return 42 }
@@ -275,7 +276,7 @@ func Process() {
 }
 
 func TestFindReferences_InStructField(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"types.go": `package test
 
 type MyType struct{}
@@ -303,7 +304,7 @@ type Container struct {
 }
 
 func TestFindReferences_InReturnType(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"funcs.go": `package test
 
 type Result struct{}
@@ -332,7 +333,7 @@ func GetResult() Result {
 }
 
 func TestFindReferences_InVariableDecl(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"vars.go": `package test
 
 type Config struct{}
@@ -358,7 +359,7 @@ var defaultConfig Config
 }
 
 func TestFindReferences_NoReferences(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"code.go": `package test
 
 func Unused() {}
@@ -386,7 +387,7 @@ func Main() {
 }
 
 func TestFindReferences_MultipleFiles(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"util.go": `package test
 
 func Util() {}
@@ -443,7 +444,7 @@ func TestFindReferences_IgnoreOtherPackages(t *testing.T) {
 	if err := os.MkdirAll(pkg1Dir, 0o755); err != nil {
 		t.Fatalf("Failed to create pkg1: %v", err)
 	}
-	createFileInDir(t, pkg1Dir, "code.go", `package pkg1
+	testhelpers.CreateFileInDir(t, pkg1Dir, "code.go", `package pkg1
 
 func Helper() {}
 `)
@@ -453,7 +454,7 @@ func Helper() {}
 	if err := os.MkdirAll(pkg2Dir, 0o755); err != nil {
 		t.Fatalf("Failed to create pkg2: %v", err)
 	}
-	createFileInDir(t, pkg2Dir, "code.go", `package pkg2
+	testhelpers.CreateFileInDir(t, pkg2Dir, "code.go", `package pkg2
 
 func Helper() {}
 
@@ -462,7 +463,7 @@ func Use() {
 }
 `)
 
-	createFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
+	testhelpers.CreateFileInDir(t, tmpDir, "go.mod", "module test\n\ngo 1.21\n")
 
 	// Load only pkg1
 	pkg, err := typeinfo.LoadPackage(pkg1Dir)
@@ -484,7 +485,7 @@ func Use() {
 }
 
 func TestFindReferences_LocalVariableSameName(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"code.go": `package test
 
 func Helper() string {
@@ -518,7 +519,7 @@ func Main() {
 }
 
 func TestFindReferences_FieldAccess(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"types.go": `package test
 
 type DB struct {
@@ -571,7 +572,7 @@ func PrintDBData(db *DB) {
 }
 
 func TestFindReferences_UnexportedFieldAccess(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"database.go": `package test
 
 type Database struct {
@@ -619,7 +620,7 @@ func UseDatabase() {
 }
 
 func TestFindReferences_ExportedFieldAccess(t *testing.T) {
-	tmpDir := createTempPackage(t, map[string]string{
+	tmpDir := testhelpers.CreateTempPackage(t, map[string]string{
 		"config.go": `package test
 
 type Config struct {
@@ -667,37 +668,4 @@ func StartServer() {
 	}
 }
 
-// Helper functions
-
-func createTempPackage(t *testing.T, files map[string]string) string {
-	t.Helper()
-
-	tmpDir, err := os.MkdirTemp("", "refs_test_*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-
-	// Create go.mod
-	gomod := "module test\n\ngo 1.21\n"
-	if err := os.WriteFile(filepath.Join(tmpDir, "go.mod"), []byte(gomod), 0o644); err != nil {
-		os.RemoveAll(tmpDir)
-		t.Fatalf("Failed to write go.mod: %v", err)
-	}
-
-	// Create all files
-	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0o644); err != nil {
-			os.RemoveAll(tmpDir)
-			t.Fatalf("Failed to write %s: %v", name, err)
-		}
-	}
-
-	return tmpDir
-}
-
-func createFileInDir(t *testing.T, dir, name, content string) {
-	t.Helper()
-	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
-		t.Fatalf("Failed to write %s: %v", name, err)
-	}
-}
+// Helper functions moved to dissect/internal/testhelpers

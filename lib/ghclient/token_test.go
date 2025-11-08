@@ -1,75 +1,21 @@
 package ghclient
 
 import (
-	"bytes"
 	"context"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/neongreen/mono/lib/testhelpers"
 )
 
-func setupTestLogger(t *testing.T) *bytes.Buffer {
-	t.Helper()
-	var buf bytes.Buffer
-	handler := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})
-	prev := slog.Default()
-	slog.SetDefault(slog.New(handler))
-	t.Cleanup(func() {
-		slog.SetDefault(prev)
-	})
-	return &buf
-}
-
-func installGhStub(t *testing.T, stdout string, exitCode int) {
-	t.Helper()
-	dir := t.TempDir()
-
-	var scriptName string
-	var content string
-	if runtime.GOOS == "windows" {
-		scriptName = "gh.bat"
-		content = "@echo off\r\n"
-		if stdout != "" {
-			content += "echo " + stdout + "\r\n"
-		}
-		content += "exit /b " + strconv.Itoa(exitCode) + "\r\n"
-	} else {
-		scriptName = "gh"
-		content = "#!/bin/sh\n"
-		if stdout != "" {
-			content += "printf '%s\\n' '" + stdout + "'\n"
-		}
-		content += "exit " + strconv.Itoa(exitCode) + "\n"
-	}
-
-	mode := os.FileMode(0o755)
-	if runtime.GOOS == "windows" {
-		mode = 0o666
-	}
-
-	scriptPath := filepath.Join(dir, scriptName)
-	if err := os.WriteFile(scriptPath, []byte(content), mode); err != nil {
-		t.Fatalf("failed to write gh stub: %v", err)
-	}
-
-	originalPath := os.Getenv("PATH")
-	if originalPath == "" {
-		t.Setenv("PATH", dir)
-		return
-	}
-	t.Setenv("PATH", dir+string(os.PathListSeparator)+originalPath)
-}
+// Test helper functions moved to lib/testhelpers
 
 func TestGetToken(t *testing.T) {
 	t.Run("GITHUB_TOKEN takes precedence", func(t *testing.T) {
-		buf := setupTestLogger(t)
+		buf := testhelpers.SetupTestLogger(t)
 		t.Setenv("GITHUB_TOKEN", "github_token")
 		t.Setenv("MISE_GITHUB_TOKEN", "mise_token")
 
@@ -88,7 +34,7 @@ func TestGetToken(t *testing.T) {
 	})
 
 	t.Run("MISE_GITHUB_TOKEN used when GITHUB_TOKEN not set", func(t *testing.T) {
-		buf := setupTestLogger(t)
+		buf := testhelpers.SetupTestLogger(t)
 		t.Setenv("GITHUB_TOKEN", "")
 		t.Setenv("MISE_GITHUB_TOKEN", "mise_token")
 
@@ -107,10 +53,10 @@ func TestGetToken(t *testing.T) {
 	})
 
 	t.Run("returns empty string when no tokens available", func(t *testing.T) {
-		buf := setupTestLogger(t)
+		buf := testhelpers.SetupTestLogger(t)
 		t.Setenv("GITHUB_TOKEN", "")
 		t.Setenv("MISE_GITHUB_TOKEN", "")
-		installGhStub(t, "", 1)
+		testhelpers.InstallGhStub(t, "", 1)
 
 		token := GetToken()
 		if token != "" {
@@ -127,10 +73,10 @@ func TestGetToken(t *testing.T) {
 	})
 
 	t.Run("gh CLI token used when available", func(t *testing.T) {
-		buf := setupTestLogger(t)
+		buf := testhelpers.SetupTestLogger(t)
 		t.Setenv("GITHUB_TOKEN", "")
 		t.Setenv("MISE_GITHUB_TOKEN", "")
-		installGhStub(t, "cli_token", 0)
+		testhelpers.InstallGhStub(t, "cli_token", 0)
 
 		token := GetToken()
 		if token != "cli_token" {
@@ -151,7 +97,7 @@ func TestNewHTTPClient(t *testing.T) {
 	t.Run("no token returns default client", func(t *testing.T) {
 		t.Setenv("GITHUB_TOKEN", "")
 		t.Setenv("MISE_GITHUB_TOKEN", "")
-		installGhStub(t, "", 1)
+		testhelpers.InstallGhStub(t, "", 1)
 
 		client := NewHTTPClient(context.Background())
 		if client.Timeout != 30*time.Second {
