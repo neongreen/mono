@@ -26,7 +26,7 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
   const taskId = task.display_id ?? 'unknown';
   const genericAxis = task.axes?.['generic'];
   const status = genericAxis?.effective ?? 'none';
-  const blocked = task.blocked ? 'yes' : 'no';
+  const blocked = task.blocked ?? false;
 
   const handleStartEdit = () => {
     setIsEditing(true);
@@ -113,7 +113,13 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
   return (
     <div class="task-details">
       <div class="task-header">
-        <span class="task-id">{taskId}</span>
+        <div class="task-header-line">
+          <span class="task-id">{taskId}</span>
+          <span class="task-meta">
+            <span class={`status-badge status-${status}`}>{status}</span>
+            {blocked && <span class="blocked-badge">⛔ blocked</span>}
+          </span>
+        </div>
         <div class="title-container">
           {!isEditing ? (
             <div class="title-display" onClick={handleStartEdit}>
@@ -141,15 +147,6 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
         </div>
       </div>
 
-      <div class="section">
-        <div class="metadata-grid">
-          <div class="metadata-label">Status:</div>
-          <div class="metadata-value">{status}</div>
-          <div class="metadata-label">Blocked:</div>
-          <div class="metadata-value">{blocked}</div>
-        </div>
-      </div>
-
       {/* Relations section */}
       {task.relations && (
         <div class="section">
@@ -160,7 +157,10 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
               <div class="relation-label">Related:</div>
               <ul class="relation-list">
                 {task.relations.related.out.map((edge, i) => (
-                  <li key={i}>{edge.dst}{edge.note && ` - ${edge.note}`}</li>
+                  <li key={i}>
+                    <span class="relation-task-id">{edge.dst}</span>
+                    {edge.note && <span class="relation-note"> - {edge.note}</span>}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -171,7 +171,9 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
               <div class="relation-label">Subtasks:</div>
               <ul class="relation-list">
                 {task.relations.subtask.children.map((uuid, i) => (
-                  <li key={i}>{uuid}</li>
+                  <li key={i}>
+                    <span class="relation-task-id">{uuid}</span>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -180,7 +182,9 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
           {task.relations.subtask?.parent && (
             <div class="relation-group">
               <div class="relation-label">Parent:</div>
-              <div class="relation-value">{task.relations.subtask.parent}</div>
+              <div class="relation-value">
+                <span class="relation-task-id">{task.relations.subtask.parent}</span>
+              </div>
             </div>
           )}
 
@@ -189,7 +193,10 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
               <div class="relation-label">Blocks:</div>
               <ul class="relation-list">
                 {task.relations.blocks.out.map((edge, i) => (
-                  <li key={i}>{edge.dst}{edge.note && ` - ${edge.note}`}</li>
+                  <li key={i}>
+                    <span class="relation-task-id">{edge.dst}</span>
+                    {edge.note && <span class="relation-note"> - {edge.note}</span>}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -200,7 +207,10 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
               <div class="relation-label">Blocked by:</div>
               <ul class="relation-list">
                 {task.relations.blocks.in.map((edge, i) => (
-                  <li key={i}>{edge.dst}{edge.note && ` - ${edge.note}`}</li>
+                  <li key={i}>
+                    <span class="relation-task-id">{edge.dst}</span>
+                    {edge.note && <span class="relation-note"> - {edge.note}</span>}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -211,7 +221,9 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
               <div class="relation-label">Duplicate of:</div>
               <ul class="relation-list">
                 {task.relations.duplicate_of.out.map((edge, i) => (
-                  <li key={i}>{edge.dst}</li>
+                  <li key={i}>
+                    <span class="relation-task-id">{edge.dst}</span>
+                  </li>
                 ))}
               </ul>
             </div>

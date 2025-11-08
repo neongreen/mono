@@ -45,18 +45,59 @@ body {
 }
 
 .task-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
   margin-bottom: 12px;
+}
+
+.task-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
 }
 
 .task-id {
   font-family: var(--vscode-editor-font-family);
   color: var(--vscode-textLink-foreground);
   font-weight: 600;
-  flex-shrink: 0;
-  line-height: 1.5;
+  font-size: 13px;
+}
+
+.task-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.status-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+  background-color: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.status-next {
+  background-color: var(--vscode-charts-blue);
+  color: white;
+}
+
+.status-wip {
+  background-color: var(--vscode-charts-yellow);
+  color: black;
+}
+
+.status-done {
+  background-color: var(--vscode-charts-green);
+  color: white;
+}
+
+.blocked-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: var(--vscode-errorForeground);
+  color: white;
 }
 
 .title-container {
@@ -318,8 +359,18 @@ body {
 }
 
 .relation-list li {
-  font-family: var(--vscode-editor-font-family);
   font-size: 12px;
   color: var(--vscode-foreground);
   margin: 2px 0;
+}
+
+.relation-task-id {
+  font-family: var(--vscode-editor-font-family);
+  color: var(--vscode-textLink-foreground);
+  font-weight: 500;
+}
+
+.relation-note {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
 }
