@@ -854,3 +854,78 @@ fmt.Printf("%s: %s\n", cli.Key("setting"), cli.Value("value"))
 - The `fatih/color` library automatically respects NO_COLOR environment variable
 
 See [CLI_STYLE_GUIDE.md](./CLI_STYLE_GUIDE.md) for complete documentation and examples.
+
+------------------------------------------------------------
+
+## GitHub Copilot Agent
+
+This section contains specific guidance for the GitHub Copilot coding agent.
+
+### Accessing GitHub Pull Request Review Comments
+
+**Problem**: When asked to address PR review comments, the agent may claim it doesn't have access to them, when in fact the GitHub MCP tools are available.
+
+**Solution**: Use the GitHub MCP server tools to fetch PR review comments. Here's the correct workflow:
+
+1. **Find the PR number** by searching for PRs on the branch:
+   ```
+   Tool: github-mcp-server-search_pull_requests
+   Parameters:
+     - owner: "neongreen"
+     - repo: "mono"
+     - query: "head:BRANCH_NAME repo:neongreen/mono"
+   ```
+
+2. **Get review comments** (inline code review comments):
+   ```
+   Tool: github-mcp-server-pull_request_read
+   Parameters:
+     - method: "get_review_comments"
+     - owner: "neongreen"
+     - repo: "mono"
+     - pullNumber: <PR_NUMBER>
+   ```
+
+3. **Get reviews** (overall review summaries):
+   ```
+   Tool: github-mcp-server-pull_request_read
+   Parameters:
+     - method: "get_reviews"
+     - owner: "neongreen"
+     - repo: "mono"
+     - pullNumber: <PR_NUMBER>
+   ```
+
+4. **Get general comments** (issue comments on the PR):
+   ```
+   Tool: github-mcp-server-pull_request_read
+   Parameters:
+     - method: "get_comments"
+     - owner: "neongreen"
+     - repo: "mono"
+     - pullNumber: <PR_NUMBER>
+   ```
+
+5. **Get PR details**:
+   ```
+   Tool: github-mcp-server-pull_request_read
+   Parameters:
+     - method: "get"
+     - owner: "neongreen"
+     - repo: "mono"
+     - pullNumber: <PR_NUMBER>
+   ```
+
+**Important notes**:
+- The tool name is `github-mcp-server-pull_request_read`, NOT `pull_request_read`
+- Review comments contain inline code feedback with file paths, line numbers, and diffs
+- Reviews contain overall review summaries and approval states
+- Comments contain general discussion on the PR
+- Always check all three to get complete feedback
+
+**Example from PR #259**:
+- Review comments included P0 (critical) issues about missing imports
+- Review comments included P1 (important) issues about silent error handling
+- Each comment had specific file paths, line numbers, and detailed explanations
+
+**Common mistake**: Saying "I don't have access to review comments" without first trying the GitHub MCP tools. Always try fetching them first.
