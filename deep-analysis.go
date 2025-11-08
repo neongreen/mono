@@ -97,13 +97,13 @@ func analyzeTestHelpers(files []FileSymbols) {
 		for _, symbol := range file.Symbols {
 			name := strings.ToLower(symbol.Name)
 			if (strings.Contains(name, "setup") ||
-			    strings.Contains(name, "helper") ||
-			    strings.Contains(name, "mock") ||
-			    strings.Contains(name, "stub") ||
-			    strings.Contains(name, "fixture") ||
-			    strings.Contains(name, "temp") ||
-			    strings.Contains(name, "cleanup")) &&
-			   !strings.HasPrefix(symbol.Name, "Test") {
+				strings.Contains(name, "helper") ||
+				strings.Contains(name, "mock") ||
+				strings.Contains(name, "stub") ||
+				strings.Contains(name, "fixture") ||
+				strings.Contains(name, "temp") ||
+				strings.Contains(name, "cleanup")) &&
+				!strings.HasPrefix(symbol.Name, "Test") {
 				helpers = append(helpers, fmt.Sprintf("%s in %s:%d", symbol.Name, file.FilePath, symbol.Line))
 			}
 		}
@@ -178,12 +178,12 @@ func analyzeSharedTypes(files []FileSymbols) {
 			if symbol.Kind == "type" && len(symbol.Name) > 0 && symbol.Name[0] >= 'A' && symbol.Name[0] <= 'Z' {
 				// Look for common type patterns
 				if strings.Contains(symbol.Name, "Config") ||
-				   strings.Contains(symbol.Name, "Options") ||
-				   strings.Contains(symbol.Name, "Request") ||
-				   strings.Contains(symbol.Name, "Response") ||
-				   strings.Contains(symbol.Name, "Result") ||
-				   strings.Contains(symbol.Name, "Error") ||
-				   strings.Contains(symbol.Name, "Info") {
+					strings.Contains(symbol.Name, "Options") ||
+					strings.Contains(symbol.Name, "Request") ||
+					strings.Contains(symbol.Name, "Response") ||
+					strings.Contains(symbol.Name, "Result") ||
+					strings.Contains(symbol.Name, "Error") ||
+					strings.Contains(symbol.Name, "Info") {
 					pkg := file.Package
 					location := fmt.Sprintf("%s (%s:%d)", pkg, file.FilePath, symbol.Line)
 					typeNames[symbol.Name] = append(typeNames[symbol.Name], location)
