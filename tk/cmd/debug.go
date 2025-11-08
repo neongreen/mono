@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	conflicts_pkg "github.com/neongreen/mono/tk/cmd/conflicts"
 	debug_pkg "github.com/neongreen/mono/tk/cmd/debug"
+	events_pkg "github.com/neongreen/mono/tk/cmd/debug/events"
+	node_pkg "github.com/neongreen/mono/tk/cmd/debug/node"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
@@ -27,10 +30,33 @@ func init() {
 	debugCmd.AddCommand(eventsCmd)
 	debugCmd.AddCommand(debug_pkg.DoctorCmd)
 	debugCmd.AddCommand(debug_pkg.RepairCmd)
-	debugCmd.AddCommand(conflictsNumbersCmd)
+	debugCmd.AddCommand(conflicts_pkg.NumbersCmd)
 
 	// Add flags to rebuild-from-remote command
 	rebuildFromRemoteCmd.Flags().Bool("debug", false, "Enable debug output with detailed information about each step")
+}
+
+// nodeCmd is a parent command for node-related debug commands
+var nodeCmd = &cobra.Command{
+	Use:   "node",
+	Short: "Manage node ID",
+}
+
+// eventsCmd is a parent command for event-related debug commands
+var eventsCmd = &cobra.Command{
+	Use:   "events",
+	Short: "Debug commands for inspecting events",
+}
+
+func init() {
+	// Add node subcommands
+	nodeCmd.AddCommand(node_pkg.ShowCmd)
+	nodeCmd.AddCommand(node_pkg.RegenCmd)
+
+	// Add events subcommands
+	eventsCmd.AddCommand(events_pkg.ListCmd)
+	eventsCmd.AddCommand(events_pkg.ShowCmd)
+	eventsCmd.AddCommand(events_pkg.StatsCmd)
 }
 
 var fixTimestampsCmd = &cobra.Command{
