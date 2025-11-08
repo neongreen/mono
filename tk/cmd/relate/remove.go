@@ -3,7 +3,6 @@ package relate
 import (
 	"encoding/json"
 	"fmt"
-	"os/user"
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
@@ -93,13 +92,4 @@ var RemoveCmd = &cobra.Command{
 		fmt.Printf("Removed relation: %s %s %s\n", srcDisplay, relationType, dstDisplay)
 		return nil
 	},
-}
-
-// getCurrentUser returns the current user identifier
-func getCurrentUser() (string, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current user: %w", err)
-	}
-	return currentUser.Username, nil
 }

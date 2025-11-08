@@ -3,7 +3,6 @@ package project
 import (
 	"encoding/json"
 	"fmt"
-	"os/user"
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
@@ -87,13 +86,4 @@ var AliasAddCmd = &cobra.Command{
 		fmt.Printf("Added alias '%s' for project %s\n", alias, projectUID)
 		return nil
 	},
-}
-
-// getCurrentUser returns the current user identifier
-func getCurrentUser() (string, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current user: %w", err)
-	}
-	return currentUser.Username, nil
 }
