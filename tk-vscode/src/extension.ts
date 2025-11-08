@@ -15,12 +15,13 @@ interface TkNote {
 }
 
 interface TkTask {
-  task_uuid?: string;
-  task_id?: string;
+  uuid?: string;
+  display_id?: string;
+  project?: string;
   title?: string;
   axes?: Record<string, AxisStatus | undefined>;
   blocked?: boolean;
-  blockers?: Array<{ task_id?: string; title?: string }>;
+  blockers?: Array<{ display_id?: string; title?: string }>;
   notes?: TkNote[];
 }
 
@@ -29,9 +30,13 @@ interface TkGroup {
   tasks: TkTask[];
 }
 
-interface TkJsonOutput {
-  groups?: TkGroup[];
-  tasks?: TkTask[];
+interface TkProject {
+  uid: string;
+  name: string;
+  local_preferred_alias?: string;
+  aliases: string[];
+  description?: string;
+  type?: string;
 }
 
 type TkTreeItem = GroupTreeItem | TaskTreeItem;
@@ -55,7 +60,7 @@ class TaskTreeItem extends vscode.TreeItem {
   public readonly statusColor?: vscode.ThemeColor;
 
   constructor(public readonly task: TkTask) {
-    const label = task.task_id ?? task.title ?? 'unnamed task';
+    const label = task.display_id ?? task.title ?? 'unnamed task';
     super(label, vscode.TreeItemCollapsibleState.None);
 
     const genericAxis = task.axes?.['generic'];
@@ -76,7 +81,7 @@ class TaskTreeItem extends vscode.TreeItem {
     tooltip.appendMarkdown(`Blocked: ${blocked}`);
     if (task.blockers && task.blockers.length > 0) {
       const blockersList = task.blockers
-        .map((blocker) => `${blocker.task_id ?? ''} ${blocker.title ?? ''}`.trim())
+        .map((blocker) => `${blocker.display_id ?? ''} ${blocker.title ?? ''}`.trim())
         .filter((entry) => entry.length > 0)
         .join('\n');
       if (blockersList.length > 0) {
@@ -115,7 +120,7 @@ class TaskTreeItem extends vscode.TreeItem {
 
     // Create a unique URI for this task to enable file decorations
     if (this.statusColor) {
-      this.resourceUri = vscode.Uri.parse(`tk:${task.task_uuid ?? task.task_id ?? label}`);
+      this.resourceUri = vscode.Uri.parse(`tk:${task.uuid ?? task.display_id ?? label}`);
     }
 
     // Set command to show task details when clicked
@@ -177,7 +182,7 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const taskId = this.currentTask.task_id;
+    const taskId = this.currentTask.display_id;
     if (!taskId) {
       void vscode.window.showErrorMessage('Cannot edit title: task has no ID');
       return;
@@ -214,7 +219,7 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
       return;
     }
 
-    const taskId = this.currentTask.task_id;
+    const taskId = this.currentTask.display_id;
     if (!taskId) {
       void vscode.window.showErrorMessage('Cannot add note: task has no ID');
       return;
@@ -248,13 +253,13 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
   }
 
   private async refreshCurrentTask(): Promise<void> {
-    if (!this.currentTask || !this.currentTask.task_id) {
+    if (!this.currentTask || !this.currentTask.display_id) {
       return;
     }
 
     try {
       const { binary, cwd } = getTkConfig();
-      const args = ['show', '--json', this.currentTask.task_id];
+      const args = ['show', '--json', this.currentTask.display_id];
 
       const result = await execFileAsync(binary, args, {
         cwd,
@@ -499,14 +504,13 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
 
   public findGroupForTask(task: TaskTreeItem): GroupTreeItem | undefined {
     // Find the group containing this task in the raw data
-    // We check both task_uuid and task_id for robustness, as different tk commands may return different ID fields
-    const taskUuid = task.task.task_uuid;
-    const taskId = task.task.task_id;
+    const taskUuid = task.task.uuid;
+    const taskDisplayId = task.task.display_id;
     
     for (const rawGroup of this.rawGroups) {
       const taskFound = rawGroup.tasks.some(t => 
-        (taskUuid && t.task_uuid === taskUuid) || 
-        (taskId && t.task_id === taskId)
+        (taskUuid && t.uuid === taskUuid) || 
+        (taskDisplayId && t.display_id === taskDisplayId)
       );
       if (taskFound) {
         // Return a lightweight GroupTreeItem for drag-and-drop operations
@@ -615,12 +619,31 @@ function getTkConfig(): TkConfig {
   return { binary, cwd };
 }
 
+async function fetchProjects(): Promise<Map<string, TkProject>> {
+  const { binary, cwd } = getTkConfig();
+  const args = ['project', 'ls', '--json'];
+
+  const result = await execFileAsync(binary, args, {
+    cwd,
+    env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+  });
+
+  const projects = JSON.parse(result.stdout) as TkProject[];
+  const projectMap = new Map<string, TkProject>();
+  for (const project of projects) {
+    projectMap.set(project.uid, project);
+  }
+  return projectMap;
+}
+
 async function fetchTk(): Promise<{ groups: TkGroup[]; tasks: TkTask[] }> {
-  const configuration = vscode.workspace.getConfiguration('tk');
-  const group = configuration.get<string>('group', 'prefix') || 'prefix';
   const { binary, cwd } = getTkConfig();
 
-  const args = ['ls', '--json', '--group', group];
+  // NOTE: tk ls --json always returns a flat array of tasks with project_uuid.
+  // We fetch project metadata separately and group tasks on the client side.
+  // See tk/cmd/display.go:outputTasksJSON for the task JSON format.
+  // See tk/cmd/project/ls.go for the project JSON format.
+  const args = ['ls', '--json'];
 
   let stdout: string;
   try {
@@ -640,21 +663,49 @@ async function fetchTk(): Promise<{ groups: TkGroup[]; tasks: TkTask[] }> {
     throw error;
   }
 
-  let parsed: TkJsonOutput;
+  // Parse the flat array of tasks from tk ls --json
+  let allTasks: TkTask[];
   try {
-    parsed = JSON.parse(stdout) as TkJsonOutput;
+    allTasks = JSON.parse(stdout) as TkTask[];
   } catch (error) {
     throw new Error(`Failed to parse JSON output from tk: ${error}`);
   }
 
-  const groups = Array.isArray(parsed.groups) ? parsed.groups : [];
-  const tasks = Array.isArray(parsed.tasks) ? parsed.tasks : [];
+  // Fetch project metadata
+  const projectMap = await fetchProjects();
 
-  return { groups, tasks };
+  // Group tasks by project_uuid
+  const grouped = new Map<string, TkTask[]>();
+  const ungrouped: TkTask[] = [];
+
+  for (const task of allTasks) {
+    if (task.project_uuid) {
+      if (!grouped.has(task.project_uuid)) {
+        grouped.set(task.project_uuid, []);
+      }
+      grouped.get(task.project_uuid)!.push(task);
+    } else {
+      // Tasks without a project_uuid go into ungrouped
+      ungrouped.push(task);
+    }
+  }
+
+  // Convert the Map to an array of groups with display names
+  const groups: TkGroup[] = Array.from(grouped.entries()).map(([projectUUID, tasks]) => {
+    const project = projectMap.get(projectUUID);
+    // Use local_preferred_alias if available, otherwise fall back to name
+    const groupName = project?.local_preferred_alias || project?.name || projectUUID;
+    return {
+      group: groupName,
+      tasks: tasks,
+    };
+  });
+
+  return { groups, tasks: ungrouped };
 }
 
 async function rotateStatus(provider: TkProvider, item: TaskTreeItem): Promise<void> {
-  const taskId = item.task.task_id;
+  const taskId = item.task.display_id;
   if (!taskId) {
     void vscode.window.showErrorMessage('Cannot rotate status: task has no ID');
     return;
@@ -716,7 +767,7 @@ async function markDone(provider: TkProvider, treeView: vscode.TreeView<TkTreeIt
     item = selectedItem;
   }
 
-  const taskId = item.task.task_id;
+  const taskId = item.task.display_id;
   if (!taskId) {
     void vscode.window.showErrorMessage('Cannot mark task as done: task has no ID');
     return;
@@ -741,7 +792,7 @@ async function markDone(provider: TkProvider, treeView: vscode.TreeView<TkTreeIt
 }
 
 async function editTitle(provider: TkProvider, item: TaskTreeItem): Promise<void> {
-  const taskId = item.task.task_id;
+  const taskId = item.task.display_id;
   if (!taskId) {
     void vscode.window.showErrorMessage('Cannot edit title: task has no ID');
     return;
@@ -857,7 +908,7 @@ async function createProject(provider: TkProvider): Promise<void> {
 }
 
 async function deleteTask(provider: TkProvider, item: TaskTreeItem): Promise<void> {
-  const taskId = item.task.task_id;
+  const taskId = item.task.display_id;
   if (!taskId) {
     void vscode.window.showErrorMessage('Cannot delete task: task has no ID');
     return;
@@ -922,7 +973,7 @@ async function deleteProject(provider: TkProvider, item: GroupTreeItem): Promise
 }
 
 async function moveTaskToGroup(task: TaskTreeItem, targetGroup: GroupTreeItem): Promise<void> {
-  const taskId = task.task.task_id;
+  const taskId = task.task.display_id;
   if (!taskId) {
     throw new Error('Cannot move task: task has no ID');
   }
