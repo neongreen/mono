@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,8 +8,8 @@ import (
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/segment"
-	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
@@ -50,12 +49,12 @@ Examples:
 				return err
 			}
 
-			remote, exists := config.Remotes[pathOrRemote]
+			remoteConfig, exists := config.Remotes[pathOrRemote]
 			if !exists {
 				return fmt.Errorf("'%s' is neither a file nor a configured remote", pathOrRemote)
 			}
 
-			ingestErr = IngestRemote(db, pathOrRemote, remote)
+			ingestErr = IngestRemote(db, pathOrRemote, remoteConfig)
 		}
 
 		return ingestErr
@@ -75,7 +74,7 @@ func ingestFile(db *database.DB, path string) error {
 
 	for _, segEvent := range events {
 		// Convert segment event to types.Event
-		event, err := segmentEventToEvent(segEvent)
+		event, err := remote.SegmentEventToEvent(segEvent)
 		if err != nil {
 			return fmt.Errorf("failed to convert segment event %s: %w", segEvent.ID, err)
 		}
@@ -84,7 +83,7 @@ func ingestFile(db *database.DB, path string) error {
 		err = db.InsertEvent(event)
 		if err != nil {
 			// Check if it's a duplicate error
-			if isDuplicateError(err) {
+			if remote.IsDuplicateError(err) {
 				duplicates++
 				continue
 			}
@@ -97,43 +96,8 @@ func ingestFile(db *database.DB, path string) error {
 		}
 
 		// Project events into their respective tables
-		switch event.Kind {
-		case string(types.EventKindProjectCreated):
-			if err := db.ProjectProjectCreatedEvent(event); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
-			}
-		case string(types.EventKindProjectAliasAdd):
-			if err := db.ProjectProjectAliasAddEvent(event); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
-			}
-		case string(types.EventKindProjectAliasRemove):
-			if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
-			}
-		case string(types.EventKindProjectDelete):
-			if err := db.ProjectProjectDeleteEvent(event); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to project project.delete event %s: %v\n", event.ID, err)
-			}
-		case string(types.EventKindTaskCreated):
-			if err := db.ProjectTaskCreatedEvent(event); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
-			}
-		case string(types.EventKindTaskNumberSet):
-			if err := db.ProjectTaskNumberSetEvent(event); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
-			}
-		case string(types.EventKindTaskRelocate):
-			if err := db.ProjectTaskRelocateEvent(event); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
-			}
-		case string(types.EventKindTaskTitleSet):
-			if err := db.ProjectTaskTitleSetEvent(event); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
-			}
-		case string(types.EventKindTaskDelete):
-			if err := db.ProjectTaskDeleteEvent(event); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to project task.delete event %s: %v\n", event.ID, err)
-			}
+		if err := projectEvent(db, event); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to project event %s: %v\n", event.ID, err)
 		}
 
 		ingested++
@@ -149,15 +113,15 @@ func ingestFile(db *database.DB, path string) error {
 }
 
 // IngestRemote ingests events from all segments in a remote
-func IngestRemote(db *database.DB, remoteName string, remote sync.RemoteConfig) error {
+func IngestRemote(db *database.DB, remoteName string, remoteConfig remote.RemoteConfig) error {
 	// Use configured spaces, or default to "personal"
-	spaces := remote.Spaces
+	spaces := remoteConfig.Spaces
 	if len(spaces) == 0 {
 		spaces = []string{"personal"}
 	}
 
 	for _, space := range spaces {
-		if err := ingestRemoteSpace(db, remoteName, remote, space); err != nil {
+		if err := ingestRemoteSpace(db, remoteName, remoteConfig, space); err != nil {
 			return err
 		}
 	}
@@ -166,15 +130,15 @@ func IngestRemote(db *database.DB, remoteName string, remote sync.RemoteConfig) 
 }
 
 // ingestRemoteSpace ingests events from a specific space in a remote
-func ingestRemoteSpace(db *database.DB, remoteName string, remote sync.RemoteConfig, space string) error {
+func ingestRemoteSpace(db *database.DB, remoteName string, remoteConfig remote.RemoteConfig, space string) error {
 	// Find all segment files
-	segmentsDir := filepath.Join(remote.Path, space, "segments")
+	segmentsDir := filepath.Join(remoteConfig.Path, space, "segments")
 	if _, err := os.Stat(segmentsDir); os.IsNotExist(err) {
 		fmt.Printf("No segments directory found for space '%s'\n", space)
 		return nil
 	}
 
-	segmentFiles, err := collectSegmentFiles(segmentsDir)
+	segmentFiles, err := remote.CollectSegmentFiles(segmentsDir)
 	if err != nil {
 		return fmt.Errorf("failed to scan segments directory: %w", err)
 	}
@@ -197,7 +161,7 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remote sync.RemoteCon
 
 		for _, segEvent := range events {
 			// Convert segment event to types.Event
-			event, err := segmentEventToEvent(segEvent)
+			event, err := remote.SegmentEventToEvent(segEvent)
 			if err != nil {
 				return fmt.Errorf("failed to convert segment event %s: %w", segEvent.ID, err)
 			}
@@ -206,7 +170,7 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remote sync.RemoteCon
 			err = db.InsertEvent(event)
 			if err != nil {
 				// Check if it's a duplicate error
-				if isDuplicateError(err) {
+				if remote.IsDuplicateError(err) {
 					totalDuplicates++
 					continue
 				}
@@ -219,43 +183,8 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remote sync.RemoteCon
 			}
 
 			// Project events into their respective tables
-			switch event.Kind {
-			case string(types.EventKindProjectCreated):
-				if err := db.ProjectProjectCreatedEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.created event %s: %v\n", event.ID, err)
-				}
-			case string(types.EventKindProjectAliasAdd):
-				if err := db.ProjectProjectAliasAddEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.add event %s: %v\n", event.ID, err)
-				}
-			case string(types.EventKindProjectAliasRemove):
-				if err := db.ProjectProjectAliasRemoveEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.alias.remove event %s: %v\n", event.ID, err)
-				}
-			case string(types.EventKindProjectDelete):
-				if err := db.ProjectProjectDeleteEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project project.delete event %s: %v\n", event.ID, err)
-				}
-			case string(types.EventKindTaskCreated):
-				if err := db.ProjectTaskCreatedEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.created event %s: %v\n", event.ID, err)
-				}
-			case string(types.EventKindTaskNumberSet):
-				if err := db.ProjectTaskNumberSetEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.number.set event %s: %v\n", event.ID, err)
-				}
-			case string(types.EventKindTaskRelocate):
-				if err := db.ProjectTaskRelocateEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.relocate event %s: %v\n", event.ID, err)
-				}
-			case string(types.EventKindTaskTitleSet):
-				if err := db.ProjectTaskTitleSetEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.title.set event %s: %v\n", event.ID, err)
-				}
-			case string(types.EventKindTaskDelete):
-				if err := db.ProjectTaskDeleteEvent(event); err != nil {
-					fmt.Fprintf(os.Stderr, "Warning: failed to project task.delete event %s: %v\n", event.ID, err)
-				}
+			if err := projectEvent(db, event); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to project event %s: %v\n", event.ID, err)
 			}
 
 			totalIngested++
@@ -274,12 +203,12 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remote sync.RemoteCon
 	}
 
 	watermarkFile := filepath.Join(stateDir, "ingest_watermarks", remoteName, space+".json")
-	watermark := sync.IngestWatermark{
+	watermark := remote.IngestWatermark{
 		RemoteName: remoteName,
 		Space:      space,
 		UpdatedAt:  time.Now(),
 	}
-	if err := saveIngestWatermark(watermarkFile, &watermark); err != nil {
+	if err := remote.SaveIngestWatermark(watermarkFile, &watermark); err != nil {
 		return err
 	}
 
@@ -288,68 +217,27 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remote sync.RemoteCon
 	return nil
 }
 
-// segmentEventToEvent converts a SegmentEvent to an types.Event
-func segmentEventToEvent(se sync.SegmentEvent) (types.Event, error) {
-	// Parse timestamp
-	createdAt, err := time.Parse(time.RFC3339Nano, se.TS)
-	if err != nil {
-		// Try RFC3339 without nano
-		createdAt, err = time.Parse(time.RFC3339, se.TS)
-		if err != nil {
-			return types.Event{}, fmt.Errorf("failed to parse timestamp: %w", err)
-		}
+// projectEvent projects an event into its respective table
+func projectEvent(db *database.DB, event types.Event) error {
+	switch event.Kind {
+	case string(types.EventKindProjectCreated):
+		return db.ProjectProjectCreatedEvent(event)
+	case string(types.EventKindProjectAliasAdd):
+		return db.ProjectProjectAliasAddEvent(event)
+	case string(types.EventKindProjectAliasRemove):
+		return db.ProjectProjectAliasRemoveEvent(event)
+	case string(types.EventKindProjectDelete):
+		return db.ProjectProjectDeleteEvent(event)
+	case string(types.EventKindTaskCreated):
+		return db.ProjectTaskCreatedEvent(event)
+	case string(types.EventKindTaskNumberSet):
+		return db.ProjectTaskNumberSetEvent(event)
+	case string(types.EventKindTaskRelocate):
+		return db.ProjectTaskRelocateEvent(event)
+	case string(types.EventKindTaskTitleSet):
+		return db.ProjectTaskTitleSetEvent(event)
+	case string(types.EventKindTaskDelete):
+		return db.ProjectTaskDeleteEvent(event)
 	}
-
-	// Marshal payload back to JSON
-	payloadJSON, err := json.Marshal(se.Payload)
-	if err != nil {
-		return types.Event{}, fmt.Errorf("failed to marshal payload: %w", err)
-	}
-
-	event := types.Event{
-		ID:        se.ID,
-		TS:        se.Lamport,
-		CreatedAt: createdAt,
-		Actor:     se.Actor,
-		Role:      se.Role,
-		Kind:      se.Kind,
-		Payload:   payloadJSON,
-	}
-
-	if se.Ctx != nil {
-		if se.Ctx.RepoUUID != nil {
-			event.RepoUUID = *se.Ctx.RepoUUID
-		}
-		if se.Ctx.Branch != nil {
-			event.Branch = *se.Ctx.Branch
-		}
-		if se.Ctx.Commit != nil {
-			event.Commit = *se.Ctx.Commit
-		}
-		if se.Ctx.JJOpID != nil {
-			event.JJOpID = *se.Ctx.JJOpID
-		}
-	}
-
-	return event, nil
-}
-
-// isDuplicateError checks if an error is a duplicate key error
-func isDuplicateError(err error) bool {
-	// SQLite's duplicate key error contains "UNIQUE constraint failed"
-	return err != nil && (
-	// modernc.org/sqlite error messages
-	containsString(err.Error(), "UNIQUE constraint failed") ||
-		containsString(err.Error(), "constraint failed"))
-}
-
-// containsString checks if a string contains a substring (case-insensitive)
-func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
-		(s[:len(substr)] == substr || containsString(s[1:], substr)))
-}
-
-// saveIngestWatermark saves an ingest watermark to a file
-func saveIngestWatermark(path string, watermark *sync.IngestWatermark) error {
-	return SaveJSON(path, watermark)
+	return nil
 }
