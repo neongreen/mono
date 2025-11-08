@@ -13,15 +13,18 @@ import (
 
 // IngestFileResult contains the results of ingesting a single file
 type IngestFileResult struct {
-	EventsIngested int
-	Duplicates     int
+	EventsIngested   int
+	Duplicates       int
+	ProjectionErrors []string // Non-fatal projection errors
 }
 
 // IngestRemoteResult contains the results of ingesting from a remote
 type IngestRemoteResult struct {
-	EventsIngested int
-	Duplicates     int
-	SegmentsRead   int
+	EventsIngested   int
+	Duplicates       int
+	SegmentsRead     int
+	SegmentErrors    []string // Segments that failed to read
+	ProjectionErrors []string // Non-fatal projection errors
 }
 
 // IngestFile ingests events from a single segment file
@@ -34,6 +37,7 @@ func IngestFile(db *database.DB, path string) (*IngestFileResult, error) {
 
 	ingested := 0
 	duplicates := 0
+	var projectionErrors []string
 
 	for _, segEvent := range events {
 		// Convert segment event to types.Event
@@ -60,8 +64,8 @@ func IngestFile(db *database.DB, path string) (*IngestFileResult, error) {
 
 		// Project events into their respective tables
 		if err := db.ProjectEvent(event); err != nil {
-			// Non-fatal error - continue processing but log warning
-			// Caller should handle logging
+			// Non-fatal error - track and continue processing
+			projectionErrors = append(projectionErrors, fmt.Sprintf("event %s: %v", event.ID, err))
 		}
 
 		ingested++
@@ -73,8 +77,9 @@ func IngestFile(db *database.DB, path string) (*IngestFileResult, error) {
 	}
 
 	return &IngestFileResult{
-		EventsIngested: ingested,
-		Duplicates:     duplicates,
+		EventsIngested:   ingested,
+		Duplicates:       duplicates,
+		ProjectionErrors: projectionErrors,
 	}, nil
 }
 
@@ -89,6 +94,8 @@ func IngestRemote(db *database.DB, remoteName string, remoteConfig config.Remote
 	totalIngested := 0
 	totalDuplicates := 0
 	totalSegments := 0
+	var allSegmentErrors []string
+	var allProjectionErrors []string
 
 	for _, space := range spaces {
 		result, err := ingestRemoteSpace(db, remoteName, remoteConfig, space, stateDir)
@@ -98,12 +105,16 @@ func IngestRemote(db *database.DB, remoteName string, remoteConfig config.Remote
 		totalIngested += result.EventsIngested
 		totalDuplicates += result.Duplicates
 		totalSegments += result.SegmentsRead
+		allSegmentErrors = append(allSegmentErrors, result.SegmentErrors...)
+		allProjectionErrors = append(allProjectionErrors, result.ProjectionErrors...)
 	}
 
 	return &IngestRemoteResult{
-		EventsIngested: totalIngested,
-		Duplicates:     totalDuplicates,
-		SegmentsRead:   totalSegments,
+		EventsIngested:   totalIngested,
+		Duplicates:       totalDuplicates,
+		SegmentsRead:     totalSegments,
+		SegmentErrors:    allSegmentErrors,
+		ProjectionErrors: allProjectionErrors,
 	}, nil
 }
 
@@ -127,13 +138,15 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remoteConfig config.R
 
 	totalIngested := 0
 	totalDuplicates := 0
+	var segmentErrors []string
+	var projectionErrors []string
 
 	for _, segmentFile := range segmentFiles {
 		reader := segment.NewSegmentReader(segmentFile)
 		events, err := reader.ReadEvents()
 		if err != nil {
-			// Non-fatal error - skip this file and continue
-			// Caller should handle logging
+			// Non-fatal error - track and skip this file
+			segmentErrors = append(segmentErrors, fmt.Sprintf("%s: %v", segmentFile, err))
 			continue
 		}
 
@@ -162,7 +175,8 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remoteConfig config.R
 
 			// Project events into their respective tables
 			if err := db.ProjectEvent(event); err != nil {
-				// Non-fatal error - continue processing
+				// Non-fatal error - track and continue processing
+				projectionErrors = append(projectionErrors, fmt.Sprintf("event %s: %v", event.ID, err))
 			}
 
 			totalIngested++
@@ -186,9 +200,11 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remoteConfig config.R
 	}
 
 	return &IngestRemoteResult{
-		EventsIngested: totalIngested,
-		Duplicates:     totalDuplicates,
-		SegmentsRead:   len(segmentFiles),
+		EventsIngested:   totalIngested,
+		Duplicates:       totalDuplicates,
+		SegmentsRead:     len(segmentFiles) - len(segmentErrors), // Only count successfully read segments
+		SegmentErrors:    segmentErrors,
+		ProjectionErrors: projectionErrors,
 	}, nil
 }
 
