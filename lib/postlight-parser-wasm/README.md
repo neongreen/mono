@@ -1,6 +1,6 @@
-# Parser Library
+# Postlight Parser WASM Library
 
-A Go library that provides bindings to HTML article parsing functionality using WebAssembly. This library extracts clean article content from web pages without requiring CGO, making it portable and easy to integrate.
+A Go library that provides bindings to Postlight Parser functionality using WebAssembly. This library extracts clean article content from web pages without requiring CGO, making it portable and easy to integrate.
 
 ## Features
 
@@ -13,7 +13,7 @@ A Go library that provides bindings to HTML article parsing functionality using 
 ## Installation
 
 ```bash
-go get github.com/neongreen/mono/lib/parser
+go get github.com/neongreen/mono/lib/postlight-parser-wasm
 ```
 
 ## Usage
@@ -28,7 +28,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/neongreen/mono/lib/parser"
+    "github.com/neongreen/mono/lib/postlight-parser-wasm"
 )
 
 func main() {
@@ -75,7 +75,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/neongreen/mono/lib/parser"
+    "github.com/neongreen/mono/lib/postlight-parser-wasm"
 )
 
 func main() {
@@ -116,7 +116,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/neongreen/mono/lib/parser"
+    "github.com/neongreen/mono/lib/postlight-parser-wasm"
 )
 
 func main() {

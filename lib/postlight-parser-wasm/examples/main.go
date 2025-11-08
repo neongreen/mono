@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/neongreen/mono/lib/parser"
+	"github.com/neongreen/mono/lib/postlight-parser-wasm"
 )
 
 func main() {

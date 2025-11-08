@@ -1047,3 +1047,60 @@ This section contains specific guidance for the GitHub Copilot coding agent.
 - Each comment had specific file paths, line numbers, and detailed explanations
 
 **Common mistake**: Saying "I don't have access to review comments" without first trying the GitHub MCP tools. Always try fetching them first.
+
+------------------------------------------------------------
+
+## postlight-parser-wasm Library
+
+The `lib/postlight-parser-wasm` library provides Go bindings to Postlight Parser functionality using WebAssembly via wazero.
+
+### Purpose
+
+Extracts clean article content from web pages (title, content, metadata, word count) without requiring CGO dependencies. Uses wazero for WebAssembly runtime execution.
+
+### Key Features
+
+- **No CGO dependency**: Pure Go with WASM support via wazero
+- **Article extraction**: Title, content, author, date, metadata from HTML
+- **Context support**: All operations accept context for cancellation
+- **JSON parsing**: Parse pre-fetched article data
+- **Comprehensive tests**: 88%+ test coverage
+
+### API
+
+```go
+// Create parser instance
+p, err := parser.New()
+defer p.Close()
+
+// Extract article from HTML
+article, err := p.Extract(ctx, url, htmlContent)
+
+// With WASM runtime (for future JS parser integration)
+p, err := parser.NewWithWasm(ctx)
+```
+
+### Files
+
+- `parser.go` - Core implementation
+- `parser_test.go` - Test suite (17 tests)
+- `parser_wasm.js` - JavaScript wrapper for WASM compilation
+- `README.md` - Complete API documentation
+- `examples/` - Working demonstration programs
+
+### Testing
+
+Run tests:
+```bash
+cd lib/postlight-parser-wasm
+go test -v -cover
+```
+
+### Integration
+
+Import as:
+```go
+import "github.com/neongreen/mono/lib/postlight-parser-wasm"
+```
+
+The library follows all repository standards (Go style guide, testing patterns, no CGO).
