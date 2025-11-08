@@ -44,6 +44,15 @@ func (d *DB) CreateProjectTables() error {
 
 	CREATE INDEX IF NOT EXISTS idx_task_numbers_task_uid ON task_numbers(task_uid);
 	CREATE INDEX IF NOT EXISTS idx_task_numbers_project_number ON task_numbers(project_uid, number);
+
+	CREATE TABLE IF NOT EXISTS export_state (
+		remote_name TEXT NOT NULL,
+		space TEXT NOT NULL,
+		last_exported_event_id TEXT NOT NULL,
+		segment_seq INTEGER NOT NULL,
+		updated_at INTEGER NOT NULL,
+		PRIMARY KEY (remote_name, space)
+	);
 	`
 
 	if _, err := d.Db.Exec(schema); err != nil {

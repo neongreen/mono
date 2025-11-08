@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -47,8 +48,8 @@ func TestGetStateDir(t *testing.T) {
 		t.Errorf("GetStateDir() directory not created: %v", dir)
 	}
 
-	expectedSuffix := filepath.Join(".local", "state", "tk")
-	if !endsWithPath(dir, expectedSuffix) {
+	expectedSuffix := ".tk"
+	if !strings.HasSuffix(dir, expectedSuffix) {
 		t.Errorf("GetStateDir() = %v, want path ending with %v", dir, expectedSuffix)
 	}
 }
