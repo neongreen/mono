@@ -1,0 +1,16 @@
+{
+  "name": "mozilla-readability-bundle",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@mozilla/readability": "^0.5.0",
+    "jsdom": "^25.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  },
+  "scripts": {
+    "build": "node build.js"
+  }
+}

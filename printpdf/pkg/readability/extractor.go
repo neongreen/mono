@@ -1,4 +1,4 @@
-package fetcher
+package readability
 
 import (
 	"bytes"
@@ -10,9 +10,9 @@ import (
 	"golang.org/x/net/html"
 )
 
-// extractReadableContent extracts the main content from HTML
+// ExtractReadableContent extracts the main content from HTML
 // This implements key parts of Mozilla's Readability algorithm
-func extractReadableContent(htmlContent []byte) ([]byte, error) {
+func ExtractReadableContent(htmlContent []byte) ([]byte, error) {
 	doc, err := html.Parse(bytes.NewReader(htmlContent))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse HTML: %w", err)

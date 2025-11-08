@@ -9,24 +9,26 @@ import (
 	"github.com/neongreen/mono/printpdf/pkg/converter"
 	"github.com/neongreen/mono/printpdf/pkg/fetcher"
 	"github.com/neongreen/mono/printpdf/pkg/pdfutil"
+	"github.com/neongreen/mono/printpdf/pkg/readability"
 	"github.com/spf13/cobra"
 )
 
 var (
-	outputDir      string
-	converters     string
-	columns        int
-	orientation    string
-	margin         string
-	marginTop      string
-	marginRight    string
-	marginBottom   string
-	marginLeft     string
-	marginInner    string
-	marginOuter    string
-	zoom           int
-	firstPageGuide string
-	keepArtifacts  bool
+	outputDir         string
+	converters        string
+	columns           int
+	orientation       string
+	margin            string
+	marginTop         string
+	marginRight       string
+	marginBottom      string
+	marginLeft        string
+	marginInner       string
+	marginOuter       string
+	zoom              int
+	firstPageGuide    string
+	keepArtifacts     bool
+	readabilityEngine string
 )
 
 var rootCmd = &cobra.Command{
@@ -46,7 +48,8 @@ Examples:
   printpdf README.md
   printpdf --converters weasyprint --zoom 120 README.md
   printpdf --margin-top 3cm --margin-left 4cm document.html
-  printpdf https://github.com/user/repo/blob/main/README.md`,
+  printpdf https://github.com/user/repo/blob/main/README.md
+  printpdf --readability-engine mozilla https://example.com/article`,
 	Args: cobra.ExactArgs(1),
 	Run:  runConvert,
 }
@@ -66,6 +69,7 @@ func init() {
 	rootCmd.Flags().IntVar(&zoom, "zoom", 100, "zoom percentage for all font sizes (e.g., 80 for 80%, 120 for 120%)")
 	rootCmd.Flags().StringVar(&firstPageGuide, "first-page-guide", "", "draw a thin vertical guide on the first page at the given distance from the left edge (e.g., '3cm')")
 	rootCmd.Flags().BoolVar(&keepArtifacts, "keep-artifacts", false, "keep intermediate artifacts such as HTML and Typst sources next to the output")
+	rootCmd.Flags().StringVar(&readabilityEngine, "readability-engine", "custom", "readability engine to use: mozilla, defuddle, postlight, pure-md, jina, custom (default: custom)")
 }
 
 func main() {
@@ -78,9 +82,34 @@ func main() {
 func runConvert(cmd *cobra.Command, args []string) {
 	input := args[0]
 
+	// Initialize readability engine registry
+	registry := readability.NewRegistry()
+	registry.Register(readability.EngineTypeCustom, readability.NewCustomEngine())
+	registry.Register(readability.EngineTypeMozilla, readability.NewMozillaEngine())
+	registry.Register(readability.EngineTypePureMD, readability.NewPureMDEngine())
+	registry.Register(readability.EngineTypeJina, readability.NewJinaEngine())
+
+	// Get the selected engine
+	var engine readability.Engine
+	engineType := readability.EngineType(readabilityEngine)
+	engine, err := registry.Get(engineType)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Available engines: custom, mozilla, pure-md, jina\n")
+		os.Exit(1)
+	}
+
+	// Check if engine is available
+	if err := engine.IsAvailable(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Using readability engine: %s\n", engine.Name())
+
 	// Fetch the content
 	fmt.Printf("Fetching content from: %s\n", input)
-	content, contentType, err := fetcher.Fetch(input)
+	content, contentType, err := fetcher.Fetch(input, engine)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error fetching content: %v\n", err)
 		os.Exit(1)

@@ -17,7 +17,7 @@ func TestFetchLocalFile(t *testing.T) {
 	}
 
 	// Test fetching
-	result, contentType, err := Fetch(tmpFile)
+	result, contentType, err := Fetch(tmpFile, nil)
 	if err != nil {
 		t.Fatalf("Fetch failed: %v", err)
 	}

@@ -1,4 +1,4 @@
-package fetcher
+package readability
 
 import (
 	"strings"
@@ -36,9 +36,9 @@ func TestExtractReadableContent(t *testing.T) {
 </body>
 </html>`
 
-	result, err := extractReadableContent([]byte(html))
+	result, err := ExtractReadableContent([]byte(html))
 	if err != nil {
-		t.Fatalf("extractReadableContent failed: %v", err)
+		t.Fatalf("ExtractReadableContent failed: %v", err)
 	}
 
 	resultStr := string(result)
@@ -88,9 +88,9 @@ func TestExtractReadableContentWithScoringDivsVsSections(t *testing.T) {
 </body>
 </html>`
 
-	result, err := extractReadableContent([]byte(html))
+	result, err := ExtractReadableContent([]byte(html))
 	if err != nil {
-		t.Fatalf("extractReadableContent failed: %v", err)
+		t.Fatalf("ExtractReadableContent failed: %v", err)
 	}
 
 	resultStr := string(result)
@@ -125,9 +125,9 @@ func TestExtractReadableContentWithUnlikelyCandidates(t *testing.T) {
 </body>
 </html>`
 
-	result, err := extractReadableContent([]byte(html))
+	result, err := ExtractReadableContent([]byte(html))
 	if err != nil {
-		t.Fatalf("extractReadableContent failed: %v", err)
+		t.Fatalf("ExtractReadableContent failed: %v", err)
 	}
 
 	resultStr := string(result)
@@ -162,9 +162,9 @@ func TestExtractReadableContentWithHighLinkDensity(t *testing.T) {
 </body>
 </html>`
 
-	result, err := extractReadableContent([]byte(html))
+	result, err := ExtractReadableContent([]byte(html))
 	if err != nil {
-		t.Fatalf("extractReadableContent failed: %v", err)
+		t.Fatalf("ExtractReadableContent failed: %v", err)
 	}
 
 	resultStr := string(result)
@@ -190,9 +190,9 @@ func TestExtractReadableContentFallback(t *testing.T) {
 </body>
 </html>`
 
-	result, err := extractReadableContent([]byte(html))
+	result, err := ExtractReadableContent([]byte(html))
 	if err != nil {
-		t.Fatalf("extractReadableContent failed: %v", err)
+		t.Fatalf("ExtractReadableContent failed: %v", err)
 	}
 
 	resultStr := string(result)
