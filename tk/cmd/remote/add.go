@@ -2,12 +2,9 @@ package remote
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
-	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/spf13/cobra"
 )
 
@@ -25,37 +22,15 @@ Examples:
 		remoteType := args[1]
 		path := args[2]
 
-		if remoteType != "folder" {
-			return fmt.Errorf("unsupported remote type: %s (only 'folder' is supported in v1)", remoteType)
-		}
-
-		// Expand home directory
-		if strings.HasPrefix(path, "~/") {
-			home, err := os.UserHomeDir()
-			if err != nil {
-				return fmt.Errorf("failed to get home directory: %w", err)
-			}
-			path = filepath.Join(home, path[2:])
-		}
-
 		// Load config
 		config, err := config_pkg.LoadConfig()
 		if err != nil {
 			return err
 		}
 
-		// Check if remote already exists
-		if _, exists := config.Remotes[name]; exists {
-			return fmt.Errorf("remote '%s' already exists", name)
-		}
-
-		// Add remote
-		config.Remotes[name] = sync.RemoteConfig{
-			Type:   remoteType,
-			Path:   path,
-			Spaces: []string{"personal"},
-			Push:   true,
-			Pull:   true,
+		// Add remote using business logic
+		if err := remote.AddRemote(config, name, remoteType, path); err != nil {
+			return err
 		}
 
 		// Save config

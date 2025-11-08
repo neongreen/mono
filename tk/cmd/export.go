@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,8 +8,8 @@ import (
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/segment"
-	"github.com/neongreen/mono/tk/internal/sync"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
@@ -70,7 +69,7 @@ Examples:
 		}
 
 		// Get remote config
-		remote, exists := config.Remotes[remoteName]
+		remoteConfig, exists := config.Remotes[remoteName]
 		if !exists {
 			return fmt.Errorf("remote '%s' not found", remoteName)
 		}
@@ -88,12 +87,12 @@ Examples:
 		}
 
 		exportStateFile := filepath.Join(stateDir, "export", remoteName, space+".json")
-		exportState, err := loadExportState(exportStateFile)
+		exportState, err := remote.LoadExportState(exportStateFile)
 		if err != nil && !os.IsNotExist(err) {
 			return err
 		}
 		if exportState == nil {
-			exportState = &sync.ExportState{
+			exportState = &remote.ExportState{
 				RemoteName:          remoteName,
 				Space:               space,
 				LastExportedEventID: "",
@@ -123,9 +122,9 @@ Examples:
 		}
 
 		// Convert to segment events
-		segmentEvents := make([]sync.SegmentEvent, 0, len(eventsToExport))
+		segmentEvents := make([]remote.SegmentEvent, 0, len(eventsToExport))
 		for _, e := range eventsToExport {
-			segEvent, err := eventToSegmentEvent(e, space, nodeID)
+			segEvent, err := remote.EventToSegmentEvent(e, space, nodeID)
 			if err != nil {
 				return fmt.Errorf("failed to convert event %s: %w", e.ID, err)
 			}
@@ -135,7 +134,7 @@ Examples:
 		// Write segments
 		segmentSeq := exportState.SegmentSeq + 1
 		writer := segment.NewSegmentWriter(
-			remote.Path,
+			remoteConfig.Path,
 			space,
 			nodeID,
 			segmentSeq,
@@ -143,7 +142,7 @@ Examples:
 			config.Sync.SegmentMaxAge,
 		)
 
-		var segmentsWritten []sync.SegmentInfo
+		var segmentsWritten []remote.SegmentInfo
 		for _, segEvent := range segmentEvents {
 			writer.AddEvent(segEvent)
 
@@ -160,7 +159,7 @@ Examples:
 				// Start new segment
 				segmentSeq++
 				writer = segment.NewSegmentWriter(
-					remote.Path,
+					remoteConfig.Path,
 					space,
 					nodeID,
 					segmentSeq,
@@ -188,111 +187,20 @@ Examples:
 			exportState.SegmentSeq = segmentSeq
 			exportState.UpdatedAt = time.Now()
 
-			if err := saveExportState(exportStateFile, exportState); err != nil {
+			if err := remote.SaveExportState(exportStateFile, exportState); err != nil {
 				return err
 			}
 		}
 
 		// Update local index mirror
 		indexPath := filepath.Join(stateDir, "remotes", remoteName, space, "index.json")
-		if err := updateLocalIndex(indexPath, segmentsWritten); err != nil {
+		if err := remote.UpdateLocalIndex(indexPath, segmentsWritten); err != nil {
 			return fmt.Errorf("failed to update local index: %w", err)
 		}
 
 		fmt.Printf("Exported %d events in %d segments\n", len(eventsToExport), len(segmentsWritten))
 		return nil
 	},
-}
-
-// eventToSegmentEvent converts an types.Event to a SegmentEvent
-func eventToSegmentEvent(e types.Event, space, nodeID string) (sync.SegmentEvent, error) {
-	// Parse payload to the right type
-	var payload any
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return sync.SegmentEvent{}, fmt.Errorf("failed to unmarshal payload: %w", err)
-	}
-
-	ctx := &sync.SegmentContext{}
-	if e.RepoUUID != "" {
-		ctx.RepoUUID = &e.RepoUUID
-	}
-	if e.Branch != "" {
-		ctx.Branch = &e.Branch
-	}
-	if e.Commit != "" {
-		ctx.Commit = &e.Commit
-	}
-	if e.JJOpID != "" {
-		ctx.JJOpID = &e.JJOpID
-	}
-
-	return sync.SegmentEvent{
-		Schema:  "tk.event.v1",
-		ID:      e.ID,
-		Lamport: e.TS,
-		TS:      e.CreatedAt.UTC().Format(time.RFC3339Nano),
-		Node:    nodeID,
-		Space:   space,
-		Actor:   e.Actor,
-		Role:    e.Role,
-		Kind:    e.Kind,
-		Payload: payload,
-		Ctx:     ctx,
-	}, nil
-}
-
-// loadExportState loads the export state from a file
-func loadExportState(path string) (*sync.ExportState, error) {
-	return LoadJSON[sync.ExportState](path)
-}
-
-// saveExportState saves the export state to a file
-func saveExportState(path string, state *sync.ExportState) error {
-	return SaveJSON(path, state)
-}
-
-// updateLocalIndex updates the local index mirror with new segments
-func updateLocalIndex(indexPath string, newSegments []sync.SegmentInfo) error {
-	// Ensure directory exists
-	dir := filepath.Dir(indexPath)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("failed to create index directory: %w", err)
-	}
-
-	// Load existing index or create new one
-	var index sync.IndexFile
-	if data, err := os.ReadFile(indexPath); err == nil {
-		if err := json.Unmarshal(data, &index); err != nil {
-			return fmt.Errorf("failed to unmarshal index: %w", err)
-		}
-	} else {
-		// Extract space from path
-		parts := filepath.SplitList(indexPath)
-		space := "personal" // default
-		if len(parts) >= 2 {
-			space = parts[len(parts)-2]
-		}
-		index = sync.IndexFile{
-			Schema:   "tk.index.v1",
-			Space:    space,
-			Segments: []sync.SegmentInfo{},
-		}
-	}
-
-	// Add new segments
-	index.Segments = append(index.Segments, newSegments...)
-
-	// Save index
-	data, err := json.MarshalIndent(index, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal index: %w", err)
-	}
-
-	if err := os.WriteFile(indexPath, data, 0o644); err != nil {
-		return fmt.Errorf("failed to write index: %w", err)
-	}
-
-	return nil
 }
 
 func init() {

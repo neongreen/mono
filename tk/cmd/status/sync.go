@@ -8,7 +8,7 @@ import (
 	"time"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
-	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/spf13/cobra"
 )
 
@@ -50,8 +50,8 @@ var SyncCmd = &cobra.Command{
 
 		var statuses []SyncStatusOutput
 
-		for remoteName, remote := range config.Remotes {
-			for _, space := range remote.Spaces {
+		for remoteName, remoteConfig := range config.Remotes {
+			for _, space := range remoteConfig.Spaces {
 				// Load local index mirror
 				localIndexPath := filepath.Join(stateDir, "remotes", remoteName, space, "index.json")
 				localIndex, err := loadIndexFile(localIndexPath)
@@ -61,7 +61,7 @@ var SyncCmd = &cobra.Command{
 				}
 
 				// Load remote index
-				remoteIndexPath := filepath.Join(remote.Path, space, "index.json")
+				remoteIndexPath := filepath.Join(remoteConfig.Path, space, "index.json")
 				remoteIndex, err := loadIndexFile(remoteIndexPath)
 				remoteSegCount := 0
 				if err == nil && remoteIndex != nil {
@@ -97,7 +97,7 @@ var SyncCmd = &cobra.Command{
 				watermarkFile := filepath.Join(stateDir, "ingest_watermarks", remoteName, space+".json")
 				lastSync := "never"
 				if data, err := os.ReadFile(watermarkFile); err == nil {
-					var watermark sync.IngestWatermark
+					var watermark remote.IngestWatermark
 					if err := json.Unmarshal(data, &watermark); err == nil {
 						elapsed := time.Since(watermark.UpdatedAt)
 						lastSync = formatDuration(elapsed)
@@ -146,12 +146,12 @@ func init() {
 }
 
 // loadIndexFile loads an index.json file
-func loadIndexFile(path string) (*sync.IndexFile, error) {
+func loadIndexFile(path string) (*remote.IndexFile, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var index sync.IndexFile
+	var index remote.IndexFile
 	if err := json.Unmarshal(data, &index); err != nil {
 		return nil, err
 	}

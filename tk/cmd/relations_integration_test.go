@@ -6,7 +6,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/relations"
-	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/neongreen/mono/tk/internal/utils"
 )
@@ -449,8 +449,8 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	// Finalize relations with config
-	config := &sync.Config{
-		Blocking: sync.BlockingConfig{
+	config := &remote.Config{
+		Blocking: remote.BlockingConfig{
 			BlockingAxis: "generic",
 			DoneStates:   []string{"done"},
 		},
@@ -631,8 +631,8 @@ func TestRelationRemovalIntegration(t *testing.T) {
 	}
 	reducer.Apply(addEvent)
 
-	config := &sync.Config{
-		Blocking: sync.BlockingConfig{
+	config := &remote.Config{
+		Blocking: remote.BlockingConfig{
 			BlockingAxis: "generic",
 			DoneStates:   []string{"done"},
 		},
