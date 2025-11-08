@@ -1,36 +1,31 @@
-package database
+package tasks
 
 import (
 	"encoding/json"
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
-// CreateTaskParams holds the parameters for creating a new task.
-type CreateTaskParams struct {
-	ProjectRef  string // Project reference (UID, alias, or name)
-	Title       string
-	CurrentUser string
+// CreateParams holds the parameters for creating a new task
+type CreateParams struct {
+	ProjectUID types.ProjectUID
+	Title      string
 }
 
-// CreateTaskResult holds the result of creating a task.
-type CreateTaskResult struct {
+// CreateResult holds the result of creating a task
+type CreateResult struct {
 	TaskUID   types.TaskUID
-	DisplayID string // Format: project-alias-number
+	DisplayID string
 }
 
-// CreateTask creates a new task in the specified project.
-func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
+// Create creates a new task in the specified project
+func Create(db *database.DB, params CreateParams, actor string) (*CreateResult, error) {
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
 		return nil, err
-	}
-
-	projectUID, err := ResolveProjectRef(db, types.NewProjectRef(params.ProjectRef))
-	if err != nil {
-		return nil, fmt.Errorf("project/alias %q not found. Create it first with: tk project create %s", params.ProjectRef, params.ProjectRef)
 	}
 
 	taskUID := types.NewTaskUID()
@@ -40,7 +35,7 @@ func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 	err = db.Db.QueryRow(`
 		SELECT COALESCE(MAX(number), 0) FROM task_numbers
 		WHERE project_uid = ?
-	`, projectUID.String()).Scan(&maxNumber)
+	`, params.ProjectUID.String()).Scan(&maxNumber)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get max number: %w", err)
 	}
@@ -48,11 +43,11 @@ func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 
 	payload := types.TaskCreatedPayload{
 		TaskUID:        string(taskUID),
-		ProjectUID:     projectUID.String(),
+		ProjectUID:     params.ProjectUID.String(),
 		ProposedNumber: proposedNumber,
 		CreatedNode:    nodeID,
 		Title:          params.Title,
-		CreatedBy:      params.CurrentUser,
+		CreatedBy:      actor,
 	}
 
 	payloadJSON, err := json.Marshal(payload)
@@ -60,7 +55,7 @@ func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	eventID, err := GenerateEventID(db)
+	eventID, err := database.GenerateEventID(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate event ID: %w", err)
 	}
@@ -74,7 +69,7 @@ func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 		ID:        eventID,
 		TS:        ts,
 		CreatedAt: time.Now(),
-		Actor:     params.CurrentUser,
+		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskCreated),
 		Payload:   payloadJSON,
@@ -90,7 +85,7 @@ func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 
 	numberPayload := types.TaskNumberSetPayload{
 		TaskUID:    string(taskUID),
-		ProjectUID: projectUID.String(),
+		ProjectUID: params.ProjectUID.String(),
 		Number:     proposedNumber,
 		Reason:     "initial",
 	}
@@ -99,7 +94,7 @@ func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 		return nil, fmt.Errorf("failed to marshal number payload: %w", err)
 	}
 
-	numberEventID, err := GenerateEventID(db)
+	numberEventID, err := database.GenerateEventID(db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate event ID: %w", err)
 	}
@@ -113,7 +108,7 @@ func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 		ID:        numberEventID,
 		TS:        numberTS,
 		CreatedAt: time.Now(),
-		Actor:     params.CurrentUser,
+		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskNumberSet),
 		Payload:   numberPayloadJSON,
@@ -127,26 +122,13 @@ func CreateTask(db *DB, params CreateTaskParams) (*CreateTaskResult, error) {
 		return nil, fmt.Errorf("failed to project task number: %w", err)
 	}
 
-	// Get a friendly display name (preferred alias, or project name, or UID as fallback)
-	displayPrefix, err := PreferredAliasForProject(db, projectUID)
+	// Get display ID
+	displayID, err := database.RenderTaskDisplayID(db, string(taskUID))
 	if err != nil {
-		return nil, fmt.Errorf("failed to get display prefix: %w", err)
-	}
-	if displayPrefix == "" {
-		// No alias found, try to get project name
-		var projectName string
-		err = db.Db.QueryRow(`SELECT name FROM projects WHERE project_uid = ?`, projectUID.String()).Scan(&projectName)
-		if err == nil && projectName != "" {
-			displayPrefix = projectName
-		} else {
-			// Fallback to UID
-			displayPrefix = projectUID.String()
-		}
+		return nil, fmt.Errorf("failed to render display ID: %w", err)
 	}
 
-	displayID := fmt.Sprintf("%s-%d", displayPrefix, proposedNumber)
-
-	return &CreateTaskResult{
+	return &CreateResult{
 		TaskUID:   taskUID,
 		DisplayID: displayID,
 	}, nil
