@@ -202,6 +202,7 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private _extensionUri: vscode.Uri;
   private currentTask: TkTask | undefined;
+  private allTasks: TkTask[] = [];
 
   constructor(extensionUri: vscode.Uri) {
     this._extensionUri = extensionUri;
@@ -343,6 +344,11 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
     this.updateView();
   }
 
+  setAllTasks(tasks: TkTask[]): void {
+    this.allTasks = tasks;
+    this.updateView();
+  }
+
   clear(): void {
     this.currentTask = undefined;
     this.showEmptyState();
@@ -358,7 +364,8 @@ class TaskDetailProvider implements vscode.WebviewViewProvider {
     if (this._view && this.currentTask) {
       void this._view.webview.postMessage({
         type: 'updateTask',
-        task: this.currentTask
+        task: this.currentTask,
+        allTasks: this.allTasks
       });
     }
   }
@@ -520,9 +527,14 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   private treeView?: vscode.TreeView<TkTreeItem>;
   private collapseCounter: number = 0;
   private displayedTaskItems: TaskTreeItem[] = [];
+  private detailProvider?: TaskDetailProvider;
 
   constructor(private readonly decorationProvider: TkDecorationProvider) {
     void this.refresh();
+  }
+
+  public setDetailProvider(provider: TaskDetailProvider): void {
+    this.detailProvider = provider;
   }
 
   public setTreeView(treeView: vscode.TreeView<TkTreeItem>): void {
@@ -685,6 +697,16 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       // Store raw unfiltered data
       this.rawGroups = tasks.groups;
       this.rawUngrouped = tasks.tasks;
+
+      // Update detail provider with all tasks for UUID resolution
+      if (this.detailProvider) {
+        const allTasks: TkTask[] = [];
+        for (const group of this.rawGroups) {
+          allTasks.push(...group.tasks);
+        }
+        allTasks.push(...this.rawUngrouped);
+        this.detailProvider.setAllTasks(allTasks);
+      }
 
       // Notify tree view to refresh, which will call getChildren()
       // getChildren() will create the task items and update the decoration provider
@@ -1110,6 +1132,9 @@ export function activate(context: vscode.ExtensionContext): void {
   const provider = new TkProvider(decorationProvider);
   const dragAndDropController = new TkDragAndDropController(provider);
   const detailProvider = new TaskDetailProvider(context.extensionUri);
+  
+  // Link providers so tasks can update detail view
+  provider.setDetailProvider(detailProvider);
 
   const treeView = vscode.window.createTreeView('tkExplorer', {
     treeDataProvider: provider,

@@ -8,7 +8,7 @@ const vscode = acquireVsCodeApi();
 window.addEventListener('message', (event) => {
   const message = event.data;
   if (message.type === 'updateTask') {
-    render(<App task={message.task} vscode={vscode} />, document.body);
+    render(<App task={message.task} allTasks={message.allTasks} vscode={vscode} />, document.body);
   } else if (message.type === 'clear') {
     render(<App task={null} vscode={vscode} />, document.body);
   }

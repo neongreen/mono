@@ -8,9 +8,10 @@ import type { TkTask, VSCodeAPI } from './types';
 interface TaskDetailsProps {
   task: TkTask;
   vscode: VSCodeAPI;
+  allTasks?: TkTask[]; // For resolving UUIDs to display IDs
 }
 
-export function TaskDetails({ task, vscode }: TaskDetailsProps) {
+export function TaskDetails({ task, vscode, allTasks }: TaskDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [titleValue, setTitleValue] = useState(task.title ?? 'No title');
   const [isAddingNote, setIsAddingNote] = useState(false);
@@ -22,6 +23,17 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
     setIsEditing(false);
     setIsAddingNote(false);
   }, [task.display_id, task.uuid, task.title]);
+
+  // Helper to resolve UUID to display ID + title
+  const resolveTask = (uuid: string): { display_id: string; title?: string } => {
+    if (allTasks) {
+      const found = allTasks.find(t => t.uuid === uuid);
+      if (found) {
+        return { display_id: found.display_id ?? uuid, title: found.title };
+      }
+    }
+    return { display_id: uuid };
+  };
 
   const taskId = task.display_id ?? 'unknown';
   const genericAxis = task.axes?.['generic'];
@@ -156,12 +168,17 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
             <div class="relation-group">
               <div class="relation-label">Related:</div>
               <ul class="relation-list">
-                {task.relations.related.out.map((edge, i) => (
-                  <li key={i}>
-                    <span class="relation-task-id">{edge.dst}</span>
-                    {edge.note && <span class="relation-note"> - {edge.note}</span>}
-                  </li>
-                ))}
+                {task.relations.related.out.map((edge, i) => {
+                  if (!edge.dst) return null;
+                  const resolved = resolveTask(edge.dst);
+                  return (
+                    <li key={i}>
+                      <span class="relation-task-id">{resolved.display_id}</span>
+                      {resolved.title && <span class="relation-title"> - {resolved.title}</span>}
+                      {edge.note && <span class="relation-note"> ({edge.note})</span>}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -170,11 +187,15 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
             <div class="relation-group">
               <div class="relation-label">Subtasks:</div>
               <ul class="relation-list">
-                {task.relations.subtask.children.map((uuid, i) => (
-                  <li key={i}>
-                    <span class="relation-task-id">{uuid}</span>
-                  </li>
-                ))}
+                {task.relations.subtask.children.map((uuid, i) => {
+                  const resolved = resolveTask(uuid);
+                  return (
+                    <li key={i}>
+                      <span class="relation-task-id">{resolved.display_id}</span>
+                      {resolved.title && <span class="relation-title"> - {resolved.title}</span>}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -183,7 +204,15 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
             <div class="relation-group">
               <div class="relation-label">Parent:</div>
               <div class="relation-value">
-                <span class="relation-task-id">{task.relations.subtask.parent}</span>
+                {(() => {
+                  const resolved = resolveTask(task.relations.subtask!.parent);
+                  return (
+                    <>
+                      <span class="relation-task-id">{resolved.display_id}</span>
+                      {resolved.title && <span class="relation-title"> - {resolved.title}</span>}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -192,12 +221,17 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
             <div class="relation-group">
               <div class="relation-label">Blocks:</div>
               <ul class="relation-list">
-                {task.relations.blocks.out.map((edge, i) => (
-                  <li key={i}>
-                    <span class="relation-task-id">{edge.dst}</span>
-                    {edge.note && <span class="relation-note"> - {edge.note}</span>}
-                  </li>
-                ))}
+                {task.relations.blocks.out.map((edge, i) => {
+                  if (!edge.dst) return null;
+                  const resolved = resolveTask(edge.dst);
+                  return (
+                    <li key={i}>
+                      <span class="relation-task-id">{resolved.display_id}</span>
+                      {resolved.title && <span class="relation-title"> - {resolved.title}</span>}
+                      {edge.note && <span class="relation-note"> ({edge.note})</span>}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -206,12 +240,17 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
             <div class="relation-group">
               <div class="relation-label">Blocked by:</div>
               <ul class="relation-list">
-                {task.relations.blocks.in.map((edge, i) => (
-                  <li key={i}>
-                    <span class="relation-task-id">{edge.dst}</span>
-                    {edge.note && <span class="relation-note"> - {edge.note}</span>}
-                  </li>
-                ))}
+                {task.relations.blocks.in.map((edge, i) => {
+                  if (!edge.dst) return null;
+                  const resolved = resolveTask(edge.dst);
+                  return (
+                    <li key={i}>
+                      <span class="relation-task-id">{resolved.display_id}</span>
+                      {resolved.title && <span class="relation-title"> - {resolved.title}</span>}
+                      {edge.note && <span class="relation-note"> ({edge.note})</span>}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -220,11 +259,16 @@ export function TaskDetails({ task, vscode }: TaskDetailsProps) {
             <div class="relation-group">
               <div class="relation-label">Duplicate of:</div>
               <ul class="relation-list">
-                {task.relations.duplicate_of.out.map((edge, i) => (
-                  <li key={i}>
-                    <span class="relation-task-id">{edge.dst}</span>
-                  </li>
-                ))}
+                {task.relations.duplicate_of.out.map((edge, i) => {
+                  if (!edge.dst) return null;
+                  const resolved = resolveTask(edge.dst);
+                  return (
+                    <li key={i}>
+                      <span class="relation-task-id">{resolved.display_id}</span>
+                      {resolved.title && <span class="relation-title"> - {resolved.title}</span>}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}

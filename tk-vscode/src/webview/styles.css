@@ -374,3 +374,7 @@ body {
   color: var(--vscode-descriptionForeground);
   font-style: italic;
 }
+
+.relation-title {
+  color: var(--vscode-descriptionForeground);
+}
