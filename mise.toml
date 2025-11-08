@@ -503,26 +503,26 @@ run = """
 
 [tasks."tk-vscode:install-deps"]
 description = "Install dependencies for tk-vscode"
-dir = "tk-vscode"
-run = "npm install"
+run = "cd tk-vscode && npm install"
 
 [tasks."tk-vscode:build"]
 description = "Compile & package the VS Code extension"
-dir = "tk-vscode"
 run = """
+cd tk-vscode
 npm run compile
 npm run package
 """
 
 [tasks."tk-vscode:install"]
 description = "Install the VS Code extension"
-dir = "tk-vscode"
-run = "code --install-extension tk-0.0.1.vsix --force"
+run = """
+cd tk-vscode
+code --install-extension tk-0.0.1.vsix --force
+"""
 
 [tasks."tk-vscode:watch"]
 description = "Recompile on source changes"
-dir = "tk-vscode"
-run = "npm run watch"
+run = "cd tk-vscode && npm run watch"
 
 # ============================================================================
 # conf

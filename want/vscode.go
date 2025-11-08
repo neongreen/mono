@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/neongreen/mono/lib/cli"
 	"github.com/neongreen/mono/lib/ghclient"
@@ -357,6 +358,51 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 	fmt.Printf("%s Built and installed %s from PR #%d\n", cli.Success("✓"), cli.Key(project), prNumber)
 }
 
+// findMonoRoot walks up the directory tree looking for the mono repository root
+func findMonoRoot(startDir string) (string, error) {
+	dir := startDir
+	for {
+		// Check for markers that indicate mono repo root
+		// 1. mise.toml file (most reliable)
+		if _, err := os.Stat(filepath.Join(dir, "mise.toml")); err == nil {
+			return dir, nil
+		}
+
+		// 2. go.mod with the right module path
+		goModPath := filepath.Join(dir, "go.mod")
+		if data, err := os.ReadFile(goModPath); err == nil {
+			if strings.Contains(string(data), "github.com/neongreen/mono") {
+				return dir, nil
+			}
+		}
+
+		// 3. .git directory with common project subdirectories
+		if stat, err := os.Stat(filepath.Join(dir, ".git")); err == nil && stat.IsDir() {
+			// Check for at least 2 common projects
+			commonProjects := []string{"tk", "want", "dissect", "printpdf", "conf"}
+			found := 0
+			for _, proj := range commonProjects {
+				if stat, err := os.Stat(filepath.Join(dir, proj)); err == nil && stat.IsDir() {
+					found++
+					if found >= 2 {
+						return dir, nil
+					}
+				}
+			}
+		}
+
+		// Move up one level
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached filesystem root
+			break
+		}
+		dir = parent
+	}
+
+	return "", fmt.Errorf("could not find mono repository root from %s", startDir)
+}
+
 // buildVSCodeExtensionFromLocal builds and installs the VS Code extension from the current local checkout
 func buildVSCodeExtensionFromLocal(project string, dryRun bool, planJson bool) {
 	// Get current working directory
@@ -366,28 +412,19 @@ func buildVSCodeExtensionFromLocal(project string, dryRun bool, planJson bool) {
 		os.Exit(1)
 	}
 
-	// Check if we're in a mono repository
-	commonProjects := []string{"tk", "want", "dissect", "printpdf", "conf"}
-	monoRepoDetected := false
-	for _, proj := range commonProjects {
-		projPath := filepath.Join(cwd, proj)
-		if stat, err := os.Stat(projPath); err == nil && stat.IsDir() {
-			monoRepoDetected = true
-			break
-		}
-	}
-
-	if !monoRepoDetected {
-		cli.PrintError("Error: Current directory does not appear to be the mono repository")
+	// Find mono repository root
+	monoRoot, err := findMonoRoot(cwd)
+	if err != nil {
+		cli.PrintError(fmt.Sprintf("Error: %v", err))
 		fmt.Printf("  Current directory: %s\n", cwd)
-		fmt.Printf("  Expected to find project directories like: %v\n", commonProjects)
 		os.Exit(1)
 	}
 
 	// Check if tk-vscode directory exists
-	projectDir := filepath.Join(cwd, "tk-vscode")
+	projectDir := filepath.Join(monoRoot, "tk-vscode")
 	if stat, err := os.Stat(projectDir); os.IsNotExist(err) || !stat.IsDir() {
-		cli.PrintError("Error: tk-vscode directory not found in current repository")
+		cli.PrintError("Error: tk-vscode directory not found in mono repository")
+		fmt.Printf("  Mono root: %s\n", monoRoot)
 		fmt.Printf("  Looking for: %s\n", projectDir)
 		os.Exit(1)
 	}
@@ -441,7 +478,7 @@ func buildVSCodeExtensionFromLocal(project string, dryRun bool, planJson bool) {
 	// Step 1: Install dependencies
 	fmt.Println("Installing dependencies...")
 	cmd := createMiseRunCommand("tk-vscode:install-deps")
-	cmd.Dir = cwd
+	cmd.Dir = monoRoot
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -453,7 +490,7 @@ func buildVSCodeExtensionFromLocal(project string, dryRun bool, planJson bool) {
 	fmt.Println()
 	fmt.Println("Building extension...")
 	cmd = createMiseRunCommand("tk-vscode:build")
-	cmd.Dir = cwd
+	cmd.Dir = monoRoot
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
@@ -465,7 +502,7 @@ func buildVSCodeExtensionFromLocal(project string, dryRun bool, planJson bool) {
 	fmt.Println()
 	fmt.Println("Installing extension...")
 	cmd = createMiseRunCommand("tk-vscode:install")
-	cmd.Dir = cwd
+	cmd.Dir = monoRoot
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
