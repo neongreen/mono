@@ -36,6 +36,13 @@ var noteCmd = &cobra.Command{
 			displayID = taskRef
 		}
 
+		// Get task title for display
+		var taskTitle string
+		err = db.Db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUUID).Scan(&taskTitle)
+		if err != nil {
+			taskTitle = "" // If we can't get title, just use ID
+		}
+
 		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
@@ -76,7 +83,11 @@ var noteCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Printf("Added note to task %s\n", displayID)
+		if taskTitle != "" {
+			fmt.Printf("Added note to task %s: %s\n", displayID, taskTitle)
+		} else {
+			fmt.Printf("Added note to task %s\n", displayID)
+		}
 		return nil
 	},
 }
