@@ -33,9 +33,11 @@ type ImportOptions struct {
 
 // ImportResult contains the results of an import operation
 type ImportResult struct {
-	TotalImported      int
-	TotalSkipped       int
-	RelationsImported  int
-	RenumberedIssues   []string
-	ProjectsCreated    map[string]string // prefix -> project UID
+	TotalImported       int
+	TotalSkipped        int
+	RelationsImported   int
+	RenumberedIssues    []string
+	ProjectsCreated     map[string]string // prefix -> project UID
+	FailedNotes         []string          // Failed renumber notes
+	FailedRelationships []string          // Failed relationship imports
 }

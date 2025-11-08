@@ -58,6 +58,8 @@ func Import(db *database.DB, opts ImportOptions) (*ImportResult, error) {
 	totalSkipped := 0
 	issueMap := make(map[string]string) // beads ID -> tk task UID
 	var renumberedIssues []string
+	var failedNotes []string
+	var failedRelationships []string
 	projectsCreated := make(map[string]string) // prefix -> project UID
 
 	// Get actor (will be used for all operations)
@@ -110,7 +112,8 @@ func Import(db *database.DB, opts ImportOptions) (*ImportResult, error) {
 			// Add note explaining renumbering
 			if renumbered {
 				if err := AddRenumberNote(db, taskUID, issue.ID, number); err != nil {
-					// Non-fatal, continue
+					// Non-fatal, track and continue
+					failedNotes = append(failedNotes, fmt.Sprintf("task %s: %v", issue.ID, err))
 				}
 				renumberedIssues = append(renumberedIssues,
 					fmt.Sprintf("%s → %d (non-numeric ID)", issue.ID, number))
@@ -125,7 +128,8 @@ func Import(db *database.DB, opts ImportOptions) (*ImportResult, error) {
 			if taskUID, ok := issueMap[issue.ID]; ok {
 				count, err := ImportBeadsRelationships(db, issue, taskUID, issueMap)
 				if err != nil {
-					// Non-fatal, continue
+					// Non-fatal, track and continue
+					failedRelationships = append(failedRelationships, fmt.Sprintf("task %s: %v", issue.ID, err))
 					continue
 				}
 				relImported += count
@@ -134,10 +138,12 @@ func Import(db *database.DB, opts ImportOptions) (*ImportResult, error) {
 	}
 
 	return &ImportResult{
-		TotalImported:     totalImported,
-		TotalSkipped:      totalSkipped,
-		RelationsImported: relImported,
-		RenumberedIssues:  renumberedIssues,
-		ProjectsCreated:   projectsCreated,
+		TotalImported:       totalImported,
+		TotalSkipped:        totalSkipped,
+		RelationsImported:   relImported,
+		RenumberedIssues:    renumberedIssues,
+		ProjectsCreated:     projectsCreated,
+		FailedNotes:         failedNotes,
+		FailedRelationships: failedRelationships,
 	}, nil
 }

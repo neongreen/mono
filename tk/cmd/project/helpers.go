@@ -1,17 +1,9 @@
 package project
 
 import (
-	"fmt"
-	"os"
+	"github.com/neongreen/mono/tk/internal/utils"
 )
 
 func getCurrentUser() (string, error) {
-	user := os.Getenv("USER")
-	if user == "" {
-		user = os.Getenv("USERNAME")
-	}
-	if user == "" {
-		return "", fmt.Errorf("could not determine current user")
-	}
-	return user, nil
+	return utils.GetCurrentUser()
 }
