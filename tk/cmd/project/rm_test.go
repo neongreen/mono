@@ -137,4 +137,3 @@ func deleteProject(db *database.DB, projectUID string, force bool) error {
 
 	return db.ProjectProjectDeleteEvent(event)
 }
-
