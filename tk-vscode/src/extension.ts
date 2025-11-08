@@ -810,8 +810,8 @@ async function markDone(provider: TkProvider, treeView: vscode.TreeView<TkTreeIt
     const currentStatus = genericAxis?.effective ?? '';
     
     const args = currentStatus === 'done' 
-      ? ['mark', taskId, 'done', '--unset']  // Unset if already done
-      : ['mark', taskId, 'done'];              // Mark as done otherwise
+      ? ['mark', taskId, '--unset']  // Unset if already done (no state arg)
+      : ['mark', taskId, 'done'];     // Mark as done otherwise
 
     await execFileAsync(binary, args, {
       cwd,
