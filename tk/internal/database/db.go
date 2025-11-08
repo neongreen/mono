@@ -1,14 +1,15 @@
 package database
 
 import (
-	"github.com/neongreen/mono/tk/internal/config"
 	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
 
+	"github.com/neongreen/mono/tk/internal/config"
+
 	"github.com/neongreen/mono/tk/internal/reducer"
-	
+
 	_ "modernc.org/sqlite"
 )
 

@@ -3,7 +3,6 @@ package database
 import (
 	"github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/reducer"
-	
 )
 
 // GetCachedReducerWithConfig returns a cached reducer or builds a new one if needed.
