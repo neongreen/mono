@@ -84,9 +84,9 @@ var lsCmd = &cobra.Command{
 		case "project", "prefix":
 			// Group tasks by project
 			getProjectKey := func(task *types.Task) string {
-				projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
+				projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
 				if err != nil {
-					return task.TaskID
+					return task.TaskUUID
 				}
 				return projectAlias
 			}
@@ -112,9 +112,9 @@ var lsCmd = &cobra.Command{
 			// Calculate column widths once for ALL tasks to ensure consistency across groups
 			displayIDs := make(map[string]string)
 			for _, task := range tasks {
-				displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
+				displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 				if err == nil {
-					displayIDs[task.TaskID] = displayID
+					displayIDs[task.TaskUUID] = displayID
 				}
 			}
 			constraints := DefaultColumnConstraints(termWidth, showAliases)
@@ -145,9 +145,9 @@ var lsCmd = &cobra.Command{
 			// Calculate column widths once for ALL tasks to ensure consistency across groups
 			displayIDs := make(map[string]string)
 			for _, task := range tasks {
-				displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
+				displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 				if err == nil {
-					displayIDs[task.TaskID] = displayID
+					displayIDs[task.TaskUUID] = displayID
 				}
 			}
 			constraints := DefaultColumnConstraints(termWidth, showAliases)

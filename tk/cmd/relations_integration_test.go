@@ -22,16 +22,16 @@ func TestRelationGraph_AddRemove(t *testing.T) {
 	if len(out) != 1 {
 		t.Fatalf("Expected 1 outgoing relation, got %d", len(out))
 	}
-	if out[0].TaskID != "task-b" {
-		t.Errorf("Expected task-b, got %s", out[0].TaskID)
+	if out[0].TaskUUID != "task-b" {
+		t.Errorf("Expected task-b, got %s", out[0].TaskUUID)
 	}
 
 	in := graph.GetIncomingRelations("task-b", "blocks")
 	if len(in) != 1 {
 		t.Fatalf("Expected 1 incoming relation, got %d", len(in))
 	}
-	if in[0].TaskID != "task-a" {
-		t.Errorf("Expected task-a, got %s", in[0].TaskID)
+	if in[0].TaskUUID != "task-a" {
+		t.Errorf("Expected task-a, got %s", in[0].TaskUUID)
 	}
 
 	// Remove the relation
@@ -257,8 +257,8 @@ func TestBuildTaskRelations(t *testing.T) {
 	if len(relations.Blocks.Out) != 1 {
 		t.Errorf("Expected 1 blocks out, got %d", len(relations.Blocks.Out))
 	}
-	if relations.Blocks.Out[0].TaskID != "task-b" {
-		t.Errorf("Expected task-b, got %s", relations.Blocks.Out[0].TaskID)
+	if relations.Blocks.Out[0].TaskUUID != "task-b" {
+		t.Errorf("Expected task-b, got %s", relations.Blocks.Out[0].TaskUUID)
 	}
 
 	// Check subtask
@@ -273,8 +273,8 @@ func TestBuildTaskRelations(t *testing.T) {
 	if len(relations.Related.Out) != 1 {
 		t.Errorf("Expected 1 related out, got %d", len(relations.Related.Out))
 	}
-	if relations.Related.Out[0].TaskID != "task-d" {
-		t.Errorf("Expected task-d, got %s", relations.Related.Out[0].TaskID)
+	if relations.Related.Out[0].TaskUUID != "task-d" {
+		t.Errorf("Expected task-d, got %s", relations.Related.Out[0].TaskUUID)
 	}
 }
 

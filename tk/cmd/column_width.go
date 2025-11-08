@@ -46,7 +46,7 @@ func CalculateColumnWidths(tasks []*types.Task, displayIDs map[string]string, co
 	// Find maximum widths needed for non-wrapping columns
 	for _, task := range tasks {
 		// ID width
-		displayID := displayIDs[task.TaskID]
+		displayID := displayIDs[task.TaskUUID]
 		if displayID == "" {
 			displayID = task.TaskDisplayID
 		}

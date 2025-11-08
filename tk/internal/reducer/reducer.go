@@ -443,7 +443,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 	// types.Task display ID is derived from project alias + number
 	// For now, we'll use the task_uid as the task_id until we compute the display ID
 	r.tasks[taskUID] = &types.Task{
-		TaskID:        taskUID,
+		TaskUUID:      taskUID,
 		TaskDisplayID: taskUID, // Placeholder, will be replaced by display ID
 		Aliases:       []string{},
 		Title:         payload.Title,

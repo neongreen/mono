@@ -20,7 +20,7 @@ func FilterTasks(tasks []*types.Task, taskUIDSet map[string]bool, opts FilterOpt
 
 	for _, task := range tasks {
 		// Filter by project (if task UID set is provided)
-		if taskUIDSet != nil && !taskUIDSet[task.TaskID] {
+		if taskUIDSet != nil && !taskUIDSet[task.TaskUUID] {
 			continue
 		}
 

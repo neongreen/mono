@@ -108,8 +108,8 @@ func (g *RelationsGraph) GetOutgoingRelations(taskUUID, relType string) []types.
 	for _, edge := range g.edges {
 		if edge.Src == taskUUID && edge.Type == relType && g.isEdgePresent(edge) {
 			targets = append(targets, types.RelationTarget{
-				TaskID: edge.Dst,
-				Note:   edge.Note,
+				TaskUUID: edge.Dst,
+				Note:     edge.Note,
 			})
 		}
 	}
@@ -122,8 +122,8 @@ func (g *RelationsGraph) GetIncomingRelations(taskUUID, relType string) []types.
 	for _, edge := range g.edges {
 		if edge.Dst == taskUUID && edge.Type == relType && g.isEdgePresent(edge) {
 			targets = append(targets, types.RelationTarget{
-				TaskID: edge.Src,
-				Note:   edge.Note,
+				TaskUUID: edge.Src,
+				Note:     edge.Note,
 			})
 		}
 	}
@@ -209,12 +209,12 @@ func (g *RelationsGraph) BuildTaskRelations(taskUUID string) *types.Relations {
 		if len(subtaskOut) > 0 {
 			children := make([]string, len(subtaskOut))
 			for i, t := range subtaskOut {
-				children[i] = t.TaskID
+				children[i] = t.TaskUUID
 			}
 			rel.Subtask.Children = children
 		}
 		if len(subtaskIn) > 0 {
-			rel.Subtask.Parent = subtaskIn[0].TaskID
+			rel.Subtask.Parent = subtaskIn[0].TaskUUID
 		}
 	}
 

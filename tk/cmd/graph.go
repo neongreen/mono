@@ -68,12 +68,12 @@ var graphCmd = &cobra.Command{
 			visited := make(map[string]bool)
 			var buildGraph func(t *types.Task, currentDepth, maxDepth int) *GraphNode
 			buildGraph = func(t *types.Task, currentDepth, maxDepth int) *GraphNode {
-				if currentDepth > maxDepth || visited[t.TaskID] {
+				if currentDepth > maxDepth || visited[t.TaskUUID] {
 					return nil
 				}
-				visited[t.TaskID] = true
+				visited[t.TaskUUID] = true
 
-				taskDisplay, err := database.RenderTaskDisplayID(db, t.TaskID)
+				taskDisplay, err := database.RenderTaskDisplayID(db, t.TaskUUID)
 				if err != nil {
 					taskDisplay = t.TaskDisplayID
 				}
@@ -87,15 +87,15 @@ var graphCmd = &cobra.Command{
 				var targets []types.RelationTarget
 				switch relationType {
 				case "blocks":
-					targets = reducer.Relations().GetOutgoingRelations(t.TaskID, "blocks")
+					targets = reducer.Relations().GetOutgoingRelations(t.TaskUUID, "blocks")
 				case "subtask":
-					targets = reducer.Relations().GetOutgoingRelations(t.TaskID, "subtask")
+					targets = reducer.Relations().GetOutgoingRelations(t.TaskUUID, "subtask")
 				default:
-					targets = reducer.Relations().GetOutgoingRelations(t.TaskID, relationType)
+					targets = reducer.Relations().GetOutgoingRelations(t.TaskUUID, relationType)
 				}
 
 				for _, target := range targets {
-					if childTask, ok := reducer.GetTask(target.TaskID); ok {
+					if childTask, ok := reducer.GetTask(target.TaskUUID); ok {
 						if childNode := buildGraph(childTask, currentDepth+1, maxDepth); childNode != nil {
 							node.Children = append(node.Children, childNode)
 						}
@@ -130,19 +130,19 @@ func printRelationTree(db *database.DB, reducer *reducer.Reducer, task *types.Ta
 	}
 
 	// Prevent infinite loops
-	if visited[task.TaskID] {
-		display, err := database.RenderTaskDisplayID(db, task.TaskID)
+	if visited[task.TaskUUID] {
+		display, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
 			display = task.TaskDisplayID
 		}
 		fmt.Printf("%s%s - %s (already shown above)\n", prefix, display, task.Title)
 		return
 	}
-	visited[task.TaskID] = true
+	visited[task.TaskUUID] = true
 
 	// Print current task
 	if currentDepth > 0 {
-		display, err := database.RenderTaskDisplayID(db, task.TaskID)
+		display, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
 			display = task.TaskDisplayID
 		}
@@ -157,16 +157,16 @@ func printRelationTree(db *database.DB, reducer *reducer.Reducer, task *types.Ta
 	var targets []types.RelationTarget
 	switch relationType {
 	case "blocks":
-		targets = reducer.Relations().GetOutgoingRelations(task.TaskID, "blocks")
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, "blocks")
 	case "subtask":
-		targets = reducer.Relations().GetOutgoingRelations(task.TaskID, "subtask")
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, "subtask")
 	default:
-		targets = reducer.Relations().GetOutgoingRelations(task.TaskID, relationType)
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, relationType)
 	}
 
 	// Print children
 	for i, target := range targets {
-		childTask, ok := reducer.GetTask(target.TaskID)
+		childTask, ok := reducer.GetTask(target.TaskUUID)
 		if !ok {
 			continue
 		}
@@ -186,8 +186,8 @@ func printRelationTree(db *database.DB, reducer *reducer.Reducer, task *types.Ta
 		// Pass the full prefix with connector for printing this child,
 		// and newPrefix for its children
 		fullPrefix := prefix + connector
-		if !visited[childTask.TaskID] {
-			childDisplay, err := database.RenderTaskDisplayID(db, childTask.TaskID)
+		if !visited[childTask.TaskUUID] {
+			childDisplay, err := database.RenderTaskDisplayID(db, childTask.TaskUUID)
 			if err != nil {
 				childDisplay = childTask.TaskDisplayID
 			}
@@ -208,25 +208,25 @@ func printRelationTreeImpl(db *database.DB, reducer *reducer.Reducer, task *type
 	}
 
 	// Prevent infinite loops
-	if visited[task.TaskID] {
+	if visited[task.TaskUUID] {
 		return
 	}
-	visited[task.TaskID] = true
+	visited[task.TaskUUID] = true
 
 	// Get related tasks based on type
 	var targets []types.RelationTarget
 	switch relationType {
 	case "blocks":
-		targets = reducer.Relations().GetOutgoingRelations(task.TaskID, "blocks")
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, "blocks")
 	case "subtask":
-		targets = reducer.Relations().GetOutgoingRelations(task.TaskID, "subtask")
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, "subtask")
 	default:
-		targets = reducer.Relations().GetOutgoingRelations(task.TaskID, relationType)
+		targets = reducer.Relations().GetOutgoingRelations(task.TaskUUID, relationType)
 	}
 
 	// Print children
 	for i, target := range targets {
-		childTask, ok := reducer.GetTask(target.TaskID)
+		childTask, ok := reducer.GetTask(target.TaskUUID)
 		if !ok {
 			continue
 		}
@@ -244,7 +244,7 @@ func printRelationTreeImpl(db *database.DB, reducer *reducer.Reducer, task *type
 		}
 
 		fullPrefix := prefix + connector
-		childDisplay, err := database.RenderTaskDisplayID(db, childTask.TaskID)
+		childDisplay, err := database.RenderTaskDisplayID(db, childTask.TaskUUID)
 		if err != nil {
 			childDisplay = childTask.TaskDisplayID
 		}
