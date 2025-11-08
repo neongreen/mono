@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/relations"
-	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/neongreen/mono/tk/internal/utils"
 )
@@ -449,13 +449,13 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	// Finalize relations with config
-	config := &config.Config{
-		Blocking: remote.BlockingConfig{
+	cfg := &config.Config{
+		Blocking: config.BlockingConfig{
 			BlockingAxis: "generic",
 			DoneStates:   []string{"done"},
 		},
 	}
-	reducer.FinalizeRelations(config)
+	reducer.FinalizeRelations(cfg)
 
 	// Verify task relations
 	taskB, _ := reducer.GetTask("task-b")
@@ -515,7 +515,7 @@ func TestRelationsIntegration(t *testing.T) {
 	ts++
 
 	// Recompute blocked status
-	reducer.FinalizeRelations(config)
+	reducer.FinalizeRelations(cfg)
 
 	// Task B and C should no longer be blocked
 	taskB, _ = reducer.GetTask("task-b")
@@ -549,7 +549,7 @@ func TestRelationsIntegration(t *testing.T) {
 	}
 
 	// Recompute blocked status
-	reducer.FinalizeRelations(config)
+	reducer.FinalizeRelations(cfg)
 
 	// Task D should now be unblocked
 	taskD, _ = reducer.GetTask("task-d")
@@ -631,13 +631,13 @@ func TestRelationRemovalIntegration(t *testing.T) {
 	}
 	reducer.Apply(addEvent)
 
-	config := &config.Config{
-		Blocking: remote.BlockingConfig{
+	cfg := &config.Config{
+		Blocking: config.BlockingConfig{
 			BlockingAxis: "generic",
 			DoneStates:   []string{"done"},
 		},
 	}
-	reducer.FinalizeRelations(config)
+	reducer.FinalizeRelations(cfg)
 
 	// Task B should be blocked
 	taskB, _ := reducer.GetTask("task-b")
@@ -657,7 +657,7 @@ func TestRelationRemovalIntegration(t *testing.T) {
 	}
 	reducer.Apply(removeEvent)
 
-	reducer.FinalizeRelations(config)
+	reducer.FinalizeRelations(cfg)
 
 	// Task B should no longer be blocked
 	taskB, _ = reducer.GetTask("task-b")

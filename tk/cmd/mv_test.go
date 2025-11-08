@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"testing"
+
+	"github.com/neongreen/mono/tk/internal/tasks"
 )
 
 func TestMoveTaskAutoAssign(t *testing.T) {
@@ -15,7 +17,7 @@ func TestMoveTaskAutoAssign(t *testing.T) {
 
 	taskUID := seedTask(t, db, srcProject, "to move", 1)
 
-	opts := moveOptions{
+	opts := tasks.MoveOptions{
 		Mode:        "auto",
 		OnCollision: "fail",
 	}
@@ -49,7 +51,7 @@ func TestMoveTaskKeepCollisionFails(t *testing.T) {
 	_ = seedTask(t, db, dstProject, "existing", 1)
 	_ = seedTask(t, db, srcProject, "to move", 1)
 
-	err := moveTask(db, "src-1", "dst", moveOptions{
+	err := moveTask(db, "src-1", "dst", tasks.MoveOptions{
 		Mode:        "keep",
 		OnCollision: "fail",
 	})
@@ -67,7 +69,7 @@ func TestMoveTaskKeepCollisionAutoFallback(t *testing.T) {
 	_ = seedTask(t, db, dstProject, "existing", 1)
 	taskUID := seedTask(t, db, srcProject, "to move", 1)
 
-	if err := moveTask(db, "src-1", "dst", moveOptions{
+	if err := moveTask(db, "src-1", "dst", tasks.MoveOptions{
 		Mode:        "keep",
 		OnCollision: "auto",
 	}); err != nil {

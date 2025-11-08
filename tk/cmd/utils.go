@@ -1,10 +1,10 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
+
+	"github.com/neongreen/mono/tk/internal/utils"
 )
 
 // collectSegmentFiles walks a directory and collects all .zst segment files
@@ -25,10 +25,7 @@ func collectSegmentFiles(dir string) ([]string, error) {
 	return segmentFiles, nil
 }
 
+// getCurrentUser is a package-local wrapper that calls utils.GetCurrentUser
 func getCurrentUser() (string, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current user: %w", err)
-	}
-	return currentUser.Username, nil
+	return utils.GetCurrentUser()
 }

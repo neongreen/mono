@@ -40,6 +40,12 @@ Examples:
 			if err != nil {
 				return err
 			}
+			
+			// Print warnings if any
+			for _, projErr := range result.ProjectionErrors {
+				fmt.Fprintf(os.Stderr, "Warning: projection failed for %s\n", projErr)
+			}
+			
 			fmt.Printf("Ingested %d events (%d duplicates skipped)\n", result.EventsIngested, result.Duplicates)
 			return nil
 		}
@@ -65,6 +71,14 @@ Examples:
 			return err
 		}
 
+		// Print warnings if any
+		for _, segErr := range result.SegmentErrors {
+			fmt.Fprintf(os.Stderr, "Warning: failed to read segment %s\n", segErr)
+		}
+		for _, projErr := range result.ProjectionErrors {
+			fmt.Fprintf(os.Stderr, "Warning: projection failed for %s\n", projErr)
+		}
+
 		if result.EventsIngested == 0 {
 			fmt.Println("No new events to ingest")
 		} else {
@@ -86,6 +100,14 @@ func IngestRemote(db *database.DB, remoteName string, remoteConfig config_pkg.Re
 	result, err := remote.IngestRemote(db, remoteName, remoteConfig, stateDir)
 	if err != nil {
 		return err
+	}
+
+	// Print warnings if any
+	for _, segErr := range result.SegmentErrors {
+		fmt.Fprintf(os.Stderr, "Warning: failed to read segment %s\n", segErr)
+	}
+	for _, projErr := range result.ProjectionErrors {
+		fmt.Fprintf(os.Stderr, "Warning: projection failed for %s\n", projErr)
 	}
 
 	if result.EventsIngested == 0 {

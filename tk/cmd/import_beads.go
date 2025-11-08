@@ -159,6 +159,21 @@ func displayImportResults(result *beads.ImportResult) {
 		}
 	}
 
+	// Show warnings for failed operations
+	if len(result.FailedNotes) > 0 {
+		fmt.Fprintf(os.Stderr, "\nWarnings: Failed to add renumber notes for %d tasks:\n", len(result.FailedNotes))
+		for _, err := range result.FailedNotes {
+			fmt.Fprintf(os.Stderr, "  %s\n", err)
+		}
+	}
+
+	if len(result.FailedRelationships) > 0 {
+		fmt.Fprintf(os.Stderr, "\nWarnings: Failed to import relationships for %d tasks:\n", len(result.FailedRelationships))
+		for _, err := range result.FailedRelationships {
+			fmt.Fprintf(os.Stderr, "  %s\n", err)
+		}
+	}
+
 	fmt.Printf("\nImported %d issues (%d skipped)\n", result.TotalImported, result.TotalSkipped)
 
 	if result.RelationsImported > 0 {
