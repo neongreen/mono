@@ -41,13 +41,14 @@ var LsCmd = &cobra.Command{
 		}
 
 		type ProjectOutput struct {
-			UID         string   `json:"uid"`
-			Name        string   `json:"name"`
-			Type        string   `json:"type"`
-			Aliases     []string `json:"aliases"`
-			Description string   `json:"description"`
-			CreatedBy   string   `json:"created_by"`
-			CreatedAt   int64    `json:"created_at"`
+			UID                 string   `json:"uid"`
+			Name                string   `json:"name"`
+			Type                string   `json:"type"`
+			Aliases             []string `json:"aliases"`
+			LocalPreferredAlias string   `json:"local_preferred_alias,omitempty"` // First alias for this node, used for display
+			Description         string   `json:"description"`
+			CreatedBy           string   `json:"created_by"`
+			CreatedAt           int64    `json:"created_at"`
 		}
 
 		var projects []ProjectOutput
@@ -62,9 +63,9 @@ var LsCmd = &cobra.Command{
 
 			// Get aliases for this project
 			aliasRows, err := db.Db.Query(`
-				SELECT alias FROM project_aliases
-				WHERE project_uid = ? AND node = ?
-			`, projectUID, nodeID)
+			SELECT alias FROM project_aliases
+			WHERE project_uid = ? AND node = ?
+		`, projectUID, nodeID)
 			if err != nil {
 				return err
 			}
@@ -80,14 +81,21 @@ var LsCmd = &cobra.Command{
 			}
 			aliasRows.Close()
 
+			// Set preferred alias to first local alias (if any exist)
+			localPreferredAlias := ""
+			if len(aliases) > 0 {
+				localPreferredAlias = aliases[0]
+			}
+
 			projects = append(projects, ProjectOutput{
-				UID:         projectUID,
-				Name:        name,
-				Type:        typ,
-				Aliases:     aliases,
-				Description: description,
-				CreatedBy:   createdBy,
-				CreatedAt:   createdAt,
+				UID:                 projectUID,
+				Name:                name,
+				Type:                typ,
+				Aliases:             aliases,
+				LocalPreferredAlias: localPreferredAlias,
+				Description:         description,
+				CreatedBy:           createdBy,
+				CreatedAt:           createdAt,
 			})
 		}
 
