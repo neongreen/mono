@@ -451,6 +451,7 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   private groupItems: GroupTreeItem[] = [];
   private treeView?: vscode.TreeView<TkTreeItem>;
   private collapseCounter: number = 0;
+  private displayedTaskItems: TaskTreeItem[] = [];
 
   constructor(private readonly decorationProvider: TkDecorationProvider) {
     void this.refresh();
@@ -533,21 +534,31 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
     if (!element) {
       // Apply filtering when getting root children
       // Filter groups first, then create TreeItems to avoid unnecessary object creation
+      // Store task items for decoration provider
+      const allDisplayedTasks: TaskTreeItem[] = [];
+      
       this.groupItems = this.rawGroups
         .map(group => {
           const filteredTasks = this.filterTasksByStatus(group.tasks);
           const groupName = group.group ?? 'unnamed';
           // Include collapse counter in ID to force VS Code to forget expansion state when collapsed
           const uniqueId = `${groupName}-${this.collapseCounter}`;
+          const taskItems = filteredTasks.map((task) => new TaskTreeItem(task));
+          allDisplayedTasks.push(...taskItems);
           return new GroupTreeItem(
             groupName,
-            filteredTasks.map((task) => new TaskTreeItem(task)),
+            taskItems,
             uniqueId,
           );
         });
 
       const filteredUngrouped = this.filterTasksByStatus(this.rawUngrouped);
       const ungrouped = filteredUngrouped.map((task) => new TaskTreeItem(task));
+      allDisplayedTasks.push(...ungrouped);
+
+      // Update decoration provider with the actual displayed items
+      this.displayedTaskItems = allDisplayedTasks;
+      this.decorationProvider.updateTaskItems(this.displayedTaskItems);
 
       return [...this.groupItems, ...ungrouped];
     }
@@ -567,18 +578,8 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       this.rawGroups = tasks.groups;
       this.rawUngrouped = tasks.tasks;
 
-      // Collect all task items for decoration provider (unfiltered)
-      const allTaskItems: TaskTreeItem[] = [];
-      for (const group of tasks.groups) {
-        for (const task of group.tasks) {
-          allTaskItems.push(new TaskTreeItem(task));
-        }
-      }
-      for (const task of tasks.tasks) {
-        allTaskItems.push(new TaskTreeItem(task));
-      }
-      this.decorationProvider.updateTaskItems(allTaskItems);
-
+      // Notify tree view to refresh, which will call getChildren()
+      // getChildren() will create the task items and update the decoration provider
       this._onDidChangeTreeData.fire(undefined);
     } catch (error) {
       this.rawGroups = [];
