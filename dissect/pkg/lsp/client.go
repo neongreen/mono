@@ -24,6 +24,7 @@ type Client struct {
 	rootURI    string
 	mu         sync.Mutex
 	pending    map[int64]chan *Response
+	openDocs   map[string]int // URI -> version
 	serverInfo ServerInfo
 }
 
@@ -98,13 +99,14 @@ func NewClient(goplsPath string, workspaceRoot string) (*Client, error) {
 	}
 
 	client := &Client{
-		cmd:     cmd,
-		stdin:   stdin,
-		stdout:  stdout,
-		stderr:  stderr,
-		reader:  bufio.NewReader(stdout),
-		rootURI: rootURI,
-		pending: make(map[int64]chan *Response),
+		cmd:      cmd,
+		stdin:    stdin,
+		stdout:   stdout,
+		stderr:   stderr,
+		reader:   bufio.NewReader(stdout),
+		rootURI:  rootURI,
+		pending:  make(map[int64]chan *Response),
+		openDocs: make(map[string]int),
 	}
 
 	// Start reading responses in background
@@ -305,9 +307,10 @@ func (c *Client) readMessage() ([]byte, error) {
 			break // End of headers
 		}
 
-		var key, value string
+		var key string
+		var value int
 		if _, err := fmt.Sscanf(line, "%s %d", &key, &value); err == nil && key == "Content-Length:" {
-			contentLength = int(value)
+			contentLength = value
 		}
 	}
 

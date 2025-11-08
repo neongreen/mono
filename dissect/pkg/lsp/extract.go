@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/neongreen/mono/dissect/pkg/goutils"
 )
@@ -45,6 +44,7 @@ type ExecuteCommandParams struct {
 }
 
 // ExtractToNewFile extracts a function to a new file using LSP code actions.
+// The source file must be opened with OpenDocument first.
 func (c *Client) ExtractToNewFile(filePath string, funcName string) (newFilePath string, err error) {
 	slog.Debug("Extracting function to new file via LSP",
 		"filePath", filePath, "funcName", funcName)
@@ -55,10 +55,10 @@ func (c *Client) ExtractToNewFile(filePath string, funcName string) (newFilePath
 		return "", fmt.Errorf("error finding function %s: %w", funcName, err)
 	}
 
-	startPos := fset.Position(fn.Name.Pos())
+	startPos := fset.Position(fn.Pos())
 	endPos := fset.Position(fn.End())
 
-	// Prepare code action parameters
+	// Prepare code action parameters - request actions for the entire function
 	params := CodeActionParams{
 		TextDocument: TextDocumentIdentifier{
 			URI: "file://" + filePath,
@@ -72,6 +72,7 @@ func (c *Client) ExtractToNewFile(filePath string, funcName string) (newFilePath
 		Line:      endPos.Line - 1,
 		Character: endPos.Column - 1,
 	}
+	// Request only refactor.extract code actions
 	params.Context.Only = []string{"refactor.extract"}
 
 	// Request code actions
@@ -80,80 +81,97 @@ func (c *Client) ExtractToNewFile(filePath string, funcName string) (newFilePath
 		return "", fmt.Errorf("code action request failed: %w", err)
 	}
 
+	slog.Debug("Received code actions", "count", len(actions))
+
 	// Find the "extract to new file" action
 	var extractAction *CodeAction
 	for i := range actions {
-		if strings.Contains(strings.ToLower(actions[i].Title), "new file") ||
-			strings.Contains(actions[i].Kind, "refactor.extract.toNewFile") {
+		slog.Debug("Code action", "title", actions[i].Title, "kind", actions[i].Kind)
+		// Look for the extract to new file action
+		if actions[i].Kind == "refactor.extract.toNewFile" {
 			extractAction = &actions[i]
 			break
 		}
 	}
 
 	if extractAction == nil {
-		return "", fmt.Errorf("extract to new file action not available for function %s", funcName)
+		return "", fmt.Errorf("extract to new file action not available for function %s (got %d actions)", funcName, len(actions))
 	}
 
 	slog.Debug("Found extract action", "title", extractAction.Title, "kind", extractAction.Kind)
 
 	// Execute the action
-	if extractAction.Edit != nil {
-		// Direct edit
-		if err := c.applyWorkspaceEdit(extractAction.Edit); err != nil {
-			return "", fmt.Errorf("failed to apply edit: %w", err)
-		}
-	} else if extractAction.Command != nil {
-		// Command to execute
+	if extractAction.Command != nil {
+		// Execute the command
 		cmdParams := ExecuteCommandParams{
 			Command:   extractAction.Command.Command,
 			Arguments: extractAction.Command.Arguments,
 		}
 
+		// The result might be a WorkspaceEdit or null
 		var result interface{}
 		if err := c.Call("workspace/executeCommand", cmdParams, &result); err != nil {
 			return "", fmt.Errorf("command execution failed: %w", err)
 		}
 
-		// The result might contain the edits
-		if edit, ok := result.(map[string]interface{}); ok {
-			// Try to parse as WorkspaceEdit
-			var wsEdit WorkspaceEdit
-			if changes, ok := edit["documentChanges"].([]interface{}); ok {
-				// Reconstruct the workspace edit
-				for _, change := range changes {
-					// This is simplified - in practice we'd need proper JSON unmarshaling
-					slog.Debug("Command returned document changes", "changes", len(changes))
+		slog.Debug("Command executed", "result", result != nil)
+
+		// Gopls applies the edits automatically in -write mode, but we need to find what file was created
+		// The command typically doesn't return the workspace edit when executed with -write flag
+	} else if extractAction.Edit != nil {
+		// Direct edit (less common for this action)
+		if err := c.applyWorkspaceEdit(extractAction.Edit); err != nil {
+			return "", fmt.Errorf("failed to apply edit: %w", err)
+		}
+	}
+
+	// Guess the new file path based on gopls's naming convention
+	newFileName := guessGoplsFileName(funcName)
+	newFilePath = filepath.Join(filepath.Dir(filePath), newFileName)
+
+	// Verify the file was created
+	if _, err := os.Stat(newFilePath); os.IsNotExist(err) {
+		// Try to find any new .go file in the directory
+		dirPath := filepath.Dir(filePath)
+		entries, _ := os.ReadDir(dirPath)
+		slog.Debug("Searching for new file in directory", "dir", dirPath)
+		for _, entry := range entries {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".go" {
+				candidate := filepath.Join(dirPath, entry.Name())
+				if candidate != filePath {
+					info, _ := entry.Info()
+					slog.Debug("Found potential new file", "path", candidate, "modTime", info.ModTime())
 				}
 			}
 		}
+		return "", fmt.Errorf("new file not found at expected path: %s", newFilePath)
 	}
 
-	// Guess the new file path
-	// gopls creates files with snake_case names
-	newFileName := guessExtractedFileName(funcName)
-	newFilePath = filepath.Join(filepath.Dir(filePath), newFileName)
-
-	// Check if the file was created
-	if _, err := os.Stat(newFilePath); os.IsNotExist(err) {
-		// Try to find it by checking what new files appeared
-		files, _ := filepath.Glob(filepath.Join(filepath.Dir(filePath), "*.go"))
-		// This is a fallback - the file should have been created
-		slog.Warn("Could not verify new file was created", "expected", newFilePath)
+	// Open the new file in LSP so future operations can work on it
+	if err := c.OpenDocument(newFilePath); err != nil {
+		slog.Warn("Failed to open new file in LSP", "file", newFilePath, "error", err)
 	}
 
+	// Update the source file since it was modified
+	if err := c.UpdateDocument(filePath); err != nil {
+		slog.Warn("Failed to update source file in LSP", "file", filePath, "error", err)
+	}
+
+	slog.Debug("Successfully extracted function", "newFile", newFilePath)
 	return newFilePath, nil
 }
 
-// guessExtractedFileName guesses the file name gopls will create.
-func guessExtractedFileName(funcName string) string {
-	// Convert to snake_case
-	var result strings.Builder
-	for i, r := range funcName {
-		if i > 0 && r >= 'A' && r <= 'Z' {
-			result.WriteRune('_')
+// guessGoplsFileName guesses the file name gopls will create.
+// gopls uses lowercase with no separators for simple names.
+func guessGoplsFileName(funcName string) string {
+	// Simple lowercase conversion - gopls removes underscores and makes it lowercase
+	name := ""
+	for _, r := range funcName {
+		if r >= 'A' && r <= 'Z' {
+			name += string(r + 32) // Convert to lowercase
+		} else if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			name += string(r)
 		}
-		result.WriteRune(r)
 	}
-	name := strings.ToLower(result.String())
-	return fmt.Sprintf("%s.go", name)
+	return name + ".go"
 }

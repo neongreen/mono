@@ -57,6 +57,7 @@ type WorkspaceEdit struct {
 }
 
 // Rename renames a symbol in a Go file using the LSP server.
+// The file must be opened with OpenDocument first.
 func (c *Client) Rename(filePath string, oldName string, newName string) error {
 	slog.Debug("Renaming symbol via LSP", "file", filePath, "old", oldName, "new", newName)
 
@@ -86,9 +87,31 @@ func (c *Client) Rename(filePath string, oldName string, newName string) error {
 		return fmt.Errorf("rename failed: %w", err)
 	}
 
-	// Apply the edits
+	// Apply the edits to the filesystem
 	if err := c.applyWorkspaceEdit(&result); err != nil {
 		return fmt.Errorf("failed to apply edits: %w", err)
+	}
+
+	// Update all affected documents in LSP
+	affectedFiles := make(map[string]struct{})
+	for _, docChange := range result.DocumentChanges {
+		uri := docChange.TextDocument.URI
+		if len(uri) >= 7 && uri[:7] == "file://" {
+			affectedFiles[uri[7:]] = struct{}{}
+		}
+	}
+
+	for filePath := range affectedFiles {
+		// Check if document is open
+		c.mu.Lock()
+		_, isOpen := c.openDocs["file://"+filePath]
+		c.mu.Unlock()
+
+		if isOpen {
+			if err := c.UpdateDocument(filePath); err != nil {
+				slog.Warn("Failed to update document after rename", "file", filePath, "error", err)
+			}
+		}
 	}
 
 	slog.Debug("Successfully renamed symbol", "old", oldName, "new", newName)

@@ -128,7 +128,7 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 	for filePath := range testData.FilesIn {
 		if strings.HasSuffix(filePath, ".go") {
 			slog.Debug("Found Go file for dissect", "file", filePath)
-			main.ProcessFile(filepath.Join(tmpProjectDir, filePath), goplsPath, goimportsPath)
+			main.ProcessFile(filepath.Join(tmpProjectDir, filePath), goplsPath, goimportsPath, nil)
 		} else {
 			slog.Debug("Skipping non-Go file for dissect", "file", filePath)
 		}
@@ -284,7 +284,7 @@ func TestExternalProjects(t *testing.T) {
 
 			// Inject ProcessFile dependency with installed tools
 			config.ProcessFile = func(absPath string) (int, string, error) {
-				status, exclusionReason, err := main.ProcessFile(absPath, goplsPath, goimportsPath)
+				status, exclusionReason, err := main.ProcessFile(absPath, goplsPath, goimportsPath, nil)
 				return int(status), exclusionReason, err
 			}
 
