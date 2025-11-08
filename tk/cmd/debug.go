@@ -23,6 +23,7 @@ func init() {
 	// Database management
 	debugCmd.AddCommand(rebuildFromRemoteCmd)
 	debugCmd.AddCommand(fixTimestampsCmd)
+	debugCmd.AddCommand(debug_pkg.RebuildCmd)
 
 	// Diagnostic commands
 	debugCmd.AddCommand(idCmd)

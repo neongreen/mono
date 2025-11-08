@@ -35,6 +35,8 @@ func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor
 	}
 
 	// Determine number policy
+	// IMPORTANT: We resolve "auto" mode HERE (at event creation time) to make it deterministic.
+	// The projection will just read the number from the event payload.
 	numberPolicy := types.NumberPolicyPayload{Mode: opts.Mode}
 	switch opts.Mode {
 	case "keep":
@@ -46,9 +48,18 @@ func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor
 				return err
 			}
 			if collision {
-				// Switch to auto mode on collision
-				numberPolicy.Mode = "auto"
-				numberPolicy.Number = 0
+				// Compute the next available number NOW
+				var maxNumber int64
+				err = db.Db.QueryRow(`
+					SELECT COALESCE(MAX(number), 0) FROM task_numbers
+					WHERE project_uid = ?
+				`, toProjectUID).Scan(&maxNumber)
+				if err != nil {
+					return fmt.Errorf("failed to compute next number: %w", err)
+				}
+				// Convert to force mode with the computed number
+				numberPolicy.Mode = "force"
+				numberPolicy.Number = maxNumber + 1
 			}
 		} else {
 			// Fail on collision
@@ -61,7 +72,18 @@ func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor
 			}
 		}
 	case "auto":
-		numberPolicy.Number = 0
+		// Resolve "auto" mode to a concrete number NOW (deterministic)
+		var maxNumber int64
+		err = db.Db.QueryRow(`
+			SELECT COALESCE(MAX(number), 0) FROM task_numbers
+			WHERE project_uid = ?
+		`, toProjectUID).Scan(&maxNumber)
+		if err != nil {
+			return fmt.Errorf("failed to compute next number: %w", err)
+		}
+		// Convert to force mode with the computed number
+		numberPolicy.Mode = "force"
+		numberPolicy.Number = maxNumber + 1
 	case "force":
 		numberPolicy.Number = opts.ForceNumber
 	default:

@@ -37,8 +37,9 @@ func IngestFile(db *database.DB, path string) (*IngestFileResult, error) {
 
 	ingested := 0
 	duplicates := 0
-	var projectionErrors []string
+	var insertedEvents []string // Track IDs of newly inserted events
 
+	// Phase 1: Insert all events (bumping Lamport as we go)
 	for _, segEvent := range events {
 		// Convert segment event to types.Event
 		event, err := SegmentEventToEvent(segEvent)
@@ -62,13 +63,35 @@ func IngestFile(db *database.DB, path string) (*IngestFileResult, error) {
 			return nil, fmt.Errorf("failed to bump lamport: %w", err)
 		}
 
-		// Project events into their respective tables
-		if err := db.ProjectEvent(event); err != nil {
-			// Non-fatal error - track and continue processing
-			projectionErrors = append(projectionErrors, fmt.Sprintf("event %s: %v", event.ID, err))
+		insertedEvents = append(insertedEvents, event.ID)
+		ingested++
+	}
+
+	// Phase 2: Project newly inserted events in Lamport timestamp order
+	// We need to fetch these events from the database to get them in correct order
+	var projectionErrors []string
+	if len(insertedEvents) > 0 {
+		// Get all events from DB in Lamport order and project only the newly inserted ones
+		allEvents, err := db.GetEvents()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get events for projection: %w", err)
 		}
 
-		ingested++
+		// Create a set of newly inserted event IDs for fast lookup
+		insertedSet := make(map[string]bool, len(insertedEvents))
+		for _, id := range insertedEvents {
+			insertedSet[id] = true
+		}
+
+		// Project only newly inserted events, in Lamport order
+		for _, event := range allEvents {
+			if insertedSet[event.ID] {
+				if err := db.ProjectEvent(event); err != nil {
+					// Non-fatal error - track and continue processing
+					projectionErrors = append(projectionErrors, fmt.Sprintf("event %s: %v", event.ID, err))
+				}
+			}
+		}
 	}
 
 	// Ensure DB version is set to 4
@@ -140,7 +163,9 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remoteConfig config.R
 	totalDuplicates := 0
 	var segmentErrors []string
 	var projectionErrors []string
+	var insertedEvents []string // Track IDs of newly inserted events
 
+	// Phase 1: Insert all events from all segment files
 	for _, segmentFile := range segmentFiles {
 		reader := segment.NewSegmentReader(segmentFile)
 		events, err := reader.ReadEvents()
@@ -173,13 +198,34 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remoteConfig config.R
 				return nil, fmt.Errorf("failed to bump lamport: %w", err)
 			}
 
-			// Project events into their respective tables
-			if err := db.ProjectEvent(event); err != nil {
-				// Non-fatal error - track and continue processing
-				projectionErrors = append(projectionErrors, fmt.Sprintf("event %s: %v", event.ID, err))
-			}
-
+			insertedEvents = append(insertedEvents, event.ID)
 			totalIngested++
+		}
+	}
+
+	// Phase 2: Project newly inserted events in Lamport timestamp order
+	// This ensures deterministic projection regardless of segment file order
+	if len(insertedEvents) > 0 {
+		// Get all events from DB in Lamport order and project only the newly inserted ones
+		allEvents, err := db.GetEvents()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get events for projection: %w", err)
+		}
+
+		// Create a set of newly inserted event IDs for fast lookup
+		insertedSet := make(map[string]bool, len(insertedEvents))
+		for _, id := range insertedEvents {
+			insertedSet[id] = true
+		}
+
+		// Project only newly inserted events, in Lamport order
+		for _, event := range allEvents {
+			if insertedSet[event.ID] {
+				if err := db.ProjectEvent(event); err != nil {
+					// Non-fatal error - track and continue processing
+					projectionErrors = append(projectionErrors, fmt.Sprintf("event %s: %v", event.ID, err))
+				}
+			}
 		}
 	}
 
