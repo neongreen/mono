@@ -64,7 +64,7 @@ Otherwise, shows all conflicts in the database.`,
 				for _, uuid := range cycle {
 					task, ok := reducer.GetTask(uuid)
 					if ok {
-						taskIDs = append(taskIDs, task.TaskID)
+						taskIDs = append(taskIDs, task.TaskDisplayID)
 					} else {
 						taskIDs = append(taskIDs, uuid)
 					}
@@ -87,7 +87,7 @@ Otherwise, shows all conflicts in the database.`,
 				for _, uuid := range cycle {
 					task, ok := reducer.GetTask(uuid)
 					if ok {
-						taskIDs = append(taskIDs, task.TaskID)
+						taskIDs = append(taskIDs, task.TaskDisplayID)
 					} else {
 						taskIDs = append(taskIDs, uuid)
 					}
@@ -147,7 +147,7 @@ func displayCycles(reducer *reducer.Reducer, cycleType string, cycles [][]string
 		for _, uuid := range cycle {
 			task, ok := reducer.GetTask(uuid)
 			if ok {
-				taskIDs = append(taskIDs, task.TaskID)
+				taskIDs = append(taskIDs, task.TaskDisplayID)
 			} else {
 				taskIDs = append(taskIDs, uuid)
 			}

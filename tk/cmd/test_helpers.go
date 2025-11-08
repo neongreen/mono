@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/neongreen/mono/tk/internal/utils"
+
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/testutil"
@@ -72,12 +74,12 @@ func TestExtractPrefix(t *testing.T) {
 }
 
 func TestGetCurrentUser(t *testing.T) {
-	user, err := getCurrentUser()
+	user, err := utils.GetCurrentUser()
 	if err != nil {
-		t.Skipf("getCurrentUser() error = %v (skipping test)", err)
+		t.Skipf("utils.GetCurrentUser() error = %v (skipping test)", err)
 	}
 	if user == "" {
-		t.Error("getCurrentUser() returned empty string")
+		t.Error("utils.GetCurrentUser() returned empty string")
 	}
 
 	// Should match environment USER or USERNAME
@@ -87,7 +89,7 @@ func TestGetCurrentUser(t *testing.T) {
 	}
 
 	if envUser != "" && user != envUser {
-		t.Errorf("getCurrentUser() = %v, want %v", user, envUser)
+		t.Errorf("utils.GetCurrentUser() = %v, want %v", user, envUser)
 	}
 }
 

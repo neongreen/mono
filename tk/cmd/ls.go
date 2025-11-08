@@ -74,7 +74,8 @@ var lsCmd = &cobra.Command{
 		types.SortTasks(tasks, sortBy)
 
 		if jsonOutput {
-			return outputTasksJSON(db, tasks, groupBy)
+			// JSON output doesn't support grouping, always output flat list
+			return outputTasksJSON(db, tasks)
 		}
 
 		termWidth := termutil.GetTerminalWidth()
@@ -83,9 +84,9 @@ var lsCmd = &cobra.Command{
 		case "project", "prefix":
 			// Group tasks by project
 			getProjectKey := func(task *types.Task) string {
-				projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+				projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 				if err != nil {
-					return task.TaskUUID
+					return task.TaskID
 				}
 				return projectAlias
 			}
@@ -111,9 +112,9 @@ var lsCmd = &cobra.Command{
 			// Calculate column widths once for ALL tasks to ensure consistency across groups
 			displayIDs := make(map[string]string)
 			for _, task := range tasks {
-				displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+				displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
 				if err == nil {
-					displayIDs[task.TaskUUID] = displayID
+					displayIDs[task.TaskID] = displayID
 				}
 			}
 			constraints := DefaultColumnConstraints(termWidth, showAliases)
@@ -144,9 +145,9 @@ var lsCmd = &cobra.Command{
 			// Calculate column widths once for ALL tasks to ensure consistency across groups
 			displayIDs := make(map[string]string)
 			for _, task := range tasks {
-				displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+				displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
 				if err == nil {
-					displayIDs[task.TaskUUID] = displayID
+					displayIDs[task.TaskID] = displayID
 				}
 			}
 			constraints := DefaultColumnConstraints(termWidth, showAliases)

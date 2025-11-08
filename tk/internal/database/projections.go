@@ -230,6 +230,9 @@ func (d *DB) ProjectTaskRelocateEvent(e types.Event) error {
 	}
 
 	// Then add new number based on policy
+	// NOTE: "auto" mode should have been resolved to "force" at event creation time.
+	// However, for backward compatibility with old events, we still handle "auto" mode here.
+	// New events (after our fix) will always use "force" mode.
 	var number int64
 	switch payload.NumberPolicy.Mode {
 	case "force":
@@ -243,7 +246,9 @@ func (d *DB) ProjectTaskRelocateEvent(e types.Event) error {
 			number = oldNumber
 		}
 	case "auto":
-		// Auto-assign next available number
+		// Legacy support: handle old "auto" mode events
+		// This is non-deterministic, but needed for backward compatibility
+		// All new events will use "force" mode instead
 		var maxNumber int64
 		err = d.Db.QueryRow(`
 			SELECT COALESCE(MAX(number), 0) FROM task_numbers 

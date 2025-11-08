@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/utils"
+
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
@@ -34,7 +36,7 @@ var noteCmd = &cobra.Command{
 			displayID = taskRef
 		}
 
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}

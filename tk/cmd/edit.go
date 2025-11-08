@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/utils"
+
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -31,7 +33,7 @@ var editCmd = &cobra.Command{
 			return err
 		}
 
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}

@@ -25,7 +25,7 @@ Examples:
 }
 
 func init() {
-	rootCmd.AddCommand(jsonCmd)
+	RootCmd.AddCommand(jsonCmd)
 }
 
 // Function reference that will be set by main package

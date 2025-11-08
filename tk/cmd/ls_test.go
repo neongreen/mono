@@ -59,7 +59,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 
 	// Add tasks to groups
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}
@@ -75,7 +75,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 	// Filter to only projects that exist in our test
 	var actualOrder []string
 	for _, name := range groupOrder {
-		if contains(expectedOrder, name) {
+		if slices.Contains(expectedOrder, name) {
 			actualOrder = append(actualOrder, name)
 		}
 	}
@@ -89,10 +89,6 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 			t.Errorf("at position %d: expected %q, got %q", i, expectedOrder[i], actualOrder[i])
 		}
 	}
-}
-
-func contains(slice []string, str string) bool {
-	return slices.Contains(slice, str)
 }
 
 func TestLsWithoutProjectFilterShowsAllProjects(t *testing.T) {
@@ -141,7 +137,7 @@ func TestLsWithoutProjectFilterShowsAllProjects(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}
@@ -156,7 +152,7 @@ func TestLsWithoutProjectFilterShowsAllProjects(t *testing.T) {
 	// Verify all projects are shown, including empty ones
 	expectedProjects := []string{"apple", "banana", "cherry", "empty-project"}
 	for _, expected := range expectedProjects {
-		if !contains(groupOrder, expected) {
+		if !slices.Contains(groupOrder, expected) {
 			t.Errorf("expected project %q to be in output, but it wasn't found", expected)
 		}
 	}
@@ -215,7 +211,7 @@ func TestLsWithProjectFilterShowsOnlyFilteredProject(t *testing.T) {
 		taskUIDSet[id] = true
 	}
 	for _, task := range allTasks {
-		if taskUIDSet[task.TaskUUID] {
+		if taskUIDSet[task.TaskID] {
 			filteredTasks = append(filteredTasks, task)
 		}
 	}
@@ -228,7 +224,7 @@ func TestLsWithProjectFilterShowsOnlyFilteredProject(t *testing.T) {
 	// (this is the key behavior being tested)
 
 	for _, task := range filteredTasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}
@@ -245,15 +241,15 @@ func TestLsWithProjectFilterShowsOnlyFilteredProject(t *testing.T) {
 		t.Errorf("expected exactly 1 project in output, got %d: %v", len(groupOrder), groupOrder)
 	}
 
-	if !contains(groupOrder, "apple") {
+	if !slices.Contains(groupOrder, "apple") {
 		t.Errorf("expected 'apple' project in output, but it wasn't found")
 	}
 
 	// Verify other projects don't appear
-	if contains(groupOrder, "banana") {
+	if slices.Contains(groupOrder, "banana") {
 		t.Errorf("'banana' project should not appear when filtering for 'apple'")
 	}
-	if contains(groupOrder, "cherry") {
+	if slices.Contains(groupOrder, "cherry") {
 		t.Errorf("'cherry' project should not appear when filtering for 'apple'")
 	}
 
@@ -302,7 +298,7 @@ func TestLsWithProjectFilterDoesNotShowEmptyProjects(t *testing.T) {
 		taskUIDSet[id] = true
 	}
 	for _, task := range allTasks {
-		if taskUIDSet[task.TaskUUID] {
+		if taskUIDSet[task.TaskID] {
 			filteredTasks = append(filteredTasks, task)
 		}
 	}
@@ -314,7 +310,7 @@ func TestLsWithProjectFilterDoesNotShowEmptyProjects(t *testing.T) {
 	// When project filter is specified, DON'T get all projects
 
 	for _, task := range filteredTasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}
@@ -332,10 +328,10 @@ func TestLsWithProjectFilterDoesNotShowEmptyProjects(t *testing.T) {
 	}
 
 	// Verify other projects don't appear
-	if contains(groupOrder, "apple") {
+	if slices.Contains(groupOrder, "apple") {
 		t.Errorf("'apple' project should not appear when filtering for 'empty-project'")
 	}
-	if contains(groupOrder, "banana") {
+	if slices.Contains(groupOrder, "banana") {
 		t.Errorf("'banana' project should not appear when filtering for 'empty-project'")
 	}
 }
@@ -392,7 +388,7 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskID)
 		if err != nil {
 			continue
 		}

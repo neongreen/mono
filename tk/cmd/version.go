@@ -5,5 +5,5 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(version.NewVersionCommand("tk"))
+	RootCmd.AddCommand(version.NewVersionCommand("tk"))
 }

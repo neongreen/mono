@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/neongreen/mono/tk/internal/utils"
+
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +21,7 @@ var newCmd = &cobra.Command{
 		defer db.Close()
 
 		projectFlag, _ := cmd.Flags().GetString("project")
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}

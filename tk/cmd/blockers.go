@@ -77,7 +77,7 @@ var blockersCmd = &cobra.Command{
 			for _, blocker := range blockers {
 				blockerDisplay, err := database.RenderTaskDisplayID(db, blocker.TaskID)
 				if err != nil {
-					blockerDisplay = blocker.TaskID
+					blockerDisplay = blocker.TaskDisplayID
 				}
 				output.Blockers = append(output.Blockers, BlockerOutput{
 					TaskID:   blockerDisplay,
@@ -109,7 +109,7 @@ var blockersCmd = &cobra.Command{
 		for _, blocker := range blockers {
 			blockerDisplay, err := database.RenderTaskDisplayID(db, blocker.TaskID)
 			if err != nil {
-				blockerDisplay = blocker.TaskID
+				blockerDisplay = blocker.TaskDisplayID
 			}
 			t.AppendRow(table.Row{blocker.Distance, blockerDisplay, blocker.Title})
 		}
@@ -172,10 +172,10 @@ var blockedCmd = &cobra.Command{
 			for _, task := range blockedTasks {
 				var blockerIDs []string
 				for _, b := range task.Blockers {
-					blockerIDs = append(blockerIDs, b.TaskID)
+					blockerIDs = append(blockerIDs, b.TaskDisplayID)
 				}
 				output.Tasks = append(output.Tasks, BlockedTaskOutput{
-					TaskID:   task.TaskID,
+					TaskID:   task.TaskDisplayID,
 					Title:    task.Title,
 					Blockers: blockerIDs,
 				})
@@ -206,11 +206,11 @@ var blockedCmd = &cobra.Command{
 			if len(task.Blockers) > 0 {
 				var blockerIDs []string
 				for _, b := range task.Blockers {
-					blockerIDs = append(blockerIDs, b.TaskID)
+					blockerIDs = append(blockerIDs, b.TaskDisplayID)
 				}
 				blockerSummary = strings.Join(blockerIDs, ", ")
 			}
-			t.AppendRow(table.Row{task.TaskID, task.Title, blockerSummary})
+			t.AppendRow(table.Row{task.TaskDisplayID, task.Title, blockerSummary})
 		}
 
 		fmt.Println(t.Render())

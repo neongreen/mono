@@ -29,7 +29,7 @@ func main() {
 	rOut, wOut, err := os.Pipe()
 	if err != nil {
 		// If pipe creation fails, run without logging
-		if err := cmd.Execute(); err != nil {
+		if err := cmd.RootCmd.Execute(); err != nil {
 			os.Exit(1)
 		}
 		return
@@ -39,7 +39,7 @@ func main() {
 		// Clean up first pipe and run without logging
 		rOut.Close()
 		wOut.Close()
-		if err := cmd.Execute(); err != nil {
+		if err := cmd.RootCmd.Execute(); err != nil {
 			os.Exit(1)
 		}
 		return
@@ -70,7 +70,7 @@ func main() {
 
 	// Execute the command
 	exitCode := 0
-	err = cmd.Execute()
+	err = cmd.RootCmd.Execute()
 	if err != nil {
 		exitCode = 1
 	}

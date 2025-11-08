@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/neongreen/mono/tk/internal/utils"
+
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -116,7 +118,7 @@ func moveTask(db *database.DB, taskRef string, targetSpec string, opts tasks.Mov
 		return err
 	}
 
-	currentUser, err := getCurrentUser()
+	currentUser, err := utils.GetCurrentUser()
 	if err != nil {
 		return err
 	}

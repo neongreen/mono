@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/utils"
+
 	relate_pkg "github.com/neongreen/mono/tk/cmd/relate"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -44,7 +46,7 @@ var dupCmd = &cobra.Command{
 		}
 
 		// Get current user
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}
