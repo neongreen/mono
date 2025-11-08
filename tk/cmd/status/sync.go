@@ -50,8 +50,8 @@ var SyncCmd = &cobra.Command{
 
 		var statuses []SyncStatusOutput
 
-		for remoteName, remote := range config.Remotes {
-			for _, space := range remote.Spaces {
+		for remoteName, remoteConfig := range config.Remotes {
+			for _, space := range remoteConfig.Spaces {
 				// Load local index mirror
 				localIndexPath := filepath.Join(stateDir, "remotes", remoteName, space, "index.json")
 				localIndex, err := loadIndexFile(localIndexPath)
@@ -61,7 +61,7 @@ var SyncCmd = &cobra.Command{
 				}
 
 				// Load remote index
-				remoteIndexPath := filepath.Join(remote.Path, space, "index.json")
+				remoteIndexPath := filepath.Join(remoteConfig.Path, space, "index.json")
 				remoteIndex, err := loadIndexFile(remoteIndexPath)
 				remoteSegCount := 0
 				if err == nil && remoteIndex != nil {

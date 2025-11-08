@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"github.com/neongreen/mono/tk/internal/relations"
-	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/neongreen/mono/tk/internal/utils"
 )
@@ -335,7 +335,7 @@ func (r *Reducer) applyRelationNote(e types.Event) error {
 }
 
 // FinalizeRelations builds relations for all tasks and computes blocked status
-func (r *Reducer) FinalizeRelations(config *sync.Config) {
+func (r *Reducer) FinalizeRelations(config *remote.Config) {
 	// Build relations for all tasks
 	for uuid, task := range r.tasks {
 		task.Relations = r.relations.BuildTaskRelations(uuid)
@@ -357,7 +357,7 @@ func BuildFromEvents(events []types.Event) (*Reducer, error) {
 }
 
 // BuildFromEventsWithConfig builds the current state from events and finalizes relations
-func BuildFromEventsWithConfig(events []types.Event, config *sync.Config) (*Reducer, error) {
+func BuildFromEventsWithConfig(events []types.Event, config *remote.Config) (*Reducer, error) {
 	reducer := NewReducer()
 	for _, e := range events {
 		if err := reducer.Apply(e); err != nil {
