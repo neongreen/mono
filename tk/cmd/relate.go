@@ -102,4 +102,5 @@ var dupCmd = &cobra.Command{
 func init() {
 	relateCmd.AddCommand(relate_pkg.AddCmd)
 	relateCmd.AddCommand(relate_pkg.RemoveCmd)
+	relateCmd.AddCommand(relate_pkg.LsCmd)
 }
