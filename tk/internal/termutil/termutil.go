@@ -7,6 +7,11 @@ import (
 	"golang.org/x/term"
 )
 
+// IsTerminal returns true if stdout is a terminal (not redirected/piped)
+func IsTerminal() bool {
+	return term.IsTerminal(int(os.Stdout.Fd()))
+}
+
 // GetTerminalWidth returns the current terminal width in columns.
 // It tries multiple sources in order:
 // 1. /dev/tty (works even when stdout is redirected/piped)

@@ -10,12 +10,15 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/termutil"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // colorizeStatus returns a colored status string based on the status value
 func colorizeStatus(status string) string {
 	switch status {
+	case "next":
+		return blueStatus(status)
 	case "wip":
 		return yellowStatus(status)
 	case "done", "fixed":
@@ -36,6 +39,9 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	} else {
 		t.AppendHeader(table.Row{"ID", "Status", "P", "Labels", "Title"})
 	}
+
+	// Import termutil for IsTerminal check
+	isTerminal := termutil.IsTerminal()
 
 	t.SetStyle(table.StyleLight)
 	t.Style().Options.SeparateRows = true
@@ -58,24 +64,33 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 		widths = &calculatedWidths
 	}
 
+	// Set word wrapping based on terminal mode
+	// Only wrap in terminal mode, not when piped/redirected (tk-70)
+	var wrapEnforcer table.WidthEnforcer
+	if isTerminal {
+		wrapEnforcer = text.WrapSoft
+	} else {
+		wrapEnforcer = nil // No wrapping when not in terminal
+	}
+
 	// Configure columns with calculated widths
 	// Set both WidthMin and WidthMax to force fixed widths for consistency across groups
 	if showAliases {
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                          // ID
-			{Number: 2, AutoMerge: false, WidthMin: widths.Aliases, WidthMax: widths.Aliases},                                // Aliases
-			{Number: 3, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                                  // Status
-			{Number: 4, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                              // P
-			{Number: 5, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
-			{Number: 6, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},   // Title
+			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                       // ID
+			{Number: 2, AutoMerge: false, WidthMin: widths.Aliases, WidthMax: widths.Aliases},                             // Aliases
+			{Number: 3, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                               // Status
+			{Number: 4, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                           // P
+			{Number: 5, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: wrapEnforcer}, // Labels
+			{Number: 6, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: wrapEnforcer},   // Title
 		})
 	} else {
 		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                          // ID
-			{Number: 2, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                                  // Status
-			{Number: 3, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                              // P
-			{Number: 4, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
-			{Number: 5, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},   // Title
+			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                       // ID
+			{Number: 2, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                               // Status
+			{Number: 3, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                           // P
+			{Number: 4, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: wrapEnforcer}, // Labels
+			{Number: 5, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: wrapEnforcer},   // Title
 		})
 	}
 
@@ -162,6 +177,7 @@ func outputTasksJSON(db *database.DB, tasks []*types.Task) error {
 
 var (
 	// Color formatters for status display
+	blueStatus   = color.New(color.FgBlue).SprintFunc()
 	yellowStatus = color.New(color.FgYellow).SprintFunc()
 	greenStatus  = color.New(color.FgGreen).SprintFunc()
 	redText      = color.New(color.FgRed).SprintFunc()
