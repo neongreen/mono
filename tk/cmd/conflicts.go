@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	conflicts_pkg "github.com/neongreen/mono/tk/cmd/conflicts"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/reducer"
@@ -127,6 +128,7 @@ Otherwise, shows all conflicts in the database.`,
 
 func init() {
 	conflictsCmd.Flags().Bool("json", false, "Output as JSON")
+	conflictsCmd.AddCommand(conflicts_pkg.NumbersCmd)
 }
 
 // displayCycles displays detected cycles for a given relation type

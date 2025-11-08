@@ -154,4 +154,5 @@ This is useful for:
 	rootCmd.AddCommand(syncCmd)
 	rootCmd.AddCommand(debugCmd)
 	rootCmd.AddCommand(projectCmd)
+	rootCmd.AddCommand(metaCmd)
 }
