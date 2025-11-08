@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
-	"github.com/neongreen/mono/tk/internal/remote"
 	"github.com/neongreen/mono/tk/internal/segment"
 	"github.com/spf13/cobra"
 )
@@ -26,7 +25,7 @@ var debugEventsCmd = &cobra.Command{
 		}
 
 		// Get the first remote
-		var remoteConfig config.RemoteConfig
+		var remoteConfig config_pkg.RemoteConfig
 		var remoteName string
 		for name, r := range config.Remotes {
 			remoteConfig = r

@@ -77,7 +77,7 @@ Examples:
 
 // IngestRemote is kept for backward compatibility with cmd/sync.go
 // New code should use remote.IngestRemote directly
-func IngestRemote(db *database.DB, remoteName string, remoteConfig config.RemoteConfig) error {
+func IngestRemote(db *database.DB, remoteName string, remoteConfig config_pkg.RemoteConfig) error {
 	stateDir, err := config_pkg.GetStateDir()
 	if err != nil {
 		return err

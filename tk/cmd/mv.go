@@ -1,24 +1,15 @@
 package cmd
 
 import (
-	"database/sql"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
-
-type moveOptions struct {
-	Mode         string
-	ForceNumber  int64
-	OnCollision  string
-	TargetNumber *int64
-}
 
 var mvCmd = &cobra.Command{
 	Use:   "mv <task> <target>",
@@ -43,14 +34,14 @@ var mvCmd = &cobra.Command{
 	},
 }
 
-func parseMoveOptions(cmd *cobra.Command, targetSpec string) (moveOptions, error) {
+func parseMoveOptions(cmd *cobra.Command, targetSpec string) (tasks.MoveOptions, error) {
 	keep, _ := cmd.Flags().GetBool("keep")
 	auto, _ := cmd.Flags().GetBool("auto")
 	forceFlag, _ := cmd.Flags().GetInt64("force")
 	onCollision, _ := cmd.Flags().GetString("on-collision")
 
 	if onCollision != "fail" && onCollision != "auto" {
-		return moveOptions{}, fmt.Errorf("invalid value for --on-collision: %s (expected fail or auto)", onCollision)
+		return tasks.MoveOptions{}, fmt.Errorf("invalid value for --on-collision: %s (expected fail or auto)", onCollision)
 	}
 
 	// Parse inline target number (alias:number syntax)
@@ -58,7 +49,7 @@ func parseMoveOptions(cmd *cobra.Command, targetSpec string) (moveOptions, error
 	if parts := strings.SplitN(targetSpec, ":", 2); len(parts) == 2 {
 		n, err := strconv.ParseInt(parts[1], 10, 64)
 		if err != nil || n <= 0 {
-			return moveOptions{}, fmt.Errorf("invalid number %q in target %s", parts[1], targetSpec)
+			return tasks.MoveOptions{}, fmt.Errorf("invalid number %q in target %s", parts[1], targetSpec)
 		}
 		inlineNumber = &n
 	}
@@ -74,10 +65,10 @@ func parseMoveOptions(cmd *cobra.Command, targetSpec string) (moveOptions, error
 		modeCount++
 	}
 	if modeCount > 1 {
-		return moveOptions{}, fmt.Errorf("use only one of --keep, --auto, or --force")
+		return tasks.MoveOptions{}, fmt.Errorf("use only one of --keep, --auto, or --force")
 	}
 
-	opts := moveOptions{
+	opts := tasks.MoveOptions{
 		Mode:         "keep",
 		OnCollision:  onCollision,
 		TargetNumber: inlineNumber,
@@ -98,7 +89,7 @@ func parseMoveOptions(cmd *cobra.Command, targetSpec string) (moveOptions, error
 
 	if cmd.Flags().Changed("force") {
 		if forceFlag <= 0 {
-			return moveOptions{}, fmt.Errorf("--force requires a positive integer")
+			return tasks.MoveOptions{}, fmt.Errorf("--force requires a positive integer")
 		}
 		opts.Mode = "force"
 		opts.ForceNumber = forceFlag
@@ -107,17 +98,14 @@ func parseMoveOptions(cmd *cobra.Command, targetSpec string) (moveOptions, error
 	return opts, nil
 }
 
-func moveTask(db *database.DB, taskRef string, targetSpec string, opts moveOptions) error {
+func moveTask(db *database.DB, taskRef string, targetSpec string, opts tasks.MoveOptions) error {
+	// Resolve task reference
 	taskUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
 	if err != nil {
 		return err
 	}
 
-	fromProjectUID, oldNumber, err := taskProjectAndNumber(db, taskUID)
-	if err != nil {
-		return err
-	}
-
+	// Parse target project (strip :number suffix if present)
 	targetRef := targetSpec
 	if idx := strings.IndexRune(targetSpec, ':'); idx != -1 {
 		targetRef = targetSpec[:idx]
@@ -128,81 +116,17 @@ func moveTask(db *database.DB, taskRef string, targetSpec string, opts moveOptio
 		return err
 	}
 
-	if fromProjectUID == toProjectUID && opts.Mode == "keep" && !cmdExplicitNumber(opts) {
-		return fmt.Errorf("task already in project %s", targetRef)
-	}
-
 	currentUser, err := getCurrentUser()
 	if err != nil {
 		return err
 	}
 
-	lamport, err := db.GetNextLamportTS()
-	if err != nil {
+	// Move the task using business logic
+	if err := tasks.Move(db, taskUID, toProjectUID, opts, currentUser); err != nil {
 		return err
 	}
 
-	numberPolicy := types.NumberPolicyPayload{Mode: opts.Mode}
-	switch opts.Mode {
-	case "keep":
-		numberPolicy.Number = oldNumber
-		if opts.OnCollision == "auto" {
-			collision, err := numberCollisionExists(db, toProjectUID, oldNumber, taskUID)
-			if err != nil {
-				return err
-			}
-			if collision {
-				numberPolicy.Mode = "auto"
-				numberPolicy.Number = 0
-			}
-		} else {
-			collision, err := numberCollisionExists(db, toProjectUID, oldNumber, taskUID)
-			if err != nil {
-				return err
-			}
-			if collision {
-				display, _ := database.RenderTaskDisplayID(db, taskUID)
-				return fmt.Errorf("task %s would collide with existing number %d in target project; rerun with --auto or --force", display, oldNumber)
-			}
-		}
-	case "auto":
-		numberPolicy.Number = 0
-	case "force":
-		numberPolicy.Number = opts.ForceNumber
-	default:
-		return fmt.Errorf("unsupported number policy mode %s", opts.Mode)
-	}
-
-	payload := types.TaskRelocatePayload{
-		TaskUID:        taskUID,
-		FromProjectUID: fromProjectUID,
-		ToProjectUID:   toProjectUID,
-		NumberPolicy:   numberPolicy,
-	}
-
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal task.relocate payload: %w", err)
-	}
-
-	event := types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        lamport,
-		CreatedAt: time.Now(),
-		Actor:     currentUser,
-		Role:      "human",
-		Kind:      string(types.EventKindTaskRelocate),
-		Payload:   payloadJSON,
-	}
-
-	if err := db.InsertEvent(event); err != nil {
-		return fmt.Errorf("failed to insert task.relocate event: %w", err)
-	}
-
-	if err := db.ProjectTaskRelocateEvent(event); err != nil {
-		return fmt.Errorf("failed to project task.relocate event: %w", err)
-	}
-
+	// Display success message
 	display, err := database.RenderTaskDisplayID(db, taskUID)
 	if err != nil {
 		return err
@@ -210,42 +134,6 @@ func moveTask(db *database.DB, taskRef string, targetSpec string, opts moveOptio
 
 	fmt.Printf("Moved task %s to %s\n", taskRef, display)
 	return nil
-}
-
-func cmdExplicitNumber(opts moveOptions) bool {
-	return opts.Mode == "force" || (opts.TargetNumber != nil && *opts.TargetNumber > 0)
-}
-
-func taskProjectAndNumber(db *database.DB, taskUID string) (string, int64, error) {
-	var projectUID string
-	if err := db.Db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, taskUID).Scan(&projectUID); err != nil {
-		if err == sql.ErrNoRows {
-			return "", 0, fmt.Errorf("task %s not found", taskUID)
-		}
-		return "", 0, fmt.Errorf("failed to lookup task %s: %w", taskUID, err)
-	}
-
-	var number int64
-	if err := db.Db.QueryRow(`SELECT number FROM task_numbers WHERE task_uid = ?`, taskUID).Scan(&number); err != nil {
-		if err == sql.ErrNoRows {
-			number = 0
-		} else {
-			return "", 0, fmt.Errorf("failed to lookup task number: %w", err)
-		}
-	}
-
-	return projectUID, number, nil
-}
-
-func numberCollisionExists(db *database.DB, projectUID string, number int64, taskUID string) (bool, error) {
-	var count int
-	if err := db.Db.QueryRow(`
-		SELECT COUNT(*) FROM task_numbers
-		WHERE project_uid = ? AND number = ? AND task_uid != ?
-	`, projectUID, number, taskUID).Scan(&count); err != nil {
-		return false, fmt.Errorf("failed to check collisions: %w", err)
-	}
-	return count > 0, nil
 }
 
 func init() {

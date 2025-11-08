@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strings"
 
 	"github.com/fatih/color"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/query"
 	"github.com/neongreen/mono/tk/internal/termutil"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
@@ -49,62 +49,27 @@ var lsCmd = &cobra.Command{
 
 		tasks := reducer.GetAllTasks()
 
+		// Build task UID set for project filtering
+		var taskUIDSet map[string]bool
 		if len(projectFilter) > 0 {
 			taskIDs, err := db.GetTaskIDsByProjects(projectFilter)
 			if err != nil {
 				return err
 			}
-
-			// Filter tasks by project
-			var filtered []*types.Task
-			taskUIDSet := make(map[string]bool)
+			taskUIDSet = make(map[string]bool)
 			for _, id := range taskIDs {
 				taskUIDSet[id] = true
 			}
-			for _, task := range tasks {
-				if taskUIDSet[task.TaskUUID] {
-					filtered = append(filtered, task)
-				}
-			}
-			tasks = filtered
 		}
 
-		if axisFilter != "" {
-			parts := strings.Split(axisFilter, ":")
-			if len(parts) != 2 {
-				return fmt.Errorf("invalid axis filter format, expected axis:state")
-			}
-			axisName := parts[0]
-			stateName := parts[1]
-
-			var filtered []*types.Task
-			for _, task := range tasks {
-				if axis, ok := task.Axes[axisName]; ok {
-					if axis.Effective == stateName {
-						filtered = append(filtered, task)
-					}
-				}
-			}
-			tasks = filtered
+		// Apply filters using query package
+		filterOpts := query.FilterOptions{
+			Projects:      projectFilter,
+			AxisFilter:    axisFilter,
+			BlockedOnly:   blockedOnly,
+			UnblockedOnly: unblockedOnly,
 		}
-
-		if blockedOnly {
-			var filtered []*types.Task
-			for _, task := range tasks {
-				if task.Blocked {
-					filtered = append(filtered, task)
-				}
-			}
-			tasks = filtered
-		} else if unblockedOnly {
-			var filtered []*types.Task
-			for _, task := range tasks {
-				if !task.Blocked {
-					filtered = append(filtered, task)
-				}
-			}
-			tasks = filtered
-		}
+		tasks = query.FilterTasks(tasks, taskUIDSet, filterOpts)
 
 		types.SortTasks(tasks, sortBy)
 
@@ -116,9 +81,15 @@ var lsCmd = &cobra.Command{
 
 		switch groupBy {
 		case "project", "prefix":
-
-			grouped := make(map[string][]*types.Task)
-			var groupOrder []string // To maintain consistent order
+			// Group tasks by project
+			getProjectKey := func(task *types.Task) string {
+				projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+				if err != nil {
+					return task.TaskUUID
+				}
+				return projectAlias
+			}
+			grouped, groupOrder := query.GroupTasks(tasks, groupBy, getProjectKey)
 
 			// Only show all projects (including empty ones) when no project filter is specified
 			if len(projectFilter) == 0 {
@@ -128,25 +99,11 @@ var lsCmd = &cobra.Command{
 				}
 
 				for _, displayName := range allProjects {
-					grouped[displayName] = []*types.Task{}
-					groupOrder = append(groupOrder, displayName)
+					if _, exists := grouped[displayName]; !exists {
+						grouped[displayName] = []*types.Task{}
+						groupOrder = append(groupOrder, displayName)
+					}
 				}
-			}
-
-			for _, task := range tasks {
-
-				projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
-				var groupKey string
-				if err != nil {
-					groupKey = task.TaskUUID
-				} else {
-					groupKey = projectAlias
-				}
-
-				if _, exists := grouped[groupKey]; !exists {
-					groupOrder = append(groupOrder, groupKey)
-				}
-				grouped[groupKey] = append(grouped[groupKey], task)
 			}
 
 			sort.Strings(groupOrder)
@@ -171,11 +128,8 @@ var lsCmd = &cobra.Command{
 			}
 
 		case "status":
-
-			grouped := make(map[string][]*types.Task)
-			var groupOrder []string
-
-			for _, task := range tasks {
+			// Group tasks by status
+			getStatusKey := func(task *types.Task) string {
 				status := ""
 				if axis, ok := task.Axes["generic"]; ok {
 					status = axis.Effective
@@ -183,12 +137,9 @@ var lsCmd = &cobra.Command{
 				if status == "" {
 					status = "(no status)"
 				}
-
-				if _, exists := grouped[status]; !exists {
-					groupOrder = append(groupOrder, status)
-				}
-				grouped[status] = append(grouped[status], task)
+				return status
 			}
+			grouped, groupOrder := query.GroupTasks(tasks, groupBy, getStatusKey)
 
 			// Calculate column widths once for ALL tasks to ensure consistency across groups
 			displayIDs := make(map[string]string)

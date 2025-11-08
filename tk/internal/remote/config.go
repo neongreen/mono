@@ -5,10 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/neongreen/mono/tk/internal/config"
 )
 
 // AddRemote adds a new remote to the configuration
-func AddRemote(cfg *Config, name, remoteType, path string) error {
+func AddRemote(cfg *config.Config, name, remoteType, path string) error {
 	// Validate remote type
 	if err := ValidateRemoteType(remoteType); err != nil {
 		return err
@@ -38,7 +40,7 @@ func AddRemote(cfg *Config, name, remoteType, path string) error {
 }
 
 // RemoveRemote removes a remote from the configuration
-func RemoveRemote(cfg *Config, name string) error {
+func RemoveRemote(cfg *config.Config, name string) error {
 	// Check if remote exists
 	if _, exists := cfg.Remotes[name]; !exists {
 		return fmt.Errorf("remote '%s' not found", name)
@@ -50,7 +52,7 @@ func RemoveRemote(cfg *Config, name string) error {
 }
 
 // GetRemote retrieves a specific remote from the configuration
-func GetRemote(cfg *Config, name string) (*config.RemoteConfig, error) {
+func GetRemote(cfg *config.Config, name string) (*config.RemoteConfig, error) {
 	remote, exists := cfg.Remotes[name]
 	if !exists {
 		return nil, fmt.Errorf("remote '%s' not found", name)
@@ -59,7 +61,7 @@ func GetRemote(cfg *Config, name string) (*config.RemoteConfig, error) {
 }
 
 // ListRemotes returns all configured remotes
-func ListRemotes(cfg *Config) map[string]config.RemoteConfig {
+func ListRemotes(cfg *config.Config) map[string]config.RemoteConfig {
 	return cfg.Remotes
 }
 
