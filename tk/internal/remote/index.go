@@ -9,12 +9,14 @@ import (
 )
 
 // LoadIndexFile loads an index file from the given path
+//
 //nolint:uselesswrapper // Type-safe wrapper for LoadJSON
 func LoadIndexFile(path string) (*IndexFile, error) {
 	return LoadJSON[IndexFile](path)
 }
 
 // SaveIndexFile saves an index file to the given path
+//
 //nolint:uselesswrapper // Type-safe wrapper for SaveJSON
 func SaveIndexFile(path string, index *IndexFile) error {
 	return SaveJSON(path, index)

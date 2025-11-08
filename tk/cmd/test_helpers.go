@@ -1,9 +1,10 @@
 package cmd
 
 import (
-        "github.com/neongreen/mono/tk/internal/utils"
 	"os"
 	"testing"
+
+	"github.com/neongreen/mono/tk/internal/utils"
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/reducer"

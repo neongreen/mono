@@ -18,6 +18,7 @@ tool schemas and provides surgical TOML editing while preserving formatting.`,
 }
 
 // Execute runs the root command
+//
 //nolint:uselesswrapper // Provides stable public API
 func Execute() error {
 	return RootCmd.Execute()

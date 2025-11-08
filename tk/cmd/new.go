@@ -1,8 +1,9 @@
 package cmd
 
 import (
-        "github.com/neongreen/mono/tk/internal/utils"
 	"fmt"
+
+	"github.com/neongreen/mono/tk/internal/utils"
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"

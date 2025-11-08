@@ -1,10 +1,11 @@
 package cmd
 
 import (
-        "github.com/neongreen/mono/tk/internal/utils"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/neongreen/mono/tk/internal/utils"
 
 	relate_pkg "github.com/neongreen/mono/tk/cmd/relate"
 	"github.com/neongreen/mono/tk/internal/database"

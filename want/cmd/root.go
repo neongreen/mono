@@ -48,6 +48,7 @@ It's an interactive assistant that respects your preferences.`,
 }
 
 // Execute runs the root command
+//
 //nolint:uselesswrapper // Provides stable public API
 func Execute() error {
 	return RootCmd.Execute()
