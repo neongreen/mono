@@ -108,25 +108,25 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 
 	// Create tasks
 	tasks["task-a"] = &types.Task{
-		TaskUUID: "task-a",
-		TaskID:   "tk-1",
-		Title:    "Task A",
+		TaskUUID:      "task-a",
+		TaskDisplayID: "tk-1",
+		Title:         "Task A",
 		Axes: map[string]types.AxisStatus{
 			"generic": {Effective: "in_progress"},
 		},
 	}
 	tasks["task-b"] = &types.Task{
-		TaskUUID: "task-b",
-		TaskID:   "tk-2",
-		Title:    "Task B",
+		TaskUUID:      "task-b",
+		TaskDisplayID: "tk-2",
+		Title:         "Task B",
 		Axes: map[string]types.AxisStatus{
 			"generic": {Effective: "in_progress"},
 		},
 	}
 	tasks["task-c"] = &types.Task{
-		TaskUUID: "task-c",
-		TaskID:   "tk-3",
-		Title:    "Task C",
+		TaskUUID:      "task-c",
+		TaskDisplayID: "tk-3",
+		Title:         "Task C",
 		Axes: map[string]types.AxisStatus{
 			"generic": {Effective: "done"},
 		},

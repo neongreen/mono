@@ -10,9 +10,9 @@ import (
 func TestCalculateColumnWidths_Basic(t *testing.T) {
 	tasks := []*types.Task{
 		{
-			TaskID:   "test-1",
-			TaskUUID: "uuid1",
-			Title:    "Test task",
+			TaskDisplayID: "test-1",
+			TaskUUID:      "uuid1",
+			Title:         "Test task",
 			Axes: map[string]types.AxisStatus{
 				"generic": {Effective: "done"},
 			},
@@ -76,10 +76,10 @@ func TestCalculateColumnWidths_Basic(t *testing.T) {
 func TestCalculateColumnWidths_WithAliases(t *testing.T) {
 	tasks := []*types.Task{
 		{
-			TaskID:   "test-1",
-			TaskUUID: "uuid1",
-			Title:    "Test task",
-			Aliases:  []string{"t", "task"},
+			TaskDisplayID: "test-1",
+			TaskUUID:      "uuid1",
+			Title:         "Test task",
+			Aliases:       []string{"t", "task"},
 			Axes: map[string]types.AxisStatus{
 				"generic": {Effective: "wip"},
 			},
@@ -114,10 +114,10 @@ func TestCalculateColumnWidths_WithAliases(t *testing.T) {
 func TestCalculateColumnWidths_LongIDs(t *testing.T) {
 	tasks := []*types.Task{
 		{
-			TaskID:   "very-long-project-name-123",
-			TaskUUID: "uuid1",
-			Title:    "Task",
-			Axes:     map[string]types.AxisStatus{},
+			TaskDisplayID: "very-long-project-name-123",
+			TaskUUID:      "uuid1",
+			Title:         "Task",
+			Axes:          map[string]types.AxisStatus{},
 		},
 	}
 
@@ -164,9 +164,9 @@ func TestCalculateColumnWidths_MinimumHeaderWidths(t *testing.T) {
 func TestCalculateColumnWidths_NarrowTerminal(t *testing.T) {
 	tasks := []*types.Task{
 		{
-			TaskID:   "test-1",
-			TaskUUID: "uuid1",
-			Title:    "Task",
+			TaskDisplayID: "test-1",
+			TaskUUID:      "uuid1",
+			Title:         "Task",
 		},
 	}
 

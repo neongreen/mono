@@ -33,8 +33,8 @@ func TestProjectionDeterminism(t *testing.T) {
 	// Shuffle events for db2
 	shuffled := make([]types.Event, len(events))
 	copy(shuffled, events)
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(shuffled), func(i, j int) {
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(shuffled), func(i, j int) {
 		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
 	})
 
