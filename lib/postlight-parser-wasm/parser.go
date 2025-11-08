@@ -3,12 +3,10 @@
 // This package wraps the Postlight Parser JavaScript library (https://github.com/postlight/parser)
 // and executes it through WebAssembly using the wazero runtime. This approach avoids CGO dependencies
 // while providing access to the full Postlight Parser functionality.
-//
-// IMPORTANT: This implementation requires a pre-compiled WASM bundle of Postlight Parser.
-// See BUILD.md for instructions on creating the WASM bundle. Currently, parser.wasm is a stub.
 package parser
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
@@ -49,8 +47,6 @@ type Parser struct {
 // New creates a new Parser instance that executes Postlight Parser via WASM.
 //
 // The parser must be closed with Close() when done to release resources.
-//
-// Returns an error if the WASM module cannot be compiled (e.g., if parser.wasm is a stub).
 func New(ctx context.Context) (*Parser, error) {
 	// Create wazero runtime
 	r := wazero.NewRuntime(ctx)
@@ -65,7 +61,7 @@ func New(ctx context.Context) (*Parser, error) {
 	compiledModule, err := r.CompileModule(ctx, parserWasmBundle)
 	if err != nil {
 		r.Close(ctx)
-		return nil, fmt.Errorf("failed to compile WASM module (parser.wasm may be a stub - see BUILD.md): %w", err)
+		return nil, fmt.Errorf("failed to compile WASM module: %w", err)
 	}
 
 	return &Parser{
@@ -95,8 +91,8 @@ func (p *Parser) Close(ctx context.Context) error {
 
 // Extract parses HTML content using Postlight Parser and extracts article information.
 //
-// This method calls the Postlight Parser JavaScript library compiled to WASM. The actual
-// Postlight Parser provides sophisticated article extraction including:
+// This method calls the Postlight Parser JavaScript library compiled to WASM via Javy.
+// The Postlight Parser provides sophisticated article extraction including:
 // - Smart content detection and cleaning
 // - Author and date extraction
 // - Lead image identification
@@ -108,8 +104,6 @@ func (p *Parser) Close(ctx context.Context) error {
 //   - html: The HTML content to parse
 //
 // Returns the extracted article information or an error.
-//
-// Note: This implementation requires a proper parser.wasm bundle. See BUILD.md.
 func (p *Parser) Extract(ctx context.Context, url string, html string) (*Article, error) {
 	if url == "" {
 		return nil, fmt.Errorf("url cannot be empty")
@@ -117,13 +111,6 @@ func (p *Parser) Extract(ctx context.Context, url string, html string) (*Article
 	if html == "" {
 		return nil, fmt.Errorf("html cannot be empty")
 	}
-
-	// Instantiate the WASM module
-	mod, err := p.runtime.InstantiateModule(ctx, p.module, wazero.NewModuleConfig())
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate WASM module: %w", err)
-	}
-	defer mod.Close(ctx)
 
 	// Create input JSON for Postlight Parser
 	input := map[string]string{
@@ -135,29 +122,42 @@ func (p *Parser) Extract(ctx context.Context, url string, html string) (*Article
 		return nil, fmt.Errorf("failed to marshal input: %w", err)
 	}
 
-	// Call the parse function in WASM
-	// The WASM module should export a "parse" function that:
-	// 1. Takes a pointer to input JSON and its length
-	// 2. Calls Postlight Parser with the URL and HTML
-	// 3. Returns a pointer to result JSON and its length
-	parseFunc := mod.ExportedFunction("parse")
-	if parseFunc == nil {
-		return nil, fmt.Errorf("WASM module does not export 'parse' function - parser.wasm may be a stub (see BUILD.md)")
+	// Javy uses stdin/stdout for I/O
+	stdin := bytes.NewReader(inputJSON)
+	var stdout bytes.Buffer
+
+	// Configure module with stdin/stdout
+	config := wazero.NewModuleConfig().
+		WithStdin(stdin).
+		WithStdout(&stdout)
+
+	// Instantiate and run the WASM module
+	mod, err := p.runtime.InstantiateModule(ctx, p.module, config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate WASM module: %w", err)
+	}
+	defer mod.Close(ctx)
+
+	// The module runs on instantiation with Javy
+	// Read the output from stdout
+	outputJSON := stdout.Bytes()
+	if len(outputJSON) == 0 {
+		return nil, fmt.Errorf("WASM module produced no output")
 	}
 
-	// TODO: Complete WASM function call implementation
-	// This requires:
-	// 1. Allocating memory in WASM for input
-	// 2. Copying inputJSON to WASM memory
-	// 3. Calling parseFunc with memory pointers
-	// 4. Reading result from WASM memory
-	// 5. Freeing allocated memory
-	_ = inputJSON
+	// Check if the output is an error
+	var errResult struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(outputJSON, &errResult); err == nil && errResult.Error != "" {
+		return nil, fmt.Errorf("parser error: %s", errResult.Error)
+	}
 
 	// Parse the result JSON into Article struct
 	var article Article
-	// TODO: Get resultJSON from WASM
-	// err = json.Unmarshal(resultJSON, &article)
+	if err := json.Unmarshal(outputJSON, &article); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal result: %w (output: %s)", err, string(outputJSON))
+	}
 
-	return &article, fmt.Errorf("WASM execution not fully implemented - requires proper parser.wasm bundle with Postlight Parser (see BUILD.md)")
+	return &article, nil
 }
