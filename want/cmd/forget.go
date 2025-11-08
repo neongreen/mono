@@ -23,5 +23,5 @@ but does not uninstall or delete the actual tool or repository.`,
 }
 
 func init() {
-	rootCmd.AddCommand(forgetCmd)
+	RootCmd.AddCommand(forgetCmd)
 }

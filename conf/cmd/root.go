@@ -6,7 +6,7 @@ import (
 
 var dryRun bool
 
-var rootCmd = &cobra.Command{
+var RootCmd = &cobra.Command{
 	Use:   "conf",
 	Short: "Smart configuration manager with autocompletion",
 	Long: `conf is a smart config manager that provides intelligent configuration 
@@ -18,24 +18,25 @@ tool schemas and provides surgical TOML editing while preserving formatting.`,
 }
 
 // Execute runs the root command
+//nolint:uselesswrapper // Provides stable public API
 func Execute() error {
-	return rootCmd.Execute()
+	return RootCmd.Execute()
 }
 
 func init() {
 	// Add dry-run flag to root command
-	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would be changed without making any modifications")
+	RootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would be changed without making any modifications")
 
 	// Register all commands
-	rootCmd.AddCommand(jjCmd)
-	rootCmd.AddCommand(claudeCmd)
-	rootCmd.AddCommand(miseCmd)
-	rootCmd.AddCommand(starshipCmd)
-	rootCmd.AddCommand(shimsCmd)
-	rootCmd.AddCommand(applyCmd)
-	rootCmd.AddCommand(statusCmd)
-	rootCmd.AddCommand(syncCmd)
-	rootCmd.AddCommand(importCmd)
-	rootCmd.AddCommand(completionCmd)
-	rootCmd.AddCommand(versionCmd)
+	RootCmd.AddCommand(jjCmd)
+	RootCmd.AddCommand(claudeCmd)
+	RootCmd.AddCommand(miseCmd)
+	RootCmd.AddCommand(starshipCmd)
+	RootCmd.AddCommand(shimsCmd)
+	RootCmd.AddCommand(applyCmd)
+	RootCmd.AddCommand(statusCmd)
+	RootCmd.AddCommand(syncCmd)
+	RootCmd.AddCommand(importCmd)
+	RootCmd.AddCommand(completionCmd)
+	RootCmd.AddCommand(versionCmd)
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+        "github.com/neongreen/mono/tk/internal/utils"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -44,7 +45,7 @@ var dupCmd = &cobra.Command{
 		}
 
 		// Get current user
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}

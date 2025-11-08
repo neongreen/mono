@@ -209,11 +209,13 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remoteConfig config.R
 }
 
 // LoadIngestWatermark loads the ingest watermark from a file
+//nolint:uselesswrapper // Type-safe wrapper for LoadJSON
 func LoadIngestWatermark(path string) (*IngestWatermark, error) {
 	return LoadJSON[IngestWatermark](path)
 }
 
 // SaveIngestWatermark saves an ingest watermark to a file
+//nolint:uselesswrapper // Type-safe wrapper for SaveJSON
 func SaveIngestWatermark(path string, watermark *IngestWatermark) error {
 	return SaveJSON(path, watermark)
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+        "github.com/neongreen/mono/tk/internal/utils"
 	"fmt"
 	"strings"
 
@@ -31,7 +32,7 @@ var editCmd = &cobra.Command{
 			return err
 		}
 
-		currentUser, err := getCurrentUser()
+		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}

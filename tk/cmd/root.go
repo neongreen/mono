@@ -4,15 +4,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{
+var RootCmd = &cobra.Command{
 	Use:   "tk",
 	Short: "tk - system-wide event-sourced task tracker",
 	Long:  `tk is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.`,
 }
 
 // Execute runs the root command
+//nolint:uselesswrapper // Provides stable public API
 func Execute() error {
-	return rootCmd.Execute()
+	return RootCmd.Execute()
 }
 
 // Always use project-based path
@@ -88,7 +89,7 @@ func Execute() error {
 // No grouping - render single table
 
 func init() {
-	rootCmd.AddCommand(initCmd)
+	RootCmd.AddCommand(initCmd)
 
 	dbCmd := &cobra.Command{
 		Use:   "db",
@@ -108,18 +109,18 @@ This is useful for:
 	}
 	dbPathCmd.Flags().Bool("json", false, "Output as JSON")
 	dbCmd.AddCommand(dbPathCmd)
-	rootCmd.AddCommand(dbCmd)
+	RootCmd.AddCommand(dbCmd)
 
 	newCmd.Flags().StringP("project", "p", "tk", "Project alias or UID to use")
-	rootCmd.AddCommand(newCmd)
+	RootCmd.AddCommand(newCmd)
 
-	rootCmd.AddCommand(markCmd)
-	rootCmd.AddCommand(statusCmd)
+	RootCmd.AddCommand(markCmd)
+	RootCmd.AddCommand(statusCmd)
 
-	rootCmd.AddCommand(noteCmd)
+	RootCmd.AddCommand(noteCmd)
 
 	showCmd.Flags().Bool("json", false, "Output as JSON")
-	rootCmd.AddCommand(showCmd)
+	RootCmd.AddCommand(showCmd)
 
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
@@ -129,26 +130,26 @@ This is useful for:
 	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
 	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
 	lsCmd.Flags().Bool("json", false, "Output tasks as JSON")
-	rootCmd.AddCommand(lsCmd)
+	RootCmd.AddCommand(lsCmd)
 
-	rootCmd.AddCommand(editCmd)
-	rootCmd.AddCommand(describeCmd)
-	rootCmd.AddCommand(rmCmd)
-	rootCmd.AddCommand(mvCmd)
-	rootCmd.AddCommand(relateCmd)
-	rootCmd.AddCommand(dupCmd)
-	rootCmd.AddCommand(blockersCmd)
-	rootCmd.AddCommand(blockedCmd)
-	rootCmd.AddCommand(graphCmd)
-	rootCmd.AddCommand(conflictsCmd)
-	rootCmd.AddCommand(remoteCmd)
-	rootCmd.AddCommand(exportCmd)
-	rootCmd.AddCommand(ingestCmd)
-	rootCmd.AddCommand(importBeadsCmd)
-	rootCmd.AddCommand(pushCmd)
-	rootCmd.AddCommand(pullCmd)
-	rootCmd.AddCommand(syncCmd)
-	rootCmd.AddCommand(debugCmd)
-	rootCmd.AddCommand(projectCmd)
-	rootCmd.AddCommand(metaCmd)
+	RootCmd.AddCommand(editCmd)
+	RootCmd.AddCommand(describeCmd)
+	RootCmd.AddCommand(rmCmd)
+	RootCmd.AddCommand(mvCmd)
+	RootCmd.AddCommand(relateCmd)
+	RootCmd.AddCommand(dupCmd)
+	RootCmd.AddCommand(blockersCmd)
+	RootCmd.AddCommand(blockedCmd)
+	RootCmd.AddCommand(graphCmd)
+	RootCmd.AddCommand(conflictsCmd)
+	RootCmd.AddCommand(remoteCmd)
+	RootCmd.AddCommand(exportCmd)
+	RootCmd.AddCommand(ingestCmd)
+	RootCmd.AddCommand(importBeadsCmd)
+	RootCmd.AddCommand(pushCmd)
+	RootCmd.AddCommand(pullCmd)
+	RootCmd.AddCommand(syncCmd)
+	RootCmd.AddCommand(debugCmd)
+	RootCmd.AddCommand(projectCmd)
+	RootCmd.AddCommand(metaCmd)
 }

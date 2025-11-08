@@ -14,7 +14,7 @@ var (
 	planJSON bool
 )
 
-var rootCmd = &cobra.Command{
+var RootCmd = &cobra.Command{
 	Use:   "want",
 	Short: "want - Interactive task fulfillment tool for macOS",
 	Long: `want helps you get things you need on your system through CLI commands.
@@ -36,13 +36,14 @@ It's an interactive assistant that respects your preferences.`,
 }
 
 // Execute runs the root command
+//nolint:uselesswrapper // Provides stable public API
 func Execute() error {
-	return rootCmd.Execute()
+	return RootCmd.Execute()
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would be done without doing it")
-	rootCmd.PersistentFlags().BoolVar(&planJSON, "plan-json", false, "Output the fulfillment plan as JSON")
+	RootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Show what would be done without doing it")
+	RootCmd.PersistentFlags().BoolVar(&planJSON, "plan-json", false, "Output the fulfillment plan as JSON")
 }
 
 func ensureConfigDirectory() error {

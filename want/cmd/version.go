@@ -5,5 +5,5 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(version.NewVersionCommand("want"))
+	RootCmd.AddCommand(version.NewVersionCommand("want"))
 }
