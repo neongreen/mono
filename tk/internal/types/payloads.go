@@ -5,7 +5,7 @@ import "encoding/json"
 // TaskStatusSetPayload is the payload for task.status.set events
 type TaskStatusSetPayload struct {
 	TaskUUID string `json:"task_uuid,omitempty"` // New field for UUID-based updates
-	TaskID   string `json:"task_id"`             // Legacy field, still required for now
+	TaskID   string `json:"task_id"`             // Legacy: only for reading old events. See tk-190 for removal plan.
 	Axis     string `json:"axis"`                // e.g. "generic"
 	State    string `json:"state"`               // e.g. "in_progress", "done", "blocked"
 	Role     string `json:"role"`                // human / agent / bot / qa / rel
@@ -14,7 +14,7 @@ type TaskStatusSetPayload struct {
 // TaskNoteAddPayload is the payload for task.note.add events
 type TaskNoteAddPayload struct {
 	TaskUUID string `json:"task_uuid,omitempty"` // New field for UUID-based updates
-	TaskID   string `json:"task_id"`             // Legacy field, still required for now
+	TaskID   string `json:"task_id"`             // Legacy: only for reading old events. See tk-190 for removal plan.
 	Markdown string `json:"markdown"`
 }
 
