@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"time"
-
-	"github.com/neongreen/mono/tk/internal/utils"
 
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -41,41 +39,8 @@ var rmCmd = &cobra.Command{
 			return err
 		}
 
-		eventID, err := database.GenerateEventID(db)
-		if err != nil {
+		if err := tasks.Delete(db, taskUUID, currentUser); err != nil {
 			return err
-		}
-
-		lamportTS, err := db.GetNextLamportTS()
-		if err != nil {
-			return err
-		}
-
-		payload := types.TaskDeletePayload{
-			TaskUUID: taskUUID,
-		}
-		payloadJSON, err := json.Marshal(payload)
-		if err != nil {
-			return fmt.Errorf("failed to marshal payload: %w", err)
-		}
-
-		now := time.Now()
-		event := types.Event{
-			ID:        eventID,
-			TS:        lamportTS,
-			CreatedAt: now,
-			Actor:     currentUser,
-			Role:      "human",
-			Kind:      string(types.EventKindTaskDelete),
-			Payload:   payloadJSON,
-		}
-
-		if err := db.InsertEvent(event); err != nil {
-			return err
-		}
-
-		if err := db.ProjectTaskDeleteEvent(event); err != nil {
-			return fmt.Errorf("failed to project task.delete event: %w", err)
 		}
 
 		fmt.Printf("Deleted task %s\n", displayID)
