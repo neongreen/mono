@@ -36,6 +36,31 @@ interface TkNote {
   timestamp?: string;
 }
 
+interface RelationEdge {
+  dst?: string;
+  note?: string;
+}
+
+interface Relations {
+  blocks?: {
+    out?: RelationEdge[];
+    in?: RelationEdge[];
+  };
+  subtask?: {
+    children?: string[];
+    parent?: string;
+  };
+  related?: {
+    out?: RelationEdge[];
+  };
+  duplicate_of?: {
+    out?: RelationEdge[];
+  };
+  supersedes?: {
+    out?: RelationEdge[];
+  };
+}
+
 interface TkTask {
   uuid?: string;
   display_id?: string;
@@ -45,6 +70,7 @@ interface TkTask {
   blocked?: boolean;
   blockers?: Array<{ display_id?: string; title?: string }>;
   notes?: TkNote[];
+  relations?: Relations;
 }
 
 interface TkGroup {
@@ -80,8 +106,9 @@ class GroupTreeItem extends vscode.TreeItem {
 
 class TaskTreeItem extends vscode.TreeItem {
   public readonly statusColor?: vscode.ThemeColor;
+  public children?: TaskTreeItem[];
 
-  constructor(public readonly task: TkTask) {
+  constructor(public readonly task: TkTask, children?: TaskTreeItem[]) {
     // Extract just the number from display_id (e.g., "foo-123" -> "#123")
     let label = task.display_id ?? task.title ?? 'unnamed task';
     if (task.display_id) {
@@ -90,7 +117,14 @@ class TaskTreeItem extends vscode.TreeItem {
         label = `#${match[1]}`;
       }
     }
-    super(label, vscode.TreeItemCollapsibleState.None);
+    
+    // Make collapsible if it has children
+    const collapsibleState = children && children.length > 0 
+      ? vscode.TreeItemCollapsibleState.Collapsed
+      : vscode.TreeItemCollapsibleState.None;
+    
+    super(label, collapsibleState);
+    this.children = children;
 
     const genericAxis = task.axes?.['generic'];
     const state = genericAxis?.effective ?? 'unknown';
@@ -570,13 +604,28 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       // Store task items for decoration provider
       const allDisplayedTasks: TaskTreeItem[] = [];
       
+      // Build task map for subtask resolution
+      const taskMap = new Map<string, TkTask>();
+      for (const group of this.rawGroups) {
+        for (const task of group.tasks) {
+          if (task.uuid) {
+            taskMap.set(task.uuid, task);
+          }
+        }
+      }
+      for (const task of this.rawUngrouped) {
+        if (task.uuid) {
+          taskMap.set(task.uuid, task);
+        }
+      }
+      
       this.groupItems = this.rawGroups
         .map(group => {
           const filteredTasks = this.filterTasksByStatus(group.tasks);
           const groupName = group.group ?? 'unnamed';
           // Include collapse counter in ID to force VS Code to forget expansion state when collapsed
           const uniqueId = `${groupName}-${this.collapseCounter}`;
-          const taskItems = filteredTasks.map((task) => new TaskTreeItem(task));
+          const taskItems = filteredTasks.map((task) => this.buildTaskTree(task, taskMap));
           allDisplayedTasks.push(...taskItems);
           return new GroupTreeItem(
             groupName,
@@ -586,7 +635,7 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
         });
 
       const filteredUngrouped = this.filterTasksByStatus(this.rawUngrouped);
-      const ungrouped = filteredUngrouped.map((task) => new TaskTreeItem(task));
+      const ungrouped = filteredUngrouped.map((task) => this.buildTaskTree(task, taskMap));
       allDisplayedTasks.push(...ungrouped);
 
       // Update decoration provider with the actual displayed items
@@ -600,7 +649,33 @@ class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       return element.children;
     }
 
+    if (element instanceof TaskTreeItem) {
+      return element.children ?? [];
+    }
+
     return [];
+  }
+
+  private buildTaskTree(task: TkTask, taskMap: Map<string, TkTask>, renderedSubtasks: Set<string> = new Set()): TaskTreeItem {
+    // Get subtasks for this task
+    const subtaskUUIDs = task.relations?.subtask?.children ?? [];
+    const subtaskItems: TaskTreeItem[] = [];
+    
+    for (const uuid of subtaskUUIDs) {
+      // Skip if this subtask was already rendered under another parent (tk-vsc-66)
+      if (renderedSubtasks.has(uuid)) {
+        continue;
+      }
+      
+      const subtask = taskMap.get(uuid);
+      if (subtask) {
+        renderedSubtasks.add(uuid);
+        // Recursively build subtask tree (renderedSubtasks prevents cycles)
+        subtaskItems.push(this.buildTaskTree(subtask, taskMap, renderedSubtasks));
+      }
+    }
+    
+    return new TaskTreeItem(task, subtaskItems.length > 0 ? subtaskItems : undefined);
   }
 
   async refresh(): Promise<void> {
