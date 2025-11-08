@@ -53,7 +53,7 @@ var showCmd = &cobra.Command{
 		}
 
 		taskCopy := *task
-		taskCopy.TaskID = displayID
+		taskCopy.TaskDisplayID = displayID
 
 		if jsonOutput {
 			output, err := json.MarshalIndent(taskCopy, "", "  ")
@@ -71,7 +71,7 @@ var showCmd = &cobra.Command{
 
 // renderTaskDetails renders a human-readable view of a single task
 func renderTaskDetails(db *database.DB, task *types.Task) {
-	fmt.Printf("Task: %s\n", boldText(task.TaskID))
+	fmt.Printf("Task: %s\n", boldText(task.TaskDisplayID))
 
 	if task.Title != "" {
 		fmt.Printf("Title: %s\n", task.Title)
@@ -98,7 +98,7 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 		if len(task.Blockers) > 0 {
 			fmt.Println("Blocked by:")
 			for _, blocker := range task.Blockers {
-				blockerID := blocker.TaskID
+				blockerID := blocker.TaskDisplayID
 				title := ""
 				if blocker.Title != "" {
 					title = fmt.Sprintf(" - %s", blocker.Title)

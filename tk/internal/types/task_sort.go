@@ -12,7 +12,7 @@ func SortTasks(tasks []*Task, sortBy string) {
 		})
 	case "id":
 		sort.Slice(tasks, func(i, j int) bool {
-			return tasks[i].TaskID < tasks[j].TaskID
+			return tasks[i].TaskDisplayID < tasks[j].TaskDisplayID
 		})
 	case "title":
 		sort.Slice(tasks, func(i, j int) bool {

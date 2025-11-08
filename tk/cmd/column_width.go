@@ -48,7 +48,7 @@ func CalculateColumnWidths(tasks []*types.Task, displayIDs map[string]string, co
 		// ID width
 		displayID := displayIDs[task.TaskUUID]
 		if displayID == "" {
-			displayID = task.TaskID
+			displayID = task.TaskDisplayID
 		}
 		if len(displayID) > widths.ID {
 			widths.ID = len(displayID)

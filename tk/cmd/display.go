@@ -82,7 +82,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	for _, task := range tasks {
 		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
-			displayID = task.TaskID
+			displayID = task.TaskDisplayID
 		}
 
 		status := ""
@@ -132,13 +132,13 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 }
 
 // outputTasksJSON outputs tasks as a JSON array
-func outputTasksJSON(db *database.DB, tasks []*types.Task, groupBy string) error {
+func outputTasksJSON(db *database.DB, tasks []*types.Task) error {
 	for _, task := range tasks {
 		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
-			displayID = task.TaskID
+			displayID = task.TaskDisplayID
 		}
-		task.TaskID = displayID
+		task.TaskDisplayID = displayID
 	}
 
 	jsonOutput, err := json.MarshalIndent(tasks, "", "  ")

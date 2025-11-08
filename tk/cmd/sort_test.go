@@ -17,14 +17,14 @@ func TestSortTasks_ByCreated(t *testing.T) {
 
 	types.SortTasks(tasks, "created")
 
-	if tasks[0].TaskID != "tk-1" {
-		t.Errorf("Expected first task to be tk-1, got %s", tasks[0].TaskID)
+	if tasks[0].TaskDisplayID != "tk-1" {
+		t.Errorf("Expected first task to be tk-1, got %s", tasks[0].TaskDisplayID)
 	}
-	if tasks[1].TaskID != "tk-2" {
-		t.Errorf("Expected second task to be tk-2, got %s", tasks[1].TaskID)
+	if tasks[1].TaskDisplayID != "tk-2" {
+		t.Errorf("Expected second task to be tk-2, got %s", tasks[1].TaskDisplayID)
 	}
-	if tasks[2].TaskID != "tk-3" {
-		t.Errorf("Expected third task to be tk-3, got %s", tasks[2].TaskID)
+	if tasks[2].TaskDisplayID != "tk-3" {
+		t.Errorf("Expected third task to be tk-3, got %s", tasks[2].TaskDisplayID)
 	}
 }
 
@@ -38,14 +38,14 @@ func TestSortTasks_ByID(t *testing.T) {
 
 	types.SortTasks(tasks, "id")
 
-	if tasks[0].TaskID != "tk-1" {
-		t.Errorf("Expected first task to be tk-1, got %s", tasks[0].TaskID)
+	if tasks[0].TaskDisplayID != "tk-1" {
+		t.Errorf("Expected first task to be tk-1, got %s", tasks[0].TaskDisplayID)
 	}
-	if tasks[1].TaskID != "tk-2" {
-		t.Errorf("Expected second task to be tk-2, got %s", tasks[1].TaskID)
+	if tasks[1].TaskDisplayID != "tk-2" {
+		t.Errorf("Expected second task to be tk-2, got %s", tasks[1].TaskDisplayID)
 	}
-	if tasks[2].TaskID != "tk-3" {
-		t.Errorf("Expected third task to be tk-3, got %s", tasks[2].TaskID)
+	if tasks[2].TaskDisplayID != "tk-3" {
+		t.Errorf("Expected third task to be tk-3, got %s", tasks[2].TaskDisplayID)
 	}
 }
 
@@ -81,14 +81,14 @@ func TestSortTasks_DefaultToCreated(t *testing.T) {
 	// Test with empty string (should default to created)
 	types.SortTasks(tasks, "")
 
-	if tasks[0].TaskID != "tk-1" {
-		t.Errorf("Expected first task to be tk-1, got %s", tasks[0].TaskID)
+	if tasks[0].TaskDisplayID != "tk-1" {
+		t.Errorf("Expected first task to be tk-1, got %s", tasks[0].TaskDisplayID)
 	}
-	if tasks[1].TaskID != "tk-2" {
-		t.Errorf("Expected second task to be tk-2, got %s", tasks[1].TaskID)
+	if tasks[1].TaskDisplayID != "tk-2" {
+		t.Errorf("Expected second task to be tk-2, got %s", tasks[1].TaskDisplayID)
 	}
-	if tasks[2].TaskID != "tk-3" {
-		t.Errorf("Expected third task to be tk-3, got %s", tasks[2].TaskID)
+	if tasks[2].TaskDisplayID != "tk-3" {
+		t.Errorf("Expected third task to be tk-3, got %s", tasks[2].TaskDisplayID)
 	}
 }
 
@@ -103,14 +103,14 @@ func TestSortTasks_UnknownSortType(t *testing.T) {
 	// Test with unknown sort type (should default to created)
 	types.SortTasks(tasks, "invalid")
 
-	if tasks[0].TaskID != "tk-1" {
-		t.Errorf("Expected first task to be tk-1, got %s", tasks[0].TaskID)
+	if tasks[0].TaskDisplayID != "tk-1" {
+		t.Errorf("Expected first task to be tk-1, got %s", tasks[0].TaskDisplayID)
 	}
-	if tasks[1].TaskID != "tk-2" {
-		t.Errorf("Expected second task to be tk-2, got %s", tasks[1].TaskID)
+	if tasks[1].TaskDisplayID != "tk-2" {
+		t.Errorf("Expected second task to be tk-2, got %s", tasks[1].TaskDisplayID)
 	}
-	if tasks[2].TaskID != "tk-3" {
-		t.Errorf("Expected third task to be tk-3, got %s", tasks[2].TaskID)
+	if tasks[2].TaskDisplayID != "tk-3" {
+		t.Errorf("Expected third task to be tk-3, got %s", tasks[2].TaskDisplayID)
 	}
 }
 

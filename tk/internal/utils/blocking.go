@@ -29,9 +29,10 @@ func ComputeBlocked(g *relations.RelationsGraph, tasks map[string]*types.Task, b
 			if !ok {
 
 				activeBlockers = append(activeBlockers, types.Blocker{
-					TaskID:   blocker.TaskUUID,
-					Title:    "(unknown task)",
-					Distance: 1,
+					TaskUUID:      blocker.TaskUUID,
+					TaskDisplayID: blocker.TaskUUID,
+					Title:         "(unknown task)",
+					Distance:      1,
 				})
 				continue
 			}
@@ -45,9 +46,10 @@ func ComputeBlocked(g *relations.RelationsGraph, tasks map[string]*types.Task, b
 
 			if !isDone {
 				activeBlockers = append(activeBlockers, types.Blocker{
-					TaskID:   blockerTask.TaskID,
-					Title:    blockerTask.Title,
-					Distance: 1,
+					TaskUUID:      blockerTask.TaskUUID,
+					TaskDisplayID: blockerTask.TaskDisplayID,
+					Title:         blockerTask.Title,
+					Distance:      1,
 				})
 			}
 		}
@@ -81,9 +83,10 @@ func GetTransitiveBlockers(g *relations.RelationsGraph, taskUUID string, tasks m
 			blockerTask, ok := tasks[blocker.TaskUUID]
 			if !ok {
 				result = append(result, types.Blocker{
-					TaskID:   blocker.TaskUUID,
-					Title:    "(unknown task)",
-					Distance: distance,
+					TaskUUID:      blocker.TaskUUID,
+					TaskDisplayID: blocker.TaskUUID,
+					Title:         "(unknown task)",
+					Distance:      distance,
 				})
 				continue
 			}
@@ -97,9 +100,10 @@ func GetTransitiveBlockers(g *relations.RelationsGraph, taskUUID string, tasks m
 
 			if !isDone {
 				result = append(result, types.Blocker{
-					TaskID:   blockerTask.TaskID,
-					Title:    blockerTask.Title,
-					Distance: distance,
+					TaskUUID:      blockerTask.TaskUUID,
+					TaskDisplayID: blockerTask.TaskDisplayID,
+					Title:         blockerTask.Title,
+					Distance:      distance,
 				})
 
 				dfs(blocker.TaskUUID, distance+1)

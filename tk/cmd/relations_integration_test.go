@@ -155,8 +155,8 @@ func TestRelationGraph_ComputeBlocked(t *testing.T) {
 		t.Errorf("Task B should have 1 blocker, got %d", len(tasks["task-b"].Blockers))
 	}
 
-	if len(tasks["task-b"].Blockers) > 0 && tasks["task-b"].Blockers[0].TaskID != "tk-1" {
-		t.Errorf("Task B should be blocked by tk-1, got %s", tasks["task-b"].Blockers[0].TaskID)
+	if len(tasks["task-b"].Blockers) > 0 && tasks["task-b"].Blockers[0].TaskDisplayID != "tk-1" {
+		t.Errorf("Task B should be blocked by tk-1, got %s", tasks["task-b"].Blockers[0].TaskDisplayID)
 	}
 
 	// Task C should not be blocked

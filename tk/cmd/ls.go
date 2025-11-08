@@ -74,7 +74,8 @@ var lsCmd = &cobra.Command{
 		types.SortTasks(tasks, sortBy)
 
 		if jsonOutput {
-			return outputTasksJSON(db, tasks, groupBy)
+			// JSON output doesn't support grouping, always output flat list
+			return outputTasksJSON(db, tasks)
 		}
 
 		termWidth := termutil.GetTerminalWidth()

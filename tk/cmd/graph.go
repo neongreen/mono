@@ -75,7 +75,7 @@ var graphCmd = &cobra.Command{
 
 				taskDisplay, err := database.RenderTaskDisplayID(db, t.TaskUUID)
 				if err != nil {
-					taskDisplay = t.TaskID
+					taskDisplay = t.TaskDisplayID
 				}
 
 				node := &GraphNode{
@@ -133,7 +133,7 @@ func printRelationTree(db *database.DB, reducer *reducer.Reducer, task *types.Ta
 	if visited[task.TaskUUID] {
 		display, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
-			display = task.TaskID
+			display = task.TaskDisplayID
 		}
 		fmt.Printf("%s%s - %s (already shown above)\n", prefix, display, task.Title)
 		return
@@ -144,7 +144,7 @@ func printRelationTree(db *database.DB, reducer *reducer.Reducer, task *types.Ta
 	if currentDepth > 0 {
 		display, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
-			display = task.TaskID
+			display = task.TaskDisplayID
 		}
 		fmt.Printf("%s%s - %s", prefix, display, task.Title)
 		if task.Blocked {
@@ -189,7 +189,7 @@ func printRelationTree(db *database.DB, reducer *reducer.Reducer, task *types.Ta
 		if !visited[childTask.TaskUUID] {
 			childDisplay, err := database.RenderTaskDisplayID(db, childTask.TaskUUID)
 			if err != nil {
-				childDisplay = childTask.TaskID
+				childDisplay = childTask.TaskDisplayID
 			}
 			fmt.Printf("%s%s - %s", fullPrefix, childDisplay, childTask.Title)
 			if childTask.Blocked {
@@ -246,7 +246,7 @@ func printRelationTreeImpl(db *database.DB, reducer *reducer.Reducer, task *type
 		fullPrefix := prefix + connector
 		childDisplay, err := database.RenderTaskDisplayID(db, childTask.TaskUUID)
 		if err != nil {
-			childDisplay = childTask.TaskID
+			childDisplay = childTask.TaskDisplayID
 		}
 		fmt.Printf("%s%s - %s", fullPrefix, childDisplay, childTask.Title)
 		if childTask.Blocked {
