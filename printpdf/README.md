@@ -13,7 +13,7 @@ A versatile tool for converting various content sources to PDF format using mult
   - Raw URLs: `https://raw.githubusercontent.com/owner/repo/branch/file.md`
   - Commit URLs: `https://github.com/owner/repo/blob/commit-sha/file.md`
   - Commit file URLs: `https://github.com/owner/repo/files/commit-sha/path/to/file.md`
-- **Web pages**: Regular web pages (processed with Mozilla Readability for clean content)
+- **Web pages**: Regular web pages (processed using a Readability algorithm for clean content extraction)
 
 ### PDF Converters
 

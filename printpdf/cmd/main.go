@@ -40,7 +40,7 @@ Input can be:
   - Path to an HTML file
   - URL to a Markdown file
   - GitHub file URL (works with private repos if GITHUB_TOKEN is set)
-  - Web page URL (will be processed with Mozilla Readability)
+  - Web page URL (processed using Readability for clean content extraction)
 
 Examples:
   printpdf README.md
