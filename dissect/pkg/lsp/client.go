@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -197,6 +198,8 @@ func (c *Client) Call(method string, params interface{}, result interface{}) err
 	c.pending[id] = respChan
 	c.mu.Unlock()
 
+	slog.Debug("LSP Call", "method", method, "id", id)
+
 	if err := c.sendMessage(req); err != nil {
 		c.mu.Lock()
 		delete(c.pending, id)
@@ -204,7 +207,9 @@ func (c *Client) Call(method string, params interface{}, result interface{}) err
 		return err
 	}
 
+	slog.Debug("Waiting for response", "method", method, "id", id)
 	resp := <-respChan
+	slog.Debug("Received response", "method", method, "id", id)
 
 	if resp.Error != nil {
 		return fmt.Errorf("RPC error: %s (code: %d)", resp.Error.Message, resp.Error.Code)
@@ -266,6 +271,38 @@ func (c *Client) readLoop() {
 			return
 		}
 
+		slog.Debug("Received LSP message", "length", len(msg))
+
+		// Try to parse as a generic JSON-RPC message to check if it has an ID
+		var generic map[string]interface{}
+		if err := json.Unmarshal(msg, &generic); err == nil {
+			// Check if it's a request from server (has method and id but we didn't send it)
+			if method, hasMethod := generic["method"].(string); hasMethod {
+				if id, hasID := generic["id"]; hasID {
+					// This is a server-initiated request
+					slog.Debug("Received server request", "method", method, "id", id)
+					
+					// Handle workspace/applyEdit
+					if method == "workspace/applyEdit" {
+						c.handleApplyEdit(msg, id)
+						continue
+					}
+					
+					// Send error response for unhandled methods
+					errResp := map[string]interface{}{
+						"jsonrpc": "2.0",
+						"id":      id,
+						"error": map[string]interface{}{
+							"code":    -32601,
+							"message": "Method not found",
+						},
+					}
+					c.sendMessage(errResp)
+					continue
+				}
+			}
+		}
+
 		// Try to parse as response
 		var resp Response
 		if err := json.Unmarshal(msg, &resp); err == nil && resp.ID != 0 {
@@ -277,7 +314,10 @@ func (c *Client) readLoop() {
 			c.mu.Unlock()
 
 			if ok {
+				slog.Debug("Dispatching response", "id", resp.ID)
 				respChan <- &resp
+			} else {
+				slog.Warn("Received response for unknown ID", "id", resp.ID)
 			}
 			continue
 		}
@@ -286,8 +326,56 @@ func (c *Client) readLoop() {
 		var notif Notification
 		if err := json.Unmarshal(msg, &notif); err == nil {
 			slog.Debug("Received LSP notification", "method", notif.Method)
+		} else {
+			slog.Warn("Received unknown LSP message", "content", string(msg)[:min(100, len(msg))])
 		}
 	}
+}
+
+// handleApplyEdit handles workspace/applyEdit requests from the server.
+func (c *Client) handleApplyEdit(msg []byte, id interface{}) {
+	var params struct {
+		Edit WorkspaceEdit `json:"edit"`
+	}
+	
+	// Extract params
+	var req map[string]interface{}
+	json.Unmarshal(msg, &req)
+	if p, ok := req["params"]; ok {
+		paramBytes, _ := json.Marshal(p)
+		json.Unmarshal(paramBytes, &params)
+	}
+	
+	slog.Debug("Applying workspace edit from server")
+	
+	// Apply the edit
+	err := c.applyWorkspaceEdit(&params.Edit)
+	
+	// Send response
+	resp := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      id,
+		"result": map[string]interface{}{
+			"applied": err == nil,
+		},
+	}
+	
+	if err != nil {
+		slog.Error("Failed to apply workspace edit", "error", err)
+		resp["result"] = map[string]interface{}{
+			"applied":      false,
+			"failureReason": err.Error(),
+		}
+	}
+	
+	c.sendMessage(resp)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // readMessage reads a single LSP message.
@@ -301,7 +389,8 @@ func (c *Client) readMessage() ([]byte, error) {
 			return nil, err
 		}
 
-		line = line[:len(line)-2] // Remove \r\n
+		// Trim both \r\n and \n line endings
+		line = strings.TrimSpace(line)
 
 		if line == "" {
 			break // End of headers

@@ -284,6 +284,14 @@ func applyEdit(lines []string, edit TextEdit) []string {
 	// Lines before the edit
 	result = append(result, lines[:startLine]...)
 	
+	// Bounds check
+	if startLine >= len(lines) {
+		return lines
+	}
+	if endLine >= len(lines) {
+		endLine = len(lines) - 1
+	}
+	
 	// First line of edit
 	firstLine := lines[startLine]
 	lineEnd := ""
@@ -298,12 +306,22 @@ func applyEdit(lines []string, edit TextEdit) []string {
 		lastLine = lastLine[:len(lastLine)-1]
 	}
 	
+	// Bounds check for character positions
+	if startChar > len(firstLine) {
+		startChar = len(firstLine)
+	}
+	if endChar > len(lastLine) {
+		endChar = len(lastLine)
+	}
+	
 	// Create the merged line
 	merged := firstLine[:startChar] + edit.NewText + lastLine[endChar:] + lineEnd
 	result = append(result, merged)
 	
 	// Lines after the edit
-	result = append(result, lines[endLine+1:]...)
+	if endLine+1 < len(lines) {
+		result = append(result, lines[endLine+1:]...)
+	}
 	
 	return result
 }
