@@ -1075,70 +1075,51 @@ async function createTask(provider: TkProvider, item: GroupTreeItem): Promise<vo
 }
 
 async function quickCreateTask(provider: TkProvider, treeView: vscode.TreeView<TkTreeItem>): Promise<void> {
-  // Try to detect the project from the current selection
-  let projectName: string | undefined;
-  
-  const selection = treeView.selection;
-  if (selection.length > 0) {
-    const selectedItem = selection[0];
-    
-    if (selectedItem instanceof GroupTreeItem) {
-      // Selected a group, use its name as the project
-      projectName = selectedItem.groupName;
-    } else if (selectedItem instanceof TaskTreeItem) {
-      // Selected a task, find its group
-      const group = provider.findGroupForTask(selectedItem);
-      if (group) {
-        projectName = group.groupName;
-      }
-    }
-  }
-  
-  // If no project detected, fetch available projects and let user pick
-  if (!projectName) {
-    try {
-      const projectMap = await fetchProjects();
-      const projectNames = Array.from(projectMap.values()).map(p => p.local_preferred_alias || p.name);
-      
-      if (projectNames.length === 0) {
-        void vscode.window.showErrorMessage('No projects found. Create a project first.');
-        return;
-      }
-      
-      projectName = await vscode.window.showQuickPick(projectNames, {
-        placeHolder: 'Select a project for the new task',
-      });
-      
-      if (!projectName) {
-        return; // User cancelled
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      void vscode.window.showErrorMessage(`Failed to fetch projects: ${message}`);
-      return;
-    }
-  }
-
-  // Prompt for task title
-  const taskTitle = await vscode.window.showInputBox({
-    prompt: `Create new task in "${projectName}"`,
-    placeHolder: 'Enter task title',
+  // Prompt for task title with inline project support
+  const input = await vscode.window.showInputBox({
+    prompt: 'Create new task',
+    placeHolder: 'Task title (or "project: title" to specify project)',
   });
 
-  if (taskTitle === undefined) {
+  if (input === undefined) {
+    return; // User cancelled
+  }
+
+  if (input.trim() === '') {
+    void vscode.window.showErrorMessage('Task title cannot be empty');
     return;
   }
 
-  if (taskTitle.trim() === '') {
-    void vscode.window.showErrorMessage('Task title cannot be empty');
-    return;
+  // Parse input for "project: title" format
+  const colonIndex = input.indexOf(':');
+  let projectName: string | undefined;
+  let taskTitle: string;
+
+  if (colonIndex > 0 && colonIndex < input.length - 1) {
+    // Has format "project: title"
+    const potentialProject = input.substring(0, colonIndex).trim();
+    const potentialTitle = input.substring(colonIndex + 1).trim();
+    
+    // Only treat as project prefix if there's actual content after the colon
+    if (potentialTitle.length > 0) {
+      projectName = potentialProject;
+      taskTitle = potentialTitle;
+    } else {
+      // Just a colon with nothing after, treat whole thing as title
+      taskTitle = input.trim();
+    }
+  } else {
+    // No colon or colon at start/end, use whole input as title
+    taskTitle = input.trim();
   }
 
   try {
     const { binary, cwd } = getTkConfig();
 
-    // Create task with project
-    const args = ['new', '-p', projectName, taskTitle];
+    // Create task with or without project
+    const args = projectName 
+      ? ['new', '-p', projectName, taskTitle]
+      : ['new', taskTitle];
 
     await execFileAsync(binary, args, {
       cwd,
