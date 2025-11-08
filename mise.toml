@@ -60,6 +60,10 @@ jj git fetch && jj b t "glob:*@origin"
 description = "Lint all Go code"
 run = "golangci-lint run"
 
+[tasks."lint:uselesswrapper"]
+description = "Detect useless function wrappers"
+run = "go run ./lib/linters/uselesswrapper/cmd/uselesswrapper ./..."
+
 [tasks."test:go"]
 description = "Test all Go code"
 run = "go test -run=^$ ./..."

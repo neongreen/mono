@@ -63,82 +63,28 @@ func (h *Helper) getCurrentUser() (string, error) {
 
 ## Usage
 
+### Via mise task (integrated)
+
+```bash
+# Run the linter on the entire repository
+mise run lint:uselesswrapper
+```
+
 ### As a standalone tool
 
 ```bash
-# Build the tool (from repository root)
+# From repository root
+go run ./lib/linters/uselesswrapper/cmd/uselesswrapper ./...
+
+# Or build and run
 go build -o uselesswrapper ./lib/linters/uselesswrapper/cmd/uselesswrapper
-
-# Run on a package
 ./uselesswrapper ./path/to/package
-
-# Run on multiple packages
-./uselesswrapper ./pkg1 ./pkg2 ./pkg3
-
-# Run on entire monorepo
-./uselesswrapper ./...
 ```
 
 ### Running the tests
 
 ```bash
-# From repository root
 go test ./lib/linters/uselesswrapper/...
-
-# Or from the linter directory
-cd lib/linters/uselesswrapper
-go test -v
-```
-
-## Integration
-
-This analyzer can be:
-1. **Run as a standalone tool** (as shown above)
-2. **Integrated into golangci-lint** as a custom linter (see below)
-3. **Added as a mise task** for easy access
-4. **Integrated into CI/CD pipelines** to prevent useless wrappers
-5. **Used with other analysis tools** via the `go/analysis` framework
-
-### Integrating with golangci-lint
-
-To integrate this linter with golangci-lint in this repository:
-
-1. **Build the linter plugin:**
-   ```bash
-   go build -buildmode=plugin -o uselesswrapper.so ./lib/linters/uselesswrapper/cmd/uselesswrapper
-   ```
-
-2. **Add to `.golangci.yml`:**
-   ```yaml
-   linters-settings:
-     custom:
-       uselesswrapper:
-         path: ./uselesswrapper.so
-         description: Detects useless function wrappers
-         original-url: github.com/neongreen/mono/lib/linters/uselesswrapper
-   ```
-
-3. **Enable the linter:**
-   ```yaml
-   linters:
-     enable:
-       - uselesswrapper
-   ```
-
-Note: Custom analyzers in golangci-lint require building as Go plugins, which has platform limitations. For simpler integration, use as a standalone tool or add a mise task.
-
-### Adding as a mise task
-
-Add to `mise.toml`:
-```toml
-[tasks."lint:uselesswrapper"]
-description = "Detect useless function wrappers"
-run = "go run ./lib/linters/uselesswrapper/cmd/uselesswrapper ./..."
-```
-
-Then run with:
-```bash
-mise run lint:uselesswrapper
 ```
 
 ## Implementation
