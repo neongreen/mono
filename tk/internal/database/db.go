@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/neongreen/mono/tk/internal/reducer"
-	"github.com/neongreen/mono/tk/internal/sync"
+	"github.com/neongreen/mono/tk/internal/remote"
 	_ "modernc.org/sqlite"
 )
 
@@ -19,7 +19,7 @@ const (
 type DB struct {
 	Db            *sql.DB          // Exported for internal package access
 	reducerCache  *reducer.Reducer // Cached reducer built from all events
-	reducerConfig *sync.Config     // Config used to build cached reducer
+	reducerConfig *remote.Config   // Config used to build cached reducer
 }
 
 // OpenDB opens or creates a tk database at the given path
