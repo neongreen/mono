@@ -399,4 +399,3 @@ func TestLamportOrderIndependence(t *testing.T) {
 		}
 	})
 }
-

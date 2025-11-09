@@ -98,7 +98,10 @@ func (db *DB) CheckInvariants() error {
 }
 
 // CheckInvariantsT is a test helper that calls CheckInvariants and fails the test if violated
-func (db *DB) CheckInvariantsT(t interface{ Helper(); Fatalf(string, ...interface{}) }) {
+func (db *DB) CheckInvariantsT(t interface {
+	Helper()
+	Fatalf(string, ...interface{})
+}) {
 	t.Helper()
 
 	if err := db.CheckInvariants(); err != nil {
