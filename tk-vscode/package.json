@@ -292,15 +292,22 @@
     "compile:webview": "node build-webview.mjs",
     "watch": "tsc -w -p .",
     "watch:webview": "node build-webview.mjs --watch",
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/he": "^1.2.3",
-    "@types/node": "^18.19.50",
+    "@types/node": "^24.10.0",
     "@types/vscode": "^1.85.0",
+    "@vitest/ui": "^4.0.8",
     "@vscode/vsce": "^3.6.2",
     "esbuild": "^0.24.2",
-    "typescript": "^5.6.3"
+    "happy-dom": "^20.0.10",
+    "typescript": "^5.6.3",
+    "vitest": "^4.0.8"
   },
   "dependencies": {
     "@types/dompurify": "^3.0.5",

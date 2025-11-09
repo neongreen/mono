@@ -215,7 +215,10 @@ export class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
           // Include collapse counter in ID to force VS Code to forget expansion state when collapsed
           const uniqueId = `${groupName}-${this.collapseCounter}`;
           const taskItems = topLevelTasks.map((task) => this.buildTaskTree(task, taskMap));
-          allDisplayedTasks.push(...taskItems);
+          // Collect all tasks including subtasks recursively
+          for (const item of taskItems) {
+            this.collectAllTaskItems(item, allDisplayedTasks);
+          }
           return new GroupTreeItem(
             groupName,
             taskItems,
@@ -227,9 +230,12 @@ export class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
       // Exclude tasks that are subtasks of any parent (tk-vsc-67)
       const topLevelUngrouped = filteredUngrouped.filter(task => !task.uuid || !allSubtaskUUIDs.has(task.uuid));
       const ungrouped = topLevelUngrouped.map((task) => this.buildTaskTree(task, taskMap));
-      allDisplayedTasks.push(...ungrouped);
+      // Collect all tasks including subtasks recursively
+      for (const item of ungrouped) {
+        this.collectAllTaskItems(item, allDisplayedTasks);
+      }
 
-      // Update decoration provider with the actual displayed items
+      // Update decoration provider with the actual displayed items (now including subtasks)
       this.displayedTaskItems = allDisplayedTasks;
       this.decorationProvider.updateTaskItems(this.displayedTaskItems);
 
@@ -247,17 +253,29 @@ export class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
     return [];
   }
 
+  private collectAllTaskItems(item: TaskTreeItem, collection: TaskTreeItem[]): void {
+    // Add the current item to the collection
+    collection.push(item);
+
+    // Recursively add all children (subtasks)
+    if (item.children) {
+      for (const child of item.children) {
+        this.collectAllTaskItems(child, collection);
+      }
+    }
+  }
+
   private buildTaskTree(task: TkTask, taskMap: Map<string, TkTask>, renderedSubtasks: Set<string> = new Set()): TaskTreeItem {
     // Get subtasks for this task
     const subtaskUUIDs = task.relations?.subtask?.children ?? [];
     const subtaskItems: TaskTreeItem[] = [];
-    
+
     for (const uuid of subtaskUUIDs) {
       // Skip if this subtask was already rendered under another parent (tk-vsc-66)
       if (renderedSubtasks.has(uuid)) {
         continue;
       }
-      
+
       const subtask = taskMap.get(uuid);
       if (subtask) {
         renderedSubtasks.add(uuid);
@@ -265,7 +283,7 @@ export class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
         subtaskItems.push(this.buildTaskTree(subtask, taskMap, renderedSubtasks));
       }
     }
-    
+
     return new TaskTreeItem(task, subtaskItems.length > 0 ? subtaskItems : undefined);
   }
 
