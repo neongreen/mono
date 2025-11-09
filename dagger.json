@@ -9,6 +9,7 @@
     "go.sum",
     ".golangci.yml",
     ".dagger/**",
+    "linters/**",
     "tk/**",
     "dissect/**",
     "jj-run/**",
