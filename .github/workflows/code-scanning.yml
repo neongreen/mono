@@ -1,0 +1,59 @@
+name: Code Scanning
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run weekly on Mondays at 00:00 UTC
+    - cron: '0 0 * * 1'
+
+permissions:
+  contents: read
+  security-events: write  # Required for uploading SARIF files
+
+jobs:
+  cobra-lint:
+    name: Cobra Lint (SARIF)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@19e357d4dbfa3f8b3a00990a7e36c5d1aa7f7dd3 # v5.2.0
+        with:
+          go-version: '1.24.7'
+          cache: true
+
+      - name: Run cobra linter and generate SARIF
+        continue-on-error: true  # Don't fail the workflow if linter finds issues
+        run: |
+          # Run the linter and pipe output to SARIF converter
+          go run ./linters/cobralint/cmd/cobralint ./... 2>&1 | go run ./linters/cobralint/cmd/cobralint-sarif > cobra-lint.sarif || true
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@0997e94d42e09f3c8cb5fde3f8e7f31f41d50ffd # v3.29.3
+        with:
+          sarif_file: cobra-lint.sarif
+          category: cobra-lint
+          wait-for-processing: true
+
+      - name: Display SARIF summary
+        if: success()
+        run: |
+          {
+            echo "## 📊 Code Scanning Results"
+            echo ""
+            echo "SARIF report uploaded successfully for cobra linter."
+            echo ""
+            echo "**Tool:** cobralint"
+            echo "**Category:** cobra-lint"
+            echo "**Rule:** require-json-flag"
+            echo ""
+            echo "View results in the Security tab → Code scanning alerts"
+          } >> "$GITHUB_STEP_SUMMARY"

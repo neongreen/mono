@@ -91,9 +91,12 @@ func outputSARIF(diags []Diagnostic) error {
 			WithLevel("warning")
 
 		// Add location
+		// Note: NewSimpleRegion takes (startLine, startColumn) not (startLine, endLine)
 		location := sarif.NewPhysicalLocation().
 			WithArtifactLocation(sarif.NewSimpleArtifactLocation(relPath)).
-			WithRegion(sarif.NewSimpleRegion(diag.Line, diag.Column))
+			WithRegion(sarif.NewRegion().
+				WithStartLine(diag.Line).
+				WithStartColumn(diag.Column))
 
 		result.AddLocation(sarif.NewLocation().WithPhysicalLocation(location))
 	}
