@@ -13,16 +13,16 @@ install:
 build-js: install
 	cd js && npm run build
 
-# Build WASM module using javy
+# Build WASM module using javy with event loop support
 # Note: Requires javy to be installed (https://github.com/bytecodealliance/javy)
 build-wasm: build-js
-	@echo "Building WASM module with javy..."
+	@echo "Building WASM module with javy (with event loop for promise support)..."
 	@if ! command -v javy >/dev/null 2>&1; then \
 		echo "Error: javy is not installed. Install it from https://github.com/bytecodealliance/javy"; \
 		echo "Download from: https://github.com/bytecodealliance/javy/releases"; \
 		exit 1; \
 	fi
-	javy build js/dist/bundle.js -o parser.wasm
+	javy build -J event-loop=y js/dist/bundle.js -o parser.wasm
 	@echo "✓ WASM module built: parser.wasm"
 
 # Clean build artifacts

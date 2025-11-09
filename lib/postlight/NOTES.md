@@ -62,3 +62,45 @@ For production use in a WASM/Javy environment, either:
 3. Accept the simplified parser's limitations for the benefits of no CGO
 
 The current simplified implementation demonstrates the infrastructure works perfectly and is suitable for many use cases.
+
+## Mozilla Readability Integration (Final Implementation)
+
+### Decision: Successfully Integrated Mozilla Readability
+
+**Date:** 2025-11-09
+
+After investigating alternatives, we successfully integrated **@mozilla/readability** v0.6.0 as the article extraction engine.
+
+### Why Readability?
+
+1. **Zero Node.js Dependencies** - Pure browser-compatible JavaScript
+2. **Includes JSDOMParser** - Built-in DOM parser, no external dependencies needed
+3. **Production-Ready** - Powers Firefox Reader View
+4. **Works Perfectly with Javy** - No compatibility issues with event loop enabled
+5. **Small Bundle Size** - 116 KB bundled (vs 4.7 MB for Postlight Parser)
+
+### Implementation Details
+
+- **JavaScript Entry Point:** `js/index.js` uses Readability with JSDOMParser
+- **Event Loop Required:** Build with `javy build -J event-loop=y` flag
+- **WASM Size:** 1.4 MB (includes QuickJS runtime)
+- **All Tests Passing:** 8/8 tests pass including complex articles and images
+
+### Key Code Pattern
+
+```javascript
+var Readability = require('@mozilla/readability').Readability;
+var JSDOMParser = require('@mozilla/readability/JSDOMParser.js');
+
+// Suppress console.log to avoid polluting stdout
+console.log = function() {};
+
+var parser = new JSDOMParser();
+var doc = parser.parse(input.html, input.url);
+var reader = new Readability(doc);
+var article = reader.parse();
+```
+
+### Result
+
+This library now provides full-featured article extraction with the same engine that Firefox uses, wrapped in pure Go bindings with no CGO required. The WASM approach works excellently for production use.

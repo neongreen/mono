@@ -1,23 +1,24 @@
 # Postlight Parser - Go Bindings via WASM
 
-This library provides Go bindings inspired by the [Postlight Parser](https://github.com/postlight/parser) JavaScript library. It extracts clean, structured article content from web pages using WebAssembly.
+This library provides Go bindings for article extraction using [Mozilla Readability](https://github.com/mozilla/readability), the same library that powers Firefox Reader View. It extracts clean, structured article content from web pages using WebAssembly.
 
 **New here?** Check out the [Quick Start Guide](QUICKSTART.md) to get running in 5 minutes!
 
 ## Current Status
 
-This library currently uses a **simplified HTML parser** optimized for the WASM/Javy environment. The full Postlight Parser has extensive Node.js dependencies that aren't compatible with the minimal Javy runtime. The current implementation:
+This library uses **Mozilla Readability** compiled to WASM via Javy. While originally inspired by the [Postlight Parser](https://github.com/postlight/parser), we use Readability because it has zero Node.js dependencies and works perfectly in the minimal Javy runtime.
 
-- ✅ Extracts article titles from HTML
-- ✅ Extracts main content from body tags
-- ✅ Counts words accurately
+Current capabilities:
+
+- ✅ Extracts article titles, authors, and publication dates
+- ✅ Intelligently filters navigation, footers, and ads
+- ✅ Extracts main article content with clean HTML
+- ✅ Provides word counts and excerpts
 - ✅ Parses URLs and extracts domains
+- ✅ Handles images embedded in articles
 - ✅ Provides clean Go API via WASM/wazero
-- ⚠️ Does not filter navigation/footer (like full Postlight would)
-- ⚠️ Does not extract metadata (author, dates) yet
-- ⚠️ Basic HTML parsing only (no advanced content extraction)
-
-This serves as a working demonstration of the WASM infrastructure. Future versions could integrate more sophisticated parsing logic.
+- ✅ Production-ready Mozilla Readability engine
+- ✅ Same parser used in Firefox Reader View
 
 ## Why WASM?
 
@@ -215,14 +216,14 @@ make clean         # Remove build artifacts
          ▼
 ┌─────────────────┐
 │  parser.wasm    │
-│ (Postlight JS)  │
+│  (Readability)  │
 └─────────────────┘
 ```
 
 The workflow:
 1. Go code calls the library
 2. Library uses wazero to execute WASM
-3. WASM module (compiled from JavaScript) parses the HTML
+3. WASM module (compiled from Readability.js) parses the HTML
 4. Results are returned to Go as structured data
 
 ## Requirements
@@ -247,10 +248,10 @@ go test -v
 
 ## License
 
-This library is a Go wrapper around [Postlight Parser](https://github.com/postlight/parser), which is MIT licensed.
+This library is a Go wrapper around [Mozilla Readability](https://github.com/mozilla/readability), which is Apache 2.0 licensed.
 
 ## Credits
 
-- [Postlight Parser](https://github.com/postlight/parser) - The excellent JavaScript parser
+- [Mozilla Readability](https://github.com/mozilla/readability) - The excellent article extraction library from Firefox
 - [wazero](https://wazero.io/) - Pure Go WebAssembly runtime
-- [javy](https://github.com/bytecodealliance/javy) - JavaScript to WASM compiler
+- [javy](https://github.com/bytecodealliance/javy) - JavaScript to WASM compiler with promise support
