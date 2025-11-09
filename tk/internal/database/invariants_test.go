@@ -18,9 +18,8 @@ func TestCheckInvariants_Valid(t *testing.T) {
 
 	events := []types.Event{
 		createProjectEvent(1, projectUID, "test"),
-		addProjectAliasEvent(2, projectUID, "test", "node1"),
-		createTaskEvent(3, taskUID, projectUID, "Test task"),
-		setTaskNumberEvent(4, taskUID, projectUID, 1),
+		createTaskEvent(2, taskUID, projectUID, "Test task"),
+		setTaskNumberEvent(3, taskUID, projectUID, 1),
 	}
 
 	for _, e := range events {
@@ -50,7 +49,6 @@ func TestCheckInvariants_OrphanedTask(t *testing.T) {
 	// Create project properly first
 	events := []types.Event{
 		createProjectEvent(1, projectUID, "test"),
-		addProjectAliasEvent(2, projectUID, "test", "node1"),
 	}
 
 	for _, e := range events {
@@ -87,8 +85,7 @@ func TestCheckInvariants_MissingProjection(t *testing.T) {
 
 	events := []types.Event{
 		createProjectEvent(1, projectUID, "test"),
-		addProjectAliasEvent(2, projectUID, "test", "node1"),
-		createTaskEvent(3, taskUID, projectUID, "Test task"),
+		createTaskEvent(2, taskUID, projectUID, "Test task"),
 		// Note: no number.set event
 	}
 
@@ -129,9 +126,8 @@ func TestProjectionCompleteness(t *testing.T) {
 	// Create a comprehensive set of events
 	events := []types.Event{
 		createProjectEvent(1, projectUID, "test"),
-		addProjectAliasEvent(2, projectUID, "test", "node1"),
-		createTaskEvent(3, taskUID, projectUID, "Test task"),
-		setTaskNumberEvent(4, taskUID, projectUID, 1),
+		createTaskEvent(2, taskUID, projectUID, "Test task"),
+		setTaskNumberEvent(3, taskUID, projectUID, 1),
 	}
 
 	// Project all events

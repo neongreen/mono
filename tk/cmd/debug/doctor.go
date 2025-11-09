@@ -188,24 +188,9 @@ func checkMissingNumbers(db *database.DB, report *DoctorReport) error {
 }
 
 func checkBrokenAliases(db *database.DB, report *DoctorReport) error {
-	rows, err := db.Db.Query(`
-        SELECT alias, node, project_uid
-        FROM project_aliases
-        WHERE project_uid NOT IN (SELECT project_uid FROM projects)
-    `)
-	if err != nil {
-		return fmt.Errorf("failed to query aliases: %w", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var alias, node, projectUID string
-		if err := rows.Scan(&alias, &node, &projectUID); err != nil {
-			return fmt.Errorf("failed to scan alias: %w", err)
-		}
-		report.Issues = append(report.Issues, fmt.Sprintf("alias %s (node %s) points to missing project %s", alias, node, projectUID))
-	}
-	return rows.Err()
+	// No-op: project_aliases table removed (tk-246)
+	// This check is kept for backward compatibility but does nothing
+	return nil
 }
 
 func checkEventPayloads(db *database.DB, report *DoctorReport) error {
