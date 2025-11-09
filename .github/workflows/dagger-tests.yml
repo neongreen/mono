@@ -42,58 +42,50 @@ jobs:
           filters: |
             claude-trace:
               - 'claude-trace/**'
-              - '.dagger/**'
+              - 'lib/**'
             conf:
               - 'conf/**'
-              - '.dagger/**'
+              - 'lib/**'
             dissect:
               - 'dissect/**'
-              - '.dagger/**'
+              - 'lib/**'
             lib-cli:
               - 'lib/cli/**'
-              - '.dagger/**'
             lib-configschema:
               - 'lib/configschema/**'
-              - '.dagger/**'
             lib-ghclient:
               - 'lib/ghclient/**'
-              - '.dagger/**'
             lib-ghrelease:
               - 'lib/ghrelease/**'
-              - '.dagger/**'
             lib-toml:
               - 'lib/toml/**'
-              - '.dagger/**'
             lib-version:
               - 'lib/version/**'
-              - '.dagger/**'
             ingest:
               - 'ingest/**'
-              - '.dagger/**'
+              - 'lib/**'
             jj-run:
               - 'jj-run/**'
-              - '.dagger/**'
+              - 'lib/**'
             markdown-format:
               - 'markdown-format/**'
-              - '.dagger/**'
+              - 'lib/**'
             printpdf:
               - 'printpdf/**'
-              - '.dagger/**'
+              - 'lib/**'
             prrun:
               - 'prrun/**'
-              - '.dagger/**'
+              - 'lib/**'
             tk:
               - 'tk/**'
-              - '.dagger/**'
+              - 'lib/**'
             want:
               - 'want/**'
-              - '.dagger/**'
+              - 'lib/**'
             linters-cobralint:
               - 'linters/cobralint/**'
-              - '.dagger/**'
             linters-uselesswrapper:
               - 'linters/uselesswrapper/**'
-              - '.dagger/**'
 
   test:
     needs: detect-changes

@@ -11,7 +11,8 @@ type LintersUselesswrapperProject struct {
 }
 
 func (p *LintersUselesswrapperProject) Build(ctx context.Context) (*dagger.File, error) {
-	return buildProject(ctx, "linters/uselesswrapper", "./cmd/uselesswrapper")
+	src := getFilteredSource("linters/uselesswrapper", dag.CurrentModule().Source().Directory(".."))
+	return buildProject(ctx, "linters/uselesswrapper", "./cmd/uselesswrapper", src)
 }
 
 func (p *LintersUselesswrapperProject) Test(ctx context.Context,
@@ -19,7 +20,8 @@ func (p *LintersUselesswrapperProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	return testProject(ctx, "linters/uselesswrapper", format)
+	src := getFilteredSource("linters/uselesswrapper", dag.CurrentModule().Source().Directory(".."))
+	return testProject(ctx, "linters/uselesswrapper", format, src)
 }
 
 func (p *LintersUselesswrapperProject) Coverage(ctx context.Context,
@@ -27,5 +29,6 @@ func (p *LintersUselesswrapperProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	return coverageFile(ctx, "linters/uselesswrapper", format)
+	src := getFilteredSource("linters/uselesswrapper", dag.CurrentModule().Source().Directory(".."))
+	return coverageFile(ctx, "linters/uselesswrapper", format, src)
 }

@@ -11,7 +11,8 @@ type TkProject struct {
 }
 
 func (p *TkProject) Build(ctx context.Context) (*dagger.File, error) {
-	return buildProject(ctx, "tk", ".")
+	src := getFilteredSource("tk", dag.CurrentModule().Source().Directory(".."))
+	return buildProject(ctx, "tk", ".", src)
 }
 
 func (p *TkProject) Test(ctx context.Context,
@@ -19,7 +20,8 @@ func (p *TkProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	return testProject(ctx, "tk", format)
+	src := getFilteredSource("tk", dag.CurrentModule().Source().Directory(".."))
+	return testProject(ctx, "tk", format, src)
 }
 
 func (p *TkProject) Coverage(ctx context.Context,
@@ -27,5 +29,6 @@ func (p *TkProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	return coverageFile(ctx, "tk", format)
+	src := getFilteredSource("tk", dag.CurrentModule().Source().Directory(".."))
+	return coverageFile(ctx, "tk", format, src)
 }

@@ -10,12 +10,11 @@ import (
 // buildProject builds a Go project for the current platform.
 // projectName: the project directory (e.g., "tk", "want")
 // buildTarget: the build target ("." or "./cmd")
-func buildProject(ctx context.Context, projectName string, buildTarget string) (*dagger.File, error) {
-	repo := dag.CurrentModule().Source().Directory("..")
-
+// source: filtered source directory (use getFilteredSource helper)
+func buildProject(ctx context.Context, projectName string, buildTarget string, source *dagger.Directory) (*dagger.File, error) {
 	return dag.Container().
 		From("golang:1.24.7").
-		WithMountedDirectory("/src", repo).
+		WithMountedDirectory("/src", source).
 		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod")).
 		WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
 		WithWorkdir(fmt.Sprintf("/src/%s", projectName)).
@@ -29,17 +28,16 @@ func buildProject(ctx context.Context, projectName string, buildTarget string) (
 // testProject runs tests for a Go project.
 // projectName: the project directory (e.g., "tk", "want")
 // format: gotestsum format
+// source: filtered source directory (use getFilteredSource helper)
 // Always generates coverage.out internally (minimal overhead)
-func testProject(ctx context.Context, projectName string, format string) (string, error) {
-	ctr := testContainer(projectName, format)
+func testProject(ctx context.Context, projectName string, format string, source *dagger.Directory) (string, error) {
+	ctr := testContainer(projectName, format, source)
 	return ctr.Stdout(ctx)
 }
 
 // testContainer creates a container that runs tests with coverage.
 // This container is reused by both Test() and Coverage() methods.
-func testContainer(projectName string, format string) *dagger.Container {
-	repo := dag.CurrentModule().Source().Directory("..")
-
+func testContainer(projectName string, format string, source *dagger.Directory) *dagger.Container {
 	var args []string
 	if format == "testname" {
 		args = []string{"gotestsum", "--format", format, "--", "-v", "-coverprofile=coverage.out", "-covermode=atomic", fmt.Sprintf("./%s/...", projectName)}
@@ -49,7 +47,7 @@ func testContainer(projectName string, format string) *dagger.Container {
 
 	return dag.Container().
 		From("golang:1.24.7").
-		WithMountedDirectory("/src", repo).
+		WithMountedDirectory("/src", source).
 		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod")).
 		WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
 		WithMountedCache("/go/bin", dag.CacheVolume("go-bin")).
@@ -61,10 +59,25 @@ func testContainer(projectName string, format string) *dagger.Container {
 		WithExec(args)
 }
 
+// getFilteredSource returns a filtered source directory for a project.
+// projectName: the project directory (e.g., "tk", "want")
+// This uses pre-call filtering to only include necessary files for optimal caching.
+func getFilteredSource(
+	projectName string,
+	// Exclude everything except the project itself, lib, and Go module files
+	// +ignore=["*", "!go.mod", "!go.sum", "!lib/**"]
+	source *dagger.Directory,
+) *dagger.Directory {
+	// Add the specific project directory back in (ignore can't do this dynamically)
+	root := dag.CurrentModule().Source().Directory("..")
+	return source.WithDirectory(projectName, root.Directory(projectName))
+}
+
 // coverageFile returns the coverage file for a project.
 // projectName: the project directory (e.g., "tk", "want")
 // format: gotestsum format
-func coverageFile(ctx context.Context, projectName string, format string) (*dagger.File, error) {
-	ctr := testContainer(projectName, format)
+// source: filtered source directory (use getFilteredSource helper)
+func coverageFile(ctx context.Context, projectName string, format string, source *dagger.Directory) (*dagger.File, error) {
+	ctr := testContainer(projectName, format, source)
 	return ctr.File("coverage.out"), nil
 }
