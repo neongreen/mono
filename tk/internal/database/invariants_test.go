@@ -86,24 +86,24 @@ func TestCheckInvariants_MissingProjection(t *testing.T) {
 	events := []types.Event{
 		createProjectEvent(1, projectUID, "test"),
 		createTaskEvent(2, taskUID, projectUID, "Test task"),
-		// Note: no number.set event
+		setTaskNumberEvent(3, taskUID, projectUID, 1),
 	}
 
-	// Insert events
+	// Insert all events
 	for _, e := range events {
 		if err := db.InsertEvent(e); err != nil {
 			t.Fatalf("failed to insert event: %v", err)
 		}
 	}
 
-	// Project only some events (skip the task.created)
+	// Project only some events (skip the task.created event)
 	if err := db.ProjectEvent(events[0]); err != nil {
-		t.Fatalf("failed to project event: %v", err)
+		t.Fatalf("failed to project project.created: %v", err)
 	}
-	if err := db.ProjectEvent(events[1]); err != nil {
-		t.Fatalf("failed to project event: %v", err)
+	// Skip events[1] (task.created) - not projected!
+	if err := db.ProjectEvent(events[2]); err != nil {
+		t.Fatalf("failed to project task.number.set: %v", err)
 	}
-	// Skip events[2] - task.created not projected!
 
 	// CheckInvariants should detect task exists in rebuilt but not in projections
 	err := db.CheckInvariants()
