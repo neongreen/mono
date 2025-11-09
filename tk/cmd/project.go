@@ -15,5 +15,4 @@ func init() {
 	projectCmd.AddCommand(project_pkg.CreateCmd)
 	projectCmd.AddCommand(project_pkg.LsCmd)
 	projectCmd.AddCommand(project_pkg.RmCmd)
-	projectCmd.AddCommand(project_pkg.AliasCmd)
 }
