@@ -3,7 +3,6 @@ package project
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
@@ -12,25 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// checkAliasConflict checks if an alias conflicts with existing project names or aliases
-// and logs a warning if found. This is non-fatal to allow the operation to continue.
-func checkAliasConflict(db *database.DB, alias string) {
-	// Check if alias conflicts with an existing project name
-	var nameCount int
-	err := db.Db.QueryRow(`SELECT COUNT(*) FROM projects WHERE name = ?`, alias).Scan(&nameCount)
-	if err == nil && nameCount > 0 {
-		log.Printf("Warning: alias '%s' conflicts with an existing project name\n", alias)
-		return
-	}
-
-	// Check if alias already exists (for any project)
-	var aliasCount int
-	err = db.Db.QueryRow(`SELECT COUNT(*) FROM project_aliases WHERE alias = ?`, alias).Scan(&aliasCount)
-	if err == nil && aliasCount > 0 {
-		log.Printf("Warning: alias '%s' already exists for another project\n", alias)
-		return
-	}
-}
 
 var CreateCmd = &cobra.Command{
 	Use:   "create <name> [description]",
@@ -58,13 +38,8 @@ var CreateCmd = &cobra.Command{
 			description = args[1]
 		}
 
-		// Get current user and node
+		// Get current user
 		actor, err := utils.GetCurrentUser()
-		if err != nil {
-			return err
-		}
-
-		nodeID, err := db.GetOrCreateNodeID()
 		if err != nil {
 			return err
 		}
@@ -116,62 +91,7 @@ var CreateCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Created project %s: %s\n", projectUID, name)
-
-		// Optionally create an alias
-		alias, _ := cmd.Flags().GetString("alias")
-		if alias != "" {
-			// Check for alias conflicts and warn user
-			checkAliasConflict(db, alias)
-
-			// Create project.alias.add event
-			aliasPayload := types.ProjectAliasAddPayload{
-				ProjectUID: string(projectUID),
-				Alias:      alias,
-				Node:       nodeID,
-				AddedBy:    actor,
-			}
-
-			aliasPayloadJSON, err := json.Marshal(aliasPayload)
-			if err != nil {
-				return fmt.Errorf("failed to marshal alias payload: %w", err)
-			}
-
-			aliasEventID, err := database.GenerateEventID(db)
-			if err != nil {
-				return fmt.Errorf("failed to generate event ID: %w", err)
-			}
-
-			aliasTS, err := db.GetNextLamportTS()
-			if err != nil {
-				return fmt.Errorf("failed to get next lamport timestamp: %w", err)
-			}
-
-			aliasEvent := types.Event{
-				ID:        aliasEventID,
-				TS:        aliasTS,
-				CreatedAt: time.Now(),
-				Actor:     actor,
-				Role:      "human",
-				Kind:      string(types.EventKindProjectAliasAdd),
-				Payload:   aliasPayloadJSON,
-			}
-
-			if err := db.InsertEvent(aliasEvent); err != nil {
-				return fmt.Errorf("failed to insert alias event: %w", err)
-			}
-
-			// Project the alias
-			if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-				return fmt.Errorf("failed to project alias: %w", err)
-			}
-
-			fmt.Printf("Added alias '%s' for project %s\n", alias, projectUID)
-		}
-
 		return nil
 	},
 }
 
-func init() {
-	CreateCmd.Flags().String("alias", "", "Create an alias for this project on the current node")
-}
