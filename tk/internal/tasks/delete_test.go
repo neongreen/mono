@@ -36,6 +36,9 @@ func TestDelete(t *testing.T) {
 	if count != 0 {
 		t.Fatalf("expected task to be deleted, but still found %d rows", count)
 	}
+
+	// Verify invariants are satisfied after delete
+	db.CheckInvariantsT(t)
 }
 
 func TestDeleteIdempotent(t *testing.T) {
@@ -61,4 +64,7 @@ func TestDeleteIdempotent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Second delete failed (should be idempotent): %v", err)
 	}
+
+	// Verify invariants are satisfied after idempotent deletes
+	db.CheckInvariantsT(t)
 }

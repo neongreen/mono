@@ -263,6 +263,10 @@ func TestSimulation_DifferentCreatedAt(t *testing.T) {
 	assertTaskExists(t, stateA, string(taskA), "Task from A")
 	assertTaskExists(t, stateA, string(taskB), "Task from B")
 
+	// Verify invariants are satisfied on both machines
+	machineA.db.CheckInvariantsT(t)
+	machineB.db.CheckInvariantsT(t)
+
 	t.Logf("✓ Machines converged despite different created_at times")
 }
 
@@ -347,6 +351,10 @@ func TestSimulation_DuplicateWithTiming(t *testing.T) {
 		t.Fatalf("Expected title from earlier Lamport TS (B, TS=2), got: %s", task.Title)
 	}
 
+	// Verify invariants on both machines
+	machineA.db.CheckInvariantsT(t)
+	machineB.db.CheckInvariantsT(t)
+
 	t.Logf("✓ Both machines converged to task from B (earlier Lamport TS=2)")
 	t.Logf("✓ Duplicate handling is now deterministic (tk-229 fixed)")
 	t.Logf("✓ Proves: Lamport TS wins over created_at time (B at T=50 beats A at T=100)")
@@ -412,6 +420,10 @@ func TestSimulation_NetworkPartition(t *testing.T) {
 	assertTaskExists(t, stateA_after, string(taskA2), "Task A2 (during partition)")
 	assertTaskExists(t, stateA_after, string(taskB1), "Task B1 (during partition)")
 	assertTaskExists(t, stateA_after, string(taskB2), "Task B2 (during partition)")
+
+	// Verify invariants after partition heal
+	machineA.db.CheckInvariantsT(t)
+	machineB.db.CheckInvariantsT(t)
 
 	t.Logf("✓ Machines converged after partition (4 tasks total)")
 	t.Logf("✓ Split-brain scenario handled correctly")
@@ -483,6 +495,10 @@ func TestSimulation_OutOfOrderDelivery(t *testing.T) {
 	assertTaskExists(t, stateB, string(task1), "Task 1")
 	assertTaskExists(t, stateB, string(task2), "Task 2")
 	assertTaskExists(t, stateB, string(task3), "Task 3")
+
+	// Verify invariants after out-of-order delivery
+	machineA.db.CheckInvariantsT(t)
+	machineB.db.CheckInvariantsT(t)
 
 	t.Logf("✓ Machines converged despite REVERSE delivery order")
 	t.Logf("✓ RebuildProjections correctly sorted by Lamport TS")

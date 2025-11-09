@@ -51,6 +51,9 @@ func TestCreate(t *testing.T) {
 	if title != "Test task" {
 		t.Fatalf("expected 'Test task', got %q", title)
 	}
+
+	// Verify invariants are satisfied
+	db.CheckInvariantsT(t)
 }
 
 func TestCreateMultipleTasks(t *testing.T) {
@@ -91,4 +94,7 @@ func TestCreateMultipleTasks(t *testing.T) {
 	if num2 != num1+1 {
 		t.Fatalf("expected sequential numbers, got %d and %d", num1, num2)
 	}
+
+	// Verify invariants are satisfied
+	db.CheckInvariantsT(t)
 }

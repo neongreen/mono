@@ -38,6 +38,9 @@ func TestAddNote(t *testing.T) {
 	if count != 1 {
 		t.Fatalf("expected 1 note event, got %d", count)
 	}
+
+	// Verify invariants are satisfied
+	db.CheckInvariantsT(t)
 }
 
 func TestAddMultipleNotes(t *testing.T) {
@@ -70,4 +73,7 @@ func TestAddMultipleNotes(t *testing.T) {
 	if count != 3 {
 		t.Fatalf("expected 3 note events, got %d", count)
 	}
+
+	// Verify invariants are satisfied
+	db.CheckInvariantsT(t)
 }
