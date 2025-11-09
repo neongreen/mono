@@ -1,7 +1,49 @@
 package types
 
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
+
 // types.Event Payload Definitions
 // Based on tk/specs/v4.md
+
+// projectNamePattern matches valid project names:
+// - lowercase letters (a-z) only
+// - single dashes allowed between letter groups
+// - no leading/trailing dashes
+// - no consecutive dashes
+var projectNamePattern = regexp.MustCompile(`^[a-z]+(-[a-z]+)*$`)
+
+// ValidateProjectName validates a project name according to the rules:
+// - Must be at least 1 character
+// - Lowercase letters (a-z) and dashes (-) only
+// - No leading or trailing dashes
+// - No consecutive dashes
+func ValidateProjectName(name string) error {
+	if len(name) < 1 {
+		return fmt.Errorf("project name cannot be empty")
+	}
+
+	if !projectNamePattern.MatchString(name) {
+		// Generate a helpful suggestion
+		suggestion := strings.ToLower(name)
+		// Remove invalid characters
+		suggestion = regexp.MustCompile(`[^a-z-]+`).ReplaceAllString(suggestion, "")
+		// Replace consecutive dashes with single dash
+		suggestion = regexp.MustCompile(`-+`).ReplaceAllString(suggestion, "-")
+		// Remove leading/trailing dashes
+		suggestion = strings.Trim(suggestion, "-")
+
+		if suggestion != "" && suggestion != name {
+			return fmt.Errorf("invalid project name '%s': must be lowercase letters and dashes only, no leading/trailing dashes or consecutive dashes. Try: '%s'", name, suggestion)
+		}
+		return fmt.Errorf("invalid project name '%s': must be lowercase letters and dashes only, no leading/trailing dashes or consecutive dashes", name)
+	}
+
+	return nil
+}
 
 // ProjectCreatedPayload is the payload for project.created events
 type ProjectCreatedPayload struct {

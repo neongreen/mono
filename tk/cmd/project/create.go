@@ -37,6 +37,11 @@ var CreateCmd = &cobra.Command{
 			description = args[1]
 		}
 
+		// Validate project name
+		if err := types.ValidateProjectName(name); err != nil {
+			return err
+		}
+
 		// Get current user
 		actor, err := utils.GetCurrentUser()
 		if err != nil {

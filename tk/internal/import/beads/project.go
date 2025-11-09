@@ -12,6 +12,11 @@ import (
 // CreateProjectForImport creates a new project for beads import
 // Always creates a new project (never reuses existing)
 func CreateProjectForImport(db *database.DB, prefix string, alias string, actor string) (string, error) {
+	// Validate project name
+	if err := types.ValidateProjectName(prefix); err != nil {
+		return "", fmt.Errorf("invalid project name for import: %w", err)
+	}
+
 	// Always create NEW project (never reuse existing)
 	projectUID := types.NewProjectUID()
 
