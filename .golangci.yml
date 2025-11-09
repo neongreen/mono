@@ -1,10 +1,14 @@
 version: "2"
 
+# NOTE: This config requires golangci-lint v2.6.1 or newer (see .dagger/runlint.go)
+# Some linters like 'modernize' are not available in older versions
+
 linters:
   default: none
   enable:
   - modernize
   - unused
+  - unparam
   - staticcheck
   - govet
   - errorlint
