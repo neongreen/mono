@@ -20,6 +20,7 @@ on:
       - "tk/**"
       - "want/**"
       - ".dagger/**"
+      - ".golangci.yml"
       - ".github/workflows/dagger-tests.yml"
 
 jobs:
