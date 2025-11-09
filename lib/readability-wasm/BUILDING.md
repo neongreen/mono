@@ -198,7 +198,7 @@ lib/postlight/
 │   └── dist/
 │       └── bundle.js     # Generated bundle
 ├── parser.wasm           # Generated WASM module
-├── postlight.go          # Go bindings
+├── readability.go          # Go bindings
 ├── Makefile              # Build system
 └── README.md             # User documentation
 ```

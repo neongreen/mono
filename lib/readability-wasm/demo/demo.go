@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/neongreen/mono/lib/postlight"
+	"github.com/neongreen/mono/lib/readability-wasm"
 )
 
 func main() {
-	fmt.Println("=== Postlight Parser Demo ===\n")
+	fmt.Println("=== Readability WASM Parser Demo ===\n")
 
 	ctx := context.Background()
 
 	// Create a parser
-	parser, err := postlight.NewParser(ctx)
+	parser, err := readability.NewParser(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

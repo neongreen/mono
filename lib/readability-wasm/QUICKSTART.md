@@ -65,14 +65,14 @@ import (
     "fmt"
     "log"
 
-    "github.com/neongreen/mono/lib/postlight"
+    "github.com/neongreen/mono/lib/readability-wasm"
 )
 
 func main() {
     ctx := context.Background()
 
     // Create parser
-    parser, err := postlight.NewParser(ctx)
+    parser, err := readability.NewParser(ctx)
     if err != nil {
         log.Fatal(err)
     }
@@ -156,7 +156,7 @@ If you run into issues:
 Create one parser and reuse it for multiple articles:
 
 ```go
-parser, _ := postlight.NewParser(ctx)
+parser, _ := readability.NewParser(ctx)
 defer parser.Close(ctx)
 
 for _, url := range urls {

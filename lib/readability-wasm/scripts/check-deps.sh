@@ -50,6 +50,6 @@ echo
 echo "All dependencies are installed!"
 echo
 echo "Next steps:"
-echo "  1. cd lib/postlight"
+echo "  1. cd lib/readability-wasm"
 echo "  2. make build-wasm"
 echo "  3. go test -v"

@@ -1,4 +1,4 @@
-package postlight
+package readability
 
 import (
 	"context"

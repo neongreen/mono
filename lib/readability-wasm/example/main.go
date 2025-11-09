@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/neongreen/mono/lib/postlight"
+	"github.com/neongreen/mono/lib/readability-wasm"
 )
 
 func main() {
@@ -25,14 +25,14 @@ func main() {
 	ctx := context.Background()
 
 	// Create parser
-	parser, err := postlight.NewParser(ctx)
+	parser, err := readability.NewParser(ctx)
 	if err != nil {
 		log.Fatalf("Failed to create parser: %v", err)
 	}
 	defer parser.Close(ctx)
 
 	// Parse the article
-	var article *postlight.Article
+	var article *readability.Article
 	if *htmlFlag != "" {
 		// Parse provided HTML
 		article, err = parser.Parse(ctx, *urlFlag, *htmlFlag)

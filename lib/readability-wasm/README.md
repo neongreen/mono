@@ -1,4 +1,4 @@
-# Postlight Parser - Go Bindings via WASM
+# Readability WASM - Go Bindings for Mozilla Readability
 
 This library provides Go bindings for article extraction using [Mozilla Readability](https://github.com/mozilla/readability), the same library that powers Firefox Reader View. It extracts clean, structured article content from web pages using WebAssembly.
 
@@ -54,7 +54,7 @@ make build-wasm
 Then use the library in your Go code:
 
 ```go
-import "github.com/neongreen/mono/lib/postlight"
+import "github.com/neongreen/mono/lib/readability-wasm"
 ```
 
 ## Usage
@@ -69,14 +69,14 @@ import (
     "fmt"
     "log"
 
-    "github.com/neongreen/mono/lib/postlight"
+    "github.com/neongreen/mono/lib/readability-wasm"
 )
 
 func main() {
     ctx := context.Background()
 
     // Create a parser instance
-    parser, err := postlight.NewParser(ctx)
+    parser, err := readability.NewParser(ctx)
     if err != nil {
         log.Fatal(err)
     }
@@ -106,14 +106,14 @@ import (
     "fmt"
     "log"
 
-    "github.com/neongreen/mono/lib/postlight"
+    "github.com/neongreen/mono/lib/readability-wasm"
 )
 
 func main() {
     ctx := context.Background()
 
     // Create a parser instance
-    parser, err := postlight.NewParser(ctx)
+    parser, err := readability.NewParser(ctx)
     if err != nil {
         log.Fatal(err)
     }

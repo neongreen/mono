@@ -1,6 +1,7 @@
-// Package postlight provides Go bindings to the Postlight Parser library via WASM.
-// It extracts clean, structured article content from web pages.
-package postlight
+// Package readability provides Go bindings to Mozilla Readability via WASM.
+// It extracts clean, structured article content from web pages using the same
+// library that powers Firefox Reader View.
+package readability
 
 import (
 	"bytes"
@@ -165,7 +166,7 @@ func (p *Parser) ParseURL(ctx context.Context, url string) (*Article, error) {
 	}
 
 	// Set a realistic User-Agent
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; PostlightParser/1.0)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; ReadabilityParser/1.0)")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
