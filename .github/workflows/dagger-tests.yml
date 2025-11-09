@@ -14,12 +14,14 @@ on:
       - "lib/ghrelease/**"
       - "lib/toml/**"
       - "lib/version/**"
+      - "linters/**"
       - "markdown-format/**"
       - "printpdf/**"
       - "prrun/**"
       - "tk/**"
       - "want/**"
       - ".dagger/**"
+      - ".golangci.yml"
       - ".github/workflows/dagger-tests.yml"
 
 jobs:
@@ -85,6 +87,12 @@ jobs:
               - '.dagger/**'
             want:
               - 'want/**'
+              - '.dagger/**'
+            linters-cobralint:
+              - 'linters/cobralint/**'
+              - '.dagger/**'
+            linters-uselesswrapper:
+              - 'linters/uselesswrapper/**'
               - '.dagger/**'
 
   test:

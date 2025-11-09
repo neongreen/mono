@@ -42,7 +42,7 @@ func (m *Dagger) Lint(ctx context.Context) error {
 		_, err := goContainer.
 			WithMountedDirectory("/src", repo).
 			WithWorkdir("/src").
-			WithExec([]string{"go", "run", "./lib/linters/uselesswrapper/cmd/uselesswrapper", "./..."}).
+			WithExec([]string{"go", "run", "./linters/uselesswrapper/cmd/uselesswrapper", "./..."}).
 			Sync(ctx)
 		return err
 	})
