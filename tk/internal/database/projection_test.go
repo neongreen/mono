@@ -57,7 +57,7 @@ func TestProjectProjectAliasAddEvent(t *testing.T) {
 	// First create a project
 	projectUID := seedProject(t, db, "oldname")
 
-	// Add a new alias
+	// Add a new alias (should be a no-op now)
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
 		t.Fatalf("failed to get node ID: %v", err)
@@ -85,20 +85,13 @@ func TestProjectProjectAliasAddEvent(t *testing.T) {
 		Payload:   payloadJSON,
 	}
 
+	// Should not error (no-op for backward compatibility)
 	if err := db.ProjectProjectAliasAddEvent(event); err != nil {
 		t.Fatalf("ProjectProjectAliasAddEvent() error = %v", err)
 	}
 
-	// Verify alias was added
-	var count int
-	err = db.Db.QueryRow(`SELECT COUNT(*) FROM project_aliases WHERE project_uid = ? AND alias = ?`, projectUID, "newalias").Scan(&count)
-	if err != nil {
-		t.Fatalf("failed to query project_aliases: %v", err)
-	}
-
-	if count != 1 {
-		t.Errorf("expected 1 alias, got %d", count)
-	}
+	// Note: No verification needed - aliases are no longer supported
+	// This test just ensures old alias events don't cause errors
 }
 
 func TestProjectTaskCreatedEvent(t *testing.T) {
