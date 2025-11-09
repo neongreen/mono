@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"go/token"
 	"os"
@@ -10,35 +9,43 @@ import (
 
 	"github.com/neongreen/mono/linters/cobralint"
 	"github.com/owenrumney/go-sarif/v2/sarif"
+	"github.com/spf13/cobra"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/packages"
 )
 
 var (
-	formatFlag = flag.String("format", "text", "output format: text or sarif")
+	formatFlag string
 )
 
+var rootCmd = &cobra.Command{
+	Use:   "cobralint [flags] [packages]",
+	Short: "Linter for Cobra commands",
+	Long:  "Enforces conventions for Cobra commands, such as requiring a --json flag for machine-readable output.",
+	Args:  cobra.MinimumNArgs(0),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		patterns := args
+		if len(patterns) == 0 {
+			patterns = []string{"."}
+		}
+
+		switch formatFlag {
+		case "text":
+			return runWithTextOutput(patterns)
+		case "sarif":
+			return runWithSARIF(patterns)
+		default:
+			return fmt.Errorf("unknown format: %s (supported: text, sarif)", formatFlag)
+		}
+	},
+}
+
+func init() {
+	rootCmd.Flags().StringVar(&formatFlag, "format", "text", "output format: text or sarif")
+}
+
 func main() {
-	flag.Parse()
-
-	patterns := flag.Args()
-	if len(patterns) == 0 {
-		patterns = []string{"."}
-	}
-
-	switch *formatFlag {
-	case "text":
-		if err := runWithTextOutput(patterns); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
-	case "sarif":
-		if err := runWithSARIF(patterns); err != nil {
-			fmt.Fprintf(os.Stderr, "error: %v\n", err)
-			os.Exit(1)
-		}
-	default:
-		fmt.Fprintf(os.Stderr, "unknown format: %s (supported: text, sarif)\n", *formatFlag)
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
