@@ -236,8 +236,8 @@ type EventKind string
 
 const (
 	EventKindProjectCreated     EventKind = "project.created"
-	EventKindProjectAliasAdd    EventKind = "project.alias.add"
-	EventKindProjectAliasRemove EventKind = "project.alias.remove"
+	EventKindProjectAliasAdd    EventKind = "project.alias.add"    // deprecated:v5 track:true - Alias events no longer generated
+	EventKindProjectAliasRemove EventKind = "project.alias.remove" // deprecated:v5 track:true - Alias events no longer generated
 	EventKindProjectDelete      EventKind = "project.delete"
 	EventKindTaskCreated        EventKind = "task.created"
 	EventKindTaskNumberSet      EventKind = "task.number.set"

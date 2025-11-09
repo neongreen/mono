@@ -13,18 +13,20 @@ type ProjectCreatedPayload struct {
 }
 
 // ProjectAliasAddPayload is the payload for project.alias.add events
+// deprecated:v5 track:true reason:"Aliases removed in favor of project names"
 type ProjectAliasAddPayload struct {
 	ProjectUID string `json:"project_uid"`
-	Alias      string `json:"alias"`
-	Node       string `json:"node"`
+	Alias      string `json:"alias"` // deprecated:v5
+	Node       string `json:"node"`  // deprecated:v5
 	AddedBy    string `json:"added_by"`
 }
 
 // ProjectAliasRemovePayload is the payload for project.alias.remove events
+// deprecated:v5 track:true reason:"Aliases removed in favor of project names"
 type ProjectAliasRemovePayload struct {
 	ProjectUID string `json:"project_uid"`
-	Alias      string `json:"alias"`
-	Node       string `json:"node"`
+	Alias      string `json:"alias"` // deprecated:v5
+	Node       string `json:"node"`  // deprecated:v5
 }
 
 // ProjectDeletePayload is the payload for project.delete events
