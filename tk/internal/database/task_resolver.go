@@ -116,24 +116,14 @@ func RenderTaskDisplayID(db *DB, taskUID string) (string, error) {
 		return "", fmt.Errorf("failed to load task number for %s: %w", taskUID, err)
 	}
 
-	alias, err := PreferredAliasForProject(db, types.ProjectUID(projectUID))
+	// Use project name for display (aliases removed)
+	var projectName string
+	err = db.Db.QueryRow(`
+		SELECT name FROM projects WHERE project_uid = ?
+	`, projectUID).Scan(&projectName)
 	if err != nil {
-		return "", err
-	}
-
-	// If no alias exists, fall back to project name
-	prefix := alias
-	if prefix == "" {
-		var projectName string
-		err := db.Db.QueryRow(`
-			SELECT name FROM projects WHERE project_uid = ?
-		`, projectUID).Scan(&projectName)
-		if err != nil {
-			// If we can't get the name, fall back to UID
-			prefix = projectUID
-		} else {
-			prefix = projectName
-		}
+		// If we can't get the name, fall back to UID
+		return fmt.Sprintf("%s-%d", projectUID, number), nil
 	}
 
 	collision, err := HasNumberCollision(db, projectUID, number)
@@ -141,17 +131,17 @@ func RenderTaskDisplayID(db *DB, taskUID string) (string, error) {
 		return "", err
 	}
 	if !collision {
-		return fmt.Sprintf("%s-%d", prefix, number), nil
+		return fmt.Sprintf("%s-%d", projectName, number), nil
 	}
 
 	hint, err := taskNodeHint(db, taskUID)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s-%d-%s", prefix, number, hint), nil
+	return fmt.Sprintf("%s-%d-%s", projectName, number, hint), nil
 }
 
-// ResolveProjectRef resolves an unresolved project reference (UID, alias, or name) to a ProjectUID
+// ResolveProjectRef resolves an unresolved project reference (UID or name) to a ProjectUID
 func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 	// If it looks like a ProjectUID, validate and verify it exists
 	if ref.IsProjectUID() {
@@ -170,39 +160,10 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 		return uid, nil
 	}
 
-	nodeID, err := db.GetOrCreateNodeID()
-	if err != nil {
-		return "", err
-	}
+	// Find matches by project name only (aliases removed)
+	matchedProjects := make(map[string]string) // uid -> name
 
-	// Find ALL matches (both aliases and names) to detect ambiguity
-	// Use map to track unique UIDs and their display names
-	matchedProjects := make(map[string][]string) // uid -> list of how it was matched
-
-	// Check aliases
 	rows, err := db.Db.Query(`
-		SELECT project_uid, alias FROM project_aliases
-		WHERE alias = ?
-		ORDER BY CASE WHEN node = ? THEN 0 ELSE 1 END
-	`, ref.String(), nodeID)
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve project alias %s: %w", ref, err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var uid, alias string
-		if err := rows.Scan(&uid, &alias); err != nil {
-			return "", fmt.Errorf("failed to scan alias match: %w", err)
-		}
-		matchedProjects[uid] = append(matchedProjects[uid], alias+" (alias)")
-	}
-	if err := rows.Err(); err != nil {
-		return "", fmt.Errorf("failed to iterate aliases: %w", err)
-	}
-
-	// Check project names
-	rows2, err := db.Db.Query(`
 		SELECT project_uid, name FROM projects
 		WHERE name = ?
 		ORDER BY created_at
@@ -210,16 +171,16 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve project name %s: %w", ref, err)
 	}
-	defer rows2.Close()
+	defer rows.Close()
 
-	for rows2.Next() {
+	for rows.Next() {
 		var uid, name string
-		if err := rows2.Scan(&uid, &name); err != nil {
+		if err := rows.Scan(&uid, &name); err != nil {
 			return "", fmt.Errorf("failed to scan name match: %w", err)
 		}
-		matchedProjects[uid] = append(matchedProjects[uid], name+" (name)")
+		matchedProjects[uid] = name
 	}
-	if err := rows2.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return "", fmt.Errorf("failed to iterate projects: %w", err)
 	}
 
@@ -227,9 +188,9 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 	if len(matchedProjects) == 0 {
 		availableProjects, err := listAvailableProjects(db)
 		if err != nil {
-			return "", fmt.Errorf("project/alias %q not found", ref)
+			return "", fmt.Errorf("project %q not found", ref)
 		}
-		return "", fmt.Errorf("project/alias %q not found. Available projects: %s", ref, strings.Join(availableProjects, ", "))
+		return "", fmt.Errorf("project %q not found. Available projects: %s", ref, strings.Join(availableProjects, ", "))
 	}
 
 	// Single unique project UID - success!
@@ -239,24 +200,19 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 		}
 	}
 
-	// Multiple different project UIDs - ambiguous
+	// Multiple projects with same name - ambiguous
 	var matchDescriptions []string
-	for uid, names := range matchedProjects {
-		matchDescriptions = append(matchDescriptions, fmt.Sprintf("%s: %s", uid, strings.Join(names, ", ")))
+	for uid, name := range matchedProjects {
+		matchDescriptions = append(matchDescriptions, fmt.Sprintf("%s (%s)", uid, name))
 	}
-	return "", fmt.Errorf("ambiguous project reference %q; matches: %s. Use full project UID to disambiguate", ref, strings.Join(matchDescriptions, "; "))
+	return "", fmt.Errorf("ambiguous project reference %q; matches: %s. Use full project UID to disambiguate", ref, strings.Join(matchDescriptions, ", "))
 }
 
-// listAvailableProjects returns a list of available project names and aliases
+// listAvailableProjects returns a list of available project names
 func listAvailableProjects(db *DB) ([]string, error) {
-	nodeID, err := db.GetOrCreateNodeID()
-	if err != nil {
-		return nil, err
-	}
-
 	var projects []string
 
-	// Get project names
+	// Get project names only (aliases removed)
 	rows, err := db.Db.Query(`SELECT name FROM projects ORDER BY name`)
 	if err != nil {
 		return nil, err
@@ -274,63 +230,21 @@ func listAvailableProjects(db *DB) ([]string, error) {
 		return nil, err
 	}
 
-	// Get aliases (preferring local node's aliases)
-	rows2, err := db.Db.Query(`
-		SELECT DISTINCT alias FROM project_aliases
-		ORDER BY CASE WHEN node = ? THEN 0 ELSE 1 END, alias
-	`, nodeID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows2.Close()
-
-	aliasesSeen := make(map[string]bool)
-	for rows2.Next() {
-		var alias string
-		if err := rows2.Scan(&alias); err != nil {
-			return nil, err
-		}
-		if !aliasesSeen[alias] {
-			projects = append(projects, alias)
-			aliasesSeen[alias] = true
-		}
-	}
-	if err := rows2.Err(); err != nil {
-		return nil, err
-	}
-
 	return projects, nil
 }
 
 // ResolveProjectByAlias is deprecated - use ResolveProjectRef instead
 // This is kept temporarily for backward compatibility during refactoring
+// deprecated:v5 remove-after:v5-migration
 func ResolveProjectByAlias(db *DB, alias string) (string, error) {
 	uid, err := ResolveProjectRef(db, types.NewProjectRef(alias))
 	return string(uid), err
 }
 
+// PreferredAliasForProject is deprecated - aliases have been removed.
+// Kept for backward compatibility but always returns empty string.
+// deprecated:v5 remove-after:v5-migration
 func PreferredAliasForProject(db *DB, projectUID types.ProjectUID) (string, error) {
-	nodeID, err := db.GetOrCreateNodeID()
-	if err != nil {
-		return "", err
-	}
-
-	var alias sql.NullString
-	err = db.Db.QueryRow(`
-		SELECT alias FROM project_aliases
-		WHERE project_uid = ?
-		ORDER BY CASE WHEN node = ? THEN 0 ELSE 1 END
-		LIMIT 1
-	`, projectUID.String(), nodeID).Scan(&alias)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", nil
-	}
-	if err != nil {
-		return "", fmt.Errorf("failed to resolve alias for project %s: %w", projectUID, err)
-	}
-	if alias.Valid {
-		return alias.String, nil
-	}
 	return "", nil
 }
 

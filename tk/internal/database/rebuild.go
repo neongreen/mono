@@ -23,7 +23,6 @@ func (d *DB) RebuildProjections() error {
 	tables := []string{
 		"task_numbers",
 		"tasks",
-		"project_aliases",
 		"projects",
 	}
 

@@ -19,14 +19,6 @@ func (d *DB) CreateProjectTables() error {
 		created_by TEXT NOT NULL
 	);
 
-	CREATE TABLE IF NOT EXISTS project_aliases (
-		project_uid TEXT NOT NULL,
-		alias TEXT NOT NULL,
-		node TEXT NOT NULL,
-		added_by TEXT NOT NULL,
-		PRIMARY KEY (alias, node)
-	);
-
 	CREATE TABLE IF NOT EXISTS tasks (
 		task_uid TEXT PRIMARY KEY,
 		project_uid TEXT NOT NULL,
