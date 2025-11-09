@@ -3,137 +3,31 @@ name: Dagger Tests
 on:
   push:
     paths:
-      - "claude-trace/**"
-      - "conf/**"
-      - "dissect/**"
-      - "ingest/**"
-      - "jj-run/**"
-      - "lib/cli/**"
-      - "lib/configschema/**"
-      - "lib/ghclient/**"
-      - "lib/ghrelease/**"
-      - "lib/toml/**"
-      - "lib/version/**"
-      - "linters/**"
-      - "markdown-format/**"
-      - "printpdf/**"
-      - "prrun/**"
-      - "tk/**"
-      - "want/**"
-      - ".dagger/**"
+      - "**/*.go"
+      - "go.mod"
+      - "go.sum"
       - ".golangci.yml"
+      - ".dagger/**"
       - ".github/workflows/dagger-tests.yml"
 
 jobs:
-  detect-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      packages: ${{ steps.filter.outputs.changes }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          persist-credentials: false
-
-      - name: Detect changed packages
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
-        id: filter
-        with:
-          filters: |
-            claude-trace:
-              - 'claude-trace/**'
-              - 'lib/**'
-            conf:
-              - 'conf/**'
-              - 'lib/**'
-            dissect:
-              - 'dissect/**'
-              - 'lib/**'
-            lib-cli:
-              - 'lib/cli/**'
-            lib-configschema:
-              - 'lib/configschema/**'
-            lib-ghclient:
-              - 'lib/ghclient/**'
-            lib-ghrelease:
-              - 'lib/ghrelease/**'
-            lib-toml:
-              - 'lib/toml/**'
-            lib-version:
-              - 'lib/version/**'
-            ingest:
-              - 'ingest/**'
-              - 'lib/**'
-            jj-run:
-              - 'jj-run/**'
-              - 'lib/**'
-            markdown-format:
-              - 'markdown-format/**'
-              - 'lib/**'
-            printpdf:
-              - 'printpdf/**'
-              - 'lib/**'
-            prrun:
-              - 'prrun/**'
-              - 'lib/**'
-            tk:
-              - 'tk/**'
-              - 'lib/**'
-            want:
-              - 'want/**'
-              - 'lib/**'
-            linters-cobralint:
-              - 'linters/cobralint/**'
-            linters-uselesswrapper:
-              - 'linters/uselesswrapper/**'
-
   test:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.packages != '[]'
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        package: ${{ fromJSON(needs.detect-changes.outputs.packages) }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
 
-      - name: Run ${{ matrix.package }} tests with Dagger
+      - name: Run all tests with Dagger
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
           version: "0.19.5"
           verb: call
-          args: project ${{ matrix.package }} coverage --format=testname export --path=coverage.out
+          args: test --format=testname
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
-      - name: Display coverage summary
-        if: always()
-        run: |
-          if [ -f coverage.out ]; then
-            {
-              echo "## Code Coverage Summary"
-              echo ""
-              echo "### Overall Summary"
-              echo "\`\`\`"
-              go tool cover -func=coverage.out | tail -1
-              echo "\`\`\`"
-            } >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: ${{ matrix.package }}-coverage-report
-          path: coverage.out
-          retention-days: 30
-          if-no-files-found: ignore
 
       - name: Display test summary
         if: success()
@@ -141,12 +35,12 @@ jobs:
           {
             echo "## ✅ Test Results"
             echo ""
-            echo "${{ matrix.package }} tests completed successfully using Dagger."
+            echo "All Go projects tested successfully using Dagger."
             echo ""
             echo "**Test Environment:**"
             echo "- Container: \`golang:1.24.7\`"
             echo "- Test runner: \`gotestsum\`"
-            echo "- Format: \`testname\`"
+            echo "- Parallelism: Dagger internal (18 projects)"
             echo "- Dagger version: \`0.19.5\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
