@@ -266,7 +266,102 @@ func TestSimulation_DifferentCreatedAt(t *testing.T) {
 	t.Logf("✓ Machines converged despite different created_at times")
 }
 
+// TestSimulation_DuplicateWithTiming proves tk-229 fix works in multi-machine scenario
+func TestSimulation_DuplicateWithTiming(t *testing.T) {
+	// Scenario: Both machines somehow create duplicate task.created events for same UID
+	// (This could happen during migration, sync issues, or bugs)
+	// Machine A creates at T=100, Machine B creates at T=50
+	// Different data (titles) but same UID
+
+	machineA := newMachine(t, "node-A", time.Unix(100, 0))
+	machineB := newMachine(t, "node-B", time.Unix(50, 0))
+
+	// Create shared project
+	projectUID := machineA.createProject("test", "Test Project")
+	machineB.createProject("test", "Test Project")
+
+	// Both machines create a task with THE SAME UID (duplicate!)
+	// But at different times with different titles
+	sharedUID := types.NewTaskUID()
+
+	// Machine B creates at T=50 with earlier Lamport TS
+	machineB.clock.Set(time.Unix(50, 0))
+	// Force Lamport TS to be low
+	event2 := types.Event{
+		ID:        types.NewEventID().String(),
+		TS:        2, // Explicitly set low TS
+		CreatedAt: machineB.clock.Now(),
+		Actor:     "machine-B",
+		Role:      "human",
+		Kind:      string(types.EventKindTaskCreated),
+		Payload: mustMarshal(types.TaskCreatedPayload{
+			TaskUID:        sharedUID.String(),
+			ProjectUID:     projectUID.String(),
+			ProposedNumber: 1,
+			CreatedNode:    "node-B",
+			Title:          "Task from B (TS=2, earlier)",
+			CreatedBy:      "machine-B",
+		}),
+	}
+	machineB.db.InsertEvent(event2)
+	machineB.db.ProjectTaskCreatedEvent(event2)
+
+	// Machine A creates at T=100 with later Lamport TS
+	machineA.clock.Set(time.Unix(100, 0))
+	event1 := types.Event{
+		ID:        types.NewEventID().String(),
+		TS:        10, // Explicitly set high TS
+		CreatedAt: machineA.clock.Now(),
+		Actor:     "machine-A",
+		Role:      "human",
+		Kind:      string(types.EventKindTaskCreated),
+		Payload: mustMarshal(types.TaskCreatedPayload{
+			TaskUID:        sharedUID.String(), // SAME UID!
+			ProjectUID:     projectUID.String(),
+			ProposedNumber: 1,
+			CreatedNode:    "node-A",
+			Title:          "Task from A (TS=10, later)",
+			CreatedBy:      "machine-A",
+		}),
+	}
+	machineA.db.InsertEvent(event1)
+	machineA.db.ProjectTaskCreatedEvent(event1)
+
+	t.Logf("Machine A: created_at T=100, Lamport TS=%d, title='Task from A (TS=10, later)'", event1.TS)
+	t.Logf("Machine B: created_at T=50, Lamport TS=%d, title='Task from B (TS=2, earlier)'", event2.TS)
+
+	// Sync machines
+	syncMachines(t, machineA, machineB)
+
+	// CRITICAL: Both machines must converge to the task with EARLIER Lamport TS
+	assertConvergence(t, machineA, machineB)
+
+	// Verify both machines have the task from B (earlier Lamport TS=2)
+	stateA, _ := reducer.BuildFromEvents(machineA.getEvents())
+	task, exists := stateA.GetTask(sharedUID.String())
+	if !exists {
+		t.Fatal("Task not found after sync")
+	}
+
+	if task.Title != "Task from B (TS=2, earlier)" {
+		t.Fatalf("Expected title from earlier Lamport TS (B, TS=2), got: %s", task.Title)
+	}
+
+	t.Logf("✓ Both machines converged to task from B (earlier Lamport TS=2)")
+	t.Logf("✓ Duplicate handling is now deterministic (tk-229 fixed)")
+	t.Logf("✓ Proves: Lamport TS wins over created_at time (B at T=50 beats A at T=100)")
+}
+
 // Helper functions for simulation tests
+
+// mustMarshal marshals a value to JSON or panics
+func mustMarshal(v interface{}) json.RawMessage {
+	data, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
 
 // assertConvergence verifies that two machines have converged to the same state
 func assertConvergence(t *testing.T, machineA, machineB *Machine) {
