@@ -18,9 +18,10 @@ type Task struct {
 	Notes         []Note                    `json:"notes"`
 	CreatedBy     string                    `json:"created_by"`
 	CreatedAt     time.Time                 `json:"created_at"`
-	Relations     *Relations                `json:"relations,omitempty"` // Task relations
-	Blocked       bool                      `json:"blocked,omitempty"`   // Is this task blocked
-	Blockers      []Blocker                 `json:"blockers,omitempty"`  // List of blocking tasks
+	CreatedAtTS   int64                     `json:"created_at_ts,omitempty"` // Lamport timestamp of task.created event
+	Relations     *Relations                `json:"relations,omitempty"`     // Task relations
+	Blocked       bool                      `json:"blocked,omitempty"`       // Is this task blocked
+	Blockers      []Blocker                 `json:"blockers,omitempty"`      // List of blocking tasks
 }
 
 // MarshalJSON provides deterministic JSON output by sorting relation slices

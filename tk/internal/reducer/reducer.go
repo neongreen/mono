@@ -437,8 +437,30 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 
 	taskUID := payload.TaskUID
 
-	// Guard against duplicate task.created for same UID
-	if _, exists := r.tasks[taskUID]; exists {
+	// Handle duplicate task.created events deterministically
+	// If a task with this UID already exists, keep the one with earlier Lamport timestamp
+	if existing, exists := r.tasks[taskUID]; exists {
+		// Keep the task with earlier Lamport timestamp (deterministic)
+		if e.TS < existing.CreatedAtTS {
+			// This event is earlier, replace existing task
+			// (But keep any state changes that happened after creation)
+			r.tasks[taskUID] = &types.Task{
+				TaskUUID:      taskUID,
+				TaskDisplayID: taskUID,
+				Aliases:       []string{},
+				Title:         payload.Title,
+				Axes:          existing.Axes,     // Preserve status changes
+				Metadata:      existing.Metadata, // Preserve metadata
+				Notes:         existing.Notes,    // Preserve notes
+				CreatedBy:     payload.CreatedBy,
+				CreatedAt:     e.CreatedAt,
+				CreatedAtTS:   e.TS,
+				Relations:     existing.Relations,
+				Blocked:       existing.Blocked,
+				Blockers:      existing.Blockers,
+			}
+		}
+		// Otherwise, keep existing task (it has earlier Lamport TS)
 		return nil
 	}
 
@@ -453,6 +475,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 		Notes:         []types.Note{},
 		CreatedBy:     payload.CreatedBy,
 		CreatedAt:     e.CreatedAt,
+		CreatedAtTS:   e.TS,
 	}
 
 	// Register task by UID

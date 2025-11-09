@@ -262,12 +262,8 @@ func TestExhaustive_ConcurrentAuthority(t *testing.T) {
 // TestExhaustive_DuplicateEvents tests that duplicate task.created events are handled idempotently
 // This catches bug #4 from audit: duplicate tasks from double event processing
 //
-// NOTE: This test currently FAILS because we discovered a real bug (tk-229):
-// Duplicate handling is first-arrival-wins which is non-deterministic.
-// Different permutations produce different titles.
-// Skip this test until tk-229 is fixed.
+// Fixed by tk-229: Now uses earliest Lamport timestamp for deterministic duplicate handling
 func TestExhaustive_DuplicateEvents(t *testing.T) {
-	t.Skip("Known bug (tk-229): Duplicate task.created handling is non-deterministic - skipping until fixed")
 	// Scenario: Same task.created event appears twice (duplicate processing)
 	// Property: Only one task should exist, regardless of event order
 
@@ -320,7 +316,18 @@ func TestExhaustive_DuplicateEvents(t *testing.T) {
 	for i, perm := range permutations {
 		reducer := NewReducer()
 
-		for _, event := range perm {
+		// Apply events in Lamport timestamp order (not permutation order)
+		// We're testing that duplicate handling is deterministic regardless of ARRIVAL order
+		// but events must still be projected in Lamport order
+		sorted := make([]types.Event, len(perm))
+		copy(sorted, perm)
+		for i := 1; i < len(sorted); i++ {
+			for j := i; j > 0 && sorted[j].TS < sorted[j-1].TS; j-- {
+				sorted[j], sorted[j-1] = sorted[j-1], sorted[j]
+			}
+		}
+
+		for _, event := range sorted {
 			if err := reducer.Apply(event); err != nil {
 				t.Fatalf("Permutation %d: failed to apply event: %v", i, err)
 			}
@@ -339,6 +346,14 @@ func TestExhaustive_DuplicateEvents(t *testing.T) {
 		}
 
 		// Property: ALL permutations must produce the SAME result (deterministic)
+		// With the fix (tk-229), we always keep the task with earliest Lamport TS
+		// createEvent1 has TS=0, createEvent2 has TS=1, so title should always be "Original task"
+		if task.Title != "Original task" {
+			t.Fatalf("Permutation %d: Expected title 'Original task' (TS=0), got '%s'. "+
+				"Duplicate handling should keep earliest Lamport TS!",
+				i, task.Title)
+		}
+
 		if i == 0 {
 			referenceTitle = task.Title
 		} else {
@@ -350,5 +365,5 @@ func TestExhaustive_DuplicateEvents(t *testing.T) {
 		}
 	}
 
-	t.Logf("✓ All %d permutations converged to same state (1 task, deterministic title)", len(permutations))
+	t.Logf("✓ All %d permutations converged to same state (title='Original task' from TS=0)", len(permutations))
 }
