@@ -281,8 +281,7 @@
       {
         "command": "tk.quickCreateTask",
         "key": "ctrl+r ctrl+r",
-        "mac": "cmd+r cmd+r",
-        "when": "!inputFocus || terminalFocus"
+        "mac": "cmd+r cmd+r"
       }
     ]
   },
