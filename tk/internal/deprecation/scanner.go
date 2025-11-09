@@ -101,7 +101,6 @@ func isNonEmpty(v reflect.Value) bool {
 	}
 }
 
-
 // ScanAllEvents scans all events in a database for deprecated field usage
 func ScanAllEvents(events []types.Event) (*Tracker, error) {
 	tracker := NewTracker()

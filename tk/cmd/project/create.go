@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var CreateCmd = &cobra.Command{
 	Use:   "create <name> [description]",
 	Short: "Create a new project",
@@ -94,4 +93,3 @@ var CreateCmd = &cobra.Command{
 		return nil
 	},
 }
-
