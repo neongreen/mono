@@ -33,8 +33,8 @@ jobs:
       - name: Run cobra linter and generate SARIF
         continue-on-error: true  # Don't fail the workflow if linter finds issues
         run: |
-          # Run the linter and pipe output to SARIF converter
-          go run ./linters/cobralint/cmd/cobralint ./... 2>&1 | go run ./linters/cobralint/cmd/cobralint-sarif > cobra-lint.sarif || true
+          # Run the linter with SARIF output format
+          go run ./linters/cobralint/cmd/cobralint -format=sarif ./... > cobra-lint.sarif || true
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@0997e94d42e09f3c8cb5fde3f8e7f31f41d50ffd # v3.29.3
