@@ -167,4 +167,5 @@ This is useful for:
 	RootCmd.AddCommand(debugCmd)
 	RootCmd.AddCommand(projectCmd)
 	RootCmd.AddCommand(metaCmd)
+	RootCmd.AddCommand(migrateCmd)
 }
