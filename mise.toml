@@ -810,6 +810,18 @@ go build -trimpath -o {{cwd}}/_build/tk .
 echo "{{cwd}}/_build/tk"
 """
 
+[tasks."tk:log:errors"]
+description = "Show recent tk command errors from the invocation log"
+tools.glow = "latest"
+tools.jq = "latest"
+run = '''
+  tail -10000 ~/.tk/log.jsonl |
+    jq -r 'select(.exit_code != 0) | 
+      (.stderr | split("\n")) as $lines |
+      "## \($lines[0])\n\n`\(.command) \(.args | join(" "))` exited with \(.exit_code)\n\n```\n\($lines[:10] | join("\n"))\n```\n\n"' | 
+    glow -
+''' 
+
 # ============================================================================
 # want
 # ============================================================================
