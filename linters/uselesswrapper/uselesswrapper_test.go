@@ -3,7 +3,7 @@ package uselesswrapper_test
 import (
 	"testing"
 
-	"github.com/neongreen/mono/lib/linters/uselesswrapper"
+	"github.com/neongreen/mono/linters/uselesswrapper"
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 

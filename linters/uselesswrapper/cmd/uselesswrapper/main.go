@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/neongreen/mono/lib/linters/uselesswrapper"
+	"github.com/neongreen/mono/linters/uselesswrapper"
 	"golang.org/x/tools/go/analysis/singlechecker"
 )
 

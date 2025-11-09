@@ -78,11 +78,15 @@ run = "golangci-lint run"
 
 [tasks."lint:go:uselesswrapper"]
 description = "Detect useless function wrappers"
-run = "go run ./lib/linters/uselesswrapper/cmd/uselesswrapper ./..."
+run = "go run ./linters/uselesswrapper/cmd/uselesswrapper ./..."
+
+[tasks."lint:go:cobra"]
+description = "Lint Cobra commands for conventions"
+run = "go run ./linters/cobralint/cmd/cobralint ./..."
 
 [tasks."lint:go"]
 description = "Lint all Go code"
-depends = ["lint:go:golangci", "lint:go:uselesswrapper"]
+depends = ["lint:go:golangci", "lint:go:uselesswrapper", "lint:go:cobra"]
 
 [tasks."test:go"]
 description = "Test all Go code"
