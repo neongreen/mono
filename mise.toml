@@ -3,6 +3,8 @@ GOPRIVATE = "github.com/neongreen/mono"
 GONOSUMDB = "github.com/neongreen/mono"
 # Prevent Go from auto-upgrading to newer versions (fixes version mismatch errors)
 GOTOOLCHAIN = "local"
+# Add bin/ directory to PATH for dev build scripts
+_.path = ["./bin"]
 
 [tools]
 go = "1.24.7"

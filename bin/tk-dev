@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Get the directory where this script lives
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Repo root is one level up from bin/
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Build to a temporary location in the project
+BUILD_DIR="$REPO_ROOT/tk/.dev-build"
+mkdir -p "$BUILD_DIR"
+BINARY="$BUILD_DIR/tk"
+
+# Build from source
+cd "$REPO_ROOT/tk"
+go build -o "$BINARY" .
+
+# Execute with all arguments
+exec "$BINARY" "$@"
