@@ -1,13 +1,13 @@
-package uselesswrapper_test
+package cobralint_test
 
 import (
 	"testing"
 
-	"github.com/neongreen/mono/lib/linters/uselesswrapper"
+	"github.com/neongreen/mono/linters/cobralint"
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 
 func TestAnalyzer(t *testing.T) {
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, uselesswrapper.Analyzer, "a")
+	analysistest.Run(t, testdata, cobralint.Analyzer, "a")
 }
