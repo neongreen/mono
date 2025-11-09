@@ -57,47 +57,29 @@ func (d *DB) ProjectProjectCreatedEvent(e types.Event) error {
 	return err
 }
 
-// ProjectProjectAliasAddEvent projects a project.alias.add event into the project_aliases table (idempotent)
+// ProjectProjectAliasAddEvent is a no-op (aliases have been removed).
+// Kept for backward compatibility with old event logs.
+// deprecated:v5 remove-after:all-machines-migrated
 func (d *DB) ProjectProjectAliasAddEvent(e types.Event) error {
 	if e.Kind != string(types.EventKindProjectAliasAdd) {
 		return fmt.Errorf("expected project.alias.add event, got %s", e.Kind)
 	}
-
-	var payload types.ProjectAliasAddPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal project.alias.add payload: %w", err)
-	}
-
-	// Project into project_aliases table (idempotent)
-	_, err := d.Db.Exec(`
-		INSERT OR REPLACE INTO project_aliases (project_uid, alias, node, added_by)
-		VALUES (?, ?, ?, ?)
-	`, payload.ProjectUID, payload.Alias, payload.Node, payload.AddedBy)
-
-	return err
+	// No-op: aliases are no longer supported, but we don't error on old events
+	return nil
 }
 
-// ProjectProjectAliasRemoveEvent projects a project.alias.remove event by removing from project_aliases table (idempotent)
+// ProjectProjectAliasRemoveEvent is a no-op (aliases have been removed).
+// Kept for backward compatibility with old event logs.
+// deprecated:v5 remove-after:all-machines-migrated
 func (d *DB) ProjectProjectAliasRemoveEvent(e types.Event) error {
 	if e.Kind != string(types.EventKindProjectAliasRemove) {
 		return fmt.Errorf("expected project.alias.remove event, got %s", e.Kind)
 	}
-
-	var payload types.ProjectAliasRemovePayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
-		return fmt.Errorf("failed to unmarshal project.alias.remove payload: %w", err)
-	}
-
-	// Remove from project_aliases table (idempotent)
-	_, err := d.Db.Exec(`
-		DELETE FROM project_aliases 
-		WHERE project_uid = ? AND alias = ? AND node = ?
-	`, payload.ProjectUID, payload.Alias, payload.Node)
-
-	return err
+	// No-op: aliases are no longer supported, but we don't error on old events
+	return nil
 }
 
-// ProjectProjectDeleteEvent projects a project.delete event by removing from projects, project_aliases, and all tasks in the project (idempotent)
+// ProjectProjectDeleteEvent projects a project.delete event by removing from projects and all tasks in the project (idempotent)
 func (d *DB) ProjectProjectDeleteEvent(e types.Event) error {
 	if e.Kind != string(types.EventKindProjectDelete) {
 		return fmt.Errorf("expected project.delete event, got %s", e.Kind)
@@ -125,12 +107,6 @@ func (d *DB) ProjectProjectDeleteEvent(e types.Event) error {
 	_, err = tx.Exec(`DELETE FROM tasks WHERE project_uid = ?`, payload.ProjectUID)
 	if err != nil {
 		return fmt.Errorf("failed to delete tasks for project: %w", err)
-	}
-
-	// Delete from project_aliases table
-	_, err = tx.Exec(`DELETE FROM project_aliases WHERE project_uid = ?`, payload.ProjectUID)
-	if err != nil {
-		return fmt.Errorf("failed to delete from project_aliases: %w", err)
 	}
 
 	// Delete from projects table (idempotent)
