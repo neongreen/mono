@@ -2,6 +2,14 @@
 
 tk is a command-line tool that tracks tasks system-wide using an append-only event log with offline-first sync.
 
+## Development
+
+- **`tk`**: Globally installed binary (e.g., via `brew install` or `want mono tk@latest`)
+- **`tk-dev`**: Development binary built from source (use for testing changes)
+  - Build: `mise tk:build`
+  - Run: `tk-dev <command>`
+  - Always use `tk-dev` when testing local changes to avoid conflicts with global installation
+
 ## Version 4 (Current)
 
 **⚠️ Breaking Change**: Version 4 introduces a new project-based model that automatically migrates from v1/v2/v3 on first run.
