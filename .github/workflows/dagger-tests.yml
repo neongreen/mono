@@ -88,6 +88,12 @@ jobs:
             want:
               - 'want/**'
               - '.dagger/**'
+            linters-cobralint:
+              - 'linters/cobralint/**'
+              - '.dagger/**'
+            linters-uselesswrapper:
+              - 'linters/uselesswrapper/**'
+              - '.dagger/**'
 
   test:
     needs: detect-changes

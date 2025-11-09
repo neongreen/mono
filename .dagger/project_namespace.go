@@ -89,3 +89,13 @@ func (p *Projects) LibToml() *LibTomlProject {
 func (p *Projects) LibVersion() *LibVersionProject {
 	return &LibVersionProject{Dagger: p.Dagger}
 }
+
+// LintersCobralint returns the linters/cobralint project
+func (p *Projects) LintersCobralint() *LintersCobralintProject {
+	return &LintersCobralintProject{Dagger: p.Dagger}
+}
+
+// LintersUselesswrapper returns the linters/uselesswrapper project
+func (p *Projects) LintersUselesswrapper() *LintersUselesswrapperProject {
+	return &LintersUselesswrapperProject{Dagger: p.Dagger}
+}

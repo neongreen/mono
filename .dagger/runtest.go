@@ -38,6 +38,8 @@ func (m *Dagger) Test(ctx context.Context,
 	addTest("test lib/ghrelease", p.LibGhrelease().Test)
 	addTest("test lib/toml", p.LibToml().Test)
 	addTest("test lib/version", p.LibVersion().Test)
+	addTest("test linters/cobralint", p.LintersCobralint().Test)
+	addTest("test linters/uselesswrapper", p.LintersUselesswrapper().Test)
 
 	return jobs.Run(ctx)
 }
