@@ -18,8 +18,14 @@ export class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
   private collapseCounter: number = 0;
   private displayedTaskItems: TaskTreeItem[] = [];
   private detailProvider?: TaskDetailProvider;
+  private context?: vscode.ExtensionContext;
 
-  constructor(private readonly decorationProvider: TkDecorationProvider) {
+  constructor(private readonly decorationProvider: TkDecorationProvider, context?: vscode.ExtensionContext) {
+    this.context = context;
+    // Load persisted showDone state (tk-vsc-96)
+    if (context) {
+      this.showDone = context.globalState.get<boolean>('tk.showDone', false);
+    }
     void this.refresh();
   }
 
@@ -33,6 +39,10 @@ export class TkProvider implements vscode.TreeDataProvider<TkTreeItem> {
 
   public toggleDone(): void {
     this.showDone = !this.showDone;
+    // Persist the state (tk-vsc-96)
+    if (this.context) {
+      void this.context.globalState.update('tk.showDone', this.showDone);
+    }
     this._onDidChangeTreeData.fire(undefined);
   }
 

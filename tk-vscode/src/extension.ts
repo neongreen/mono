@@ -25,10 +25,10 @@ async function updateUIContext(): Promise<void> {
 
 export function activate(context: vscode.ExtensionContext): void {
   const decorationProvider = new TkDecorationProvider();
-  const provider = new TkProvider(decorationProvider);
+  const provider = new TkProvider(decorationProvider, context);
   const dragAndDropController = new TkDragAndDropController(provider);
   const detailProvider = new TaskDetailProvider(context.extensionUri);
-  
+
   // Link providers so tasks can update detail view
   provider.setDetailProvider(detailProvider);
 
