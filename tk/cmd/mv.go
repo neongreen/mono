@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/neongreen/mono/tk/internal/utils"
-
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -124,7 +124,7 @@ func moveTask(db *database.DB, taskRef string, targetSpec string, opts tasks.Mov
 	}
 
 	// Move the task using business logic
-	if err := tasks.Move(db, taskUID, toProjectUID, opts, currentUser); err != nil {
+	if err := tasks.Move(db, taskUID, toProjectUID, opts, currentUser, &clock.RealClock{}); err != nil {
 		return err
 	}
 

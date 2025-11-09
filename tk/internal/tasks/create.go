@@ -3,8 +3,8 @@ package tasks
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -22,7 +22,7 @@ type CreateResult struct {
 }
 
 // Create creates a new task in the specified project
-func Create(db *database.DB, params CreateParams, actor string) (*CreateResult, error) {
+func Create(db *database.DB, params CreateParams, actor string, clk clock.Clock) (*CreateResult, error) {
 	nodeID, err := db.GetOrCreateNodeID()
 	if err != nil {
 		return nil, err
@@ -68,7 +68,7 @@ func Create(db *database.DB, params CreateParams, actor string) (*CreateResult, 
 	event := types.Event{
 		ID:        eventID,
 		TS:        ts,
-		CreatedAt: time.Now(),
+		CreatedAt: clk.Now(),
 		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskCreated),
@@ -107,7 +107,7 @@ func Create(db *database.DB, params CreateParams, actor string) (*CreateResult, 
 	numberEvent := types.Event{
 		ID:        numberEventID,
 		TS:        numberTS,
-		CreatedAt: time.Now(),
+		CreatedAt: clk.Now(),
 		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskNumberSet),

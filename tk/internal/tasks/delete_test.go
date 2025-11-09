@@ -2,7 +2,9 @@ package tasks
 
 import (
 	"testing"
+	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/testutil"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -12,13 +14,15 @@ func TestDelete(t *testing.T) {
 
 	projectUID := testutil.SeedProject(t, db, "test")
 
-	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester")
+	clk := clock.NewVirtualClock(time.Unix(100, 0))
+	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester", clk)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
 
 	// Delete the task
-	err = Delete(db, string(result.TaskUID), "tester")
+	clk.Advance(time.Second)
+	err = Delete(db, string(result.TaskUID), "tester", clk)
 	if err != nil {
 		t.Fatalf("Delete failed: %v", err)
 	}
@@ -39,18 +43,21 @@ func TestDeleteIdempotent(t *testing.T) {
 
 	projectUID := testutil.SeedProject(t, db, "test")
 
-	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester")
+	clk := clock.NewVirtualClock(time.Unix(200, 0))
+	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester", clk)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
 
 	// Delete twice should not error
-	err = Delete(db, string(result.TaskUID), "tester")
+	clk.Advance(time.Second)
+	err = Delete(db, string(result.TaskUID), "tester", clk)
 	if err != nil {
 		t.Fatalf("First delete failed: %v", err)
 	}
 
-	err = Delete(db, string(result.TaskUID), "tester")
+	clk.Advance(time.Second)
+	err = Delete(db, string(result.TaskUID), "tester", clk)
 	if err != nil {
 		t.Fatalf("Second delete failed (should be idempotent): %v", err)
 	}

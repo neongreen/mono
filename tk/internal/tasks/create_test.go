@@ -2,7 +2,9 @@ package tasks
 
 import (
 	"testing"
+	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/testutil"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -12,10 +14,11 @@ func TestCreate(t *testing.T) {
 
 	projectUID := testutil.SeedProject(t, db, "test")
 
+	clk := clock.NewVirtualClock(time.Unix(300, 0))
 	result, err := Create(db, CreateParams{
 		ProjectUID: types.ProjectUID(projectUID),
 		Title:      "Test task",
-	}, "tester")
+	}, "tester", clk)
 
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
@@ -55,13 +58,16 @@ func TestCreateMultipleTasks(t *testing.T) {
 
 	projectUID := testutil.SeedProject(t, db, "test")
 
+	clk := clock.NewVirtualClock(time.Unix(400, 0))
+
 	// Create multiple tasks
-	result1, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Task 1"}, "tester")
+	result1, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Task 1"}, "tester", clk)
 	if err != nil {
 		t.Fatalf("Create task 1 failed: %v", err)
 	}
 
-	result2, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Task 2"}, "tester")
+	clk.Advance(time.Second)
+	result2, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Task 2"}, "tester", clk)
 	if err != nil {
 		t.Fatalf("Create task 2 failed: %v", err)
 	}

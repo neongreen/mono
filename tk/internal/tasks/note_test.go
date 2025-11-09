@@ -3,7 +3,9 @@ package tasks
 import (
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/testutil"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -13,13 +15,15 @@ func TestAddNote(t *testing.T) {
 
 	projectUID := testutil.SeedProject(t, db, "test")
 
-	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester")
+	clk := clock.NewVirtualClock(time.Unix(500, 0))
+	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester", clk)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
 
 	// Add a note
-	err = AddNote(db, string(result.TaskUID), "This is a test note", "tester")
+	clk.Advance(time.Second)
+	err = AddNote(db, string(result.TaskUID), "This is a test note", "tester", clk)
 	if err != nil {
 		t.Fatalf("AddNote failed: %v", err)
 	}
@@ -41,14 +45,16 @@ func TestAddMultipleNotes(t *testing.T) {
 
 	projectUID := testutil.SeedProject(t, db, "test")
 
-	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester")
+	clk := clock.NewVirtualClock(time.Unix(600, 0))
+	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester", clk)
 	if err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
 
 	// Add multiple notes
 	for i := 1; i <= 3; i++ {
-		err = AddNote(db, string(result.TaskUID), fmt.Sprintf("Note %d", i), "tester")
+		clk.Advance(time.Second)
+		err = AddNote(db, string(result.TaskUID), fmt.Sprintf("Note %d", i), "tester", clk)
 		if err != nil {
 			t.Fatalf("AddNote %d failed: %v", i, err)
 		}

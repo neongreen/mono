@@ -3,13 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
-	"github.com/neongreen/mono/tk/internal/utils"
-
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -62,7 +61,7 @@ var markCmd = &cobra.Command{
 			Role:  role,
 		}
 
-		if err := tasks.Mark(db, taskUUID, opts, currentUser); err != nil {
+		if err := tasks.Mark(db, taskUUID, opts, currentUser, &clock.RealClock{}); err != nil {
 			return err
 		}
 
@@ -100,11 +99,10 @@ var markCmd = &cobra.Command{
 				return fmt.Errorf("failed to marshal note payload: %w", err)
 			}
 
-			now := time.Now()
 			event := types.Event{
 				ID:        eventID,
 				TS:        lamportTS,
-				CreatedAt: now,
+				CreatedAt: (&clock.RealClock{}).Now(),
 				Actor:     currentUser,
 				Role:      role, // Use same role as status change
 				Kind:      "task.note.add",

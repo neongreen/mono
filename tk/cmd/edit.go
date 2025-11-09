@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/neongreen/mono/tk/internal/utils"
-
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ For editing just the title, you can also use 'tk describe <task> <new-title>' as
 		}
 
 		// Edit the field using business logic
-		if err := tasks.EditField(db, taskUID, field, value, currentUser); err != nil {
+		if err := tasks.EditField(db, taskUID, field, value, currentUser, &clock.RealClock{}); err != nil {
 			return err
 		}
 

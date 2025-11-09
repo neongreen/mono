@@ -5,28 +5,28 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // EditField edits a specific field of a task
-func EditField(db *database.DB, taskUID, field, value, actor string) error {
+func EditField(db *database.DB, taskUID, field, value, actor string, clk clock.Clock) error {
 	switch field {
 	case "number":
-		return EditNumber(db, taskUID, value, actor)
+		return EditNumber(db, taskUID, value, actor, clk)
 	case "title":
-		return EditTitle(db, taskUID, value, actor)
+		return EditTitle(db, taskUID, value, actor, clk)
 	case "status":
-		return EditStatus(db, taskUID, value, actor)
+		return EditStatus(db, taskUID, value, actor, clk)
 	default:
 		return fmt.Errorf("unsupported field %s (supported: number, title, status)", field)
 	}
 }
 
 // EditStatus sets the status of a task on the generic axis
-func EditStatus(db *database.DB, taskUID string, value string, actor string) error {
+func EditStatus(db *database.DB, taskUID string, value string, actor string, clk clock.Clock) error {
 	value = strings.TrimSpace(value)
 	// Allow empty status to unset it
 
@@ -50,7 +50,7 @@ func EditStatus(db *database.DB, taskUID string, value string, actor string) err
 	event := types.Event{
 		ID:        string(types.NewEventID()),
 		TS:        lamport,
-		CreatedAt: time.Now(),
+		CreatedAt: clk.Now(),
 		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskStatusSet),
@@ -65,7 +65,7 @@ func EditStatus(db *database.DB, taskUID string, value string, actor string) err
 }
 
 // EditNumber sets the number of a task
-func EditNumber(db *database.DB, taskUID string, value string, actor string) error {
+func EditNumber(db *database.DB, taskUID string, value string, actor string, clk clock.Clock) error {
 	number, err := strconv.ParseInt(value, 10, 64)
 	if err != nil || number <= 0 {
 		return fmt.Errorf("invalid number %q", value)
@@ -96,7 +96,7 @@ func EditNumber(db *database.DB, taskUID string, value string, actor string) err
 	event := types.Event{
 		ID:        string(types.NewEventID()),
 		TS:        lamport,
-		CreatedAt: time.Now(),
+		CreatedAt: clk.Now(),
 		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskNumberSet),
@@ -115,7 +115,7 @@ func EditNumber(db *database.DB, taskUID string, value string, actor string) err
 }
 
 // EditTitle sets the title of a task
-func EditTitle(db *database.DB, taskUID string, value string, actor string) error {
+func EditTitle(db *database.DB, taskUID string, value string, actor string, clk clock.Clock) error {
 	value = strings.TrimSpace(value)
 	if value == "" {
 		return fmt.Errorf("title cannot be empty")
@@ -139,7 +139,7 @@ func EditTitle(db *database.DB, taskUID string, value string, actor string) erro
 	event := types.Event{
 		ID:        string(types.NewEventID()),
 		TS:        lamport,
-		CreatedAt: time.Now(),
+		CreatedAt: clk.Now(),
 		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskTitleSet),

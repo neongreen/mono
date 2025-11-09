@@ -3,8 +3,8 @@ package tasks
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -18,7 +18,7 @@ type MoveOptions struct {
 }
 
 // Move relocates a task from one project to another
-func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor string) error {
+func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor string, clk clock.Clock) error {
 	fromProjectUID, oldNumber, err := GetProjectAndNumberForTask(db, taskUID)
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor
 	event := types.Event{
 		ID:        string(types.NewEventID()),
 		TS:        lamport,
-		CreatedAt: time.Now(),
+		CreatedAt: clk.Now(),
 		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskRelocate),

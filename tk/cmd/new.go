@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -66,7 +67,7 @@ var newCmd = &cobra.Command{
 		result, err := tasks.Create(db, tasks.CreateParams{
 			ProjectUID: projectUID,
 			Title:      title,
-		}, currentUser)
+		}, currentUser, &clock.RealClock{})
 		if err != nil {
 			return err
 		}

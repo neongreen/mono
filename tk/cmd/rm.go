@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -39,7 +40,7 @@ var rmCmd = &cobra.Command{
 			return err
 		}
 
-		if err := tasks.Delete(db, taskUUID, currentUser); err != nil {
+		if err := tasks.Delete(db, taskUUID, currentUser, &clock.RealClock{}); err != nil {
 			return err
 		}
 

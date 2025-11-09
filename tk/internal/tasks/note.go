@@ -3,14 +3,14 @@ package tasks
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
 // AddNote adds a note to a task
-func AddNote(db *database.DB, taskUUID string, markdown string, actor string) error {
+func AddNote(db *database.DB, taskUUID string, markdown string, actor string, clk clock.Clock) error {
 	eventID, err := database.GenerateEventID(db)
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func AddNote(db *database.DB, taskUUID string, markdown string, actor string) er
 	event := types.Event{
 		ID:        eventID,
 		TS:        lamportTS,
-		CreatedAt: time.Now(),
+		CreatedAt: clk.Now(),
 		Actor:     actor,
 		Role:      "human",
 		Kind:      "task.note.add",

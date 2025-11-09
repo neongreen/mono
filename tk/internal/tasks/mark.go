@@ -3,8 +3,8 @@ package tasks
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -17,7 +17,7 @@ type MarkOptions struct {
 }
 
 // Mark sets or unsets the status of a task on a specific axis
-func Mark(db *database.DB, taskUUID string, opts MarkOptions, actor string) error {
+func Mark(db *database.DB, taskUUID string, opts MarkOptions, actor string, clk clock.Clock) error {
 	eventID, err := database.GenerateEventID(db)
 	if err != nil {
 		return fmt.Errorf("failed to generate event ID: %w", err)
@@ -44,7 +44,7 @@ func Mark(db *database.DB, taskUUID string, opts MarkOptions, actor string) erro
 	event := types.Event{
 		ID:        eventID,
 		TS:        lamportTS,
-		CreatedAt: time.Now(),
+		CreatedAt: clk.Now(),
 		Actor:     actor,
 		Role:      opts.Role,
 		Kind:      string(types.EventKindTaskStatusSet),

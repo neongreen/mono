@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -46,7 +47,7 @@ var noteCmd = &cobra.Command{
 			return err
 		}
 
-		if err := tasks.AddNote(db, taskUUID, text, currentUser); err != nil {
+		if err := tasks.AddNote(db, taskUUID, text, currentUser, &clock.RealClock{}); err != nil {
 			return err
 		}
 
