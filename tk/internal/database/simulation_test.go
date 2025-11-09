@@ -417,6 +417,77 @@ func TestSimulation_NetworkPartition(t *testing.T) {
 	t.Logf("✓ Split-brain scenario handled correctly")
 }
 
+// TestSimulation_OutOfOrderDelivery tests that events delivered out-of-order still converge
+func TestSimulation_OutOfOrderDelivery(t *testing.T) {
+	// Scenario: Machine A creates events 1, 2, 3, 4, 5 in order
+	// Machine B receives them out of order: 5, 2, 4, 1, 3
+	// After projection (which sorts by Lamport TS), both should have same state
+
+	machineA := newMachine(t, "node-A", time.Unix(0, 0))
+	machineB := newMachine(t, "node-B", time.Unix(0, 0))
+
+	// Both create shared project
+	projectUID := machineA.createProject("test", "Test Project")
+	machineB.createProject("test", "Test Project")
+
+	// Machine A creates 3 tasks with status changes in order
+	machineA.clock.Set(time.Unix(100, 0))
+	task1 := machineA.createTask(projectUID, "Task 1")
+
+	machineA.clock.Advance(5 * time.Second)
+	task2 := machineA.createTask(projectUID, "Task 2")
+
+	machineA.clock.Advance(5 * time.Second)
+	task3 := machineA.createTask(projectUID, "Task 3")
+
+	// Get events from A in their natural order
+	eventsFromA := machineA.getEvents()
+
+	t.Logf("Machine A created %d events in order", len(eventsFromA))
+	for i, e := range eventsFromA {
+		t.Logf("  Event %d: TS=%d, kind=%s", i, e.TS, e.Kind)
+	}
+
+	// Machine B receives events in SHUFFLED order (simulating network reordering)
+	// But RebuildProjections will sort by Lamport TS anyway
+	shuffled := make([]types.Event, len(eventsFromA))
+	copy(shuffled, eventsFromA)
+
+	// Reverse the order (worst case)
+	for i := 0; i < len(shuffled)/2; i++ {
+		j := len(shuffled) - 1 - i
+		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+	}
+
+	t.Logf("Machine B receives events in REVERSE order:")
+	for i, e := range shuffled {
+		t.Logf("  Event %d: TS=%d, kind=%s (arrival order)", i, e.TS, e.Kind)
+	}
+
+	// Machine B ingests in wrong order
+	for _, event := range shuffled {
+		machineB.db.InsertEvent(event)
+	}
+	machineB.db.RebuildProjections() // This sorts by Lamport TS
+
+	// CRITICAL: Despite out-of-order delivery, both machines must converge
+	// Because RebuildProjections sorts by Lamport TS
+	assertConvergence(t, machineA, machineB)
+
+	// Both should have 3 tasks
+	stateB, _ := reducer.BuildFromEvents(machineB.getEvents())
+	if len(stateB.Tasks()) != 3 {
+		t.Fatalf("Expected 3 tasks, got %d", len(stateB.Tasks()))
+	}
+
+	assertTaskExists(t, stateB, string(task1), "Task 1")
+	assertTaskExists(t, stateB, string(task2), "Task 2")
+	assertTaskExists(t, stateB, string(task3), "Task 3")
+
+	t.Logf("✓ Machines converged despite REVERSE delivery order")
+	t.Logf("✓ RebuildProjections correctly sorted by Lamport TS")
+}
+
 // Helper functions for simulation tests
 
 // mustMarshal marshals a value to JSON or panics
