@@ -35,6 +35,7 @@ require (
 	golang.org/x/text v0.30.0
 	golang.org/x/tools v0.38.0
 	modernc.org/sqlite v1.39.1
+	pgregory.net/rapid v1.2.0
 )
 
 require (
@@ -97,5 +98,4 @@ require (
 	modernc.org/libc v1.66.10 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	pgregory.net/rapid v1.2.0 // indirect
 )
