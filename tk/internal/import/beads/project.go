@@ -12,12 +12,6 @@ import (
 // CreateProjectForImport creates a new project for beads import
 // Always creates a new project (never reuses existing)
 func CreateProjectForImport(db *database.DB, prefix string, alias string, actor string) (string, error) {
-	// Get current node
-	nodeID, err := db.GetOrCreateNodeID()
-	if err != nil {
-		return "", fmt.Errorf("failed to get node ID: %w", err)
-	}
-
 	// Always create NEW project (never reuse existing)
 	projectUID := types.NewProjectUID()
 
@@ -62,59 +56,15 @@ func CreateProjectForImport(db *database.DB, prefix string, alias string, actor 
 		return "", fmt.Errorf("failed to project project creation: %w", err)
 	}
 
-	// Add alias (single alias: <aliasPrefix><beadsPrefix>)
-	aliasPayload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID.String(),
-		Alias:      alias,
-		Node:       nodeID,
-		AddedBy:    actor,
-	}
-
-	aliasPayloadJSON, err := json.Marshal(aliasPayload)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal alias payload: %w", err)
-	}
-
-	aliasEventID, err := database.GenerateEventID(db)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate alias event ID: %w", err)
-	}
-
-	aliasTS, err := db.GetNextLamportTS()
-	if err != nil {
-		return "", fmt.Errorf("failed to get alias lamport timestamp: %w", err)
-	}
-
-	aliasEvent := types.Event{
-		ID:        aliasEventID,
-		TS:        aliasTS,
-		CreatedAt: time.Now(),
-		Actor:     actor,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   aliasPayloadJSON,
-	}
-
-	if err := db.InsertEvent(aliasEvent); err != nil {
-		return "", fmt.Errorf("failed to insert alias event: %w", err)
-	}
-
-	if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-		return "", fmt.Errorf("failed to project alias addition: %w", err)
-	}
+	// Note: alias parameter is kept for backward compatibility but no longer used
+	// (aliases have been removed from tk)
 
 	return projectUID.String(), nil
 }
 
-// CheckAliasClash checks if an alias already exists for the current node
+// CheckAliasClash is deprecated - aliases have been removed.
+// Kept for backward compatibility but always returns false.
+// deprecated:v5 remove-after:v5-migration
 func CheckAliasClash(db *database.DB, alias string, nodeID string) (bool, error) {
-	var exists int
-	err := db.Db.QueryRow(`
-		SELECT COUNT(*) FROM project_aliases
-		WHERE alias = ? AND node = ?
-	`, alias, nodeID).Scan(&exists)
-	if err != nil {
-		return false, fmt.Errorf("failed to check alias clash: %w", err)
-	}
-	return exists > 0, nil
+	return false, nil
 }
