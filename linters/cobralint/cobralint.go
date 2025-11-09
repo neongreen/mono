@@ -277,16 +277,28 @@ func extractFlagInfo(call *ast.CallExpr) FlagInfo {
 
 	var flagName, shortName string
 
-	// Extract flag name (first string argument)
-	if len(call.Args) > 0 {
-		if lit, ok := call.Args[0].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+	// Determine which argument contains the flag name
+	// For *Var methods (BoolVar, StringVar, etc.), the first arg is the destination variable
+	// and the second arg is the flag name
+	// For regular methods (Bool, String, etc.), the first arg is the flag name
+	nameArgIndex := 0
+	shortNameArgIndex := 1
+
+	if strings.HasSuffix(flagType, "Var") || strings.HasSuffix(flagType, "VarP") {
+		nameArgIndex = 1
+		shortNameArgIndex = 2
+	}
+
+	// Extract flag name from the appropriate argument
+	if len(call.Args) > nameArgIndex {
+		if lit, ok := call.Args[nameArgIndex].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			flagName = strings.Trim(lit.Value, "\"")
 		}
 	}
 
-	// For StringP, BoolP, etc., the second argument is the short name
-	if strings.HasSuffix(flagType, "P") && len(call.Args) > 1 {
-		if lit, ok := call.Args[1].(*ast.BasicLit); ok && lit.Kind == token.STRING {
+	// For *P methods (StringP, BoolP, BoolVarP, etc.), extract the short name
+	if strings.Contains(flagType, "P") && len(call.Args) > shortNameArgIndex {
+		if lit, ok := call.Args[shortNameArgIndex].(*ast.BasicLit); ok && lit.Kind == token.STRING {
 			shortName = strings.Trim(lit.Value, "\"")
 		}
 	}

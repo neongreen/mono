@@ -130,8 +130,29 @@ The linter works in two passes:
 
 Then it runs all enabled checkers on each command found.
 
+## Supported Flag Patterns
+
+The linter detects flags added using both regular and `*Var` methods:
+
+```go
+// Regular methods (flag name is first argument)
+cmd.Flags().Bool("json", false, "Output as JSON")
+cmd.Flags().BoolP("json", "j", false, "Output as JSON")
+cmd.Flags().String("output", "", "Output file")
+cmd.Flags().StringP("output", "o", "", "Output file")
+
+// *Var methods (flag name is second argument)
+var jsonFlag bool
+cmd.Flags().BoolVar(&jsonFlag, "json", false, "Output as JSON")
+cmd.Flags().BoolVarP(&jsonFlag, "json", "j", false, "Output as JSON")
+
+var outputFile string
+cmd.Flags().StringVar(&outputFile, "output", "", "Output file")
+cmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file")
+```
+
 ## Limitations
 
-- Only detects flags added with direct calls like `cmdName.Flags().Bool(...)`. Flags added through other mechanisms may not be detected.
+- Only detects flags added with direct `cmdName.Flags()` method calls. Flags added through other mechanisms may not be detected.
 - Requires that commands are declared as package-level variables.
 - Does not follow subcommand relationships (yet).
