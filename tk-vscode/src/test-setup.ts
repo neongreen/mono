@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 
 // Create EventEmitter class
 class EventEmitter<T = any> {
-  fire = vi.fn<[T], void>();
+  fire = vi.fn<(data: T) => void>();
   event = vi.fn();
 }
 
