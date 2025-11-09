@@ -37,19 +37,16 @@ func openTempDB(t *testing.T) *DB {
 	return db
 }
 
-func seedProject(t *testing.T, db *DB, alias string) string {
+func seedProject(t *testing.T, db *DB, name string) string {
 	t.Helper()
 	projectUID := string(types.NewProjectUID())
 	now := time.Now()
 
-	// Use a different name than alias to avoid ambiguity
-	projectName := alias + "-project"
-
 	projectPayload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        "local",
-		Name:        projectName,
-		Description: alias + " project",
+		Name:        name,
+		Description: name + " project",
 		CreatedBy:   "tester",
 	}
 
@@ -68,34 +65,6 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 	}
 	if err := db.ProjectProjectCreatedEvent(event); err != nil {
 		t.Fatalf("failed to project project.created: %v", err)
-	}
-
-	nodeID, err := db.GetOrCreateNodeID()
-	if err != nil {
-		t.Fatalf("failed to get node id: %v", err)
-	}
-
-	aliasPayload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID,
-		Alias:      alias,
-		Node:       nodeID,
-		AddedBy:    "tester",
-	}
-	aliasJSON := mustJSON(t, aliasPayload)
-	aliasEvent := types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: now,
-		Actor:     "tester",
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   aliasJSON,
-	}
-	if err := db.InsertEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to insert project.alias.add: %v", err)
-	}
-	if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to project project.alias.add: %v", err)
 	}
 
 	return projectUID
@@ -232,25 +201,7 @@ func createProjectCreatedEvent(projectUID, name, description, createdBy, node st
 	}
 }
 
-func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) types.Event {
-	payload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID,
-		Alias:      alias,
-		Node:       node,
-		AddedBy:    addedBy,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	return types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     addedBy,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   payloadJSON,
-	}
-}
+// createProjectAliasAddEvent removed - aliases no longer supported
 
 func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) types.Event {
 	payload := types.TaskCreatedPayload{

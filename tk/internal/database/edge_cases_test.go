@@ -97,13 +97,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 		t.Fatalf("failed to project project: %v", err)
 	}
 
-	aliasEvent := createProjectAliasAddEvent(projectUID, "test", nodeA, "alice")
-	if err := db.InsertEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to insert alias: %v", err)
-	}
-	if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to project alias: %v", err)
-	}
+	// Note: alias creation removed (tk-246)
 
 	// Create two tasks with the same number (collision)
 	task1UID := string(types.NewTaskUID())
