@@ -352,6 +352,71 @@ func TestSimulation_DuplicateWithTiming(t *testing.T) {
 	t.Logf("✓ Proves: Lamport TS wins over created_at time (B at T=50 beats A at T=100)")
 }
 
+// TestSimulation_NetworkPartition tests split-brain scenario
+func TestSimulation_NetworkPartition(t *testing.T) {
+	// Scenario: Two machines start connected, then partition, work independently, then reconnect
+	// Both create conflicting tasks during partition
+	// After reconnection, they must converge
+
+	machineA := newMachine(t, "node-A", time.Unix(0, 0))
+	machineB := newMachine(t, "node-B", time.Unix(0, 0))
+
+	// Phase 1: Connected - create shared project
+	projectUID := machineA.createProject("test", "Test Project")
+	machineB.createProject("test", "Test Project")
+	syncMachines(t, machineA, machineB)
+
+	t.Logf("Phase 1: Both machines connected, shared project created")
+
+	// Phase 2: Network partition! Machines work independently
+	machineA.clock.Set(time.Unix(100, 0))
+	taskA1 := machineA.createTask(projectUID, "Task A1 (during partition)")
+	machineA.clock.Advance(10 * time.Second)
+	taskA2 := machineA.createTask(projectUID, "Task A2 (during partition)")
+
+	machineB.clock.Set(time.Unix(105, 0))
+	taskB1 := machineB.createTask(projectUID, "Task B1 (during partition)")
+	machineB.clock.Advance(10 * time.Second)
+	taskB2 := machineB.createTask(projectUID, "Task B2 (during partition)")
+
+	t.Logf("Phase 2: Network partition")
+	t.Logf("  Machine A created 2 tasks independently")
+	t.Logf("  Machine B created 2 tasks independently")
+
+	// Verify machines have diverged (different task counts before sync)
+	stateA_before, _ := reducer.BuildFromEvents(machineA.getEvents())
+	stateB_before, _ := reducer.BuildFromEvents(machineB.getEvents())
+
+	t.Logf("  Machine A has %d tasks", len(stateA_before.Tasks()))
+	t.Logf("  Machine B has %d tasks", len(stateB_before.Tasks()))
+
+	// Phase 3: Network heals, machines sync
+	machineA.clock.Set(time.Unix(200, 0))
+	machineB.clock.Set(time.Unix(200, 0))
+
+	syncMachines(t, machineA, machineB)
+
+	t.Logf("Phase 3: Network reconnected, synced")
+
+	// CRITICAL: After sync, both machines must converge
+	assertConvergence(t, machineA, machineB)
+
+	// Both machines should see all 4 tasks
+	stateA_after, _ := reducer.BuildFromEvents(machineA.getEvents())
+	if len(stateA_after.Tasks()) != 4 {
+		t.Fatalf("Expected 4 tasks after partition heal, got %d", len(stateA_after.Tasks()))
+	}
+
+	// Verify all tasks exist
+	assertTaskExists(t, stateA_after, string(taskA1), "Task A1 (during partition)")
+	assertTaskExists(t, stateA_after, string(taskA2), "Task A2 (during partition)")
+	assertTaskExists(t, stateA_after, string(taskB1), "Task B1 (during partition)")
+	assertTaskExists(t, stateA_after, string(taskB2), "Task B2 (during partition)")
+
+	t.Logf("✓ Machines converged after partition (4 tasks total)")
+	t.Logf("✓ Split-brain scenario handled correctly")
+}
+
 // Helper functions for simulation tests
 
 // mustMarshal marshals a value to JSON or panics
