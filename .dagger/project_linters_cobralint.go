@@ -11,7 +11,8 @@ type LintersCobralintProject struct {
 }
 
 func (p *LintersCobralintProject) Build(ctx context.Context) (*dagger.File, error) {
-	return buildProject(ctx, "linters/cobralint", "./cmd/cobralint")
+	src := getFilteredSource("linters/cobralint", dag.CurrentModule().Source().Directory(".."))
+	return buildProject(ctx, "linters/cobralint", "./cmd/cobralint", src)
 }
 
 func (p *LintersCobralintProject) Test(ctx context.Context,
@@ -19,7 +20,8 @@ func (p *LintersCobralintProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	return testProject(ctx, "linters/cobralint", format)
+	src := getFilteredSource("linters/cobralint", dag.CurrentModule().Source().Directory(".."))
+	return testProject(ctx, "linters/cobralint", format, src)
 }
 
 func (p *LintersCobralintProject) Coverage(ctx context.Context,
@@ -27,5 +29,6 @@ func (p *LintersCobralintProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	return coverageFile(ctx, "linters/cobralint", format)
+	src := getFilteredSource("linters/cobralint", dag.CurrentModule().Source().Directory(".."))
+	return coverageFile(ctx, "linters/cobralint", format, src)
 }

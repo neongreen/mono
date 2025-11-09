@@ -11,7 +11,8 @@ type MarkdownFormatProject struct {
 }
 
 func (p *MarkdownFormatProject) Build(ctx context.Context) (*dagger.File, error) {
-	return buildProject(ctx, "markdown-format", ".")
+	src := getFilteredSource("markdown-format", dag.CurrentModule().Source().Directory(".."))
+	return buildProject(ctx, "markdown-format", ".", src)
 }
 
 func (p *MarkdownFormatProject) Test(ctx context.Context,
@@ -19,7 +20,8 @@ func (p *MarkdownFormatProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	return testProject(ctx, "markdown-format", format)
+	src := getFilteredSource("markdown-format", dag.CurrentModule().Source().Directory(".."))
+	return testProject(ctx, "markdown-format", format, src)
 }
 
 func (p *MarkdownFormatProject) Coverage(ctx context.Context,
@@ -27,5 +29,6 @@ func (p *MarkdownFormatProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	return coverageFile(ctx, "markdown-format", format)
+	src := getFilteredSource("markdown-format", dag.CurrentModule().Source().Directory(".."))
+	return coverageFile(ctx, "markdown-format", format, src)
 }
