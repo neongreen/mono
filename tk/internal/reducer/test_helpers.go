@@ -3,6 +3,7 @@ package reducer
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -11,20 +12,22 @@ import (
 
 // getEventOrder formats event order for error messages
 func getEventOrder(events []types.Event) string {
-	result := "["
+	var result strings.Builder
+	result.WriteString("[")
 	for i, e := range events {
 		var payload types.TaskStatusSetPayload
 		json.Unmarshal(e.Payload, &payload)
 		if i > 0 {
-			result += ", "
+			result.WriteString(", ")
 		}
-		result += fmt.Sprintf("%s(TS=%d)", payload.State, e.TS)
+		fmt.Fprintf(&result, "%s(TS=%d)", payload.State, e.TS)
 	}
-	return result + "]"
+	result.WriteString("]")
+	return result.String()
 }
 
 // mustMarshal marshals a value to JSON or panics
-func mustMarshal(v interface{}) json.RawMessage {
+func mustMarshal(v any) json.RawMessage {
 	data, err := json.Marshal(v)
 	if err != nil {
 		panic(err)
@@ -47,7 +50,7 @@ func generateAllPermutations[T any](items []T) [][]T {
 			return
 		}
 
-		for i := 0; i < n; i++ {
+		for i := range n {
 			permute(arr, n-1)
 			if n%2 == 1 {
 				arr[0], arr[n-1] = arr[n-1], arr[0]
@@ -63,12 +66,4 @@ func generateAllPermutations[T any](items []T) [][]T {
 	permute(arrCopy, len(arrCopy))
 
 	return result
-}
-
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

@@ -9,10 +9,10 @@ import (
 
 // CheckInvariants verifies event sourcing invariants
 // Call this after any operation to ensure database consistency
-func (db *DB) CheckInvariants() error {
+func (d *DB) CheckInvariants() error {
 	// Invariant 1: State matches event log
 	// Rebuilding from events should produce the same state as current projections
-	events, err := db.GetEvents()
+	events, err := d.GetEvents()
 	if err != nil {
 		return fmt.Errorf("invariant check: failed to get events: %w", err)
 	}
@@ -32,7 +32,7 @@ func (db *DB) CheckInvariants() error {
 
 	// Check task count matches
 	var projectedTaskCount int
-	if err := db.Db.QueryRow(`SELECT COUNT(*) FROM tasks`).Scan(&projectedTaskCount); err != nil {
+	if err := d.Db.QueryRow(`SELECT COUNT(*) FROM tasks`).Scan(&projectedTaskCount); err != nil {
 		return fmt.Errorf("invariant check: failed to count projected tasks: %w", err)
 	}
 
@@ -42,7 +42,7 @@ func (db *DB) CheckInvariants() error {
 	}
 
 	// Invariant 2: No orphaned tasks (every task in projection has events)
-	rows, err := db.Db.Query(`SELECT task_uid FROM tasks`)
+	rows, err := d.Db.Query(`SELECT task_uid FROM tasks`)
 	if err != nil {
 		return fmt.Errorf("invariant check: failed to query tasks: %w", err)
 	}
@@ -63,7 +63,7 @@ func (db *DB) CheckInvariants() error {
 	// Invariant 3: All tasks in rebuilt state should exist in projections
 	for taskUID := range rebuilt.Tasks() {
 		var count int
-		if err := db.Db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&count); err != nil {
+		if err := d.Db.QueryRow(`SELECT COUNT(*) FROM tasks WHERE task_uid = ?`, taskUID).Scan(&count); err != nil {
 			return fmt.Errorf("invariant check: failed to check task existence: %w", err)
 		}
 
@@ -76,7 +76,7 @@ func (db *DB) CheckInvariants() error {
 	// (We don't check monotonic by insertion order because multi-machine sync can interleave events)
 	// Instead, verify that when we ORDER BY ts, we get valid Lamport order
 	var prevTS int64 = -1
-	eventRows, err := db.Db.Query(`SELECT ts FROM events ORDER BY ts ASC`)
+	eventRows, err := d.Db.Query(`SELECT ts FROM events ORDER BY ts ASC`)
 	if err != nil {
 		return fmt.Errorf("invariant check: failed to query events: %w", err)
 	}
@@ -98,13 +98,13 @@ func (db *DB) CheckInvariants() error {
 }
 
 // CheckInvariantsT is a test helper that calls CheckInvariants and fails the test if violated
-func (db *DB) CheckInvariantsT(t interface {
+func (d *DB) CheckInvariantsT(t interface {
 	Helper()
-	Fatalf(string, ...interface{})
+	Fatalf(string, ...any)
 }) {
 	t.Helper()
 
-	if err := db.CheckInvariants(); err != nil {
+	if err := d.CheckInvariants(); err != nil {
 		t.Fatalf("Invariant violation: %v", err)
 	}
 }

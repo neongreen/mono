@@ -31,19 +31,6 @@ import (
 // - Idempotence: Applying same event multiple times = applying once
 // - Monotonicity: State only grows (OR-set semantics for relations)
 
-// TestPropertyBasedSetup is a simple smoke test to verify rapid is working
-func TestPropertyBasedSetup(t *testing.T) {
-	rapid.Check(t, func(t *rapid.T) {
-		// Generate a random integer
-		n := rapid.Int().Draw(t, "n")
-
-		// Property: n should equal itself
-		if n != n {
-			t.Fatalf("property violated: %d != %d", n, n)
-		}
-	})
-}
-
 // TestEventGenerators verifies event generators produce valid events
 func TestEventGenerators(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {

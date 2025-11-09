@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -635,7 +636,7 @@ func TestSimulation_ConcurrentTaskCreation(t *testing.T) {
 // Helper functions for simulation tests
 
 // mustMarshal marshals a value to JSON or panics
-func mustMarshal(v interface{}) json.RawMessage {
+func mustMarshal(v any) json.RawMessage {
 	data, err := json.Marshal(v)
 	if err != nil {
 		panic(err)
@@ -715,22 +716,23 @@ func assertTaskExists(t *testing.T, state *reducer.Reducer, taskUID string, expe
 
 // formatStateDiff shows differences between two machine states
 func formatStateDiff(labelA string, stateA *reducer.Reducer, labelB string, stateB *reducer.Reducer) string {
-	diff := fmt.Sprintf("State difference between %s and %s:\n", labelA, labelB)
+	var diff strings.Builder
+	fmt.Fprintf(&diff, "State difference between %s and %s:\n", labelA, labelB)
 
-	diff += fmt.Sprintf("  %s: %d tasks\n", labelA, len(stateA.Tasks()))
-	diff += fmt.Sprintf("  %s: %d tasks\n", labelB, len(stateB.Tasks()))
+	fmt.Fprintf(&diff, "  %s: %d tasks\n", labelA, len(stateA.Tasks()))
+	fmt.Fprintf(&diff, "  %s: %d tasks\n", labelB, len(stateB.Tasks()))
 
 	// Tasks only in A
 	for uuid, taskA := range stateA.Tasks() {
 		if _, exists := stateB.GetTask(uuid); !exists {
-			diff += fmt.Sprintf("  - Only in %s: %s (%s)\n", labelA, uuid, taskA.Title)
+			fmt.Fprintf(&diff, "  - Only in %s: %s (%s)\n", labelA, uuid, taskA.Title)
 		}
 	}
 
 	// Tasks only in B
 	for uuid, taskB := range stateB.Tasks() {
 		if _, exists := stateA.GetTask(uuid); !exists {
-			diff += fmt.Sprintf("  - Only in %s: %s (%s)\n", labelB, uuid, taskB.Title)
+			fmt.Fprintf(&diff, "  - Only in %s: %s (%s)\n", labelB, uuid, taskB.Title)
 		}
 	}
 
@@ -742,11 +744,11 @@ func formatStateDiff(labelA string, stateA *reducer.Reducer, labelB string, stat
 		}
 
 		if taskA.Title != taskB.Title {
-			diff += fmt.Sprintf("  - Different title for %s:\n", uuid)
-			diff += fmt.Sprintf("      %s: %q\n", labelA, taskA.Title)
-			diff += fmt.Sprintf("      %s: %q\n", labelB, taskB.Title)
+			fmt.Fprintf(&diff, "  - Different title for %s:\n", uuid)
+			fmt.Fprintf(&diff, "      %s: %q\n", labelA, taskA.Title)
+			fmt.Fprintf(&diff, "      %s: %q\n", labelB, taskB.Title)
 		}
 	}
 
-	return diff
+	return diff.String()
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"testing"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/tasks"
 )
 
@@ -12,7 +13,7 @@ func TestEditStatus(t *testing.T) {
 	projectUID := seedProject(t, db, "alpha")
 	taskUID := seedTask(t, db, projectUID, "Task", 1)
 
-	if err := tasks.EditStatus(db, taskUID, "done", "test-user"); err != nil {
+	if err := tasks.EditStatus(db, taskUID, "done", "test-user", &clock.RealClock{}); err != nil {
 		t.Fatalf("EditStatus failed: %v", err)
 	}
 

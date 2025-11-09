@@ -144,7 +144,7 @@ func GenEventSequence(minEvents, maxEvents int) *rapid.Generator[[]types.Event] 
 		numTasks := rapid.IntRange(1, 5).Draw(t, "num_tasks")
 		taskUIDs := make([]string, numTasks)
 
-		for i := 0; i < numTasks; i++ {
+		for i := range numTasks {
 			event := GenTaskCreatedEvent(int64(i)).Draw(t, "task_created")
 			events = append(events, event)
 
