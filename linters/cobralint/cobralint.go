@@ -22,12 +22,12 @@ import (
 
 // CommandInfo represents a Cobra command extracted from the code.
 type CommandInfo struct {
-	Name     string              // Variable name (e.g., "lsCmd")
-	Use      string              // Command use string (e.g., "ls")
-	Flags    []FlagInfo          // Flags attached to this command
-	Pos      token.Pos           // Position in source code
-	VarDecl  *ast.ValueSpec      // The variable declaration
-	IsRoot   bool                // Whether this is the root command
+	Name    string         // Variable name (e.g., "lsCmd")
+	Use     string         // Command use string (e.g., "ls")
+	Flags   []FlagInfo     // Flags attached to this command
+	Pos     token.Pos      // Position in source code
+	VarDecl *ast.ValueSpec // The variable declaration
+	IsRoot  bool           // Whether this is the root command
 }
 
 // FlagInfo represents a flag attached to a command.
