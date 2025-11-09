@@ -220,9 +220,9 @@ func TestValidateProjectName(t *testing.T) {
 // TestValidateProjectName_Suggestions tests that the suggestions are sensible
 func TestValidateProjectName_Suggestions(t *testing.T) {
 	tests := []struct {
-		name            string
-		projectName     string
-		wantSuggestion  string
+		name           string
+		projectName    string
+		wantSuggestion string
 	}{
 		{
 			name:           "uppercase to lowercase",
