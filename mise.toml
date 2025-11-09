@@ -48,6 +48,20 @@ description = "Format Rust code"
 dir = "mdbook-comments"
 run = "cargo fmt"
 
+[tasks.deprecations]
+description = "List all scheduled deprecations across codebase"
+run = '''
+echo "=== Scheduled Deprecations ==="
+echo ""
+echo "Format: deprecated:VERSION [track:BOOL] [remove-after:CONDITION] [reason:TEXT]"
+echo ""
+rg --color=never --no-heading --line-number "deprecated:v\d+" -g "*.go" -g "*.rs" -g "*.ts" | \
+  sed 's|^\([^:]*\):\([^:]*\):\(.*\)|\1:\2: \3|' | \
+  sort
+echo ""
+echo "To scan event logs for usage: tk migrate scan-deprecated"
+'''
+
 # NOTE: Project run tasks (tk, conf, printpdf, etc.) are intentionally flat names
 # without the :run suffix for convenience, since running is the most common operation.
 # All other tasks remain namespaced (project:test, project:build, etc.).
