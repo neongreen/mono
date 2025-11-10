@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dagger/internal/dagger"
 	"dagger/internal/parallel"
 )
 
@@ -69,4 +70,70 @@ func (m *Dagger) Lint(ctx context.Context) error {
 	})
 
 	return jobs.Run(ctx)
+}
+
+// ModernizeFix runs golangci-lint with --fix to automatically fix modernize issues
+// Returns a Changeset showing what was fixed
+func (m *Dagger) ModernizeFix(ctx context.Context) (*dagger.Changeset, error) {
+	repo := dag.CurrentModule().Source().Directory("..")
+
+	// Run golangci-lint with --fix flag for modernize linter
+	fixedDir := dag.Container().
+		From("docker.io/golangci/golangci-lint:v2.6.1").
+		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod")).
+		WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
+		WithMountedCache("/root/.cache/golangci-lint", dag.CacheVolume("golangci-lint")).
+		WithEnvVariable("GOPRIVATE", "github.com/neongreen/mono").
+		WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono").
+		WithMountedDirectory("/src", repo).
+		WithWorkdir("/src").
+		WithExec([]string{
+			"golangci-lint", "run",
+			"--fix",
+			"--enable-only=modernize",
+		}).
+		Directory("/src")
+
+	// Return changeset showing what was fixed
+	return fixedDir.Changes(repo), nil
+}
+
+// AutoFix applies all automatic code fixes: modernize, goimports, cargo fmt, and go mod tidy
+// Returns a Changeset showing all fixes applied
+func (m *Dagger) AutoFix(ctx context.Context) (*dagger.Changeset, error) {
+	repo := dag.CurrentModule().Source().Directory("..")
+
+	// Do all Go operations in a single container with golangci-lint
+	goFixed := dag.Container().
+		From("docker.io/golangci/golangci-lint:v2.6.1").
+		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod")).
+		WithMountedCache("/root/.cache/go-build", dag.CacheVolume("go-build")).
+		WithMountedCache("/root/.cache/golangci-lint", dag.CacheVolume("golangci-lint")).
+		WithEnvVariable("GOPRIVATE", "github.com/neongreen/mono").
+		WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono").
+		WithMountedDirectory("/src", repo).
+		WithWorkdir("/src").
+		// Step 1: Run modernize fixes first
+		WithExec([]string{
+			"golangci-lint", "run",
+			"--fix",
+			"--enable-only=modernize",
+		}).
+		// Step 2: Install and run goimports
+		WithExec([]string{"go", "install", "golang.org/x/tools/cmd/goimports@latest"}).
+		WithExec([]string{"/go/bin/goimports", "-w", "."}).
+		// Step 3: Run go mod tidy
+		WithExec([]string{"go", "mod", "tidy"}).
+		Directory("/src")
+
+	// Step 4: Format Rust code in mdbook-comments (if it exists)
+	fullyFixed := dag.Container().
+		From("rust:1.90").
+		WithMountedDirectory("/src", goFixed).
+		WithWorkdir("/src").
+		WithExec([]string{"sh", "-c", "if [ -f mdbook-comments/Cargo.toml ]; then cd mdbook-comments && rustup component add rustfmt && cargo fmt; fi"}).
+		Directory("/src")
+
+	// Return changeset showing all fixes
+	return fullyFixed.Changes(repo), nil
 }
