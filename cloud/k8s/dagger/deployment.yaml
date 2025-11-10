@@ -20,10 +20,10 @@ spec:
       labels:
         app: dagger-engine
     spec:
-      # runtimeClassName: gvisor  # Disabled temporarily while debugging gVisor config
+      runtimeClassName: gvisor
       containers:
         - name: engine
-          image: registry.dagger.io/engine:v0.13.3
+          image: registry.dagger.io/engine:v0.19.6
           ports:
             - containerPort: 8080
               name: http

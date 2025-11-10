@@ -108,29 +108,37 @@ resource "hcloud_server" "vm1" {
     # Install gVisor (runsc runtime for enhanced container isolation)
     - |
       set -e
-      ARCH=$(uname -m)
-      URL=https://storage.googleapis.com/gvisor/releases/release/latest/$${ARCH}
-      wget $${URL}/runsc $${URL}/runsc.sha512
-      sha512sum -c runsc.sha512
-      rm -f runsc.sha512
-      chmod a+rx runsc
-      mv runsc /usr/local/bin/
-    
+      apt-get update
+      apt-get install -y apt-transport-https ca-certificates curl gnupg
+      curl -fsSL https://gvisor.dev/archive.key | gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" > /etc/apt/sources.list.d/gvisor.list
+      apt-get update
+      apt-get install -y runsc
+
     # Install k3s (lightweight Kubernetes)
     - curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 0644 --disable traefik" sh -s -
-    
-    # Configure containerd for gVisor (install creates the shim)
+
+    # Configure containerd for gVisor with k3s template syntax
     - |
       set -e
-      /usr/local/bin/runsc install
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
+
+      # Create config for containerd 1.7 (older k3s versions)
       cat > /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl << 'EOF'
-      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
-        runtime_type = "io.containerd.runc.v2"
-      
+      {{ template "base" . }}
+
       [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
         runtime_type = "io.containerd.runsc.v1"
       EOF
+
+      # Create config for containerd 2.0 (newer k3s versions - v1.31.6+)
+      cat > /var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.tmpl << 'EOF'
+      {{ template "base" . }}
+
+      [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]
+        runtime_type = "io.containerd.runsc.v1"
+      EOF
+
       systemctl restart k3s
   CLOUDCFG
 }

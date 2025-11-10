@@ -1009,6 +1009,6 @@ dir = "cloud"
 quiet = true
 run = '''
 set -euo pipefail
-POD=$(mise run cloud:kubectl get pods -n dagger -l app.kubernetes.io/name=dagger-engine -o jsonpath='{.items[0].metadata.name}')
+POD=$(mise run cloud:kubectl get pods -n dagger -l app=dagger-engine -o jsonpath='{.items[0].metadata.name}')
 mise run cloud:kubectl logs -n dagger "$POD" "$@"
 '''
