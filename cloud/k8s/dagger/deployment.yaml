@@ -20,7 +20,8 @@ spec:
       labels:
         app: dagger-engine
     spec:
-      runtimeClassName: gvisor
+      # Note: Dagger Engine itself can't run in gVisor due to privileged requirements
+      # (CNI, network namespaces). Use gVisor for workloads that Dagger runs instead.
       containers:
         - name: engine
           image: registry.dagger.io/engine:v0.19.6
