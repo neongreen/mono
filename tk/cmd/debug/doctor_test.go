@@ -79,3 +79,48 @@ func TestDoctorDetectsCollisions(t *testing.T) {
 		t.Fatalf("expected collision to be reported")
 	}
 }
+
+func TestDoctorDetectsInvalidEventReferences(t *testing.T) {
+	db := openTempDB(t)
+
+	projectUID := seedProject(t, db, "proj")
+	taskUID := seedTask(t, db, projectUID, "task", 1)
+
+	// Insert a task.relocate event with invalid project UID (the bug from tk-281)
+	badEvent := []byte(`{
+		"task_uid": "` + taskUID + `",
+		"from_project_uid": "` + projectUID + `",
+		"to_project_uid": "lovable",
+		"number_policy": {"mode": "auto"}
+	}`)
+
+	ts, err := db.GetNextLamportTS()
+	if err != nil {
+		t.Fatalf("failed to get lamport ts: %v", err)
+	}
+
+	_, err = db.Db.Exec(`
+		INSERT INTO events (id, ts, created_at, actor, role, kind, payload)
+		VALUES ('evt_test_123', ?, unixepoch(), 'test', 'human', 'task.relocate', ?)
+	`, ts, badEvent)
+	if err != nil {
+		t.Fatalf("failed to insert bad event: %v", err)
+	}
+
+	report, err := RunDoctor(db)
+	if err != nil {
+		t.Fatalf("runDoctor failed: %v", err)
+	}
+
+	// Should detect the invalid to_project_uid
+	found := false
+	for _, issue := range report.Issues {
+		if strings.Contains(issue, "to_project_uid") && strings.Contains(issue, "lovable") {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected invalid reference issue for 'lovable', got issues: %v", report.Issues)
+	}
+}

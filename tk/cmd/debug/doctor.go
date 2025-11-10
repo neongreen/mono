@@ -85,6 +85,9 @@ func RunDoctor(db *database.DB) (*DoctorReport, error) {
 	if err := checkEventPayloads(db, report); err != nil {
 		return nil, err
 	}
+	if err := checkEventReferences(db, report); err != nil {
+		return nil, err
+	}
 	if err := checkEventOrdering(db, report); err != nil {
 		return nil, err
 	}
@@ -211,6 +214,171 @@ func checkEventPayloads(db *database.DB, report *DoctorReport) error {
 		}
 	}
 	return rows.Err()
+}
+
+func checkEventReferences(db *database.DB, report *DoctorReport) error {
+	// Get all events
+	events, err := db.GetEvents()
+	if err != nil {
+		return fmt.Errorf("failed to get events: %w", err)
+	}
+
+	// Build sets of existing projects and tasks for fast lookup
+	existingProjects := make(map[string]bool)
+	projectRows, err := db.Db.Query(`SELECT project_uid FROM projects`)
+	if err != nil {
+		return fmt.Errorf("failed to query projects: %w", err)
+	}
+	for projectRows.Next() {
+		var uid string
+		if err := projectRows.Scan(&uid); err != nil {
+			projectRows.Close()
+			return fmt.Errorf("failed to scan project: %w", err)
+		}
+		existingProjects[uid] = true
+	}
+	projectRows.Close()
+
+	existingTasks := make(map[string]bool)
+	taskRows, err := db.Db.Query(`SELECT task_uid FROM tasks`)
+	if err != nil {
+		return fmt.Errorf("failed to query tasks: %w", err)
+	}
+	for taskRows.Next() {
+		var uid string
+		if err := taskRows.Scan(&uid); err != nil {
+			taskRows.Close()
+			return fmt.Errorf("failed to scan task: %w", err)
+		}
+		existingTasks[uid] = true
+	}
+	taskRows.Close()
+
+	// Check each event's references
+	for _, e := range events {
+		switch e.Kind {
+		case string(types.EventKindTaskRelocate):
+			var payload types.TaskRelocatePayload
+			if err := json.Unmarshal(e.Payload, &payload); err != nil {
+				continue // Already caught by checkEventPayloads
+			}
+
+			// Check task_uid format
+			if err := types.TaskUID(payload.TaskUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (task.relocate, TS=%d): field 'task_uid' has value %q which is not a valid task UID: %v",
+						e.ID, e.TS, payload.TaskUID, err))
+			}
+
+			// Check from_project_uid format
+			if err := types.ProjectUID(payload.FromProjectUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (task.relocate, TS=%d): field 'from_project_uid' has value %q which is not a valid project UID: %v",
+						e.ID, e.TS, payload.FromProjectUID, err))
+			}
+
+			// Check to_project_uid format - THIS CATCHES THE BUG!
+			if err := types.ProjectUID(payload.ToProjectUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (task.relocate, TS=%d): field 'to_project_uid' has value %q which is not a valid project UID: %v",
+						e.ID, e.TS, payload.ToProjectUID, err))
+			}
+
+		case string(types.EventKindTaskCreated):
+			var payload types.TaskCreatedPayload
+			if err := json.Unmarshal(e.Payload, &payload); err != nil {
+				continue
+			}
+
+			// Check task_uid format
+			if err := types.TaskUID(payload.TaskUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (task.created, TS=%d): field 'task_uid' has value %q which is not a valid task UID: %v",
+						e.ID, e.TS, payload.TaskUID, err))
+			}
+
+			// Check project_uid format
+			if err := types.ProjectUID(payload.ProjectUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (task.created, TS=%d): field 'project_uid' has value %q which is not a valid project UID: %v",
+						e.ID, e.TS, payload.ProjectUID, err))
+			}
+
+		case string(types.EventKindProjectCreated):
+			var payload types.ProjectCreatedPayload
+			if err := json.Unmarshal(e.Payload, &payload); err != nil {
+				continue
+			}
+
+			// Check project_uid format
+			if err := types.ProjectUID(payload.ProjectUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (project.created, TS=%d): field 'project_uid' has value %q which is not a valid project UID: %v",
+						e.ID, e.TS, payload.ProjectUID, err))
+			}
+
+		case string(types.EventKindProjectDelete):
+			var payload types.ProjectDeletePayload
+			if err := json.Unmarshal(e.Payload, &payload); err != nil {
+				continue
+			}
+
+			// Check project_uid format
+			if err := types.ProjectUID(payload.ProjectUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (project.delete, TS=%d): field 'project_uid' has value %q which is not a valid project UID: %v",
+						e.ID, e.TS, payload.ProjectUID, err))
+			}
+
+		case string(types.EventKindProjectNameSet):
+			var payload types.ProjectNameSetPayload
+			if err := json.Unmarshal(e.Payload, &payload); err != nil {
+				continue
+			}
+
+			// Check project_uid format
+			if err := types.ProjectUID(payload.ProjectUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (project.name.set, TS=%d): field 'project_uid' has value %q which is not a valid project UID: %v",
+						e.ID, e.TS, payload.ProjectUID, err))
+			}
+
+		case string(types.EventKindTaskNumberSet):
+			var payload types.TaskNumberSetPayload
+			if err := json.Unmarshal(e.Payload, &payload); err != nil {
+				continue
+			}
+
+			// Check task_uid format
+			if err := types.TaskUID(payload.TaskUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (task.number.set, TS=%d): field 'task_uid' has value %q which is not a valid task UID: %v",
+						e.ID, e.TS, payload.TaskUID, err))
+			}
+
+			// Check project_uid format
+			if err := types.ProjectUID(payload.ProjectUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (task.number.set, TS=%d): field 'project_uid' has value %q which is not a valid project UID: %v",
+						e.ID, e.TS, payload.ProjectUID, err))
+			}
+
+		case string(types.EventKindTaskTitleSet):
+			var payload types.TaskTitleSetPayload
+			if err := json.Unmarshal(e.Payload, &payload); err != nil {
+				continue
+			}
+
+			// Check task_uid format
+			if err := types.TaskUID(payload.TaskUID).Validate(); err != nil {
+				report.Issues = append(report.Issues,
+					fmt.Sprintf("Event %s (task.title.set, TS=%d): field 'task_uid' has value %q which is not a valid task UID: %v",
+						e.ID, e.TS, payload.TaskUID, err))
+			}
+		}
+	}
+
+	return nil
 }
 
 func checkEventProjectionConsistency(db *database.DB, report *DoctorReport) error {
