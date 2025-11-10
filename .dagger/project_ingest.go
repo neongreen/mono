@@ -11,7 +11,7 @@ type IngestProject struct {
 }
 
 func (p *IngestProject) Build(ctx context.Context) (*dagger.File, error) {
-	src := getFilteredSource("ingest", dag.CurrentModule().Source().Directory(".."))
+	src := getFilteredSource("ingest")
 	return buildProject(ctx, "ingest", "./cmd", src)
 }
 
@@ -21,7 +21,7 @@ func (p *IngestProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	repo := dag.CurrentModule().Source().Directory("..")
+	repo := getFilteredSource("ingest")
 
 	// Run both unit tests and integration tests
 	var args []string
@@ -51,7 +51,7 @@ func (p *IngestProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	repo := dag.CurrentModule().Source().Directory("..")
+	repo := getFilteredSource("ingest")
 
 	// Run both unit tests and integration tests
 	var args []string

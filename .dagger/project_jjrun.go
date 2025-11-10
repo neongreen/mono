@@ -11,7 +11,7 @@ type JjRunProject struct {
 }
 
 func (p *JjRunProject) Build(ctx context.Context) (*dagger.File, error) {
-	src := getFilteredSource("jj-run", dag.CurrentModule().Source().Directory(".."))
+	src := getFilteredSource("jj-run")
 	return buildProject(ctx, "jj-run", "./cmd", src)
 }
 
@@ -21,7 +21,7 @@ func (p *JjRunProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	repo := dag.CurrentModule().Source().Directory("..")
+	repo := getFilteredSource("jj-run")
 
 	var args []string
 	if format == "testname" {
@@ -53,7 +53,7 @@ func (p *JjRunProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	repo := dag.CurrentModule().Source().Directory("..")
+	repo := getFilteredSource("jj-run")
 
 	var args []string
 	if format == "testname" {

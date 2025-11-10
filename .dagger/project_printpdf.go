@@ -11,7 +11,7 @@ type PrintpdfProject struct {
 }
 
 func (p *PrintpdfProject) Build(ctx context.Context) (*dagger.File, error) {
-	src := getFilteredSource("printpdf", dag.CurrentModule().Source().Directory(".."))
+	src := getFilteredSource("printpdf")
 	return buildProject(ctx, "printpdf", "./cmd", src)
 }
 
@@ -22,7 +22,7 @@ func (p *PrintpdfProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	repo := dag.CurrentModule().Source().Directory("..")
+	repo := getFilteredSource("printpdf")
 
 	// Test only specific packages (skip golden tests)
 	var args []string
@@ -59,7 +59,7 @@ func (p *PrintpdfProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	repo := dag.CurrentModule().Source().Directory("..")
+	repo := getFilteredSource("printpdf")
 
 	// Test only specific packages (skip golden tests)
 	var args []string

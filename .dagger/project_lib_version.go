@@ -17,7 +17,7 @@ func (p *LibVersionProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	src := getFilteredSource("lib/version", dag.CurrentModule().Source().Directory(".."))
+	src := getFilteredSource("lib/version")
 	return testProject(ctx, "lib/version", format, src)
 }
 
@@ -27,6 +27,6 @@ func (p *LibVersionProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	src := getFilteredSource("lib/version", dag.CurrentModule().Source().Directory(".."))
+	src := getFilteredSource("lib/version")
 	return coverageFile(ctx, "lib/version", format, src)
 }
