@@ -76,6 +76,12 @@ type ProjectDeletePayload struct {
 	ProjectUID string `json:"project_uid"`
 }
 
+// ProjectNameSetPayload is the payload for project.name.set events
+type ProjectNameSetPayload struct {
+	ProjectUID string `json:"project_uid"`
+	Name       string `json:"name"` // new project name
+}
+
 // TaskCreatedPayload is the payload for task.created events
 type TaskCreatedPayload struct {
 	TaskUID        string `json:"task_uid"`

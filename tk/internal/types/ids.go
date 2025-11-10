@@ -239,6 +239,7 @@ const (
 	EventKindProjectAliasAdd    EventKind = "project.alias.add"    // deprecated:v5 track:true - Alias events no longer generated
 	EventKindProjectAliasRemove EventKind = "project.alias.remove" // deprecated:v5 track:true - Alias events no longer generated
 	EventKindProjectDelete      EventKind = "project.delete"
+	EventKindProjectNameSet     EventKind = "project.name.set"
 	EventKindTaskCreated        EventKind = "task.created"
 	EventKindTaskNumberSet      EventKind = "task.number.set"
 	EventKindTaskRelocate       EventKind = "task.relocate"
@@ -259,6 +260,7 @@ const (
 	eventKindProjectAliasAddIndex
 	eventKindProjectAliasRemoveIndex
 	eventKindProjectDeleteIndex
+	eventKindProjectNameSetIndex
 	eventKindTaskCreatedIndex
 	eventKindTaskNumberSetIndex
 	eventKindTaskRelocateIndex
@@ -278,6 +280,7 @@ var AllEventKinds = [...]EventKind{
 	eventKindProjectAliasAddIndex:    EventKindProjectAliasAdd,
 	eventKindProjectAliasRemoveIndex: EventKindProjectAliasRemove,
 	eventKindProjectDeleteIndex:      EventKindProjectDelete,
+	eventKindProjectNameSetIndex:     EventKindProjectNameSet,
 	eventKindTaskCreatedIndex:        EventKindTaskCreated,
 	eventKindTaskNumberSetIndex:      EventKindTaskNumberSet,
 	eventKindTaskRelocateIndex:       EventKindTaskRelocate,

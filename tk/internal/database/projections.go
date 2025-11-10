@@ -23,6 +23,8 @@ func (d *DB) ProjectEvent(event types.Event) error {
 		return d.ProjectProjectAliasRemoveEvent(event)
 	case string(types.EventKindProjectDelete):
 		return d.ProjectProjectDeleteEvent(event)
+	case string(types.EventKindProjectNameSet):
+		return d.ProjectProjectNameSetEvent(event)
 	case string(types.EventKindTaskCreated):
 		return d.ProjectTaskCreatedEvent(event)
 	case string(types.EventKindTaskNumberSet):
@@ -116,6 +118,27 @@ func (d *DB) ProjectProjectDeleteEvent(e types.Event) error {
 	}
 
 	return tx.Commit()
+}
+
+// ProjectProjectNameSetEvent projects a project.name.set event by updating the project name (idempotent)
+func (d *DB) ProjectProjectNameSetEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindProjectNameSet) {
+		return fmt.Errorf("expected project.name.set event, got %s", e.Kind)
+	}
+
+	var payload types.ProjectNameSetPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal project.name.set payload: %w", err)
+	}
+
+	// Update project name in projects table (idempotent)
+	_, err := d.Db.Exec(`
+		UPDATE projects
+		SET name = ?
+		WHERE project_uid = ?
+	`, payload.Name, payload.ProjectUID)
+
+	return err
 }
 
 // ProjectTaskCreatedEvent projects a task.created event into the tasks table (idempotent)

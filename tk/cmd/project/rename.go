@@ -1,0 +1,97 @@
+package project
+
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
+	"github.com/spf13/cobra"
+)
+
+var RenameCmd = &cobra.Command{
+	Use:   "rename <project> <new-name>",
+	Short: "Rename a project",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db, err := database.OpenExistingDB()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		// Check database version - projects are v4+ only
+		version, err := db.GetDBVersion()
+		if err != nil {
+			return err
+		}
+		if version < 4 {
+			return fmt.Errorf("projects require database v4 or higher, but current version is v%d", version)
+		}
+
+		projectRef := types.NewProjectRef(args[0])
+		newName := args[1]
+
+		// Validate new project name
+		if err := types.ValidateProjectName(newName); err != nil {
+			return err
+		}
+
+		// Resolve project reference to ProjectUID
+		projectUID, err := database.ResolveProjectRef(db, projectRef)
+		if err != nil {
+			return err
+		}
+
+		// Get current user
+		actor, err := utils.GetCurrentUser()
+		if err != nil {
+			return err
+		}
+
+		// Create project.name.set event
+		payload := types.ProjectNameSetPayload{
+			ProjectUID: string(projectUID),
+			Name:       newName,
+		}
+
+		payloadJSON, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal payload: %w", err)
+		}
+
+		eventID, err := database.GenerateEventID(db)
+		if err != nil {
+			return fmt.Errorf("failed to generate event ID: %w", err)
+		}
+
+		ts, err := db.GetNextLamportTS()
+		if err != nil {
+			return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+		}
+
+		event := types.Event{
+			ID:        eventID,
+			TS:        ts,
+			CreatedAt: time.Now(),
+			Actor:     actor,
+			Role:      "human",
+			Kind:      string(types.EventKindProjectNameSet),
+			Payload:   payloadJSON,
+		}
+
+		if err := db.InsertEvent(event); err != nil {
+			return fmt.Errorf("failed to insert event: %w", err)
+		}
+
+		// Project the event into projects table
+		if err := db.ProjectProjectNameSetEvent(event); err != nil {
+			return fmt.Errorf("failed to project event: %w", err)
+		}
+
+		fmt.Printf("Renamed project %s to: %s\n", projectUID, newName)
+		return nil
+	},
+}
