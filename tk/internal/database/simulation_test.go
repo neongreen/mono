@@ -52,6 +52,11 @@ func newMachine(t *testing.T, nodeID string, startTime time.Time) *Machine {
 		t.Fatalf("failed to set version: %v", err)
 	}
 
+	// Run migrations to get to latest schema
+	if err := db.RunMigrationsIfNeeded(); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
+	}
+
 	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeID); err != nil {
 		t.Fatalf("failed to set node_id: %v", err)
 	}

@@ -28,6 +28,11 @@ func TestEventProjectionIdempotency(t *testing.T) {
 		t.Fatalf("failed to set version: %v", err)
 	}
 
+	// Run migrations to get to latest schema
+	if err := db.RunMigrationsIfNeeded(); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
+	}
+
 	nodeA, err := db.GetOrCreateNodeID()
 	if err != nil {
 		t.Fatalf("failed to get node: %v", err)
@@ -80,6 +85,11 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	}
 	if err := db.SetDBVersion(4); err != nil {
 		t.Fatalf("failed to set version: %v", err)
+	}
+
+	// Run migrations to get to latest schema
+	if err := db.RunMigrationsIfNeeded(); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
 	}
 
 	nodeA, err := db.GetOrCreateNodeID()

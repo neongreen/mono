@@ -25,7 +25,7 @@ var LsCmd = &cobra.Command{
 
 		// Query projects
 		rows, err := db.Db.Query(`
-			SELECT project_uid, type, name, description, created_by, created_at
+			SELECT project_uid, type, name, description, created_by, created_at, COALESCE(is_synthetic, 0)
 			FROM projects
 			ORDER BY created_at
 		`)
@@ -49,6 +49,7 @@ var LsCmd = &cobra.Command{
 			Description         string   `json:"description"`
 			CreatedBy           string   `json:"created_by"`
 			CreatedAt           int64    `json:"created_at"`
+			IsSynthetic         bool     `json:"is_synthetic"`
 		}
 
 		var projects []ProjectOutput
@@ -56,8 +57,9 @@ var LsCmd = &cobra.Command{
 		for rows.Next() {
 			var projectUID, typ, name, description, createdBy string
 			var createdAt int64
+			var isSynthetic int
 
-			if err := rows.Scan(&projectUID, &typ, &name, &description, &createdBy, &createdAt); err != nil {
+			if err := rows.Scan(&projectUID, &typ, &name, &description, &createdBy, &createdAt, &isSynthetic); err != nil {
 				return err
 			}
 
@@ -96,6 +98,7 @@ var LsCmd = &cobra.Command{
 				Description:         description,
 				CreatedBy:           createdBy,
 				CreatedAt:           createdAt,
+				IsSynthetic:         isSynthetic == 1,
 			})
 		}
 
@@ -123,7 +126,14 @@ var LsCmd = &cobra.Command{
 				if len(project.Aliases) > 0 {
 					aliasStr = strings.Join(project.Aliases, ", ")
 				}
-				t.AppendRow(table.Row{project.UID, project.Name, project.Type, aliasStr, project.Description, project.CreatedBy})
+
+				// Add [synthetic] marker to name if it's a synthetic project
+				displayName := project.Name
+				if project.IsSynthetic {
+					displayName = project.Name + " [synthetic]"
+				}
+
+				t.AppendRow(table.Row{project.UID, displayName, project.Type, aliasStr, project.Description, project.CreatedBy})
 			}
 
 			t.Render()

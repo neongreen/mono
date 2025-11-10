@@ -50,13 +50,35 @@ func (d *DB) ProjectProjectCreatedEvent(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.created payload: %w", err)
 	}
 
-	// Project into projects table (idempotent)
-	_, err := d.Db.Exec(`
-		INSERT OR IGNORE INTO projects (project_uid, type, name, description, created_at, created_by)
-		VALUES (?, ?, ?, ?, ?, ?)
-	`, payload.ProjectUID, payload.Type, payload.Name, payload.Description, e.CreatedAt.Unix(), payload.CreatedBy)
+	// Check if project already exists (might be synthetic)
+	var exists bool
+	var isSynthetic int
+	err := d.Db.QueryRow(`SELECT 1, COALESCE(is_synthetic, 0) FROM projects WHERE project_uid = ?`,
+		payload.ProjectUID).Scan(&exists, &isSynthetic)
 
-	return err
+	if errors.Is(err, sql.ErrNoRows) {
+		// Project doesn't exist - insert it
+		_, err = d.Db.Exec(`
+			INSERT INTO projects (project_uid, type, name, description, created_at, created_by, is_synthetic)
+			VALUES (?, ?, ?, ?, ?, ?, 0)
+		`, payload.ProjectUID, payload.Type, payload.Name, payload.Description, e.CreatedAt.Unix(), payload.CreatedBy)
+		return err
+	} else if err != nil {
+		return fmt.Errorf("failed to check if project exists: %w", err)
+	}
+
+	// Project exists - update it if it was synthetic
+	if isSynthetic == 1 {
+		_, err = d.Db.Exec(`
+			UPDATE projects
+			SET type = ?, name = ?, description = ?, created_at = ?, created_by = ?, is_synthetic = 0
+			WHERE project_uid = ?
+		`, payload.Type, payload.Name, payload.Description, e.CreatedAt.Unix(), payload.CreatedBy, payload.ProjectUID)
+		return err
+	}
+
+	// Real project already exists - do nothing (idempotent)
+	return nil
 }
 
 // ProjectProjectAliasAddEvent is a no-op (aliases have been removed).
@@ -152,8 +174,26 @@ func (d *DB) ProjectTaskCreatedEvent(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.created payload: %w", err)
 	}
 
+	// Check if project exists
+	// If not, create a synthetic project (v5 feature for handling corrupt data)
+	var exists bool
+	err := d.Db.QueryRow(`SELECT 1 FROM projects WHERE project_uid = ?`, payload.ProjectUID).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		// Project doesn't exist - create synthetic project
+		// Use the literal corrupt value as both uid and name
+		_, err = d.Db.Exec(`
+			INSERT OR IGNORE INTO projects (project_uid, name, type, is_synthetic, description, created_at, created_by)
+			VALUES (?, ?, 'local', 1, 'Synthetic project created by projection layer', ?, 'system')
+		`, payload.ProjectUID, payload.ProjectUID, e.CreatedAt.Unix())
+		if err != nil {
+			return fmt.Errorf("failed to create synthetic project: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to check if project exists: %w", err)
+	}
+
 	// Project into tasks table (idempotent)
-	_, err := d.Db.Exec(`
+	_, err = d.Db.Exec(`
 		INSERT OR IGNORE INTO tasks (task_uid, project_uid, created_node, title, created_at, created_by)
 		VALUES (?, ?, ?, ?, ?, ?)
 	`, payload.TaskUID, payload.ProjectUID, payload.CreatedNode, payload.Title, e.CreatedAt.Unix(), payload.CreatedBy)
@@ -172,8 +212,26 @@ func (d *DB) ProjectTaskNumberSetEvent(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.number.set payload: %w", err)
 	}
 
+	// Check if project exists
+	// If not, create a synthetic project (v5 feature for handling corrupt data)
+	var exists bool
+	err := d.Db.QueryRow(`SELECT 1 FROM projects WHERE project_uid = ?`, payload.ProjectUID).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		// Project doesn't exist - create synthetic project
+		// Use the literal corrupt value as both uid and name
+		_, err = d.Db.Exec(`
+			INSERT OR IGNORE INTO projects (project_uid, name, type, is_synthetic, description, created_at, created_by)
+			VALUES (?, ?, 'local', 1, 'Synthetic project created by projection layer', ?, 'system')
+		`, payload.ProjectUID, payload.ProjectUID, e.CreatedAt.Unix())
+		if err != nil {
+			return fmt.Errorf("failed to create synthetic project: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to check if project exists: %w", err)
+	}
+
 	// First, remove any existing number assignment for this task (to handle renumbering)
-	_, err := d.Db.Exec(`
+	_, err = d.Db.Exec(`
 		DELETE FROM task_numbers WHERE task_uid = ?
 	`, payload.TaskUID)
 	if err != nil {
@@ -200,8 +258,26 @@ func (d *DB) ProjectTaskRelocateEvent(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.relocate payload: %w", err)
 	}
 
+	// Check if destination project exists
+	// If not, create a synthetic project (v5 feature for handling corrupt data)
+	var exists bool
+	err := d.Db.QueryRow(`SELECT 1 FROM projects WHERE project_uid = ?`, payload.ToProjectUID).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		// Project doesn't exist - create synthetic project
+		// Use the literal corrupt value as both uid and name
+		_, err = d.Db.Exec(`
+			INSERT OR IGNORE INTO projects (project_uid, name, type, is_synthetic, description, created_at, created_by)
+			VALUES (?, ?, 'local', 1, 'Synthetic project created by projection layer', ?, 'system')
+		`, payload.ToProjectUID, payload.ToProjectUID, e.CreatedAt.Unix())
+		if err != nil {
+			return fmt.Errorf("failed to create synthetic project: %w", err)
+		}
+	} else if err != nil {
+		return fmt.Errorf("failed to check if project exists: %w", err)
+	}
+
 	// Update project in tasks table
-	_, err := d.Db.Exec(`
+	_, err = d.Db.Exec(`
 		UPDATE tasks SET project_uid = ? WHERE task_uid = ?
 	`, payload.ToProjectUID, payload.TaskUID)
 	if err != nil {

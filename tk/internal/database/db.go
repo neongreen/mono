@@ -164,6 +164,12 @@ func OpenExistingDB() (*DB, error) {
 		return nil, fmt.Errorf("failed to initialize database schema: %w", err)
 	}
 
+	// Check and run migrations if needed
+	if err := db.RunMigrationsIfNeeded(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to run migrations: %w", err)
+	}
+
 	return db, nil
 }
 
