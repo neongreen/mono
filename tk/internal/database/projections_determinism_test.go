@@ -143,6 +143,7 @@ func createTempDB(t *testing.T) *DB {
 	require.NoError(t, err)
 	require.NoError(t, db.InitDB())
 	require.NoError(t, db.SetDBVersion(4))
+	require.NoError(t, db.RunMigrationsIfNeeded())
 	return db
 }
 

@@ -34,6 +34,12 @@ func openTempDB(t *testing.T) *DB {
 	`, "v4"); err != nil {
 		t.Fatalf("failed to set remote_subdir: %v", err)
 	}
+
+	// Run migrations to get to latest schema
+	if err := db.RunMigrationsIfNeeded(); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
+	}
+
 	return db
 }
 
