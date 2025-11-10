@@ -17,7 +17,7 @@ func (p *LibConfigschemaProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	src := getFilteredSource("lib/configschema")
+	src := getFilteredSource("lib/configschema", dag.CurrentModule().Source().Directory(".."))
 	return testProject(ctx, "lib/configschema", format, src)
 }
 
@@ -27,6 +27,6 @@ func (p *LibConfigschemaProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	src := getFilteredSource("lib/configschema")
+	src := getFilteredSource("lib/configschema", dag.CurrentModule().Source().Directory(".."))
 	return coverageFile(ctx, "lib/configschema", format, src)
 }

@@ -15,7 +15,7 @@ func (p *LibGhreleaseProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	src := getFilteredSource("lib/ghrelease")
+	src := getFilteredSource("lib/ghrelease", dag.CurrentModule().Source().Directory(".."))
 	return testProject(ctx, "lib/ghrelease", format, src)
 }
 
@@ -24,6 +24,6 @@ func (p *LibGhreleaseProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	src := getFilteredSource("lib/ghrelease")
+	src := getFilteredSource("lib/ghrelease", dag.CurrentModule().Source().Directory(".."))
 	return coverageFile(ctx, "lib/ghrelease", format, src)
 }

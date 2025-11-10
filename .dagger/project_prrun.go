@@ -11,7 +11,7 @@ type PrrunProject struct {
 }
 
 func (p *PrrunProject) Build(ctx context.Context) (*dagger.File, error) {
-	src := getFilteredSource("prrun")
+	src := getFilteredSource("prrun", dag.CurrentModule().Source().Directory(".."))
 	return buildProject(ctx, "prrun", ".", src)
 }
 
@@ -20,7 +20,7 @@ func (p *PrrunProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	src := getFilteredSource("prrun")
+	src := getFilteredSource("prrun", dag.CurrentModule().Source().Directory(".."))
 	return testProject(ctx, "prrun", format, src)
 }
 
@@ -29,6 +29,6 @@ func (p *PrrunProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	src := getFilteredSource("prrun")
+	src := getFilteredSource("prrun", dag.CurrentModule().Source().Directory(".."))
 	return coverageFile(ctx, "prrun", format, src)
 }

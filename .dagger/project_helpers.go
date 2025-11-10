@@ -60,20 +60,17 @@ func testContainer(projectName string, format string, source *dagger.Directory) 
 }
 
 // getFilteredSource returns a filtered source directory for a project.
-// This filters to only include the specific project, lib/, go.mod, and go.sum for optimal caching.
-func getFilteredSource(projectName string) *dagger.Directory {
-	repo := dag.CurrentModule().Source().Directory("..")
-
-	// Use Directory.Filter to include only what this project needs
-	// This creates a content-addressed directory that only changes when relevant files change
-	return repo.Filter(dagger.DirectoryFilterOpts{
-		Include: []string{
-			"go.mod",
-			"go.sum",
-			"lib/**",
-			projectName + "/**",
-		},
-	})
+// projectName: the project directory (e.g., "tk", "want")
+// This uses pre-call filtering to only include necessary files for optimal caching.
+func getFilteredSource(
+	projectName string,
+	// Exclude everything except the project itself, lib, and Go module files
+	// +ignore=["*", "!go.mod", "!go.sum", "!lib/**"]
+	source *dagger.Directory,
+) *dagger.Directory {
+	// Add the specific project directory back in (ignore can't do this dynamically)
+	root := dag.CurrentModule().Source().Directory("..")
+	return source.WithDirectory(projectName, root.Directory(projectName))
 }
 
 // coverageFile returns the coverage file for a project.
