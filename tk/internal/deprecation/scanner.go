@@ -33,7 +33,7 @@ func ScanEvent(event types.Event, tracker *Tracker) error {
 }
 
 // unmarshalPayloadByKind unmarshals event payload into the correct type based on event kind
-func unmarshalPayloadByKind(event types.Event) (interface{}, error) {
+func unmarshalPayloadByKind(event types.Event) (any, error) {
 	switch event.Kind {
 	case string(types.EventKindProjectAliasAdd):
 		var payload types.ProjectAliasAddPayload
@@ -56,7 +56,7 @@ func unmarshalPayloadByKind(event types.Event) (interface{}, error) {
 }
 
 // isFieldNonEmpty checks if a field in a struct is non-empty using reflection
-func isFieldNonEmpty(payload interface{}, fieldName string) bool {
+func isFieldNonEmpty(payload any, fieldName string) bool {
 	if payload == nil {
 		return false
 	}

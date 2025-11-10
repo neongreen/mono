@@ -50,7 +50,7 @@ func init() {
 
 	// Create inspector
 	insp := inspector.New([]*ast.File{f})
-	pass.ResultOf = map[*analysis.Analyzer]interface{}{
+	pass.ResultOf = map[*analysis.Analyzer]any{
 		inspect.Analyzer: insp,
 	}
 

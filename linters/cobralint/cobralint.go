@@ -13,6 +13,7 @@ import (
 	"go/ast"
 	"go/token"
 	"reflect"
+	"slices"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -51,7 +52,7 @@ var Analyzer = &analysis.Analyzer{
 	Doc:        "enforces conventions for Cobra commands",
 	Run:        run,
 	Requires:   []*analysis.Analyzer{inspect.Analyzer},
-	ResultType: reflect.TypeOf([]CommandInfo{}),
+	ResultType: reflect.TypeFor[[]CommandInfo](),
 }
 
 // EnabledCheckers is the list of checkers to run.
@@ -163,10 +164,8 @@ func isCobraCommand(spec *ast.ValueSpec) bool {
 
 	// Check value initialization: var foo = &cobra.Command{}
 	if len(spec.Values) > 0 {
-		for _, val := range spec.Values {
-			if isCobraCommandValue(val) {
-				return true
-			}
+		if slices.ContainsFunc(spec.Values, isCobraCommandValue) {
+			return true
 		}
 	}
 

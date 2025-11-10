@@ -2,6 +2,7 @@ package deprecation
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -90,8 +91,8 @@ func (t *Tracker) PrintSummary() string {
 		return "No deprecated field usage found. Safe to remove all deprecated code!"
 	}
 
-	var summary string
-	summary += fmt.Sprintf("Found deprecated field usage:\n\n")
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Found deprecated field usage:\n\n"))
 
 	// Group by event kind
 	byEventKind := make(map[string][]UsageRecord)
@@ -100,16 +101,16 @@ func (t *Tracker) PrintSummary() string {
 	}
 
 	for eventKind, records := range byEventKind {
-		summary += fmt.Sprintf("  %s:\n", eventKind)
+		summary.WriteString(fmt.Sprintf("  %s:\n", eventKind))
 		for _, record := range records {
-			summary += fmt.Sprintf("    - %s: %d events (last: %s)\n",
+			summary.WriteString(fmt.Sprintf("    - %s: %d events (last: %s)\n",
 				record.FieldPath,
 				record.Count,
-				record.LastSeen.Format("2006-01-02"))
+				record.LastSeen.Format("2006-01-02")))
 		}
-		summary += "\n"
+		summary.WriteString("\n")
 	}
 
-	summary += fmt.Sprintf("Total: %d deprecated field(s) in use\n", len(stats))
-	return summary
+	summary.WriteString(fmt.Sprintf("Total: %d deprecated field(s) in use\n", len(stats)))
+	return summary.String()
 }

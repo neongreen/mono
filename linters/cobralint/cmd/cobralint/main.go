@@ -192,7 +192,7 @@ func createPass(pkg *packages.Package, reportFunc func(analysis.Diagnostic)) *an
 		OtherFiles: pkg.OtherFiles,
 		Pkg:        pkg.Types,
 		TypesInfo:  pkg.TypesInfo,
-		ResultOf:   make(map[*analysis.Analyzer]interface{}),
+		ResultOf:   make(map[*analysis.Analyzer]any),
 		Report:     reportFunc,
 	}
 }
@@ -208,7 +208,7 @@ func runAnalyzer(pass *analysis.Pass) error {
 			OtherFiles: pass.OtherFiles,
 			Pkg:        pass.Pkg,
 			TypesInfo:  pass.TypesInfo,
-			ResultOf:   make(map[*analysis.Analyzer]interface{}),
+			ResultOf:   make(map[*analysis.Analyzer]any),
 			Report:     func(d analysis.Diagnostic) {}, // Ignore reports from required analyzers
 		}
 		result, err := req.Run(reqPass)

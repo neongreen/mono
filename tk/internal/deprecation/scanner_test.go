@@ -90,7 +90,7 @@ func TestScanAllEvents_AggregatesCounts(t *testing.T) {
 	// Create multiple alias events
 	events := []types.Event{}
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		payload := types.ProjectAliasAddPayload{
 			ProjectUID: "prj_123",
 			Alias:      "test",
