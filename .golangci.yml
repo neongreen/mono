@@ -17,6 +17,9 @@ linters:
   - gosec  # Security linter - detects SQL injection, command injection, etc.
   # - nilerr  # Routinely flags graceful degradation patterns as bugs (e.g., fallback to UID when name lookup fails)
   settings:
+    gosec:
+      excludes:
+        - G306  # File permissions - config files appropriately use 0o644
     depguard:
       rules:
         prevent-flag-package:
