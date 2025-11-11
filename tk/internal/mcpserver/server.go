@@ -51,9 +51,9 @@ func (s *Server) Run(ctx context.Context, transport sdkmcp.Transport) error {
 
 // listTasksArgs defines the arguments for list_tasks tool
 type listTasksArgs struct {
-	Project string `json:"project,omitempty" jsonschema:"description=Filter by project alias or UID"`
-	Status  string `json:"status,omitempty" jsonschema:"description=Filter by status (e.g., 'done', 'in_progress')"`
-	Blocked bool   `json:"blocked,omitempty" jsonschema:"description=Show only blocked tasks"`
+	Project string `json:"project,omitempty" jsonschema:"Filter by project alias or UID"`
+	Status  string `json:"status,omitempty" jsonschema:"Filter by status (e.g. 'done' or 'in_progress')"`
+	Blocked bool   `json:"blocked,omitempty" jsonschema:"Show only blocked tasks"`
 }
 
 func (s *Server) registerListTasksTool() {
@@ -143,7 +143,7 @@ func (s *Server) registerListTasksTool() {
 
 // showTaskArgs defines the arguments for show_task tool
 type showTaskArgs struct {
-	TaskID string `json:"task_id" jsonschema:"required,description=Task UID or display ID (e.g., 'tk-1')"`
+	TaskID string `json:"task_id" jsonschema:"required,Task UID or display ID (e.g. 'tk-1')"`
 }
 
 func (s *Server) registerShowTaskTool() {
@@ -209,8 +209,8 @@ func (s *Server) registerShowTaskTool() {
 
 // createTaskArgs defines the arguments for create_task tool
 type createTaskArgs struct {
-	Title   string `json:"title" jsonschema:"required,description=Task title"`
-	Project string `json:"project,omitempty" jsonschema:"description=Project alias or UID (default: 'tk')"`
+	Title   string `json:"title" jsonschema:"required,Task title"`
+	Project string `json:"project,omitempty" jsonschema:"Project alias or UID (default: 'tk')"`
 }
 
 func (s *Server) registerCreateTaskTool() {
@@ -250,10 +250,10 @@ func (s *Server) registerCreateTaskTool() {
 
 // updateTaskStatusArgs defines the arguments for update_task_status tool
 type updateTaskStatusArgs struct {
-	TaskID string `json:"task_id" jsonschema:"required,description=Task UID or display ID"`
-	Status string `json:"status" jsonschema:"required,description=New status (e.g., 'in_progress', 'done')"`
-	Axis   string `json:"axis,omitempty" jsonschema:"description=Status axis (default: 'generic')"`
-	Role   string `json:"role,omitempty" jsonschema:"description=Role making the claim (default: 'agent')"`
+	TaskID string `json:"task_id" jsonschema:"required,Task UID or display ID"`
+	Status string `json:"status" jsonschema:"required,New status (e.g. 'in_progress' or 'done')"`
+	Axis   string `json:"axis,omitempty" jsonschema:"Status axis (default: 'generic')"`
+	Role   string `json:"role,omitempty" jsonschema:"Role making the claim (default: 'agent')"`
 }
 
 func (s *Server) registerUpdateTaskStatusTool() {
@@ -299,8 +299,8 @@ func (s *Server) registerUpdateTaskStatusTool() {
 
 // addNoteArgs defines the arguments for add_note tool
 type addNoteArgs struct {
-	TaskID string `json:"task_id" jsonschema:"required,description=Task UID or display ID"`
-	Note   string `json:"note" jsonschema:"required,description=Note text to add"`
+	TaskID string `json:"task_id" jsonschema:"required,Task UID or display ID"`
+	Note   string `json:"note" jsonschema:"required,Note text to add"`
 }
 
 func (s *Server) registerAddNoteTool() {
