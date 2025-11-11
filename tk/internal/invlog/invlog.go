@@ -138,7 +138,96 @@ func openDB() (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to create schema: %w", err)
 	}
 
+	// Check if database is empty - if so, migrate from JSONL
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM invocations`).Scan(&count); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to check if database is empty: %w", err)
+	}
+
+	if count == 0 {
+		// Try to migrate from JSONL
+		if err := migrateFromJSONL(db); err != nil {
+			// Migration failure is not fatal - just log it and continue
+			// The database is still usable, just without historical data
+		}
+	}
+
 	return db, nil
+}
+
+// migrateFromJSONL migrates existing JSONL log entries to SQLite database
+func migrateFromJSONL(db *sql.DB) error {
+	jsonlPath, err := GetLogPath()
+	if err != nil {
+		return err
+	}
+
+	// Check if JSONL file exists
+	if _, err := os.Stat(jsonlPath); os.IsNotExist(err) {
+		// No JSONL file to migrate
+		return nil
+	}
+
+	// Read JSONL file
+	data, err := os.ReadFile(jsonlPath)
+	if err != nil {
+		return fmt.Errorf("failed to read JSONL file: %w", err)
+	}
+
+	// Parse JSONL (one JSON object per line)
+	lines := bytes.Split(data, []byte("\n"))
+	migrated := 0
+
+	for i, line := range lines {
+		if len(bytes.TrimSpace(line)) == 0 {
+			continue
+		}
+
+		var entry InvocationLog
+		if err := json.Unmarshal(line, &entry); err != nil {
+			// Skip malformed entries
+			continue
+		}
+
+		// Compress stdout and stderr
+		stdoutCompressed, err := compress([]byte(entry.Stdout))
+		if err != nil {
+			return fmt.Errorf("failed to compress stdout for entry %d: %w", i, err)
+		}
+
+		stderrCompressed, err := compress([]byte(entry.Stderr))
+		if err != nil {
+			return fmt.Errorf("failed to compress stderr for entry %d: %w", i, err)
+		}
+
+		// Marshal args to JSON
+		argsJSON, err := json.Marshal(entry.Args)
+		if err != nil {
+			return fmt.Errorf("failed to marshal args for entry %d: %w", i, err)
+		}
+
+		// Insert into database
+		_, err = db.Exec(`
+			INSERT INTO invocations (timestamp, command, args, pid, ppid, user, success, exit_code, stdout, stderr, duration_ms)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, entry.Timestamp.UnixNano(), entry.Command, string(argsJSON), entry.PID, entry.PPID, entry.User,
+			boolToInt(entry.Success), entry.ExitCode, stdoutCompressed, stderrCompressed, entry.DurationMs)
+
+		if err != nil {
+			return fmt.Errorf("failed to insert entry %d: %w", i, err)
+		}
+
+		migrated++
+	}
+
+	// Migration successful - delete JSONL file
+	if err := os.Remove(jsonlPath); err != nil {
+		// Don't fail if we can't delete - just continue
+		return nil
+	}
+
+	return nil
 }
 
 // compress compresses data using gzip

@@ -28,7 +28,7 @@ export async function fetchProjects(): Promise<Map<string, TkProject>> {
 
   const result = await execFileAsync(binary, args, {
     cwd,
-    env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+    env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0', TK_SKIP_INVLOG: '1' },
   });
 
   const projects = JSON.parse(result.stdout) as TkProject[];
@@ -51,7 +51,7 @@ export async function fetchTk(): Promise<{ groups: TkGroup[]; tasks: TkTask[] }>
   try {
     const result = await execFileAsync(binary, args, {
       cwd,
-      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0' },
+      env: { ...process.env, FORCE_COLOR: '0', CLICOLOR_FORCE: '0', TK_SKIP_INVLOG: '1' },
       maxBuffer: 1024 * 1024 * 10,
     });
     stdout = result.stdout;
