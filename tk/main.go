@@ -116,8 +116,8 @@ func main() {
 		DurationMs: duration.Milliseconds(),
 	}
 
-	// Write log entry (ignore errors to avoid disrupting the main command)
-	_ = invlog.WriteLog(log)
+	// Write log entry to SQLite database (ignore errors to avoid disrupting the main command)
+	_ = invlog.WriteLogDB(log)
 
 	if exitCode != 0 {
 		os.Exit(exitCode)
