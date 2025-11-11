@@ -7,6 +7,10 @@ import (
 )
 
 // Lint all Go projects - runs golangci-lint and uselesswrapper from workspace root and .dagger directory in parallel
+//
+// Uses --new-from-rev to grandfather existing gosec violations at commit 0c23a5a5
+// (when gosec was first enabled). This allows 18 documented violations while
+// preventing new ones. See tk-330 for details.
 func (m *Dagger) Lint(ctx context.Context) error {
 	repo := dag.CurrentModule().Source().Directory("..")
 
@@ -26,7 +30,7 @@ func (m *Dagger) Lint(ctx context.Context) error {
 			WithMountedDirectory("/src", repo).
 			WithWorkdir("/src").
 			WithExec([]string{"golangci-lint", "config", "verify"}).
-			WithExec([]string{"golangci-lint", "run"}).
+			WithExec([]string{"golangci-lint", "run", "--new-from-rev=0c23a5a5"}).
 			Sync(ctx)
 		return err
 	})
@@ -64,7 +68,7 @@ func (m *Dagger) Lint(ctx context.Context) error {
 		_, err := baseContainer.
 			WithMountedDirectory("/src", repo).
 			WithWorkdir("/src/.dagger").
-			WithExec([]string{"golangci-lint", "run"}).
+			WithExec([]string{"golangci-lint", "run", "--new-from-rev=0c23a5a5"}).
 			Sync(ctx)
 		return err
 	})

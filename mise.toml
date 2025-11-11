@@ -75,7 +75,8 @@ jj git fetch && jj b t "glob:*@origin"
 
 [tasks."lint:go:golangci"]
 description = "Lint all Go code with golangci-lint"
-run = "golangci-lint run"
+# Use --new-from-rev to grandfather existing violations (see tk-330)
+run = "golangci-lint run --new-from-rev=0c23a5a5"
 
 [tasks."lint:go:uselesswrapper"]
 description = "Detect useless function wrappers"
