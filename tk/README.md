@@ -1,6 +1,41 @@
-# tk - System-Wide Event-Sourced Task Tracker
+# tk - Personal Task Tracker
 
-tk is a command-line tool that tracks tasks system-wide using an append-only event log with offline-first sync.
+tk is a **personal** task management system for tracking thousands of tasks across multiple repositories, chats, emails, feature requests, and hobbies.
+
+## What tk is NOT
+
+**tk is not an AI agent task manager.** While inspired by [beads](https://github.com/steveyegge/beads) (which is designed to give coding agents a memory upgrade and enable multi-agent coordination), tk has a fundamentally different purpose:
+
+- **beads**: Built for AI coding agents to automatically manage issues, coordinate across sessions, and maintain graph-based dependency tracking. Humans don't directly use beads—agents manage issues on their behalf.
+- **tk**: Built for humans to manage their personal task chaos. You use tk directly to track everything from work tasks to hobby projects, across multiple repos and contexts.
+
+## Why tk exists
+
+I wrote tk out of frustration with an earlier version of beads that kept everything in a Git-tracked JSON file and suffered from constant glitches and merge conflicts. tk uses a different approach:
+
+- **Event-sourced SQLite database** instead of Git-tracked JSON
+- **Append-only event log** for durability and conflict-free sync
+- **Offline-first sync** with immutable segment files
+- **Single-user focus** rather than multi-agent coordination
+
+tk takes inspiration from beads' event-sourcing architecture but applies it to the problem of managing thousands of personal tasks spread across your digital life.
+
+## This is a personal tool
+
+**Not seeking contributors.** tk is built for my specific workflow and use cases. There's no ambition to adapt to anyone else's needs or to build a general-purpose task manager. If your workflow happens to be very similar to mine, you're welcome to use it—but I won't be accepting feature requests or adapting to different use cases.
+
+This is intentionally stated upfront to set the right expectations. If you need a task manager that adapts to your workflow, consider using beads, or one of the many other excellent task management tools out there.
+
+## Technical Overview
+
+tk is a command-line tool that tracks tasks system-wide using:
+
+- **Event sourcing**: All changes recorded as immutable events in SQLite
+- **Offline-first sync**: Sync between machines using immutable segment files (iCloud Drive support)
+- **Projects with stable UIDs**: Organize tasks with projects that have immutable identifiers
+- **Task relations**: Model dependencies (blocks, subtasks) and hierarchies
+- **Multi-valued registers**: Conflicting claims resolved based on role authority
+- **No CGO required**: Pure Go SQLite implementation for easy deployment
 
 ## Development
 
