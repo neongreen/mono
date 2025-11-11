@@ -1,11 +1,16 @@
 package invlog
 
 import (
+	"bytes"
+	"compress/gzip"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	_ "modernc.org/sqlite"
 )
 
 // InvocationLog represents a single invocation of the tk command
@@ -23,7 +28,7 @@ type InvocationLog struct {
 	DurationMs int64     `json:"duration_ms"`
 }
 
-// GetLogPath returns the path to the invocation log file
+// GetLogPath returns the path to the invocation log file (legacy JSONL)
 func GetLogPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -37,6 +42,22 @@ func GetLogPath() (string, error) {
 	}
 
 	return filepath.Join(tkDir, "log.jsonl"), nil
+}
+
+// GetDBPath returns the path to the invocation log SQLite database
+func GetDBPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+
+	tkDir := filepath.Join(home, ".tk")
+	// Ensure the directory exists with private permissions
+	if err := os.MkdirAll(tkDir, 0o700); err != nil {
+		return "", fmt.Errorf("failed to create tk directory: %w", err)
+	}
+
+	return filepath.Join(tkDir, "invlog.db"), nil
 }
 
 // WriteLog appends an invocation log entry to the log file
@@ -77,4 +98,109 @@ func WriteLog(log InvocationLog) error {
 	}
 
 	return nil
+}
+
+// openDB opens or creates the invocation log SQLite database
+func openDB() (*sql.DB, error) {
+	dbPath, err := GetDBPath()
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open invlog database: %w", err)
+	}
+
+	// Create schema if needed
+	schema := `
+		CREATE TABLE IF NOT EXISTS invocations (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			timestamp INTEGER NOT NULL,
+			command TEXT NOT NULL,
+			args TEXT NOT NULL,
+			pid INTEGER,
+			ppid INTEGER,
+			user TEXT,
+			success INTEGER NOT NULL,
+			exit_code INTEGER NOT NULL,
+			stdout BLOB,
+			stderr BLOB,
+			duration_ms INTEGER NOT NULL
+		);
+
+		CREATE INDEX IF NOT EXISTS idx_invocations_timestamp ON invocations(timestamp);
+		CREATE INDEX IF NOT EXISTS idx_invocations_success ON invocations(success);
+	`
+
+	if _, err := db.Exec(schema); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to create schema: %w", err)
+	}
+
+	return db, nil
+}
+
+// compress compresses data using gzip
+func compress(data []byte) ([]byte, error) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	var buf bytes.Buffer
+	w := gzip.NewWriter(&buf)
+	if _, err := w.Write(data); err != nil {
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+// WriteLogDB writes an invocation log entry to the SQLite database
+func WriteLogDB(log InvocationLog) error {
+	db, err := openDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Compress stdout and stderr
+	stdoutCompressed, err := compress([]byte(log.Stdout))
+	if err != nil {
+		return fmt.Errorf("failed to compress stdout: %w", err)
+	}
+
+	stderrCompressed, err := compress([]byte(log.Stderr))
+	if err != nil {
+		return fmt.Errorf("failed to compress stderr: %w", err)
+	}
+
+	// Marshal args to JSON
+	argsJSON, err := json.Marshal(log.Args)
+	if err != nil {
+		return fmt.Errorf("failed to marshal args: %w", err)
+	}
+
+	// Insert into database
+	_, err = db.Exec(`
+		INSERT INTO invocations (timestamp, command, args, pid, ppid, user, success, exit_code, stdout, stderr, duration_ms)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`, log.Timestamp.UnixNano(), log.Command, string(argsJSON), log.PID, log.PPID, log.User,
+		boolToInt(log.Success), log.ExitCode, stdoutCompressed, stderrCompressed, log.DurationMs)
+
+	if err != nil {
+		return fmt.Errorf("failed to insert log entry: %w", err)
+	}
+
+	return nil
+}
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
