@@ -1,30 +1,19 @@
-# tk - Personal Task Tracker
+# tk
 
-tk is a **personal** task management system for tracking thousands of tasks across multiple repositories, chats, emails, feature requests, and hobbies.
+tk is my experimental task / personal info tracker for humans and agents.
 
-## What tk is NOT
+I want to track thousands of tasks across multiple repositories, chats, emails, feature requests, and hobbies.
+I want agents to have access to my data and be able to answer questions like "what promises have I made to people", etc.
 
-**tk is not an AI agent task manager.** While inspired by [beads](https://github.com/steveyegge/beads) (which is designed to give coding agents a memory upgrade and enable multi-agent coordination), tk has a fundamentally different purpose:
-
-- **beads**: Built for AI coding agents to automatically manage issues, coordinate across sessions, and maintain graph-based dependency tracking. Humans don't directly use beads—agents manage issues on their behalf.
-- **tk**: Built for humans to manage their personal task chaos. You use tk directly to track everything from work tasks to hobby projects, across multiple repos and contexts.
-
-## Why tk exists
-
-I wrote tk out of frustration with an earlier version of beads that kept everything in a Git-tracked JSON file and suffered from constant glitches and merge conflicts. tk uses a different approach:
-
-- **Event-sourced SQLite database** instead of Git-tracked JSON
-- **Append-only event log** for durability and conflict-free sync
-- **Offline-first sync** with immutable segment files
-- **Single-user focus** rather than multi-agent coordination
-
-tk takes inspiration from beads' event-sourcing architecture but applies it to the problem of managing thousands of personal tasks spread across your digital life.
+*tk* is inspired by [beads](https://github.com/steveyegge/beads), but while beads focuses on helping the agents work better, *tk* focuses on helping my ADHD.
+I suppose it helps the agents because they, too, have ADHD.
 
 ## This is a personal tool
 
-**Not seeking contributors.** tk is built for my specific workflow and use cases. There's no ambition to adapt to anyone else's needs or to build a general-purpose task manager. If your workflow happens to be very similar to mine, you're welcome to use it—but I won't be accepting feature requests or adapting to different use cases.
+tk is built for my brain and my usecase of "I want to do everything".
+If your are similar to me, you're welcome to use it. If you suggest any ideas, I might try them out.
 
-This is intentionally stated upfront to set the right expectations. If you need a task manager that adapts to your workflow, consider using beads, or one of the many other excellent task management tools out there.
+I try to make *tk* fairly general so that I can try out different things and see what works best.
 
 ## Technical Overview
 
@@ -32,7 +21,6 @@ tk is a command-line tool that tracks tasks system-wide using:
 
 - **Event sourcing**: All changes recorded as immutable events in SQLite
 - **Offline-first sync**: Sync between machines using immutable segment files (iCloud Drive support)
-- **Projects with stable UIDs**: Organize tasks with projects that have immutable identifiers
 - **Task relations**: Model dependencies (blocks, subtasks) and hierarchies
 - **Multi-valued registers**: Conflicting claims resolved based on role authority
 - **No CGO required**: Pure Go SQLite implementation for easy deployment
@@ -44,50 +32,6 @@ tk is a command-line tool that tracks tasks system-wide using:
   - Build: `mise tk:build`
   - Run: `tk-dev <command>`
   - Always use `tk-dev` when testing local changes to avoid conflicts with global installation
-
-## Version 4 (Current)
-
-**⚠️ Breaking Change**: Version 4 introduces a new project-based model that automatically migrates from v1/v2/v3 on first run.
-
-### What's New in v4
-
-- **Projects with stable UIDs**: Projects are now first-class entities with immutable identifiers (`prj_...`)
-- **Per-node aliases**: Project aliases are scoped to nodes, allowing flexible naming without conflicts
-- **Task UIDs as identity**: Tasks now have stable UIDs (`tsk_...`) - task numbers are mutable labels
-- **Collision-tolerant numbering**: Multiple tasks can share the same number; collisions are resolved at display time
-- **Automatic migration**: Existing v1/v2/v3 databases are automatically upgraded to v4 on first run
-- **Rollback support**: Use `tk admin rollback-v4` to restore the v3 backup if needed
-
-See [specs/v4.md](specs/v4.md) and [specs/v4-migration.md](specs/v4-migration.md) for complete details.
-
-### Migration from v1/v2/v3
-
-When you first run the v4 binary on an existing database:
-
-1. **Automatic backup** is created at `~/.tk/tk.db.v3.bak`
-2. **Schema upgrade** adds v4 tables (projects, project_aliases, tasks, task_numbers)
-3. **Data migration** converts prefixes to projects and tasks to the new model
-4. **Version update** marks the database as v4
-
-The migration preserves all your existing data. Old task IDs continue to work via aliases.
-
-**To rollback**: Run `tk admin rollback-v4` to restore the v3 backup.
-
-## Features
-
-- **Event sourcing**: All task changes are recorded as immutable events
-- **Projects (v4)**: Organize tasks with projects that have stable UIDs and per-node aliases
-- **Prefixes (v1-v3, legacy)**: Organize tasks with custom prefixes (e.g., `tk-1`, `foo-2`, `bar-3`)
-- **Namespace isolation**: Each prefix/project has its own task numbering
-- **Claims-based status**: Multiple actors (human, agent, bot, qa, rel) can make status claims
-- **Authority lattice**: Conflicts are resolved based on role authority (human > qa > rel > agent > bot)
-- **Multi-valued registers**: Conflicting claims are preserved as tentative/effective
-- **Task relations (v2)**: Model dependencies (blocks), hierarchies (subtasks), and other relationships
-- **Blocked tracking**: Automatically compute which tasks are blocked by incomplete dependencies
-- **SQLite backend**: Durable, inspectable, and portable (pure Go, no CGO required)
-- **Automatic setup**: Database is created automatically in `~/.tk/` on first use
-- **Offline-first sync**: Sync events between machines using immutable segment files (v1)
-- **iCloud sync**: Use iCloud Drive as a sync remote for multi-Mac workflows (v1)
 
 ## Installation
 
