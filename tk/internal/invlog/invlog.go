@@ -44,6 +44,11 @@ func GetLogDir() (string, error) {
 
 // WriteLog appends an invocation log entry to the rotating log
 func WriteLog(log InvocationLog) error {
+	// Migrate legacy logs on first write (if they exist)
+	// This is called once per invocation, but MigrateLegacyLogs is idempotent
+	// (it does nothing if no legacy files exist)
+	_ = MigrateLegacyLogs()
+
 	logDir, err := GetLogDir()
 	if err != nil {
 		return err
