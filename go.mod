@@ -8,6 +8,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/creachadair/tomledit v0.0.29
+	github.com/duckdb/duckdb-go/v2 v2.5.1
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-billy/v5 v5.6.2
 	github.com/go-git/go-git/v5 v5.16.3
@@ -63,7 +64,6 @@ require (
 	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.22 // indirect
 	github.com/duckdb/duckdb-go/arrowmapping v0.0.24 // indirect
 	github.com/duckdb/duckdb-go/mapping v0.0.24 // indirect
-	github.com/duckdb/duckdb-go/v2 v2.5.1 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
