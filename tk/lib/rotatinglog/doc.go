@@ -41,10 +41,10 @@
 // # Search
 //
 // Search is powered by DuckDB reading JSONL files:
-//  - DuckDB auto-detects zstd compression
-//  - read_json() handles both .jsonl and .jsonl.zst files
-//  - Filter pushdown for efficient queries
-//  - No persistent database needed
+//   - DuckDB auto-detects zstd compression
+//   - read_json() handles both .jsonl and .jsonl.zst files
+//   - Filter pushdown for efficient queries
+//   - No persistent database needed
 //
 // Example:
 //
@@ -57,9 +57,9 @@
 // # Design
 //
 // This library is generic and not tied to any specific log format. Users provide:
-//  - Directory for log files
-//  - Size threshold for rotation
-//  - JSONL data to append
+//   - Directory for log files
+//   - Size threshold for rotation
+//   - JSONL data to append
 //
 // The library handles all rotation, compression, and search mechanics.
 package rotatinglog

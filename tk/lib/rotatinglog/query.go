@@ -9,7 +9,7 @@ import (
 )
 
 // QueryResult represents a single row from a query
-type QueryResult map[string]interface{}
+type QueryResult map[string]any
 
 // Query executes an arbitrary SQL query against all log files in the directory.
 // Uses DuckDB to read JSONL files (both .jsonl and .jsonl.zst).
@@ -56,8 +56,8 @@ func Query(dir string, sqlQuery string) ([]QueryResult, error) {
 	var results []QueryResult
 	for rows.Next() {
 		// Create a slice of interface{} to hold column values
-		values := make([]interface{}, len(columns))
-		valuePtrs := make([]interface{}, len(columns))
+		values := make([]any, len(columns))
+		valuePtrs := make([]any, len(columns))
 		for i := range values {
 			valuePtrs[i] = &values[i]
 		}

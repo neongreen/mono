@@ -63,7 +63,7 @@ func TestRotation(t *testing.T) {
 	for i := range largeData {
 		largeData[i] = 'a'
 	}
-	entry := map[string]interface{}{
+	entry := map[string]any{
 		"data": string(largeData),
 	}
 	entryJSON, _ := json.Marshal(entry)
@@ -97,7 +97,7 @@ func TestQuery(t *testing.T) {
 	}
 
 	// Write some test data
-	entries := []map[string]interface{}{
+	entries := []map[string]any{
 		{"timestamp": 100, "command": "tk", "status": "success"},
 		{"timestamp": 200, "command": "tk", "status": "error"},
 		{"timestamp": 300, "command": "tk", "status": "success"},
