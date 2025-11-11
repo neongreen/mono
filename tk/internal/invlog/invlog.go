@@ -16,7 +16,7 @@ const (
 
 // InvocationLog represents a single invocation of the tk command
 type InvocationLog struct {
-	Timestamp  int64    `json:"timestamp"`  // Unix nanoseconds
+	Timestamp  int64    `json:"timestamp"` // Unix nanoseconds
 	Command    string   `json:"command"`
 	Args       []string `json:"args"`
 	PID        int      `json:"pid"`

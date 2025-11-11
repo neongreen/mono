@@ -114,7 +114,7 @@ func CountLegacyEntries(path string) (int, error) {
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if len(line) > 0 {
-			var entry map[string]interface{}
+			var entry map[string]any
 			if json.Unmarshal(line, &entry) == nil {
 				count++
 			}
