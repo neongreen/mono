@@ -71,6 +71,57 @@ mise run tk
 
 ## Usage
 
+### MCP Server
+
+tk can run as a Model Context Protocol (MCP) server, allowing AI assistants and other tools to interact with your task database.
+
+**Start the MCP server:**
+
+```bash
+tk mcp
+```
+
+The server runs on stdio and provides the following tools:
+
+- **`list_tasks`** - List tasks with optional filtering
+  - Parameters: `project` (string, optional), `status` (string, optional), `blocked` (boolean, optional)
+  - Returns: JSON array of tasks
+
+- **`show_task`** - Show detailed information about a specific task
+  - Parameters: `task_id` (string, required) - Task UID or display ID like "tk-1"
+  - Returns: JSON object with task details including notes
+
+- **`create_task`** - Create a new task
+  - Parameters: `title` (string, required), `project` (string, optional, defaults to "tk")
+  - Returns: Confirmation message with task display ID
+
+- **`update_task_status`** - Update the status of a task
+  - Parameters: `task_id` (string, required), `status` (string, required), `axis` (string, optional), `role` (string, optional)
+  - Returns: Confirmation message
+
+- **`add_note`** - Add a note to a task
+  - Parameters: `task_id` (string, required), `note` (string, required)
+  - Returns: Confirmation message
+
+**Using with Claude Desktop:**
+
+Add to your Claude Desktop MCP settings (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "tk": {
+      "command": "tk",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+**Using with other MCP clients:**
+
+Any MCP-compatible client can connect to the tk server via stdio. The server follows the [Model Context Protocol specification](https://modelcontextprotocol.io/).
+
 ### Database Location
 
 tk stores its database in `~/.tk/tk.db` by default. The database and directory are created automatically on first use.
