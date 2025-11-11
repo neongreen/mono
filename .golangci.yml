@@ -13,8 +13,17 @@ linters:
   - govet
   - errorlint
   - ineffassign
+  - depguard
   # - nilerr  # Routinely flags graceful degradation patterns as bugs (e.g., fallback to UID when name lookup fails)
   settings:
+    depguard:
+      rules:
+        prevent-flag-package:
+          files:
+            - "$all"
+          deny:
+            - pkg: "flag"
+              desc: "use github.com/spf13/cobra instead of the flag package"
     staticcheck:
       checks:
       - all
