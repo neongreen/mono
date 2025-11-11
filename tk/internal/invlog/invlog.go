@@ -12,21 +12,25 @@ import (
 const (
 	logDirName     = "invlogs"
 	maxLogFileSize = 10 * 1024 * 1024 // 10MB
+	SchemaVersion  = 1                 // Current log schema version
 )
 
 // InvocationLog represents a single invocation of the tk command
 type InvocationLog struct {
+	SchemaVersion int      `json:"schema_version"` // Log schema version for evolution tracking
+	TkVersion     string   `json:"tk_version"`     // tk version (e.g., "dev", "dev-dirty", "1.0.0")
+	TkCommit      string   `json:"tk_commit"`      // Git commit SHA (short, 12 chars)
 	Timestamp  int64    `json:"timestamp"` // Unix nanoseconds
-	Command    string   `json:"command"`
-	Args       []string `json:"args"`
-	PID        int      `json:"pid"`
-	PPID       int      `json:"ppid"`
-	User       string   `json:"user"`
-	Success    bool     `json:"success"`
-	ExitCode   int      `json:"exit_code"`
-	Stdout     string   `json:"stdout,omitempty"`
-	Stderr     string   `json:"stderr,omitempty"`
-	DurationMs int64    `json:"duration_ms"`
+	Command       string   `json:"command"`
+	Args          []string `json:"args"`
+	PID           int      `json:"pid"`
+	PPID          int      `json:"ppid"`
+	User          string   `json:"user"`
+	Success       bool     `json:"success"`
+	ExitCode      int      `json:"exit_code"`
+	Stdout        string   `json:"stdout,omitempty"`
+	Stderr        string   `json:"stderr,omitempty"`
+	DurationMs    int64    `json:"duration_ms"`
 }
 
 // GetLogDir returns the path to the invocation log directory

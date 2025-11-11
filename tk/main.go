@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/neongreen/mono/lib/version"
 	"github.com/neongreen/mono/tk/cmd"
 	"github.com/neongreen/mono/tk/internal/invlog"
 )
@@ -103,17 +104,20 @@ func main() {
 	}
 
 	log := invlog.InvocationLog{
-		Timestamp:  startTime.UnixNano(),
-		Command:    "tk",
-		Args:       os.Args[1:],
-		PID:        os.Getpid(),
-		PPID:       os.Getppid(),
-		User:       user,
-		Success:    exitCode == 0,
-		ExitCode:   exitCode,
-		Stdout:     stdoutBuf.String(),
-		Stderr:     stderrBuf.String(),
-		DurationMs: duration.Milliseconds(),
+		SchemaVersion: invlog.SchemaVersion,
+		TkVersion:     version.Version,
+		TkCommit:      version.GitCommit,
+		Timestamp:     startTime.UnixNano(),
+		Command:       "tk",
+		Args:          os.Args[1:],
+		PID:           os.Getpid(),
+		PPID:          os.Getppid(),
+		User:          user,
+		Success:       exitCode == 0,
+		ExitCode:      exitCode,
+		Stdout:        stdoutBuf.String(),
+		Stderr:        stderrBuf.String(),
+		DurationMs:    duration.Milliseconds(),
 	}
 
 	// Write log entry to rotating JSONL log (ignore errors to avoid disrupting the main command)
