@@ -11,6 +11,18 @@ import (
 )
 
 func main() {
+	// Check if invocation logging should be skipped
+	// Used by tkvscode extension to avoid log accumulation
+	skipInvLog := os.Getenv("TK_SKIP_INVLOG") != ""
+
+	if skipInvLog {
+		// Run command directly without logging
+		if err := cmd.RootCmd.Execute(); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
+
 	startTime := time.Now()
 
 	// Capture stdout and stderr
