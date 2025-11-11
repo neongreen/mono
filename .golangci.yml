@@ -14,6 +14,7 @@ linters:
   - errorlint
   - ineffassign
   - depguard
+  - gosec  # Security linter - detects SQL injection, command injection, etc.
   # - nilerr  # Routinely flags graceful degradation patterns as bugs (e.g., fallback to UID when name lookup fails)
   settings:
     depguard:
