@@ -79,13 +79,14 @@ func WriteLog(log InvocationLog) error {
 }
 
 // Query executes a SQL query against the invocation logs
-func Query(sqlQuery string) ([]rotatinglog.QueryResult, error) {
+// Use ? placeholders for parameters to avoid SQL injection
+func Query(sqlQuery string, args ...interface{}) ([]rotatinglog.QueryResult, error) {
 	logDir, err := GetLogDir()
 	if err != nil {
 		return nil, err
 	}
 
-	return rotatinglog.Query(logDir, sqlQuery)
+	return rotatinglog.Query(logDir, sqlQuery, args...)
 }
 
 // Search searches for a pattern in the invocation logs

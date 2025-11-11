@@ -52,7 +52,7 @@
 //	writer.Append([]byte(`{"field": "value"}`))
 //	writer.Close()
 //
-//	results, _ := rotatinglog.Query("/path/to/logs", "SELECT * FROM logs WHERE field = 'value'")
+//	results, _ := rotatinglog.Query("/path/to/logs", "SELECT * FROM logs WHERE field = ?", "value")
 //
 // # Design
 //
