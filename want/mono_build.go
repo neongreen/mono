@@ -83,24 +83,28 @@ func buildMonoFromLocal(project string, dryRun bool, planJson bool) {
 		os.Exit(1)
 	}
 
-	// Check if we're in a mono repository
-	// Look for common project directories to confirm this is mono
-	commonProjects := []string{"tk", "want", "dissect", "printpdf", "conf"}
-	monoRepoDetected := false
-	for _, proj := range commonProjects {
-		projPath := filepath.Join(cwd, proj)
-		if stat, err := os.Stat(projPath); err == nil && stat.IsDir() {
-			monoRepoDetected = true
-			break
-		}
-	}
-
-	if !monoRepoDetected {
-		fmt.Printf("Error: Current directory does not appear to be the mono repository\n")
-		fmt.Printf("  Current directory: %s\n", cwd)
+	// Find the mono repository root by walking up the directory tree
+	// Uses findMonoRoot from vscode.go which checks for mise.toml, go.mod, and .git
+	monoRoot, err := findMonoRoot(cwd)
+	if err != nil || monoRoot == "" {
+		commonProjects := []string{"tk", "want", "dissect", "printpdf", "conf"}
+		fmt.Printf("Error: Could not find mono repository root\n")
+		fmt.Printf("  Started from: %s\n", cwd)
 		fmt.Printf("  Expected to find project directories like: %v\n", commonProjects)
+		if err != nil {
+			fmt.Printf("  Error: %v\n", err)
+		}
 		os.Exit(1)
 	}
+
+	// Change to mono repository root
+	if err := os.Chdir(monoRoot); err != nil {
+		fmt.Printf("Error: Failed to change to mono root %s: %v\n", monoRoot, err)
+		os.Exit(1)
+	}
+
+	// Update cwd to the mono root
+	cwd = monoRoot
 
 	// Check if the project directory exists
 	projectDir := filepath.Join(cwd, project)
