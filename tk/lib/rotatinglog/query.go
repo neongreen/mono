@@ -20,7 +20,7 @@ type QueryResult map[string]any
 //
 // Use ? placeholders for parameters to avoid SQL injection.
 // DuckDB automatically detects and decompresses .zst files.
-func Query(dir string, sqlQuery string, args ...interface{}) ([]QueryResult, error) {
+func Query(dir string, sqlQuery string, args ...any) ([]QueryResult, error) {
 	// Create in-memory DuckDB instance
 	db, err := sql.Open("duckdb", "")
 	if err != nil {
