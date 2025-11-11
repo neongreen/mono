@@ -16,10 +16,11 @@ type QueryResult map[string]any
 //
 // The SQL query should reference the table as 'logs'. Example:
 //
-//	SELECT * FROM logs WHERE field = 'value'
+//	SELECT * FROM logs WHERE field = ?
 //
+// Use ? placeholders for parameters to avoid SQL injection.
 // DuckDB automatically detects and decompresses .zst files.
-func Query(dir string, sqlQuery string) ([]QueryResult, error) {
+func Query(dir string, sqlQuery string, args ...interface{}) ([]QueryResult, error) {
 	// Create in-memory DuckDB instance
 	db, err := sql.Open("duckdb", "")
 	if err != nil {
@@ -40,8 +41,8 @@ func Query(dir string, sqlQuery string) ([]QueryResult, error) {
 		return nil, fmt.Errorf("failed to create view: %w", err)
 	}
 
-	// Execute user query
-	rows, err := db.Query(sqlQuery)
+	// Execute user query with parameters
+	rows, err := db.Query(sqlQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
 	}
@@ -86,17 +87,18 @@ func Query(dir string, sqlQuery string) ([]QueryResult, error) {
 // Search is a convenience function that searches for a pattern in all fields.
 // It's equivalent to Query with a LIKE clause on common text fields.
 //
-// Note: This requires knowing which fields to search. For generic search,
-// you might want to customize the query based on your schema.
+// The pattern is used with SQL LIKE and automatically wrapped with % wildcards
+// for substring matching. Uses parameterized queries to prevent SQL injection.
 func Search(dir string, pattern string) ([]QueryResult, error) {
-	// For generic search, we search all text columns
-	// This is a simple implementation - customize based on your schema
-	query := fmt.Sprintf(`
+	query := `
 		SELECT * FROM logs
-		WHERE CAST(logs AS VARCHAR) LIKE '%%%s%%'
+		WHERE CAST(logs AS VARCHAR) LIKE ?
 		ORDER BY timestamp DESC
 		LIMIT 100
-	`, pattern)
+	`
 
-	return Query(dir, query)
+	// Wrap pattern with % wildcards for substring matching
+	searchPattern := "%" + pattern + "%"
+
+	return Query(dir, query, searchPattern)
 }

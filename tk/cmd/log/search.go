@@ -30,16 +30,19 @@ Examples:
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 		limit, _ := cmd.Flags().GetInt("limit")
 
-		// Build query with pattern and limit
+		// Build parameterized query to avoid SQL injection
 		pattern := args[0]
-		query := fmt.Sprintf(`
+		query := `
 			SELECT * FROM logs
-			WHERE CAST(logs AS VARCHAR) LIKE '%%%s%%'
+			WHERE CAST(logs AS VARCHAR) LIKE ?
 			ORDER BY timestamp DESC
-			LIMIT %d
-		`, pattern, limit)
+			LIMIT ?
+		`
 
-		results, err := invlog.Query(query)
+		// Wrap pattern with % wildcards for substring matching
+		searchPattern := "%" + pattern + "%"
+
+		results, err := invlog.Query(query, searchPattern, limit)
 		if err != nil {
 			return fmt.Errorf("search failed: %w", err)
 		}
