@@ -13,4 +13,5 @@ var migrateCmd = &cobra.Command{
 
 func init() {
 	migrateCmd.AddCommand(migrate_pkg.ScanDeprecatedCmd)
+	migrateCmd.AddCommand(migrate_pkg.FixRelocateBugCmd)
 }
