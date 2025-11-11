@@ -103,7 +103,7 @@ func main() {
 	}
 
 	log := invlog.InvocationLog{
-		Timestamp:  startTime,
+		Timestamp:  startTime.UnixNano(),
 		Command:    "tk",
 		Args:       os.Args[1:],
 		PID:        os.Getpid(),
@@ -116,8 +116,8 @@ func main() {
 		DurationMs: duration.Milliseconds(),
 	}
 
-	// Write log entry to SQLite database (ignore errors to avoid disrupting the main command)
-	_ = invlog.WriteLogDB(log)
+	// Write log entry to rotating JSONL log (ignore errors to avoid disrupting the main command)
+	_ = invlog.WriteLog(log)
 
 	if exitCode != 0 {
 		os.Exit(exitCode)

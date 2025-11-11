@@ -168,4 +168,5 @@ This is useful for:
 	RootCmd.AddCommand(projectCmd)
 	RootCmd.AddCommand(metaCmd)
 	RootCmd.AddCommand(migrateCmd)
+	RootCmd.AddCommand(logCmd)
 }
