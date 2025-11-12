@@ -172,7 +172,12 @@ var blockedCmd = &cobra.Command{
 			for _, task := range blockedTasks {
 				var blockerIDs []string
 				for _, b := range task.Blockers {
-					blockerIDs = append(blockerIDs, b.TaskDisplayID)
+					// Render the display ID for each blocker
+					blockerID, err := database.RenderTaskDisplayID(db, b.TaskUUID)
+					if err != nil || blockerID == "" {
+						blockerID = b.TaskUUID
+					}
+					blockerIDs = append(blockerIDs, blockerID)
 				}
 				output.Tasks = append(output.Tasks, BlockedTaskOutput{
 					TaskID:   task.TaskDisplayID,
@@ -206,7 +211,12 @@ var blockedCmd = &cobra.Command{
 			if len(task.Blockers) > 0 {
 				var blockerIDs []string
 				for _, b := range task.Blockers {
-					blockerIDs = append(blockerIDs, b.TaskDisplayID)
+					// Render the display ID for each blocker
+					blockerID, err := database.RenderTaskDisplayID(db, b.TaskUUID)
+					if err != nil || blockerID == "" {
+						blockerID = b.TaskUUID
+					}
+					blockerIDs = append(blockerIDs, blockerID)
 				}
 				blockerSummary = strings.Join(blockerIDs, ", ")
 			}

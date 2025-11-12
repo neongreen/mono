@@ -133,6 +133,113 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 		}
 	}
 
+	// Display all relations if present
+	if task.Relations != nil {
+		// Display tasks this one blocks (outgoing blocks)
+		if len(task.Relations.Blocks.Out) > 0 {
+			fmt.Println("Blocks:")
+			for _, rel := range task.Relations.Blocks.Out {
+				relID, err := database.RenderTaskDisplayID(db, rel.TaskUUID)
+				if err != nil || relID == "" {
+					relID = rel.TaskUUID
+				}
+				if rel.Note != "" {
+					fmt.Printf("  - %s (%s)\n", relID, rel.Note)
+				} else {
+					fmt.Printf("  - %s\n", relID)
+				}
+			}
+		}
+
+		// Display parent (if this is a subtask)
+		if task.Relations.Subtask.Parent != "" {
+			parentID, err := database.RenderTaskDisplayID(db, task.Relations.Subtask.Parent)
+			if err != nil || parentID == "" {
+				parentID = task.Relations.Subtask.Parent
+			}
+			fmt.Printf("Parent task: %s\n", parentID)
+		}
+
+		// Display subtasks (children)
+		if len(task.Relations.Subtask.Children) > 0 {
+			fmt.Println("Subtasks:")
+			for _, childUUID := range task.Relations.Subtask.Children {
+				childID, err := database.RenderTaskDisplayID(db, childUUID)
+				if err != nil || childID == "" {
+					childID = childUUID
+				}
+				fmt.Printf("  - %s\n", childID)
+			}
+		}
+
+		// Display related tasks (combine out and in, avoid duplicates)
+		relatedSet := make(map[string]string) // UUID -> note
+		for _, rel := range task.Relations.Related.Out {
+			relatedSet[rel.TaskUUID] = rel.Note
+		}
+		for _, rel := range task.Relations.Related.In {
+			if _, exists := relatedSet[rel.TaskUUID]; !exists {
+				relatedSet[rel.TaskUUID] = rel.Note
+			}
+		}
+
+		if len(relatedSet) > 0 {
+			fmt.Println("Related:")
+			for uuid, note := range relatedSet {
+				relID, err := database.RenderTaskDisplayID(db, uuid)
+				if err != nil || relID == "" {
+					relID = uuid
+				}
+				if note != "" {
+					fmt.Printf("  - %s (%s)\n", relID, note)
+				} else {
+					fmt.Printf("  - %s\n", relID)
+				}
+			}
+		}
+
+		// Display duplicates
+		if len(task.Relations.Duplicate.Out) > 0 || len(task.Relations.Duplicate.In) > 0 {
+			fmt.Println("Duplicates:")
+			for _, rel := range task.Relations.Duplicate.Out {
+				dupID, err := database.RenderTaskDisplayID(db, rel.TaskUUID)
+				if err != nil || dupID == "" {
+					dupID = rel.TaskUUID
+				}
+				fmt.Printf("  - %s\n", dupID)
+			}
+			for _, rel := range task.Relations.Duplicate.In {
+				dupID, err := database.RenderTaskDisplayID(db, rel.TaskUUID)
+				if err != nil || dupID == "" {
+					dupID = rel.TaskUUID
+				}
+				fmt.Printf("  - %s\n", dupID)
+			}
+		}
+
+		// Display supersedes
+		if len(task.Relations.Supersedes.Out) > 0 {
+			fmt.Println("Supersedes:")
+			for _, rel := range task.Relations.Supersedes.Out {
+				supID, err := database.RenderTaskDisplayID(db, rel.TaskUUID)
+				if err != nil || supID == "" {
+					supID = rel.TaskUUID
+				}
+				fmt.Printf("  - %s\n", supID)
+			}
+		}
+		if len(task.Relations.Supersedes.In) > 0 {
+			fmt.Println("Superseded by:")
+			for _, rel := range task.Relations.Supersedes.In {
+				supID, err := database.RenderTaskDisplayID(db, rel.TaskUUID)
+				if err != nil || supID == "" {
+					supID = rel.TaskUUID
+				}
+				fmt.Printf("  - %s\n", supID)
+			}
+		}
+	}
+
 	// Display notes
 	if len(task.Notes) > 0 {
 		fmt.Println("\nNotes:")
