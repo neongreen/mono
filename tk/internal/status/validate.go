@@ -6,14 +6,12 @@ import (
 )
 
 // PredefinedStatuses is the list of standard statuses that tk encourages users to use
+// Empty string represents "no status" and is the default state
 var PredefinedStatuses = []string{
-	"todo",
-	"wip",
 	"next",
+	"wip",
 	"done",
-	"blocked",
-	"cancelled",
-	"abandoned",
+	"closed",
 }
 
 // IsValidPredefinedStatus checks if a status is in the predefined list

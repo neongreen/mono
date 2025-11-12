@@ -146,7 +146,7 @@ var markCmd = &cobra.Command{
 }
 
 func init() {
-	markCmd.Flags().String("status", "", "Status to set (todo, wip, next, done, blocked, cancelled, abandoned)")
+	markCmd.Flags().String("status", "", "Status to set (next, wip, done, closed)")
 	markCmd.Flags().Bool("custom-status", false, "Allow setting a custom status not in the predefined list")
 	markCmd.Flags().String("axis", "generic", "Status axis to set")
 	markCmd.Flags().String("role", "human", "Role setting the status")

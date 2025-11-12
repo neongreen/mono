@@ -379,6 +379,41 @@ func TestDisplayID_Parse(t *testing.T) {
 			wantNodeHint: "xyz",
 			wantErr:      false,
 		},
+		// Dashless format tests
+		{
+			name:         "dashless format - simple",
+			displayID:    DisplayID("tk123"),
+			wantAlias:    "tk",
+			wantNumber:   123,
+			wantNodeHint: "",
+			wantErr:      false,
+		},
+		{
+			name:         "dashless format - longer alias",
+			displayID:    DisplayID("lovable456"),
+			wantAlias:    "lovable",
+			wantNumber:   456,
+			wantNodeHint: "",
+			wantErr:      false,
+		},
+		{
+			name:         "dashless format - single digit",
+			displayID:    DisplayID("me1"),
+			wantAlias:    "me",
+			wantNumber:   1,
+			wantNodeHint: "",
+			wantErr:      false,
+		},
+		{
+			name:      "dashless format - invalid - just numbers",
+			displayID: DisplayID("123"),
+			wantErr:   true,
+		},
+		{
+			name:      "dashless format - invalid - no digits",
+			displayID: DisplayID("proj"),
+			wantErr:   true,
+		},
 	}
 
 	for _, tt := range tests {
