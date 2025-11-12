@@ -6,6 +6,14 @@ import (
 	v4_to_v5 "github.com/neongreen/mono/tk/internal/migrations/v4_to_v5"
 )
 
+const (
+	// MinSupportedDBVersion is the minimum database version this binary can work with
+	MinSupportedDBVersion = 4
+
+	// MaxSupportedDBVersion is the maximum database version this binary can work with
+	MaxSupportedDBVersion = 5
+)
+
 // Migration represents a database migration
 type Migration struct {
 	FromVersion int
@@ -39,6 +47,25 @@ func (d *DB) RunMigrationsIfNeeded() error {
 	currentVersion, err := d.GetDBVersion()
 	if err != nil {
 		return fmt.Errorf("failed to get current database version: %w", err)
+	}
+
+	// Check version compatibility
+	if currentVersion > MaxSupportedDBVersion {
+		return fmt.Errorf(
+			"database version %d is too new for this version of tk (max supported: %d)\n"+
+				"Please upgrade tk to a newer version that supports this database",
+			currentVersion,
+			MaxSupportedDBVersion,
+		)
+	}
+
+	if currentVersion < MinSupportedDBVersion {
+		return fmt.Errorf(
+			"database version %d is too old for this version of tk (min supported: %d)\n"+
+				"Please use an older version of tk to migrate this database first",
+			currentVersion,
+			MinSupportedDBVersion,
+		)
 	}
 
 	// Find migrations that need to run
