@@ -1,6 +1,7 @@
 package query
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/neongreen/mono/tk/internal/types"
@@ -13,11 +14,24 @@ type FilterOptions struct {
 	AxisFilters   []string // Multiple axis filters with OR logic. Format: "axis:state"
 	BlockedOnly   bool
 	UnblockedOnly bool
+	GrepPattern   string   // Regex pattern to match against title and notes
 }
 
 // FilterTasks filters a list of tasks based on the given options
 func FilterTasks(tasks []*types.Task, taskUIDSet map[string]bool, opts FilterOptions) []*types.Task {
 	var filtered []*types.Task
+
+	// Compile grep pattern once if provided (case insensitive by default)
+	var grepRe *regexp.Regexp
+	if opts.GrepPattern != "" {
+		var err error
+		// Prepend (?i) for case-insensitive matching by default
+		grepRe, err = regexp.Compile("(?i)" + opts.GrepPattern)
+		if err != nil {
+			// Return empty list if regex is invalid
+			return filtered
+		}
+	}
 
 	for _, task := range tasks {
 		// Filter by project (if task UID set is provided)
@@ -59,6 +73,30 @@ func FilterTasks(tasks []*types.Task, taskUIDSet map[string]bool, opts FilterOpt
 		}
 		if opts.UnblockedOnly && task.Blocked {
 			continue
+		}
+
+		// Filter by grep pattern (regex)
+		if grepRe != nil {
+			matched := false
+
+			// Check title
+			if grepRe.MatchString(task.Title) {
+				matched = true
+			}
+
+			// Check notes
+			if !matched {
+				for _, note := range task.Notes {
+					if grepRe.MatchString(note.Markdown) {
+						matched = true
+						break
+					}
+				}
+			}
+
+			if !matched {
+				continue
+			}
 		}
 
 		filtered = append(filtered, task)

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -33,6 +34,14 @@ var lsCmd = &cobra.Command{
 		blockedOnly, _ := cmd.Flags().GetBool("blocked")
 		unblockedOnly, _ := cmd.Flags().GetBool("unblocked")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
+		grepPattern, _ := cmd.Flags().GetString("grep")
+
+		// Validate grep pattern if provided
+		if grepPattern != "" {
+			if _, err := regexp.Compile(grepPattern); err != nil {
+				return fmt.Errorf("invalid regex pattern: %w", err)
+			}
+		}
 
 		// If --sort was explicitly provided but --group was not, default to "none"
 		if cmd.Flags().Changed("sort") && !cmd.Flags().Changed("group") {
@@ -97,6 +106,7 @@ var lsCmd = &cobra.Command{
 			AxisFilters:   axisFilters,
 			BlockedOnly:   blockedOnly,
 			UnblockedOnly: unblockedOnly,
+			GrepPattern:   grepPattern,
 		}
 		tasks = query.FilterTasks(tasks, taskUIDSet, filterOpts)
 
@@ -121,8 +131,12 @@ var lsCmd = &cobra.Command{
 			}
 			grouped, groupOrder := query.GroupTasks(tasks, groupBy, getProjectKey)
 
-			// Only show all projects (including empty ones) when no project filter is specified
-			if len(projectFilter) == 0 {
+			// Only show all projects (including empty ones) when no filters are active
+			// If any filter is active (project, status, blocked, grep), only show projects with matches
+			hasActiveFilters := len(projectFilter) > 0 || statusFilter != "" || axisFilter != "" ||
+				blockedOnly || unblockedOnly || grepPattern != ""
+
+			if len(projectFilter) == 0 && !hasActiveFilters {
 				allProjects, err := database.GetAllProjectDisplayNames(db)
 				if err != nil {
 					return fmt.Errorf("failed to get projects: %w", err)
