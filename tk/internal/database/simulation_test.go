@@ -92,28 +92,8 @@ func (m *Machine) createProject(alias, name string) types.ProjectUID {
 	m.db.InsertEvent(event)
 	m.db.ProjectProjectCreatedEvent(event)
 
-	// Add alias
-	ts2, _ := m.db.GetNextLamportTS()
-	aliasPayload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID.String(),
-		Alias:      alias,
-		Node:       m.nodeID,
-		AddedBy:    "machine-" + m.nodeID,
-	}
-	aliasJSON, _ := json.Marshal(aliasPayload)
-
-	aliasEvent := types.Event{
-		ID:        types.NewEventID().String(),
-		TS:        ts2,
-		CreatedAt: m.clock.Now(),
-		Actor:     "machine-" + m.nodeID,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   aliasJSON,
-	}
-
-	m.db.InsertEvent(aliasEvent)
-	m.db.ProjectProjectAliasAddEvent(aliasEvent)
+	// Note: Alias events no longer needed - aliases deprecated in v5
+	// Projects are referenced by name instead
 
 	return projectUID
 }

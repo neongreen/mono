@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/neongreen/mono/tk/internal/transformers"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -27,7 +28,7 @@ func (d *DB) InsertEvent(e types.Event) error {
 	return nil
 }
 
-// GetEvents retrieves all events in chronological order
+// GetEvents retrieves all events in chronological order, applying transformers
 func (d *DB) GetEvents() ([]types.Event, error) {
 	query := `SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
 	          FROM events ORDER BY ts, id`
@@ -66,13 +67,16 @@ func (d *DB) GetEvents() ([]types.Event, error) {
 			e.JJOpID = jjOpID.String
 		}
 
-		events = append(events, e)
+		// Apply transformers - filter out deprecated events
+		if transformed := transformers.TransformEvent(e); transformed != nil {
+			events = append(events, *transformed)
+		}
 	}
 
 	return events, rows.Err()
 }
 
-// GetEventsByTaskID retrieves events for a specific task
+// GetEventsByTaskID retrieves events for a specific task, applying transformers
 func (d *DB) GetEventsByTaskID(taskID string) ([]types.Event, error) {
 	query := `
 		SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
@@ -115,13 +119,16 @@ func (d *DB) GetEventsByTaskID(taskID string) ([]types.Event, error) {
 			e.JJOpID = jjOpID.String
 		}
 
-		events = append(events, e)
+		// Apply transformers - filter out deprecated events
+		if transformed := transformers.TransformEvent(e); transformed != nil {
+			events = append(events, *transformed)
+		}
 	}
 
 	return events, rows.Err()
 }
 
-// GetEventsByTaskUUID retrieves events for a specific task UUID
+// GetEventsByTaskUUID retrieves events for a specific task UUID, applying transformers
 func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]types.Event, error) {
 	query := `
 		SELECT id, ts, created_at, actor, role, kind, payload, ctx, repo_uuid, branch, commit_sha, jj_op_id
@@ -165,7 +172,10 @@ func (d *DB) GetEventsByTaskUUID(taskUUID string) ([]types.Event, error) {
 			e.JJOpID = jjOpID.String
 		}
 
-		events = append(events, e)
+		// Apply transformers - filter out deprecated events
+		if transformed := transformers.TransformEvent(e); transformed != nil {
+			events = append(events, *transformed)
+		}
 	}
 
 	return events, rows.Err()

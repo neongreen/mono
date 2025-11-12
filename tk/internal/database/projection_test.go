@@ -51,48 +51,8 @@ func TestProjectProjectCreatedEvent(t *testing.T) {
 	}
 }
 
-func TestProjectProjectAliasAddEvent(t *testing.T) {
-	db := openTempDB(t)
-
-	// First create a project
-	projectUID := seedProject(t, db, "oldname")
-
-	// Add a new alias (should be a no-op now)
-	nodeID, err := db.GetOrCreateNodeID()
-	if err != nil {
-		t.Fatalf("failed to get node ID: %v", err)
-	}
-
-	payload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID,
-		Alias:      "newalias",
-		Node:       nodeID,
-		AddedBy:    "tester",
-	}
-
-	payloadJSON, err := json.Marshal(payload)
-	if err != nil {
-		t.Fatalf("failed to marshal payload: %v", err)
-	}
-
-	event := types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     "tester",
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   payloadJSON,
-	}
-
-	// Should not error (no-op for backward compatibility)
-	if err := db.ProjectProjectAliasAddEvent(event); err != nil {
-		t.Fatalf("ProjectProjectAliasAddEvent() error = %v", err)
-	}
-
-	// Note: No verification needed - aliases are no longer supported
-	// This test just ensures old alias events don't cause errors
-}
+// TestProjectProjectAliasAddEvent removed - alias events are now filtered by transformers
+// and never reach the projection layer
 
 func TestProjectTaskCreatedEvent(t *testing.T) {
 	db := openTempDB(t)

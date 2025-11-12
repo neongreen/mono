@@ -17,10 +17,6 @@ func (d *DB) ProjectEvent(event types.Event) error {
 	switch event.Kind {
 	case string(types.EventKindProjectCreated):
 		return d.ProjectProjectCreatedEvent(event)
-	case string(types.EventKindProjectAliasAdd):
-		return d.ProjectProjectAliasAddEvent(event)
-	case string(types.EventKindProjectAliasRemove):
-		return d.ProjectProjectAliasRemoveEvent(event)
 	case string(types.EventKindProjectDelete):
 		return d.ProjectProjectDeleteEvent(event)
 	case string(types.EventKindProjectNameSet):
@@ -78,28 +74,6 @@ func (d *DB) ProjectProjectCreatedEvent(e types.Event) error {
 	}
 
 	// Real project already exists - do nothing (idempotent)
-	return nil
-}
-
-// ProjectProjectAliasAddEvent is a no-op (aliases have been removed).
-// Kept for backward compatibility with old event logs.
-// deprecated:v5 remove-after:all-machines-migrated
-func (d *DB) ProjectProjectAliasAddEvent(e types.Event) error {
-	if e.Kind != string(types.EventKindProjectAliasAdd) {
-		return fmt.Errorf("expected project.alias.add event, got %s", e.Kind)
-	}
-	// No-op: aliases are no longer supported, but we don't error on old events
-	return nil
-}
-
-// ProjectProjectAliasRemoveEvent is a no-op (aliases have been removed).
-// Kept for backward compatibility with old event logs.
-// deprecated:v5 remove-after:all-machines-migrated
-func (d *DB) ProjectProjectAliasRemoveEvent(e types.Event) error {
-	if e.Kind != string(types.EventKindProjectAliasRemove) {
-		return fmt.Errorf("expected project.alias.remove event, got %s", e.Kind)
-	}
-	// No-op: aliases are no longer supported, but we don't error on old events
 	return nil
 }
 
