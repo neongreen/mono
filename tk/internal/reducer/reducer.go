@@ -69,6 +69,10 @@ func (r *Reducer) Apply(e types.Event) error {
 		return r.applyRelationRemove(e)
 	case "relation.note":
 		return r.applyRelationNote(e)
+	case "task.attachment.add":
+		return r.applyTaskAttachmentAdd(e)
+	case "task.attachment.remove":
+		return r.applyTaskAttachmentRemove(e)
 	default:
 		// Unknown events are ignored for forward compatibility
 		return nil
@@ -531,6 +535,62 @@ func (r *Reducer) applyTaskTitleSet(e types.Event) error {
 
 	// Update the title
 	task.Title = payload.Title
+	task.UpdatedAt = e.CreatedAt
+
+	return nil
+}
+
+func (r *Reducer) applyTaskAttachmentAdd(e types.Event) error {
+	var payload types.TaskAttachmentAddPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.attachment.add payload: %w", err)
+	}
+
+	task, ok := r.tasks[payload.TaskUUID]
+	if !ok {
+		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
+	}
+
+	// Add attachment if not already present
+	for _, att := range task.Attachments {
+		if att.ID == payload.AttachmentID {
+			// Already attached, skip
+			return nil
+		}
+	}
+
+	task.Attachments = append(task.Attachments, types.Attachment{
+		ID:          payload.AttachmentID,
+		Hash:        payload.AttachmentHash,
+		Filename:    payload.Filename,
+		Description: payload.Description,
+		MimeType:    payload.MimeType,
+		Size:        payload.Size,
+	})
+	task.UpdatedAt = e.CreatedAt
+
+	return nil
+}
+
+func (r *Reducer) applyTaskAttachmentRemove(e types.Event) error {
+	var payload types.TaskAttachmentRemovePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.attachment.remove payload: %w", err)
+	}
+
+	task, ok := r.tasks[payload.TaskUUID]
+	if !ok {
+		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
+	}
+
+	// Remove attachment by ID
+	filtered := make([]types.Attachment, 0, len(task.Attachments))
+	for _, att := range task.Attachments {
+		if att.ID != payload.AttachmentID {
+			filtered = append(filtered, att)
+		}
+	}
+	task.Attachments = filtered
 	task.UpdatedAt = e.CreatedAt
 
 	return nil

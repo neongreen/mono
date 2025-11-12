@@ -61,6 +61,12 @@ This is useful for:
 
 	RootCmd.AddCommand(noteCmd)
 
+	attachCmd.Flags().Bool("list", false, "List attachments for a task")
+	attachCmd.Flags().String("get", "", "Get an attachment by ID")
+	attachCmd.Flags().String("open", "", "Open an attachment by ID")
+	attachCmd.Flags().StringP("description", "d", "", "Description for the attachment")
+	RootCmd.AddCommand(attachCmd)
+
 	showCmd.Flags().Bool("json", false, "Output as JSON")
 	RootCmd.AddCommand(showCmd)
 
@@ -73,6 +79,7 @@ This is useful for:
 	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
 	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
 	lsCmd.Flags().Bool("json", false, "Output tasks as JSON")
+	lsCmd.Flags().String("grep", "", "Filter by regex pattern (RE2 syntax; searches title and notes)")
 	// Hide --axis flag from help but keep it functional
 	lsCmd.Flags().MarkHidden("axis")
 	RootCmd.AddCommand(lsCmd)

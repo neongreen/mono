@@ -53,3 +53,20 @@ type RelationNotePayload struct {
 	Dst      string `json:"dst"`      // Destination task UUID
 	Markdown string `json:"markdown"` // Note text
 }
+
+// TaskAttachmentAddPayload is the payload for task.attachment.add events
+type TaskAttachmentAddPayload struct {
+	TaskUUID       string `json:"task_uuid"`
+	AttachmentID   string `json:"attachment_id"`   // Attachment ID (e.g., "att-1")
+	AttachmentHash string `json:"attachment_hash"` // SHA256 hash of content
+	Filename       string `json:"filename"`
+	Description    string `json:"description,omitempty"`
+	MimeType       string `json:"mime_type,omitempty"`
+	Size           int64  `json:"size"`
+}
+
+// TaskAttachmentRemovePayload is the payload for task.attachment.remove events
+type TaskAttachmentRemovePayload struct {
+	TaskUUID     string `json:"task_uuid"`
+	AttachmentID string `json:"attachment_id"` // Attachment ID
+}

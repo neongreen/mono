@@ -45,6 +45,15 @@ func (d *DB) CreateProjectTables() error {
 		updated_at INTEGER NOT NULL,
 		PRIMARY KEY (remote_name, space)
 	);
+
+	CREATE TABLE IF NOT EXISTS attachments (
+		hash TEXT PRIMARY KEY,
+		content BLOB NOT NULL,
+		mime_type TEXT,
+		size INTEGER NOT NULL,
+		created_at TEXT NOT NULL,
+		created_by TEXT NOT NULL
+	);
 	`
 
 	if _, err := d.Db.Exec(schema); err != nil {

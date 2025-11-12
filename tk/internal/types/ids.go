@@ -277,6 +277,8 @@ const (
 	EventKindRelationAdd        EventKind = "relation.add"
 	EventKindRelationRemove     EventKind = "relation.remove"
 	EventKindRelationNote       EventKind = "relation.note"
+	EventKindTaskAttachmentAdd  EventKind = "task.attachment.add"
+	EventKindTaskAttachmentRemove EventKind = "task.attachment.remove"
 )
 
 type eventKindIndex int
@@ -298,6 +300,8 @@ const (
 	eventKindRelationAddIndex
 	eventKindRelationRemoveIndex
 	eventKindRelationNoteIndex
+	eventKindTaskAttachmentAddIndex
+	eventKindTaskAttachmentRemoveIndex
 	eventKindCount
 )
 
@@ -318,6 +322,8 @@ var AllEventKinds = [...]EventKind{
 	eventKindRelationAddIndex:        EventKindRelationAdd,
 	eventKindRelationRemoveIndex:     EventKindRelationRemove,
 	eventKindRelationNoteIndex:       EventKindRelationNote,
+	eventKindTaskAttachmentAddIndex:  EventKindTaskAttachmentAdd,
+	eventKindTaskAttachmentRemoveIndex: EventKindTaskAttachmentRemove,
 }
 
 var (

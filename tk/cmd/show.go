@@ -119,7 +119,11 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 		if len(task.Blockers) > 0 {
 			fmt.Println("Blocked by:")
 			for _, blocker := range task.Blockers {
-				blockerID := blocker.TaskDisplayID
+				// Render the display ID for the blocker
+				blockerID, err := database.RenderTaskDisplayID(db, blocker.TaskUUID)
+				if err != nil || blockerID == "" {
+					blockerID = blocker.TaskUUID
+				}
 				title := ""
 				if blocker.Title != "" {
 					title = fmt.Sprintf(" - %s", blocker.Title)
@@ -152,6 +156,18 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 				for line := range lines {
 					fmt.Printf("  %s\n", line)
 				}
+			}
+		}
+	}
+
+	// Display attachments
+	if len(task.Attachments) > 0 {
+		fmt.Println("\nAttachments:")
+		for _, att := range task.Attachments {
+			sizeStr := formatAttachmentSize(att.Size)
+			fmt.Printf("  %s: %s (%s)\n", att.ID, att.Filename, sizeStr)
+			if att.Description != "" {
+				fmt.Printf("      %s\n", att.Description)
 			}
 		}
 	}
@@ -212,5 +228,22 @@ func formatMetadataValue(value any) string {
 		return string(data)
 	default:
 		return fmt.Sprintf("%v", v)
+	}
+}
+
+// formatAttachmentSize formats a file size for display
+func formatAttachmentSize(bytes int64) string {
+	const (
+		KB = 1024
+		MB = KB * 1024
+	)
+
+	switch {
+	case bytes >= MB:
+		return fmt.Sprintf("%.1f MB", float64(bytes)/float64(MB))
+	case bytes >= KB:
+		return fmt.Sprintf("%.1f KB", float64(bytes)/float64(KB))
+	default:
+		return fmt.Sprintf("%d bytes", bytes)
 	}
 }
