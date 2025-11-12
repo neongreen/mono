@@ -265,6 +265,12 @@ Examples:
 			return fmt.Errorf("failed to ingest from remote: %w", err)
 		}
 
+		// Run migrations to bring DB to latest version
+		if err := db.RunMigrationsIfNeeded(); err != nil {
+			db.Close()
+			return fmt.Errorf("failed to run migrations: %w", err)
+		}
+
 		if debug {
 			// Count events
 			var eventCount int

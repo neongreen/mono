@@ -94,11 +94,6 @@ func IngestFile(db *database.DB, path string) (*IngestFileResult, error) {
 		}
 	}
 
-	// Ensure DB version is set to 4
-	if err := db.SetDBVersion(4); err != nil {
-		return nil, fmt.Errorf("failed to set DB version to 4: %w", err)
-	}
-
 	return &IngestFileResult{
 		EventsIngested:   ingested,
 		Duplicates:       duplicates,
@@ -227,11 +222,6 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remoteConfig config.R
 				}
 			}
 		}
-	}
-
-	// Ensure DB version is set to 4
-	if err := db.SetDBVersion(4); err != nil {
-		return nil, fmt.Errorf("failed to set DB version to 4: %w", err)
 	}
 
 	// Save watermark
