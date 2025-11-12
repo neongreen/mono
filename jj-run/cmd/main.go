@@ -33,10 +33,11 @@ const (
 )
 
 var (
-	revset      string
-	errStrategy string
-	directMode  bool
-	showVersion bool
+	revset          string
+	errStrategy     string
+	directMode      bool
+	showVersion     bool
+	ignoreImmutable bool
 )
 
 var rootCmd = &cobra.Command{
@@ -64,6 +65,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&errStrategy, "err-strategy", "e", "continue", "Error handling strategy (continue|stop|fatal)")
 	rootCmd.Flags().BoolVarP(&directMode, "direct", "d", false, "Direct mode: edit each revision in place without worktrees")
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Show version information")
+	rootCmd.Flags().BoolVar(&ignoreImmutable, "ignore-immutable", false, "Allow rewriting immutable commits")
 }
 
 func main() {
@@ -479,6 +481,11 @@ func runJJ(args []string, cwd string) error {
 }
 
 func runJJOutput(args []string, cwd string) (string, error) {
+	// Add --ignore-immutable flag if requested
+	if ignoreImmutable {
+		args = append([]string{"--ignore-immutable"}, args...)
+	}
+
 	cmd := exec.Command("jj", args...)
 	cmd.Dir = cwd
 
