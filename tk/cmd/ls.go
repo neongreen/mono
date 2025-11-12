@@ -34,24 +34,6 @@ var lsCmd = &cobra.Command{
 		unblockedOnly, _ := cmd.Flags().GetBool("unblocked")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
-		// Handle --status flag: convert to axis filter format
-		// Supports comma-separated values (OR logic) and negation with !
-		var axisFilters []string
-		if statusFilter != "" {
-			if axisFilter != "" && cmd.Flags().Changed("axis") {
-				return fmt.Errorf("cannot use both --status and --axis flags")
-			}
-			// Parse status filter (handles multiple values and negation)
-			parsedFilters, err := parseStatusFilter(statusFilter)
-			if err != nil {
-				return err
-			}
-			axisFilters = parsedFilters
-		} else if axisFilter != "" {
-			// Backward compatibility: use single axis filter
-			axisFilters = []string{axisFilter}
-		}
-
 		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
@@ -69,6 +51,27 @@ var lsCmd = &cobra.Command{
 		}
 
 		tasks := reducer.GetAllTasks()
+
+		// Extract existing custom statuses from all tasks for validation
+		existingCustomStatuses := status.GetExistingCustomStatusesFromTasks(tasks)
+
+		// Handle --status flag: convert to axis filter format
+		// Supports comma-separated values (OR logic) and negation with !
+		var axisFilters []string
+		if statusFilter != "" {
+			if axisFilter != "" && cmd.Flags().Changed("axis") {
+				return fmt.Errorf("cannot use both --status and --axis flags")
+			}
+			// Parse status filter (handles multiple values and negation)
+			parsedFilters, err := parseStatusFilter(statusFilter, existingCustomStatuses)
+			if err != nil {
+				return err
+			}
+			axisFilters = parsedFilters
+		} else if axisFilter != "" {
+			// Backward compatibility: use single axis filter
+			axisFilters = []string{axisFilter}
+		}
 
 		// Build task UID set for project filtering
 		var taskUIDSet map[string]bool
@@ -200,7 +203,7 @@ var lsCmd = &cobra.Command{
 //   "wip" -> []string{"generic:wip"}
 //   "todo,wip" -> []string{"generic:todo", "generic:wip"}
 //   "!done" -> negation handled by query package - TODO: tk-360
-func parseStatusFilter(statusFilter string) ([]string, error) {
+func parseStatusFilter(statusFilter string, existingCustomStatuses []string) ([]string, error) {
 	statusFilter = strings.TrimSpace(statusFilter)
 	if statusFilter == "" {
 		return nil, nil
@@ -222,9 +225,8 @@ func parseStatusFilter(statusFilter string) ([]string, error) {
 			continue
 		}
 
-		// Validate each status
-		// TODO: Fetch existing custom statuses from project (tk-364)
-		if err := status.ValidateStatus(s, false, nil); err != nil {
+		// Validate each status with existing custom statuses from the project
+		if err := status.ValidateStatus(s, false, existingCustomStatuses); err != nil {
 			return nil, err
 		}
 
