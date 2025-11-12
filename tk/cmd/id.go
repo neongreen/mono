@@ -42,15 +42,43 @@ var idCmd = &cobra.Command{
 			return err
 		}
 
-		// Always output JSON for now (backward compatibility)
-		// TODO: Add human-readable format if needed
-		_ = jsonOutput
-		output, err := json.MarshalIndent(identity, "", "  ")
-		if err != nil {
-			return fmt.Errorf("failed to marshal task identity: %w", err)
+		if jsonOutput {
+			// JSON output mode
+			output, err := json.MarshalIndent(identity, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal task identity: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			// Human-readable output mode
+			fmt.Printf("Task: %s\n", identity.DisplayID)
+			fmt.Printf("Title: %s\n", identity.Title)
+			fmt.Println()
+
+			fmt.Println("Identifiers:")
+			fmt.Printf("  Display ID:  %s\n", identity.DisplayID)
+			fmt.Printf("  Task UID:    %s\n", identity.TaskUID)
+			fmt.Println()
+
+			fmt.Println("Project:")
+			if identity.ProjectAlias != "" {
+				fmt.Printf("  Alias:       %s\n", identity.ProjectAlias)
+			}
+			fmt.Printf("  Project UID: %s\n", identity.ProjectUID)
+			fmt.Printf("  Number:      %d\n", identity.Number)
+			if identity.Collides {
+				fmt.Printf("  Collides:    Yes (warning: number collision detected)\n")
+			} else {
+				fmt.Printf("  Collides:    No\n")
+			}
+			fmt.Println()
+
+			fmt.Println("Created:")
+			fmt.Printf("  By:          %s\n", identity.CreatedBy)
+			fmt.Printf("  At:          %s\n", identity.CreatedAt.Format("2006-01-02 15:04:05"))
+			fmt.Printf("  Node:        %s\n", identity.CreatedNode)
 		}
 
-		fmt.Println(string(output))
 		return nil
 	},
 }
