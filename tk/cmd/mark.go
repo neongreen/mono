@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/neongreen/mono/tk/internal/clock"
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/status"
 	"github.com/neongreen/mono/tk/internal/tasks"
@@ -36,6 +37,56 @@ var markCmd = &cobra.Command{
 		role, _ := cmd.Flags().GetString("role")
 		noteText, _ := cmd.Flags().GetString("m")
 
+		// Open DB early to fetch existing custom statuses for validation
+		db, err := database.OpenExistingDB()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		// Resolve task reference to get project UID
+		taskUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
+		if err != nil {
+			return err
+		}
+
+		// Get project UID for the task
+		var projectUID string
+		err = db.Db.QueryRow(`SELECT project_uid FROM task_numbers WHERE task_uid = ?`, taskUUID).Scan(&projectUID)
+		if err != nil {
+			// If we can't get project UID, continue without custom statuses
+			projectUID = ""
+		}
+
+		// Load config and get reducer to fetch all tasks and extract custom statuses
+		config, err := config_pkg.LoadConfig()
+		if err != nil {
+			config = nil // Continue without config if it fails
+		}
+
+		var reducer interface {
+			GetAllTasks() []*types.Task
+		}
+		if config != nil {
+			reducer, err = db.GetCachedReducerWithConfig(config)
+			if err != nil {
+				reducer = nil // Continue without reducer if it fails
+			}
+		}
+
+		var existingCustom []string
+		if reducer != nil && projectUID != "" {
+			// Get all tasks from the project
+			allTasks := reducer.GetAllTasks()
+			var projectTasks []*types.Task
+			for _, task := range allTasks {
+				if task.ProjectUUID == projectUID {
+					projectTasks = append(projectTasks, task)
+				}
+			}
+			existingCustom = status.GetExistingCustomStatusesFromTasks(projectTasks)
+		}
+
 		var state string
 
 		// Determine the state to set based on flags and arguments
@@ -47,8 +98,7 @@ var markCmd = &cobra.Command{
 				return fmt.Errorf("cannot use both --status and --axis flags")
 			}
 			// Validate status unless using custom-status flag
-			// TODO: Fetch existing custom statuses from project (tk-364)
-			if err := status.ValidateStatus(statusFlag, customStatus, nil); err != nil {
+			if err := status.ValidateStatus(statusFlag, customStatus, existingCustom); err != nil {
 				return err
 			}
 			state = status.NormalizeStatus(statusFlag)
@@ -57,23 +107,10 @@ var markCmd = &cobra.Command{
 			// Using positional argument for status
 			state = args[1]
 			// Validate status unless using custom-status flag
-			// TODO: Fetch existing custom statuses from project (tk-364)
-			if err := status.ValidateStatus(state, customStatus, nil); err != nil {
+			if err := status.ValidateStatus(state, customStatus, existingCustom); err != nil {
 				return err
 			}
 			state = status.NormalizeStatus(state)
-		}
-
-		db, err := database.OpenExistingDB()
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		// Resolve task reference
-		taskUUID, err := database.ResolveTaskReference(db, types.NewTaskRef(taskRef))
-		if err != nil {
-			return err
 		}
 
 		currentUser, err := utils.GetCurrentUser()

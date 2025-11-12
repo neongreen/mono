@@ -9,7 +9,8 @@ import (
 // FilterOptions contains options for filtering tasks
 type FilterOptions struct {
 	Projects      []string // Project aliases to filter by
-	AxisFilter    string   // Format: "axis:state"
+	AxisFilter    string   // Format: "axis:state" (deprecated, use AxisFilters)
+	AxisFilters   []string // Multiple axis filters with OR logic. Format: "axis:state"
 	BlockedOnly   bool
 	UnblockedOnly bool
 }
@@ -24,17 +25,31 @@ func FilterTasks(tasks []*types.Task, taskUIDSet map[string]bool, opts FilterOpt
 			continue
 		}
 
-		// Filter by axis
-		if opts.AxisFilter != "" {
-			parts := strings.Split(opts.AxisFilter, ":")
-			if len(parts) == 2 {
-				axisName := parts[0]
-				stateName := parts[1]
+		// Filter by axis (support both single and multiple filters)
+		filters := opts.AxisFilters
+		if len(filters) == 0 && opts.AxisFilter != "" {
+			// Backward compatibility: use single AxisFilter if AxisFilters is empty
+			filters = []string{opts.AxisFilter}
+		}
 
-				axis, ok := task.Axes[axisName]
-				if !ok || axis.Effective != stateName {
-					continue
+		if len(filters) > 0 {
+			// OR logic: task passes if it matches ANY of the filters
+			matched := false
+			for _, filter := range filters {
+				parts := strings.Split(filter, ":")
+				if len(parts) == 2 {
+					axisName := parts[0]
+					stateName := parts[1]
+
+					axis, ok := task.Axes[axisName]
+					if ok && axis.Effective == stateName {
+						matched = true
+						break
+					}
 				}
+			}
+			if !matched {
+				continue
 			}
 		}
 

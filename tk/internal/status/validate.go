@@ -67,15 +67,3 @@ func ValidateStatus(status string, allowCustom bool, existingCustomStatuses []st
 func NormalizeStatus(status string) string {
 	return strings.ToLower(strings.TrimSpace(status))
 }
-
-// GetExistingCustomStatuses returns all custom statuses (non-predefined) currently in use
-func GetExistingCustomStatuses(db interface{ QueryRow(string, ...interface{}) interface{ Scan(...interface{}) error } }) ([]string, error) {
-	type row struct{ status string }
-	var customStatuses []string
-
-	// Query for all distinct statuses from tasks
-	// This is a simplified placeholder - actual implementation would need proper database access
-	// For now, return empty slice
-	// TODO: Implement actual query once we have access to database methods
-	return customStatuses, nil
-}
