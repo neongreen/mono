@@ -60,6 +60,7 @@ func (r *Reducer) applyTaskMetaSet(e types.Event) error {
 
 	// Store back
 	task.Metadata[payload.Key] = metaStatus
+	task.UpdatedAt = e.CreatedAt
 
 	return nil
 }

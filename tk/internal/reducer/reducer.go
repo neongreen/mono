@@ -119,6 +119,7 @@ func (r *Reducer) applyTaskStatusSet(e types.Event) error {
 	r.resolveEffectiveStatus(&axis)
 
 	task.Axes[payload.Axis] = axis
+	task.UpdatedAt = e.CreatedAt
 
 	return nil
 }
@@ -152,6 +153,7 @@ func (r *Reducer) applyTaskNoteAdd(e types.Event) error {
 		Timestamp: e.CreatedAt, // Use actual creation time from event
 	}
 	task.Notes = append(task.Notes, note)
+	task.UpdatedAt = e.CreatedAt
 
 	return nil
 }
@@ -455,6 +457,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 				CreatedBy:     payload.CreatedBy,
 				CreatedAt:     e.CreatedAt,
 				CreatedAtTS:   e.TS,
+				UpdatedAt:     existing.UpdatedAt, // Preserve updated timestamp
 				Relations:     existing.Relations,
 				Blocked:       existing.Blocked,
 				Blockers:      existing.Blockers,
@@ -476,6 +479,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 		CreatedBy:     payload.CreatedBy,
 		CreatedAt:     e.CreatedAt,
 		CreatedAtTS:   e.TS,
+		UpdatedAt:     e.CreatedAt, // Initially same as CreatedAt
 	}
 
 	// Register task by UID
@@ -527,6 +531,7 @@ func (r *Reducer) applyTaskTitleSet(e types.Event) error {
 
 	// Update the title
 	task.Title = payload.Title
+	task.UpdatedAt = e.CreatedAt
 
 	return nil
 }

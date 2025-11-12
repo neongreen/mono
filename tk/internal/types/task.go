@@ -19,6 +19,7 @@ type Task struct {
 	CreatedBy     string                    `json:"created_by"`
 	CreatedAt     time.Time                 `json:"created_at"`
 	CreatedAtTS   int64                     `json:"created_at_ts,omitempty"` // Lamport timestamp of task.created event
+	UpdatedAt     time.Time                 `json:"updated_at"`              // Timestamp of most recent event affecting this task
 	Relations     *Relations                `json:"relations,omitempty"`     // Task relations
 	Blocked       bool                      `json:"blocked,omitempty"`       // Is this task blocked
 	Blockers      []Blocker                 `json:"blockers,omitempty"`      // List of blocking tasks

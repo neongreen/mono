@@ -6,8 +6,8 @@ import (
 )
 
 // SortTasks sorts tasks based on the specified sort order.
-// Supported sort orders: "created", "created-desc", "id", "title", "status", or empty (defaults to "created").
-// Add "-desc" suffix for descending order (e.g., "created-desc" for newest first).
+// Supported sort orders: "created", "updated", "id", "title", "status", or empty (defaults to "created").
+// Add "-desc" suffix for descending order (e.g., "created-desc" for newest first, "updated-desc" for most recently updated).
 func SortTasks(tasks []*Task, sortBy string) {
 	// Check for descending order suffix
 	descending := strings.HasSuffix(sortBy, "-desc")
@@ -22,6 +22,13 @@ func SortTasks(tasks []*Task, sortBy string) {
 				return tasks[j].CreatedAt.Before(tasks[i].CreatedAt)
 			}
 			return tasks[i].CreatedAt.Before(tasks[j].CreatedAt)
+		})
+	case "updated":
+		sort.Slice(tasks, func(i, j int) bool {
+			if descending {
+				return tasks[j].UpdatedAt.Before(tasks[i].UpdatedAt)
+			}
+			return tasks[i].UpdatedAt.Before(tasks[j].UpdatedAt)
 		})
 	case "id":
 		sort.Slice(tasks, func(i, j int) bool {
