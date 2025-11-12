@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/fatih/color"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/query"
+	"github.com/neongreen/mono/tk/internal/status"
 	"github.com/neongreen/mono/tk/internal/termutil"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
@@ -23,6 +25,7 @@ var lsCmd = &cobra.Command{
 		}
 
 		axisFilter, _ := cmd.Flags().GetString("axis")
+		statusFilter, _ := cmd.Flags().GetString("status")
 		sortBy, _ := cmd.Flags().GetString("sort")
 		projectFilter, _ := cmd.Flags().GetStringSlice("project")
 		showAliases, _ := cmd.Flags().GetBool("aliases")
@@ -30,6 +33,20 @@ var lsCmd = &cobra.Command{
 		blockedOnly, _ := cmd.Flags().GetBool("blocked")
 		unblockedOnly, _ := cmd.Flags().GetBool("unblocked")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
+
+		// Handle --status flag: convert to axis filter format
+		// Supports comma-separated values (OR logic) and negation with !
+		if statusFilter != "" {
+			if axisFilter != "" && cmd.Flags().Changed("axis") {
+				return fmt.Errorf("cannot use both --status and --axis flags")
+			}
+			// Parse status filter (handles multiple values and negation)
+			parsedFilter, err := parseStatusFilter(statusFilter)
+			if err != nil {
+				return err
+			}
+			axisFilter = parsedFilter
+		}
 
 		db, err := database.OpenExistingDB()
 		if err != nil {
@@ -171,4 +188,41 @@ var lsCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+// parseStatusFilter converts status filter to axis filter format
+// Handles single status, comma-separated statuses (OR), and negation with !
+// Examples:
+//   "wip" -> "generic:wip"
+//   "todo,wip" -> handled by query package (OR logic) - TODO: tk-359
+//   "!done" -> negation handled by query package - TODO: tk-360
+func parseStatusFilter(statusFilter string) (string, error) {
+	statusFilter = strings.TrimSpace(statusFilter)
+	if statusFilter == "" {
+		return "", nil
+	}
+
+	// Check for negation (! prefix)
+	if strings.HasPrefix(statusFilter, "!") {
+		// Negation support is tracked in tk-360
+		return "", fmt.Errorf("status negation with ! is not yet implemented (tracked in tk-360)")
+	}
+
+	// Check for comma-separated values (OR logic)
+	if strings.Contains(statusFilter, ",") {
+		// Multi-status support is tracked in tk-359
+		return "", fmt.Errorf("comma-separated statuses are not yet implemented (tracked in tk-359)")
+	}
+
+	// Single status - validate and convert to axis format
+	normalized := status.NormalizeStatus(statusFilter)
+	if !status.IsValidPredefinedStatus(normalized) {
+		return "", fmt.Errorf(
+			"invalid status: %q\nValid statuses are: %s",
+			statusFilter,
+			strings.Join(status.PredefinedStatuses, ", "),
+		)
+	}
+
+	return fmt.Sprintf("generic:%s", normalized), nil
 }

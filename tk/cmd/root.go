@@ -64,6 +64,7 @@ This is useful for:
 	showCmd.Flags().Bool("json", false, "Output as JSON")
 	RootCmd.AddCommand(showCmd)
 
+	lsCmd.Flags().String("status", "", "Filter by status (todo, wip, next, done, blocked, cancelled, abandoned)")
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
 	lsCmd.Flags().StringSliceP("project", "p", []string{}, "Filter by project (alias, UID, or name; can be specified multiple times)")
@@ -72,6 +73,8 @@ This is useful for:
 	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
 	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
 	lsCmd.Flags().Bool("json", false, "Output tasks as JSON")
+	// Hide --axis flag from help but keep it functional
+	lsCmd.Flags().MarkHidden("axis")
 	RootCmd.AddCommand(lsCmd)
 
 	RootCmd.AddCommand(editCmd)

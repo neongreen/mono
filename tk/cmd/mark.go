@@ -6,6 +6,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/status"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/neongreen/mono/tk/internal/utils"
@@ -17,25 +18,49 @@ var markCmd = &cobra.Command{
 	Short: "Set task status",
 	Args: func(cmd *cobra.Command, args []string) error {
 		unset, _ := cmd.Flags().GetBool("unset")
-		if unset {
+		statusFlag, _ := cmd.Flags().GetString("status")
+
+		// If using --status or --unset, only need task-id
+		if unset || statusFlag != "" {
 			return cobra.ExactArgs(1)(cmd, args)
 		}
+		// Otherwise need task-id and state
 		return cobra.ExactArgs(2)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
 		unset, _ := cmd.Flags().GetBool("unset")
-
-		var state string
-		if unset {
-			state = ""
-		} else {
-			state = args[1]
-		}
-
+		statusFlag, _ := cmd.Flags().GetString("status")
 		axis, _ := cmd.Flags().GetString("axis")
+		customStatus, _ := cmd.Flags().GetBool("custom-status")
 		role, _ := cmd.Flags().GetString("role")
 		noteText, _ := cmd.Flags().GetString("m")
+
+		var state string
+
+		// Determine the state to set based on flags and arguments
+		if unset {
+			state = ""
+		} else if statusFlag != "" {
+			// Using --status flag
+			if axis != "generic" && cmd.Flags().Changed("axis") {
+				return fmt.Errorf("cannot use both --status and --axis flags")
+			}
+			// Validate status unless using custom-status flag
+			if err := status.ValidateStatus(statusFlag, customStatus); err != nil {
+				return err
+			}
+			state = status.NormalizeStatus(statusFlag)
+			axis = "generic"
+		} else {
+			// Using positional argument for status
+			state = args[1]
+			// Validate status unless using custom-status flag
+			if err := status.ValidateStatus(state, customStatus); err != nil {
+				return err
+			}
+			state = status.NormalizeStatus(state)
+		}
 
 		db, err := database.OpenExistingDB()
 		if err != nil {
@@ -121,8 +146,13 @@ var markCmd = &cobra.Command{
 }
 
 func init() {
+	markCmd.Flags().String("status", "", "Status to set (todo, wip, next, done, blocked, cancelled, abandoned)")
+	markCmd.Flags().Bool("custom-status", false, "Allow setting a custom status not in the predefined list")
 	markCmd.Flags().String("axis", "generic", "Status axis to set")
 	markCmd.Flags().String("role", "human", "Role setting the status")
 	markCmd.Flags().Bool("unset", false, "Unset status instead of setting it")
 	markCmd.Flags().StringP("m", "m", "", "Add a note when marking status")
+
+	// Hide --axis flag from help but keep it functional
+	markCmd.Flags().MarkHidden("axis")
 }
