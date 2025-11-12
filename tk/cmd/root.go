@@ -99,4 +99,5 @@ This is useful for:
 	RootCmd.AddCommand(migrateCmd)
 	RootCmd.AddCommand(logCmd)
 	RootCmd.AddCommand(historyCmd)
+	RootCmd.AddCommand(statuslineCmd)
 }
