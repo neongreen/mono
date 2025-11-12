@@ -34,6 +34,11 @@ var lsCmd = &cobra.Command{
 		unblockedOnly, _ := cmd.Flags().GetBool("unblocked")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 
+		// If --sort was explicitly provided but --group was not, default to "none"
+		if cmd.Flags().Changed("sort") && !cmd.Flags().Changed("group") {
+			groupBy = "none"
+		}
+
 		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err

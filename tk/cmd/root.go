@@ -69,7 +69,7 @@ This is useful for:
 	lsCmd.Flags().String("sort", "created", "Sort order: created, updated, id, title, or status. Add -desc for descending (e.g., updated-desc for most recently updated)")
 	lsCmd.Flags().StringSliceP("project", "p", []string{}, "Filter by project (alias, UID, or name; can be specified multiple times)")
 	lsCmd.Flags().Bool("aliases", false, "Show task aliases")
-	lsCmd.Flags().String("group", "project", "Group tasks by: project, status, or none (default: project)")
+	lsCmd.Flags().String("group", "project", "Group tasks by: project, status, or none (default: project, or none when --sort is used)")
 	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
 	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
 	lsCmd.Flags().Bool("json", false, "Output tasks as JSON")
