@@ -18,7 +18,16 @@ var newCmd = &cobra.Command{
 	Use:     "new [title]",
 	Aliases: []string{"add"},
 	Short:   "Create a new task",
-	Args:    cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return fmt.Errorf("title is required")
+		}
+		if len(args) > 1 {
+			// User likely forgot quotes around multi-word title
+			return fmt.Errorf("multi-word titles must be quoted. Example: tk new \"My task title\"")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := database.OpenExistingDB()
 		if err != nil {

@@ -27,7 +27,8 @@ func IsValidPredefinedStatus(status string) bool {
 
 // ValidateStatus validates a status value. If allowCustom is false, only predefined
 // statuses are allowed. Returns an error with helpful message if validation fails.
-func ValidateStatus(status string, allowCustom bool) error {
+// existingCustomStatuses should contain any custom statuses already in use in the project.
+func ValidateStatus(status string, allowCustom bool, existingCustomStatuses []string) error {
 	if status == "" {
 		return nil // Empty status is allowed (for unsetting)
 	}
@@ -36,18 +37,45 @@ func ValidateStatus(status string, allowCustom bool) error {
 		return nil // Any status is allowed with custom flag
 	}
 
-	if !IsValidPredefinedStatus(status) {
-		return fmt.Errorf(
-			"invalid status: %q\nValid statuses are: %s\nUse --custom-status to set a non-standard status",
-			status,
-			strings.Join(PredefinedStatuses, ", "),
-		)
+	normalized := NormalizeStatus(status)
+
+	// Check if it's a predefined status
+	if IsValidPredefinedStatus(normalized) {
+		return nil
 	}
 
-	return nil
+	// Check if it's an existing custom status in the project
+	for _, existing := range existingCustomStatuses {
+		if strings.EqualFold(existing, normalized) {
+			return nil
+		}
+	}
+
+	// Build the error message with both predefined and existing custom statuses
+	allStatuses := make([]string, 0, len(PredefinedStatuses)+len(existingCustomStatuses))
+	allStatuses = append(allStatuses, PredefinedStatuses...)
+	allStatuses = append(allStatuses, existingCustomStatuses...)
+
+	return fmt.Errorf(
+		"This project uses: %s\nIf you want to use '%s' here, add: --custom-status",
+		strings.Join(allStatuses, ", "),
+		status,
+	)
 }
 
 // NormalizeStatus converts a status to lowercase for consistent storage
 func NormalizeStatus(status string) string {
 	return strings.ToLower(strings.TrimSpace(status))
+}
+
+// GetExistingCustomStatuses returns all custom statuses (non-predefined) currently in use
+func GetExistingCustomStatuses(db interface{ QueryRow(string, ...interface{}) interface{ Scan(...interface{}) error } }) ([]string, error) {
+	type row struct{ status string }
+	var customStatuses []string
+
+	// Query for all distinct statuses from tasks
+	// This is a simplified placeholder - actual implementation would need proper database access
+	// For now, return empty slice
+	// TODO: Implement actual query once we have access to database methods
+	return customStatuses, nil
 }

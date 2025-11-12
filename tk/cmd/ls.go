@@ -215,14 +215,11 @@ func parseStatusFilter(statusFilter string) (string, error) {
 	}
 
 	// Single status - validate and convert to axis format
-	normalized := status.NormalizeStatus(statusFilter)
-	if !status.IsValidPredefinedStatus(normalized) {
-		return "", fmt.Errorf(
-			"invalid status: %q\nValid statuses are: %s",
-			statusFilter,
-			strings.Join(status.PredefinedStatuses, ", "),
-		)
+	// TODO: Fetch existing custom statuses from project (tk-364)
+	if err := status.ValidateStatus(statusFilter, false, nil); err != nil {
+		return "", err
 	}
 
+	normalized := status.NormalizeStatus(statusFilter)
 	return fmt.Sprintf("generic:%s", normalized), nil
 }

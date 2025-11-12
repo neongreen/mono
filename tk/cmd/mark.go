@@ -47,7 +47,8 @@ var markCmd = &cobra.Command{
 				return fmt.Errorf("cannot use both --status and --axis flags")
 			}
 			// Validate status unless using custom-status flag
-			if err := status.ValidateStatus(statusFlag, customStatus); err != nil {
+			// TODO: Fetch existing custom statuses from project (tk-364)
+			if err := status.ValidateStatus(statusFlag, customStatus, nil); err != nil {
 				return err
 			}
 			state = status.NormalizeStatus(statusFlag)
@@ -56,7 +57,8 @@ var markCmd = &cobra.Command{
 			// Using positional argument for status
 			state = args[1]
 			// Validate status unless using custom-status flag
-			if err := status.ValidateStatus(state, customStatus); err != nil {
+			// TODO: Fetch existing custom statuses from project (tk-364)
+			if err := status.ValidateStatus(state, customStatus, nil); err != nil {
 				return err
 			}
 			state = status.NormalizeStatus(state)
