@@ -31,11 +31,12 @@ func Query(dir string, sqlQuery string, args ...any) ([]QueryResult, error) {
 	// Create a view that reads all JSONL files
 	// DuckDB's read_json supports both .jsonl and .jsonl.zst (auto-detects compression)
 	// union_by_name=true allows optional fields to appear in different records
+	// maximum_object_size increased from default 16MB to 256MB for large log files
 	pattern := filepath.Join(dir, "*.jsonl*")
 	// #nosec G201 - pattern is filepath from program, not user input
 	createView := fmt.Sprintf(`
 		CREATE VIEW logs AS
-		SELECT * FROM read_json('%s', auto_detect=true, format='newline_delimited', union_by_name=true)
+		SELECT * FROM read_json('%s', auto_detect=true, format='newline_delimited', union_by_name=true, maximum_object_size=268435456)
 	`, pattern)
 
 	if _, err := db.Exec(createView); err != nil {
