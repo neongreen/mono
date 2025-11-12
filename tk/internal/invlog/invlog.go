@@ -12,7 +12,7 @@ import (
 const (
 	logDirName     = "invlogs"
 	maxLogFileSize = 10 * 1024 * 1024 // 10MB
-	SchemaVersion  = 1                // Current log schema version
+	SchemaVersion  = 2                // Current log schema version (bumped for new fields)
 )
 
 // InvocationLog represents a single invocation of the tk command
@@ -31,6 +31,12 @@ type InvocationLog struct {
 	Stdout        string   `json:"stdout,omitempty"`
 	Stderr        string   `json:"stderr,omitempty"`
 	DurationMs    int64    `json:"duration_ms"`
+
+	// Schema v2 additions (tk-81: enhanced debugging info)
+	TkCommitFull   string `json:"tk_commit_full,omitempty"`   // Full git commit hash
+	TkCommitTime   string `json:"tk_commit_time,omitempty"`   // Commit timestamp (RFC3339)
+	TkGitModified  bool   `json:"tk_git_modified,omitempty"`  // Whether binary built from dirty tree
+	TkBinaryPath   string `json:"tk_binary_path,omitempty"`   // Full path to tk binary
 }
 
 // GetLogDir returns the path to the invocation log directory

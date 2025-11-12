@@ -103,6 +103,12 @@ func main() {
 		user = os.Getenv("USERNAME")
 	}
 
+	// Get binary path (os.Args[0] may be relative, try to get absolute path)
+	binaryPath := os.Args[0]
+	if absPath, err := os.Executable(); err == nil {
+		binaryPath = absPath
+	}
+
 	log := invlog.InvocationLog{
 		SchemaVersion: invlog.SchemaVersion,
 		TkVersion:     version.Version,
@@ -118,6 +124,12 @@ func main() {
 		Stdout:        stdoutBuf.String(),
 		Stderr:        stderrBuf.String(),
 		DurationMs:    duration.Milliseconds(),
+
+		// Schema v2 fields (tk-81)
+		TkCommitFull:  version.GitCommitFull,
+		TkCommitTime:  version.CommitTime,
+		TkGitModified: version.GitModified,
+		TkBinaryPath:  binaryPath,
 	}
 
 	// Write log entry to rotating JSONL log (ignore errors to avoid disrupting the main command)
