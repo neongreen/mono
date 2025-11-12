@@ -64,7 +64,7 @@ This is useful for:
 	showCmd.Flags().Bool("json", false, "Output as JSON")
 	RootCmd.AddCommand(showCmd)
 
-	lsCmd.Flags().String("status", "", "Filter by status (next, wip, done, closed)")
+	lsCmd.Flags().String("status", "", "Filter by status. Supports multiple values with comma: --status wip,next (next, wip, done, closed)")
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
 	lsCmd.Flags().StringSliceP("project", "p", []string{}, "Filter by project (alias, UID, or name; can be specified multiple times)")
