@@ -14,6 +14,7 @@ var queueCmd = &cobra.Command{
 func init() {
 	queueCmd.AddCommand(queue_pkg.CreateCmd)
 	queueCmd.AddCommand(queue_pkg.ListCmd)
+	queueCmd.AddCommand(queue_pkg.ShowCmd)
 	queueCmd.AddCommand(queue_pkg.PushCmd)
 	queueCmd.AddCommand(queue_pkg.PopCmd)
 	queueCmd.AddCommand(queue_pkg.RenameCmd)
