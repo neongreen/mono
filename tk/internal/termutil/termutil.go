@@ -39,6 +39,6 @@ func GetTerminalWidth() int {
 		return width
 	}
 
-	// Default fallback
-	return 80
+	// Default fallback (use wider default for modern displays)
+	return 150
 }

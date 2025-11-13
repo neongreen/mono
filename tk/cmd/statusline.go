@@ -122,17 +122,15 @@ Examples:
 			relativeTime := formatRelativeTime(now.Sub(task.UpdatedAt))
 
 			// Calculate available width for title
-			// Format: "task-id title time"
-			// Reserve space for: task ID (max ~15) + time (~10) + spacing (4)
-			reservedWidth := len(task.DisplayID) + len(relativeTime) + 4
+			// Format: "ID<space>TITLE<space>TIME"
+			// Reserve: ID width + 2 spaces + TIME width
+			reservedWidth := len(task.DisplayID) + 2 + len(relativeTime)
 			availableWidth := termWidth - reservedWidth
-			if availableWidth < 20 {
-				availableWidth = 20 // Minimum width for title
-			}
 
-			// Truncate title to available width
+			// Don't truncate if terminal is very wide or if we have enough space
+			// Only truncate if title would exceed available width
 			title := task.Title
-			if len(title) > availableWidth {
+			if termWidth > 0 && len(title) > availableWidth && availableWidth > 0 {
 				title = title[:availableWidth-3] + "..."
 			}
 
