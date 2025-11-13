@@ -127,7 +127,14 @@ func listGroupMembers(db *database.DB, groupID string) error {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		fmt.Println(itemID)
+		// Render task UID as display ID (tk-123) for user output
+		displayID, err := database.RenderTaskDisplayID(db, itemID)
+		if err != nil {
+			// If rendering fails, show the raw UID (defensive)
+			displayID = itemID
+		}
+
+		fmt.Println(displayID)
 		count++
 	}
 
