@@ -147,12 +147,12 @@ type DeprecateContainerKindPayload struct {
 
 // CreateContainerPayload is the payload for container.create events
 type CreateContainerPayload struct {
-	ID        string                 `json:"id"`
-	Primitive ContainerPrimitive     `json:"primitive"`
-	Kind      string                 `json:"kind"`
-	Name      string                 `json:"name"`
-	Metadata  map[string]interface{} `json:"metadata,omitempty"`
-	CreatedBy string                 `json:"created_by"`
+	ID        string             `json:"id"`
+	Primitive ContainerPrimitive `json:"primitive"`
+	Kind      string             `json:"kind"`
+	Name      string             `json:"name"`
+	Metadata  map[string]any     `json:"metadata,omitempty"`
+	CreatedBy string             `json:"created_by"`
 }
 
 // RenameContainerPayload is the payload for container.rename events
@@ -163,8 +163,8 @@ type RenameContainerPayload struct {
 
 // UpdateContainerMetadataPayload is the payload for container.metadata.update events
 type UpdateContainerMetadataPayload struct {
-	ID       string                 `json:"id"`
-	Metadata map[string]interface{} `json:"metadata"`
+	ID       string         `json:"id"`
+	Metadata map[string]any `json:"metadata"`
 }
 
 // RemoveContainerPayload is the payload for container.remove events

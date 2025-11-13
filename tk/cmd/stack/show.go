@@ -70,7 +70,7 @@ Example:
 		if metadata.Valid && metadata.String != "" && metadata.String != "null" {
 			fmt.Println("\nMetadata:")
 			// Pretty-print JSON metadata
-			var metaMap map[string]interface{}
+			var metaMap map[string]any
 			if err := json.Unmarshal([]byte(metadata.String), &metaMap); err == nil {
 				for k, v := range metaMap {
 					fmt.Printf("  %s: %v\n", k, v)

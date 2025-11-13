@@ -524,7 +524,7 @@ func TestProjectContainerCreateEvent(t *testing.T) {
 		Primitive: types.PrimitiveQueue,
 		Kind:      "sprint",
 		Name:      "Nov Sprint",
-		Metadata: map[string]interface{}{
+		Metadata: map[string]any{
 			"project": "lovable",
 		},
 		CreatedBy: "tester",
@@ -1216,7 +1216,7 @@ func TestContainerRebuildFromEvents(t *testing.T) {
 	})
 
 	// 3. Push 5 items
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		pushPayload := types.QueuePushPayload{
 			ContainerID: "q-1",
 			ItemID:      types.TaskUID(fmt.Sprintf("tk-%d", i+1)),
@@ -1234,7 +1234,7 @@ func TestContainerRebuildFromEvents(t *testing.T) {
 	}
 
 	// 4. Pop 2 items
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		popPayload := types.QueuePopPayload{
 			ContainerID: "q-1",
 			ItemID:      types.TaskUID(fmt.Sprintf("tk-%d", i+1)),
@@ -1399,7 +1399,7 @@ func TestGroupAdd_Idempotent(t *testing.T) {
 	}
 	payloadJSON, _ := json.Marshal(payload)
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		event := types.Event{
 			ID:        string(types.NewEventID()),
 			TS:        int64(i),
