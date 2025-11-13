@@ -17,4 +17,5 @@ func init() {
 	queueCmd.AddCommand(queue_pkg.PushCmd)
 	queueCmd.AddCommand(queue_pkg.PopCmd)
 	queueCmd.AddCommand(queue_pkg.RenameCmd)
+	queueCmd.AddCommand(queue_pkg.RmCmd)
 }

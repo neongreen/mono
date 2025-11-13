@@ -17,4 +17,5 @@ func init() {
 	groupCmd.AddCommand(group_pkg.AddCmd)
 	groupCmd.AddCommand(group_pkg.RemoveCmd)
 	groupCmd.AddCommand(group_pkg.RenameCmd)
+	groupCmd.AddCommand(group_pkg.RmCmd)
 }
