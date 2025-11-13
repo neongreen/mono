@@ -39,8 +39,8 @@ var newCmd = &cobra.Command{
 		parentRef, _ := cmd.Flags().GetString("parent")
 		title := args[0]
 
-		// Auto-detect project from "project: title" format if -p not specified
-		if projectRef == "tk" { // Default project
+		// Auto-detect project from "project: title" format only if -p was not explicitly specified
+		if !cmd.Flags().Changed("project") {
 			if idx := strings.Index(title, ": "); idx > 0 {
 				prefix := title[:idx]
 				restOfTitle := title[idx+2:]
