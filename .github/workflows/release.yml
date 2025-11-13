@@ -135,7 +135,7 @@ jobs:
         id: build
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
-          version: "0.19.5"
+          version: "0.19.6"
           verb: call
           args: build-release --project="${{ matrix.project }}" --version="${{ steps.version.outputs.version }}" --git-commit="${{ github.sha }}" export --path=dist
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -144,7 +144,7 @@ jobs:
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
-          version: "0.19.5"
+          version: "0.19.6"
           verb: call
           args: package-homebrew --binaries-dir=dist --project="${{ matrix.project }}" export --path=homebrew-dist
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
