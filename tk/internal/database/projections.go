@@ -31,6 +31,12 @@ func (d *DB) ProjectEvent(event types.Event) error {
 		return d.ProjectTaskTitleSetEvent(event)
 	case string(types.EventKindTaskDelete):
 		return d.ProjectTaskDeleteEvent(event)
+
+	// Container schema events
+	case string(types.EventKindContainerKindDefine):
+		return d.ProjectContainerKindDefineEvent(event)
+	case string(types.EventKindContainerKindDeprecate):
+		return d.ProjectContainerKindDeprecateEvent(event)
 	}
 	return nil
 }
@@ -362,4 +368,63 @@ func (d *DB) ProjectTaskDeleteEvent(e types.Event) error {
 	}
 
 	return nil
+}
+
+// Container projection functions (v6)
+
+// ProjectContainerKindDefineEvent projects a container.kind.define event into the container_kinds table (idempotent)
+func (d *DB) ProjectContainerKindDefineEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindContainerKindDefine) {
+		return fmt.Errorf("expected container.kind.define event, got %s", e.Kind)
+	}
+
+	var payload types.DefineContainerKindPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal container.kind.define payload: %w", err)
+	}
+
+	// Check if kind already exists
+	var exists bool
+	err := d.Db.QueryRow(`SELECT 1 FROM container_kinds WHERE name = ?`, payload.Name).Scan(&exists)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		// Kind doesn't exist - insert it
+		_, err = d.Db.Exec(`
+			INSERT INTO container_kinds (name, primitive, description, deprecated, created_at, created_by)
+			VALUES (?, ?, ?, 0, ?, ?)
+		`, payload.Name, payload.Primitive, payload.Description, e.CreatedAt.Unix(), payload.CreatedBy)
+		return err
+	} else if err != nil {
+		return fmt.Errorf("failed to check if container kind exists: %w", err)
+	}
+
+	// Kind exists - update description only (idempotent, allows hint updates)
+	_, err = d.Db.Exec(`
+		UPDATE container_kinds
+		SET description = ?
+		WHERE name = ?
+	`, payload.Description, payload.Name)
+
+	return err
+}
+
+// ProjectContainerKindDeprecateEvent projects a container.kind.deprecate event by marking the kind as deprecated (idempotent)
+func (d *DB) ProjectContainerKindDeprecateEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindContainerKindDeprecate) {
+		return fmt.Errorf("expected container.kind.deprecate event, got %s", e.Kind)
+	}
+
+	var payload types.DeprecateContainerKindPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal container.kind.deprecate payload: %w", err)
+	}
+
+	// Mark as deprecated (idempotent)
+	_, err := d.Db.Exec(`
+		UPDATE container_kinds
+		SET deprecated = 1
+		WHERE name = ?
+	`, payload.Name)
+
+	return err
 }

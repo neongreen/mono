@@ -311,3 +311,185 @@ func TestProjectTaskDeleteEvent_Idempotency(t *testing.T) {
 		t.Errorf("expected 0 tasks after double delete, got %d", count)
 	}
 }
+
+func TestProjectContainerKindDefineEvent(t *testing.T) {
+	db := openTempDB(t)
+
+	payload := types.DefineContainerKindPayload{
+		Name:        "sprint",
+		Primitive:   types.PrimitiveQueue,
+		Description: "Timeboxed work period",
+		CreatedBy:   "tester",
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal payload: %v", err)
+	}
+
+	event := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerKindDefine),
+		Payload:   payloadJSON,
+	}
+
+	if err := db.ProjectContainerKindDefineEvent(event); err != nil {
+		t.Fatalf("ProjectContainerKindDefineEvent() error = %v", err)
+	}
+
+	// Verify kind was created
+	var count int
+	var primitive string
+	var description string
+	var deprecated int
+	err = db.Db.QueryRow(`
+		SELECT COUNT(*), primitive, description, deprecated
+		FROM container_kinds
+		WHERE name = ?
+	`, payload.Name).Scan(&count, &primitive, &description, &deprecated)
+	if err != nil {
+		t.Fatalf("failed to query container_kinds: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("expected 1 container kind, got %d", count)
+	}
+	if primitive != string(payload.Primitive) {
+		t.Errorf("primitive = %q, want %q", primitive, payload.Primitive)
+	}
+	if description != payload.Description {
+		t.Errorf("description = %q, want %q", description, payload.Description)
+	}
+	if deprecated != 0 {
+		t.Errorf("deprecated = %d, want 0", deprecated)
+	}
+}
+
+func TestProjectContainerKindDefineEvent_Idempotent(t *testing.T) {
+	db := openTempDB(t)
+
+	payload := types.DefineContainerKindPayload{
+		Name:        "sprint",
+		Primitive:   types.PrimitiveQueue,
+		Description: "Initial description",
+		CreatedBy:   "tester",
+	}
+
+	payloadJSON, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal payload: %v", err)
+	}
+
+	event := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerKindDefine),
+		Payload:   payloadJSON,
+	}
+
+	// Project first time
+	if err := db.ProjectContainerKindDefineEvent(event); err != nil {
+		t.Fatalf("first ProjectContainerKindDefineEvent() error = %v", err)
+	}
+
+	// Update description
+	payload.Description = "Updated description"
+	payloadJSON, err = json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("failed to marshal updated payload: %v", err)
+	}
+	event.Payload = payloadJSON
+
+	// Project second time (should update description)
+	if err := db.ProjectContainerKindDefineEvent(event); err != nil {
+		t.Fatalf("second ProjectContainerKindDefineEvent() error = %v", err)
+	}
+
+	// Verify description was updated
+	var description string
+	err = db.Db.QueryRow(`
+		SELECT description FROM container_kinds WHERE name = ?
+	`, payload.Name).Scan(&description)
+	if err != nil {
+		t.Fatalf("failed to query container_kinds: %v", err)
+	}
+
+	if description != "Updated description" {
+		t.Errorf("description = %q, want %q", description, "Updated description")
+	}
+}
+
+func TestProjectContainerKindDeprecateEvent(t *testing.T) {
+	db := openTempDB(t)
+
+	// First define a kind
+	definePayload := types.DefineContainerKindPayload{
+		Name:        "old-sprint",
+		Primitive:   types.PrimitiveQueue,
+		Description: "Old sprint format",
+		CreatedBy:   "tester",
+	}
+
+	definePayloadJSON, err := json.Marshal(definePayload)
+	if err != nil {
+		t.Fatalf("failed to marshal define payload: %v", err)
+	}
+
+	defineEvent := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerKindDefine),
+		Payload:   definePayloadJSON,
+	}
+
+	if err := db.ProjectContainerKindDefineEvent(defineEvent); err != nil {
+		t.Fatalf("ProjectContainerKindDefineEvent() error = %v", err)
+	}
+
+	// Now deprecate it
+	deprecatePayload := types.DeprecateContainerKindPayload{
+		Name: "old-sprint",
+	}
+
+	deprecatePayloadJSON, err := json.Marshal(deprecatePayload)
+	if err != nil {
+		t.Fatalf("failed to marshal deprecate payload: %v", err)
+	}
+
+	deprecateEvent := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerKindDeprecate),
+		Payload:   deprecatePayloadJSON,
+	}
+
+	if err := db.ProjectContainerKindDeprecateEvent(deprecateEvent); err != nil {
+		t.Fatalf("ProjectContainerKindDeprecateEvent() error = %v", err)
+	}
+
+	// Verify kind is deprecated
+	var deprecated int
+	err = db.Db.QueryRow(`
+		SELECT deprecated FROM container_kinds WHERE name = ?
+	`, deprecatePayload.Name).Scan(&deprecated)
+	if err != nil {
+		t.Fatalf("failed to query container_kinds: %v", err)
+	}
+
+	if deprecated != 1 {
+		t.Errorf("deprecated = %d, want 1", deprecated)
+	}
+}

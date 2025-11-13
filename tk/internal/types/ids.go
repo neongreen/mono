@@ -279,6 +279,20 @@ const (
 	EventKindRelationNote         EventKind = "relation.note"
 	EventKindTaskAttachmentAdd    EventKind = "task.attachment.add"
 	EventKindTaskAttachmentRemove EventKind = "task.attachment.remove"
+
+	// Container events (v6)
+	EventKindContainerKindDefine     EventKind = "container.kind.define"
+	EventKindContainerKindDeprecate  EventKind = "container.kind.deprecate"
+	EventKindContainerCreate         EventKind = "container.create"
+	EventKindContainerRename         EventKind = "container.rename"
+	EventKindContainerMetadataUpdate EventKind = "container.metadata.update"
+	EventKindContainerRemove         EventKind = "container.remove"
+	EventKindQueuePush               EventKind = "queue.push"
+	EventKindQueuePop                EventKind = "queue.pop"
+	EventKindStackPush               EventKind = "stack.push"
+	EventKindStackPop                EventKind = "stack.pop"
+	EventKindGroupAdd                EventKind = "group.add"
+	EventKindGroupRemove             EventKind = "group.remove"
 )
 
 type eventKindIndex int
@@ -302,28 +316,52 @@ const (
 	eventKindRelationNoteIndex
 	eventKindTaskAttachmentAddIndex
 	eventKindTaskAttachmentRemoveIndex
+	eventKindContainerKindDefineIndex
+	eventKindContainerKindDeprecateIndex
+	eventKindContainerCreateIndex
+	eventKindContainerRenameIndex
+	eventKindContainerMetadataUpdateIndex
+	eventKindContainerRemoveIndex
+	eventKindQueuePushIndex
+	eventKindQueuePopIndex
+	eventKindStackPushIndex
+	eventKindStackPopIndex
+	eventKindGroupAddIndex
+	eventKindGroupRemoveIndex
 	eventKindCount
 )
 
 var AllEventKinds = [...]EventKind{
-	eventKindProjectCreatedIndex:       EventKindProjectCreated,
-	eventKindProjectAliasAddIndex:      EventKindProjectAliasAdd,
-	eventKindProjectAliasRemoveIndex:   EventKindProjectAliasRemove,
-	eventKindProjectDeleteIndex:        EventKindProjectDelete,
-	eventKindProjectNameSetIndex:       EventKindProjectNameSet,
-	eventKindTaskCreatedIndex:          EventKindTaskCreated,
-	eventKindTaskNumberSetIndex:        EventKindTaskNumberSet,
-	eventKindTaskRelocateIndex:         EventKindTaskRelocate,
-	eventKindTaskStatusSetIndex:        EventKindTaskStatusSet,
-	eventKindTaskNoteAddIndex:          EventKindTaskNoteAdd,
-	eventKindTaskTitleSetIndex:         EventKindTaskTitleSet,
-	eventKindTaskDeleteIndex:           EventKindTaskDelete,
-	eventKindTaskMetaSetIndex:          EventKindTaskMetaSet,
-	eventKindRelationAddIndex:          EventKindRelationAdd,
-	eventKindRelationRemoveIndex:       EventKindRelationRemove,
-	eventKindRelationNoteIndex:         EventKindRelationNote,
-	eventKindTaskAttachmentAddIndex:    EventKindTaskAttachmentAdd,
-	eventKindTaskAttachmentRemoveIndex: EventKindTaskAttachmentRemove,
+	eventKindProjectCreatedIndex:          EventKindProjectCreated,
+	eventKindProjectAliasAddIndex:         EventKindProjectAliasAdd,
+	eventKindProjectAliasRemoveIndex:      EventKindProjectAliasRemove,
+	eventKindProjectDeleteIndex:           EventKindProjectDelete,
+	eventKindProjectNameSetIndex:          EventKindProjectNameSet,
+	eventKindTaskCreatedIndex:             EventKindTaskCreated,
+	eventKindTaskNumberSetIndex:           EventKindTaskNumberSet,
+	eventKindTaskRelocateIndex:            EventKindTaskRelocate,
+	eventKindTaskStatusSetIndex:           EventKindTaskStatusSet,
+	eventKindTaskNoteAddIndex:             EventKindTaskNoteAdd,
+	eventKindTaskTitleSetIndex:            EventKindTaskTitleSet,
+	eventKindTaskDeleteIndex:              EventKindTaskDelete,
+	eventKindTaskMetaSetIndex:             EventKindTaskMetaSet,
+	eventKindRelationAddIndex:             EventKindRelationAdd,
+	eventKindRelationRemoveIndex:          EventKindRelationRemove,
+	eventKindRelationNoteIndex:            EventKindRelationNote,
+	eventKindTaskAttachmentAddIndex:       EventKindTaskAttachmentAdd,
+	eventKindTaskAttachmentRemoveIndex:    EventKindTaskAttachmentRemove,
+	eventKindContainerKindDefineIndex:     EventKindContainerKindDefine,
+	eventKindContainerKindDeprecateIndex:  EventKindContainerKindDeprecate,
+	eventKindContainerCreateIndex:         EventKindContainerCreate,
+	eventKindContainerRenameIndex:         EventKindContainerRename,
+	eventKindContainerMetadataUpdateIndex: EventKindContainerMetadataUpdate,
+	eventKindContainerRemoveIndex:         EventKindContainerRemove,
+	eventKindQueuePushIndex:               EventKindQueuePush,
+	eventKindQueuePopIndex:                EventKindQueuePop,
+	eventKindStackPushIndex:               EventKindStackPush,
+	eventKindStackPopIndex:                EventKindStackPop,
+	eventKindGroupAddIndex:                EventKindGroupAdd,
+	eventKindGroupRemoveIndex:             EventKindGroupRemove,
 }
 
 var (
