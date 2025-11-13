@@ -128,7 +128,14 @@ func listStackMembers(db *database.DB, stackID string) error {
 			return fmt.Errorf("failed to scan row: %w", err)
 		}
 
-		fmt.Printf("%-4d %s\n", position, itemID)
+		// Render task UID as display ID (tk-123) for user output
+		displayID, err := database.RenderTaskDisplayID(db, itemID)
+		if err != nil {
+			// If rendering fails, show the raw UID (defensive)
+			displayID = itemID
+		}
+
+		fmt.Printf("%-4d %s\n", position, displayID)
 		count++
 	}
 
