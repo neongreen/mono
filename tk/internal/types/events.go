@@ -132,6 +132,21 @@ const (
 	PrimitiveGroup ContainerPrimitive = "group"
 )
 
+// Item kind event payloads (v7 item kinds feature)
+
+// DefineItemKindPayload is the payload for item_kind.define events
+type DefineItemKindPayload struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	LLMHint     string `json:"llm_hint,omitempty"`
+	CreatedBy   string `json:"created_by"`
+}
+
+// DeprecateItemKindPayload is the payload for item_kind.deprecate events
+type DeprecateItemKindPayload struct {
+	Name string `json:"name"`
+}
+
 // DefineContainerKindPayload is the payload for container.kind.define events
 type DefineContainerKindPayload struct {
 	Name        string             `json:"name"`

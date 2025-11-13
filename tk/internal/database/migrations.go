@@ -5,6 +5,7 @@ import (
 
 	v4_to_v5 "github.com/neongreen/mono/tk/internal/migrations/v4_to_v5"
 	v5_to_v6 "github.com/neongreen/mono/tk/internal/migrations/v5_to_v6"
+	v6_to_v7 "github.com/neongreen/mono/tk/internal/migrations/v6_to_v7"
 )
 
 const (
@@ -12,7 +13,7 @@ const (
 	MinSupportedDBVersion = 4
 
 	// MaxSupportedDBVersion is the maximum database version this binary can work with
-	MaxSupportedDBVersion = 6
+	MaxSupportedDBVersion = 7
 )
 
 // Migration represents a database migration
@@ -39,6 +40,14 @@ var migrations = []Migration{
 		Name:        "Add container primitives (queue/stack/group)",
 		Run: func(db *DB) error {
 			return v5_to_v6.Migrate(db)
+		},
+	},
+	{
+		FromVersion: 6,
+		ToVersion:   7,
+		Name:        "Add item kinds (task/decision/resource/etc)",
+		Run: func(db *DB) error {
+			return v6_to_v7.Migrate(db)
 		},
 	},
 }

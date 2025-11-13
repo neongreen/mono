@@ -63,6 +63,60 @@ func (d *DB) CreateProjectTables() error {
 	return nil
 }
 
+// CreateItemKindTables creates the projection tables for item kinds
+func (d *DB) CreateItemKindTables() error {
+	schema := `
+	CREATE TABLE IF NOT EXISTS item_kinds (
+		name TEXT PRIMARY KEY,
+		description TEXT,
+		llm_hint TEXT,
+		builtin INTEGER NOT NULL DEFAULT 0,
+		deprecated INTEGER NOT NULL DEFAULT 0,
+		created_at INTEGER NOT NULL,
+		created_by TEXT NOT NULL
+	);
+	`
+
+	if _, err := d.Db.Exec(schema); err != nil {
+		return fmt.Errorf("failed to create item kind tables: %w", err)
+	}
+
+	return nil
+}
+
+// AddItemKindToTasks adds the item_kind column to the tasks table
+// This is used during migration from v6 to v7
+func (d *DB) AddItemKindToTasks() error {
+	// Check if column already exists
+	var columnExists bool
+	row := d.Db.QueryRow(`
+		SELECT COUNT(*) > 0
+		FROM pragma_table_info('tasks')
+		WHERE name = 'item_kind'
+	`)
+	if err := row.Scan(&columnExists); err != nil {
+		return fmt.Errorf("failed to check if item_kind column exists: %w", err)
+	}
+
+	if columnExists {
+		return nil // Already migrated
+	}
+
+	// Add item_kind column with default 'task'
+	_, err := d.Db.Exec(`
+		ALTER TABLE tasks ADD COLUMN item_kind TEXT NOT NULL DEFAULT 'task'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add item_kind column: %w", err)
+	}
+
+	// Add foreign key constraint (note: SQLite doesn't enforce existing FKs on ALTER)
+	// The constraint will be checked for new rows
+	// Full enforcement requires recreating the table, which we'll do in migration
+
+	return nil
+}
+
 // CreateContainerTables creates the projection tables for containers
 func (d *DB) CreateContainerTables() error {
 	schema := `

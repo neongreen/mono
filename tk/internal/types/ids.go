@@ -293,6 +293,10 @@ const (
 	EventKindStackPop                EventKind = "stack.pop"
 	EventKindGroupAdd                EventKind = "group.add"
 	EventKindGroupRemove             EventKind = "group.remove"
+
+	// Item kind events (v7)
+	EventKindItemKindDefine    EventKind = "item_kind.define"
+	EventKindItemKindDeprecate EventKind = "item_kind.deprecate"
 )
 
 type eventKindIndex int
@@ -328,6 +332,8 @@ const (
 	eventKindStackPopIndex
 	eventKindGroupAddIndex
 	eventKindGroupRemoveIndex
+	eventKindItemKindDefineIndex
+	eventKindItemKindDeprecateIndex
 	eventKindCount
 )
 
@@ -362,6 +368,8 @@ var AllEventKinds = [...]EventKind{
 	eventKindStackPopIndex:                EventKindStackPop,
 	eventKindGroupAddIndex:                EventKindGroupAdd,
 	eventKindGroupRemoveIndex:             EventKindGroupRemove,
+	eventKindItemKindDefineIndex:          EventKindItemKindDefine,
+	eventKindItemKindDeprecateIndex:       EventKindItemKindDeprecate,
 }
 
 var (
