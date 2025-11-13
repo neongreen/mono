@@ -139,7 +139,7 @@ func createContainer(t *testing.T, db *database.DB, id string, primitive types.C
 func pushToQueue(t *testing.T, db *database.DB, queueID string, itemID string) {
 	payload := types.QueuePushPayload{
 		ContainerID: queueID,
-		ItemID:      itemID,
+		ItemID:      types.TaskUID(itemID),
 	}
 
 	eventID, _ := database.GenerateEventID(db)

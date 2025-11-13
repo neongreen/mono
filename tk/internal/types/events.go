@@ -174,8 +174,8 @@ type RemoveContainerPayload struct {
 
 // QueuePushPayload is the payload for queue.push events
 type QueuePushPayload struct {
-	ContainerID string `json:"container_id"`
-	ItemID      string `json:"item_id"`
+	ContainerID string  `json:"container_id"`
+	ItemID      TaskUID `json:"item_id"`
 }
 
 // QueuePopPayload is the payload for queue.pop events

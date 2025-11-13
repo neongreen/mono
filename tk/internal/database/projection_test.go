@@ -746,7 +746,7 @@ func TestProjectQueuePushEvent_PositionAssignment(t *testing.T) {
 	for i, itemID := range []string{"tk-1", "tk-2", "tk-3"} {
 		payload := types.QueuePushPayload{
 			ContainerID: "q-1",
-			ItemID:      itemID,
+			ItemID:      types.TaskUID(itemID),
 		}
 		payloadJSON, _ := json.Marshal(payload)
 		event := types.Event{
@@ -949,7 +949,7 @@ func seedQueueItems(t *testing.T, db *DB, containerID string, itemIDs []string) 
 	for i, itemID := range itemIDs {
 		payload := types.QueuePushPayload{
 			ContainerID: containerID,
-			ItemID:      itemID,
+			ItemID:      types.TaskUID(itemID),
 		}
 		payloadJSON, _ := json.Marshal(payload)
 		event := types.Event{
@@ -1219,7 +1219,7 @@ func TestContainerRebuildFromEvents(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		pushPayload := types.QueuePushPayload{
 			ContainerID: "q-1",
-			ItemID:      fmt.Sprintf("tk-%d", i+1),
+			ItemID:      types.TaskUID(fmt.Sprintf("tk-%d", i+1)),
 		}
 		pushPayloadJSON, _ := json.Marshal(pushPayload)
 		events = append(events, types.Event{

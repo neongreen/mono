@@ -27,7 +27,13 @@ Example:
 		defer db.Close()
 
 		queueID := args[0]
-		itemID := args[1]
+		itemRef := args[1]
+
+		// Resolve task reference to task UID
+		taskUID, err := database.ResolveTaskReference(db, types.NewTaskRef(itemRef))
+		if err != nil {
+			return fmt.Errorf("failed to resolve task %q: %w", itemRef, err)
+		}
 
 		// Verify queue exists and is actually a queue
 		var primitive string
@@ -58,7 +64,7 @@ Example:
 		// Create queue.push event
 		payload := types.QueuePushPayload{
 			ContainerID: queueID,
-			ItemID:      itemID,
+			ItemID:      types.TaskUID(taskUID),
 		}
 
 		payloadJSON, err := json.Marshal(payload)
@@ -95,7 +101,7 @@ Example:
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 
-		fmt.Printf("Pushed %s onto queue %s\n", itemID, queueID)
+		fmt.Printf("Pushed %s onto queue %s\n", itemRef, queueID)
 		return nil
 	},
 }
