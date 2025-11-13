@@ -99,6 +99,11 @@ func renderTaskDetails(db *database.DB, reducer *reducer.Reducer, task *types.Ta
 		fmt.Printf("Title: %s\n", task.Title)
 	}
 
+	// Display item kind (if not default "task")
+	if task.ItemKind != "" && task.ItemKind != "task" {
+		fmt.Printf("Kind: %s\n", task.ItemKind)
+	}
+
 	// Display status from generic axis
 	if axis, ok := task.Axes["generic"]; ok && axis.Effective != "" {
 		fmt.Printf("Status: %s\n", colorizeStatus(axis.Effective))
