@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	v4_to_v5 "github.com/neongreen/mono/tk/internal/migrations/v4_to_v5"
+	v5_to_v6 "github.com/neongreen/mono/tk/internal/migrations/v5_to_v6"
 )
 
 const (
@@ -11,7 +12,7 @@ const (
 	MinSupportedDBVersion = 4
 
 	// MaxSupportedDBVersion is the maximum database version this binary can work with
-	MaxSupportedDBVersion = 5
+	MaxSupportedDBVersion = 6
 )
 
 // Migration represents a database migration
@@ -30,6 +31,14 @@ var migrations = []Migration{
 		Name:        "Add synthetic projects support",
 		Run: func(db *DB) error {
 			return v4_to_v5.Migrate(db)
+		},
+	},
+	{
+		FromVersion: 5,
+		ToVersion:   6,
+		Name:        "Add container primitives (queue/stack/group)",
+		Run: func(db *DB) error {
+			return v5_to_v6.Migrate(db)
 		},
 	},
 }

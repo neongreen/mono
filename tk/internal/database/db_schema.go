@@ -63,6 +63,54 @@ func (d *DB) CreateProjectTables() error {
 	return nil
 }
 
+// CreateContainerTables creates the projection tables for containers
+func (d *DB) CreateContainerTables() error {
+	schema := `
+	CREATE TABLE IF NOT EXISTS container_kinds (
+		name TEXT PRIMARY KEY,
+		primitive TEXT NOT NULL,
+		description TEXT,
+		deprecated INTEGER NOT NULL DEFAULT 0,
+		created_at INTEGER NOT NULL,
+		created_by TEXT NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS containers (
+		id TEXT PRIMARY KEY,
+		primitive TEXT NOT NULL,
+		kind TEXT NOT NULL,
+		name TEXT NOT NULL,
+		metadata TEXT,
+		removed INTEGER NOT NULL DEFAULT 0,
+		FOREIGN KEY (kind) REFERENCES container_kinds(name)
+	);
+
+	CREATE TABLE IF NOT EXISTS container_members (
+		container_id TEXT NOT NULL,
+		item_id TEXT NOT NULL,
+		position INTEGER,
+		removed INTEGER NOT NULL DEFAULT 0,
+		PRIMARY KEY (container_id, item_id),
+		FOREIGN KEY (container_id) REFERENCES containers(id)
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_container_members_container_pos
+		ON container_members(container_id, position);
+	CREATE INDEX IF NOT EXISTS idx_containers_kind
+		ON containers(kind);
+	CREATE INDEX IF NOT EXISTS idx_containers_removed
+		ON containers(removed);
+	CREATE INDEX IF NOT EXISTS idx_container_members_removed
+		ON container_members(removed);
+	`
+
+	if _, err := d.Db.Exec(schema); err != nil {
+		return fmt.Errorf("failed to create container tables: %w", err)
+	}
+
+	return nil
+}
+
 // GetDBVersion returns the database version (always 4)
 func (d *DB) GetDBVersion() (int, error) {
 	var versionStr string
