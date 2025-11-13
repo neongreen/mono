@@ -36,6 +36,7 @@ var lsCmd = &cobra.Command{
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 		grepPattern, _ := cmd.Flags().GetString("grep")
 		limit, _ := cmd.Flags().GetInt("limit")
+		inContainer, _ := cmd.Flags().GetString("in")
 
 		// Validate grep pattern if provided
 		if grepPattern != "" {
@@ -98,6 +99,50 @@ var lsCmd = &cobra.Command{
 			taskUIDSet = make(map[string]bool)
 			for _, id := range taskIDs {
 				taskUIDSet[id] = true
+			}
+		}
+
+		// Build task UID set for container filtering (v6+)
+		if inContainer != "" {
+			version, _ := db.GetDBVersion()
+			if version < 6 {
+				return fmt.Errorf("--in flag requires database v6 or higher (containers)")
+			}
+
+			// Query tasks in this container
+			rows, err := db.Db.Query(`
+				SELECT item_id
+				FROM container_members
+				WHERE container_id = ? AND removed = 0
+			`, inContainer)
+			if err != nil {
+				return fmt.Errorf("failed to query container members: %w", err)
+			}
+			defer rows.Close()
+
+			containerTaskUIDs := make(map[string]bool)
+			for rows.Next() {
+				var itemID string
+				if err := rows.Scan(&itemID); err != nil {
+					return fmt.Errorf("failed to scan member: %w", err)
+				}
+				containerTaskUIDs[itemID] = true
+			}
+
+			if len(containerTaskUIDs) == 0 {
+				return fmt.Errorf("container %q not found or empty", inContainer)
+			}
+
+			// Merge with project filter if present
+			if taskUIDSet != nil {
+				// Intersect: only tasks in BOTH project AND container
+				for uid := range taskUIDSet {
+					if !containerTaskUIDs[uid] {
+						delete(taskUIDSet, uid)
+					}
+				}
+			} else {
+				taskUIDSet = containerTaskUIDs
 			}
 		}
 

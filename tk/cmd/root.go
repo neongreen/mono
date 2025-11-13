@@ -81,6 +81,7 @@ This is useful for:
 	lsCmd.Flags().Bool("json", false, "Output tasks as JSON")
 	lsCmd.Flags().String("grep", "", "Filter by regex pattern (RE2 syntax; searches title and notes)")
 	lsCmd.Flags().Int("limit", 0, "Limit number of tasks displayed (0 = no limit)")
+	lsCmd.Flags().String("in", "", "Filter by container (show only tasks in this container)")
 	// Hide --axis flag from help but keep it functional
 	lsCmd.Flags().MarkHidden("axis")
 	RootCmd.AddCommand(lsCmd)
