@@ -3,14 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/fatih/color"
-	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/neongreen/mono/tk/internal/database"
-	"github.com/neongreen/mono/tk/internal/termutil"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -28,71 +26,26 @@ func colorizeStatus(status string) string {
 	}
 }
 
-// renderTaskTable renders a table of tasks with the specified configuration
-// If widths is nil, it will calculate widths based on the provided tasks
+// getStatusStyle returns a lipgloss style for the given status
+func getStatusStyle(status string) lipgloss.Style {
+	switch status {
+	case "next":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // Blue
+	case "wip":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("11")) // Yellow
+	case "done", "fixed":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("10")) // Green
+	case "closed":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("8")) // Gray
+	default:
+		return lipgloss.NewStyle()
+	}
+}
+
+// renderTaskTable renders a table of tasks using lipgloss/table
 func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, termWidth int, widths *ColumnWidths) {
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-
-	if showAliases {
-		t.AppendHeader(table.Row{"ID", "Aliases", "Status", "P", "Labels", "Title"})
-	} else {
-		t.AppendHeader(table.Row{"ID", "Status", "P", "Labels", "Title"})
-	}
-
-	// Import termutil for IsTerminal check
-	isTerminal := termutil.IsTerminal()
-
-	t.SetStyle(table.StyleLight)
-	t.Style().Options.SeparateRows = true
-	t.Style().Options.DrawBorder = false
-
-	// Calculate widths if not provided
-	if widths == nil {
-		// Build displayID map for width calculation
-		displayIDs := make(map[string]string)
-		for _, task := range tasks {
-			displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
-			if err == nil {
-				displayIDs[task.TaskUUID] = displayID
-			}
-		}
-
-		// Calculate optimal column widths based on actual data
-		constraints := DefaultColumnConstraints(termWidth, showAliases)
-		calculatedWidths := CalculateColumnWidths(tasks, displayIDs, constraints)
-		widths = &calculatedWidths
-	}
-
-	// Set word wrapping based on terminal mode
-	// Only wrap in terminal mode, not when piped/redirected (tk-70)
-	var wrapEnforcer table.WidthEnforcer
-	if isTerminal {
-		wrapEnforcer = text.WrapSoft
-	} else {
-		wrapEnforcer = nil // No wrapping when not in terminal
-	}
-
-	// Configure columns with calculated widths
-	// Set both WidthMin and WidthMax to force fixed widths for consistency across groups
-	if showAliases {
-		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                         // ID
-			{Number: 2, AutoMerge: false, WidthMin: widths.Aliases, WidthMax: widths.Aliases},                               // Aliases
-			{Number: 3, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                                 // Status
-			{Number: 4, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                             // P
-			{Number: 5, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: wrapEnforcer}, // Labels
-			{Number: 6, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: wrapEnforcer},   // Title
-		})
-	} else {
-		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                         // ID
-			{Number: 2, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                                 // Status
-			{Number: 3, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                             // P
-			{Number: 4, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: wrapEnforcer}, // Labels
-			{Number: 5, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: wrapEnforcer},   // Title
-		})
-	}
+	// Build table rows
+	var rows [][]string
 
 	for _, task := range tasks {
 		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
@@ -127,14 +80,27 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 			}
 		}
 
-		// Display empty titles as "(empty)" in table (not in JSON)
+		// Display empty titles as "(empty)"
 		title := task.Title
 		if title == "" {
 			title = "(empty)"
 		}
 
-		if showAliases {
+		// Truncate title if terminal is narrow
+		// Rough calculation: reserve ~40 chars for other columns, use rest for title
+		if termWidth > 0 && termWidth < 120 {
+			maxTitleWidth := termWidth - 40
+			if maxTitleWidth < 20 {
+				maxTitleWidth = 20
+			}
+			if len(title) > maxTitleWidth {
+				title = title[:maxTitleWidth-3] + "..."
+			}
+		}
 
+		row := []string{displayID, status, priority, labelsStr, title}
+		if showAliases {
+			// Insert aliases as second column
 			aliasesStr := ""
 			if len(task.Aliases) > 0 {
 				var shortAliases []string
@@ -143,13 +109,26 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 				}
 				aliasesStr = strings.Join(shortAliases, ", ")
 			}
-			t.AppendRow(table.Row{displayID, aliasesStr, status, priority, labelsStr, title})
-		} else {
-			t.AppendRow(table.Row{displayID, status, priority, labelsStr, title})
+			row = []string{displayID, aliasesStr, status, priority, labelsStr, title}
 		}
+		rows = append(rows, row)
 	}
 
-	t.Render()
+	// Create lipgloss table
+	headers := []string{"ID", "STATUS", "P", "LABELS", "TITLE"}
+	if showAliases {
+		headers = []string{"ID", "ALIASES", "STATUS", "P", "LABELS", "TITLE"}
+	}
+
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240"))).
+		BorderLeft(false).
+		BorderRight(false).
+		Headers(headers...).
+		Rows(rows...)
+
+	fmt.Println(t.Render())
 }
 
 // outputTasksJSON outputs tasks as a JSON array
