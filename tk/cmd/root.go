@@ -73,6 +73,7 @@ This is useful for:
 
 	lsCmd.Flags().String("status", "", "Filter by status. Supports multiple values with comma: --status wip,next (next, wip, done, closed)")
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
+	lsCmd.Flags().String("kind", "", "Filter by item kind. Supports multiple values with comma: --kind decision,resource")
 	lsCmd.Flags().String("sort", "created", "Sort order: created, updated, id, title, or status. Add -desc for descending (e.g., updated-desc for most recently updated)")
 	lsCmd.Flags().StringSliceP("project", "p", []string{}, "Filter by project (alias, UID, or name; can be specified multiple times)")
 	lsCmd.Flags().Bool("aliases", false, "Show task aliases")

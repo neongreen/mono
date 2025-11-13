@@ -23,6 +23,7 @@ type Task struct {
 	ProjectUUID   string                    `json:"project_uuid,omitempty"` // Project UUID this task belongs to
 	Aliases       []string                  `json:"aliases,omitempty"`      // Previous IDs (when task was moved)
 	Title         string                    `json:"title"`
+	ItemKind      string                    `json:"item_kind,omitempty"`    // Item kind (task, decision, resource, etc.)
 	Axes          map[string]AxisStatus     `json:"axes"`
 	Metadata      map[string]MetadataStatus `json:"metadata,omitempty"` // Metadata with claims
 	Notes         []Note                    `json:"notes"`

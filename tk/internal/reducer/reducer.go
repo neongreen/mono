@@ -443,6 +443,12 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 
 	taskUID := payload.TaskUID
 
+	// Default item kind to "task" if not specified (backward compatibility)
+	itemKind := payload.ItemKind
+	if itemKind == "" {
+		itemKind = "task"
+	}
+
 	// Handle duplicate task.created events deterministically
 	// If a task with this UID already exists, keep the one with earlier Lamport timestamp
 	if existing, exists := r.tasks[taskUID]; exists {
@@ -455,6 +461,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 				TaskDisplayID: taskUID,
 				Aliases:       []string{},
 				Title:         payload.Title,
+				ItemKind:      itemKind,
 				Axes:          existing.Axes,     // Preserve status changes
 				Metadata:      existing.Metadata, // Preserve metadata
 				Notes:         existing.Notes,    // Preserve notes
@@ -478,6 +485,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 		TaskDisplayID: taskUID, // Placeholder, will be replaced by display ID
 		Aliases:       []string{},
 		Title:         payload.Title,
+		ItemKind:      itemKind,
 		Axes:          make(map[string]types.AxisStatus),
 		Notes:         []types.Note{},
 		CreatedBy:     payload.CreatedBy,

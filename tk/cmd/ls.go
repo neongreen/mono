@@ -27,6 +27,7 @@ var lsCmd = &cobra.Command{
 
 		axisFilter, _ := cmd.Flags().GetString("axis")
 		statusFilter, _ := cmd.Flags().GetString("status")
+		kindFilter, _ := cmd.Flags().GetString("kind")
 		sortBy, _ := cmd.Flags().GetString("sort")
 		projectFilter, _ := cmd.Flags().GetStringSlice("project")
 		showAliases, _ := cmd.Flags().GetBool("aliases")
@@ -146,6 +147,16 @@ var lsCmd = &cobra.Command{
 			}
 		}
 
+		// Parse item kind filter (supports comma-separated values for OR logic)
+		var itemKinds []string
+		if kindFilter != "" {
+			itemKinds = strings.Split(kindFilter, ",")
+			// Trim whitespace from each kind
+			for i := range itemKinds {
+				itemKinds[i] = strings.TrimSpace(itemKinds[i])
+			}
+		}
+
 		// Apply filters using query package
 		filterOpts := query.FilterOptions{
 			Projects:      projectFilter,
@@ -153,6 +164,7 @@ var lsCmd = &cobra.Command{
 			BlockedOnly:   blockedOnly,
 			UnblockedOnly: unblockedOnly,
 			GrepPattern:   grepPattern,
+			ItemKinds:     itemKinds,
 		}
 		tasks = query.FilterTasks(tasks, taskUIDSet, filterOpts)
 

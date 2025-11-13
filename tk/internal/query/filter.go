@@ -14,7 +14,8 @@ type FilterOptions struct {
 	AxisFilters   []string // Multiple axis filters with OR logic. Format: "axis:state"
 	BlockedOnly   bool
 	UnblockedOnly bool
-	GrepPattern   string // Regex pattern to match against title and notes
+	GrepPattern   string   // Regex pattern to match against title and notes
+	ItemKinds     []string // Item kinds to filter by (OR logic)
 }
 
 // FilterTasks filters a list of tasks based on the given options
@@ -37,6 +38,20 @@ func FilterTasks(tasks []*types.Task, taskUIDSet map[string]bool, opts FilterOpt
 		// Filter by project (if task UID set is provided)
 		if taskUIDSet != nil && !taskUIDSet[task.TaskUUID] {
 			continue
+		}
+
+		// Filter by item kind (if specified)
+		if len(opts.ItemKinds) > 0 {
+			matched := false
+			for _, kind := range opts.ItemKinds {
+				if task.ItemKind == kind {
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				continue
+			}
 		}
 
 		// Filter by axis (support both single and multiple filters)
