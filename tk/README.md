@@ -69,9 +69,9 @@ This is useful for:
 - Running multiple tk instances with separate databases
 - Custom database locations (e.g., Dropbox, project-specific databases)
 
-### Projects (v4)
+### Projects
 
-In v4, tasks are organized by projects. Each project has:
+Tasks are organized by projects. Each project has:
 - A stable **project UID** (e.g., `prj_01J5Q...`) that never changes
 - A human-readable **name**
 - Per-node **aliases** for easy reference
@@ -117,131 +117,40 @@ tk new "Another task" -p tk
 
 The `--project` (`-p`) flag accepts either a project alias or a project UID.
 
-### Prefixes (v1-v3, legacy)
-
-tk supports multiple task prefixes, allowing you to organize tasks by project or category. Each prefix has its own namespace for task numbers.
-
-#### Default prefix
-
-When you initialize tk, a default `tk` prefix is automatically created.
-
-#### Create a new prefix
-
-```bash
-tk prefix create foo "Tasks for foo project"
-tk prefix create bar "Tasks for bar project"
-```
-
-#### List prefixes
-
-```bash
-tk prefix list
-```
-
-The list shows the state of each prefix:
-- **explicit**: Created with `tk prefix create`
-- **discovered**: Found in task IDs but not explicitly created
-- **removed**: Marked as removed with `tk prefix remove`
-
-Show prefixes from all nodes (including synced prefixes):
-
-```bash
-tk prefix list --all
-```
-
-#### Remove a prefix
-
-Mark a prefix as removed (does not delete tasks):
-
-```bash
-tk prefix remove old-prefix
-```
-
-This marks the prefix as "removed" in the prefix list but does not delete any tasks using that prefix.
-
-### Move tasks between prefixes
-
-Move a task to a different prefix:
-
-```bash
-tk mv tk-1 foo:1
-```
-
-This moves task `tk-1` to prefix `foo` with number `1`, creating the new ID `foo-1`. The old ID `tk-1` becomes an alias and can still be used to reference the task.
-
-Move multiple tasks at once:
-
-```bash
-tk mv tk-1 foo:1 tk-2 foo:2
-```
-
-Move a task and auto-assign the next available number:
-
-```bash
-tk mv tk-1 foo --auto
-```
-
-Dry run to preview changes:
-
-```bash
-tk mv tk-1 foo:1 -n
-```
-
-Options:
-- `--alias` / `--no-alias`: Create (or don't create) an alias for the old ID (default: create alias)
-- `--auto`: Auto-assign next available number on collision
-- `--keep-number`: Keep the same number in the new prefix
-- `-n` / `--dry-run`: Show what would happen without making changes
-- `--on-collision`: What to do on collision: fail, auto, or swap (default: fail)
-
 ### Create a task
 
-Create a task with the default `tk` prefix:
+Create a task in a project:
 
 ```bash
-tk new "wire up rc deploy toggle"
+tk new "wire up rc deploy toggle" --project myproj
 ```
 
-This creates a new task with a unique ID like `tk-1-abc123` where:
-- `tk` is the prefix
-- `1` is the task number within that prefix
-- `abc123` is your node ID
-
-The task is displayed as `tk-1` when there's no ambiguity (i.e., no other node has created a `tk-1` task).
-
-Create a task with a specific prefix:
-
-```bash
-tk new --prefix foo "implement foo feature"
-```
-
-This creates a task like `foo-1-abc123`.
+This creates a new task with a unique ID. Tasks are numbered within their project and display as short IDs like `myproj-1` when possible.
 
 ### Set task status
 
 ```bash
-tk mark tk-1 in_progress
-tk mark foo-1 done
+tk mark myproj-1 in_progress
+tk mark myproj-2 done
 ```
 
 You can specify the axis and role:
 
 ```bash
-tk mark tk-1 done --axis generic --role agent
+tk mark myproj-1 done --axis generic --role agent
 ```
 
 ### Add a note to a task
 
 ```bash
-tk note tk-1 "Fixed the deployment toggle"
-tk note foo-1 "Implemented new feature"
+tk note myproj-1 "Fixed the deployment toggle"
+tk note myproj-2 "Implemented new feature"
 ```
 
 ### View a task
 
 ```bash
-tk show tk-1
-tk show foo-1
+tk show myproj-1
 ```
 
 This shows the current state, all claims (effective and tentative), and notes.
@@ -263,19 +172,19 @@ tk ls --axis generic:in_progress
 Filter by project:
 
 ```bash
-tk ls -p foo
+tk ls -p myproj
 ```
 
 Filter by multiple projects:
 
 ```bash
-tk ls -p foo -p bar
+tk ls -p myproj -p other
 ```
 
 Combine filters:
 
 ```bash
-tk ls -p foo --axis generic:in_progress
+tk ls -p myproj --axis generic:in_progress
 ```
 
 Show task aliases:
@@ -284,33 +193,33 @@ Show task aliases:
 tk ls --aliases
 ```
 
-This displays a table with an additional "Aliases" column showing any aliases for tasks (e.g., old IDs after moving tasks).
+This displays a table with an additional "Aliases" column showing any aliases for tasks.
 
-## Task Relations (v2)
+## Task Relations
 
 tk supports relations between tasks for modeling dependencies, hierarchies, and other relationships.
 
 ### Add Relations
 
 ```bash
-# Task tk-1 blocks task tk-2
-tk relate add tk-1 blocks tk-2
+# Task myproj-1 blocks task myproj-2
+tk relate add myproj-1 blocks myproj-2
 
-# Task tk-3 is a subtask of tk-1
-tk relate add tk-1 subtask tk-3 --note "API design"
+# Task myproj-3 is a subtask of myproj-1
+tk relate add myproj-1 subtask myproj-3 --note "API design"
 
 # Mark tasks as duplicates
-tk dup tk-4 tk-5
+tk dup myproj-4 myproj-5
 ```
 
 ### View Relations
 
 ```bash
 # Show graph of task dependencies
-tk graph tk-1 --type blocks
+tk graph myproj-1 --type blocks
 
-# List all tasks blocking tk-2
-tk blockers tk-2
+# List all tasks blocking myproj-2
+tk blockers myproj-2
 
 # List all blocked tasks
 tk blocked
@@ -336,9 +245,9 @@ The database is created automatically when you first use tk. However, you can ex
 tk init
 ```
 
-## Sync (v1)
+## Sync
 
-tk v1 supports offline-first sync between machines using immutable event segments.
+tk supports offline-first sync between machines using immutable event segments.
 
 ### Node ID
 
@@ -415,84 +324,16 @@ tk events show ev-1-abc123
 tk events stats
 ```
 
-Use enhanced prefix listing to see sync state:
-
-```bash
-# Show all prefixes including synced ones
-tk prefix list --all
-
-# Show verbose output with timestamps
-tk prefix list --all --verbose
-```
-
-The "Source" column in `--all` mode shows:
-- **local** - Created on this machine
-- **synced** - Received from another machine via sync
-
-The "State" column shows:
-- **explicit** - Created with `tk prefix create` (has full metadata)
-- **discovered** - Found in task IDs but not explicitly created (no metadata)
-- **removed** - Marked as removed with `tk prefix remove`
 
 ## Concepts
-
-### Prefixes
-
-Prefixes are first-class entities that allow you to organize tasks by project, category, or any other grouping. Each prefix:
-
-- Has a description explaining its purpose
-- Is scoped to the node that created it (preventing conflicts when syncing)
-- Has its own independent task counter (e.g., `foo-1`, `foo-2` are separate from `bar-1`, `bar-2`)
-- Can be filtered in the `tk ls` command
-- Must be lowercase, 2-20 characters, start with a letter, and contain only letters, digits, and underscores
-
-**Counter Model:**
-- Counters are local to `(prefix, node)` and never sync between nodes
-- Each node maintains its own counter for each prefix it uses
-- Global uniqueness is guaranteed by the node suffix in task IDs
-- Example: Node A creates `foo-1-aaa111` and Node B independently creates `foo-1-bbb222`
-- Both tasks are globally unique despite having the same prefix and number
-
-When you sync with other machines:
-- Prefix metadata (descriptions) is synced via `prefix.created` events
-- Their prefixes become visible in `tk prefix list --all`
-- Each node maintains its own task numbering for each prefix
-- Task IDs include the node suffix to ensure global uniqueness (e.g., `foo-1-abc123`)
-
-**Prefix Naming Rules:**
-- 2-20 characters long
-- Must start with a lowercase letter (a-z)
-- Can contain lowercase letters, digits, and underscores
-- No hyphens allowed (reserved for ID parsing)
-- Reserved prefixes: ev, event, task, node, remote, sync
-
-**Prefix States:**
-- **explicit**: Created with `tk prefix create`, has full metadata
-- **discovered**: Found in task IDs but not explicitly created (no description)
-- **removed**: Marked as removed with `tk prefix remove`, but tasks still exist
 
 ### Task Identity and Aliases
 
 Each task has two identifiers:
 - **Task UUID**: A unique, immutable identifier that never changes (e.g., `task-abc123xyz...`)
-- **Task ID**: The current display ID (e.g., `foo-1-node123`)
+- **Task ID**: The current display ID (e.g., `myproj-1`)
 
-When you move a task between prefixes using `tk mv`, the task UUID stays the same, but the task ID changes. The old task ID becomes an **alias**, allowing you to reference the task by its old ID.
-
-Example:
-```bash
-# Create a task
-tk new "My task"  # Creates tk-1
-
-# Move it to foo prefix
-tk mv tk-1 foo:1  # Now foo-1, but tk-1 is an alias
-
-# Both IDs work
-tk show tk-1      # Works (using alias)
-tk show foo-1     # Works (using current ID)
-```
-
-Aliases are preserved indefinitely and synced between machines, ensuring old links and references continue to work.
+Task IDs can have aliases, allowing you to reference tasks by alternative names. Aliases are preserved indefinitely and synced between machines, ensuring old links and references continue to work.
 
 ### Events
 
@@ -501,28 +342,20 @@ Every action in tk is recorded as an immutable event in the SQLite database. Eve
 - **TS**: Lamport timestamp for ordering
 - **Actor**: Username who created the event
 - **Role**: Role of the actor (human, agent, bot, qa, rel)
-- **Kind**: Event type (task.created, task.status.set, task.note.add, prefix.created)
+- **Kind**: Event type (project.created, task.created, task.status.set, task.note.add)
 - **Payload**: Event-specific data (JSON)
 
 Supported event types:
 
-**V4 events:**
 - `project.created` - A new project was created
 - `project.alias.add` - An alias was added to a project
 - `project.alias.remove` - An alias was removed from a project
-- `task.created` - A new task was created (v4 format with project_uid)
+- `task.created` - A new task was created
 - `task.number.set` - Task number was assigned or changed
 - `task.relocate` - Task was moved to a different project
 - `task.title.set` - Task title was changed
 - `task.status.set` - Task status was updated
 - `task.note.add` - A note was added to a task
-
-**Legacy v1/v2 events (pre-migration):**
-- `task.created` - A new task was created (legacy format)
-- `task.reprefix` - Task was moved to a different prefix
-- `task.alias.added` - An alias was added for a task
-- `prefix.created` - A new prefix was created
-- `prefix.removed` - A prefix was marked as removed
 
 ### Claims
 
@@ -545,54 +378,32 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 ## Status
 
-### v4 (current)
-
-All v1/v2 features plus:
+### Current Features
 
 - **Projects with stable UIDs**: First-class projects with immutable identifiers (`prj_...`)
 - **Per-node project aliases**: Flexible naming without conflicts
 - **Task UIDs as identity**: Stable task UIDs (`tsk_...`) - numbers are mutable labels
 - **Collision-tolerant numbering**: Multiple tasks can share the same number
-- **Automatic migration**: v1/v2/v3 databases automatically upgrade on first run
-- **Rollback support**: `tk admin rollback-v4` to restore v3 backup
-- **Project commands**: `tk project create`, `tk project list`, `tk project alias`
-- **Task creation with projects**: `tk new -p <alias>` or `tk new --project <alias>`
-
-### v2
-
-All v1 features plus:
-
-- Task relations (blocks, subtasks, related, duplicate, supersedes)
-- OR-set CRDT semantics for relation conflict resolution
-- Blocked task tracking with configurable blocking axis
-- Cycle detection for blocks and subtasks
-- Relation visualization with `tk graph`
-- CLI commands: `tk relate`, `tk blockers`, `tk blocked`, `tk dup`
-- Filtering by blocked status in `tk ls`
-
-### v1
-
-- Event sourcing with stable event IDs (`ev-<number>-<node>`)
-- Task IDs with prefix and node suffix (`<prefix>-<number>-<node>`)
-- Task UUIDs for stable identity across moves
-- Multiple task prefixes with independent counters
-- Prefix management (create, list, remove, filter)
-- Task movement between prefixes with alias preservation
-- Task aliases for backward compatibility
-- Offline-first sync via immutable segment files
-- iCloud Drive folder remote support
-- Segment files with zstd compression
-- Automatic deduplication on ingest
-- Lamport clock synchronization
-- Node collision detection
+- **Task relations**: Model dependencies (blocks, subtasks, related, duplicate, supersedes)
+- **OR-set CRDT semantics**: Relation conflict resolution
+- **Blocked task tracking**: Configurable blocking axis
+- **Cycle detection**: For blocks and subtasks
+- **Relation visualization**: `tk graph` command
+- **Event sourcing**: Stable event IDs (`ev-<number>-<node>`)
+- **Offline-first sync**: Immutable segment files
+- **iCloud Drive support**: Folder remote for syncing
+- **Segment compression**: zstd compression
+- **Automatic deduplication**: On event ingest
+- **Lamport clock sync**: Distributed timestamp ordering
+- **Node collision detection**: Prevent ID conflicts
 
 ### Not yet implemented
 
 - Context binding (repo, branch, commit tracking)
 - JJ integration
 - Custom axes and workflows
-- Task hierarchies with rollups (v3: stories, epics, progress tracking)
-- External project integrations (GitHub, Linear, Jira) - v4 has the foundation
+- Task hierarchies with rollups (stories, epics, progress tracking)
+- External project integrations (GitHub, Linear, Jira)
 
 ## Testing
 
