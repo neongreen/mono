@@ -44,7 +44,7 @@ func getStatusStyle(status string) lipgloss.Style {
 }
 
 // renderTaskTable renders a table of tasks using lipgloss/table
-func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, termWidth int, widths *ColumnWidths) {
+func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, termWidth int) {
 	// Build table rows
 	var rows [][]string
 
@@ -87,17 +87,9 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 			title = "(empty)"
 		}
 
-		// Truncate title to fit terminal width
-		// Reserve space for other columns: ID(~10) + STATUS(~8) + P(~3) + LABELS(~15) + borders/padding(~15)
-		if termWidth > 0 {
-			reservedWidth := 50
-			maxTitleWidth := termWidth - reservedWidth
-			if maxTitleWidth < 30 {
-				maxTitleWidth = 30 // Minimum title width
-			}
-			if len(title) > maxTitleWidth {
-				title = title[:maxTitleWidth-3] + "..."
-			}
+		// Take only first line of title
+		if idx := strings.Index(title, "\n"); idx != -1 {
+			title = title[:idx]
 		}
 
 		row := []string{displayID, status, priority, labelsStr, title}
@@ -129,6 +121,8 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	var headerStyle = baseStyle.Bold(true).Foreground(lipgloss.Color("240"))
 
 	t := table.New().
+		Width(termWidth).
+		Wrap(true).
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240"))).
 		BorderLeft(false).
