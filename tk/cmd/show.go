@@ -8,6 +8,7 @@ import (
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
@@ -82,7 +83,7 @@ var showCmd = &cobra.Command{
 					fmt.Println("\n" + strings.Repeat("─", 60))
 					fmt.Println()
 				}
-				renderTaskDetails(db, task)
+				renderTaskDetails(db, reducer, task)
 			}
 		}
 
@@ -91,7 +92,7 @@ var showCmd = &cobra.Command{
 }
 
 // renderTaskDetails renders a human-readable view of a single task
-func renderTaskDetails(db *database.DB, task *types.Task) {
+func renderTaskDetails(db *database.DB, reducer *reducer.Reducer, task *types.Task) {
 	fmt.Printf("Task: %s\n", boldText(task.TaskDisplayID))
 
 	if task.Title != "" {
@@ -143,10 +144,25 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 				if err != nil || relID == "" {
 					relID = rel.TaskUUID
 				}
-				if rel.Note != "" {
-					fmt.Printf("  - %s (%s)\n", relID, rel.Note)
+
+				// Get title from reducer
+				title := ""
+				if relTask, ok := reducer.GetTask(rel.TaskUUID); ok {
+					title = relTask.Title
+				}
+
+				if title != "" {
+					if rel.Note != "" {
+						fmt.Printf("  - %s - %s (%s)\n", relID, title, rel.Note)
+					} else {
+						fmt.Printf("  - %s - %s\n", relID, title)
+					}
 				} else {
-					fmt.Printf("  - %s\n", relID)
+					if rel.Note != "" {
+						fmt.Printf("  - %s (%s)\n", relID, rel.Note)
+					} else {
+						fmt.Printf("  - %s\n", relID)
+					}
 				}
 			}
 		}
@@ -157,7 +173,18 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 			if err != nil || parentID == "" {
 				parentID = task.Relations.Subtask.Parent
 			}
-			fmt.Printf("Parent task: %s\n", parentID)
+
+			// Get title from reducer
+			title := ""
+			if parentTask, ok := reducer.GetTask(task.Relations.Subtask.Parent); ok {
+				title = parentTask.Title
+			}
+
+			if title != "" {
+				fmt.Printf("Parent task: %s - %s\n", parentID, title)
+			} else {
+				fmt.Printf("Parent task: %s\n", parentID)
+			}
 		}
 
 		// Display subtasks (children)
@@ -168,7 +195,18 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 				if err != nil || childID == "" {
 					childID = childUUID
 				}
-				fmt.Printf("  - %s\n", childID)
+
+				// Get title from reducer
+				title := ""
+				if childTask, ok := reducer.GetTask(childUUID); ok {
+					title = childTask.Title
+				}
+
+				if title != "" {
+					fmt.Printf("  - %s - %s\n", childID, title)
+				} else {
+					fmt.Printf("  - %s\n", childID)
+				}
 			}
 		}
 
@@ -190,10 +228,25 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 				if err != nil || relID == "" {
 					relID = uuid
 				}
-				if note != "" {
-					fmt.Printf("  - %s (%s)\n", relID, note)
+
+				// Get title from reducer
+				title := ""
+				if relTask, ok := reducer.GetTask(uuid); ok {
+					title = relTask.Title
+				}
+
+				if title != "" {
+					if note != "" {
+						fmt.Printf("  - %s - %s (%s)\n", relID, title, note)
+					} else {
+						fmt.Printf("  - %s - %s\n", relID, title)
+					}
 				} else {
-					fmt.Printf("  - %s\n", relID)
+					if note != "" {
+						fmt.Printf("  - %s (%s)\n", relID, note)
+					} else {
+						fmt.Printf("  - %s\n", relID)
+					}
 				}
 			}
 		}
@@ -206,14 +259,34 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 				if err != nil || dupID == "" {
 					dupID = rel.TaskUUID
 				}
-				fmt.Printf("  - %s\n", dupID)
+
+				title := ""
+				if dupTask, ok := reducer.GetTask(rel.TaskUUID); ok {
+					title = dupTask.Title
+				}
+
+				if title != "" {
+					fmt.Printf("  - %s - %s\n", dupID, title)
+				} else {
+					fmt.Printf("  - %s\n", dupID)
+				}
 			}
 			for _, rel := range task.Relations.Duplicate.In {
 				dupID, err := database.RenderTaskDisplayID(db, rel.TaskUUID)
 				if err != nil || dupID == "" {
 					dupID = rel.TaskUUID
 				}
-				fmt.Printf("  - %s\n", dupID)
+
+				title := ""
+				if dupTask, ok := reducer.GetTask(rel.TaskUUID); ok {
+					title = dupTask.Title
+				}
+
+				if title != "" {
+					fmt.Printf("  - %s - %s\n", dupID, title)
+				} else {
+					fmt.Printf("  - %s\n", dupID)
+				}
 			}
 		}
 
@@ -225,7 +298,17 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 				if err != nil || supID == "" {
 					supID = rel.TaskUUID
 				}
-				fmt.Printf("  - %s\n", supID)
+
+				title := ""
+				if supTask, ok := reducer.GetTask(rel.TaskUUID); ok {
+					title = supTask.Title
+				}
+
+				if title != "" {
+					fmt.Printf("  - %s - %s\n", supID, title)
+				} else {
+					fmt.Printf("  - %s\n", supID)
+				}
 			}
 		}
 		if len(task.Relations.Supersedes.In) > 0 {
@@ -235,7 +318,17 @@ func renderTaskDetails(db *database.DB, task *types.Task) {
 				if err != nil || supID == "" {
 					supID = rel.TaskUUID
 				}
-				fmt.Printf("  - %s\n", supID)
+
+				title := ""
+				if supTask, ok := reducer.GetTask(rel.TaskUUID); ok {
+					title = supTask.Title
+				}
+
+				if title != "" {
+					fmt.Printf("  - %s - %s\n", supID, title)
+				} else {
+					fmt.Printf("  - %s\n", supID)
+				}
 			}
 		}
 	}

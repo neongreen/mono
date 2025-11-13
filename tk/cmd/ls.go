@@ -35,6 +35,7 @@ var lsCmd = &cobra.Command{
 		unblockedOnly, _ := cmd.Flags().GetBool("unblocked")
 		jsonOutput, _ := cmd.Flags().GetBool("json")
 		grepPattern, _ := cmd.Flags().GetString("grep")
+		limit, _ := cmd.Flags().GetInt("limit")
 
 		// Validate grep pattern if provided
 		if grepPattern != "" {
@@ -111,6 +112,11 @@ var lsCmd = &cobra.Command{
 		tasks = query.FilterTasks(tasks, taskUIDSet, filterOpts)
 
 		types.SortTasks(tasks, sortBy)
+
+		// Apply limit if specified
+		if limit > 0 && len(tasks) > limit {
+			tasks = tasks[:limit]
+		}
 
 		if jsonOutput {
 			// JSON output doesn't support grouping, always output flat list
