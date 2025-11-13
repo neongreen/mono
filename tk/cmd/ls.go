@@ -125,6 +125,17 @@ var lsCmd = &cobra.Command{
 
 		termWidth := termutil.GetTerminalWidth()
 
+		// Pre-calculate column widths from ALL tasks for consistency across groups
+		displayIDs := make(map[string]string)
+		for _, task := range tasks {
+			displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+			if err == nil {
+				displayIDs[task.TaskUUID] = displayID
+			}
+		}
+		constraints := DefaultColumnConstraints(termWidth, showAliases)
+		widths := CalculateColumnWidths(tasks, displayIDs, constraints)
+
 		switch groupBy {
 		case "project", "prefix":
 			// Group tasks by project
@@ -163,7 +174,7 @@ var lsCmd = &cobra.Command{
 					fmt.Println()
 				}
 				fmt.Printf("Project: %s\n", groupKey)
-				renderTaskTable(db, grouped[groupKey], showAliases, termWidth)
+				renderTaskTable(db, grouped[groupKey], showAliases, termWidth, &widths)
 			}
 
 		case "status":
@@ -185,12 +196,12 @@ var lsCmd = &cobra.Command{
 					fmt.Println()
 				}
 				fmt.Printf("Status: %s\n", colorizeStatus(status))
-				renderTaskTable(db, grouped[status], showAliases, termWidth)
+				renderTaskTable(db, grouped[status], showAliases, termWidth, &widths)
 			}
 
 		case "none":
 
-			renderTaskTable(db, tasks, showAliases, termWidth)
+			renderTaskTable(db, tasks, showAliases, termWidth, &widths)
 
 		default:
 			return fmt.Errorf("invalid --group value: %s (must be project, status, or none)", groupBy)

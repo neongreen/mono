@@ -13,6 +13,52 @@ import (
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
+// padRight pads a string to the specified width with trailing spaces
+func padRight(s string, width int) string {
+	// Account for ANSI color codes in length calculation
+	visibleLen := len(stripAnsiCodes(s))
+	if visibleLen >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-visibleLen)
+}
+
+// truncateOrPad truncates or pads a string to the specified width
+func truncateOrPad(s string, width int) string {
+	visibleLen := len(stripAnsiCodes(s))
+	if visibleLen > width {
+		// Truncate with ellipsis
+		if width <= 3 {
+			return s[:width]
+		}
+		return s[:width-3] + "..."
+	}
+	return padRight(s, width)
+}
+
+// stripAnsiCodes removes ANSI color codes for length calculation
+func stripAnsiCodes(s string) string {
+	// Simple regex to strip ANSI escape codes
+	// This handles most common color codes
+	result := ""
+	inEscape := false
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '[' {
+			inEscape = true
+			i++ // skip '['
+			continue
+		}
+		if inEscape {
+			if (s[i] >= 'A' && s[i] <= 'Z') || (s[i] >= 'a' && s[i] <= 'z') {
+				inEscape = false
+			}
+			continue
+		}
+		result += string(s[i])
+	}
+	return result
+}
+
 // colorizeStatus returns a colored status string based on the status value
 func colorizeStatus(status string) string {
 	switch status {
@@ -43,21 +89,34 @@ func getStatusStyle(status string) lipgloss.Style {
 	}
 }
 
-// renderTaskTable renders a table of tasks using lipgloss/table
-func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, termWidth int) {
-	// Build table rows
-	var rows [][]string
+// renderTaskTable renders a table of tasks using lipgloss/table.
+// If widths is nil, it will calculate widths from the given tasks.
+// Pass a non-nil widths to use consistent column widths across multiple tables.
+func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, termWidth int, widths *ColumnWidths) {
+	// First pass: collect all raw cell values
+	type cellData struct {
+		displayID string
+		aliases   string
+		status    string
+		priority  string
+		labels    string
+		title     string
+	}
 
-	for _, task := range tasks {
+	cellValues := make([]cellData, len(tasks))
+
+	for i, task := range tasks {
 		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
 			displayID = task.TaskDisplayID
 		}
+		cellValues[i].displayID = displayID
 
 		status := ""
 		if axis, ok := task.Axes["generic"]; ok {
 			status = colorizeStatus(axis.Effective)
 		}
+		cellValues[i].status = status
 
 		// Extract priority
 		priority := ""
@@ -67,6 +126,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 				priority = fmt.Sprintf("%v", p)
 			}
 		}
+		cellValues[i].priority = priority
 
 		// Extract labels
 		labelsStr := ""
@@ -80,6 +140,18 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 				labelsStr = strings.Join(labelStrs, ", ")
 			}
 		}
+		cellValues[i].labels = labelsStr
+
+		// Extract aliases
+		aliasesStr := ""
+		if showAliases && len(task.Aliases) > 0 {
+			var shortAliases []string
+			for _, alias := range task.Aliases {
+				shortAliases = append(shortAliases, database.FormatTaskID(db, alias))
+			}
+			aliasesStr = strings.Join(shortAliases, ", ")
+		}
+		cellValues[i].aliases = aliasesStr
 
 		// Display empty titles as "(empty)"
 		title := task.Title
@@ -91,27 +163,65 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 		if idx := strings.Index(title, "\n"); idx != -1 {
 			title = title[:idx]
 		}
+		cellValues[i].title = title
+	}
 
-		row := []string{displayID, status, priority, labelsStr, title}
+	// Calculate optimal column widths if not provided
+	var calculatedWidths ColumnWidths
+	if widths == nil {
+		displayIDs := make(map[string]string)
+		for i, task := range tasks {
+			displayIDs[task.TaskUUID] = cellValues[i].displayID
+		}
+		constraints := DefaultColumnConstraints(termWidth, showAliases)
+		calculatedWidths = CalculateColumnWidths(tasks, displayIDs, constraints)
+		widths = &calculatedWidths
+	}
+
+	// Build padded rows using calculated widths
+	var rows [][]string
+	for _, cell := range cellValues {
+		var row []string
 		if showAliases {
-			// Insert aliases as second column
-			aliasesStr := ""
-			if len(task.Aliases) > 0 {
-				var shortAliases []string
-				for _, alias := range task.Aliases {
-					shortAliases = append(shortAliases, database.FormatTaskID(db, alias))
-				}
-				aliasesStr = strings.Join(shortAliases, ", ")
+			row = []string{
+				padRight(cell.displayID, widths.ID),
+				padRight(cell.aliases, widths.Aliases),
+				padRight(cell.status, widths.Status),
+				padRight(cell.priority, widths.Priority),
+				padRight(cell.labels, widths.Labels),
+				truncateOrPad(cell.title, widths.Title),
 			}
-			row = []string{displayID, aliasesStr, status, priority, labelsStr, title}
+		} else {
+			row = []string{
+				padRight(cell.displayID, widths.ID),
+				padRight(cell.status, widths.Status),
+				padRight(cell.priority, widths.Priority),
+				padRight(cell.labels, widths.Labels),
+				truncateOrPad(cell.title, widths.Title),
+			}
 		}
 		rows = append(rows, row)
 	}
 
-	// Create lipgloss table
-	headers := []string{"ID", "STATUS", "P", "LABELS", "TITLE"}
+	// Create headers with same padding
+	var headers []string
 	if showAliases {
-		headers = []string{"ID", "ALIASES", "STATUS", "P", "LABELS", "TITLE"}
+		headers = []string{
+			padRight("ID", widths.ID),
+			padRight("ALIASES", widths.Aliases),
+			padRight("STATUS", widths.Status),
+			padRight("P", widths.Priority),
+			padRight("LABELS", widths.Labels),
+			padRight("TITLE", widths.Title),
+		}
+	} else {
+		headers = []string{
+			padRight("ID", widths.ID),
+			padRight("STATUS", widths.Status),
+			padRight("P", widths.Priority),
+			padRight("LABELS", widths.Labels),
+			padRight("TITLE", widths.Title),
+		}
 	}
 
 	// Create table with padding
