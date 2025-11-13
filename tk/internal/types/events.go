@@ -186,8 +186,8 @@ type QueuePopPayload struct {
 
 // StackPushPayload is the payload for stack.push events
 type StackPushPayload struct {
-	ContainerID string `json:"container_id"`
-	ItemID      string `json:"item_id"`
+	ContainerID string  `json:"container_id"`
+	ItemID      TaskUID `json:"item_id"`
 }
 
 // StackPopPayload is the payload for stack.pop events

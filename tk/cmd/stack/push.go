@@ -27,7 +27,13 @@ Example:
 		defer db.Close()
 
 		stackID := args[0]
-		itemID := args[1]
+		itemRef := args[1]
+
+		// Resolve task reference to task UID
+		taskUID, err := database.ResolveTaskReference(db, types.NewTaskRef(itemRef))
+		if err != nil {
+			return fmt.Errorf("failed to resolve task %q: %w", itemRef, err)
+		}
 
 		// Verify stack exists and is actually a stack
 		var primitive string
@@ -58,7 +64,7 @@ Example:
 		// Create stack.push event
 		payload := types.StackPushPayload{
 			ContainerID: stackID,
-			ItemID:      itemID,
+			ItemID:      types.TaskUID(taskUID),
 		}
 
 		payloadJSON, err := json.Marshal(payload)
@@ -95,7 +101,7 @@ Example:
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 
-		fmt.Printf("Pushed %s onto stack %s\n", itemID, stackID)
+		fmt.Printf("Pushed %s onto stack %s\n", itemRef, stackID)
 		return nil
 	},
 }
