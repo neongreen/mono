@@ -18,6 +18,16 @@ var newCmd = &cobra.Command{
 	Use:     "new [title]",
 	Aliases: []string{"add"},
 	Short:   "Create a new task",
+	Long: `Create a new item (task, decision, resource, etc.).
+
+Item kinds define what type of item you're creating. Default is 'task'.
+Use 'tk schema list' to see available item kinds, or define custom ones with 'tk schema add item <name>'.
+
+Examples:
+  tk new "Fix bug"                           # Creates a task
+  tk new "Use PostgreSQL" --kind decision    # Creates a decision
+  tk new "API docs" --kind resource          # Creates a resource
+`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			return fmt.Errorf("title is required")

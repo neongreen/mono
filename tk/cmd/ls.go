@@ -20,6 +20,17 @@ import (
 var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "List tasks",
+	Long: `List all items (tasks, decisions, resources, etc.).
+
+By default, shows all item kinds. Use --kind to filter by specific kinds.
+Use 'tk schema list' to see available item kinds.
+
+Examples:
+  tk ls                              # Show all items
+  tk ls --kind decision              # Show only decisions
+  tk ls --kind decision,resource     # Show decisions and resources
+  tk ls --in q-1 --kind task         # Show tasks in queue q-1
+`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if os.Getenv("FORCE_COLOR") != "" || os.Getenv("CLICOLOR_FORCE") != "" {
 			color.NoColor = false
