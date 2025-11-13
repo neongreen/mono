@@ -198,8 +198,8 @@ type StackPopPayload struct {
 
 // GroupAddPayload is the payload for group.add events
 type GroupAddPayload struct {
-	ContainerID string `json:"container_id"`
-	ItemID      string `json:"item_id"`
+	ContainerID string  `json:"container_id"`
+	ItemID      TaskUID `json:"item_id"`
 }
 
 // GroupRemovePayload is the payload for group.remove events

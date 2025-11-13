@@ -193,7 +193,7 @@ func popFromQueue(t *testing.T, db *database.DB, queueID string, itemID string) 
 func addToGroup(t *testing.T, db *database.DB, groupID string, itemID string) {
 	payload := types.GroupAddPayload{
 		ContainerID: groupID,
-		ItemID:      itemID,
+		ItemID:      types.TaskUID(itemID),
 	}
 
 	eventID, _ := database.GenerateEventID(db)

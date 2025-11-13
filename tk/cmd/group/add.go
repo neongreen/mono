@@ -27,7 +27,13 @@ Example:
 		defer db.Close()
 
 		groupID := args[0]
-		itemID := args[1]
+		itemRef := args[1]
+
+		// Resolve task reference to task UID
+		taskUID, err := database.ResolveTaskReference(db, types.NewTaskRef(itemRef))
+		if err != nil {
+			return fmt.Errorf("failed to resolve task %q: %w", itemRef, err)
+		}
 
 		// Verify group exists and is actually a group
 		var primitive string
@@ -58,7 +64,7 @@ Example:
 		// Create group.add event
 		payload := types.GroupAddPayload{
 			ContainerID: groupID,
-			ItemID:      itemID,
+			ItemID:      types.TaskUID(taskUID),
 		}
 
 		payloadJSON, err := json.Marshal(payload)
@@ -95,7 +101,7 @@ Example:
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 
-		fmt.Printf("Added %s to group %s\n", itemID, groupID)
+		fmt.Printf("Added %s to group %s\n", itemRef, groupID)
 		return nil
 	},
 }
