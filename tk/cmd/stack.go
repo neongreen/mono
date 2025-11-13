@@ -14,4 +14,6 @@ var stackCmd = &cobra.Command{
 func init() {
 	stackCmd.AddCommand(stack_pkg.CreateCmd)
 	stackCmd.AddCommand(stack_pkg.ListCmd)
+	stackCmd.AddCommand(stack_pkg.PushCmd)
+	stackCmd.AddCommand(stack_pkg.PopCmd)
 }

@@ -10,9 +10,14 @@ import (
 )
 
 var ListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all groups",
-	Long:  `List all group containers.`,
+	Use:   "list [group-id]",
+	Short: "List groups or group members",
+	Long: `List all groups, or list members of a specific group.
+
+Examples:
+  tk group list       # List all groups
+  tk group list g-1   # List members of group g-1`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := database.OpenExistingDB()
 		if err != nil {
@@ -29,7 +34,12 @@ var ListCmd = &cobra.Command{
 			return fmt.Errorf("containers require database v6 or higher, but current version is v%d", version)
 		}
 
-		// Query groups
+		// If group ID provided, list members
+		if len(args) == 1 {
+			return listGroupMembers(db, args[0])
+		}
+
+		// Otherwise list all groups
 		rows, err := db.Db.Query(`
 			SELECT id, kind, name, metadata
 			FROM containers
@@ -67,4 +77,65 @@ var ListCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func listGroupMembers(db *database.DB, groupID string) error {
+	// Verify group exists
+	var primitive string
+	var groupName string
+	var removed int
+	err := db.Db.QueryRow(`
+		SELECT primitive, name, removed
+		FROM containers
+		WHERE id = ?
+	`, groupID).Scan(&primitive, &groupName, &removed)
+	if err != nil {
+		return fmt.Errorf("group %q not found", groupID)
+	}
+
+	if primitive != string(types.PrimitiveGroup) {
+		return fmt.Errorf("%q is a %s, not a group", groupID, primitive)
+	}
+
+	if removed == 1 {
+		return fmt.Errorf("group %q has been removed", groupID)
+	}
+
+	// Query members (unordered - groups have no position)
+	rows, err := db.Db.Query(`
+		SELECT item_id
+		FROM container_members
+		WHERE container_id = ? AND removed = 0
+		ORDER BY item_id
+	`, groupID)
+	if err != nil {
+		return fmt.Errorf("failed to query members: %w", err)
+	}
+	defer rows.Close()
+
+	// Print header
+	fmt.Printf("Group %s: %s\n", groupID, groupName)
+	fmt.Println()
+	fmt.Println("ITEM")
+	fmt.Println("─────────────────")
+
+	count := 0
+	for rows.Next() {
+		var itemID string
+
+		if err := rows.Scan(&itemID); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		fmt.Println(itemID)
+		count++
+	}
+
+	if count == 0 {
+		fmt.Println("(empty)")
+	} else {
+		fmt.Printf("\n%d items in group\n", count)
+	}
+
+	return nil
 }

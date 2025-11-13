@@ -14,4 +14,6 @@ var groupCmd = &cobra.Command{
 func init() {
 	groupCmd.AddCommand(group_pkg.CreateCmd)
 	groupCmd.AddCommand(group_pkg.ListCmd)
+	groupCmd.AddCommand(group_pkg.AddCmd)
+	groupCmd.AddCommand(group_pkg.RemoveCmd)
 }

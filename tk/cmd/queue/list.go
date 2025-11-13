@@ -10,9 +10,14 @@ import (
 )
 
 var ListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List all queues",
-	Long:  `List all queue containers.`,
+	Use:   "list [queue-id]",
+	Short: "List queues or queue members",
+	Long: `List all queues, or list members of a specific queue.
+
+Examples:
+  tk queue list       # List all queues
+  tk queue list q-1   # List members of queue q-1`,
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := database.OpenExistingDB()
 		if err != nil {
@@ -29,7 +34,12 @@ var ListCmd = &cobra.Command{
 			return fmt.Errorf("containers require database v6 or higher, but current version is v%d", version)
 		}
 
-		// Query queues
+		// If queue ID provided, list members
+		if len(args) == 1 {
+			return listQueueMembers(db, args[0])
+		}
+
+		// Otherwise list all queues
 		rows, err := db.Db.Query(`
 			SELECT id, kind, name, metadata
 			FROM containers
@@ -67,4 +77,66 @@ var ListCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func listQueueMembers(db *database.DB, queueID string) error {
+	// Verify queue exists
+	var primitive string
+	var queueName string
+	var removed int
+	err := db.Db.QueryRow(`
+		SELECT primitive, name, removed
+		FROM containers
+		WHERE id = ?
+	`, queueID).Scan(&primitive, &queueName, &removed)
+	if err != nil {
+		return fmt.Errorf("queue %q not found", queueID)
+	}
+
+	if primitive != string(types.PrimitiveQueue) {
+		return fmt.Errorf("%q is a %s, not a queue", queueID, primitive)
+	}
+
+	if removed == 1 {
+		return fmt.Errorf("queue %q has been removed", queueID)
+	}
+
+	// Query members
+	rows, err := db.Db.Query(`
+		SELECT item_id, position
+		FROM container_members
+		WHERE container_id = ? AND removed = 0
+		ORDER BY position ASC
+	`, queueID)
+	if err != nil {
+		return fmt.Errorf("failed to query members: %w", err)
+	}
+	defer rows.Close()
+
+	// Print header
+	fmt.Printf("Queue %s: %s\n", queueID, queueName)
+	fmt.Println()
+	fmt.Printf("%-4s %s\n", "POS", "ITEM")
+	fmt.Println("─────────────────────")
+
+	count := 0
+	for rows.Next() {
+		var itemID string
+		var position int64
+
+		if err := rows.Scan(&itemID, &position); err != nil {
+			return fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		fmt.Printf("%-4d %s\n", position, itemID)
+		count++
+	}
+
+	if count == 0 {
+		fmt.Println("(empty)")
+	} else {
+		fmt.Printf("\n%d items in queue\n", count)
+	}
+
+	return nil
 }

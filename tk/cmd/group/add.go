@@ -1,0 +1,101 @@
+package group
+
+import (
+	"encoding/json"
+	"fmt"
+	"time"
+
+	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
+	"github.com/spf13/cobra"
+)
+
+var AddCmd = &cobra.Command{
+	Use:   "add <group-id> <item-id>",
+	Short: "Add an item to a group",
+	Long: `Add an item to a group (unordered set).
+
+Example:
+  tk group add g-1 tk-123`,
+	Args: cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		db, err := database.OpenExistingDB()
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+
+		groupID := args[0]
+		itemID := args[1]
+
+		// Verify group exists and is actually a group
+		var primitive string
+		var removed int
+		err = db.Db.QueryRow(`
+			SELECT primitive, removed
+			FROM containers
+			WHERE id = ?
+		`, groupID).Scan(&primitive, &removed)
+		if err != nil {
+			return fmt.Errorf("group %q not found", groupID)
+		}
+
+		if primitive != string(types.PrimitiveGroup) {
+			return fmt.Errorf("%q is a %s, not a group", groupID, primitive)
+		}
+
+		if removed == 1 {
+			return fmt.Errorf("group %q has been removed", groupID)
+		}
+
+		// Get current user
+		actor, err := utils.GetCurrentUser()
+		if err != nil {
+			return err
+		}
+
+		// Create group.add event
+		payload := types.GroupAddPayload{
+			ContainerID: groupID,
+			ItemID:      itemID,
+		}
+
+		payloadJSON, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal payload: %w", err)
+		}
+
+		eventID, err := database.GenerateEventID(db)
+		if err != nil {
+			return fmt.Errorf("failed to generate event ID: %w", err)
+		}
+
+		ts, err := db.GetNextLamportTS()
+		if err != nil {
+			return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+		}
+
+		event := types.Event{
+			ID:        eventID,
+			TS:        ts,
+			CreatedAt: time.Now(),
+			Actor:     actor,
+			Role:      "human",
+			Kind:      string(types.EventKindGroupAdd),
+			Payload:   payloadJSON,
+		}
+
+		if err := db.InsertEvent(event); err != nil {
+			return fmt.Errorf("failed to insert event: %w", err)
+		}
+
+		// Project the event
+		if err := db.ProjectGroupAddEvent(event); err != nil {
+			return fmt.Errorf("failed to project event: %w", err)
+		}
+
+		fmt.Printf("Added %s to group %s\n", itemID, groupID)
+		return nil
+	},
+}
