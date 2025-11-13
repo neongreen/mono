@@ -180,8 +180,8 @@ type QueuePushPayload struct {
 
 // QueuePopPayload is the payload for queue.pop events
 type QueuePopPayload struct {
-	ContainerID string `json:"container_id"`
-	ItemID      string `json:"item_id"`
+	ContainerID string  `json:"container_id"`
+	ItemID      TaskUID `json:"item_id"`
 }
 
 // StackPushPayload is the payload for stack.push events
@@ -192,8 +192,8 @@ type StackPushPayload struct {
 
 // StackPopPayload is the payload for stack.pop events
 type StackPopPayload struct {
-	ContainerID string `json:"container_id"`
-	ItemID      string `json:"item_id"`
+	ContainerID string  `json:"container_id"`
+	ItemID      TaskUID `json:"item_id"`
 }
 
 // GroupAddPayload is the payload for group.add events
@@ -204,6 +204,6 @@ type GroupAddPayload struct {
 
 // GroupRemovePayload is the payload for group.remove events
 type GroupRemovePayload struct {
-	ContainerID string `json:"container_id"`
-	ItemID      string `json:"item_id"`
+	ContainerID string  `json:"container_id"`
+	ItemID      TaskUID `json:"item_id"`
 }

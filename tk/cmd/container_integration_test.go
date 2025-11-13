@@ -166,7 +166,7 @@ func pushToQueue(t *testing.T, db *database.DB, queueID string, itemID string) {
 func popFromQueue(t *testing.T, db *database.DB, queueID string, itemID string) {
 	payload := types.QueuePopPayload{
 		ContainerID: queueID,
-		ItemID:      itemID,
+		ItemID:      types.TaskUID(itemID),
 	}
 
 	eventID, _ := database.GenerateEventID(db)
@@ -220,7 +220,7 @@ func addToGroup(t *testing.T, db *database.DB, groupID string, itemID string) {
 func removeFromGroup(t *testing.T, db *database.DB, groupID string, itemID string) {
 	payload := types.GroupRemovePayload{
 		ContainerID: groupID,
-		ItemID:      itemID,
+		ItemID:      types.TaskUID(itemID),
 	}
 
 	eventID, _ := database.GenerateEventID(db)

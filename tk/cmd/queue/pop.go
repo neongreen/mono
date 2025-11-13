@@ -73,10 +73,10 @@ Example:
 			return err
 		}
 
-		// Create queue.pop event
+		// Create queue.pop event (headItemID is already a task UID from database)
 		payload := types.QueuePopPayload{
 			ContainerID: queueID,
-			ItemID:      headItemID,
+			ItemID:      types.TaskUID(headItemID),
 		}
 
 		payloadJSON, err := json.Marshal(payload)
@@ -113,7 +113,13 @@ Example:
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 
-		fmt.Printf("Popped %s from queue %s\n", headItemID, queueID)
+		// Render task UID as display ID for user output
+		displayID, err := database.RenderTaskDisplayID(db, headItemID)
+		if err != nil {
+			displayID = headItemID
+		}
+
+		fmt.Printf("Popped %s from queue %s\n", displayID, queueID)
 		return nil
 	},
 }

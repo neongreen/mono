@@ -856,7 +856,7 @@ func TestProjectGroupAddEvent(t *testing.T) {
 	for i, itemID := range []string{"tk-1", "tk-2", "tk-3"} {
 		payload := types.GroupAddPayload{
 			ContainerID: "g-1",
-			ItemID:      itemID,
+			ItemID:      types.TaskUID(itemID),
 		}
 		payloadJSON, _ := json.Marshal(payload)
 		event := types.Event{
@@ -1237,7 +1237,7 @@ func TestContainerRebuildFromEvents(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		popPayload := types.QueuePopPayload{
 			ContainerID: "q-1",
-			ItemID:      fmt.Sprintf("tk-%d", i+1),
+			ItemID:      types.TaskUID(fmt.Sprintf("tk-%d", i+1)),
 		}
 		popPayloadJSON, _ := json.Marshal(popPayload)
 		events = append(events, types.Event{
