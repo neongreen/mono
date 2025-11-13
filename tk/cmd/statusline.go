@@ -195,7 +195,7 @@ Examples:
 
 func init() {
 	statuslineCmd.Flags().Int("limit", 5, "Number of tasks to show")
-	statuslineCmd.Flags().String("max-age", "", "Only show tasks updated within this duration (e.g., 24h, 7d)")
+	statuslineCmd.Flags().String("max-age", "2h", "Only show tasks updated within this duration (e.g., 24h, 7d)")
 	statuslineCmd.Flags().Bool("no-color", false, "Disable colored output")
 }
 
