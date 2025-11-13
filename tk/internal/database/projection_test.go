@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -963,5 +964,467 @@ func seedQueueItems(t *testing.T, db *DB, containerID string, itemIDs []string) 
 		if err := db.ProjectQueuePushEvent(event); err != nil {
 			t.Fatalf("ProjectQueuePushEvent() error = %v", err)
 		}
+	}
+}
+
+// Comprehensive edge case tests
+
+func TestQueuePush_PositionGapsHandled(t *testing.T) {
+	db := openTempDB(t)
+	seedContainerKindAndInstance(t, db, "sprint", types.PrimitiveQueue, "q-1", "Sprint")
+
+	// Manually insert items with gaps in positions (1, 2, 5, 6)
+	db.Db.Exec(`
+		INSERT INTO container_members (container_id, item_id, position, removed)
+		VALUES ('q-1', 'tk-1', 1, 0),
+		       ('q-1', 'tk-2', 2, 0),
+		       ('q-1', 'tk-5', 5, 0),
+		       ('q-1', 'tk-6', 6, 0)
+	`)
+
+	// Push a new item - should get position 7 (max+1)
+	payload := types.QueuePushPayload{
+		ContainerID: "q-1",
+		ItemID:      "tk-new",
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	event := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        10,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindQueuePush),
+		Payload:   payloadJSON,
+	}
+
+	if err := db.ProjectQueuePushEvent(event); err != nil {
+		t.Fatalf("ProjectQueuePushEvent() error = %v", err)
+	}
+
+	// Verify new item has position 7
+	var position int64
+	err := db.Db.QueryRow(`
+		SELECT position FROM container_members
+		WHERE container_id = 'q-1' AND item_id = 'tk-new'
+	`).Scan(&position)
+	if err != nil {
+		t.Fatalf("failed to query new item: %v", err)
+	}
+
+	if position != 7 {
+		t.Errorf("position = %d, want 7 (max of 1,2,5,6 is 6, next is 7)", position)
+	}
+}
+
+func TestQueuePush_RemovedItemsIgnored(t *testing.T) {
+	db := openTempDB(t)
+	seedContainerKindAndInstance(t, db, "sprint", types.PrimitiveQueue, "q-1", "Sprint")
+
+	// Insert items where some are removed (positions: 1, 2-removed, 3, 4-removed)
+	db.Db.Exec(`
+		INSERT INTO container_members (container_id, item_id, position, removed)
+		VALUES ('q-1', 'tk-1', 1, 0),
+		       ('q-1', 'tk-2', 2, 1),
+		       ('q-1', 'tk-3', 3, 0),
+		       ('q-1', 'tk-4', 4, 1)
+	`)
+
+	// Push new item - should use max of non-removed (3) and assign position 4
+	payload := types.QueuePushPayload{
+		ContainerID: "q-1",
+		ItemID:      "tk-new",
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	event := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        10,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindQueuePush),
+		Payload:   payloadJSON,
+	}
+
+	if err := db.ProjectQueuePushEvent(event); err != nil {
+		t.Fatalf("ProjectQueuePushEvent() error = %v", err)
+	}
+
+	// Verify new item has position 4 (max of active items 1,3 is 3, next is 4)
+	var position int64
+	err := db.Db.QueryRow(`
+		SELECT position FROM container_members
+		WHERE container_id = 'q-1' AND item_id = 'tk-new'
+	`).Scan(&position)
+	if err != nil {
+		t.Fatalf("failed to query new item: %v", err)
+	}
+
+	if position != 4 {
+		t.Errorf("position = %d, want 4 (should ignore removed items at pos 2,4)", position)
+	}
+}
+
+func TestQueuePush_EmptyContainer(t *testing.T) {
+	db := openTempDB(t)
+	seedContainerKindAndInstance(t, db, "sprint", types.PrimitiveQueue, "q-1", "Sprint")
+
+	// Push to empty container - should get position 1
+	payload := types.QueuePushPayload{
+		ContainerID: "q-1",
+		ItemID:      "tk-first",
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	event := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindQueuePush),
+		Payload:   payloadJSON,
+	}
+
+	if err := db.ProjectQueuePushEvent(event); err != nil {
+		t.Fatalf("ProjectQueuePushEvent() error = %v", err)
+	}
+
+	// Verify position is 1
+	var position int64
+	err := db.Db.QueryRow(`
+		SELECT position FROM container_members
+		WHERE container_id = 'q-1' AND item_id = 'tk-first'
+	`).Scan(&position)
+	if err != nil {
+		t.Fatalf("failed to query item: %v", err)
+	}
+
+	if position != 1 {
+		t.Errorf("position = %d, want 1 (first item in empty container)", position)
+	}
+}
+
+func TestQueuePush_DuplicateItem_Idempotent(t *testing.T) {
+	db := openTempDB(t)
+	seedContainerKindAndInstance(t, db, "sprint", types.PrimitiveQueue, "q-1", "Sprint")
+
+	// Push item twice
+	payload := types.QueuePushPayload{
+		ContainerID: "q-1",
+		ItemID:      "tk-1",
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	event1 := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindQueuePush),
+		Payload:   payloadJSON,
+	}
+
+	if err := db.ProjectQueuePushEvent(event1); err != nil {
+		t.Fatalf("first ProjectQueuePushEvent() error = %v", err)
+	}
+
+	// Push same item again (different event, simulating replay)
+	event2 := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindQueuePush),
+		Payload:   payloadJSON,
+	}
+
+	if err := db.ProjectQueuePushEvent(event2); err != nil {
+		t.Fatalf("second ProjectQueuePushEvent() error = %v", err)
+	}
+
+	// Should only have one item with position 2 (gets updated)
+	var count int
+	err := db.Db.QueryRow(`
+		SELECT COUNT(*) FROM container_members
+		WHERE container_id = 'q-1' AND item_id = 'tk-1'
+	`).Scan(&count)
+	if err != nil {
+		t.Fatalf("failed to count items: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("count = %d, want 1 (duplicate push should update, not duplicate)", count)
+	}
+
+	// Verify it has the newer position
+	var position int64
+	err = db.Db.QueryRow(`
+		SELECT position FROM container_members
+		WHERE container_id = 'q-1' AND item_id = 'tk-1'
+	`).Scan(&position)
+	if err != nil {
+		t.Fatalf("failed to query position: %v", err)
+	}
+
+	if position != 2 {
+		t.Errorf("position = %d, want 2 (second push updates position)", position)
+	}
+}
+
+func TestContainerRebuildFromEvents(t *testing.T) {
+	db := openTempDB(t)
+
+	// Create a sequence of events
+	events := []types.Event{}
+
+	// 1. Define a queue kind
+	definePayload := types.DefineContainerKindPayload{
+		Name:        "sprint",
+		Primitive:   types.PrimitiveQueue,
+		Description: "Sprint queue",
+		CreatedBy:   "tester",
+	}
+	definePayloadJSON, _ := json.Marshal(definePayload)
+	events = append(events, types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerKindDefine),
+		Payload:   definePayloadJSON,
+	})
+
+	// 2. Create a queue
+	createPayload := types.CreateContainerPayload{
+		ID:        "q-1",
+		Primitive: types.PrimitiveQueue,
+		Kind:      "sprint",
+		Name:      "Nov Sprint",
+		CreatedBy: "tester",
+	}
+	createPayloadJSON, _ := json.Marshal(createPayload)
+	events = append(events, types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerCreate),
+		Payload:   createPayloadJSON,
+	})
+
+	// 3. Push 5 items
+	for i := 0; i < 5; i++ {
+		pushPayload := types.QueuePushPayload{
+			ContainerID: "q-1",
+			ItemID:      fmt.Sprintf("tk-%d", i+1),
+		}
+		pushPayloadJSON, _ := json.Marshal(pushPayload)
+		events = append(events, types.Event{
+			ID:        string(types.NewEventID()),
+			TS:        int64(i + 2),
+			CreatedAt: time.Now(),
+			Actor:     "tester",
+			Role:      "human",
+			Kind:      string(types.EventKindQueuePush),
+			Payload:   pushPayloadJSON,
+		})
+	}
+
+	// 4. Pop 2 items
+	for i := 0; i < 2; i++ {
+		popPayload := types.QueuePopPayload{
+			ContainerID: "q-1",
+			ItemID:      fmt.Sprintf("tk-%d", i+1),
+		}
+		popPayloadJSON, _ := json.Marshal(popPayload)
+		events = append(events, types.Event{
+			ID:        string(types.NewEventID()),
+			TS:        int64(i + 7),
+			CreatedAt: time.Now(),
+			Actor:     "tester",
+			Role:      "human",
+			Kind:      string(types.EventKindQueuePop),
+			Payload:   popPayloadJSON,
+		})
+	}
+
+	// Replay all events
+	for _, e := range events {
+		if err := db.ProjectEvent(e); err != nil {
+			t.Fatalf("ProjectEvent() error = %v", err)
+		}
+	}
+
+	// Take snapshot of state
+	var activeMembers []string
+	rows, err := db.Db.Query(`
+		SELECT item_id FROM container_members
+		WHERE container_id = 'q-1' AND removed = 0
+		ORDER BY position
+	`)
+	if err != nil {
+		t.Fatalf("failed to query members: %v", err)
+	}
+	for rows.Next() {
+		var itemID string
+		rows.Scan(&itemID)
+		activeMembers = append(activeMembers, itemID)
+	}
+	rows.Close()
+
+	// Drop tables and rebuild
+	db.Db.Exec(`DROP TABLE container_kinds`)
+	db.Db.Exec(`DROP TABLE containers`)
+	db.Db.Exec(`DROP TABLE container_members`)
+
+	// Recreate tables
+	if err := db.CreateContainerTables(); err != nil {
+		t.Fatalf("failed to recreate tables: %v", err)
+	}
+
+	// Replay all events again
+	for _, e := range events {
+		if err := db.ProjectEvent(e); err != nil {
+			t.Fatalf("ProjectEvent() after rebuild error = %v", err)
+		}
+	}
+
+	// Verify state matches
+	var rebuiltMembers []string
+	rows, err = db.Db.Query(`
+		SELECT item_id FROM container_members
+		WHERE container_id = 'q-1' AND removed = 0
+		ORDER BY position
+	`)
+	if err != nil {
+		t.Fatalf("failed to query members after rebuild: %v", err)
+	}
+	for rows.Next() {
+		var itemID string
+		rows.Scan(&itemID)
+		rebuiltMembers = append(rebuiltMembers, itemID)
+	}
+	rows.Close()
+
+	// Should have tk-3, tk-4, tk-5 (pushed 5, popped 2 from head)
+	if len(rebuiltMembers) != 3 {
+		t.Errorf("after rebuild: got %d members, want 3", len(rebuiltMembers))
+	}
+
+	expected := []string{"tk-3", "tk-4", "tk-5"}
+	for i, itemID := range rebuiltMembers {
+		if itemID != expected[i] {
+			t.Errorf("member[%d] = %q, want %q", i, itemID, expected[i])
+		}
+	}
+
+	t.Logf("✓ Rebuild from events produced identical state")
+}
+
+func TestQueuePush_RepushRemovedItem(t *testing.T) {
+	db := openTempDB(t)
+	seedContainerKindAndInstance(t, db, "sprint", types.PrimitiveQueue, "q-1", "Sprint")
+
+	// Push item
+	seedQueueItems(t, db, "q-1", []string{"tk-1"})
+
+	// Pop it
+	popPayload := types.QueuePopPayload{
+		ContainerID: "q-1",
+		ItemID:      "tk-1",
+	}
+	popPayloadJSON, _ := json.Marshal(popPayload)
+	popEvent := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        10,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindQueuePop),
+		Payload:   popPayloadJSON,
+	}
+	db.ProjectQueuePopEvent(popEvent)
+
+	// Push it again
+	pushPayload := types.QueuePushPayload{
+		ContainerID: "q-1",
+		ItemID:      "tk-1",
+	}
+	pushPayloadJSON, _ := json.Marshal(pushPayload)
+	pushEvent := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        11,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindQueuePush),
+		Payload:   pushPayloadJSON,
+	}
+	if err := db.ProjectQueuePushEvent(pushEvent); err != nil {
+		t.Fatalf("ProjectQueuePushEvent() error = %v", err)
+	}
+
+	// Verify item is back with removed=0 and new position
+	var removed int
+	var position int64
+	err := db.Db.QueryRow(`
+		SELECT removed, position FROM container_members
+		WHERE container_id = 'q-1' AND item_id = 'tk-1'
+	`).Scan(&removed, &position)
+	if err != nil {
+		t.Fatalf("failed to query item: %v", err)
+	}
+
+	if removed != 0 {
+		t.Errorf("removed = %d, want 0 (repush should unmark as removed)", removed)
+	}
+	// When repushing the only item (which was removed), max of non-removed items is NULL,
+	// so we start fresh at position 1
+	if position != 1 {
+		t.Errorf("position = %d, want 1 (repush to empty queue starts at 1)", position)
+	}
+}
+
+func TestGroupAdd_Idempotent(t *testing.T) {
+	db := openTempDB(t)
+	seedContainerKindAndInstance(t, db, "today", types.PrimitiveGroup, "g-1", "Today")
+
+	// Add item twice
+	payload := types.GroupAddPayload{
+		ContainerID: "g-1",
+		ItemID:      "tk-1",
+	}
+	payloadJSON, _ := json.Marshal(payload)
+
+	for i := 0; i < 2; i++ {
+		event := types.Event{
+			ID:        string(types.NewEventID()),
+			TS:        int64(i),
+			CreatedAt: time.Now(),
+			Actor:     "tester",
+			Role:      "human",
+			Kind:      string(types.EventKindGroupAdd),
+			Payload:   payloadJSON,
+		}
+		if err := db.ProjectGroupAddEvent(event); err != nil {
+			t.Fatalf("ProjectGroupAddEvent() #%d error = %v", i+1, err)
+		}
+	}
+
+	// Should only have one copy
+	var count int
+	err := db.Db.QueryRow(`
+		SELECT COUNT(*) FROM container_members
+		WHERE container_id = 'g-1' AND item_id = 'tk-1'
+	`).Scan(&count)
+	if err != nil {
+		t.Fatalf("failed to count: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("count = %d, want 1 (duplicate add should be idempotent)", count)
 	}
 }
