@@ -12,16 +12,19 @@ import (
 )
 
 var CreateCmd = &cobra.Command{
-	Use:   "create <kind> <name>",
+	Use:   "create [kind] <name>",
 	Short: "Create a new group",
 	Long: `Create a new group container.
 
-The kind must be defined first using: tk schema add-kind group <kind>
+If no kind is specified, uses the default "general" kind.
 
-Example:
-  tk schema add-kind group sprint --description "Sprint work"
-  tk group create sprint "November 2025 Sprint"`,
-	Args: cobra.ExactArgs(2),
+Examples:
+  tk group create "My Group"
+  tk group create today "Today's focus"
+
+To define custom kinds:
+  tk schema add-kind group today --description "Today's focus"`,
+	Args: cobra.RangeArgs(1, 2),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := database.OpenExistingDB()
 		if err != nil {
@@ -38,10 +41,17 @@ Example:
 			return fmt.Errorf("containers require database v6 or higher, but current version is v%d", version)
 		}
 
-		kindName := args[0]
-		containerName := args[1]
+		// Parse arguments: either "name" or "kind name"
+		var kindName, containerName string
+		if len(args) == 1 {
+			kindName = "general"
+			containerName = args[0]
+		} else {
+			kindName = args[0]
+			containerName = args[1]
+		}
 
-		// Verify kind exists and is a group
+		// Ensure kind exists, auto-creating "general" if needed
 		var primitive string
 		var deprecated int
 		err = db.Db.QueryRow(`
@@ -50,7 +60,23 @@ Example:
 			WHERE name = ?
 		`, kindName).Scan(&primitive, &deprecated)
 		if err != nil {
-			return fmt.Errorf("kind %q not found. Define it first with: tk schema add-kind group %s", kindName, kindName)
+			// If "general" kind doesn't exist, auto-create it
+			if kindName == "general" {
+				if err := db.CreateDefaultKind(types.PrimitiveGroup, "general", "General purpose group"); err != nil {
+					return fmt.Errorf("failed to create default kind: %w", err)
+				}
+				// Re-query after creation
+				err = db.Db.QueryRow(`
+					SELECT primitive, deprecated
+					FROM container_kinds
+					WHERE name = ?
+				`, kindName).Scan(&primitive, &deprecated)
+				if err != nil {
+					return fmt.Errorf("failed to verify default kind: %w", err)
+				}
+			} else {
+				return fmt.Errorf("kind %q not found. Define it first with: tk schema add-kind group %s", kindName, kindName)
+			}
 		}
 
 		if primitive != string(types.PrimitiveGroup) {
