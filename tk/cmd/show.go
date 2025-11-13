@@ -333,6 +333,33 @@ func renderTaskDetails(db *database.DB, reducer *reducer.Reducer, task *types.Ta
 		}
 	}
 
+	// Display containers (v6+)
+	version, _ := db.GetDBVersion()
+	if version >= 6 {
+		rows, err := db.Db.Query(`
+			SELECT c.id, c.primitive, c.kind, c.name
+			FROM container_members cm
+			JOIN containers c ON cm.container_id = c.id
+			WHERE cm.item_id = ? AND cm.removed = 0 AND c.removed = 0
+			ORDER BY c.primitive, c.id
+		`, task.TaskUUID)
+		if err == nil {
+			defer rows.Close()
+
+			var containers []string
+			for rows.Next() {
+				var id, primitive, kind, name string
+				if err := rows.Scan(&id, &primitive, &kind, &name); err == nil {
+					containers = append(containers, fmt.Sprintf("%s (%s)", id, primitive))
+				}
+			}
+
+			if len(containers) > 0 {
+				fmt.Printf("\nIn containers: %s\n", strings.Join(containers, ", "))
+			}
+		}
+	}
+
 	// Display notes
 	if len(task.Notes) > 0 {
 		fmt.Println("\nNotes:")
