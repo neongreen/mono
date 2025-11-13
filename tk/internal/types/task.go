@@ -8,8 +8,8 @@ import (
 
 // Attachment represents a file attached to a task
 type Attachment struct {
-	ID          string `json:"id"`          // Attachment ID (e.g., "att-1")
-	Hash        string `json:"hash"`        // SHA256 hash of content
+	ID          string `json:"id"`   // Attachment ID (e.g., "att-1")
+	Hash        string `json:"hash"` // SHA256 hash of content
 	Filename    string `json:"filename"`
 	Description string `json:"description,omitempty"`
 	MimeType    string `json:"mime_type,omitempty"`
@@ -26,7 +26,7 @@ type Task struct {
 	Axes          map[string]AxisStatus     `json:"axes"`
 	Metadata      map[string]MetadataStatus `json:"metadata,omitempty"` // Metadata with claims
 	Notes         []Note                    `json:"notes"`
-	Attachments   []Attachment              `json:"attachments,omitempty"`   // File attachments
+	Attachments   []Attachment              `json:"attachments,omitempty"` // File attachments
 	CreatedBy     string                    `json:"created_by"`
 	CreatedAt     time.Time                 `json:"created_at"`
 	CreatedAtTS   int64                     `json:"created_at_ts,omitempty"` // Lamport timestamp of task.created event

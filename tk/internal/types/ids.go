@@ -261,23 +261,23 @@ func (e EventID) String() string { return string(e) }
 type EventKind string
 
 const (
-	EventKindProjectCreated     EventKind = "project.created"
-	EventKindProjectAliasAdd    EventKind = "project.alias.add"    // deprecated:v5 track:true - Alias events no longer generated
-	EventKindProjectAliasRemove EventKind = "project.alias.remove" // deprecated:v5 track:true - Alias events no longer generated
-	EventKindProjectDelete      EventKind = "project.delete"
-	EventKindProjectNameSet     EventKind = "project.name.set"
-	EventKindTaskCreated        EventKind = "task.created"
-	EventKindTaskNumberSet      EventKind = "task.number.set"
-	EventKindTaskRelocate       EventKind = "task.relocate"
-	EventKindTaskStatusSet      EventKind = "task.status.set"
-	EventKindTaskNoteAdd        EventKind = "task.note.add"
-	EventKindTaskTitleSet       EventKind = "task.title.set"
-	EventKindTaskDelete         EventKind = "task.delete"
-	EventKindTaskMetaSet        EventKind = "task.meta.set"
-	EventKindRelationAdd        EventKind = "relation.add"
-	EventKindRelationRemove     EventKind = "relation.remove"
-	EventKindRelationNote       EventKind = "relation.note"
-	EventKindTaskAttachmentAdd  EventKind = "task.attachment.add"
+	EventKindProjectCreated       EventKind = "project.created"
+	EventKindProjectAliasAdd      EventKind = "project.alias.add"    // deprecated:v5 track:true - Alias events no longer generated
+	EventKindProjectAliasRemove   EventKind = "project.alias.remove" // deprecated:v5 track:true - Alias events no longer generated
+	EventKindProjectDelete        EventKind = "project.delete"
+	EventKindProjectNameSet       EventKind = "project.name.set"
+	EventKindTaskCreated          EventKind = "task.created"
+	EventKindTaskNumberSet        EventKind = "task.number.set"
+	EventKindTaskRelocate         EventKind = "task.relocate"
+	EventKindTaskStatusSet        EventKind = "task.status.set"
+	EventKindTaskNoteAdd          EventKind = "task.note.add"
+	EventKindTaskTitleSet         EventKind = "task.title.set"
+	EventKindTaskDelete           EventKind = "task.delete"
+	EventKindTaskMetaSet          EventKind = "task.meta.set"
+	EventKindRelationAdd          EventKind = "relation.add"
+	EventKindRelationRemove       EventKind = "relation.remove"
+	EventKindRelationNote         EventKind = "relation.note"
+	EventKindTaskAttachmentAdd    EventKind = "task.attachment.add"
 	EventKindTaskAttachmentRemove EventKind = "task.attachment.remove"
 )
 
@@ -306,23 +306,23 @@ const (
 )
 
 var AllEventKinds = [...]EventKind{
-	eventKindProjectCreatedIndex:     EventKindProjectCreated,
-	eventKindProjectAliasAddIndex:    EventKindProjectAliasAdd,
-	eventKindProjectAliasRemoveIndex: EventKindProjectAliasRemove,
-	eventKindProjectDeleteIndex:      EventKindProjectDelete,
-	eventKindProjectNameSetIndex:     EventKindProjectNameSet,
-	eventKindTaskCreatedIndex:        EventKindTaskCreated,
-	eventKindTaskNumberSetIndex:      EventKindTaskNumberSet,
-	eventKindTaskRelocateIndex:       EventKindTaskRelocate,
-	eventKindTaskStatusSetIndex:      EventKindTaskStatusSet,
-	eventKindTaskNoteAddIndex:        EventKindTaskNoteAdd,
-	eventKindTaskTitleSetIndex:       EventKindTaskTitleSet,
-	eventKindTaskDeleteIndex:         EventKindTaskDelete,
-	eventKindTaskMetaSetIndex:        EventKindTaskMetaSet,
-	eventKindRelationAddIndex:        EventKindRelationAdd,
-	eventKindRelationRemoveIndex:     EventKindRelationRemove,
-	eventKindRelationNoteIndex:       EventKindRelationNote,
-	eventKindTaskAttachmentAddIndex:  EventKindTaskAttachmentAdd,
+	eventKindProjectCreatedIndex:       EventKindProjectCreated,
+	eventKindProjectAliasAddIndex:      EventKindProjectAliasAdd,
+	eventKindProjectAliasRemoveIndex:   EventKindProjectAliasRemove,
+	eventKindProjectDeleteIndex:        EventKindProjectDelete,
+	eventKindProjectNameSetIndex:       EventKindProjectNameSet,
+	eventKindTaskCreatedIndex:          EventKindTaskCreated,
+	eventKindTaskNumberSetIndex:        EventKindTaskNumberSet,
+	eventKindTaskRelocateIndex:         EventKindTaskRelocate,
+	eventKindTaskStatusSetIndex:        EventKindTaskStatusSet,
+	eventKindTaskNoteAddIndex:          EventKindTaskNoteAdd,
+	eventKindTaskTitleSetIndex:         EventKindTaskTitleSet,
+	eventKindTaskDeleteIndex:           EventKindTaskDelete,
+	eventKindTaskMetaSetIndex:          EventKindTaskMetaSet,
+	eventKindRelationAddIndex:          EventKindRelationAdd,
+	eventKindRelationRemoveIndex:       EventKindRelationRemove,
+	eventKindRelationNoteIndex:         EventKindRelationNote,
+	eventKindTaskAttachmentAddIndex:    EventKindTaskAttachmentAdd,
 	eventKindTaskAttachmentRemoveIndex: EventKindTaskAttachmentRemove,
 }
 

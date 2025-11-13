@@ -13,13 +13,13 @@ import (
 var (
 	// Version information - automatically populated from VCS
 	Version   = "dev"
-	GitCommit = "unknown"  // Short commit hash (12 chars) for display
+	GitCommit = "unknown" // Short commit hash (12 chars) for display
 	BuildTime = "unknown"
 
 	// Additional version metadata
-	GitCommitFull = "unknown"  // Full commit hash
-	GitModified   = false      // Whether there are uncommitted changes
-	CommitTime    = "unknown"  // Commit timestamp (vcs.time)
+	GitCommitFull = "unknown" // Full commit hash
+	GitModified   = false     // Whether there are uncommitted changes
+	CommitTime    = "unknown" // Commit timestamp (vcs.time)
 )
 
 func init() {
@@ -44,7 +44,7 @@ func init() {
 
 	// Populate GitCommit if we have revision info
 	if revision != "" {
-		GitCommitFull = revision  // Store full commit hash
+		GitCommitFull = revision // Store full commit hash
 		// Use short commit hash (first 12 chars) for display
 		if len(revision) > 12 {
 			GitCommit = revision[:12]

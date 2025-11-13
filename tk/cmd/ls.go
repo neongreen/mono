@@ -214,9 +214,10 @@ var lsCmd = &cobra.Command{
 // parseStatusFilter converts status filter to axis filter format
 // Handles single status, comma-separated statuses (OR), and negation with !
 // Examples:
-//   "wip" -> []string{"generic:wip"}
-//   "todo,wip" -> []string{"generic:todo", "generic:wip"}
-//   "!done" -> negation handled by query package - TODO: tk-360
+//
+//	"wip" -> []string{"generic:wip"}
+//	"todo,wip" -> []string{"generic:todo", "generic:wip"}
+//	"!done" -> negation handled by query package - TODO: tk-360
 func parseStatusFilter(statusFilter string, existingCustomStatuses []string) ([]string, error) {
 	statusFilter = strings.TrimSpace(statusFilter)
 	if statusFilter == "" {

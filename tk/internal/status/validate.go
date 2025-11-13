@@ -2,6 +2,7 @@ package status
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -17,12 +18,7 @@ var PredefinedStatuses = []string{
 // IsValidPredefinedStatus checks if a status is in the predefined list
 func IsValidPredefinedStatus(status string) bool {
 	normalized := strings.ToLower(strings.TrimSpace(status))
-	for _, s := range PredefinedStatuses {
-		if s == normalized {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(PredefinedStatuses, normalized)
 }
 
 // ValidateStatus validates a status value. If allowCustom is false, only predefined

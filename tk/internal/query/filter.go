@@ -14,7 +14,7 @@ type FilterOptions struct {
 	AxisFilters   []string // Multiple axis filters with OR logic. Format: "axis:state"
 	BlockedOnly   bool
 	UnblockedOnly bool
-	GrepPattern   string   // Regex pattern to match against title and notes
+	GrepPattern   string // Regex pattern to match against title and notes
 }
 
 // FilterTasks filters a list of tasks based on the given options

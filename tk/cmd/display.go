@@ -40,7 +40,7 @@ func truncateOrPad(s string, width int) string {
 func stripAnsiCodes(s string) string {
 	// Simple regex to strip ANSI escape codes
 	// This handles most common color codes
-	result := ""
+	var result strings.Builder
 	inEscape := false
 	for i := 0; i < len(s); i++ {
 		if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '[' {
@@ -54,9 +54,9 @@ func stripAnsiCodes(s string) string {
 			}
 			continue
 		}
-		result += string(s[i])
+		result.WriteString(string(s[i]))
 	}
-	return result
+	return result.String()
 }
 
 // colorizeStatus returns a colored status string based on the status value
