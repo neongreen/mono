@@ -340,16 +340,40 @@ func main() {
 
 ## Testing
 
-Run the tests:
+The library includes comprehensive tests:
+
+- **Unit tests**: Test individual components and features
+- **Property tests**: Verify algebraic properties using [rapid](https://github.com/flyingmutant/rapid)
+  - Set operation properties (commutativity, associativity, distributivity)
+  - De Morgan's laws
+  - Identity and absorption laws
+  - Parser/evaluator properties (determinism, precedence, etc.)
+
+Run all tests:
 
 ```bash
 cd lib/setlang
 go test -v
 ```
 
+Run only property tests:
+
+```bash
+go test -v -run TestProperty
+```
+
+Property tests run 100 randomized test cases by default, providing high confidence in correctness.
+
 ## License
 
 This library is part of the mono repository and follows its license.
+
+## Comparison with Jujutsu
+
+See [JJ_COMPARISON.md](./JJ_COMPARISON.md) for a detailed analysis of how this library compares to Jujutsu's revset/fileset languages, including:
+- Feature comparison table
+- Missing features and workarounds
+- Recommendations for building a JJ clone in Go
 
 ## Acknowledgments
 
