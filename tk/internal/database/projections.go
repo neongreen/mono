@@ -37,6 +37,16 @@ func (d *DB) ProjectEvent(event types.Event) error {
 		return d.ProjectContainerKindDefineEvent(event)
 	case string(types.EventKindContainerKindDeprecate):
 		return d.ProjectContainerKindDeprecateEvent(event)
+
+	// Container instance events
+	case string(types.EventKindContainerCreate):
+		return d.ProjectContainerCreateEvent(event)
+	case string(types.EventKindContainerRename):
+		return d.ProjectContainerRenameEvent(event)
+	case string(types.EventKindContainerMetadataUpdate):
+		return d.ProjectContainerMetadataUpdateEvent(event)
+	case string(types.EventKindContainerRemove):
+		return d.ProjectContainerRemoveEvent(event)
 	}
 	return nil
 }
@@ -427,4 +437,126 @@ func (d *DB) ProjectContainerKindDeprecateEvent(e types.Event) error {
 	`, payload.Name)
 
 	return err
+}
+
+// ProjectContainerCreateEvent projects a container.create event into the containers table (idempotent)
+func (d *DB) ProjectContainerCreateEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindContainerCreate) {
+		return fmt.Errorf("expected container.create event, got %s", e.Kind)
+	}
+
+	var payload types.CreateContainerPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal container.create payload: %w", err)
+	}
+
+	// Serialize metadata to JSON
+	var metadataJSON []byte
+	if payload.Metadata != nil {
+		var err error
+		metadataJSON, err = json.Marshal(payload.Metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata: %w", err)
+		}
+	}
+
+	// Insert container (idempotent with INSERT OR IGNORE)
+	_, err := d.Db.Exec(`
+		INSERT OR IGNORE INTO containers (id, primitive, kind, name, metadata, removed)
+		VALUES (?, ?, ?, ?, ?, 0)
+	`, payload.ID, payload.Primitive, payload.Kind, payload.Name, metadataJSON)
+
+	return err
+}
+
+// ProjectContainerRenameEvent projects a container.rename event by updating the container name (idempotent)
+func (d *DB) ProjectContainerRenameEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindContainerRename) {
+		return fmt.Errorf("expected container.rename event, got %s", e.Kind)
+	}
+
+	var payload types.RenameContainerPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal container.rename payload: %w", err)
+	}
+
+	// Update name (idempotent)
+	_, err := d.Db.Exec(`
+		UPDATE containers
+		SET name = ?
+		WHERE id = ?
+	`, payload.Name, payload.ID)
+
+	return err
+}
+
+// ProjectContainerMetadataUpdateEvent projects a container.metadata.update event by updating metadata (idempotent)
+func (d *DB) ProjectContainerMetadataUpdateEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindContainerMetadataUpdate) {
+		return fmt.Errorf("expected container.metadata.update event, got %s", e.Kind)
+	}
+
+	var payload types.UpdateContainerMetadataPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal container.metadata.update payload: %w", err)
+	}
+
+	// Serialize metadata to JSON
+	var metadataJSON []byte
+	if payload.Metadata != nil {
+		var err error
+		metadataJSON, err = json.Marshal(payload.Metadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal metadata: %w", err)
+		}
+	}
+
+	// Update metadata (idempotent, overwrites entire metadata blob)
+	_, err := d.Db.Exec(`
+		UPDATE containers
+		SET metadata = ?
+		WHERE id = ?
+	`, metadataJSON, payload.ID)
+
+	return err
+}
+
+// ProjectContainerRemoveEvent projects a container.remove event by soft-deleting the container (idempotent)
+func (d *DB) ProjectContainerRemoveEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindContainerRemove) {
+		return fmt.Errorf("expected container.remove event, got %s", e.Kind)
+	}
+
+	var payload types.RemoveContainerPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal container.remove payload: %w", err)
+	}
+
+	// Soft delete by setting removed=1 (idempotent)
+	// Also soft delete all members
+	tx, err := d.Db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.Exec(`
+		UPDATE containers
+		SET removed = 1
+		WHERE id = ?
+	`, payload.ID)
+	if err != nil {
+		return fmt.Errorf("failed to mark container as removed: %w", err)
+	}
+
+	_, err = tx.Exec(`
+		UPDATE container_members
+		SET removed = 1
+		WHERE container_id = ?
+	`, payload.ID)
+	if err != nil {
+		return fmt.Errorf("failed to mark container members as removed: %w", err)
+	}
+
+	return tx.Commit()
 }
