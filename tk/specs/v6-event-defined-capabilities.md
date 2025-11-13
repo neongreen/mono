@@ -30,9 +30,9 @@ hard coded primitive container types
 type ContainerPrimitive string
 
 const (
-    PrimitiveQueue   ContainerPrimitive = "queue"
-    PrimitiveStack   ContainerPrimitive = "stack"
-    PrimitiveCluster ContainerPrimitive = "cluster"
+    PrimitiveQueue ContainerPrimitive = "queue"
+    PrimitiveStack ContainerPrimitive = "stack"
+    PrimitiveGroup ContainerPrimitive = "group"
 )
 ````
 
@@ -50,7 +50,7 @@ semantics
   * push appends at tail
   * pop removes from tail
 
-* cluster
+* group
 
   * unordered set
   * add inserts if not present
@@ -62,11 +62,11 @@ these behaviours live in go code, not in schema
 
 existing tk item ids like `tk-123` stay as they are
 
-containers get ids in the same namespace style, but with prefixes, suggestion
+containers get ids in the same namespace style, but with prefixes
 
 * queues `q-123`
 * stacks `s-123`
-* clusters `c-123`
+* groups `g-123`
 
 exact encoding can follow existing id generator in tk
 
@@ -85,7 +85,7 @@ we add **materialized tables** for schema and container state
 ```sql
 create table container_kinds (
     name           text primary key,        -- e g "sprint", "focus", "today"
-    primitive      text not null,          -- "queue" | "stack" | "cluster"
+    primitive      text not null,          -- "queue" | "stack" | "group"
     hint           text,                   -- optional human / llm hint
     deprecated     integer not null default 0, -- 0 = active, 1 = deprecated
     created_at     integer not null,       -- event index or unix time
@@ -136,7 +136,7 @@ all three are populated by events
 ```sql
 create table containers (
     id          text primary key,        -- e g "q-1"
-    primitive   text not null,          -- queue | stack | cluster
+    primitive   text not null,          -- queue | stack | group
     kind        text not null,          -- foreign key to container_kinds(name)
     name        text not null,
     metadata    text,                   -- json blob, optional
@@ -155,7 +155,7 @@ notes
 create table container_members (
     container_id  text not null,        -- fk to containers(id)
     item_id       text not null,        -- fk to items table or generic id
-    position      integer,              -- ordering for queue / stack, null for cluster
+    position      integer,              -- ordering for queue / stack, null for group
     removed       integer not null default 0,
     primary key (container_id, item_id)
 );
@@ -171,10 +171,10 @@ semantics
   * queue pop = smallest `position`
   * stack pop = largest `position`
 
-* for cluster
+* for group
 
   * `position` is null
-  * membership is set like
+  * membership is a set (unordered)
 
 ---
 
@@ -330,6 +330,12 @@ on replay
 
 ### 3 3 membership events
 
+**important:** `item_id` in all membership events must be a resolved task uid (like `tsk_01ABC...`),
+never a display id (like `tk-123`)
+
+commands must resolve task references before writing events
+display logic must render task uids back to display ids for user output
+
 positions are assigned by replay logic, not passed in explicitly by commands
 
 #### 3 3 1 queue push
@@ -380,22 +386,24 @@ replay logic identical, behaviour difference only in **how the CLI selects item 
 
 the event just records which item was popped
 
-#### 3 3 4 cluster add / remove
+#### 3 3 4 group add / remove
 
-type `cluster_add`
+type `group_add`
 
 ```json
 {
-  "container_id": "c-1",
-  "item_id": "tk-123"
+  "container_id": "g-1",
+  "item_id": "tsk_01ABC..."
 }
 ```
+
+note: `item_id` must be a resolved task uid, not a display id
 
 on replay
 
 * insert into `container_members` with `position = null`
 
-type `cluster_remove`
+type `group_remove`
 
 * set `removed = 1` for that pair
 
@@ -441,7 +449,7 @@ minimal commands so tk is usable
 
 ```bash
 tk container-kind add queue sprint --hint "timeboxed project work"
-tk container-kind add cluster today --hint "intended for today"
+tk schema add-kind group today --description "intended for today"
 ```
 
 implementation
@@ -467,7 +475,7 @@ implementation
 ```bash
 tk queue create sprint "nov sprint"
 tk stack create return_to "return to later"
-tk cluster create today "today"
+tk group create today "today"
 ```
 
 implementation
@@ -480,12 +488,18 @@ implementation
 
 ```bash
 tk queue list
-tk cluster list
+tk group list
 ```
 
 simple selects from `containers` where `primitive = ?` and `removed = 0`
 
 ### 5 3 membership
+
+**important:** items can exist in multiple containers simultaneously by design
+this enables overlapping collections (see tk-13)
+
+**task reference resolution:** before pushing/adding items, resolve the task reference
+to ensure it exists, using tk's existing task resolution logic
 
 #### 5 3 1 queue operations
 
@@ -500,6 +514,7 @@ impl sketch
 * `push`
 
   * validate q-1 is queue
+  * **resolve tk-123 to ensure it exists**
   * write `queue_push` event
 
 * `pop`
@@ -514,7 +529,7 @@ impl sketch
 
 #### 5 3 2 stack operations
 
-analogous
+analogous to queue operations
 
 ```bash
 tk stack push s-1 tk-123
@@ -522,20 +537,36 @@ tk stack pop s-1
 tk stack list s-1
 ```
 
-only difference is which `position` to choose on pop
+impl sketch
 
-#### 5 3 3 cluster operations
+* `push`
+  * validate s-1 is stack
+  * **resolve tk-123 to ensure it exists**
+  * write `stack_push` event
+
+* `pop`
+  * look up tail item (largest position) in `container_members`
+  * if exists, write `stack_pop` with that `item_id`
+  * print the popped item
+
+only difference from queue is which `position` to choose on pop (max vs min)
+
+#### 5 3 3 group operations
+
+note: renamed from "cluster" to "group" for better ux
 
 ```bash
-tk cluster add c-1 tk-123
-tk cluster remove c-1 tk-123
-tk cluster list c-1
+tk group add g-1 tk-123
+tk group remove g-1 tk-123
+tk group list g-1
 ```
 
 impl
 
-* `add` writes `cluster_add`
-* `remove` writes `cluster_remove`
+* `add`
+  * **resolve tk-123 to ensure it exists**
+  * writes `group_add`
+* `remove` writes `group_remove`
 
 ---
 
@@ -556,7 +587,7 @@ payload roughly
   "metadata_fields": [ ... ],
   "queue_kinds": [ ... ],
   "stack_kinds": [ ... ],
-  "cluster_kinds": [ ... ]
+  "group_kinds": [ ... ]
 }
 ```
 
