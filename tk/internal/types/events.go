@@ -119,3 +119,91 @@ type TaskTitleSetPayload struct {
 	TaskUID string `json:"task_uid"`
 	Title   string `json:"title"`
 }
+
+// Container event payloads (v6 event-defined capabilities)
+// See tk/specs/v6-event-defined-capabilities.md
+
+// ContainerPrimitive represents the built-in container types
+type ContainerPrimitive string
+
+const (
+	PrimitiveQueue ContainerPrimitive = "queue"
+	PrimitiveStack ContainerPrimitive = "stack"
+	PrimitiveGroup ContainerPrimitive = "group"
+)
+
+// DefineContainerKindPayload is the payload for container.kind.define events
+type DefineContainerKindPayload struct {
+	Name        string             `json:"name"`
+	Primitive   ContainerPrimitive `json:"primitive"`
+	Description string             `json:"description,omitempty"`
+	CreatedBy   string             `json:"created_by"`
+}
+
+// DeprecateContainerKindPayload is the payload for container.kind.deprecate events
+type DeprecateContainerKindPayload struct {
+	Name string `json:"name"`
+}
+
+// CreateContainerPayload is the payload for container.create events
+type CreateContainerPayload struct {
+	ID        string                 `json:"id"`
+	Primitive ContainerPrimitive     `json:"primitive"`
+	Kind      string                 `json:"kind"`
+	Name      string                 `json:"name"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	CreatedBy string                 `json:"created_by"`
+}
+
+// RenameContainerPayload is the payload for container.rename events
+type RenameContainerPayload struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// UpdateContainerMetadataPayload is the payload for container.metadata.update events
+type UpdateContainerMetadataPayload struct {
+	ID       string                 `json:"id"`
+	Metadata map[string]interface{} `json:"metadata"`
+}
+
+// RemoveContainerPayload is the payload for container.remove events
+type RemoveContainerPayload struct {
+	ID string `json:"id"`
+}
+
+// QueuePushPayload is the payload for queue.push events
+type QueuePushPayload struct {
+	ContainerID string `json:"container_id"`
+	ItemID      string `json:"item_id"`
+}
+
+// QueuePopPayload is the payload for queue.pop events
+type QueuePopPayload struct {
+	ContainerID string `json:"container_id"`
+	ItemID      string `json:"item_id"`
+}
+
+// StackPushPayload is the payload for stack.push events
+type StackPushPayload struct {
+	ContainerID string `json:"container_id"`
+	ItemID      string `json:"item_id"`
+}
+
+// StackPopPayload is the payload for stack.pop events
+type StackPopPayload struct {
+	ContainerID string `json:"container_id"`
+	ItemID      string `json:"item_id"`
+}
+
+// GroupAddPayload is the payload for group.add events
+type GroupAddPayload struct {
+	ContainerID string `json:"container_id"`
+	ItemID      string `json:"item_id"`
+}
+
+// GroupRemovePayload is the payload for group.remove events
+type GroupRemovePayload struct {
+	ContainerID string `json:"container_id"`
+	ItemID      string `json:"item_id"`
+}
