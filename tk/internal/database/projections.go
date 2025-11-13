@@ -47,6 +47,20 @@ func (d *DB) ProjectEvent(event types.Event) error {
 		return d.ProjectContainerMetadataUpdateEvent(event)
 	case string(types.EventKindContainerRemove):
 		return d.ProjectContainerRemoveEvent(event)
+
+	// Container membership events
+	case string(types.EventKindQueuePush):
+		return d.ProjectQueuePushEvent(event)
+	case string(types.EventKindQueuePop):
+		return d.ProjectQueuePopEvent(event)
+	case string(types.EventKindStackPush):
+		return d.ProjectStackPushEvent(event)
+	case string(types.EventKindStackPop):
+		return d.ProjectStackPopEvent(event)
+	case string(types.EventKindGroupAdd):
+		return d.ProjectGroupAddEvent(event)
+	case string(types.EventKindGroupRemove):
+		return d.ProjectGroupRemoveEvent(event)
 	}
 	return nil
 }
@@ -559,4 +573,170 @@ func (d *DB) ProjectContainerRemoveEvent(e types.Event) error {
 	}
 
 	return tx.Commit()
+}
+
+// ProjectQueuePushEvent projects a queue.push event by adding item to queue with next position (idempotent)
+func (d *DB) ProjectQueuePushEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindQueuePush) {
+		return fmt.Errorf("expected queue.push event, got %s", e.Kind)
+	}
+
+	var payload types.QueuePushPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal queue.push payload: %w", err)
+	}
+
+	// Find current max position for this container (ignoring removed items)
+	var maxPosition sql.NullInt64
+	err := d.Db.QueryRow(`
+		SELECT MAX(position)
+		FROM container_members
+		WHERE container_id = ? AND removed = 0
+	`, payload.ContainerID).Scan(&maxPosition)
+	if err != nil {
+		return fmt.Errorf("failed to get max position: %w", err)
+	}
+
+	// Next position is max+1, or 1 if no items
+	nextPosition := int64(1)
+	if maxPosition.Valid {
+		nextPosition = maxPosition.Int64 + 1
+	}
+
+	// Insert or update member (idempotent)
+	// If item already exists (even if removed), update it to not removed with new position
+	_, err = d.Db.Exec(`
+		INSERT INTO container_members (container_id, item_id, position, removed)
+		VALUES (?, ?, ?, 0)
+		ON CONFLICT(container_id, item_id) DO UPDATE SET
+			position = excluded.position,
+			removed = 0
+	`, payload.ContainerID, payload.ItemID, nextPosition)
+
+	return err
+}
+
+// ProjectQueuePopEvent projects a queue.pop event by marking the specified item as removed (idempotent)
+func (d *DB) ProjectQueuePopEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindQueuePop) {
+		return fmt.Errorf("expected queue.pop event, got %s", e.Kind)
+	}
+
+	var payload types.QueuePopPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal queue.pop payload: %w", err)
+	}
+
+	// Mark item as removed (idempotent)
+	_, err := d.Db.Exec(`
+		UPDATE container_members
+		SET removed = 1
+		WHERE container_id = ? AND item_id = ?
+	`, payload.ContainerID, payload.ItemID)
+
+	return err
+}
+
+// ProjectStackPushEvent projects a stack.push event (same as queue push, position logic identical)
+func (d *DB) ProjectStackPushEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindStackPush) {
+		return fmt.Errorf("expected stack.push event, got %s", e.Kind)
+	}
+
+	var payload types.StackPushPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal stack.push payload: %w", err)
+	}
+
+	// Find current max position for this container (ignoring removed items)
+	var maxPosition sql.NullInt64
+	err := d.Db.QueryRow(`
+		SELECT MAX(position)
+		FROM container_members
+		WHERE container_id = ? AND removed = 0
+	`, payload.ContainerID).Scan(&maxPosition)
+	if err != nil {
+		return fmt.Errorf("failed to get max position: %w", err)
+	}
+
+	// Next position is max+1, or 1 if no items
+	nextPosition := int64(1)
+	if maxPosition.Valid {
+		nextPosition = maxPosition.Int64 + 1
+	}
+
+	// Insert or update member (idempotent)
+	_, err = d.Db.Exec(`
+		INSERT INTO container_members (container_id, item_id, position, removed)
+		VALUES (?, ?, ?, 0)
+		ON CONFLICT(container_id, item_id) DO UPDATE SET
+			position = excluded.position,
+			removed = 0
+	`, payload.ContainerID, payload.ItemID, nextPosition)
+
+	return err
+}
+
+// ProjectStackPopEvent projects a stack.pop event by marking the specified item as removed (idempotent)
+func (d *DB) ProjectStackPopEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindStackPop) {
+		return fmt.Errorf("expected stack.pop event, got %s", e.Kind)
+	}
+
+	var payload types.StackPopPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal stack.pop payload: %w", err)
+	}
+
+	// Mark item as removed (idempotent)
+	_, err := d.Db.Exec(`
+		UPDATE container_members
+		SET removed = 1
+		WHERE container_id = ? AND item_id = ?
+	`, payload.ContainerID, payload.ItemID)
+
+	return err
+}
+
+// ProjectGroupAddEvent projects a group.add event by adding item with NULL position (idempotent)
+func (d *DB) ProjectGroupAddEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindGroupAdd) {
+		return fmt.Errorf("expected group.add event, got %s", e.Kind)
+	}
+
+	var payload types.GroupAddPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal group.add payload: %w", err)
+	}
+
+	// Insert or update member with NULL position (idempotent)
+	_, err := d.Db.Exec(`
+		INSERT INTO container_members (container_id, item_id, position, removed)
+		VALUES (?, ?, NULL, 0)
+		ON CONFLICT(container_id, item_id) DO UPDATE SET
+			removed = 0
+	`, payload.ContainerID, payload.ItemID)
+
+	return err
+}
+
+// ProjectGroupRemoveEvent projects a group.remove event by marking item as removed (idempotent)
+func (d *DB) ProjectGroupRemoveEvent(e types.Event) error {
+	if e.Kind != string(types.EventKindGroupRemove) {
+		return fmt.Errorf("expected group.remove event, got %s", e.Kind)
+	}
+
+	var payload types.GroupRemovePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal group.remove payload: %w", err)
+	}
+
+	// Mark item as removed (idempotent)
+	_, err := d.Db.Exec(`
+		UPDATE container_members
+		SET removed = 1
+		WHERE container_id = ? AND item_id = ?
+	`, payload.ContainerID, payload.ItemID)
+
+	return err
 }
