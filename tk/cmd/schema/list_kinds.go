@@ -9,13 +9,13 @@ import (
 )
 
 var (
-	listKindsAll bool
+	listAll bool
 )
 
-var ListKindsCmd = &cobra.Command{
-	Use:   "list-kinds",
-	Short: "List defined container kinds",
-	Long:  `List all defined container kinds (queue, stack, group).`,
+var ListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List defined schema kinds",
+	Long:  `List all defined container kinds (queue, stack, group) and item kinds (task, decision, resource, etc.).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		db, err := database.OpenExistingDB()
 		if err != nil {
@@ -28,16 +28,74 @@ var ListKindsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		// Show item kinds (v7+)
+		if version >= 7 {
+			fmt.Println("Item Kinds:")
+			fmt.Printf("  %-15s %-50s %s\n", "NAME", "DESCRIPTION", "STATUS")
+			fmt.Println("  ───────────────────────────────────────────────────────────────────────────────")
+
+			itemQuery := `
+				SELECT name, description, deprecated
+				FROM item_kinds
+			`
+			if !listAll {
+				itemQuery += ` WHERE deprecated = 0`
+			}
+			itemQuery += ` ORDER BY builtin DESC, name`
+
+			rows, err := db.Db.Query(itemQuery)
+			if err != nil {
+				return fmt.Errorf("failed to query item kinds: %w", err)
+			}
+
+			itemCount := 0
+			for rows.Next() {
+				var name string
+				var description sql.NullString
+				var deprecated int
+
+				if err := rows.Scan(&name, &description, &deprecated); err != nil {
+					rows.Close()
+					return fmt.Errorf("failed to scan row: %w", err)
+				}
+
+				desc := ""
+				if description.Valid {
+					desc = description.String
+				}
+
+				status := "active"
+				if deprecated == 1 {
+					status = "deprecated"
+				}
+
+				fmt.Printf("  %-15s %-50s %s\n", name, desc, status)
+				itemCount++
+			}
+			rows.Close()
+
+			if itemCount == 0 {
+				fmt.Println("  (no item kinds defined)")
+			}
+			fmt.Println()
+		}
+
+		// Show container kinds (v6+)
 		if version < 6 {
 			return fmt.Errorf("containers require database v6 or higher, but current version is v%d", version)
 		}
+
+		fmt.Println("Container Kinds:")
+		fmt.Printf("  %-15s %-10s %-40s %s\n", "NAME", "TYPE", "DESCRIPTION", "STATUS")
+		fmt.Println("  ──────────────────────────────────────────────────────────────────────────────────")
 
 		// Query container kinds
 		query := `
 			SELECT name, primitive, description, deprecated
 			FROM container_kinds
 		`
-		if !listKindsAll {
+		if !listAll {
 			query += ` WHERE deprecated = 0`
 		}
 		query += ` ORDER BY primitive, name`
@@ -48,11 +106,7 @@ var ListKindsCmd = &cobra.Command{
 		}
 		defer rows.Close()
 
-		// Print header
-		fmt.Printf("%-12s %-10s %-40s %s\n", "NAME", "PRIMITIVE", "DESCRIPTION", "STATUS")
-		fmt.Println("────────────────────────────────────────────────────────────────────────────")
-
-		count := 0
+		containerCount := 0
 		for rows.Next() {
 			var name string
 			var primitive string
@@ -73,13 +127,12 @@ var ListKindsCmd = &cobra.Command{
 				status = "deprecated"
 			}
 
-			fmt.Printf("%-12s %-10s %-40s %s\n", name, primitive, desc, status)
-			count++
+			fmt.Printf("  %-15s %-10s %-40s %s\n", name, primitive, desc, status)
+			containerCount++
 		}
 
-		if count == 0 {
-			fmt.Println("No container kinds defined.")
-			fmt.Println("\nDefine one with: tk schema add-kind <primitive> <name>")
+		if containerCount == 0 {
+			fmt.Println("  (no container kinds defined)")
 		}
 
 		return nil
@@ -87,5 +140,13 @@ var ListKindsCmd = &cobra.Command{
 }
 
 func init() {
-	ListKindsCmd.Flags().BoolVar(&listKindsAll, "all", false, "Show deprecated kinds")
+	ListCmd.Flags().BoolVar(&listAll, "all", false, "Show deprecated kinds")
+}
+
+// Keep old command for backward compatibility (deprecated)
+var ListKindsCmd = &cobra.Command{
+	Use:        "list-kinds",
+	Deprecated: "use 'tk schema list' instead",
+	Hidden:     true,
+	RunE:       ListCmd.RunE,
 }
