@@ -103,6 +103,7 @@ This is useful for:
 	RootCmd.AddCommand(syncCmd)
 	RootCmd.AddCommand(debugCmd)
 	RootCmd.AddCommand(projectCmd)
+	RootCmd.AddCommand(schemaCmd)
 	RootCmd.AddCommand(metaCmd)
 	RootCmd.AddCommand(migrateCmd)
 	RootCmd.AddCommand(logCmd)
