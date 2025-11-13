@@ -99,7 +99,7 @@ func TestEvalIntersect(t *testing.T) {
 func TestEvalDiff(t *testing.T) {
 	ctx := newTestContext()
 
-	result, err := Eval(ctx, "a - b")
+	result, err := Eval(ctx, "a ~ b")
 	if err != nil {
 		t.Fatalf("Eval() error = %v", err)
 	}
@@ -135,11 +135,11 @@ func TestEvalPrecedence(t *testing.T) {
 func TestEvalComplexExpression(t *testing.T) {
 	ctx := newTestContext()
 
-	// (a | b) & c - b
+	// (a | b) & c ~ b
 	// a | b = {1, 2, 3, 4}
 	// {1, 2, 3, 4} & c = {3, 4}
-	// {3, 4} - b = {}  (since b contains 3 and 4)
-	result, err := Eval(ctx, "(a | b) & c - b")
+	// {3, 4} ~ b = {}  (since b contains 3 and 4)
+	result, err := Eval(ctx, "(a | b) & c ~ b")
 	if err != nil {
 		t.Fatalf("Eval() error = %v", err)
 	}
@@ -201,7 +201,7 @@ func TestEvalWithEmpty(t *testing.T) {
 		},
 		{
 			name:     "diff with empty",
-			input:    "a - empty",
+			input:    "a ~ empty",
 			expected: []string{"1", "2", "3"},
 		},
 	}
@@ -273,13 +273,13 @@ func TestEvalMultipleOperations(t *testing.T) {
 	checkSet(t, result2, expected2)
 
 	// Test multiple diffs
-	result3, err := Eval(ctx, "all() - a - b")
+	result3, err := Eval(ctx, "all() ~ a ~ b")
 	if err != nil {
 		t.Fatalf("Eval() error = %v", err)
 	}
 	// all = {1,2,3,4,5,6}
-	// - a = {4,5,6}
-	// - b = {5,6}
+	// ~ a = {4,5,6}
+	// ~ b = {5,6}
 	expected3 := []string{"5", "6"}
 	checkSet(t, result3, expected3)
 }

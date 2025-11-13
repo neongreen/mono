@@ -17,16 +17,16 @@
 
 - `|` - Union (set A or set B)
 - `&` - Intersection (set A and set B)
-- `-` - Difference (set A but not set B)
+- `~` - Difference (set A but not set B)
 
-Precedence: `-` (highest) > `&` > `|` (lowest)
+Precedence: `~` (highest) > `&` > `|` (lowest)
 
 ### Expressions
 
 ```
 a | b           # Union of sets a and b
 a & b           # Intersection of sets a and b
-a - b           # Difference: items in a but not in b
+a ~ b           # Difference: items in a but not in b
 (a | b) & c     # Parentheses for grouping
 all()           # Function call with no arguments
 status(open)    # Function call with identifier

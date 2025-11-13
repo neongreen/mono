@@ -47,8 +47,8 @@ func TestParserBasic(t *testing.T) {
 		},
 		{
 			name:  "diff operation",
-			input: "a - b",
-			want:  "a - b",
+			input: "a ~ b",
+			want:  "a ~ b",
 		},
 		{
 			name:  "parentheses",
@@ -62,8 +62,8 @@ func TestParserBasic(t *testing.T) {
 		},
 		{
 			name:  "precedence test",
-			input: "a | b & c - d",
-			want:  "a | b & c - d",
+			input: "a | b & c ~ d",
+			want:  "a | b & c ~ d",
 		},
 		{
 			name:  "parentheses override precedence",
@@ -72,8 +72,8 @@ func TestParserBasic(t *testing.T) {
 		},
 		{
 			name:  "nested parentheses",
-			input: "((a | b) & c) - d",
-			want:  "((a | b) & c) - d",
+			input: "((a | b) & c) ~ d",
+			want:  "((a | b) & c) ~ d",
 		},
 		{
 			name:  "function with expression arg",
@@ -82,8 +82,8 @@ func TestParserBasic(t *testing.T) {
 		},
 		{
 			name:  "complex nested expression",
-			input: "status(open) & (label(bug) | label(feature)) - archived",
-			want:  "status(open) & (label(bug) | label(feature)) - archived",
+			input: "status(open) & (label(bug) | label(feature)) ~ archived",
+			want:  "status(open) & (label(bug) | label(feature)) ~ archived",
 		},
 	}
 
@@ -157,8 +157,8 @@ func TestParserPrecedence(t *testing.T) {
 		t.Error("expected intersection on right side of union")
 	}
 
-	// a & b - c should parse as a & (b - c)
-	expr2 := parser.MustParse("a & b - c")
+	// a & b ~ c should parse as a & (b ~ c)
+	expr2 := parser.MustParse("a & b ~ c")
 	intersect2 := expr2.Union.Left
 	if len(intersect2.Right) != 1 {
 		t.Error("expected one intersect operation")
@@ -169,8 +169,8 @@ func TestParserPrecedence(t *testing.T) {
 		t.Error("expected difference on right side of intersection")
 	}
 
-	// a - b - c should parse as (a - b) - c (left associative)
-	expr3 := parser.MustParse("a - b - c")
+	// a ~ b ~ c should parse as (a ~ b) ~ c (left associative)
+	expr3 := parser.MustParse("a ~ b ~ c")
 	diff3 := expr3.Union.Left.Left
 	if len(diff3.Right) != 2 {
 		t.Errorf("expected two difference operations, got %d", len(diff3.Right))

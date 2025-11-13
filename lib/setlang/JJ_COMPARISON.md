@@ -14,11 +14,11 @@ Jujutsu uses set-based query languages to select commits (revsets) and files (fi
 |---------|-----------|----------------|-------|
 | Union | `a \| b` | `a \| b` | ✅ Same |
 | Intersection | `a & b` | `a & b` | ✅ Same |
-| Difference | `a ~ b` | `a - b` | Different operator symbol |
+| Difference | `a ~ b` | `a ~ b` | ✅ Same |
 | Parentheses | `(expr)` | `(expr)` | ✅ Same |
 | Function calls | `func(arg)` | `func(arg)` | ✅ Same |
 | String literals | `"string"` | `"string"` | ✅ Same |
-| Identifiers | `name` | `name` | ✅ Same |
+| Identifiers | `name` | `name` | ✅ Same (allows dashes: `tk-37`) |
 
 ### ❌ Features We're Missing
 
@@ -47,17 +47,16 @@ JJ uses postfix operators for ancestry:
 
 ```jj
 x+            # Descendants of x
-x-            # Ancestors of x (conflicts with our binary - operator!)
+x-            # Ancestors of x
 ```
 
 **Impact**: High - ancestry queries are very common.
 
-**Conflict**: Our `-` is binary infix (difference), JJ's `-` is postfix (ancestors). These are incompatible!
+**No Conflict**: Since we use `~` for difference (not `-`), there's no conflict with JJ's postfix `-` operator!
 
 **Solution**:
 - Add postfix operator support to grammar
-- Use different operator names, or
-- Disambiguate based on context (complex!)
+- Can use same operators as JJ (`+` for descendants, `-` for ancestors)
 
 #### 3. **Unary Negation/Complement**
 
@@ -65,10 +64,13 @@ JJ uses `~` as both unary (complement) and binary (difference):
 
 ```jj
 ~x            # All commits except x (unary)
-x ~ y         # Commits in x but not y (binary)
+x ~ y         # Commits in x but not y (binary) - ✅ we have this!
 ```
 
-**Impact**: Medium - useful but can work around with explicit `all() - x`
+**Impact**: Medium - useful but can work around with explicit `all() ~ x`
+
+**We have**: Binary `~` (difference) - same as JJ!
+**We're missing**: Unary `~` (complement)
 
 **Solution**:
 - Add unary operator support to grammar
@@ -118,12 +120,12 @@ author(alice)    # Likely evaluated/interpreted by the function
 
 #### 3. **Operator Precedence**
 
-**setlang**: `-` > `&` > `|`
-**JJ**: Different precedence with ranges, ancestry, etc.
+**setlang**: `~` > `&` > `|`
+**JJ**: `~` > `&` > `|` (same!) plus ranges, ancestry
 
-**Impact**: Medium - could cause confusion
+**Impact**: Low - our core operators match JJ
 
-**Solution**: Would need to adjust if adding JJ's operators
+**Solution**: Would only need to add postfix/range operators with appropriate precedence
 
 ## What Would Break in a JJ Clone?
 
@@ -133,19 +135,16 @@ author(alice)    # Likely evaluated/interpreted by the function
    - **Workaround**: Add as binary operators with custom parsing
    - **Effort**: Medium - grammar changes, precedence rules
 
-2. **Postfix operator conflict**: Our `-` (diff) conflicts with JJ's `-` (ancestors)
-   - **Workaround**: Use different operator symbols or rename
-   - **Effort**: Low-Medium - grammar change
-
-3. **No ancestry/DAG operators**: Can't traverse commit graphs
+2. **No postfix operators**: Can't use `x-` or `x+` for ancestors/descendants
    - **Workaround**: Implement as functions: `ancestors(x)`, `descendants(x)`
-   - **Effort**: Low - just function implementations
+   - **Effort**: Low-Medium - add postfix operator support to grammar
    - **Tradeoff**: More verbose (`ancestors(x)` vs `x-`)
+   - **Note**: No conflict with `~` operator! Can use same operators as JJ if we add postfix support
 
 ### Medium Problems
 
 1. **No complement operator**: Can't express "everything except X" concisely
-   - **Workaround**: Use `all() - x` explicitly
+   - **Workaround**: Use `all() ~ x` explicitly
    - **Effort**: Low - just needs `all()` function
    - **Tradeoff**: More verbose
 
@@ -183,7 +182,7 @@ Use functions instead of operators:
 // Use:        descendants(@)
 
 // Instead of: ~x
-// Use:        all() - x
+// Use:        all() ~ x
 ```
 
 **Effort**: Low - just implement functions
@@ -203,13 +202,13 @@ type Primary struct {
 
 +type Postfix struct {
 +   Base *Primary  `@@`
-+   Op   *string   `@("+" | "^")`  // Use ^ instead of - to avoid conflict
++   Op   *string   `@("+" | "-")`  // Can use - now, no conflict with ~!
 +}
 ```
 
 Map operators:
-- `x^` → ancestors (avoiding - conflict)
-- `x+` → descendants
+- `x-` → ancestors (same as JJ!)
+- `x+` → descendants (same as JJ!)
 
 **Effort**: Medium
 **Benefit**: More JJ-like syntax
@@ -256,16 +255,17 @@ type Primary struct {
 |---------|----|---------|--------------------|
 | Union (`\|`) | ✅ | ✅ | ✅ Have it |
 | Intersection (`&`) | ✅ | ✅ | ✅ Have it |
-| Difference | `~` | `-` | ⚠️ Different operator |
+| Difference (`~`) | ✅ | ✅ | ✅ Have it (same operator!) |
 | Range (`..`) | ✅ | ❌ | 🔴 Critical - would add |
 | DAG range (`:`) | ✅ | ❌ | 🔴 Critical - would add |
-| Ancestors postfix | `x-` | ❌ | 🟡 Use `ancestors(x)` |
-| Descendants postfix | `x+` | ❌ | 🟡 Use `descendants(x)` |
-| Complement | `~x` | ❌ | 🟡 Use `all() - x` |
+| Ancestors postfix | `x-` | ❌ | 🟡 Use `ancestors(x)`, or add postfix |
+| Descendants postfix | `x+` | ❌ | 🟡 Use `descendants(x)`, or add postfix |
+| Complement | `~x` | ❌ | 🟡 Use `all() ~ x` |
 | Functions | ✅ | ✅ | ✅ Have it |
 | String literals | ✅ | ✅ | ✅ Have it |
 | Parentheses | ✅ | ✅ | ✅ Have it |
 | Pattern prefixes | ✅ | ❌ | 🟢 Handle in functions |
+| Identifiers with dashes | ✅ | ✅ | ✅ Have it (`tk-37`) |
 
 Legend:
 - ✅ Have it

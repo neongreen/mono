@@ -71,7 +71,7 @@ func genFunctionCall(depth int) *rapid.Generator[string] {
 
 // genBinaryOp generates a binary operation
 func genBinaryOp() *rapid.Generator[string] {
-	return rapid.SampledFrom([]string{"|", "&", "-"})
+	return rapid.SampledFrom([]string{"|", "&", "~"})
 }
 
 // genExpr generates a random expression
@@ -148,10 +148,10 @@ func TestProperty_EvalDeterministic(t *testing.T) {
 			"c",
 			"a | b",
 			"a & b",
-			"a - b",
+			"a ~ b",
 			"(a | b) & c",
 			"a | (b & c)",
-			"(a | b) - c",
+			"(a | b) ~ c",
 		}).Draw(t, "expr")
 
 		// Evaluate twice
@@ -189,16 +189,16 @@ func TestProperty_OperatorPrecedence(t *testing.T) {
 			t.Fatalf("precedence inconsistent: 'a | b & c' != 'a | (b & c)'")
 		}
 
-		// Test that a & b - c is parsed as a & (b - c)
-		expr3, err3 := Eval(ctx, "a & b - c")
-		expr4, err4 := Eval(ctx, "a & (b - c)")
+		// Test that a & b ~ c is parsed as a & (b ~ c)
+		expr3, err3 := Eval(ctx, "a & b ~ c")
+		expr4, err4 := Eval(ctx, "a & (b ~ c)")
 
 		if err3 != nil || err4 != nil {
 			return
 		}
 
 		if !setsEqual(expr3, expr4) {
-			t.Fatalf("precedence inconsistent: 'a & b - c' != 'a & (b - c)'")
+			t.Fatalf("precedence inconsistent: 'a & b ~ c' != 'a & (b ~ c)'")
 		}
 	})
 }
@@ -241,35 +241,35 @@ func TestProperty_LeftAssociative(t *testing.T) {
 		ctx.SetIdent("b", NewSetFrom(2, 3))
 		ctx.SetIdent("c", NewSetFrom(3))
 
-		// a - b - c should be (a - b) - c
-		expr1, err1 := Eval(ctx, "a - b - c")
-		expr2, err2 := Eval(ctx, "(a - b) - c")
+		// a ~ b ~ c should be (a ~ b) ~ c
+		expr1, err1 := Eval(ctx, "a ~ b ~ c")
+		expr2, err2 := Eval(ctx, "(a ~ b) ~ c")
 
 		if err1 != nil || err2 != nil {
 			return
 		}
 
 		if !setsEqual(expr1, expr2) {
-			t.Fatalf("diff not left associative: 'a - b - c' != '(a - b) - c'")
+			t.Fatalf("diff not left associative: 'a ~ b ~ c' != '(a ~ b) ~ c'")
 		}
 
 		// Verify it's different from right associative
-		expr3, err3 := Eval(ctx, "a - (b - c)")
+		expr3, err3 := Eval(ctx, "a ~ (b ~ c)")
 		if err3 != nil {
 			return
 		}
 
 		// These should be different
-		// (a - b) - c = ({1,2,3} - {2,3}) - {3} = {1} - {3} = {1}
-		// a - (b - c) = {1,2,3} - ({2,3} - {3}) = {1,2,3} - {2} = {1,3}
+		// (a ~ b) ~ c = ({1,2,3} ~ {2,3}) ~ {3} = {1} ~ {3} = {1}
+		// a ~ (b ~ c) = {1,2,3} ~ ({2,3} ~ {3}) = {1,2,3} ~ {2} = {1,3}
 		expected1 := NewSetFrom(1)
 		expected3 := NewSetFrom(1, 3)
 
 		if !setsEqual(expr1, expected1) {
-			t.Fatalf("(a - b) - c incorrect")
+			t.Fatalf("(a ~ b) ~ c incorrect")
 		}
 		if !setsEqual(expr3, expected3) {
-			t.Fatalf("a - (b - c) incorrect")
+			t.Fatalf("a ~ (b ~ c) incorrect")
 		}
 	})
 }

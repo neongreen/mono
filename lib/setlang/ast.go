@@ -32,8 +32,8 @@ type IntersectTail struct {
 	Right *DiffExpr `@@`
 }
 
-// DiffExpr represents difference operations (-).
-// Grammar: Primary ("-" Primary)*
+// DiffExpr represents difference operations (~).
+// Grammar: Primary ("~" Primary)*
 type DiffExpr struct {
 	Left  *Primary    `@@`
 	Right []*DiffTail `@@*`
@@ -41,7 +41,7 @@ type DiffExpr struct {
 
 // DiffTail represents the right-hand side of a difference operation.
 type DiffTail struct {
-	Op    string   `@"-"`
+	Op    string   `@"~"`
 	Right *Primary `@@`
 }
 

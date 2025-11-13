@@ -19,8 +19,8 @@ func NewParser() (*Parser, error) {
 	lex := lexer.MustSimple([]lexer.SimpleRule{
 		{Name: "Whitespace", Pattern: `[ \t\r\n]+`},
 		{Name: "String", Pattern: `"(?:[^"\\]|\\.)*"`},
-		{Name: "Ident", Pattern: `[a-zA-Z_][a-zA-Z0-9_]*`},
-		{Name: "Punct", Pattern: `[|&\-(),]`},
+		{Name: "Ident", Pattern: `[a-zA-Z_][a-zA-Z0-9_-]*`},
+		{Name: "Punct", Pattern: `[|&~(),]`},
 	})
 
 	parser, err := participle.Build[Expr](
@@ -106,7 +106,7 @@ func (d *DiffExpr) String() string {
 	var sb strings.Builder
 	sb.WriteString(d.Left.String())
 	for _, tail := range d.Right {
-		sb.WriteString(" - ")
+		sb.WriteString(" ~ ")
 		sb.WriteString(tail.Right.String())
 	}
 	return sb.String()
