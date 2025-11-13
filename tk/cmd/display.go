@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -86,12 +87,13 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 			title = "(empty)"
 		}
 
-		// Truncate title if terminal is narrow
-		// Rough calculation: reserve ~40 chars for other columns, use rest for title
-		if termWidth > 0 && termWidth < 120 {
-			maxTitleWidth := termWidth - 40
-			if maxTitleWidth < 20 {
-				maxTitleWidth = 20
+		// Truncate title to fit terminal width
+		// Reserve space for other columns: ID(~10) + STATUS(~8) + P(~3) + LABELS(~15) + borders/padding(~15)
+		if termWidth > 0 {
+			reservedWidth := 50
+			maxTitleWidth := termWidth - reservedWidth
+			if maxTitleWidth < 30 {
+				maxTitleWidth = 30 // Minimum title width
 			}
 			if len(title) > maxTitleWidth {
 				title = title[:maxTitleWidth-3] + "..."
@@ -120,11 +122,23 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 		headers = []string{"ID", "ALIASES", "STATUS", "P", "LABELS", "TITLE"}
 	}
 
+	// Create table with padding
+	re := lipgloss.NewRenderer(os.Stdout)
+
+	var baseStyle = re.NewStyle().Padding(0, 1)
+	var headerStyle = baseStyle.Bold(true).Foreground(lipgloss.Color("240"))
+
 	t := table.New().
 		Border(lipgloss.NormalBorder()).
 		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240"))).
 		BorderLeft(false).
 		BorderRight(false).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			if row == 0 {
+				return headerStyle
+			}
+			return baseStyle
+		}).
 		Headers(headers...).
 		Rows(rows...)
 
