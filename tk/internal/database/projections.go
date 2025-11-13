@@ -202,12 +202,17 @@ func (d *DB) ProjectTaskCreatedEvent(e types.Event) error {
 		return fmt.Errorf("failed to check if project exists: %w", err)
 	}
 
+	// Determine item kind (v7+)
+	itemKind := payload.ItemKind
+	if itemKind == "" {
+		itemKind = "task" // Default for backward compatibility with old events
+	}
+
 	// Project into tasks table (idempotent)
-	// Note: item_kind defaults to 'task' for all task.created events
 	_, err = d.Db.Exec(`
 		INSERT OR IGNORE INTO tasks (task_uid, project_uid, created_node, title, created_at, created_by, item_kind)
-		VALUES (?, ?, ?, ?, ?, ?, 'task')
-	`, payload.TaskUID, payload.ProjectUID, payload.CreatedNode, payload.Title, e.CreatedAt.Unix(), payload.CreatedBy)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+	`, payload.TaskUID, payload.ProjectUID, payload.CreatedNode, payload.Title, e.CreatedAt.Unix(), payload.CreatedBy, itemKind)
 
 	return err
 }

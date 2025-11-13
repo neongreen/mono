@@ -54,6 +54,7 @@ This is useful for:
 
 	newCmd.Flags().StringP("project", "p", "me", "Project alias or UID to use")
 	newCmd.Flags().String("parent", "", "Parent task (creates a subtask relation)")
+	newCmd.Flags().String("kind", "task", "Item kind (task, decision, resource, etc.)")
 	RootCmd.AddCommand(newCmd)
 
 	RootCmd.AddCommand(markCmd)

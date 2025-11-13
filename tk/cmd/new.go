@@ -37,6 +37,7 @@ var newCmd = &cobra.Command{
 
 		projectRef, _ := cmd.Flags().GetString("project")
 		parentRef, _ := cmd.Flags().GetString("parent")
+		itemKind, _ := cmd.Flags().GetString("kind")
 		title := args[0]
 
 		// Auto-detect project from "project: title" format only if -p was not explicitly specified
@@ -76,6 +77,7 @@ var newCmd = &cobra.Command{
 		result, err := tasks.Create(db, tasks.CreateParams{
 			ProjectUID: projectUID,
 			Title:      title,
+			ItemKind:   itemKind,
 		}, currentUser, &clock.RealClock{})
 		if err != nil {
 			return err

@@ -90,6 +90,7 @@ type TaskCreatedPayload struct {
 	CreatedNode    string `json:"created_node"`
 	Title          string `json:"title"`
 	CreatedBy      string `json:"created_by"`
+	ItemKind       string `json:"item_kind,omitempty"` // v7+ item kind (task, decision, resource, etc.)
 }
 
 // TaskNumberSetPayload is the payload for task.number.set events

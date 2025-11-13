@@ -13,6 +13,7 @@ import (
 type CreateParams struct {
 	ProjectUID types.ProjectUID
 	Title      string
+	ItemKind   string // Item kind (defaults to "task" if empty)
 }
 
 // CreateResult holds the result of creating a task
@@ -29,6 +30,12 @@ func Create(db *database.DB, params CreateParams, actor string, clk clock.Clock)
 	}
 
 	taskUID := types.NewTaskUID()
+
+	// Default item kind to "task" if not specified
+	itemKind := params.ItemKind
+	if itemKind == "" {
+		itemKind = "task"
+	}
 
 	// Compute proposed number (max + 1)
 	var maxNumber int64
@@ -48,6 +55,7 @@ func Create(db *database.DB, params CreateParams, actor string, clk clock.Clock)
 		CreatedNode:    nodeID,
 		Title:          params.Title,
 		CreatedBy:      actor,
+		ItemKind:       itemKind,
 	}
 
 	payloadJSON, err := json.Marshal(payload)
