@@ -1,0 +1,17 @@
+package cmd
+
+import (
+	stack_pkg "github.com/neongreen/mono/tk/cmd/stack"
+	"github.com/spf13/cobra"
+)
+
+var stackCmd = &cobra.Command{
+	Use:   "stack",
+	Short: "Manage stacks (LIFO containers)",
+	Long:  `Create and manage stack containers (last in, first out).`,
+}
+
+func init() {
+	stackCmd.AddCommand(stack_pkg.CreateCmd)
+	stackCmd.AddCommand(stack_pkg.ListCmd)
+}
