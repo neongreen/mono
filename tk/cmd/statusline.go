@@ -14,33 +14,37 @@ import (
 
 var statuslineCmd = &cobra.Command{
 	Use:   "statusline",
-	Short: "Display active WIP tasks with recent updates",
-	Long: `Output a compact summary of active (wip) tasks sorted by last update.
+	Short: "Display recently updated tasks",
+	Long: `Output a compact summary of recently updated tasks (any status).
 
 Designed for use in status bars, shell prompts, or Claude Code status line.
 
-Shows each wip task with:
+Shows each task with:
   - Task ID
-  - Truncated title (first ~40 chars)
+  - Truncated title (dynamically sized to terminal width)
   - Time since last update (e.g., "2h ago", "5m ago")
 
 Examples:
-  # Show last 5 wip tasks (default)
+  # Show last 5 recently updated tasks (default)
   tk statusline
 
-  # Show last 3 wip tasks
+  # Show last 3 tasks
   tk statusline --limit 3
+
+  # Only show tasks updated in last 24 hours
+  tk statusline --max-age 24h
 
   # In Claude Code settings.json:
   {
     "statusLine": {
       "type": "command",
-      "command": "FORCE_COLOR=1 tk statusline"
+      "command": "FORCE_COLOR=1 tk statusline --limit 3 --max-age 24h"
     }
   }`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		limit, _ := cmd.Flags().GetInt("limit")
 		noColor, _ := cmd.Flags().GetBool("no-color")
+		maxAgeStr, _ := cmd.Flags().GetString("max-age")
 
 		// Force colors when FORCE_COLOR or CLICOLOR_FORCE is set (for statusline use)
 		if os.Getenv("FORCE_COLOR") != "" || os.Getenv("CLICOLOR_FORCE") != "" {
@@ -49,6 +53,16 @@ Examples:
 
 		if noColor {
 			color.NoColor = true
+		}
+
+		// Parse max-age duration
+		var maxAge time.Duration
+		if maxAgeStr != "" {
+			var err error
+			maxAge, err = time.ParseDuration(maxAgeStr)
+			if err != nil {
+				return fmt.Errorf("invalid --max-age duration: %w", err)
+			}
 		}
 
 		db, err := database.OpenExistingDB()
@@ -67,57 +81,67 @@ Examples:
 			return fmt.Errorf("failed to get reducer: %w", err)
 		}
 
-		// Get all wip tasks
-		var wipTasks []*struct {
+		// Get all tasks (any status)
+		var recentTasks []*struct {
 			UUID      string
 			DisplayID string
 			Title     string
+			Status    string
 			UpdatedAt time.Time
 		}
 
+		now := time.Now()
 		for _, task := range reducer.GetAllTasks() {
-			if axis, ok := task.Axes["generic"]; ok {
-				if axis.Effective == "wip" {
-					displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
-					if err != nil {
-						displayID = task.TaskUUID[:8]
-					}
-
-					wipTasks = append(wipTasks, &struct {
-						UUID      string
-						DisplayID string
-						Title     string
-						UpdatedAt time.Time
-					}{
-						UUID:      task.TaskUUID,
-						DisplayID: displayID,
-						Title:     task.Title,
-						UpdatedAt: task.UpdatedAt,
-					})
-				}
+			// Skip tasks older than max-age if specified
+			if maxAge > 0 && now.Sub(task.UpdatedAt) > maxAge {
+				continue
 			}
+
+			displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
+			if err != nil {
+				displayID = task.TaskUUID[:8]
+			}
+
+			// Get task status
+			status := ""
+			if axis, ok := task.Axes["generic"]; ok {
+				status = axis.Effective
+			}
+
+			recentTasks = append(recentTasks, &struct {
+				UUID      string
+				DisplayID string
+				Title     string
+				Status    string
+				UpdatedAt time.Time
+			}{
+				UUID:      task.TaskUUID,
+				DisplayID: displayID,
+				Title:     task.Title,
+				Status:    status,
+				UpdatedAt: task.UpdatedAt,
+			})
 		}
 
 		// Sort by most recently updated
-		for i := 0; i < len(wipTasks)-1; i++ {
-			for j := i + 1; j < len(wipTasks); j++ {
-				if wipTasks[j].UpdatedAt.After(wipTasks[i].UpdatedAt) {
-					wipTasks[i], wipTasks[j] = wipTasks[j], wipTasks[i]
+		for i := 0; i < len(recentTasks)-1; i++ {
+			for j := i + 1; j < len(recentTasks); j++ {
+				if recentTasks[j].UpdatedAt.After(recentTasks[i].UpdatedAt) {
+					recentTasks[i], recentTasks[j] = recentTasks[j], recentTasks[i]
 				}
 			}
 		}
 
 		// Limit to requested number
-		if len(wipTasks) > limit {
-			wipTasks = wipTasks[:limit]
+		if len(recentTasks) > limit {
+			recentTasks = recentTasks[:limit]
 		}
 
 		// Get terminal width for dynamic truncation
 		termWidth := termutil.GetTerminalWidth()
 
 		// Output each task on its own line
-		now := time.Now()
-		for _, task := range wipTasks {
+		for _, task := range recentTasks {
 			// Format relative time
 			relativeTime := formatRelativeTime(now.Sub(task.UpdatedAt))
 
@@ -134,10 +158,24 @@ Examples:
 				title = title[:availableWidth-3] + "..."
 			}
 
-			// Colorize output
+			// Colorize output based on status
 			var line string
 			if !color.NoColor {
-				idColor := color.New(color.FgYellow, color.Bold)
+				// Choose color based on task status
+				var idColor *color.Color
+				switch task.Status {
+				case "done":
+					idColor = color.New(color.FgGreen, color.Bold)
+				case "wip":
+					idColor = color.New(color.FgYellow, color.Bold)
+				case "next":
+					idColor = color.New(color.FgCyan, color.Bold)
+				case "closed":
+					idColor = color.New(color.FgRed, color.Faint)
+				default:
+					idColor = color.New(color.FgWhite, color.Bold)
+				}
+
 				titleColor := color.New(color.FgWhite)
 				timeColor := color.New(color.FgCyan, color.Faint)
 				line = fmt.Sprintf("%s %s %s",
@@ -156,7 +194,8 @@ Examples:
 }
 
 func init() {
-	statuslineCmd.Flags().Int("limit", 5, "Number of wip tasks to show")
+	statuslineCmd.Flags().Int("limit", 5, "Number of tasks to show")
+	statuslineCmd.Flags().String("max-age", "", "Only show tasks updated within this duration (e.g., 24h, 7d)")
 	statuslineCmd.Flags().Bool("no-color", false, "Disable colored output")
 }
 
