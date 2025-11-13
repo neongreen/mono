@@ -14,4 +14,5 @@ var schemaCmd = &cobra.Command{
 func init() {
 	schemaCmd.AddCommand(schema_pkg.AddKindCmd)
 	schemaCmd.AddCommand(schema_pkg.ListKindsCmd)
+	schemaCmd.AddCommand(schema_pkg.ExportCmd)
 }
