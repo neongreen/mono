@@ -16,4 +16,5 @@ func init() {
 	stackCmd.AddCommand(stack_pkg.ListCmd)
 	stackCmd.AddCommand(stack_pkg.PushCmd)
 	stackCmd.AddCommand(stack_pkg.PopCmd)
+	stackCmd.AddCommand(stack_pkg.RenameCmd)
 }
