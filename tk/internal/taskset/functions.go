@@ -66,7 +66,7 @@ func (tc *TaskContext) funcKind(args []setlang.FuncArg[string]) (*setlang.Set[st
 
 // funcProject filters tasks by project
 // Usage: project(tk), project(mono)
-// Note: Matches by project name from display ID (e.g., "tk" from "tk-123")
+// Note: Matches by project name (needs projectUIDToName map)
 func (tc *TaskContext) funcProject(args []setlang.FuncArg[string]) (*setlang.Set[string], error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("project() takes 1 argument")
@@ -81,12 +81,11 @@ func (tc *TaskContext) funcProject(args []setlang.FuncArg[string]) (*setlang.Set
 	}
 
 	result := setlang.NewSet[string]()
+
 	for _, task := range tc.tasks {
-		// Extract project from display ID (e.g., "tk" from "tk-123")
-		displayID := task.TaskDisplayID
-		if idx := strings.Index(displayID, "-"); idx > 0 {
-			taskProject := displayID[:idx]
-			if taskProject == projectName {
+		// Look up project name from UUID
+		if taskProjectName, ok := tc.projectUIDToName[task.ProjectUUID]; ok {
+			if taskProjectName == projectName {
 				result.Add(task.TaskUUID)
 			}
 		}

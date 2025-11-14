@@ -9,20 +9,22 @@ import (
 
 // TaskContext implements setlang.Context for task queries
 type TaskContext struct {
-	tasks      []*types.Task
-	tasksByUID map[string]*types.Task
+	tasks          []*types.Task
+	tasksByUID     map[string]*types.Task
+	projectUIDToName map[string]string // Map project UUID to name for matching
 }
 
 // NewTaskContext creates a new task context for query evaluation
-func NewTaskContext(tasks []*types.Task) *TaskContext {
+func NewTaskContext(tasks []*types.Task, projectUIDToName map[string]string) *TaskContext {
 	tasksByUID := make(map[string]*types.Task)
 	for _, task := range tasks {
 		tasksByUID[task.TaskUUID] = task
 	}
 
 	return &TaskContext{
-		tasks:      tasks,
-		tasksByUID: tasksByUID,
+		tasks:          tasks,
+		tasksByUID:     tasksByUID,
+		projectUIDToName: projectUIDToName,
 	}
 }
 

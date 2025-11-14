@@ -8,10 +8,12 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/neongreen/mono/lib/setlang"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/query"
 	"github.com/neongreen/mono/tk/internal/status"
+	"github.com/neongreen/mono/tk/internal/taskset"
 	"github.com/neongreen/mono/tk/internal/termutil"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
@@ -25,11 +27,36 @@ var lsCmd = &cobra.Command{
 By default, shows all item kinds. Use --kind to filter by specific kinds.
 Use 'tk schema list' to see available item kinds.
 
+Filtering:
+  Flags (traditional):
+    tk ls --status wip --kind decision --project tk
+
+  Query language (new - inspired by jj revsets):
+    tk ls --query "status(wip) & kind(decision) & project(tk)"
+    tk ls --query "blocked() | status(wip)"
+    tk ls --query "project(tk) ~ status(done)"
+
+  Available functions:
+    status(X)    - Filter by status (wip, done, next, closed)
+    kind(X)      - Filter by item kind (task, decision, resource)
+    project(X)   - Filter by project name
+    blocked()    - All blocked tasks
+    unblocked()  - All unblocked tasks
+    author(X)    - Filter by creator
+    title("X")   - Substring match in title
+    all          - All tasks
+
+  Operators:
+    &  - AND (intersection)
+    |  - OR (union)
+    ~  - NOT/difference (A ~ B = A but not B)
+    () - Grouping
+
 Examples:
   tk ls                              # Show all items
-  tk ls --kind decision              # Show only decisions
-  tk ls --kind decision,resource     # Show decisions and resources
-  tk ls --in q-1 --kind task         # Show tasks in queue q-1
+  tk ls --kind decision              # Show only decisions (flags)
+  tk ls --query "kind(decision)"     # Same using query
+  tk ls --query "status(wip) & project(tk) ~ blocked()"  # Complex query
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if os.Getenv("FORCE_COLOR") != "" || os.Getenv("CLICOLOR_FORCE") != "" {
@@ -39,6 +66,7 @@ Examples:
 		axisFilter, _ := cmd.Flags().GetString("axis")
 		statusFilter, _ := cmd.Flags().GetString("status")
 		kindFilter, _ := cmd.Flags().GetString("kind")
+		queryExpr, _ := cmd.Flags().GetString("query")
 		sortBy, _ := cmd.Flags().GetString("sort")
 		projectFilter, _ := cmd.Flags().GetStringSlice("project")
 		showAliases, _ := cmd.Flags().GetBool("aliases")
@@ -79,6 +107,55 @@ Examples:
 		}
 
 		tasks := reducer.GetAllTasks()
+
+		// Handle --query flag if provided (taskset query language)
+		if queryExpr != "" {
+			// Build project UID to name map for query evaluation
+			projectUIDToName := make(map[string]string)
+			rows, err := db.Db.Query(`SELECT project_uid, name FROM projects`)
+			if err != nil {
+				return fmt.Errorf("failed to query projects: %w", err)
+			}
+			for rows.Next() {
+				var uid, name string
+				if err := rows.Scan(&uid, &name); err != nil {
+					rows.Close()
+					return fmt.Errorf("failed to scan project: %w", err)
+				}
+				projectUIDToName[uid] = name
+			}
+			rows.Close()
+
+			// Create taskset context
+			ctx := taskset.NewTaskContext(tasks, projectUIDToName)
+
+			// Evaluate query
+			resultSet, err := setlang.Eval(ctx, queryExpr)
+			if err != nil {
+				return fmt.Errorf("query evaluation failed: %w", err)
+			}
+
+			// Convert result set to task UID map for filtering
+			queryTaskUIDs := make(map[string]bool)
+			resultItems := resultSet.Items()
+			for _, uid := range resultItems {
+				queryTaskUIDs[uid] = true
+			}
+
+			// Debug: print query results if debug enabled
+			if debugFlag {
+				fmt.Fprintf(os.Stderr, "Query '%s' matched %d tasks\n", queryExpr, len(queryTaskUIDs))
+			}
+
+			// Filter tasks to only those matching query
+			var filteredTasks []*types.Task
+			for _, task := range tasks {
+				if queryTaskUIDs[task.TaskUUID] {
+					filteredTasks = append(filteredTasks, task)
+				}
+			}
+			tasks = filteredTasks
+		}
 
 		// Extract existing custom statuses from all tasks for validation
 		existingCustomStatuses := status.GetExistingCustomStatusesFromTasks(tasks)

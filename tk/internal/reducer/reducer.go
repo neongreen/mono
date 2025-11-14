@@ -459,6 +459,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 			r.tasks[taskUID] = &types.Task{
 				TaskUUID:      taskUID,
 				TaskDisplayID: taskUID,
+				ProjectUUID:   payload.ProjectUID,
 				Aliases:       []string{},
 				Title:         payload.Title,
 				ItemKind:      itemKind,
@@ -483,6 +484,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 	r.tasks[taskUID] = &types.Task{
 		TaskUUID:      taskUID,
 		TaskDisplayID: taskUID, // Placeholder, will be replaced by display ID
+		ProjectUUID:   payload.ProjectUID,
 		Aliases:       []string{},
 		Title:         payload.Title,
 		ItemKind:      itemKind,
