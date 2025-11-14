@@ -9,13 +9,14 @@ import (
 
 // FilterOptions contains options for filtering tasks
 type FilterOptions struct {
-	Projects      []string // Project aliases to filter by
-	AxisFilter    string   // Format: "axis:state" (deprecated, use AxisFilters)
-	AxisFilters   []string // Multiple axis filters with OR logic. Format: "axis:state"
-	BlockedOnly   bool
-	UnblockedOnly bool
-	GrepPattern   string   // Regex pattern to match against title and notes
-	ItemKinds     []string // Item kinds to filter by (OR logic)
+	Projects         []string // Project aliases to filter by
+	AxisFilter       string   // Format: "axis:state" (deprecated, use AxisFilters)
+	AxisFilters      []string // Multiple axis filters with OR logic. Format: "axis:state"
+	NegatedAxisState string   // Negated axis:state to exclude (e.g., "generic:done")
+	BlockedOnly      bool
+	UnblockedOnly    bool
+	GrepPattern      string   // Regex pattern to match against title and notes
+	ItemKinds        []string // Item kinds to filter by (OR logic)
 }
 
 // FilterTasks filters a list of tasks based on the given options
@@ -51,6 +52,21 @@ func FilterTasks(tasks []*types.Task, taskUIDSet map[string]bool, opts FilterOpt
 			}
 			if !matched {
 				continue
+			}
+		}
+
+		// Handle negated axis filter (exclude instead of include)
+		if opts.NegatedAxisState != "" {
+			parts := strings.Split(opts.NegatedAxisState, ":")
+			if len(parts) == 2 {
+				axisName := parts[0]
+				stateName := parts[1]
+
+				axis, ok := task.Axes[axisName]
+				// Exclude tasks that match the negated state
+				if ok && axis.Effective == stateName {
+					continue
+				}
 			}
 		}
 

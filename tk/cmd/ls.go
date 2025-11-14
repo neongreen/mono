@@ -86,16 +86,18 @@ Examples:
 		// Handle --status flag: convert to axis filter format
 		// Supports comma-separated values (OR logic) and negation with !
 		var axisFilters []string
+		var negatedAxisState string
 		if statusFilter != "" {
 			if axisFilter != "" && cmd.Flags().Changed("axis") {
 				return fmt.Errorf("cannot use both --status and --axis flags")
 			}
 			// Parse status filter (handles multiple values and negation)
-			parsedFilters, err := parseStatusFilter(statusFilter, existingCustomStatuses)
+			parsedFilters, negatedState, err := parseStatusFilter(statusFilter, existingCustomStatuses)
 			if err != nil {
 				return err
 			}
 			axisFilters = parsedFilters
+			negatedAxisState = negatedState
 		} else if axisFilter != "" {
 			// Backward compatibility: use single axis filter
 			axisFilters = []string{axisFilter}
@@ -170,12 +172,13 @@ Examples:
 
 		// Apply filters using query package
 		filterOpts := query.FilterOptions{
-			Projects:      projectFilter,
-			AxisFilters:   axisFilters,
-			BlockedOnly:   blockedOnly,
-			UnblockedOnly: unblockedOnly,
-			GrepPattern:   grepPattern,
-			ItemKinds:     itemKinds,
+			Projects:         projectFilter,
+			AxisFilters:      axisFilters,
+			NegatedAxisState: negatedAxisState,
+			BlockedOnly:      blockedOnly,
+			UnblockedOnly:    unblockedOnly,
+			GrepPattern:      grepPattern,
+			ItemKinds:        itemKinds,
 		}
 		tasks = query.FilterTasks(tasks, taskUIDSet, filterOpts)
 
@@ -283,19 +286,29 @@ Examples:
 // Handles single status, comma-separated statuses (OR), and negation with !
 // Examples:
 //
-//	"wip" -> []string{"generic:wip"}
-//	"todo,wip" -> []string{"generic:todo", "generic:wip"}
-//	"!done" -> negation handled by query package - TODO: tk-360
-func parseStatusFilter(statusFilter string, existingCustomStatuses []string) ([]string, error) {
+//	"wip" -> (filters: []string{"generic:wip"}, negated: "")
+//	"todo,wip" -> (filters: []string{"generic:todo", "generic:wip"}, negated: "")
+//	"!done" -> (filters: nil, negated: "generic:done")
+//
+// Returns (axisFilters, negatedAxisState, error)
+func parseStatusFilter(statusFilter string, existingCustomStatuses []string) ([]string, string, error) {
 	statusFilter = strings.TrimSpace(statusFilter)
 	if statusFilter == "" {
-		return nil, nil
+		return nil, "", nil
 	}
 
 	// Check for negation (! prefix)
 	if strings.HasPrefix(statusFilter, "!") {
-		// Negation support is tracked in tk-360
-		return nil, fmt.Errorf("status negation with ! is not yet implemented (tracked in tk-360)")
+		negatedStatus := strings.TrimPrefix(statusFilter, "!")
+		negatedStatus = strings.TrimSpace(negatedStatus)
+
+		// Validate negated status
+		if err := status.ValidateStatus(negatedStatus, false, existingCustomStatuses); err != nil {
+			return nil, "", fmt.Errorf("invalid negated status: %w", err)
+		}
+
+		normalized := status.NormalizeStatus(negatedStatus)
+		return nil, fmt.Sprintf("generic:%s", normalized), nil
 	}
 
 	// Split by comma for OR logic
@@ -310,7 +323,7 @@ func parseStatusFilter(statusFilter string, existingCustomStatuses []string) ([]
 
 		// Validate each status with existing custom statuses from the project
 		if err := status.ValidateStatus(s, false, existingCustomStatuses); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
 		normalized := status.NormalizeStatus(s)
@@ -318,8 +331,8 @@ func parseStatusFilter(statusFilter string, existingCustomStatuses []string) ([]
 	}
 
 	if len(axisFilters) == 0 {
-		return nil, nil
+		return nil, "", nil
 	}
 
-	return axisFilters, nil
+	return axisFilters, "", nil
 }
