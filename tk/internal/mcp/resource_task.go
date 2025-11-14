@@ -10,8 +10,8 @@ import (
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
-func TaskResource(db *database.DB) func(context.Context, *sdk.ReadResourceRequest) ([]sdk.Content, error) {
-	return func(ctx context.Context, req *sdk.ReadResourceRequest) ([]sdk.Content, error) {
+func TaskResource(db *database.DB) func(context.Context, *sdk.ReadResourceRequest) (*sdk.ReadResourceResult, error) {
+	return func(ctx context.Context, req *sdk.ReadResourceRequest) (*sdk.ReadResourceResult, error) {
 		// Extract task ID from URI (task://{id})
 		taskID := req.Params.URI[7:] // Remove "task://"
 
@@ -41,9 +41,13 @@ func TaskResource(db *database.DB) func(context.Context, *sdk.ReadResourceReques
 			return nil, fmt.Errorf("failed to marshal task: %w", err)
 		}
 
-		return []sdk.Content{
-			&sdk.TextContent{
-				Text: string(taskJSON),
+		return &sdk.ReadResourceResult{
+			Contents: []*sdk.ResourceContents{
+				{
+					URI:      req.Params.URI,
+					MIMEType: "application/json",
+					Text:     string(taskJSON),
+				},
 			},
 		}, nil
 	}

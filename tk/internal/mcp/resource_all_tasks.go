@@ -9,8 +9,8 @@ import (
 	"github.com/neongreen/mono/tk/internal/database"
 )
 
-func AllTasksResource(db *database.DB) func(context.Context, *sdk.ReadResourceRequest) ([]sdk.Content, error) {
-	return func(ctx context.Context, req *sdk.ReadResourceRequest) ([]sdk.Content, error) {
+func AllTasksResource(db *database.DB) func(context.Context, *sdk.ReadResourceRequest) (*sdk.ReadResourceResult, error) {
+	return func(ctx context.Context, req *sdk.ReadResourceRequest) (*sdk.ReadResourceResult, error) {
 		cfg, err := LoadConfig()
 		if err != nil {
 			return nil, fmt.Errorf("failed to load config: %w", err)
@@ -29,9 +29,13 @@ func AllTasksResource(db *database.DB) func(context.Context, *sdk.ReadResourceRe
 			return nil, fmt.Errorf("failed to marshal tasks: %w", err)
 		}
 
-		return []sdk.Content{
-			&sdk.TextContent{
-				Text: string(tasksJSON),
+		return &sdk.ReadResourceResult{
+			Contents: []*sdk.ResourceContents{
+				{
+					URI:      req.Params.URI,
+					MIMEType: "application/json",
+					Text:     string(tasksJSON),
+				},
 			},
 		}, nil
 	}
