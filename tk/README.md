@@ -296,7 +296,7 @@ tk debug events stats
 ### Task Identity and Aliases
 
 Each task has two identifiers:
-- **Task UUID**: A unique, immutable identifier that never changes (e.g., `task-abc123xyz...`)
+- **Task UID**: A unique, immutable identifier that never changes (e.g., `tsk_01J5Q...`)
 - **Task ID**: The current display ID (e.g., `work-1`)
 
 Task IDs can have aliases, allowing you to reference tasks by alternative names. Aliases are preserved indefinitely and synced between machines, ensuring old links and references continue to work.
