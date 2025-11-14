@@ -29,24 +29,8 @@ tk is a command-line tool that tracks tasks system-wide using:
 
 - **`tk`**: Globally installed binary (e.g., via `brew install` or `want mono tk@latest`)
 - **`tk-dev`**: Development binary built from source (use for testing changes)
-  - Build: `mise tk:build`
-  - Run: `tk-dev <command>`
+  - Just run `tk-dev <command>` - it builds automatically when needed
   - Always use `tk-dev` when testing local changes to avoid conflicts with global installation
-
-## Installation
-
-### From Source
-
-```bash
-cd tk
-go build -o tk .
-```
-
-### Using mise
-
-```bash
-mise run tk
-```
 
 ## Usage
 
@@ -409,12 +393,4 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 ```bash
 go test ./...
-```
-
-## Development
-
-Run via mise:
-```bash
-mise run tk new "test task"
-mise run tk ls
 ```
