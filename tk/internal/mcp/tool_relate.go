@@ -15,16 +15,51 @@ func RelateTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest
 	return func(ctx context.Context, req *sdk.CallToolRequest, args RelateTasksArgs) (*sdk.CallToolResult, any, error) {
 		actor := GetActor()
 
-		// Resolve parent task ID
-		parentUID, err := database.ResolveTaskReference(db, types.NewTaskRef(args.ParentID))
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to resolve parent task: %w", err)
+		// Handle backward compatibility (parent_id/child_id -> source_id/target_id)
+		sourceID := args.SourceID
+		targetID := args.TargetID
+		if sourceID == "" && args.ParentID != "" {
+			sourceID = args.ParentID
+		}
+		if targetID == "" && args.ChildID != "" {
+			targetID = args.ChildID
 		}
 
-		// Resolve child task ID
-		childUID, err := database.ResolveTaskReference(db, types.NewTaskRef(args.ChildID))
+		if sourceID == "" {
+			return nil, nil, fmt.Errorf("source_id is required")
+		}
+		if targetID == "" {
+			return nil, nil, fmt.Errorf("target_id is required")
+		}
+
+		// Validate relation type
+		validTypes := []string{"blocks", "blocked_by", "subtask", "parent", "related", "duplicate_of", "supersedes"}
+		relationType := args.RelationType
+		if relationType == "" {
+			relationType = "subtask" // Default for backward compatibility
+		}
+
+		isValid := false
+		for _, vt := range validTypes {
+			if vt == relationType {
+				isValid = true
+				break
+			}
+		}
+		if !isValid {
+			return nil, nil, fmt.Errorf("invalid relation_type %q, must be one of: blocks, blocked_by, subtask, parent, related, duplicate_of, supersedes", relationType)
+		}
+
+		// Resolve source task ID
+		srcUID, err := database.ResolveTaskReference(db, types.NewTaskRef(sourceID))
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to resolve child task: %w", err)
+			return nil, nil, fmt.Errorf("failed to resolve source task: %w", err)
+		}
+
+		// Resolve target task ID
+		dstUID, err := database.ResolveTaskReference(db, types.NewTaskRef(targetID))
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to resolve target task: %w", err)
 		}
 
 		// Generate event ID and timestamp
@@ -40,9 +75,10 @@ func RelateTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest
 
 		// Create relation payload
 		payload := types.RelationAddPayload{
-			Src:  parentUID,
-			Type: "subtask",
-			Dst:  childUID,
+			Src:  srcUID,
+			Type: relationType,
+			Dst:  dstUID,
+			Note: args.Note,
 		}
 		payloadJSON, err := json.Marshal(payload)
 		if err != nil {
@@ -65,19 +101,22 @@ func RelateTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest
 			return nil, nil, fmt.Errorf("failed to create relation: %w", err)
 		}
 
-		parentDisplayID := GetDisplayID(db, parentUID)
-		childDisplayID := GetDisplayID(db, childUID)
+		srcDisplayID := GetDisplayID(db, srcUID)
+		dstDisplayID := GetDisplayID(db, dstUID)
 
 		// Return JSON response
 		response := map[string]interface{}{
-			"parent": map[string]string{
-				"uuid":       parentUID,
-				"display_id": parentDisplayID,
+			"source": map[string]string{
+				"uuid":       srcUID,
+				"display_id": srcDisplayID,
 			},
-			"child": map[string]string{
-				"uuid":       childUID,
-				"display_id": childDisplayID,
+			"target": map[string]string{
+				"uuid":       dstUID,
+				"display_id": dstDisplayID,
 			},
+			"relation_type": relationType,
+			"note":          args.Note,
+			"message":       fmt.Sprintf("Added relation: %s %s %s", srcDisplayID, relationType, dstDisplayID),
 		}
 
 		responseJSON, err := json.Marshal(response)

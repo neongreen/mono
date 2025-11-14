@@ -33,8 +33,13 @@ type AddNoteArgs struct {
 }
 
 type RelateTasksArgs struct {
-	ParentID string `json:"parent_id" jsonschema:"required,description=Parent task ID"`
-	ChildID  string `json:"child_id" jsonschema:"required,description=Child (subtask) ID"`
+	SourceID     string `json:"source_id" jsonschema:"required,description=Source task ID"`
+	TargetID     string `json:"target_id" jsonschema:"required,description=Target task ID"`
+	RelationType string `json:"relation_type,omitempty" jsonschema:"description=Relation type: blocks, blocked_by, subtask, parent, related, duplicate_of, supersedes (default: subtask)"`
+	Note         string `json:"note,omitempty" jsonschema:"description=Optional note explaining the relation"`
+	// Deprecated fields for backward compatibility
+	ParentID string `json:"parent_id,omitempty" jsonschema:"description=Deprecated: use source_id"`
+	ChildID  string `json:"child_id,omitempty" jsonschema:"description=Deprecated: use target_id"`
 }
 
 type DeleteTaskArgs struct {
