@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -151,9 +152,14 @@ Examples:
 			reservedWidth := len(task.DisplayID) + 2 + len(relativeTime)
 			availableWidth := termWidth - reservedWidth
 
+			// For multi-line titles, show only first line
+			title := task.Title
+			if idx := strings.IndexAny(title, "\n\r"); idx >= 0 {
+				title = title[:idx]
+			}
+
 			// Don't truncate if terminal is very wide or if we have enough space
 			// Only truncate if title would exceed available width
-			title := task.Title
 			if termWidth > 0 && len(title) > availableWidth && availableWidth > 0 {
 				title = title[:availableWidth-3] + "..."
 			}

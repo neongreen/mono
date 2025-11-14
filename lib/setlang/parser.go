@@ -18,7 +18,7 @@ func NewParser() (*Parser, error) {
 	// Define a custom lexer that handles identifiers, strings, operators, and whitespace
 	lex := lexer.MustSimple([]lexer.SimpleRule{
 		{Name: "Whitespace", Pattern: `[ \t\r\n]+`},
-		{Name: "String", Pattern: `"(?:[^"\\]|\\.)*"`},
+		{Name: "String", Pattern: `"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'`}, // Support both single and double quotes
 		{Name: "Ident", Pattern: `[a-zA-Z_][a-zA-Z0-9_-]*`},
 		{Name: "Punct", Pattern: `[|&~(),]`},
 	})

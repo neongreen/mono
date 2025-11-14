@@ -21,6 +21,7 @@ require (
 	github.com/klauspost/compress v1.18.1
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/modelcontextprotocol/go-sdk v1.0.0
+	github.com/neongreen/mono/lib/setlang v0.0.0-20251114154744-d4ca1565e977
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/owenrumney/go-sarif/v2 v2.3.3
 	github.com/pdfcpu/pdfcpu v0.11.1
@@ -45,6 +46,7 @@ require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/ProtonMail/go-crypto v1.1.6 // indirect
+	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/apache/arrow-go/v18 v18.4.1 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
@@ -118,3 +120,5 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
+
+replace github.com/neongreen/mono/lib/setlang => ./lib/setlang
