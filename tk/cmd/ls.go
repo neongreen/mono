@@ -298,8 +298,8 @@ func parseStatusFilter(statusFilter string, existingCustomStatuses []string) ([]
 	}
 
 	// Check for negation (! prefix)
-	if strings.HasPrefix(statusFilter, "!") {
-		negatedStatus := strings.TrimPrefix(statusFilter, "!")
+	if after, ok := strings.CutPrefix(statusFilter, "!"); ok {
+		negatedStatus := after
 		negatedStatus = strings.TrimSpace(negatedStatus)
 
 		// Validate negated status

@@ -2,6 +2,7 @@ package query
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/neongreen/mono/tk/internal/types"
@@ -43,13 +44,7 @@ func FilterTasks(tasks []*types.Task, taskUIDSet map[string]bool, opts FilterOpt
 
 		// Filter by item kind (if specified)
 		if len(opts.ItemKinds) > 0 {
-			matched := false
-			for _, kind := range opts.ItemKinds {
-				if task.ItemKind == kind {
-					matched = true
-					break
-				}
-			}
+			matched := slices.Contains(opts.ItemKinds, task.ItemKind)
 			if !matched {
 				continue
 			}
