@@ -250,3 +250,70 @@ func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason s
 		Payload:   payloadJSON,
 	}
 }
+
+func seedContainerKindAndInstance(t *testing.T, db *DB, kindName string, primitive types.ContainerPrimitive, containerID string, containerName string) {
+	t.Helper()
+
+	// Define kind
+	definePayload := types.DefineContainerKindPayload{
+		Name:        kindName,
+		Primitive:   primitive,
+		Description: "Test container",
+		CreatedBy:   "tester",
+	}
+	definePayloadJSON, _ := json.Marshal(definePayload)
+	defineEvent := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerKindDefine),
+		Payload:   definePayloadJSON,
+	}
+	db.ProjectContainerKindDefineEvent(defineEvent)
+
+	// Create container
+	createPayload := types.CreateContainerPayload{
+		ID:        containerID,
+		Primitive: primitive,
+		Kind:      kindName,
+		Name:      containerName,
+		CreatedBy: "tester",
+	}
+	createPayloadJSON, _ := json.Marshal(createPayload)
+	createEvent := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerCreate),
+		Payload:   createPayloadJSON,
+	}
+	db.ProjectContainerCreateEvent(createEvent)
+}
+
+func seedQueueItems(t *testing.T, db *DB, containerID string, itemIDs []string) {
+	t.Helper()
+
+	for i, itemID := range itemIDs {
+		payload := types.QueuePushPayload{
+			ContainerID: containerID,
+			ItemID:      types.TaskUID(itemID),
+		}
+		payloadJSON, _ := json.Marshal(payload)
+		event := types.Event{
+			ID:        string(types.NewEventID()),
+			TS:        int64(i),
+			CreatedAt: time.Now(),
+			Actor:     "tester",
+			Role:      "human",
+			Kind:      string(types.EventKindQueuePush),
+			Payload:   payloadJSON,
+		}
+		if err := db.ProjectQueuePushEvent(event); err != nil {
+			t.Fatalf("ProjectQueuePushEvent() error = %v", err)
+		}
+	}
+}
