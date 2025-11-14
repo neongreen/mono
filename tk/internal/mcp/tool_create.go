@@ -87,10 +87,16 @@ func setTaskMetadata(db *database.DB, taskUUID, key, value, actor string) error 
 		return fmt.Errorf("failed to get lamport timestamp: %w", err)
 	}
 
+	// Marshal value as JSON
+	valueJSON, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("failed to marshal value: %w", err)
+	}
+
 	payload := types.TaskMetaSetPayload{
 		TaskUUID: taskUUID,
 		Key:      key,
-		Value:    value,
+		Value:    json.RawMessage(valueJSON),
 	}
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
