@@ -265,10 +265,9 @@ Shows divergence between local and remote segments.
 
 ### Individual sync operations
 
-- `tk export` - Export local events to segments
-- `tk ingest [remote|file]` - Ingest events from segments
 - `tk pull [remote]` - Pull segments from remote
-- `tk push [remote]` - Push segments to remote
+- `tk ingest [remote|file]` - Ingest events from segments into local database
+- `tk push [remote]` - Export local events and push segments to remote
 
 ### Debug sync issues
 
