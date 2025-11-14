@@ -202,6 +202,26 @@ func TestTaskContext_ComplexQuery(t *testing.T) {
 	}
 }
 
+func TestTaskContext_All(t *testing.T) {
+	tasks := []*types.Task{
+		{TaskUUID: "t1"},
+		{TaskUUID: "t2"},
+		{TaskUUID: "t3"},
+	}
+
+	ctx := NewTaskContext(tasks, nil)
+
+	result, err := setlang.Eval(ctx, "all()")
+	if err != nil {
+		t.Fatalf("Eval failed: %v", err)
+	}
+
+	items := result.Items()
+	if len(items) != 3 {
+		t.Errorf("Expected 3 tasks from all(), got %d", len(items))
+	}
+}
+
 func TestTaskContext_DifferenceOperator(t *testing.T) {
 	tasks := []*types.Task{
 		{TaskUUID: "t1", Axes: map[string]types.AxisStatus{"generic": {Effective: "wip"}}},
@@ -211,8 +231,8 @@ func TestTaskContext_DifferenceOperator(t *testing.T) {
 
 	ctx := NewTaskContext(tasks, nil)
 
-	// all ~ status(done) = everything except done
-	result, err := setlang.Eval(ctx, "all ~ status(done)")
+	// all() ~ status(done) = everything except done
+	result, err := setlang.Eval(ctx, "all() ~ status(done)")
 	if err != nil {
 		t.Fatalf("Eval failed: %v", err)
 	}

@@ -37,6 +37,7 @@ Filtering:
     tk ls --query "project(tk) ~ status(done)"
 
   Available functions:
+    all()        - All tasks
     status(X)    - Filter by status (wip, done, next, closed)
     kind(X)      - Filter by item kind (task, decision, resource)
     project(X)   - Filter by project name
@@ -44,7 +45,6 @@ Filtering:
     unblocked()  - All unblocked tasks
     author(X)    - Filter by creator
     title("X")   - Substring match in title
-    all          - All tasks
 
   Operators:
     &  - AND (intersection)
@@ -56,6 +56,7 @@ Examples:
   tk ls                              # Show all items
   tk ls --kind decision              # Show only decisions (flags)
   tk ls --query "kind(decision)"     # Same using query
+  tk ls --query "all() ~ status(done)"  # Everything not done
   tk ls --query "status(wip) & project(tk) ~ blocked()"  # Complex query
 `,
 	RunE: func(cmd *cobra.Command, args []string) error {

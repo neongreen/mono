@@ -31,26 +31,20 @@ func NewTaskContext(tasks []*types.Task, projectUIDToName map[string]string) *Ta
 // LookupIdent resolves named identifiers to task sets
 func (tc *TaskContext) LookupIdent(name string) (*setlang.Set[string], error) {
 	switch name {
-	case "all":
-		// Return all task UIDs
-		result := setlang.NewSet[string]()
-		for _, task := range tc.tasks {
-			result.Add(task.TaskUUID)
-		}
-		return result, nil
-
 	case "none", "empty":
 		// Return empty set
 		return setlang.NewSet[string](), nil
 
 	default:
-		return nil, fmt.Errorf("unknown identifier: %s", name)
+		return nil, fmt.Errorf("unknown identifier: %s (did you mean to use a function like all()?)", name)
 	}
 }
 
 // CallFunc implements task-specific query functions
 func (tc *TaskContext) CallFunc(name string, args []setlang.FuncArg[string]) (*setlang.Set[string], error) {
 	switch name {
+	case "all":
+		return tc.funcAll(args)
 	case "status":
 		return tc.funcStatus(args)
 	case "kind":

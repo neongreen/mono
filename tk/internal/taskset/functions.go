@@ -7,6 +7,20 @@ import (
 	"github.com/neongreen/mono/lib/setlang"
 )
 
+// funcAll returns all tasks
+// Usage: all()
+func (tc *TaskContext) funcAll(args []setlang.FuncArg[string]) (*setlang.Set[string], error) {
+	if len(args) != 0 {
+		return nil, fmt.Errorf("all() takes no arguments")
+	}
+
+	result := setlang.NewSet[string]()
+	for _, task := range tc.tasks {
+		result.Add(task.TaskUUID)
+	}
+	return result, nil
+}
+
 // funcStatus filters tasks by status
 // Usage: status(wip), status(done)
 func (tc *TaskContext) funcStatus(args []setlang.FuncArg[string]) (*setlang.Set[string], error) {
