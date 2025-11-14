@@ -36,3 +36,7 @@ type RelateTasksArgs struct {
 	ParentID string `json:"parent_id" jsonschema:"required,description=Parent task ID"`
 	ChildID  string `json:"child_id" jsonschema:"required,description=Child (subtask) ID"`
 }
+
+type DeleteTaskArgs struct {
+	TaskID string `json:"task_id" jsonschema:"required,description=Task ID (e.g. 'tk-123' or UUID)"`
+}

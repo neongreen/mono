@@ -99,6 +99,11 @@ Example usage:
 			Description: "Create a parent/subtask relationship between two tasks",
 		}, mcp.RelateTasksTool(db))
 
+		sdk.AddTool(server, &sdk.Tool{
+			Name:        "delete_task",
+			Description: "Delete a task permanently",
+		}, mcp.DeleteTaskTool(db))
+
 		// Register resources
 		server.AddResource(&sdk.Resource{
 			Name:        "task",
