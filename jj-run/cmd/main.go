@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/neongreen/mono/lib/cli"
 	"github.com/neongreen/mono/lib/version"
@@ -21,6 +22,21 @@ type Change struct {
 	ChangeID    string   `json:"change_id"`
 	Description string   `json:"description"`
 	Parents     []string `json:"parents"`
+}
+
+// Job represents a change processing job
+type Job struct {
+	Index  int
+	Change *Change
+}
+
+// Result represents the result of processing a job
+type Result struct {
+	Index      int
+	NewChanges []*Change
+	Success    bool
+	ShouldStop bool
+	Error      error
 }
 
 // ErrorStrategy defines how to handle command failures
@@ -38,6 +54,7 @@ var (
 	directMode      bool
 	showVersion     bool
 	ignoreImmutable bool
+	jobs            int
 )
 
 var rootCmd = &cobra.Command{
@@ -49,7 +66,10 @@ Runs arbitrary shell commands for each change in a revset, in isolation.
 Uses a temporary workspace for each run, so your main repo doesn't change while the script is running.
 
 Direct mode (--direct): Instead of using temporary workspaces, directly edits each revision in place.
-Useful for metadata changes (e.g., changing commit descriptions, authors) that don't require file isolation.`,
+Useful for metadata changes (e.g., changing commit descriptions, authors) that don't require file isolation.
+
+Parallel processing (-j/--jobs): Process changes concurrently using multiple workers (only available in workspace mode).
+Set to 1 (default) for sequential processing, or higher numbers for parallel execution.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		// Allow 0 args if --version is specified
 		if showVersion {
@@ -66,6 +86,7 @@ func init() {
 	rootCmd.Flags().BoolVarP(&directMode, "direct", "d", false, "Direct mode: edit each revision in place without worktrees")
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Show version information")
 	rootCmd.Flags().BoolVar(&ignoreImmutable, "ignore-immutable", false, "Allow rewriting immutable commits")
+	rootCmd.Flags().IntVarP(&jobs, "jobs", "j", 1, "Number of parallel workers (only for workspace mode, not direct mode)")
 }
 
 func main() {
@@ -93,6 +114,14 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	strategy := ErrorStrategy(errStrategy)
 	if strategy != ErrorContinue && strategy != ErrorStop && strategy != ErrorFatal {
 		return fmt.Errorf("invalid error strategy: %s (must be continue, stop, or fatal)", errStrategy)
+	}
+
+	// Validate jobs
+	if jobs < 1 {
+		return fmt.Errorf("jobs must be at least 1, got %d", jobs)
+	}
+	if directMode && jobs > 1 {
+		return fmt.Errorf("parallel processing is not supported in direct mode")
 	}
 
 	// Get current operation ID
@@ -139,13 +168,26 @@ func runCommand(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Process changes
-	newChanges, allSuccessful, processErr := processChanges(workspacePath, changes, command, strategy)
+	// Process changes (either sequentially or in parallel)
+	var newChanges []*Change
+	var allSuccessful bool
+	var processErr error
+
+	if jobs > 1 {
+		newChanges, allSuccessful, processErr = processChangesParallel(workspacePath, changes, command, strategy, jobs)
+
+		// In parallel mode, workers create changes in their own workspaces, so the base workspace
+		// is now stale. Update it before attempting to rewrite parents, otherwise jj edit/restore
+		// commands in rewriteParents will fail with "workspace is outdated" errors.
+		runJJ([]string{"workspace", "update-stale"}, workspacePath)
+	} else {
+		newChanges, allSuccessful, processErr = processChanges(workspacePath, changes, command, strategy)
+	}
 
 	// Rewrite parents
 	modifiedCount := rewriteParents(workspacePath, newChanges)
 
-	// Update stale workspaces
+	// Update stale workspaces in the main directory
 	runJJ([]string{"workspace", "update-stale"}, ".")
 	runJJ([]string{"workspace", "update-stale"}, workspacePath)
 
@@ -370,6 +412,134 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 	}
 
 	return newChanges, allSuccessful, nil
+}
+
+func processChangesParallel(baseWorkspace string, changes []*Change, command string, strategy ErrorStrategy, numWorkers int) ([]*Change, bool, error) {
+	totalChanges := len(changes)
+
+	// Create channels for job distribution and result collection
+	jobs := make(chan Job, totalChanges)
+	results := make(chan Result, totalChanges)
+	stopSignal := make(chan struct{})
+
+	var wg sync.WaitGroup
+
+	// Start workers
+	for w := range numWorkers {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+
+			// Create workspace for this worker
+			workspacePath, workspaceName, err := createWorkspace()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, cli.Error("Worker %d: failed to create workspace:")+" %v\n", workerID, err)
+				return
+			}
+			defer forgetWorkspace(workspaceName)
+
+			// Process jobs
+			for job := range jobs {
+				// Check if we should stop
+				select {
+				case <-stopSignal:
+					return
+				default:
+				}
+
+				change := job.Change
+				message := strings.TrimSpace(change.Description)
+				if message == "" {
+					message = "(no description set)"
+				}
+
+				changeID := change.ChangeID
+				fmt.Fprintf(os.Stderr, "Processing change %d/%d %s: %s\n", job.Index+1, totalChanges, cli.Key(changeID[:12]), message)
+
+				result := Result{Index: job.Index, Success: true}
+
+				// Create new change based on this one
+				if _, err := runJJOutput([]string{"new", changeID}, workspacePath); err != nil {
+					fmt.Fprintf(os.Stderr, cli.Error("Error creating new change:")+" %v\n", err)
+					result.Success = false
+					result.Error = err
+					exitEarly, handlerErr := handleError(strategy, changeID[:12], err)
+					if exitEarly {
+						result.ShouldStop = true
+						result.Error = handlerErr
+					}
+					results <- result
+					continue
+				}
+
+				// Run the command
+				cmdResult, err := runShellCommand(command, workspacePath)
+				printCommandResult(cmdResult, err)
+
+				if err != nil {
+					result.Success = false
+					result.Error = err
+					exitEarly, handlerErr := handleError(strategy, changeID[:12], err)
+					if exitEarly {
+						result.ShouldStop = true
+						result.Error = handlerErr
+					}
+				}
+
+				// Get the newly created change
+				newChangeList, err := getChangeList("@", workspacePath)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to get new change: %v\n", err)
+				} else {
+					result.NewChanges = newChangeList
+				}
+
+				results <- result
+			}
+		}(w)
+	}
+
+	// Send jobs to workers
+	go func() {
+		for idx, change := range changes {
+			jobs <- Job{Index: idx, Change: change}
+		}
+		close(jobs)
+	}()
+
+	// Wait for workers to finish in a separate goroutine
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Collect results
+	resultSlice := make([]Result, totalChanges)
+	shouldStop := false
+	var stopErr error
+
+	for result := range results {
+		resultSlice[result.Index] = result
+
+		// If any result signals we should stop, broadcast stop to all workers
+		if result.ShouldStop && !shouldStop {
+			shouldStop = true
+			stopErr = result.Error
+			close(stopSignal)
+		}
+	}
+
+	// Collect all new changes in order
+	var newChanges []*Change
+	allSuccessful := true
+	for _, result := range resultSlice {
+		if !result.Success {
+			allSuccessful = false
+		}
+		newChanges = append(newChanges, result.NewChanges...)
+	}
+
+	return newChanges, allSuccessful, stopErr
 }
 
 func isChangeEmpty(workspacePath string, changeID string) (bool, error) {
