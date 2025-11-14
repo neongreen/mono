@@ -780,4 +780,3 @@ func TestParallelModeParentRewriting(t *testing.T) {
 
 	t.Logf("Test passed: parallel mode parent rewriting works correctly")
 }
-

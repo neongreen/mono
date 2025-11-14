@@ -32,11 +32,11 @@ type Job struct {
 
 // Result represents the result of processing a job
 type Result struct {
-	Index       int
-	NewChanges  []*Change
-	Success     bool
-	ShouldStop  bool
-	Error       error
+	Index      int
+	NewChanges []*Change
+	Success    bool
+	ShouldStop bool
+	Error      error
 }
 
 // ErrorStrategy defines how to handle command failures
@@ -425,7 +425,7 @@ func processChangesParallel(baseWorkspace string, changes []*Change, command str
 	var wg sync.WaitGroup
 
 	// Start workers
-	for w := 0; w < numWorkers; w++ {
+	for w := range numWorkers {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
