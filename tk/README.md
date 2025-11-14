@@ -28,25 +28,10 @@ tk is a command-line tool that tracks tasks system-wide using:
 ## Development
 
 - **`tk`**: Globally installed binary (e.g., via `brew install` or `want mono tk@latest`)
-- **`tk-dev`**: Development binary built from source (use for testing changes)
-  - Build: `mise tk:build`
-  - Run: `tk-dev <command>`
+- **`tk-dev`**: Development binary that auto-builds from source (use for testing changes)
+  - Just run `tk-dev <command>` - it automatically builds from source
   - Always use `tk-dev` when testing local changes to avoid conflicts with global installation
-
-## Installation
-
-### From Source
-
-```bash
-cd tk
-go build -o tk .
-```
-
-### Using mise
-
-```bash
-mise run tk
-```
+- **Build manually**: `mise tk:build` (builds to `_build/tk`)
 
 ## Usage
 
@@ -74,58 +59,41 @@ This is useful for:
 Tasks are organized by projects. Each project has:
 - A stable **project UID** (e.g., `prj_01J5Q...`) that never changes
 - A human-readable **name**
-- Per-node **aliases** for easy reference
 
 #### Create a new project
 
 ```bash
-tk project create "My Project" "Project description" --alias myproj
+tk project create "My Project" "Project description"
 ```
 
-This creates a new project with a stable UID and adds the alias `myproj` on your current node.
+This creates a new project with a stable UID.
 
 #### List projects
 
 ```bash
-tk project list
+tk project ls
 ```
 
-Shows all projects with their UIDs, names, aliases, and descriptions.
-
-#### Manage project aliases
-
-Add an alias for a project:
-
-```bash
-tk project alias add prj_01J5Q... myalias
-```
-
-Remove an alias:
-
-```bash
-tk project alias remove myalias
-```
-
-Aliases are per-node, so different nodes can use the same alias for different projects without conflicts.
+Shows all projects with their UIDs, names, and descriptions.
 
 #### Create tasks in a project
 
 ```bash
-tk new "Task title" --project myproj
+tk new "Task title" --project "My Project"
 tk new "Another task" -p tk
 ```
 
-The `--project` (`-p`) flag accepts either a project alias or a project UID.
+The `--project` (`-p`) flag accepts either a project name or a project UID.
 
 ### Create a task
 
 Create a task in a project:
 
 ```bash
-tk new "wire up rc deploy toggle" --project myproj
+tk new "wire up rc deploy toggle" --project "My Project"
 ```
 
-This creates a new task with a unique ID. Tasks are numbered within their project and display as short IDs like `myproj-1` when possible.
+This creates a new task with a unique ID. Tasks are numbered within their project and display as short IDs like `myproject-1` when possible.
 
 ### Set task status
 
@@ -186,14 +154,6 @@ Combine filters:
 ```bash
 tk ls -p myproj --axis generic:in_progress
 ```
-
-Show task aliases:
-
-```bash
-tk ls --aliases
-```
-
-This displays a table with an additional "Aliases" column showing any aliases for tasks.
 
 ## Task Relations
 
@@ -311,8 +271,8 @@ Use the `events` command to inspect events in the database:
 # List all events
 tk events list
 
-# List only prefix.created events
-tk events list --kind prefix.created
+# List only project.created events
+tk events list --kind project.created
 
 # Show first 10 events
 tk events list --limit 10
@@ -327,13 +287,11 @@ tk events stats
 
 ## Concepts
 
-### Task Identity and Aliases
+### Task Identity
 
 Each task has two identifiers:
-- **Task UUID**: A unique, immutable identifier that never changes (e.g., `task-abc123xyz...`)
+- **Task UID**: A unique, immutable identifier that never changes (e.g., `tsk_01J5Q...`)
 - **Task ID**: The current display ID (e.g., `myproj-1`)
-
-Task IDs can have aliases, allowing you to reference tasks by alternative names. Aliases are preserved indefinitely and synced between machines, ensuring old links and references continue to work.
 
 ### Events
 
@@ -348,8 +306,6 @@ Every action in tk is recorded as an immutable event in the SQLite database. Eve
 Supported event types:
 
 - `project.created` - A new project was created
-- `project.alias.add` - An alias was added to a project
-- `project.alias.remove` - An alias was removed from a project
 - `task.created` - A new task was created
 - `task.number.set` - Task number was assigned or changed
 - `task.relocate` - Task was moved to a different project
@@ -381,7 +337,6 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 ### Current Features
 
 - **Projects with stable UIDs**: First-class projects with immutable identifiers (`prj_...`)
-- **Per-node project aliases**: Flexible naming without conflicts
 - **Task UIDs as identity**: Stable task UIDs (`tsk_...`) - numbers are mutable labels
 - **Collision-tolerant numbering**: Multiple tasks can share the same number
 - **Task relations**: Model dependencies (blocks, subtasks, related, duplicate, supersedes)
@@ -409,12 +364,4 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 
 ```bash
 go test ./...
-```
-
-## Development
-
-Run via mise:
-```bash
-mise run tk new "test task"
-mise run tk ls
 ```
