@@ -58,7 +58,7 @@ func genFunctionCall(depth int) *rapid.Generator[string] {
 				args[i] = `"` + str + `"`
 			case 2: // simple expression
 				if depth > 0 {
-					args[i] = genSimpleExpr(depth - 1).Draw(t, "expr")
+					args[i] = genSimpleExpr(depth-1).Draw(t, "expr")
 				} else {
 					args[i] = genIdent().Draw(t, "arg")
 				}
@@ -86,12 +86,12 @@ func genExpr(maxDepth int) *rapid.Generator[string] {
 		case 0: // simple expression
 			return genSimpleExpr(1).Draw(t, "simple")
 		case 1: // binary operation
-			left := genExpr(maxDepth - 1).Draw(t, "left")
+			left := genExpr(maxDepth-1).Draw(t, "left")
 			op := genBinaryOp().Draw(t, "op")
-			right := genExpr(maxDepth - 1).Draw(t, "right")
+			right := genExpr(maxDepth-1).Draw(t, "right")
 			return left + " " + op + " " + right
 		case 2: // parenthesized expression
-			inner := genExpr(maxDepth - 1).Draw(t, "inner")
+			inner := genExpr(maxDepth-1).Draw(t, "inner")
 			return "(" + inner + ")"
 		default: // mixed
 			left := genSimpleExpr(1).Draw(t, "left")

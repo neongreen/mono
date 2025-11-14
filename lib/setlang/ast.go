@@ -22,7 +22,7 @@ type UnionTail struct {
 // IntersectExpr represents intersection operations (&).
 // Grammar: DiffExpr ("&" DiffExpr)*
 type IntersectExpr struct {
-	Left  *DiffExpr       `@@`
+	Left  *DiffExpr        `@@`
 	Right []*IntersectTail `@@*`
 }
 
