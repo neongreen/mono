@@ -31,6 +31,11 @@ func ListTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, 
 			BlockedOnly: args.Blocked,
 		}
 
+		// Add item kind filter if specified
+		if args.Kind != "" {
+			opts.ItemKinds = []string{args.Kind}
+		}
+
 		// Filter by project if specified
 		var taskUIDSet map[string]bool
 		if args.Project != "" {

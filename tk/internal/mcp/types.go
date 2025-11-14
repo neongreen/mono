@@ -12,6 +12,7 @@ type CreateTaskArgs struct {
 type ListTasksArgs struct {
 	Project string `json:"project,omitempty" jsonschema:"description=Filter by project name or alias"`
 	Status  string `json:"status,omitempty" jsonschema:"description=Filter by status (e.g. 'todo', 'doing', 'done')"`
+	Kind    string `json:"kind,omitempty" jsonschema:"description=Filter by item kind (e.g. 'task', 'decision', 'resource')"`
 	Blocked bool   `json:"blocked,omitempty" jsonschema:"description=Show only blocked tasks"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"description=Maximum number of tasks to return (default: 50)"`
 }
