@@ -47,7 +47,7 @@ func UpdateStatusTool(db *database.DB) func(context.Context, *sdk.CallToolReques
 		displayID := GetDisplayID(db, taskUUID)
 
 		// Return JSON response
-		response := map[string]interface{}{
+		response := map[string]any{
 			"uuid":       taskUUID,
 			"display_id": displayID,
 			"status":     args.Status,

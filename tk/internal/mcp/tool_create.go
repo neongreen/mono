@@ -56,7 +56,7 @@ func CreateTaskTool(db *database.DB) func(context.Context, *sdk.CallToolRequest,
 		}
 
 		// Return JSON response
-		response := map[string]interface{}{
+		response := map[string]any{
 			"uuid":       taskUUID,
 			"display_id": result.DisplayID,
 			"title":      args.Title,

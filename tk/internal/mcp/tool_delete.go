@@ -32,9 +32,9 @@ func DeleteTaskTool(db *database.DB) func(context.Context, *sdk.CallToolRequest,
 		}
 
 		return nil, map[string]any{
-			"task_id":    displayID,
-			"deleted":    true,
-			"message":    fmt.Sprintf("Deleted task %s", displayID),
+			"task_id": displayID,
+			"deleted": true,
+			"message": fmt.Sprintf("Deleted task %s", displayID),
 		}, nil
 	}
 }

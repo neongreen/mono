@@ -69,7 +69,7 @@ func ListTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, 
 		}
 
 		// Format tasks as JSON
-		var taskList []map[string]interface{}
+		var taskList []map[string]any
 		for _, task := range filteredTasks {
 			statusStr := "unknown"
 			if axis, ok := task.Axes["generic"]; ok && axis.Effective != "" {
@@ -78,7 +78,7 @@ func ListTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, 
 
 			displayID := GetDisplayID(db, task.TaskUUID)
 
-			taskInfo := map[string]interface{}{
+			taskInfo := map[string]any{
 				"uuid":       task.TaskUUID,
 				"display_id": displayID,
 				"project":    task.ProjectUUID,

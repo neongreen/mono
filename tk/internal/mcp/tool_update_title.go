@@ -35,10 +35,10 @@ func UpdateTitleTool(db *database.DB) func(context.Context, *sdk.CallToolRequest
 		}
 
 		return nil, map[string]any{
-			"task_id":    displayID,
-			"new_title":  args.Title,
-			"updated":    true,
-			"message":    fmt.Sprintf("Updated title for %s", displayID),
+			"task_id":   displayID,
+			"new_title": args.Title,
+			"updated":   true,
+			"message":   fmt.Sprintf("Updated title for %s", displayID),
 		}, nil
 	}
 }

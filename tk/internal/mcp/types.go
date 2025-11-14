@@ -3,10 +3,10 @@ package mcp
 // Argument types for MCP tools
 
 type CreateTaskArgs struct {
-	Title       string            `json:"title" jsonschema:"required,description=Task title"`
-	Project     string            `json:"project,omitempty" jsonschema:"description=Project name or alias (default: 'tk')"`
-	Status      string            `json:"status,omitempty" jsonschema:"description=Initial status (e.g. 'todo', 'doing', 'done')"`
-	Metadata    map[string]string `json:"metadata,omitempty" jsonschema:"description=Additional metadata key-value pairs"`
+	Title    string            `json:"title" jsonschema:"required,description=Task title"`
+	Project  string            `json:"project,omitempty" jsonschema:"description=Project name or alias (default: 'tk')"`
+	Status   string            `json:"status,omitempty" jsonschema:"description=Initial status (e.g. 'todo', 'doing', 'done')"`
+	Metadata map[string]string `json:"metadata,omitempty" jsonschema:"description=Additional metadata key-value pairs"`
 }
 
 type ListTasksArgs struct {

@@ -31,7 +31,7 @@ func AddNoteTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, Ad
 		displayID := GetDisplayID(db, taskUUID)
 
 		// Return JSON response
-		response := map[string]interface{}{
+		response := map[string]any{
 			"uuid":       taskUUID,
 			"display_id": displayID,
 			"note":       args.Note,

@@ -49,11 +49,11 @@ func MoveTaskTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, M
 		newDisplayID := GetDisplayID(db, taskUID)
 
 		return nil, map[string]any{
-			"task_id":         displayID,
-			"new_display_id":  newDisplayID,
-			"to_project":      args.ToProject,
-			"moved":           true,
-			"message":         fmt.Sprintf("Moved task %s to project %s (now %s)", displayID, args.ToProject, newDisplayID),
+			"task_id":        displayID,
+			"new_display_id": newDisplayID,
+			"to_project":     args.ToProject,
+			"moved":          true,
+			"message":        fmt.Sprintf("Moved task %s to project %s (now %s)", displayID, args.ToProject, newDisplayID),
 		}, nil
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/neongreen/mono/tk/internal/clock"
@@ -39,13 +40,7 @@ func RelateTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest
 			relationType = "subtask" // Default for backward compatibility
 		}
 
-		isValid := false
-		for _, vt := range validTypes {
-			if vt == relationType {
-				isValid = true
-				break
-			}
-		}
+		isValid := slices.Contains(validTypes, relationType)
 		if !isValid {
 			return nil, nil, fmt.Errorf("invalid relation_type %q, must be one of: blocks, blocked_by, subtask, parent, related, duplicate_of, supersedes", relationType)
 		}
@@ -105,7 +100,7 @@ func RelateTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest
 		dstDisplayID := GetDisplayID(db, dstUID)
 
 		// Return JSON response
-		response := map[string]interface{}{
+		response := map[string]any{
 			"source": map[string]string{
 				"uuid":       srcUID,
 				"display_id": srcDisplayID,

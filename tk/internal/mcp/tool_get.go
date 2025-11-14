@@ -41,7 +41,7 @@ func GetTaskTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, Ge
 		displayID := GetDisplayID(db, taskUID)
 
 		// Build comprehensive task info
-		taskInfo := map[string]interface{}{
+		taskInfo := map[string]any{
 			"uuid":       task.TaskUUID,
 			"display_id": displayID,
 			"project":    task.ProjectUUID,
@@ -66,9 +66,9 @@ func GetTaskTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, Ge
 
 		// Add notes if present
 		if len(task.Notes) > 0 {
-			notes := make([]map[string]interface{}, 0, len(task.Notes))
+			notes := make([]map[string]any, 0, len(task.Notes))
 			for _, note := range task.Notes {
-				notes = append(notes, map[string]interface{}{
+				notes = append(notes, map[string]any{
 					"markdown":  note.Markdown,
 					"actor":     note.Actor,
 					"timestamp": note.Timestamp,
@@ -79,7 +79,7 @@ func GetTaskTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, Ge
 
 		// Add relations if present
 		if task.Relations != nil {
-			relations := make(map[string]interface{})
+			relations := make(map[string]any)
 
 			// Subtasks
 			if len(task.Relations.Subtask.Children) > 0 {
