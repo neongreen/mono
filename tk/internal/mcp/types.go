@@ -45,3 +45,10 @@ type UpdateTitleArgs struct {
 	TaskID string `json:"task_id" jsonschema:"required,description=Task ID"`
 	Title  string `json:"title" jsonschema:"required,description=New task title"`
 }
+
+type SetMetadataArgs struct {
+	TaskID string `json:"task_id" jsonschema:"required,description=Task ID"`
+	Key    string `json:"key" jsonschema:"required,description=Metadata key"`
+	Value  any    `json:"value" jsonschema:"required,description=Metadata value (can be any JSON type)"`
+	Role   string `json:"role,omitempty" jsonschema:"description=Role making the claim (default: 'human')"`
+}
