@@ -415,24 +415,28 @@ func init() {
    - `seeAlsoRegistry` map
    - `SeeAlso()` formatter function
    - `ApplySeeAlso()` applicator function
-   - Validation function to check command names
+   - `ValidateSeeAlso()` function (for tests only)
 
-2. **Update `cmd/root.go`**:
+2. **Create `cmd/help_test.go`** with:
+   - `TestSeeAlsoValidation()` - ensures all references are valid
+   - `TestSeeAlsoRegistry()` - checks registry invariants
+
+3. **Update `cmd/root.go`**:
    - Import help package
    - Call `ApplySeeAlso()` for all commands after registration
-   - Add validation in debug mode
 
-3. **Populate registry** following the cross-linking strategy above
+4. **Populate registry** following the cross-linking strategy above
 
-4. **Test**:
-   - Verify help output for all commands
-   - Check formatting consistency
-   - Validate all referenced commands exist
+5. **Test**:
+   - Run `go test ./cmd/...` to verify validation passes
+   - Manually check help output for formatting
+   - Verify all commands show appropriate cross-references
 
 ### File Structure
 ```
 tk/cmd/
 ├── help.go              # NEW: See Also registry and helpers
+├── help_test.go         # NEW: Tests for See Also validation
 ├── root.go              # MODIFIED: Apply See Also to all commands
 └── [other commands]     # UNCHANGED
 ```
@@ -536,37 +540,38 @@ func init() {
     // Apply "See Also" sections to all commands
     ApplySeeAlso(RootCmd)
 
-    // ALWAYS validate "See Also" references at startup
-    // This ensures we catch broken references immediately during development
-    if err := ValidateSeeAlso(RootCmd); err != nil {
-        // In production, log warning but don't crash
-        // In development/testing, you might want to panic() instead
-        fmt.Fprintf(os.Stderr, "Warning: See Also validation failed: %v\n", err)
-
-        // Uncomment to make validation errors fatal during development:
-        // panic(fmt.Sprintf("See Also validation failed: %v", err))
-    }
+    // NOTE: Validation is done in tests (see cmd/help_test.go)
+    // not at runtime, since users can't fix registry issues anyway
 }
 ```
 
-### Benefits of Cobra-based Validation
+### Benefits of Test-Time Validation
 
-Using Cobra's `Find()` method provides several advantages:
+Validation runs **only in tests**, not at runtime. This makes sense because:
+
+1. **Users can't fix registry bugs** - broken references are code bugs, not user errors
+2. **Caught during development** - Tests fail in CI before code is merged
+3. **No runtime overhead** - Production code doesn't waste time validating
+4. **Clear feedback** - Test failures show exactly what's wrong
+
+Using Cobra's `Find()` method in tests provides:
 
 1. **Accurate validation**: Uses the same lookup mechanism Cobra uses internally
 2. **Handles subcommands**: Automatically works with nested command paths like "relate add"
-3. **Catches typos**: Any misspelled command name in the registry will be detected
+3. **Catches typos**: Any misspelled command name in the registry will fail tests
 4. **Maintains consistency**: References are validated against actual command structure
-5. **Refactor-safe**: If you rename a command, validation will catch outdated references
+5. **Refactor-safe**: If you rename a command, validation tests will fail immediately
 
-### Example Validation Output
+### Example Test Failure
 
-When validation fails, you'll see clear error messages:
+When validation fails in tests, you'll see clear error messages:
 ```
-Warning: See Also validation failed:
-  - command "new" references non-existent command "shw" (typo for "show")
-  - command "relate ls" references non-existent command "graff" (typo for "graph")
-  - source command "deleted-command" not found in command tree
+--- FAIL: TestSeeAlsoValidation (0.00s)
+    help_test.go:10: See Also validation failed:
+          - command "new" references non-existent command "shw" (typo for "show")
+          - command "relate ls" references non-existent command "graff" (typo for "graph")
+          - source command "deleted-command" not found in command tree
+FAIL
 ```
 
 ### Adding Tests
@@ -751,7 +756,7 @@ See Also:
 1. **Centralized registry** mapping commands to related commands (Part 1 table)
 2. **Helper functions** for formatting "See Also" sections
 3. **Automatic application** via root command initialization
-4. **Validation** to ensure referenced commands exist
+4. **Test-time validation** to ensure referenced commands exist (no runtime overhead)
 
 ### Key Benefits
 - 🎯 Improves command discoverability
@@ -760,11 +765,13 @@ See Also:
 - 🔗 Cross-promotes powerful features (relations, containers, metadata)
 - ✅ Maintains clean, consistent help output
 - 🛠️ Easy to maintain and extend
+- ⚡ Zero runtime overhead (validation only in tests)
+- 🔒 Refactor-safe (tests catch broken references immediately)
 
 ### Next Steps
-1. Review and approve this plan
-2. Implement cmd/help.go with registry and helpers
+1. Implement cmd/help.go with registry and helpers
+2. Implement cmd/help_test.go with validation tests
 3. Update cmd/root.go to apply See Also sections
-4. Test with representative commands
-5. Roll out to all commands
-6. Add validation to CI/tests
+4. Populate registry following cross-linking strategy
+5. Run tests to verify all references are valid
+6. Manually test help output formatting
