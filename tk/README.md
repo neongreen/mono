@@ -58,83 +58,66 @@ This is useful for:
 Tasks are organized by projects. Each project has:
 - A stable **project UID** (e.g., `prj_01J5Q...`) that never changes
 - A human-readable **name**
-- Per-node **aliases** for easy reference
 
 #### Create a new project
 
 ```bash
-tk project create "My Project" "Project description" --alias myproj
+tk project create work "Work tasks"
 ```
 
-This creates a new project with a stable UID and adds the alias `myproj` on your current node.
+This creates a new project with a stable UID.
 
 #### List projects
 
 ```bash
-tk project list
+tk project ls
 ```
 
-Shows all projects with their UIDs, names, aliases, and descriptions.
-
-#### Manage project aliases
-
-Add an alias for a project:
-
-```bash
-tk project alias add prj_01J5Q... myalias
-```
-
-Remove an alias:
-
-```bash
-tk project alias remove myalias
-```
-
-Aliases are per-node, so different nodes can use the same alias for different projects without conflicts.
+Shows all projects with their UIDs, names, and descriptions.
 
 #### Create tasks in a project
 
 ```bash
-tk new "Task title" --project myproj
-tk new "Another task" -p tk
+tk new "Task title" --project work
+tk new "Another task" -p prj_01J5Q...
 ```
 
-The `--project` (`-p`) flag accepts either a project alias or a project UID.
+The `--project` (`-p`) flag accepts either a project name or a project UID.
 
 ### Create a task
 
 Create a task in a project:
 
 ```bash
-tk new "wire up rc deploy toggle" --project myproj
+tk new "wire up rc deploy toggle" --project work
 ```
 
-This creates a new task with a unique ID. Tasks are numbered within their project and display as short IDs like `myproj-1` when possible.
+This creates a new task with a unique ID. Tasks are numbered within their project and display as short IDs like `work-1` when possible.
 
 ### Set task status
 
 ```bash
-tk mark myproj-1 in_progress
-tk mark myproj-2 done
+tk mark work-1 wip
+tk mark work-2 done
 ```
 
-You can specify the axis and role:
+You can specify the role:
 
 ```bash
-tk mark myproj-1 done --axis generic --role agent
+tk mark work-1 done --role agent
 ```
 
 ### Add a note to a task
 
 ```bash
-tk note myproj-1 "Fixed the deployment toggle"
-tk note myproj-2 "Implemented new feature"
+tk note work-1 "Fixed the deployment toggle"
+tk note work-2 "Implemented new feature"
 ```
 
 ### View a task
 
 ```bash
-tk show myproj-1
+tk show work-1
 ```
 
 This shows the current state, all claims (effective and tentative), and notes.
@@ -150,25 +133,25 @@ tk ls
 Filter by status:
 
 ```bash
-tk ls --axis generic:in_progress
+tk ls --status wip
 ```
 
 Filter by project:
 
 ```bash
-tk ls -p myproj
+tk ls -p work
 ```
 
 Filter by multiple projects:
 
 ```bash
-tk ls -p myproj -p other
+tk ls -p work -p personal
 ```
 
 Combine filters:
 
 ```bash
-tk ls -p myproj --axis generic:in_progress
+tk ls -p work --status wip
 ```
 
 Show task aliases:
@@ -186,24 +169,24 @@ tk supports relations between tasks for modeling dependencies, hierarchies, and 
 ### Add Relations
 
 ```bash
-# Task myproj-1 blocks task myproj-2
-tk relate add myproj-1 blocks myproj-2
+# Task work-1 blocks task work-2
+tk relate add work-1 blocks work-2
 
-# Task myproj-3 is a subtask of myproj-1
-tk relate add myproj-1 subtask myproj-3 --note "API design"
+# Task work-3 is a subtask of work-1
+tk relate add work-1 subtask work-3 --note "API design"
 
 # Mark tasks as duplicates
-tk dup myproj-4 myproj-5
+tk dup work-4 work-5
 ```
 
 ### View Relations
 
 ```bash
 # Show graph of task dependencies
-tk graph myproj-1 --type blocks
+tk graph work-1 --type blocks
 
-# List all tasks blocking myproj-2
-tk blockers myproj-2
+# List all tasks blocking work-2
+tk blockers work-2
 
 # List all blocked tasks
 tk blocked
@@ -238,7 +221,7 @@ tk supports offline-first sync between machines using immutable event segments.
 Each tk installation has a unique 6-character node ID. View yours with:
 
 ```bash
-tk node show
+tk debug node show
 ```
 
 Task and event IDs include the node ID (e.g., `tk-1-abc123`, `ev-42-abc123`) to prevent collisions.
@@ -289,23 +272,23 @@ Shows divergence between local and remote segments.
 
 ### Debug sync issues
 
-Use the `events` command to inspect events in the database:
+Use the `debug events` command to inspect events in the database:
 
 ```bash
 # List all events
-tk events list
+tk debug events list
 
 # List only prefix.created events
-tk events list --kind prefix.created
+tk debug events list --kind prefix.created
 
 # Show first 10 events
-tk events list --limit 10
+tk debug events list --limit 10
 
 # Show detailed event information
-tk events show ev-1-abc123
+tk debug events show ev-1-abc123
 
 # Show event statistics
-tk events stats
+tk debug events stats
 ```
 
 
@@ -315,7 +298,7 @@ tk events stats
 
 Each task has two identifiers:
 - **Task UUID**: A unique, immutable identifier that never changes (e.g., `task-abc123xyz...`)
-- **Task ID**: The current display ID (e.g., `myproj-1`)
+- **Task ID**: The current display ID (e.g., `work-1`)
 
 Task IDs can have aliases, allowing you to reference tasks by alternative names. Aliases are preserved indefinitely and synced between machines, ensuring old links and references continue to work.
 
@@ -332,8 +315,6 @@ Every action in tk is recorded as an immutable event in the SQLite database. Eve
 Supported event types:
 
 - `project.created` - A new project was created
-- `project.alias.add` - An alias was added to a project
-- `project.alias.remove` - An alias was removed from a project
 - `task.created` - A new task was created
 - `task.number.set` - Task number was assigned or changed
 - `task.relocate` - Task was moved to a different project
@@ -365,7 +346,6 @@ Tasks can have multiple status axes. Currently, only the "generic" axis is used,
 ### Current Features
 
 - **Projects with stable UIDs**: First-class projects with immutable identifiers (`prj_...`)
-- **Per-node project aliases**: Flexible naming without conflicts
 - **Task UIDs as identity**: Stable task UIDs (`tsk_...`) - numbers are mutable labels
 - **Collision-tolerant numbering**: Multiple tasks can share the same number
 - **Task relations**: Model dependencies (blocks, subtasks, related, duplicate, supersedes)
