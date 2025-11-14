@@ -57,3 +57,8 @@ type SetMetadataArgs struct {
 	Value  any    `json:"value" jsonschema:"required,description=Metadata value (can be any JSON type)"`
 	Role   string `json:"role,omitempty" jsonschema:"description=Role making the claim (default: 'human')"`
 }
+
+type CreateProjectArgs struct {
+	Name        string `json:"name" jsonschema:"required,description=Project name (lowercase, a-z and dashes only)"`
+	Description string `json:"description,omitempty" jsonschema:"description=Project description"`
+}

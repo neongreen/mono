@@ -114,6 +114,11 @@ Example usage:
 			Description: "Set a metadata key-value pair on a task (supports any JSON value)",
 		}, mcp.SetMetadataTool(db))
 
+		sdk.AddTool(server, &sdk.Tool{
+			Name:        "create_project",
+			Description: "Create a new project",
+		}, mcp.CreateProjectTool(db))
+
 		// Register resources
 		server.AddResource(&sdk.Resource{
 			Name:        "task",
