@@ -63,3 +63,8 @@ type CreateProjectArgs struct {
 	Name        string `json:"name" jsonschema:"required,description=Project name (lowercase, a-z and dashes only)"`
 	Description string `json:"description,omitempty" jsonschema:"description=Project description"`
 }
+
+type MoveTaskArgs struct {
+	TaskID    string `json:"task_id" jsonschema:"required,description=Task ID to move"`
+	ToProject string `json:"to_project" jsonschema:"required,description=Destination project name or alias"`
+}

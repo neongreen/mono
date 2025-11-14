@@ -119,6 +119,11 @@ Example usage:
 			Description: "Create a new project",
 		}, mcp.CreateProjectTool(db))
 
+		sdk.AddTool(server, &sdk.Tool{
+			Name:        "move_task",
+			Description: "Move a task to a different project",
+		}, mcp.MoveTaskTool(db))
+
 		// Register resources
 		server.AddResource(&sdk.Resource{
 			Name:        "task",
