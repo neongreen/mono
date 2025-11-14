@@ -486,28 +486,45 @@ func ApplySeeAlso(cmd *cobra.Command) {
     }
 }
 
-// ValidateSeeAlso checks all referenced commands exist (for testing)
+// ValidateSeeAlso checks all referenced commands exist using Cobra's command lookup
 func ValidateSeeAlso(root *cobra.Command) error {
-    allCommands := make(map[string]bool)
+    var errors []string
 
-    var collect func(*cobra.Command, string)
-    collect = func(cmd *cobra.Command, prefix string) {
-        path := prefix + cmd.Name()
-        allCommands[path] = true
-        for _, subcmd := range cmd.Commands() {
-            collect(subcmd, path + " ")
+    for cmdPath, relatedCmds := range seeAlsoRegistry {
+        // Verify the source command exists
+        sourceCmd, _, err := root.Find(strings.Fields(cmdPath))
+        if err != nil || sourceCmd == nil {
+            errors = append(errors, fmt.Sprintf("source command %q not found in command tree", cmdPath))
+            continue
         }
-    }
-    collect(root, "")
 
-    for cmd, related := range seeAlsoRegistry {
-        for _, rel := range related {
-            if !allCommands[rel] {
-                return fmt.Errorf("command %q references unknown command %q", cmd, rel)
+        // Verify each related command exists
+        for _, relPath := range relatedCmds {
+            targetCmd, _, err := root.Find(strings.Fields(relPath))
+            if err != nil || targetCmd == nil {
+                errors = append(errors,
+                    fmt.Sprintf("command %q references non-existent command %q", cmdPath, relPath))
             }
         }
     }
+
+    if len(errors) > 0 {
+        return fmt.Errorf("See Also validation failed:\n  - %s", strings.Join(errors, "\n  - "))
+    }
     return nil
+}
+
+// findCommand is a helper that uses Cobra's Find to locate a command by path
+func findCommand(root *cobra.Command, path string) (*cobra.Command, error) {
+    args := strings.Fields(path)
+    cmd, _, err := root.Find(args)
+    if err != nil {
+        return nil, fmt.Errorf("command %q not found: %w", path, err)
+    }
+    if cmd == nil {
+        return nil, fmt.Errorf("command %q not found", path)
+    }
+    return cmd, nil
 }
 ```
 
@@ -519,10 +536,70 @@ func init() {
     // Apply "See Also" sections to all commands
     ApplySeeAlso(RootCmd)
 
-    // In debug mode, validate all references
-    if debug {
-        if err := ValidateSeeAlso(RootCmd); err != nil {
-            fmt.Fprintf(os.Stderr, "Warning: See Also validation failed: %v\n", err)
+    // ALWAYS validate "See Also" references at startup
+    // This ensures we catch broken references immediately during development
+    if err := ValidateSeeAlso(RootCmd); err != nil {
+        // In production, log warning but don't crash
+        // In development/testing, you might want to panic() instead
+        fmt.Fprintf(os.Stderr, "Warning: See Also validation failed: %v\n", err)
+
+        // Uncomment to make validation errors fatal during development:
+        // panic(fmt.Sprintf("See Also validation failed: %v", err))
+    }
+}
+```
+
+### Benefits of Cobra-based Validation
+
+Using Cobra's `Find()` method provides several advantages:
+
+1. **Accurate validation**: Uses the same lookup mechanism Cobra uses internally
+2. **Handles subcommands**: Automatically works with nested command paths like "relate add"
+3. **Catches typos**: Any misspelled command name in the registry will be detected
+4. **Maintains consistency**: References are validated against actual command structure
+5. **Refactor-safe**: If you rename a command, validation will catch outdated references
+
+### Example Validation Output
+
+When validation fails, you'll see clear error messages:
+```
+Warning: See Also validation failed:
+  - command "new" references non-existent command "shw" (typo for "show")
+  - command "relate ls" references non-existent command "graff" (typo for "graph")
+  - source command "deleted-command" not found in command tree
+```
+
+### Adding Tests
+
+Create a test to ensure validation always passes:
+
+```go
+// cmd/help_test.go
+package cmd
+
+import (
+    "testing"
+)
+
+func TestSeeAlsoValidation(t *testing.T) {
+    // This test ensures all "See Also" references are valid
+    if err := ValidateSeeAlso(RootCmd); err != nil {
+        t.Fatalf("See Also validation failed:\n%v", err)
+    }
+}
+
+func TestSeeAlsoRegistry(t *testing.T) {
+    // Ensure registry is not empty
+    if len(seeAlsoRegistry) == 0 {
+        t.Error("seeAlsoRegistry is empty - did you populate it?")
+    }
+
+    // Ensure no command references itself
+    for cmd, related := range seeAlsoRegistry {
+        for _, rel := range related {
+            if cmd == rel {
+                t.Errorf("command %q references itself in See Also", cmd)
+            }
         }
     }
 }
@@ -566,44 +643,105 @@ func init() {
 
 ---
 
-## Alternative: Description-Rich See Also
+## Future Enhancement: Adding Descriptions
 
-Instead of just command names, include brief descriptions:
+**Start simple**: Begin with just command names (no descriptions). This keeps the initial implementation clean and focused.
+
+**Add descriptions later** if needed, without changing the registry structure:
+
+### Option 1: Separate Description Registry
 
 ```go
-func SeeAlsoWithDesc(items ...string) string {
-    // items format: "command - description", "command - description"
+// Registry stays simple - just command names
+var seeAlsoRegistry = map[string][]string{
+    "show": {"edit", "describe", "note", "history"},
+}
+
+// Optional: Add descriptions in a separate registry
+var commandDescriptions = map[string]string{
+    "edit":     "Edit task fields",
+    "describe": "Update task title",
+    "note":     "Add notes to task",
+    "history":  "View task history",
+}
+
+// Enhanced formatter that uses descriptions if available
+func SeeAlso(commands ...string) string {
     var b strings.Builder
-    b.WriteString("\n\nSee Also:\n")
-    for _, item := range items {
-        parts := strings.SplitN(item, " - ", 2)
-        cmd := parts[0]
-        desc := ""
-        if len(parts) > 1 {
-            desc = " - " + parts[1]
+    b.WriteString("\n\nSee Also:")
+    for _, cmd := range commands {
+        b.WriteString("\n  tk ")
+        b.WriteString(cmd)
+
+        // Add description if available
+        if desc, ok := commandDescriptions[cmd]; ok {
+            // Pad command name to 15 chars for alignment
+            padding := 15 - len(cmd)
+            if padding > 0 {
+                b.WriteString(strings.Repeat(" ", padding))
+            }
+            b.WriteString(" - ")
+            b.WriteString(desc)
         }
-        fmt.Fprintf(&b, "  tk %-15s%s\n", cmd, desc)
     }
     return b.String()
 }
-
-// Usage:
-SeeAlsoWithDesc(
-    "edit - Edit task fields",
-    "note - Add notes to task",
-    "history - View task history",
-)
 ```
 
-**Output**:
+### Option 2: Extract from Command.Short
+
+Even simpler - just pull descriptions from the command's existing `Short` field:
+
+```go
+func SeeAlsoWithDescriptions(root *cobra.Command, commands ...string) string {
+    var b strings.Builder
+    b.WriteString("\n\nSee Also:")
+
+    for _, cmdPath := range commands {
+        cmd, err := findCommand(root, cmdPath)
+
+        b.WriteString("\n  tk ")
+        b.WriteString(cmdPath)
+
+        // Use the command's Short description if available
+        if err == nil && cmd != nil && cmd.Short != "" {
+            padding := 15 - len(cmdPath)
+            if padding > 0 {
+                b.WriteString(strings.Repeat(" ", padding))
+            }
+            b.WriteString(" - ")
+            b.WriteString(cmd.Short)
+        }
+    }
+    return b.String()
+}
+```
+
+### Comparison
+
+**Without descriptions** (recommended for initial implementation):
 ```
 See Also:
-  tk edit            - Edit task fields
-  tk note            - Add notes to task
-  tk history         - View task history
+  tk edit
+  tk describe
+  tk note
+  tk history
 ```
 
-This could be a future enhancement if plain command names aren't descriptive enough.
+**With descriptions** (future enhancement):
+```
+See Also:
+  tk edit        - Edit task fields
+  tk describe    - Update task title
+  tk note        - Add notes to task
+  tk history     - View task history
+```
+
+**Recommendation**: Start without descriptions. They can be added later by:
+1. Modifying just the `SeeAlso()` formatter function
+2. No changes needed to the registry
+3. No changes needed to validation
+4. Backward compatible enhancement
 
 ---
 
