@@ -104,6 +104,11 @@ Example usage:
 			Description: "Delete a task permanently",
 		}, mcp.DeleteTaskTool(db))
 
+		sdk.AddTool(server, &sdk.Tool{
+			Name:        "update_title",
+			Description: "Update the title of a task",
+		}, mcp.UpdateTitleTool(db))
+
 		// Register resources
 		server.AddResource(&sdk.Resource{
 			Name:        "task",

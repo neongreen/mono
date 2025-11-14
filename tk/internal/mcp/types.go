@@ -40,3 +40,8 @@ type RelateTasksArgs struct {
 type DeleteTaskArgs struct {
 	TaskID string `json:"task_id" jsonschema:"required,description=Task ID (e.g. 'tk-123' or UUID)"`
 }
+
+type UpdateTitleArgs struct {
+	TaskID string `json:"task_id" jsonschema:"required,description=Task ID"`
+	Title  string `json:"title" jsonschema:"required,description=New task title"`
+}
