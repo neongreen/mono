@@ -37,7 +37,7 @@ jobs:
           go run ./linters/cobralint/cmd/cobralint -format=sarif ./... > cobra-lint.sarif || true
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@0997e94d42e09f3c8cb5fde3f8e7f31f41d50ffd # v3.29.3
+        uses: github/codeql-action/upload-sarif@f94c9befffa4412c356fb5463a959ab7821dd57e # v3.31.3
         with:
           sarif_file: cobra-lint.sarif
           category: cobra-lint
