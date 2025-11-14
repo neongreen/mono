@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	mcpPort  string
-	mcpHost  string
-	mcpStdio bool
+	mcpPort       string
+	mcpHost       string
+	mcpStdio      bool
+	mcpStreamable bool
 )
 
 var mcpCmd = &cobra.Command{
@@ -27,9 +28,10 @@ var mcpCmd = &cobra.Command{
 The MCP server exposes tk's functionality through a standardized protocol
 that can be used by AI assistants and other tools.
 
-The server supports two transport modes:
-  - HTTP mode (default): Serves over HTTP with SSE transport on localhost:8080
-  - stdio mode (--stdio): Communicates over stdin/stdout for direct client connection
+The server supports multiple transport modes:
+  - HTTP with SSE (default): Server-Sent Events for unidirectional streaming
+  - HTTP Streamable (--streamable): Bidirectional HTTP streaming (more efficient)
+  - stdio (--stdio): Direct stdin/stdout communication
 
 Available tools:
   - create_task: Create a new task with optional status and metadata
@@ -44,7 +46,8 @@ Available resources:
   - tasks://all: Get all tasks as JSON array
 
 Example usage:
-  tk mcp                     # Start HTTP server on localhost:8080
+  tk mcp                     # Start HTTP server with SSE on localhost:8080
+  tk mcp --streamable        # Start HTTP server with streamable transport
   tk mcp --port 9000         # Start HTTP server on custom port
   tk mcp --stdio             # Start in stdio mode for MCP client`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -123,11 +126,24 @@ Example usage:
 			}
 		} else {
 			addr := fmt.Sprintf("%s:%s", mcpHost, mcpPort)
-			handler := sdk.NewSSEHandler(func(*http.Request) *sdk.Server {
-				return server
-			}, nil)
-			log.Printf("Starting MCP server at http://%s\n", addr)
-			log.Printf("Connect MCP clients to: http://%s/tk\n", addr)
+			var handler http.Handler
+
+			if mcpStreamable {
+				// Use streamable HTTP transport (bidirectional)
+				handler = sdk.NewStreamableHTTPHandler(func(*http.Request) *sdk.Server {
+					return server
+				}, nil)
+				log.Printf("Starting MCP server with streamable HTTP transport at http://%s\n", addr)
+				log.Printf("Connect MCP clients to: http://%s\n", addr)
+			} else {
+				// Use SSE transport (default, unidirectional)
+				handler = sdk.NewSSEHandler(func(*http.Request) *sdk.Server {
+					return server
+				}, nil)
+				log.Printf("Starting MCP server with SSE transport at http://%s\n", addr)
+				log.Printf("Connect MCP clients to: http://%s\n", addr)
+			}
+
 			if err := http.ListenAndServe(addr, handler); err != nil {
 				return fmt.Errorf("HTTP server failed: %w", err)
 			}
@@ -141,5 +157,6 @@ func init() {
 	mcpCmd.Flags().StringVar(&mcpPort, "port", "8080", "Port to listen on (HTTP mode)")
 	mcpCmd.Flags().StringVar(&mcpHost, "host", "localhost", "Host to bind to (HTTP mode)")
 	mcpCmd.Flags().BoolVar(&mcpStdio, "stdio", false, "Use stdio transport instead of HTTP")
+	mcpCmd.Flags().BoolVar(&mcpStreamable, "streamable", false, "Use streamable HTTP transport (more efficient than SSE)")
 	RootCmd.AddCommand(mcpCmd)
 }
