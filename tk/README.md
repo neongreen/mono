@@ -27,7 +27,7 @@ tk is a command-line tool that tracks tasks system-wide using:
 
 ## Development
 
-- **`tk`**: Globally installed binary (e.g., via `brew install` or `want mono tk@latest`)
+- **`tk`**: Globally installed binary (via `brew install neongreen/mono/tk` or `want mono tk@main`)
 - **`tk-dev`**: Development binary built from source (use for testing changes)
   - Just run `tk-dev <command>` - it builds automatically when needed
   - Always use `tk-dev` when testing local changes to avoid conflicts with global installation
