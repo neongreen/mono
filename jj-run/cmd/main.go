@@ -175,6 +175,11 @@ func runCommand(cmd *cobra.Command, args []string) error {
 
 	if jobs > 1 {
 		newChanges, allSuccessful, processErr = processChangesParallel(workspacePath, changes, command, strategy, jobs)
+
+		// In parallel mode, workers create changes in their own workspaces, so the base workspace
+		// is now stale. Update it before attempting to rewrite parents, otherwise jj edit/restore
+		// commands in rewriteParents will fail with "workspace is outdated" errors.
+		runJJ([]string{"workspace", "update-stale"}, workspacePath)
 	} else {
 		newChanges, allSuccessful, processErr = processChanges(workspacePath, changes, command, strategy)
 	}
@@ -182,7 +187,7 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	// Rewrite parents
 	modifiedCount := rewriteParents(workspacePath, newChanges)
 
-	// Update stale workspaces
+	// Update stale workspaces in the main directory
 	runJJ([]string{"workspace", "update-stale"}, ".")
 	runJJ([]string{"workspace", "update-stale"}, workspacePath)
 
