@@ -96,9 +96,11 @@ jobs:
         run: |
           PROJECT="${MATRIX_PROJECT}"
 
-          # For main branch releases
-          REF="main"
-          REF_SAFE="main"
+          # Extract branch name from github.ref (e.g., refs/heads/main -> main)
+          REF="${GITHUB_REF#refs/heads/}"
+
+          # Create safe version for tags (replace / with -)
+          REF_SAFE="${REF//\//-}"
 
           # Find existing tags for this project+ref combination
           TAG_PREFIX="${PROJECT}--${REF_SAFE}."
@@ -128,6 +130,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
           echo "Building ${PROJECT} version ${VERSION} (tag: ${TAG})"
+          echo "Branch: ${REF} (safe: ${REF_SAFE})"
         env:
           MATRIX_PROJECT: ${{ matrix.project }}
 
@@ -162,7 +165,7 @@ jobs:
           body: |
             Release of **${{ matrix.project }}** version `${{ steps.version.outputs.version }}`
 
-            Built from: main branch
+            Built from: `${{ steps.version.outputs.ref }}` branch
             Commit: ${{ github.sha }}
 
             ## Installation
