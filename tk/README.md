@@ -265,7 +265,7 @@ Shows divergence between local and remote segments.
 
 ### Individual sync operations
 
-- `tk push [remote]` - Export local events and push segments to remote
+- `tk export` - Export local events to segments
 - `tk ingest [remote|file]` - Ingest events from segments
 - `tk pull [remote]` - Pull segments from remote
 - `tk push [remote]` - Push segments to remote
@@ -278,8 +278,8 @@ Use the `debug events` command to inspect events in the database:
 # List all events
 tk debug events list
 
-# List only prefix.created events
-tk debug events list --kind prefix.created
+# List only project.created events
+tk debug events list --kind project.created
 
 # Show first 10 events
 tk debug events list --limit 10
@@ -315,12 +315,21 @@ Every action in tk is recorded as an immutable event in the SQLite database. Eve
 Supported event types:
 
 - `project.created` - A new project was created
+- `project.delete` - A project was deleted
+- `project.name.set` - Project name was changed
 - `task.created` - A new task was created
 - `task.number.set` - Task number was assigned or changed
 - `task.relocate` - Task was moved to a different project
 - `task.title.set` - Task title was changed
 - `task.status.set` - Task status was updated
 - `task.note.add` - A note was added to a task
+- `task.delete` - A task was deleted
+- `task.meta.set` - Task metadata was updated
+- `relation.add` - A relation was added between tasks
+- `relation.remove` - A relation was removed
+- `relation.note` - A note was added to a relation
+- `task.attachment.add` - An attachment was added to a task
+- `task.attachment.remove` - An attachment was removed from a task
 
 ### Claims
 
