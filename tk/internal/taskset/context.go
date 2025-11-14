@@ -9,8 +9,8 @@ import (
 
 // TaskContext implements setlang.Context for task queries
 type TaskContext struct {
-	tasks          []*types.Task
-	tasksByUID     map[string]*types.Task
+	tasks            []*types.Task
+	tasksByUID       map[string]*types.Task
 	projectUIDToName map[string]string // Map project UUID to name for matching
 }
 
@@ -22,8 +22,8 @@ func NewTaskContext(tasks []*types.Task, projectUIDToName map[string]string) *Ta
 	}
 
 	return &TaskContext{
-		tasks:          tasks,
-		tasksByUID:     tasksByUID,
+		tasks:            tasks,
+		tasksByUID:       tasksByUID,
 		projectUIDToName: projectUIDToName,
 	}
 }
