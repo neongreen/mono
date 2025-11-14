@@ -40,10 +40,9 @@ func RelateTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest
 
 		// Create relation payload
 		payload := types.RelationAddPayload{
-			TaskUUID:   parentUID,
-			RelType:    "subtask",
-			TargetTask: childUID,
-			Direction:  "out",
+			Src:  parentUID,
+			Type: "subtask",
+			Dst:  childUID,
 		}
 		payloadJSON, err := json.Marshal(payload)
 		if err != nil {
@@ -54,11 +53,11 @@ func RelateTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest
 		event := types.Event{
 			ID:        eventID,
 			TS:        lamportTS,
-			CreatedAt: clock.RealClock{}.Now(),
+			CreatedAt: (&clock.RealClock{}).Now(),
 			Actor:     actor,
 			Role:      "human",
 			Kind:      string(types.EventKindRelationAdd),
-			Payload:   payloadJSON,
+			Payload:   json.RawMessage(payloadJSON),
 		}
 
 		// Insert event

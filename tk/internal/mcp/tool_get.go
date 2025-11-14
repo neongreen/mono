@@ -53,9 +53,15 @@ func GetTaskTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, Ge
 		if len(task.Metadata) > 0 {
 			metadata := make(map[string]string)
 			for key, meta := range task.Metadata {
-				metadata[key] = meta.Value
+				// Unmarshal the Effective value from json.RawMessage
+				var value string
+				if err := json.Unmarshal(meta.Effective, &value); err == nil {
+					metadata[key] = value
+				}
 			}
-			taskInfo["metadata"] = metadata
+			if len(metadata) > 0 {
+				taskInfo["metadata"] = metadata
+			}
 		}
 
 		// Add notes if present

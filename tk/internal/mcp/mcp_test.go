@@ -177,8 +177,12 @@ func TestSetTaskMetadata(t *testing.T) {
 	if !ok {
 		t.Error("Metadata key 'foo' not found")
 	}
-	if meta.Value != "bar" {
-		t.Errorf("Expected metadata value 'bar', got %s", meta.Value)
+	var value string
+	if err := json.Unmarshal(meta.Effective, &value); err != nil {
+		t.Fatalf("Failed to unmarshal metadata value: %v", err)
+	}
+	if value != "bar" {
+		t.Errorf("Expected metadata value 'bar', got %s", value)
 	}
 }
 

@@ -39,12 +39,8 @@ func CreateTaskTool(db *database.DB) func(context.Context, *sdk.CallToolRequest,
 
 		// Set initial status if provided
 		if args.Status != "" {
-			cfg, err := LoadConfig()
-			if err != nil {
-				return nil, nil, fmt.Errorf("failed to load config: %w", err)
-			}
 			if err := tasks.Mark(db, taskUUID, tasks.MarkOptions{
-				Axis:  cfg.Axes.Blocking,
+				Axis:  "generic",
 				State: args.Status,
 				Role:  "human",
 			}, actor, &clock.RealClock{}); err != nil {
@@ -104,11 +100,11 @@ func setTaskMetadata(db *database.DB, taskUUID, key, value, actor string) error 
 	event := types.Event{
 		ID:        eventID,
 		TS:        lamportTS,
-		CreatedAt: clock.RealClock{}.Now(),
+		CreatedAt: (&clock.RealClock{}).Now(),
 		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskMetaSet),
-		Payload:   payloadJSON,
+		Payload:   json.RawMessage(payloadJSON),
 	}
 
 	return db.InsertEvent(event)
