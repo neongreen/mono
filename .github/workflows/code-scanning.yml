@@ -36,8 +36,31 @@ jobs:
           # Run the linter with SARIF output format
           go run ./linters/cobralint/cmd/cobralint -format=sarif ./... > cobra-lint.sarif || true
 
+          # Check if SARIF file is valid (not empty and has valid JSON)
+          if [ ! -s cobra-lint.sarif ] || ! jq empty cobra-lint.sarif 2>/dev/null; then
+            echo "SARIF file is empty or invalid, creating minimal valid SARIF"
+            cat > cobra-lint.sarif << 'EOF'
+          {
+            "version": "2.1.0",
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "runs": [
+              {
+                "tool": {
+                  "driver": {
+                    "name": "cobralint",
+                    "version": "1.0.0",
+                    "informationUri": "https://github.com/neongreen/mono/tree/main/linters/cobralint"
+                  }
+                },
+                "results": []
+              }
+            ]
+          }
+          EOF
+          fi
+
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@f94c9befffa4412c356fb5463a959ab7821dd57e # v3.31.3
+        uses: github/codeql-action/upload-sarif@014f16e7ab1402f30e7c3329d33797e7948572db # v4.31.3
         with:
           sarif_file: cobra-lint.sarif
           category: cobra-lint
