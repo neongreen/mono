@@ -102,8 +102,34 @@ func (p *ProjectDeletePayload) UnmarshalJSON(data []byte) error {
 
 // ProjectNameSetPayload is the payload for project.name.set events
 type ProjectNameSetPayload struct {
-	ProjectUID string `json:"project_uid"`
-	Name       string `json:"name"` // new project name
+	ProjectUID ProjectUID `json:"project_uid"` // Must be valid ProjectUID (prj_<ulid>)
+	Name       string     `json:"name"`        // New project name (lowercase, dashes, validated)
+}
+
+// Validate checks if the ProjectNameSetPayload is valid
+func (p ProjectNameSetPayload) Validate() error {
+	if err := p.ProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in ProjectNameSetPayload: %w", err)
+	}
+	if err := ValidateProjectName(p.Name); err != nil {
+		return fmt.Errorf("invalid name in ProjectNameSetPayload: %w", err)
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a ProjectNameSetPayload
+func (p *ProjectNameSetPayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias ProjectNameSetPayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal ProjectNameSetPayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // TaskCreatedPayload is the payload for task.created events

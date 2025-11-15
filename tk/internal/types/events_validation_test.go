@@ -6,6 +6,67 @@ import (
 	"testing"
 )
 
+// TestProjectNameSetPayloadValidation tests that ProjectNameSetPayload validates properly
+func TestProjectNameSetPayloadValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		json      string
+		wantError bool
+		errorMsg  string
+	}{
+		{
+			name:      "valid payload",
+			json:      `{"project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","name":"my-project"}`,
+			wantError: false,
+		},
+		{
+			name:      "invalid project UID",
+			json:      `{"project_uid":"invalid","name":"my-project"}`,
+			wantError: true,
+			errorMsg:  "must start with prj_",
+		},
+		{
+			name:      "invalid project name - uppercase",
+			json:      `{"project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","name":"MyProject"}`,
+			wantError: true,
+			errorMsg:  "must be lowercase",
+		},
+		{
+			name:      "invalid project name - leading dash",
+			json:      `{"project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","name":"-project"}`,
+			wantError: true,
+			errorMsg:  "no leading/trailing dashes",
+		},
+		{
+			name:      "invalid project name - empty",
+			json:      `{"project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","name":""}`,
+			wantError: true,
+			errorMsg:  "cannot be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var payload ProjectNameSetPayload
+			err := json.Unmarshal([]byte(tt.json), &payload)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("expected error containing %q, got nil", tt.errorMsg)
+					return
+				}
+				if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("expected error containing %q, got: %v", tt.errorMsg, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got: %v", err)
+				}
+			}
+		})
+	}
+}
+
 // TestProjectDeletePayloadValidation tests that ProjectDeletePayload validates properly
 func TestProjectDeletePayloadValidation(t *testing.T) {
 	tests := []struct {
