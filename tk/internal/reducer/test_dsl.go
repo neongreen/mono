@@ -108,11 +108,11 @@ func (rt *ReducerTest) CreateTask(actor, title, projectUID string) *TaskHandle {
 // Task retrieves a task handle by UID (useful if you lost the handle)
 func (rt *ReducerTest) Task(taskUID string) *TaskHandle {
 	rt.t.Helper()
-	
+
 	if handle, ok := rt.tasks[taskUID]; ok {
 		return handle
 	}
-	
+
 	// Try to find it in the reducer
 	if task, ok := rt.reducer.GetTask(taskUID); ok {
 		handle := &TaskHandle{
@@ -124,7 +124,7 @@ func (rt *ReducerTest) Task(taskUID string) *TaskHandle {
 		rt.tasks[taskUID] = handle
 		return handle
 	}
-	
+
 	rt.t.Fatalf("Task %s not found", taskUID)
 	return nil
 }
@@ -132,7 +132,7 @@ func (rt *ReducerTest) Task(taskUID string) *TaskHandle {
 // AssertTaskCount verifies the number of tasks in the reducer
 func (rt *ReducerTest) AssertTaskCount(expected int) {
 	rt.t.Helper()
-	
+
 	actual := len(rt.reducer.tasks)
 	if actual != expected {
 		rt.t.Errorf("Expected %d tasks, got %d", expected, actual)

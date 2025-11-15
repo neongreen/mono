@@ -13,6 +13,8 @@ var SearchCmd = &cobra.Command{
 	Short: "Search invocation logs for a pattern",
 	Long: `Search invocation logs for a pattern in any field.
 
+Requires DuckDB CLI to be installed (https://duckdb.org/docs/installation/).
+
 This is a convenience command that searches across all fields in the log entries.
 For more precise control, use 'tk log query' with a SQL WHERE clause.
 

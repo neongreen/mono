@@ -90,6 +90,11 @@ func TestRotation(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
+	// Skip test if DuckDB CLI is not available
+	if err := checkDuckDBAvailable(); err != nil {
+		t.Skip("DuckDB CLI not available, skipping test:", err)
+	}
+
 	dir := t.TempDir()
 	w, err := NewWriter(dir, 1024*1024)
 	if err != nil {
@@ -123,6 +128,64 @@ func TestQuery(t *testing.T) {
 	if len(results) > 0 {
 		if results[0]["status"] != "error" {
 			t.Errorf("expected status=error, got %v", results[0]["status"])
+		}
+	}
+}
+
+func TestQueryWithLiteralQuestionMark(t *testing.T) {
+	// Skip test if DuckDB CLI is not available
+	if err := checkDuckDBAvailable(); err != nil {
+		t.Skip("DuckDB CLI not available, skipping test:", err)
+	}
+
+	dir := t.TempDir()
+	w, err := NewWriter(dir, 1024*1024)
+	if err != nil {
+		t.Fatalf("NewWriter failed: %v", err)
+	}
+
+	// Write test data with ? characters in the data
+	entries := []map[string]any{
+		{"timestamp": 100, "message": "test?value", "level": "info"},
+		{"timestamp": 200, "message": "normal", "level": "debug"},
+		{"timestamp": 300, "message": "another?test", "level": "info"},
+		{"timestamp": 400, "message": "no-question", "level": "info"},
+	}
+
+	for _, entry := range entries {
+		data, _ := json.Marshal(entry)
+		if err := w.Append(data); err != nil {
+			t.Fatalf("append failed: %v", err)
+		}
+	}
+
+	// Test query with literal ? in LIKE pattern followed by a real parameter
+	// This ensures DuckDB correctly distinguishes between literal ? in strings
+	// and placeholder ? markers
+	results, err := Query(dir, `SELECT * FROM logs WHERE message LIKE ? AND level = ?`, "%?%", "info")
+	if err != nil {
+		t.Fatalf("query failed: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Errorf("expected 2 results, got %d", len(results))
+	}
+
+	// Verify we got the right messages
+	if len(results) == 2 {
+		messages := []string{results[0]["message"].(string), results[1]["message"].(string)}
+		hasTestQuestion := false
+		hasAnotherQuestion := false
+		for _, msg := range messages {
+			if msg == "test?value" {
+				hasTestQuestion = true
+			}
+			if msg == "another?test" {
+				hasAnotherQuestion = true
+			}
+		}
+		if !hasTestQuestion || !hasAnotherQuestion {
+			t.Errorf("expected messages 'test?value' and 'another?test', got %v", messages)
 		}
 	}
 }

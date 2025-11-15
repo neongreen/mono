@@ -5,7 +5,7 @@
 //   - Rotates files when they exceed a size threshold
 //   - Compresses rotated files with zstd
 //   - Handles concurrent writes with file locking
-//   - Provides search via DuckDB queries
+//   - Provides search via DuckDB CLI queries
 //
 // # Architecture
 //
@@ -40,11 +40,14 @@
 //
 // # Search
 //
-// Search is powered by DuckDB reading JSONL files:
+// Search is powered by DuckDB CLI reading JSONL files:
+//   - Requires DuckDB CLI to be installed and available in PATH
 //   - DuckDB auto-detects zstd compression
 //   - read_json() handles both .jsonl and .jsonl.zst files
 //   - Filter pushdown for efficient queries
 //   - No persistent database needed
+//
+// Install DuckDB from: https://duckdb.org/docs/installation/
 //
 // Example:
 //
@@ -52,7 +55,7 @@
 //	writer.Append([]byte(`{"field": "value"}`))
 //	writer.Close()
 //
-//	results, _ := rotatinglog.Query("/path/to/logs", "SELECT * FROM logs WHERE field = ?", "value")
+//	results, _ := rotatinglog.Query("/path/to/logs", "SELECT * FROM logs WHERE field = 'value'")
 //
 // # Design
 //
