@@ -3,323 +3,197 @@ package pathlang
 import (
 	"fmt"
 	"strings"
-	"unicode"
+
+	"github.com/alecthomas/participle/v2"
+	"github.com/alecthomas/participle/v2/lexer"
 )
 
-// Parse parses a path string into a Path.
-// Returns an error if the input is malformed.
+// AST types for participle parsing
+// These are separate from the domain types to keep parsing concerns separate
+
+// pathAST is the internal AST representation used by participle.
+type pathAST struct {
+	Segments []*segmentAST `"/" @@? ( "/" @@ )*`
+}
+
+// segmentAST represents a parsed segment.
+type segmentAST struct {
+	Name       string         `@Ident`
+	Predicates *predicatesAST `@@?`
+}
+
+// predicatesAST represents a list of predicates in brackets.
+type predicatesAST struct {
+	Predicates []*predicateAST `"[" @@ ( "," @@ )* "]"`
+}
+
+// predicateAST represents a single predicate.
+type predicateAST struct {
+	Field string `@Ident`
+	Op    string `@( "!=" | "~=" | "=" )`
+	Value string `@( String | BareValue | Ident )`
+}
+
+// Parser is a parser for the pathlang language.
+type Parser struct {
+	parser *participle.Parser[pathAST]
+}
+
+// NewParser creates a new parser for pathlang.
+func NewParser() (*Parser, error) {
+	// Define a custom lexer that handles identifiers, strings, operators, and punctuation
+	// Order matters: more specific patterns first
+	lex := lexer.MustSimple([]lexer.SimpleRule{
+		{Name: "Whitespace", Pattern: `[ \t\r\n]+`},
+		{Name: "String", Pattern: `"(?:[^"\\]|\\.)*"`},
+		{Name: "NotEq", Pattern: `!=`},
+		{Name: "Match", Pattern: `~=`},
+		{Name: "Eq", Pattern: `=`},
+		{Name: "Punct", Pattern: `[/\[\],]`},
+		{Name: "Ident", Pattern: `[a-zA-Z_][a-zA-Z0-9_-]*`},
+		// BareValue matches anything that's not whitespace or special chars
+		// It must come after Ident so identifiers are recognized as such
+		{Name: "BareValue", Pattern: `[^ \t\n\r/\[\],=!~@"']+`},
+	})
+
+	parser, err := participle.Build[pathAST](
+		participle.Lexer(lex),
+		participle.Elide("Whitespace"),
+		participle.UseLookahead(2),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build parser: %w", err)
+	}
+
+	return &Parser{parser: parser}, nil
+}
+
+// Parse parses an input string into a Path.
+func (p *Parser) Parse(input string) (*Path, error) {
+	if input == "" {
+		return nil, fmt.Errorf("empty path")
+	}
+
+	ast, err := p.parser.ParseString("", input)
+	if err != nil {
+		return nil, fmt.Errorf("parse error: %w", err)
+	}
+
+	return astToPath(ast)
+}
+
+// MustParse parses an input string and panics on error.
+// This is useful for testing.
+func (p *Parser) MustParse(input string) *Path {
+	path, err := p.Parse(input)
+	if err != nil {
+		panic(err)
+	}
+	return path
+}
+
+// Parse is a convenience function that creates a new parser and parses the input.
 func Parse(input string) (*Path, error) {
-	p := &parser{input: input, pos: 0}
-	return p.parse()
-}
-
-// parser is a hand-written recursive descent parser for pathlang.
-type parser struct {
-	input string
-	pos   int
-}
-
-// parse is the main entry point for parsing.
-func (p *parser) parse() (*Path, error) {
-	// Paths must start with /
-	if len(p.input) == 0 {
-		return nil, p.errorf("empty path")
-	}
-	if p.input[0] != '/' {
-		return nil, p.errorf("path must start with /")
-	}
-	p.pos = 1
-
-	// Root path
-	if p.pos >= len(p.input) {
-		return &Path{}, nil
-	}
-
-	// Parse segments
-	segments, err := p.parseSegments()
+	p, err := NewParser()
 	if err != nil {
 		return nil, err
 	}
+	return p.Parse(input)
+}
 
-	// Should have consumed all input
-	if p.pos < len(p.input) {
-		return nil, p.errorf("unexpected character %q", p.input[p.pos])
+// MustParse is a convenience function that creates a new parser and parses the input,
+// panicking on error.
+func MustParse(input string) *Path {
+	path, err := Parse(input)
+	if err != nil {
+		panic(err)
+	}
+	return path
+}
+
+// astToPath converts the participle AST to our domain Path type.
+func astToPath(ast *pathAST) (*Path, error) {
+	segments := make([]Segment, len(ast.Segments))
+
+	for i, segAST := range ast.Segments {
+		seg := Segment{
+			Name: segAST.Name,
+		}
+
+		if segAST.Predicates != nil {
+			preds := make([]Predicate, len(segAST.Predicates.Predicates))
+			for j, predAST := range segAST.Predicates.Predicates {
+				op, err := parseOp(predAST.Op)
+				if err != nil {
+					return nil, err
+				}
+
+				value, err := unescapeValue(predAST.Value)
+				if err != nil {
+					return nil, fmt.Errorf("invalid value in predicate %s: %w", predAST.Field, err)
+				}
+
+				preds[j] = Predicate{
+					Field: predAST.Field,
+					Op:    op,
+					Value: value,
+				}
+			}
+			seg.Predicates = preds
+		}
+
+		segments[i] = seg
 	}
 
 	return &Path{Segments: segments}, nil
 }
 
-// parseSegments parses a sequence of segments separated by /.
-func (p *parser) parseSegments() ([]Segment, error) {
-	var segments []Segment
-
-	for {
-		seg, err := p.parseSegment()
-		if err != nil {
-			return nil, err
-		}
-		segments = append(segments, seg)
-
-		// Check for more segments
-		if p.pos >= len(p.input) || p.input[p.pos] != '/' {
-			break
-		}
-		p.pos++ // consume /
-	}
-
-	return segments, nil
-}
-
-// parseSegment parses a single segment: Name Predicates?
-func (p *parser) parseSegment() (Segment, error) {
-	name, err := p.parseIdent()
-	if err != nil {
-		return Segment{}, err
-	}
-
-	seg := Segment{Name: name}
-
-	// Check for predicates
-	if p.pos < len(p.input) && p.input[p.pos] == '[' {
-		preds, err := p.parsePredicates()
-		if err != nil {
-			return Segment{}, err
-		}
-		seg.Predicates = preds
-	}
-
-	return seg, nil
-}
-
-// parsePredicates parses a predicate list: "[" PredicateList "]"
-func (p *parser) parsePredicates() ([]Predicate, error) {
-	if p.pos >= len(p.input) || p.input[p.pos] != '[' {
-		return nil, p.errorf("expected '['")
-	}
-	p.pos++ // consume [
-
-	var preds []Predicate
-
-	for {
-		pred, err := p.parsePredicate()
-		if err != nil {
-			return nil, err
-		}
-		preds = append(preds, pred)
-
-		// Check for more predicates or end
-		if p.pos >= len(p.input) {
-			return nil, p.errorf("unclosed predicate list")
-		}
-
-		if p.input[p.pos] == ']' {
-			p.pos++ // consume ]
-			break
-		}
-
-		if p.input[p.pos] != ',' {
-			return nil, p.errorf("expected ',' or ']' in predicate list")
-		}
-		p.pos++ // consume ,
-	}
-
-	return preds, nil
-}
-
-// parsePredicate parses a single predicate: Field Op Value
-func (p *parser) parsePredicate() (Predicate, error) {
-	field, err := p.parseIdent()
-	if err != nil {
-		return Predicate{}, fmt.Errorf("in predicate field: %w", err)
-	}
-
-	op, err := p.parseOp()
-	if err != nil {
-		return Predicate{}, err
-	}
-
-	value, err := p.parseValue()
-	if err != nil {
-		return Predicate{}, fmt.Errorf("in predicate value: %w", err)
-	}
-
-	return Predicate{Field: field, Op: op, Value: value}, nil
-}
-
-// parseIdent parses an identifier: IdentStart IdentCont*
-func (p *parser) parseIdent() (string, error) {
-	if p.pos >= len(p.input) {
-		return "", p.errorf("expected identifier")
-	}
-
-	start := p.pos
-	r := rune(p.input[p.pos])
-
-	// IdentStart ::= ASCII_LETTER | "_"
-	if !isIdentStart(r) {
-		return "", p.errorf("expected identifier, got %q", r)
-	}
-	p.pos++
-
-	// IdentCont ::= ASCII_LETTER | DIGIT | "_" | "-"
-	for p.pos < len(p.input) {
-		r := rune(p.input[p.pos])
-		if !isIdentCont(r) {
-			break
-		}
-		p.pos++
-	}
-
-	return p.input[start:p.pos], nil
-}
-
-// parseOp parses an operator: "=" | "!=" | "~="
-func (p *parser) parseOp() (Op, error) {
-	if p.pos >= len(p.input) {
-		return 0, p.errorf("expected operator")
-	}
-
-	switch p.input[p.pos] {
-	case '=':
-		p.pos++
+// parseOp converts the operator string to an Op value.
+func parseOp(op string) (Op, error) {
+	switch op {
+	case "=":
 		return OpEq, nil
-	case '!':
-		if p.pos+1 >= len(p.input) || p.input[p.pos+1] != '=' {
-			return 0, p.errorf("expected '=' after '!'")
-		}
-		p.pos += 2
+	case "!=":
 		return OpNotEq, nil
-	case '~':
-		if p.pos+1 >= len(p.input) || p.input[p.pos+1] != '=' {
-			return 0, p.errorf("expected '=' after '~'")
-		}
-		p.pos += 2
+	case "~=":
 		return OpMatch, nil
 	default:
-		return 0, p.errorf("expected operator (=, !=, ~=), got %q", p.input[p.pos])
+		return 0, fmt.Errorf("unknown operator: %s", op)
 	}
 }
 
-// parseValue parses a value: BareValue | QuotedValue
-func (p *parser) parseValue() (string, error) {
-	if p.pos >= len(p.input) {
-		return "", p.errorf("expected value")
-	}
+// unescapeValue processes a value, removing quotes and handling escape sequences if needed.
+func unescapeValue(s string) (string, error) {
+	// If it's a quoted string, remove quotes and unescape
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		s = s[1 : len(s)-1]
 
-	if p.input[p.pos] == '"' {
-		return p.parseQuotedValue()
-	}
-	return p.parseBareValue()
-}
-
-// parseBareValue parses an unquoted value: BareChar+
-func (p *parser) parseBareValue() (string, error) {
-	start := p.pos
-
-	for p.pos < len(p.input) {
-		r := rune(p.input[p.pos])
-		if !isBareChar(r) {
-			break
-		}
-		p.pos++
-	}
-
-	if p.pos == start {
-		return "", p.errorf("expected value")
-	}
-
-	return p.input[start:p.pos], nil
-}
-
-// parseQuotedValue parses a quoted value: `"` QuotedChar* `"`
-func (p *parser) parseQuotedValue() (string, error) {
-	if p.pos >= len(p.input) || p.input[p.pos] != '"' {
-		return "", p.errorf("expected '\"'")
-	}
-	p.pos++ // consume opening "
-
-	var sb strings.Builder
-
-	for {
-		if p.pos >= len(p.input) {
-			return "", p.errorf("unclosed quoted string")
-		}
-
-		r := rune(p.input[p.pos])
-
-		if r == '"' {
-			p.pos++ // consume closing "
-			break
-		}
-
-		if r == '\\' {
-			p.pos++
-			if p.pos >= len(p.input) {
-				return "", p.errorf("incomplete escape sequence")
+		// Process escape sequences
+		var result strings.Builder
+		i := 0
+		for i < len(s) {
+			if s[i] == '\\' && i+1 < len(s) {
+				switch s[i+1] {
+				case '\\':
+					result.WriteRune('\\')
+				case '"':
+					result.WriteRune('"')
+				case 'n':
+					result.WriteRune('\n')
+				case 't':
+					result.WriteRune('\t')
+				default:
+					return "", fmt.Errorf("invalid escape sequence \\%c", s[i+1])
+				}
+				i += 2
+			} else {
+				result.WriteByte(s[i])
+				i++
 			}
-			escaped := rune(p.input[p.pos])
-			switch escaped {
-			case '\\':
-				sb.WriteRune('\\')
-			case '"':
-				sb.WriteRune('"')
-			case 'n':
-				sb.WriteRune('\n')
-			case 't':
-				sb.WriteRune('\t')
-			default:
-				return "", p.errorf("invalid escape sequence \\%c", escaped)
-			}
-			p.pos++
-		} else {
-			sb.WriteRune(r)
-			p.pos++
 		}
+		return result.String(), nil
 	}
 
-	return sb.String(), nil
-}
-
-// isIdentStart returns true if r can start an identifier.
-func isIdentStart(r rune) bool {
-	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || r == '_'
-}
-
-// isIdentCont returns true if r can continue an identifier.
-func isIdentCont(r rune) bool {
-	return isIdentStart(r) || (r >= '0' && r <= '9') || r == '-'
-}
-
-// isBareChar returns true if r can appear in an unquoted value.
-// BareChar ::= any char except whitespace, "/", "[", "]", ",", "=", "!", "~", "@", "\"", "'"
-func isBareChar(r rune) bool {
-	if unicode.IsSpace(r) {
-		return false
-	}
-	switch r {
-	case '/', '[', ']', ',', '=', '!', '~', '@', '"', '\'':
-		return false
-	}
-	return true
-}
-
-// errorf creates a formatted error with position information.
-func (p *parser) errorf(format string, args ...interface{}) error {
-	msg := fmt.Sprintf(format, args...)
-
-	// Show context around the error position
-	start := p.pos - 10
-	if start < 0 {
-		start = 0
-	}
-	end := p.pos + 10
-	if end > len(p.input) {
-		end = len(p.input)
-	}
-
-	context := p.input[start:end]
-	offset := p.pos - start
-
-	return fmt.Errorf("parse error at position %d: %s\n  context: %q\n  position: %s^",
-		p.pos, msg, context, strings.Repeat(" ", offset+10))
+	// Bare value, return as-is
+	return s, nil
 }

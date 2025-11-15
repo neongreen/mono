@@ -111,9 +111,9 @@ func needsQuoting(s string) bool {
 		return true
 	}
 	for _, r := range s {
-		// BareChar ::= any char except whitespace, "/", "[", "]", ",", "=", "!", "~", "@", "\"", "'"
+		// BareChar ::= any char except whitespace, "/", "[", "]", ",", "=", "!", "~", "@", "\"", "'", "\"
 		switch r {
-		case ' ', '\t', '\n', '\r', '/', '[', ']', ',', '=', '!', '~', '@', '"', '\'':
+		case ' ', '\t', '\n', '\r', '/', '[', ']', ',', '=', '!', '~', '@', '"', '\'', '\\':
 			return true
 		}
 	}

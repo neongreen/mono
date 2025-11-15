@@ -1,0 +1,22 @@
+# 2025/11/15 21:51:38.349692 [TestProperty_SegmentNamesPreserved] [rapid] draw path: &pathlang.Path{Segments:[]pathlang.Segment{pathlang.Segment{Name:"a", Predicates:[]pathlang.Predicate{pathlang.Predicate{Field:"a", Op:0, Value:"with\\backslash"}}}}}
+# 2025/11/15 21:51:38.349838 [TestProperty_SegmentNamesPreserved] failed to parse "/a[a=with\\backslash]": parse error: 1:10: unexpected token "\\backslash" (expected "]")
+# 
+v0.4.8#17120665210314418272
+0x9249249249249
+0x0
+0x0
+0x0
+0xccccccccccccd
+0x0
+0x0
+0x0
+0x0
+0x0
+0x0
+0x1
+0xccccccccccccd
+0x6b74f03291620
+0x6
+0x0
+0x0
+0x0
