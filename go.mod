@@ -122,3 +122,5 @@ require (
 )
 
 replace github.com/neongreen/mono/lib/setlang => ./lib/setlang
+
+replace gopkg.in/yaml.v3 => github.com/go-yaml/yaml/v3 v3.0.1

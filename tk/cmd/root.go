@@ -116,4 +116,8 @@ This is useful for:
 	RootCmd.AddCommand(logCmd)
 	RootCmd.AddCommand(historyCmd)
 	RootCmd.AddCommand(statuslineCmd)
+
+	// Apply "See Also" sections to all commands
+	// This adds cross-references to help improve command discoverability
+	ApplySeeAlso(RootCmd)
 }
