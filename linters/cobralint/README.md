@@ -60,6 +60,43 @@ The linter will report:
 command "myCmd" (use: "mycommand") missing required --json flag
 ```
 
+#### Exempting Commands from JSON Flag Requirement
+
+The JSON flag requirement applies to **read-only commands** that query and display data. Commands that modify state don't need JSON output. You can exempt such commands using the `cobralint:exemptjson` directive:
+
+```go
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
+var createCmd = &cobra.Command{
+    Use:   "create",
+    Short: "Create a new item",
+    RunE: func(cmd *cobra.Command, args []string) error {
+        // Creates a new item
+        return nil
+    },
+}
+
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
+var deleteCmd = &cobra.Command{
+    Use:   "delete",
+    Short: "Delete an item",
+    RunE: func(cmd *cobra.Command, args []string) error {
+        // Deletes an item
+        return nil
+    },
+}
+```
+
+The directive must:
+- Be placed in a comment directly above the command variable declaration
+- Include a reason explaining why the command doesn't need JSON output
+- Follow the format: `// cobralint:exemptjson reason: <your explanation>`
+
+**Common exemption reasons:**
+- `Modifies state; JSON only required for read-only commands` - for create/update/delete commands
+- `Interactive command; JSON only required for read-only commands` - for commands requiring user input
+
+Commands with valid exemption directives will not trigger the "missing required --json flag" error.
+
 ## Writing Custom Checkers
 
 You can create custom checkers by implementing the `Checker` interface:

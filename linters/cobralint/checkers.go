@@ -17,6 +17,11 @@ func (c *RequireJSONFlagChecker) Check(pass *analysis.Pass, cmd *CommandInfo) {
 		return
 	}
 
+	// Skip if command has an exemption
+	if cmd.ExemptFromJSONFlag != nil {
+		return
+	}
+
 	// Check if the command has a --json flag
 	hasJSONFlag := false
 	for _, flag := range cmd.Flags {

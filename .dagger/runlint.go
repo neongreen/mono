@@ -11,8 +11,23 @@ import (
 // Uses --new-from-rev to grandfather existing gosec violations at commit 0c23a5a5
 // (when gosec was first enabled). This allows 18 documented violations while
 // preventing new ones. See tk-330 for details.
-func (m *Dagger) Lint(ctx context.Context) error {
+//
+// Projects to lint can be specified as arguments (e.g., "tk", "conf").
+// If no projects specified, lints all projects.
+func (m *Dagger) Lint(ctx context.Context,
+	// +optional
+	projects []string,
+) error {
 	repo := dag.CurrentModule().Source().Directory("..")
+
+	// Determine lint paths based on projects argument
+	lintPaths := []string{"./..."}
+	if len(projects) > 0 {
+		lintPaths = make([]string, len(projects))
+		for i, project := range projects {
+			lintPaths[i] = "./" + project + "/..."
+		}
+	}
 
 	baseContainer := dag.Container().
 		From("docker.io/golangci/golangci-lint:v2.6.1").
@@ -26,11 +41,13 @@ func (m *Dagger) Lint(ctx context.Context) error {
 
 	// Lint workspace root with golangci-lint
 	jobs = jobs.WithJob("lint projects (golangci-lint)", func(ctx context.Context) error {
+		args := []string{"golangci-lint", "run", "--new-from-rev=0c23a5a5"}
+		args = append(args, lintPaths...)
 		_, err := baseContainer.
 			WithMountedDirectory("/src", repo).
 			WithWorkdir("/src").
 			WithExec([]string{"golangci-lint", "config", "verify"}).
-			WithExec([]string{"golangci-lint", "run", "--new-from-rev=0c23a5a5"}).
+			WithExec(args).
 			Sync(ctx)
 		return err
 	})
@@ -45,23 +62,36 @@ func (m *Dagger) Lint(ctx context.Context) error {
 
 	// Lint workspace root with uselesswrapper
 	jobs = jobs.WithJob("lint projects (uselesswrapper)", func(ctx context.Context) error {
+		args := []string{"go", "run", "./linters/uselesswrapper/cmd/uselesswrapper"}
+		args = append(args, lintPaths...)
 		_, err := goContainer.
 			WithMountedDirectory("/src", repo).
 			WithWorkdir("/src").
-			WithExec([]string{"go", "run", "./linters/uselesswrapper/cmd/uselesswrapper", "./..."}).
+			WithExec(args).
 			Sync(ctx)
 		return err
 	})
 
-	// Lint workspace root with cobralint
-	jobs = jobs.WithJob("lint projects (cobralint)", func(ctx context.Context) error {
-		_, err := goContainer.
-			WithMountedDirectory("/src", repo).
-			WithWorkdir("/src").
-			WithExec([]string{"go", "run", "./linters/cobralint/cmd/cobralint", "./..."}).
-			Sync(ctx)
-		return err
-	})
+	// Lint tk project with cobralint (only if linting all projects or tk specifically)
+	shouldLintTk := len(projects) == 0
+	if !shouldLintTk {
+		for _, p := range projects {
+			if p == "tk" {
+				shouldLintTk = true
+				break
+			}
+		}
+	}
+	if shouldLintTk {
+		jobs = jobs.WithJob("lint tk (cobralint)", func(ctx context.Context) error {
+			_, err := goContainer.
+				WithMountedDirectory("/src", repo).
+				WithWorkdir("/src").
+				WithExec([]string{"go", "run", "./linters/cobralint/cmd/cobralint", "./tk/..."}).
+				Sync(ctx)
+			return err
+		})
+	}
 
 	// Lint .dagger module
 	jobs = jobs.WithJob("lint .dagger", func(ctx context.Context) error {

@@ -13,6 +13,7 @@ import (
 	"go/ast"
 	"go/token"
 	"reflect"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -23,12 +24,18 @@ import (
 
 // CommandInfo represents a Cobra command extracted from the code.
 type CommandInfo struct {
-	Name    string         // Variable name (e.g., "lsCmd")
-	Use     string         // Command use string (e.g., "ls")
-	Flags   []FlagInfo     // Flags attached to this command
-	Pos     token.Pos      // Position in source code
-	VarDecl *ast.ValueSpec // The variable declaration
-	IsRoot  bool           // Whether this is the root command
+	Name               string         // Variable name (e.g., "lsCmd")
+	Use                string         // Command use string (e.g., "ls")
+	Flags              []FlagInfo     // Flags attached to this command
+	Pos                token.Pos      // Position in source code
+	VarDecl            *ast.ValueSpec // The variable declaration
+	IsRoot             bool           // Whether this is the root command
+	ExemptFromJSONFlag *ExemptionInfo // JSON flag exemption with reason
+}
+
+// ExemptionInfo represents an exemption from the JSON flag requirement.
+type ExemptionInfo struct {
+	Reason string // Why this command is exempt from requiring --json
 }
 
 // FlagInfo represents a flag attached to a command.
@@ -132,12 +139,39 @@ func extractCommands(pass *analysis.Pass, inspect *inspector.Inspector) []Comman
 					cmdInfo.Use = extractUseField(compLit)
 				}
 
+				// Check for exemption directive in comments
+				cmdInfo.ExemptFromJSONFlag = extractExemption(pass, genDecl)
+
 				commands = append(commands, cmdInfo)
 			}
 		}
 	})
 
 	return commands
+}
+
+// extractExemption checks for a cobralint:exemptjson directive in comments above the declaration.
+// The directive format is: // cobralint:exemptjson reason: <explanation>
+func extractExemption(pass *analysis.Pass, genDecl *ast.GenDecl) *ExemptionInfo {
+	if genDecl.Doc == nil {
+		return nil
+	}
+
+	// Regular expression to match: cobralint:exemptjson reason: <text>
+	exemptRe := regexp.MustCompile(`cobralint:exemptjson\s+reason:\s*(.+)`)
+
+	for _, comment := range genDecl.Doc.List {
+		text := strings.TrimPrefix(comment.Text, "//")
+		text = strings.TrimSpace(text)
+
+		if matches := exemptRe.FindStringSubmatch(text); matches != nil {
+			return &ExemptionInfo{
+				Reason: strings.TrimSpace(matches[1]),
+			}
+		}
+	}
+
+	return nil
 }
 
 // isCobraCommand checks if a ValueSpec is a cobra.Command.

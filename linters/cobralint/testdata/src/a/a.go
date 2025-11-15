@@ -33,6 +33,33 @@ var RootCmd = &cobra.Command{
 	Short: "Root command",
 }
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
+var exemptCmd = &cobra.Command{
+	Use:   "exempt",
+	Short: "A command exempt from json requirement",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return nil
+	},
+}
+
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
+var exemptInteractiveCmd = &cobra.Command{
+	Use:   "interactive",
+	Short: "An interactive command",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return nil
+	},
+}
+
+// This comment doesn't have the directive
+var stillBadCmd = &cobra.Command{ // want `command "stillBadCmd" \(use: "stillbad"\) missing required --json flag`
+	Use:   "stillbad",
+	Short: "A command without the directive",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return nil
+	},
+}
+
 func init() {
 	// Regular Bool method
 	goodCmd.Flags().Bool("json", false, "Output as JSON")
@@ -44,4 +71,7 @@ func init() {
 	RootCmd.AddCommand(goodCmd)
 	RootCmd.AddCommand(goodCmdWithVar)
 	RootCmd.AddCommand(badCmd)
+	RootCmd.AddCommand(exemptCmd)
+	RootCmd.AddCommand(exemptInteractiveCmd)
+	RootCmd.AddCommand(stillBadCmd)
 }
