@@ -113,7 +113,7 @@ func TestSeeAlsoWithDescriptions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := SeeAlsoWithDescriptions(RootCmd, tt.commands...)
-			
+
 			// Check that all expected strings are present
 			for _, want := range tt.contains {
 				if !strings.Contains(got, want) {

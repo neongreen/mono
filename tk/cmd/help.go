@@ -80,9 +80,12 @@ func SeeAlsoWithDescriptions(root *cobra.Command, commands ...string) string {
 //
 // By default, this shows just command names. To include descriptions from
 // each command's Short field, change the function call from:
-//   SeeAlso(related...)
+//
+//	SeeAlso(related...)
+//
 // to:
-//   SeeAlsoWithDescriptions(cmd.Root(), related...)
+//
+//	SeeAlsoWithDescriptions(cmd.Root(), related...)
 func ApplySeeAlso(cmd *cobra.Command) {
 	// Get the command path without the root "tk" prefix
 	cmdPath := cmd.CommandPath()
@@ -94,7 +97,7 @@ func ApplySeeAlso(cmd *cobra.Command) {
 	if related, ok := seeAlsoRegistry[cmdPath]; ok {
 		// Current: Simple command names only
 		cmd.Long = strings.TrimSpace(cmd.Long) + SeeAlso(related...)
-		
+
 		// Alternative: Include descriptions from Cobra's Short field
 		// cmd.Long = strings.TrimSpace(cmd.Long) + SeeAlsoWithDescriptions(cmd.Root(), related...)
 	}
