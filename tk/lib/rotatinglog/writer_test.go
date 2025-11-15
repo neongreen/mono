@@ -90,6 +90,11 @@ func TestRotation(t *testing.T) {
 }
 
 func TestQuery(t *testing.T) {
+	// Skip test if DuckDB CLI is not available
+	if err := checkDuckDBAvailable(); err != nil {
+		t.Skip("DuckDB CLI not available, skipping test:", err)
+	}
+
 	dir := t.TempDir()
 	w, err := NewWriter(dir, 1024*1024)
 	if err != nil {
