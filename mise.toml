@@ -86,9 +86,13 @@ run = "go run ./linters/uselesswrapper/cmd/uselesswrapper ./..."
 description = "Lint Cobra commands for conventions"
 run = "go run ./linters/cobralint/cmd/cobralint ./..."
 
+[tasks."lint:go:dircheck"]
+description = "Detect file writes without directory existence checks"
+run = "go run ./linters/dircheck/cmd/dircheck ./..."
+
 [tasks."lint:go"]
 description = "Lint all Go code"
-depends = ["lint:go:golangci", "lint:go:uselesswrapper", "lint:go:cobra"]
+depends = ["lint:go:golangci", "lint:go:uselesswrapper", "lint:go:cobra", "lint:go:dircheck"]
 
 [tasks."test:go"]
 description = "Test all Go code"
