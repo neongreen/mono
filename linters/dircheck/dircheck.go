@@ -26,6 +26,7 @@ package dircheck
 import (
 	"go/ast"
 	"go/types"
+	"slices"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -119,10 +120,8 @@ func isFileCreationCall(callExpr *ast.CallExpr, info *types.Info) bool {
 	// Check against known file creation functions
 	for knownPkg, funcs := range fileCreationFuncs {
 		if pkgPath == knownPkg {
-			for _, knownFunc := range funcs {
-				if funcName == knownFunc {
-					return true
-				}
+			if slices.Contains(funcs, funcName) {
+				return true
 			}
 		}
 	}
