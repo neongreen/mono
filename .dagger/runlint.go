@@ -93,15 +93,26 @@ func (m *Dagger) Lint(ctx context.Context,
 		})
 	}
 
-	// Lint .dagger module
-	jobs = jobs.WithJob("lint .dagger", func(ctx context.Context) error {
-		_, err := baseContainer.
-			WithMountedDirectory("/src", repo).
-			WithWorkdir("/src/.dagger").
-			WithExec([]string{"golangci-lint", "run", "--new-from-rev=0c23a5a5"}).
-			Sync(ctx)
-		return err
-	})
+	// Lint .dagger module (only if linting all projects or dagger specifically)
+	shouldLintDagger := len(projects) == 0
+	if !shouldLintDagger {
+		for _, p := range projects {
+			if p == "dagger" || p == ".dagger" {
+				shouldLintDagger = true
+				break
+			}
+		}
+	}
+	if shouldLintDagger {
+		jobs = jobs.WithJob("lint .dagger", func(ctx context.Context) error {
+			_, err := baseContainer.
+				WithMountedDirectory("/src", repo).
+				WithWorkdir("/src/.dagger").
+				WithExec([]string{"golangci-lint", "run", "--new-from-rev=0c23a5a5"}).
+				Sync(ctx)
+			return err
+		})
+	}
 
 	return jobs.Run(ctx)
 }
@@ -132,7 +143,7 @@ func (m *Dagger) ModernizeFix(ctx context.Context) (*dagger.Changeset, error) {
 	return fixedDir.Changes(repo), nil
 }
 
-// AutoFix applies all automatic code fixes: modernize, goimports, cargo fmt, and go mod tidy
+// AutoFix applies all automatic code fixes: modernize, staticcheck, goimports, cargo fmt, and go mod tidy
 // Returns a Changeset showing all fixes applied
 func (m *Dagger) AutoFix(ctx context.Context) (*dagger.Changeset, error) {
 	repo := dag.CurrentModule().Source().Directory("..")
@@ -147,11 +158,11 @@ func (m *Dagger) AutoFix(ctx context.Context) (*dagger.Changeset, error) {
 		WithEnvVariable("GONOSUMDB", "github.com/neongreen/mono").
 		WithMountedDirectory("/src", repo).
 		WithWorkdir("/src").
-		// Step 1: Run modernize fixes first
+		// Step 1: Run modernize and staticcheck fixes
 		WithExec([]string{
 			"golangci-lint", "run",
 			"--fix",
-			"--enable-only=modernize",
+			"--enable-only=modernize,staticcheck",
 		}).
 		// Step 2: Install and run goimports
 		WithExec([]string{"go", "install", "golang.org/x/tools/cmd/goimports@latest"}).

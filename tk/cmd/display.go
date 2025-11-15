@@ -73,22 +73,6 @@ func colorizeStatus(status string) string {
 	}
 }
 
-// getStatusStyle returns a lipgloss style for the given status
-func getStatusStyle(status string) lipgloss.Style {
-	switch status {
-	case "next":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // Blue
-	case "wip":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("11")) // Yellow
-	case "done", "fixed":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("10")) // Green
-	case "closed":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("8")) // Gray
-	default:
-		return lipgloss.NewStyle()
-	}
-}
-
 // renderTaskTable renders a table of tasks using lipgloss/table.
 // If widths is nil, it will calculate widths from the given tasks.
 // Pass a non-nil widths to use consistent column widths across multiple tables.
