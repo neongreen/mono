@@ -132,8 +132,8 @@ func recreateProject(db *database.DB, syntheticUID, name string) error {
 	newProjectUID := types.NewProjectUID()
 
 	payload := types.ProjectCreatedPayload{
-		ProjectUID:  newProjectUID.String(),
-		Type:        "local",
+		ProjectUID:  newProjectUID,
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: fmt.Sprintf("Recreated from synthetic project (cleanup from tk-281)"),
 		CreatedBy:   actor,

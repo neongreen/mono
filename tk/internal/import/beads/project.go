@@ -21,8 +21,8 @@ func CreateProjectForImport(db *database.DB, prefix string, alias string, actor 
 	projectUID := types.NewProjectUID()
 
 	payload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID.String(),
-		Type:        "local",
+		ProjectUID:  projectUID,
+		Type:        types.ProjectTypeLocal,
 		Name:        prefix,
 		Description: "Imported from beads (prefix: " + prefix + ", alias: " + alias + ")",
 		CreatedBy:   actor,

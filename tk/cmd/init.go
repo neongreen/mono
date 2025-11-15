@@ -56,8 +56,8 @@ var initCmd = &cobra.Command{
 
 		projectUID := types.NewProjectUID()
 		payload := types.ProjectCreatedPayload{
-			ProjectUID:  string(projectUID),
-			Type:        "local",
+			ProjectUID:  projectUID,
+			Type:        types.ProjectTypeLocal,
 			Name:        "me",
 			Description: "Personal tasks",
 			CreatedBy:   actor,

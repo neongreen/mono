@@ -48,11 +48,41 @@ func ValidateProjectName(name string) error {
 
 // ProjectCreatedPayload is the payload for project.created events
 type ProjectCreatedPayload struct {
-	ProjectUID  string `json:"project_uid"`
-	Type        string `json:"type"`        // local, github, linear, jira
-	Name        string `json:"name"`        // human-readable name
-	Description string `json:"description"` // text description
-	CreatedBy   string `json:"created_by"`  // actor who created it
+	ProjectUID  ProjectUID  `json:"project_uid"`  // Must be valid ProjectUID (prj_<ulid>)
+	Type        ProjectType `json:"type"`         // Project type (local, github, linear, jira)
+	Name        string      `json:"name"`         // Project name (lowercase, dashes, validated)
+	Description string      `json:"description"`  // Text description (any string)
+	CreatedBy   string      `json:"created_by"`   // Actor who created it (any string)
+}
+
+// Validate checks if the ProjectCreatedPayload is valid
+func (p ProjectCreatedPayload) Validate() error {
+	if err := p.ProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in ProjectCreatedPayload: %w", err)
+	}
+	if err := p.Type.Validate(); err != nil {
+		return fmt.Errorf("invalid type in ProjectCreatedPayload: %w", err)
+	}
+	if err := ValidateProjectName(p.Name); err != nil {
+		return fmt.Errorf("invalid name in ProjectCreatedPayload: %w", err)
+	}
+	// Description and CreatedBy can be any string
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a ProjectCreatedPayload
+func (p *ProjectCreatedPayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias ProjectCreatedPayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal ProjectCreatedPayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ProjectAliasAddPayload is the payload for project.alias.add events

@@ -6,6 +6,72 @@ import (
 	"testing"
 )
 
+// TestProjectCreatedPayloadValidation tests that ProjectCreatedPayload validates properly
+func TestProjectCreatedPayloadValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		json      string
+		wantError bool
+		errorMsg  string
+	}{
+		{
+			name:      "valid payload",
+			json:      `{"project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","type":"local","name":"my-project","description":"A test project","created_by":"test"}`,
+			wantError: false,
+		},
+		{
+			name:      "valid with github type",
+			json:      `{"project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","type":"github","name":"test-repo","description":"","created_by":"test"}`,
+			wantError: false,
+		},
+		{
+			name:      "invalid project UID",
+			json:      `{"project_uid":"invalid","type":"local","name":"my-project","description":"","created_by":"test"}`,
+			wantError: true,
+			errorMsg:  "must start with prj_",
+		},
+		{
+			name:      "invalid project type",
+			json:      `{"project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","type":"invalid","name":"my-project","description":"","created_by":"test"}`,
+			wantError: true,
+			errorMsg:  "invalid project type",
+		},
+		{
+			name:      "invalid project name - uppercase",
+			json:      `{"project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","type":"local","name":"MyProject","description":"","created_by":"test"}`,
+			wantError: true,
+			errorMsg:  "must be lowercase",
+		},
+		{
+			name:      "invalid project name - empty",
+			json:      `{"project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","type":"local","name":"","description":"","created_by":"test"}`,
+			wantError: true,
+			errorMsg:  "cannot be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var payload ProjectCreatedPayload
+			err := json.Unmarshal([]byte(tt.json), &payload)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("expected error containing %q, got nil", tt.errorMsg)
+					return
+				}
+				if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("expected error containing %q, got: %v", tt.errorMsg, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got: %v", err)
+				}
+			}
+		})
+	}
+}
+
 // TestTaskRelocatePayloadValidation tests that TaskRelocatePayload validates properly
 func TestTaskRelocatePayloadValidation(t *testing.T) {
 	tests := []struct {
