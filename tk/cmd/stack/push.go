@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var PushCmd = &cobra.Command{
 	Use:   "push <stack-id> <item-id>",
 	Short: "Push an item onto a stack",

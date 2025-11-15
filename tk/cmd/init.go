@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create a new tk database",

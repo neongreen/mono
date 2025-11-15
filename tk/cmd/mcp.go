@@ -20,6 +20,7 @@ var (
 	mcpSSE   bool
 )
 
+// cobralint:exemptjson reason: Server command; JSON only required for read-only data commands
 var mcpCmd = &cobra.Command{
 	Use:   "mcp",
 	Short: "Run tk as an MCP server",

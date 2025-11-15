@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 // RepairCmd repairs database inconsistencies
 var RepairCmd = &cobra.Command{
 	Use:   "unsafe-repair-timestamps",

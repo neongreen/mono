@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Parent command; JSON only required for read-only data commands
 var schemaCmd = &cobra.Command{
 	Use:   "schema",
 	Short: "Manage container and type schemas",

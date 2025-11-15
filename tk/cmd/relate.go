@@ -13,12 +13,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Parent command; JSON only required for read-only data commands
 var relateCmd = &cobra.Command{
 	Use:   "relate",
 	Short: "Manage task relations",
 	Long:  `Add, remove, or view relations between tasks (blocks, subtasks, related, etc.)`,
 }
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var dupCmd = &cobra.Command{
 	Use:   "dup [task-a] [task-b]",
 	Short: "Mark two tasks as duplicates",

@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Parent command; JSON only required for read-only data commands
 var metaCmd = &cobra.Command{
 	Use:   "meta",
 	Short: "Manage task metadata",

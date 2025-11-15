@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Diagnostic tool; JSON only required for read-only data commands
 var ScanDeprecatedCmd = &cobra.Command{
 	Use:   "scan-deprecated",
 	Short: "Scan event log for deprecated field usage",

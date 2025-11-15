@@ -16,6 +16,7 @@ var (
 	addLLMHint     string
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var AddCmd = &cobra.Command{
 	Use:   "add <kind-type> <name>",
 	Short: "Define a new schema kind",
@@ -201,6 +202,7 @@ func init() {
 }
 
 // Keep old command for backward compatibility (deprecated)
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var AddKindCmd = &cobra.Command{
 	Use:        "add-kind <primitive> <name>",
 	Deprecated: "use 'tk schema add' instead",

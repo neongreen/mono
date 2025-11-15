@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var mvCmd = &cobra.Command{
 	Use:   "mv <task> <target>",
 	Short: "Move a task to another project",

@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var CreateCmd = &cobra.Command{
 	Use:   "create <name> [description]",
 	Short: "Create a new project",

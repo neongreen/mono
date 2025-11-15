@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Display command; outputs formatted text, not structured data
 var statuslineCmd = &cobra.Command{
 	Use:   "statusline",
 	Short: "Display recently updated tasks",

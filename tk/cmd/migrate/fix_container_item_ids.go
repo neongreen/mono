@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var FixContainerItemIDsCmd = &cobra.Command{
 	Use:   "fix-container-item-ids",
 	Short: "Fix display IDs in container_members (convert to task UIDs)",

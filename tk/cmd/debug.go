@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Parent command; JSON only required for read-only data commands
 var debugCmd = &cobra.Command{
 	Use:   "debug",
 	Short: "Debugging and diagnostic commands",
@@ -38,12 +39,14 @@ func init() {
 }
 
 // nodeCmd is a parent command for node-related debug commands
+// cobralint:exemptjson reason: Parent command; JSON only required for read-only data commands
 var nodeCmd = &cobra.Command{
 	Use:   "node",
 	Short: "Manage node ID",
 }
 
 // eventsCmd is a parent command for event-related debug commands
+// cobralint:exemptjson reason: Parent command; JSON only required for read-only data commands
 var eventsCmd = &cobra.Command{
 	Use:   "events",
 	Short: "Debug commands for inspecting events",
@@ -60,6 +63,7 @@ func init() {
 	eventsCmd.AddCommand(events_pkg.StatsCmd)
 }
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var fixTimestampsCmd = &cobra.Command{
 	Use:   "fix-timestamps",
 	Short: "Reassign Lamport timestamps to events based on creation time",
@@ -145,6 +149,7 @@ This command is safe to run multiple times.`,
 	},
 }
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var rebuildFromRemoteCmd = &cobra.Command{
 	Use:   "rebuild-from-remote [remote-name]",
 	Short: "Rebuild local database from remote segments",

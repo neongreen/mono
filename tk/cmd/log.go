@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Parent command; JSON only required for read-only data commands
 var logCmd = &cobra.Command{
 	Use:   "log",
 	Short: "Query and search invocation logs",

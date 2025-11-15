@@ -20,6 +20,7 @@ import (
 
 const maxAttachmentSize = 50 * 1024 * 1024 // 50MB
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var attachCmd = &cobra.Command{
 	Use:   "attach [task-id] [file]",
 	Short: "Attach a file to a task",

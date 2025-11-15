@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var PopCmd = &cobra.Command{
 	Use:   "pop <queue-id>",
 	Short: "Pop an item from a queue",

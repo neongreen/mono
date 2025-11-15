@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Diagnostic tool; JSON only required for read-only data commands
 var debugEventsCmd = &cobra.Command{
 	Use:   "debug-events [task-id]",
 	Short: "Dump all raw events for a task ID (for debugging)",

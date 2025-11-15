@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var ingestCmd = &cobra.Command{
 	Use:   "ingest [path-or-remote]",
 	Short: "Ingest events from segment files",

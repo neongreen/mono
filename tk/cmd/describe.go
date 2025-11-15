@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var describeCmd = &cobra.Command{
 	Use:     "describe <task> <title>",
 	Aliases: []string{"desc", "d"},

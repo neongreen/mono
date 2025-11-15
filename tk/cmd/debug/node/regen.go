@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var RegenCmd = &cobra.Command{
 	Use:   "regen",
 	Short: "Regenerate the node ID (use with caution)",

@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var FixRelocateBugCmd = &cobra.Command{
 	Use:   "fix-relocate-bug",
 	Short: "Fix orphaned tasks from corrupt task.relocate events (tk-281)",

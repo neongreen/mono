@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Parent command; JSON only required for read-only data commands
 var statusCmd = &cobra.Command{
 	Use:   "status",
 	Short: "Manage task status and sync status",

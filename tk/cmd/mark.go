@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var markCmd = &cobra.Command{
 	Use:   "mark [task-id] [state]",
 	Short: "Set task status",
