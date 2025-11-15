@@ -68,6 +68,11 @@ func setupTestDB(t *testing.T) (*database.DB, string, func()) {
 		t.Fatalf("Failed to insert project event: %v", err)
 	}
 
+	// Rebuild projections so the project is queryable
+	if err := db.RebuildProjections(); err != nil {
+		t.Fatalf("Failed to rebuild projections: %v", err)
+	}
+
 	cleanup := func() {
 		db.Close()
 		os.Setenv("TK_DB_PATH", oldPath)
