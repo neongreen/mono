@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -73,7 +74,30 @@ type ProjectAliasRemovePayload struct {
 
 // ProjectDeletePayload is the payload for project.delete events
 type ProjectDeletePayload struct {
-	ProjectUID string `json:"project_uid"`
+	ProjectUID ProjectUID `json:"project_uid"` // Must be valid ProjectUID (prj_<ulid>)
+}
+
+// Validate checks if the ProjectDeletePayload is valid
+func (p ProjectDeletePayload) Validate() error {
+	if err := p.ProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in ProjectDeletePayload: %w", err)
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a ProjectDeletePayload
+func (p *ProjectDeletePayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias ProjectDeletePayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal ProjectDeletePayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ProjectNameSetPayload is the payload for project.name.set events

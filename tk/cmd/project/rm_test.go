@@ -103,7 +103,7 @@ func deleteProject(db *database.DB, projectUID string, force bool) error {
 
 	// Create project.delete event
 	payload := types.ProjectDeletePayload{
-		ProjectUID: projectUID,
+		ProjectUID: types.ProjectUID(projectUID),
 	}
 
 	payloadJSON, err := json.Marshal(payload)

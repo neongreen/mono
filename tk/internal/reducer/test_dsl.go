@@ -44,7 +44,7 @@ func (rt *ReducerTest) DeleteProject(projectUID string) {
 	rt.ts++
 
 	payload := types.ProjectDeletePayload{
-		ProjectUID: projectUID,
+		ProjectUID: types.ProjectUID(projectUID),
 	}
 	payloadJSON, _ := json.Marshal(payload)
 

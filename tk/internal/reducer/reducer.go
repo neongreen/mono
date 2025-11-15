@@ -202,7 +202,7 @@ func (r *Reducer) applyProjectDelete(e types.Event) error {
 	// Find all tasks in this project and delete them
 	tasksToDelete := make([]string, 0)
 	for taskUUID, taskProjectUID := range r.taskProjects {
-		if taskProjectUID == projectUID {
+		if taskProjectUID == projectUID.String() {
 			tasksToDelete = append(tasksToDelete, taskUUID)
 		}
 	}
