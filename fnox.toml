@@ -1,0 +1,20 @@
+[providers.keychain]
+type = "keychain"
+service = "fnox"
+
+[secrets]
+SPACELIFT_API_KEY_ID= { provider = "keychain", value = "SPACELIFT_API_KEY_ID" }
+SPACELIFT_API_KEY_SECRET= { provider = "keychain", value = "SPACELIFT_API_KEY_SECRET" }
+SPACELIFT_API_KEY_ENDPOINT= { provider = "keychain", value = "SPACELIFT_API_KEY_ENDPOINT" }
+BACKSTAGE_DB_PASSWORD= { provider = "keychain", value = "BACKSTAGE_DB_PASSWORD" }
+DATABASE_URL= { provider = "keychain", value = "DATABASE_URL" }
+GHCR_TOKEN= { description = "GitHub Container Registry PAT (write:packages)", provider = "keychain", value = "GHCR_TOKEN" }
+CERTMANAGER_EMAIL= { description = "Let’s Encrypt contact email", provider = "keychain", value = "CERTMANAGER_EMAIL" }
+DO_DNS_TOKEN= { description = "DigitalOcean API token for artyom.me DNS", provider = "keychain", value = "DO_DNS_TOKEN" }
+GITHUB_OAUTH_CLIENT_ID= { description = "GitHub OAuth client ID for Backstage", provider = "keychain", value = "GITHUB_OAUTH_CLIENT_ID" }
+GITHUB_OAUTH_CLIENT_SECRET= { description = "GitHub OAuth client secret for Backstage", provider = "keychain", value = "GITHUB_OAUTH_CLIENT_SECRET" }
+APP_DEFAULT_AUTH_SECRET= { description = "Backstage session signing key (APP_DEFAULT_AUTH_SECRET)", provider = "keychain", value = "APP_DEFAULT_AUTH_SECRET" }
+GITHUB_TOKEN= { description = "GitHub PAT for catalog ingestion and integrations", provider = "keychain", value = "GITHUB_TOKEN" }
+BACKSTAGE_K8S_TOKEN= { description = "Backstage service account token for Kubernetes plugin", provider = "keychain", value = "BACKSTAGE_K8S_TOKEN" }
+BACKSTAGE_K8S_CA_DATA= { description = "Backstage Kubernetes cluster CA cert (PEM)", provider = "keychain", value = "BACKSTAGE_K8S_CA_DATA" }
+HCLOUD_TOKEN= { description = "Hetzner Cloud API token (read-only) for Backstage plugin integration", provider = "keychain", value = "HCLOUD_TOKEN" }

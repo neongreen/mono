@@ -1,4 +1,5 @@
 [env]
+KUBECONFIG = "cloud/kubeconfig"
 GOPRIVATE = "github.com/neongreen/mono"
 GONOSUMDB = "github.com/neongreen/mono"
 # Prevent Go from auto-upgrading to newer versions (fixes version mismatch errors)
@@ -698,13 +699,130 @@ echo "{{cwd}}/_build/ingest"
 
 # ============================================================================
 # lib/ghclient
-# ============================================================================
+# ============================================================================ 
 
 
 [tasks."lib-ghclient:test"]
 description = "Run tests for lib/ghclient"
 dir = "lib/ghclient"
 run = "go test ./..."
+
+# ============================================================================
+# backstage
+# ============================================================================
+
+[tasks.backstage]
+description = "Run Backstage in dev mode"
+dir = "backstage"
+run = "mise exec node@20 -- yarn start"
+
+[tasks."backstage:build"]
+description = "Build Backstage backend/frontend bundle"
+dir = "backstage"
+run = "mise exec node@20 -- yarn build:all"
+
+[tasks."backstage:test"]
+description = "Run Backstage unit tests"
+dir = "backstage"
+run = "mise exec node@20 -- yarn test"
+
+[tasks."backstage:image"]
+description = "Build (and optionally push) Backstage container image to GHCR"
+dir = "."
+run = '''
+set -euo pipefail
+IMAGE_TAG=${IMAGE_TAG:-dev}
+PUSH=${PUSH:-1}
+cd backstage
+mise exec node@20 -- yarn build:all
+cd ..
+IMAGE="ghcr.io/neongreen/backstage:${IMAGE_TAG}"
+if [ "$PUSH" = "1" ]; then
+  cd cloud
+  fnox exec -- bash -lc '
+    set -euo pipefail
+    echo "$GHCR_TOKEN" | docker login ghcr.io -u neongreen --password-stdin
+  '
+  cd ..
+  docker buildx build --platform linux/amd64 -t "$IMAGE" -f backstage/packages/backend/Dockerfile --push .
+  echo "Built and pushed $IMAGE"
+else
+  docker buildx build --platform linux/amd64 -t "$IMAGE" -f backstage/packages/backend/Dockerfile --load .
+  echo "Built image $IMAGE (not pushed)"
+fi
+'''
+
+[tasks."backstage:deploy"]
+description = "Build/push Backstage image and roll out the deployment"
+dir = "."
+run = '''
+set -euo pipefail
+IMAGE_TAG=${IMAGE_TAG:-dev}
+
+cd backstage
+mise exec node@20 -- yarn build:all
+cd ..
+
+IMAGE="ghcr.io/neongreen/backstage:${IMAGE_TAG}"
+cd cloud
+fnox exec -- bash -lc '
+  set -euo pipefail
+  echo "$GHCR_TOKEN" | docker login ghcr.io -u neongreen --password-stdin
+'
+cd ..
+
+cd backstage
+docker buildx build --platform linux/amd64 -t "$IMAGE" -f packages/backend/Dockerfile --push .
+cd ..
+
+KUBECONFIG=cloud/kubeconfig kubectl apply -f cloud/k8s/backstage/rbac.yaml
+KUBECONFIG=cloud/kubeconfig kubectl apply -f cloud/k8s/backstage/configmap.yaml
+fnox exec -- bash -lc 'envsubst < cloud/k8s/backstage/secrets.tmpl.yaml | KUBECONFIG=cloud/kubeconfig kubectl apply -f -'
+KUBECONFIG=cloud/kubeconfig kubectl rollout restart deployment/backstage -n backstage
+KUBECONFIG=cloud/kubeconfig kubectl rollout status deployment/backstage -n backstage --timeout=300s
+'''
+
+[tasks."backstage:k8s:check"]
+description = "Verify Backstage Kubernetes integration prerequisites"
+dir = "."
+run = '''
+set -euo pipefail
+echo "== app-config kubernetes block =="
+python3 - <<'PY'
+import pathlib
+text = pathlib.Path('backstage/app-config.production.yaml').read_text().splitlines()
+printing = False
+for line in text:
+    if line.strip().startswith('kubernetes:'):
+        printing = True
+    if printing:
+        print(line)
+PY
+
+echo "== backstage-config ConfigMap contains kubernetes block =="
+KUBECONFIG=cloud/kubeconfig kubectl get configmap backstage-config -n backstage -o jsonpath='{.data.app-config\.production\.yaml}' | grep -n "kubernetes" || true
+
+echo "== Catalog entity annotations =="
+grep -n "backstage.io/kubernetes" backstage/catalog-info.yaml || true
+
+echo "== Deployment labels =="
+KUBECONFIG=cloud/kubeconfig kubectl get deployment/backstage -n backstage -o custom-columns=NAME:.metadata.name,LABELS:.metadata.labels
+
+echo "== Current pods with labels =="
+KUBECONFIG=cloud/kubeconfig kubectl get pods -n backstage --show-labels
+
+echo "== ServiceAccount token secret =="
+KUBECONFIG=cloud/kubeconfig kubectl get secret backstage-service-account-token -n backstage
+
+echo "== RBAC checks (kubectl auth can-i) =="
+for res in pods services endpoints configmaps events limitranges resourcequotas deployments.apps statefulsets.apps daemonsets.apps replicasets.apps jobs.batch cronjobs.batch horizontalpodautoscalers.autoscaling pods.metrics.k8s.io; do
+  echo "-- can list $res"
+  KUBECONFIG=cloud/kubeconfig kubectl auth can-i --as system:serviceaccount:backstage:backstage list "$res" -n backstage
+done
+
+echo "== Sample workload listing =="
+KUBECONFIG=cloud/kubeconfig kubectl get pods -n backstage -o wide
+'''
 
 # ============================================================================
 # markdown-format
@@ -1017,4 +1135,18 @@ run = '''
 set -euo pipefail
 POD=$(mise run cloud:kubectl get pods -n dagger -l app=dagger-engine -o jsonpath='{.items[0].metadata.name}')
 mise run cloud:kubectl logs -n dagger "$POD" "$@"
+'''
+
+[tasks."cloud:backstage:secrets"]
+description = "Render Backstage secrets via fnox and apply them to the cluster"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+export KUBECONFIG="$(pwd)/kubeconfig"
+fnox exec -- bash -c '
+  set -euo pipefail
+  envsubst < k8s/backstage/postgres/secret.tmpl.yaml | kubectl apply -f -
+  envsubst < k8s/backstage/secrets.tmpl.yaml | kubectl apply -f -
+'
 '''

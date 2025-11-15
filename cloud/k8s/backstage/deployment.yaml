@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: backstage
+  labels:
+    app: backstage
+    backstage.io/kubernetes-id: backstage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage
+  template:
+    metadata:
+      labels:
+        app: backstage
+        backstage.io/kubernetes-id: backstage
+    spec:
+      serviceAccountName: backstage
+      # Uncomment once we confirm Backstage runs fine under gVisor.
+      # runtimeClassName: gvisor
+      containers:
+        - name: backstage
+          image: ghcr.io/neongreen/backstage:dev
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7007
+          env:
+            - name: APP_CONFIG_app_baseUrl
+              value: "https://backstage.artyom.me"
+            - name: APP_CONFIG_backend_baseUrl
+              value: "https://backstage.artyom.me"
+            - name: APP_CONFIG_backend_database_connection_string
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: DATABASE_URL
+          envFrom:
+            - secretRef:
+                name: backstage-secrets
+          volumeMounts:
+            - name: config
+              mountPath: /app/app-config.production.yaml
+              subPath: app-config.production.yaml
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      imagePullSecrets:
+        - name: ghcr-creds
+      volumes:
+        - name: config
+          configMap:
+            name: backstage-config

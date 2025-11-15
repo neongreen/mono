@@ -24,3 +24,40 @@ linters/uselesswrapper/uselesswrapper
 
 # Idk
 actionlint
+
+# Claude local settings
+.claude/settings.local.json
+
+# Node/JavaScript dependencies
+node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+.terraform/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Kubernetes secrets (actual, not templates)
+*-secret.yaml
+!*.tmpl.yaml

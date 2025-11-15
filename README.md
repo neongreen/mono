@@ -21,6 +21,7 @@ This repository contains multiple independent projects.
 | [jj-run](jj-run/) | alpha | Jujutsu subcommand to execute shell commands against multiple revisions. |
 | [jj-run-py](jj-run-py/) | deprecated | Old version of jj-run written in Python. |
 | [tk-vscode](tk-vscode/) | alpha | VS Code extension that lists tk tasks by running `tk ls --json`. |
+| [backstage](backstage/) | planning | Backstage developer portal for this monorepo/infrastructure; scaffolding + infra integration in progress. |
 
 ## Libraries
 

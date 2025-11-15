@@ -1,0 +1,27 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: backstage
+  description: An example of a Backstage application.
+  annotations:
+    backstage.io/kubernetes-id: backstage
+    backstage.io/kubernetes-namespace: backstage
+  links:
+    - url: https://backstage.artyom.me
+      title: Backstage Portal
+      icon: dashboard
+spec:
+  type: website
+  owner: user:default/neongreen
+  lifecycle: experimental
+
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: neongreen
+spec:
+  profile:
+    displayName: Emily
+    email: artyom@artyom.me
+  memberOf: []

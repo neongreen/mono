@@ -1,0 +1,19 @@
+primary:
+  persistence:
+    enabled: true
+    storageClass: local-path
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+auth:
+  existingSecret: backstage-postgres
+  username: backstage
+  database: backstage
+service:
+  type: ClusterIP
+fullnameOverride: backstage-postgres
