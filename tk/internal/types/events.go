@@ -167,8 +167,35 @@ type NumberPolicyPayload struct {
 
 // TaskTitleSetPayload is the payload for task.title.set events
 type TaskTitleSetPayload struct {
-	TaskUID string `json:"task_uid"`
-	Title   string `json:"title"`
+	TaskUID TaskUID `json:"task_uid"` // Must be valid TaskUID (tsk_<ulid>)
+	Title   string  `json:"title"`    // Task title (non-empty, trimmed)
+}
+
+// Validate checks if the TaskTitleSetPayload is valid
+func (p TaskTitleSetPayload) Validate() error {
+	if err := p.TaskUID.Validate(); err != nil {
+		return fmt.Errorf("invalid task_uid in TaskTitleSetPayload: %w", err)
+	}
+	title := strings.TrimSpace(p.Title)
+	if title == "" {
+		return fmt.Errorf("invalid title in TaskTitleSetPayload: title cannot be empty")
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a TaskTitleSetPayload
+func (p *TaskTitleSetPayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias TaskTitleSetPayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal TaskTitleSetPayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Container event payloads (v6 event-defined capabilities)

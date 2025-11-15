@@ -170,7 +170,7 @@ func TestEvents(t *testing.T) {
 
 		// Now change the title
 		titlePayload := types.TaskTitleSetPayload{
-			TaskUID: string(taskUID),
+			TaskUID: taskUID,
 			Title:   "Updated Title",
 		}
 		titlePayloadJSON, _ := json.Marshal(titlePayload)

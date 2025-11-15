@@ -127,7 +127,7 @@ func EditTitle(db *database.DB, taskUID string, value string, actor string, clk 
 	}
 
 	payload := types.TaskTitleSetPayload{
-		TaskUID: taskUID,
+		TaskUID: types.TaskUID(taskUID),
 		Title:   value,
 	}
 

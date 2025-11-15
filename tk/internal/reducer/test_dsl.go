@@ -233,7 +233,7 @@ func (th *TaskHandle) SetTitle(newTitle string) *TaskHandle {
 	th.test.ts++
 
 	payload := types.TaskTitleSetPayload{
-		TaskUID: th.UID,
+		TaskUID: types.TaskUID(th.UID),
 		Title:   newTitle,
 	}
 	payloadJSON, _ := json.Marshal(payload)

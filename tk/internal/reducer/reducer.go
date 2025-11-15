@@ -538,7 +538,7 @@ func (r *Reducer) applyTaskTitleSet(e types.Event) error {
 	taskUID := payload.TaskUID
 
 	// Find the task
-	task, exists := r.tasks[taskUID]
+	task, exists := r.tasks[taskUID.String()]
 	if !exists {
 		return fmt.Errorf("task %s not found", taskUID)
 	}

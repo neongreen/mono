@@ -115,7 +115,7 @@ func TestProjectTaskTitleSetEvent(t *testing.T) {
 
 	// Update the title
 	payload := types.TaskTitleSetPayload{
-		TaskUID: taskUID,
+		TaskUID: types.TaskUID(taskUID),
 		Title:   "New title",
 	}
 
