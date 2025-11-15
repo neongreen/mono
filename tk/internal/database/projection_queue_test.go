@@ -7,6 +7,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/types"
 )
+
 func TestProjectQueuePushEvent_PositionAssignment(t *testing.T) {
 	db := openTempDB(t)
 
@@ -385,4 +386,3 @@ func TestQueuePush_RepushRemovedItem(t *testing.T) {
 		t.Errorf("position = %d, want 1 (repush to empty queue starts at 1)", position)
 	}
 }
-

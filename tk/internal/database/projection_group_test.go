@@ -8,6 +8,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/types"
 )
+
 func TestProjectGroupAddEvent(t *testing.T) {
 	db := openTempDB(t)
 

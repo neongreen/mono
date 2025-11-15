@@ -56,6 +56,24 @@ tk can be installed via:
 - Want: `want mono tk@latest`
 - From source: `cd tk && go build -o tk .`
 
+### Optional: DuckDB for Query Features
+
+The `tk log query` and `tk log search` commands require DuckDB CLI to be installed:
+
+```bash
+# macOS
+brew install duckdb
+
+# Linux
+wget https://github.com/duckdb/duckdb/releases/latest/download/duckdb_cli-linux-amd64.zip
+unzip duckdb_cli-linux-amd64.zip
+sudo mv duckdb /usr/local/bin/
+
+# For more installation options: https://duckdb.org/docs/installation/
+```
+
+These commands will show a helpful error message if DuckDB is not installed.
+
 ## Testing
 
 ```bash

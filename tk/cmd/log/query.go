@@ -13,6 +13,8 @@ var QueryCmd = &cobra.Command{
 	Short: "Query invocation logs with SQL",
 	Long: `Execute arbitrary SQL queries against invocation logs using DuckDB.
 
+Requires DuckDB CLI to be installed (https://duckdb.org/docs/installation/).
+
 The logs are available in a table called 'logs'. All JSONL files (compressed
 and uncompressed) are automatically loaded.
 
