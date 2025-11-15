@@ -25,9 +25,11 @@ curl https://mise.jdx.dev/install.sh | sh
 if [ -n "$CLAUDE_ENV_FILE" ]; then
   echo 'unset no_proxy' >> "$CLAUDE_ENV_FILE"
   echo 'unset NO_PROXY' >> "$CLAUDE_ENV_FILE"
+  echo 'unset GLOBAL_AGENT_NO_PROXY' >> "$CLAUDE_ENV_FILE"
 fi
 unset no_proxy
 unset NO_PROXY
+unset GLOBAL_AGENT_NO_PROXY
 
 # Add mise to PATH for this session via CLAUDE_ENV_FILE
 if [ -n "$CLAUDE_ENV_FILE" ]; then

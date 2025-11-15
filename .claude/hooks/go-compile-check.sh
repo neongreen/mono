@@ -11,6 +11,12 @@ fi
 
 echo "Checking Go compilation..." >&2
 
+# Fix Go module downloads by removing no_proxy restrictions
+# See CLAUDE.md for details about the networking quirk
+unset no_proxy
+unset NO_PROXY
+unset GLOBAL_AGENT_NO_PROXY
+
 # Find all Go modules in the repository
 cd "$CLAUDE_PROJECT_DIR" || exit 1
 
