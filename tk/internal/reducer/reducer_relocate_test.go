@@ -106,12 +106,10 @@ func TestReducer_TaskRelocate_UpdatesProjectTracking(t *testing.T) {
 		t.Fatalf("Failed to delete project B: %v", err)
 	}
 
-	// BUG: Task should be deleted because it belongs to project B now,
-	// but applyTaskRelocate doesn't update taskProjects, so the task
-	// is still mapped to project A and won't be deleted
+	// Task should be deleted because it belongs to project B now
 	_, ok = r.GetTask(taskUID)
 	if ok {
-		t.Error("Task should be deleted when its current project (B) is deleted, but it still exists because applyTaskRelocate doesn't update taskProjects")
+		t.Error("Task should be deleted when its current project (B) is deleted")
 	}
 }
 
@@ -198,13 +196,12 @@ func TestReducer_TaskRelocate_DeletesFromCorrectProject(t *testing.T) {
 		t.Fatalf("Failed to delete project A: %v", err)
 	}
 
-	// BUG: Task should still exist because it was moved to project B,
-	// but applyTaskRelocate doesn't update taskProjects, so the task
-	// is still mapped to project A and will be incorrectly deleted
+	// Task should still exist because it was moved to project B
 	task, ok := r.GetTask(taskUID)
 	if !ok {
-		t.Error("Task should still exist after deleting its original project (A), because it was relocated to project B, but applyTaskRelocate doesn't update taskProjects")
-	} else if task.Title != "Test task" {
+		t.Error("Task should still exist after deleting its original project (A), because it was relocated to project B")
+	}
+	if task.Title != "Test task" {
 		t.Errorf("Expected task title 'Test task', got %s", task.Title)
 	}
 }
