@@ -145,10 +145,39 @@ type TaskCreatedPayload struct {
 
 // TaskNumberSetPayload is the payload for task.number.set events
 type TaskNumberSetPayload struct {
-	TaskUID    string `json:"task_uid"`
-	ProjectUID string `json:"project_uid"`
-	Number     int64  `json:"number"`
-	Reason     string `json:"reason,omitempty"` // e.g., "collision resolved", "manual renumber"
+	TaskUID    TaskUID    `json:"task_uid"`     // Must be valid TaskUID (tsk_<ulid>)
+	ProjectUID ProjectUID `json:"project_uid"`  // Must be valid ProjectUID (prj_<ulid>)
+	Number     int64      `json:"number"`       // Task number (must be positive)
+	Reason     string     `json:"reason,omitempty"` // e.g., "collision resolved", "manual renumber"
+}
+
+// Validate checks if the TaskNumberSetPayload is valid
+func (p TaskNumberSetPayload) Validate() error {
+	if err := p.TaskUID.Validate(); err != nil {
+		return fmt.Errorf("invalid task_uid in TaskNumberSetPayload: %w", err)
+	}
+	if err := p.ProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in TaskNumberSetPayload: %w", err)
+	}
+	if p.Number <= 0 {
+		return fmt.Errorf("invalid number in TaskNumberSetPayload: must be positive, got %d", p.Number)
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a TaskNumberSetPayload
+func (p *TaskNumberSetPayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias TaskNumberSetPayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal TaskNumberSetPayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // TaskRelocatePayload is the payload for task.relocate events

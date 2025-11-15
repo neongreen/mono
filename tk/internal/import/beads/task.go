@@ -151,8 +151,8 @@ func createTaskCreatedEvent(db *database.DB, taskUID, projectUID string, number 
 // createTaskNumberEvent creates a task.number.set event
 func createTaskNumberEvent(db *database.DB, taskUID, projectUID string, number int64, actor string, createdAt time.Time) error {
 	payload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     "imported",
 	}

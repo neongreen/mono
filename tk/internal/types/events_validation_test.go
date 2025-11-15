@@ -6,6 +6,67 @@ import (
 	"testing"
 )
 
+// TestTaskNumberSetPayloadValidation tests that TaskNumberSetPayload validates properly
+func TestTaskNumberSetPayloadValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		json      string
+		wantError bool
+		errorMsg  string
+	}{
+		{
+			name:      "valid payload",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","number":42,"reason":"test"}`,
+			wantError: false,
+		},
+		{
+			name:      "invalid task UID",
+			json:      `{"task_uid":"invalid","project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","number":42}`,
+			wantError: true,
+			errorMsg:  "must start with tsk_",
+		},
+		{
+			name:      "invalid project UID",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","project_uid":"invalid","number":42}`,
+			wantError: true,
+			errorMsg:  "must start with prj_",
+		},
+		{
+			name:      "invalid number - zero",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","number":0}`,
+			wantError: true,
+			errorMsg:  "must be positive",
+		},
+		{
+			name:      "invalid number - negative",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","number":-5}`,
+			wantError: true,
+			errorMsg:  "must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var payload TaskNumberSetPayload
+			err := json.Unmarshal([]byte(tt.json), &payload)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("expected error containing %q, got nil", tt.errorMsg)
+					return
+				}
+				if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("expected error containing %q, got: %v", tt.errorMsg, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got: %v", err)
+				}
+			}
+		})
+	}
+}
+
 // TestTaskTitleSetPayloadValidation tests that TaskTitleSetPayload validates properly
 func TestTaskTitleSetPayloadValidation(t *testing.T) {
 	tests := []struct {

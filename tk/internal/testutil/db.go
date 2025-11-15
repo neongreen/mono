@@ -121,8 +121,8 @@ func SeedTaskWithNode(t *testing.T, db *database.DB, projectUID string, title st
 	}
 
 	numberPayload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     "seed",
 	}
