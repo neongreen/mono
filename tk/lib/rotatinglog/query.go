@@ -26,35 +26,15 @@ func checkDuckDBAvailable() error {
 //
 // The SQL query should reference the table as 'logs'. Example:
 //
-//	SELECT * FROM logs WHERE field = 'value'
+//	SELECT * FROM logs WHERE field = ?
 //
-// Note: Parameterized queries (?) are not supported when using the CLI.
-// Ensure user input is properly sanitized to avoid SQL injection.
+// Use ? placeholders for parameters to avoid SQL injection.
+// Parameters are passed to DuckDB as prepared statement arguments.
 // DuckDB automatically detects and decompresses .zst files.
 func Query(dir string, sqlQuery string, args ...any) ([]QueryResult, error) {
 	// Check if duckdb is available
 	if err := checkDuckDBAvailable(); err != nil {
 		return nil, err
-	}
-
-	// For backwards compatibility, replace ? placeholders with actual values
-	// This is less safe but maintains the API contract
-	finalQuery := sqlQuery
-	for _, arg := range args {
-		// Simple replacement - wrap strings in quotes, convert others to string
-		var replacement string
-		switch v := arg.(type) {
-		case string:
-			// Escape single quotes in the string
-			escaped := strings.ReplaceAll(v, "'", "''")
-			replacement = fmt.Sprintf("'%s'", escaped)
-		case int, int64, float64, bool:
-			replacement = fmt.Sprintf("%v", v)
-		default:
-			replacement = fmt.Sprintf("'%v'", v)
-		}
-		// Replace first occurrence of ?
-		finalQuery = strings.Replace(finalQuery, "?", replacement, 1)
 	}
 
 	// Create a view that reads all JSONL files
@@ -67,11 +47,46 @@ func Query(dir string, sqlQuery string, args ...any) ([]QueryResult, error) {
 		SELECT * FROM read_json('%s', auto_detect=true, format='newline_delimited', union_by_name=true, maximum_object_size=268435456);
 	`, pattern)
 
-	// Combine the view creation and the query
-	fullSQL := createView + "\n" + finalQuery
+	// Build SQL script with prepared statement if there are parameters
+	var fullSQL string
+	if len(args) > 0 {
+		// Convert ? placeholders to DuckDB's $1, $2, etc. format
+		preparedQuery := sqlQuery
+		for i := 1; i <= len(args); i++ {
+			preparedQuery = strings.Replace(preparedQuery, "?", fmt.Sprintf("$%d", i), 1)
+		}
+
+		// Build EXECUTE statement with parameters
+		var paramList []string
+		for _, arg := range args {
+			// Convert Go values to SQL literals for EXECUTE
+			switch v := arg.(type) {
+			case string:
+				// Escape single quotes for SQL string literal
+				escaped := strings.ReplaceAll(v, "'", "''")
+				paramList = append(paramList, fmt.Sprintf("'%s'", escaped))
+			case int, int64, float64, bool:
+				paramList = append(paramList, fmt.Sprintf("%v", v))
+			case nil:
+				paramList = append(paramList, "NULL")
+			default:
+				// Fallback to string representation
+				escaped := strings.ReplaceAll(fmt.Sprintf("%v", v), "'", "''")
+				paramList = append(paramList, fmt.Sprintf("'%s'", escaped))
+			}
+		}
+
+		fullSQL = fmt.Sprintf("%s\nPREPARE query AS %s;\nEXECUTE query(%s);",
+			createView, preparedQuery, strings.Join(paramList, ", "))
+	} else {
+		// No parameters, just execute the query directly
+		fullSQL = createView + "\n" + sqlQuery
+	}
 
 	// Execute the query using DuckDB CLI with JSON output
-	cmd := exec.Command("duckdb", ":memory:", "-json", "-cmd", fullSQL)
+	// Use stdin to pass the SQL to avoid interactive mode issues with -cmd
+	cmd := exec.Command("duckdb", ":memory:", "-json")
+	cmd.Stdin = strings.NewReader(fullSQL)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
@@ -103,7 +118,7 @@ func Query(dir string, sqlQuery string, args ...any) ([]QueryResult, error) {
 // It's equivalent to Query with a LIKE clause on common text fields.
 //
 // The pattern is used with SQL LIKE and automatically wrapped with % wildcards
-// for substring matching.
+// for substring matching. Uses prepared statements to prevent SQL injection.
 func Search(dir string, pattern string) ([]QueryResult, error) {
 	query := `
 		SELECT * FROM logs
