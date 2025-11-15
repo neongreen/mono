@@ -65,6 +65,11 @@ func MigrateLegacyLogs() error {
 
 // migrateLegacyFile migrates a single legacy JSONL file
 func migrateLegacyFile(srcPath, logDir string) error {
+	// Ensure log directory exists before writing
+	if err := os.MkdirAll(logDir, 0o700); err != nil {
+		return fmt.Errorf("failed to create log directory: %w", err)
+	}
+
 	// Generate archive filename
 	timestamp := time.Now().Format("2006-01-02-150405")
 	baseName := filepath.Base(srcPath)
