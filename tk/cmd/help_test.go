@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -76,6 +77,48 @@ func TestSeeAlsoFormatting(t *testing.T) {
 			got := SeeAlso(tt.commands...)
 			if got != tt.want {
 				t.Errorf("SeeAlso() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestSeeAlsoWithDescriptions checks that the description formatter
+// correctly pulls descriptions from Cobra commands.
+func TestSeeAlsoWithDescriptions(t *testing.T) {
+	// Apply see also to populate all commands
+	ApplySeeAlso(RootCmd)
+
+	tests := []struct {
+		name     string
+		commands []string
+		contains []string // strings that should appear in output
+	}{
+		{
+			name:     "empty",
+			commands: []string{},
+			contains: []string{},
+		},
+		{
+			name:     "commands with descriptions",
+			commands: []string{"show", "edit"},
+			contains: []string{"tk show", "tk edit", "Show task details", "Edit task fields"},
+		},
+		{
+			name:     "subcommand",
+			commands: []string{"relate add"},
+			contains: []string{"tk relate add", "Add a relation between two tasks"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := SeeAlsoWithDescriptions(RootCmd, tt.commands...)
+			
+			// Check that all expected strings are present
+			for _, want := range tt.contains {
+				if !strings.Contains(got, want) {
+					t.Errorf("SeeAlsoWithDescriptions() output missing %q\nGot: %s", want, got)
+				}
 			}
 		})
 	}

@@ -1,5 +1,17 @@
 package cmd
 
+// This file provides the "See Also" functionality for TK commands.
+//
+// The registry of command relationships lives in help_registry.go - if you're
+// adding a new command, update that file to include cross-references.
+//
+// Two formatters are available:
+// - SeeAlso(): Simple list of command names (current default)
+// - SeeAlsoWithDescriptions(): Includes descriptions from Cobra's Short field
+//
+// To switch to showing descriptions, change ApplySeeAlso to call
+// SeeAlsoWithDescriptions(RootCmd, related...) instead of SeeAlso(related...)
+
 import (
 	"fmt"
 	"strings"
@@ -7,131 +19,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// seeAlsoRegistry maps command paths to related commands that should appear
-// in the "See Also" section of their help text.
-//
-// This registry improves command discoverability, especially for AI agents
-// who might not guess at less-obvious command names.
-var seeAlsoRegistry = map[string][]string{
-	// Core task management
-	"new":      {"show", "mark", "edit", "describe", "ls"},
-	"show":     {"edit", "describe", "note", "history", "relate ls", "attach"},
-	"ls":       {"show", "mark", "new", "project ls", "blocked"},
-	"mark":     {"show", "ls", "blockers"},
-	"edit":     {"describe", "show", "note", "mv"},
-	"describe": {"edit", "show", "note"},
-	"note":     {"show", "describe", "history"},
-	"attach":   {"show", "note"},
-	"mv":       {"edit", "project ls", "show"},
-	"rm":       {"show", "ls"},
-
-	// Relations & dependencies
-	"relate":        {"relate add", "relate ls", "dup", "blockers", "graph"},
-	"relate add":    {"relate ls", "relate remove", "dup", "graph"},
-	"relate remove": {"relate ls", "relate add"},
-	"relate ls":     {"relate add", "graph", "show", "blockers"},
-	"dup":           {"relate add", "relate ls"},
-	"blockers":      {"blocked", "relate add", "mark", "graph"},
-	"blocked":       {"blockers", "mark", "relate ls"},
-	"graph":         {"relate ls", "blockers", "show"},
-
-	// Project management
-	"project":        {"project create", "project ls", "project rename"},
-	"project create": {"new", "mv", "project ls"},
-	"project ls":     {"project create", "ls", "mv"},
-	"project rm":     {"project ls", "mv"},
-	"project rename": {"project ls"},
-
-	// Container management - queues
-	"queue":        {"queue create", "queue push", "queue pop", "queue list", "stack", "group"},
-	"queue create": {"queue push", "queue list", "new"},
-	"queue push":   {"queue pop", "queue show", "ls"},
-	"queue pop":    {"queue push", "queue show", "mark"},
-	"queue list":   {"queue show", "queue create", "stack list", "group list"},
-	"queue show":   {"queue push", "queue pop", "ls"},
-	"queue rename": {"queue list"},
-	"queue rm":     {"queue list"},
-
-	// Container management - stacks
-	"stack":        {"stack create", "stack push", "stack pop", "stack list", "queue", "group"},
-	"stack create": {"stack push", "stack list", "new"},
-	"stack push":   {"stack pop", "stack show", "ls"},
-	"stack pop":    {"stack push", "stack show", "mark"},
-	"stack list":   {"stack show", "stack create", "queue list", "group list"},
-	"stack show":   {"stack push", "stack pop", "ls"},
-	"stack rename": {"stack list"},
-	"stack rm":     {"stack list"},
-
-	// Container management - groups
-	"group":        {"group create", "group add", "group list", "queue", "stack"},
-	"group create": {"group add", "group list"},
-	"group add":    {"group show", "group remove", "ls"},
-	"group remove": {"group add", "group show"},
-	"group list":   {"group show", "group create", "queue list", "stack list"},
-	"group show":   {"group add", "ls"},
-	"group rename": {"group list"},
-	"group rm":     {"group list"},
-
-	// Schema & metadata
-	"schema":        {"schema add", "schema list", "schema export", "meta"},
-	"schema add":    {"schema list", "meta set"},
-	"schema list":   {"schema add", "schema export", "meta list"},
-	"schema export": {"schema list", "schema add"},
-	"meta":          {"meta set", "meta get", "meta list", "schema"},
-	"meta set":      {"meta get", "meta list", "show"},
-	"meta get":      {"meta set", "meta list", "show"},
-	"meta list":     {"meta get", "meta claims", "schema list"},
-	"meta claims":   {"meta list", "meta get"},
-
-	// Sync & remote
-	"remote":      {"remote add", "remote ls", "push", "pull", "sync"},
-	"remote add":  {"remote ls", "sync", "push"},
-	"remote ls":   {"remote add", "remote rm", "status sync"},
-	"remote rm":   {"remote ls"},
-	"push":        {"pull", "sync", "remote ls", "status sync"},
-	"pull":        {"push", "sync", "ingest"},
-	"sync":        {"push", "pull", "status sync", "remote ls"},
-	"ingest":      {"pull", "sync"},
-	"status sync": {"sync", "remote ls", "push", "pull"},
-
-	// Debugging & maintenance
-	"debug":              {"debug doctor", "debug repair", "debug rebuild"},
-	"debug doctor":       {"debug repair", "conflicts"},
-	"debug repair":       {"debug doctor", "debug rebuild"},
-	"debug rebuild":      {"debug repair", "ingest"},
-	"debug events":       {"debug events list", "debug events show", "debug events stats", "log query"},
-	"debug events list":  {"debug events show", "debug events stats"},
-	"debug events show":  {"debug events list", "history"},
-	"debug events stats": {"debug events list"},
-	"debug node":         {"debug node show", "debug node regen", "remote ls"},
-	"debug node show":    {"debug node regen"},
-	"debug node regen":   {"debug node show"},
-	"conflicts":          {"conflicts numbers", "debug doctor", "edit"},
-	"conflicts numbers":  {"edit"},
-	"history":            {"show", "log query", "debug events show"},
-	"log":                {"log query", "log search"},
-	"log query":          {"log search", "debug events list", "history"},
-	"log search":         {"log query"},
-
-	// Migration & setup
-	"init":                    {"new", "project create", "remote add"},
-	"migrate":                 {"migrate scan-deprecated", "debug doctor"},
-	"migrate scan-deprecated": {"debug doctor"},
-	"import-beads":            {"new", "ls", "ingest"},
-	"version":                 {"debug doctor"},
-
-	// Database
-	"db":      {"db path"},
-	"db path": {"init"},
-
-	// Status
-	"status":     {"status sync"},
-	"statusline": {"status sync"},
-}
-
 // SeeAlso formats a "See Also" section for command help text.
 // It takes a list of command paths and returns a formatted string
 // that can be appended to a command's Long field.
+//
+// By default, this only shows command names. To include descriptions from
+// Cobra commands, use SeeAlsoWithDescriptions instead.
 func SeeAlso(commands ...string) string {
 	if len(commands) == 0 {
 		return ""
@@ -146,11 +39,50 @@ func SeeAlso(commands ...string) string {
 	return b.String()
 }
 
+// SeeAlsoWithDescriptions formats a "See Also" section with descriptions
+// pulled from the Cobra command's Short field.
+//
+// This avoids duplication by reusing the descriptions already defined
+// in each command. Commands that don't exist or have no Short description
+// will be shown without a description.
+func SeeAlsoWithDescriptions(root *cobra.Command, commands ...string) string {
+	if len(commands) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("\n\nSee Also:")
+
+	for _, cmdPath := range commands {
+		b.WriteString("\n  tk ")
+		b.WriteString(cmdPath)
+
+		// Try to find the command and get its Short description
+		cmd, _, err := root.Find(strings.Fields(cmdPath))
+		if err == nil && cmd != nil && cmd.Short != "" {
+			// Pad command name for alignment (15 chars should fit most commands)
+			padding := 20 - len(cmdPath)
+			if padding > 0 {
+				b.WriteString(strings.Repeat(" ", padding))
+			}
+			b.WriteString(" - ")
+			b.WriteString(cmd.Short)
+		}
+	}
+	return b.String()
+}
+
 // ApplySeeAlso adds "See Also" sections to commands based on the registry.
 // It recursively applies to all subcommands as well.
 //
 // This should be called once on the root command after all commands
 // have been registered.
+//
+// By default, this shows just command names. To include descriptions from
+// each command's Short field, change the function call from:
+//   SeeAlso(related...)
+// to:
+//   SeeAlsoWithDescriptions(cmd.Root(), related...)
 func ApplySeeAlso(cmd *cobra.Command) {
 	// Get the command path without the root "tk" prefix
 	cmdPath := cmd.CommandPath()
@@ -160,7 +92,11 @@ func ApplySeeAlso(cmd *cobra.Command) {
 
 	// Apply "See Also" if this command is in the registry
 	if related, ok := seeAlsoRegistry[cmdPath]; ok {
+		// Current: Simple command names only
 		cmd.Long = strings.TrimSpace(cmd.Long) + SeeAlso(related...)
+		
+		// Alternative: Include descriptions from Cobra's Short field
+		// cmd.Long = strings.TrimSpace(cmd.Long) + SeeAlsoWithDescriptions(cmd.Root(), related...)
 	}
 
 	// Recursively apply to subcommands
