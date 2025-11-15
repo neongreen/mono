@@ -524,7 +524,7 @@ func (r *Reducer) applyTaskRelocate(e types.Event) error {
 
 	// Update the task's project mapping so project.delete can correctly
 	// remove tasks that belong to the deleted project
-	r.taskProjects[payload.TaskUID] = payload.ToProjectUID
+	r.taskProjects[payload.TaskUID.String()] = payload.ToProjectUID.String()
 
 	return nil
 }

@@ -6,6 +6,84 @@ import (
 	"testing"
 )
 
+// TestTaskRelocatePayloadValidation tests that TaskRelocatePayload validates properly
+func TestTaskRelocatePayloadValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		json      string
+		wantError bool
+		errorMsg  string
+	}{
+		{
+			name:      "valid payload with keep mode",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","from_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","to_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T6XX","number_policy":{"mode":"keep"}}`,
+			wantError: false,
+		},
+		{
+			name:      "valid payload with force mode",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","from_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","to_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T6XX","number_policy":{"mode":"force","number":42}}`,
+			wantError: false,
+		},
+		{
+			name:      "invalid task UID",
+			json:      `{"task_uid":"invalid","from_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","to_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T6XX","number_policy":{"mode":"keep"}}`,
+			wantError: true,
+			errorMsg:  "must start with tsk_",
+		},
+		{
+			name:      "invalid from_project_uid",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","from_project_uid":"invalid","to_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T6XX","number_policy":{"mode":"keep"}}`,
+			wantError: true,
+			errorMsg:  "must start with prj_",
+		},
+		{
+			name:      "invalid to_project_uid",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","from_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","to_project_uid":"invalid","number_policy":{"mode":"keep"}}`,
+			wantError: true,
+			errorMsg:  "must start with prj_",
+		},
+		{
+			name:      "invalid number policy mode",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","from_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","to_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T6XX","number_policy":{"mode":"invalid"}}`,
+			wantError: true,
+			errorMsg:  "must be one of [keep, auto, force, fail]",
+		},
+		{
+			name:      "force mode with zero number",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","from_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","to_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T6XX","number_policy":{"mode":"force","number":0}}`,
+			wantError: true,
+			errorMsg:  "number must be positive",
+		},
+		{
+			name:      "force mode with negative number",
+			json:      `{"task_uid":"tsk_01J5QKF7F8M9N0P1Q2R3S4T5UV","from_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T5UV","to_project_uid":"prj_01J5QKF7F8M9N0P1Q2R3S4T6XX","number_policy":{"mode":"force","number":-5}}`,
+			wantError: true,
+			errorMsg:  "number must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var payload TaskRelocatePayload
+			err := json.Unmarshal([]byte(tt.json), &payload)
+
+			if tt.wantError {
+				if err == nil {
+					t.Errorf("expected error containing %q, got nil", tt.errorMsg)
+					return
+				}
+				if !strings.Contains(err.Error(), tt.errorMsg) {
+					t.Errorf("expected error containing %q, got: %v", tt.errorMsg, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, got: %v", err)
+				}
+			}
+		})
+	}
+}
+
 // TestTaskNumberSetPayloadValidation tests that TaskNumberSetPayload validates properly
 func TestTaskNumberSetPayloadValidation(t *testing.T) {
 	tests := []struct {

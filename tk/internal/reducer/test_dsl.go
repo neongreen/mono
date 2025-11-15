@@ -164,9 +164,9 @@ func (th *TaskHandle) Relocate(toProjectUID string) *TaskHandle {
 	th.test.ts++
 
 	payload := types.TaskRelocatePayload{
-		TaskUID:        th.UID,
-		FromProjectUID: th.ProjectUID,
-		ToProjectUID:   toProjectUID,
+		TaskUID:        types.TaskUID(th.UID),
+		FromProjectUID: types.ProjectUID(th.ProjectUID),
+		ToProjectUID:   types.ProjectUID(toProjectUID),
 		NumberPolicy: types.NumberPolicyPayload{
 			Mode: "keep",
 		},

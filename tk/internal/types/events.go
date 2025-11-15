@@ -182,16 +182,61 @@ func (p *TaskNumberSetPayload) UnmarshalJSON(data []byte) error {
 
 // TaskRelocatePayload is the payload for task.relocate events
 type TaskRelocatePayload struct {
-	TaskUID        string              `json:"task_uid"`
-	FromProjectUID string              `json:"from_project_uid"`
-	ToProjectUID   string              `json:"to_project_uid"`
-	NumberPolicy   NumberPolicyPayload `json:"number_policy"`
+	TaskUID        TaskUID             `json:"task_uid"`         // Must be valid TaskUID (tsk_<ulid>)
+	FromProjectUID ProjectUID          `json:"from_project_uid"` // Must be valid ProjectUID (prj_<ulid>)
+	ToProjectUID   ProjectUID          `json:"to_project_uid"`   // Must be valid ProjectUID (prj_<ulid>)
+	NumberPolicy   NumberPolicyPayload `json:"number_policy"`    // Number assignment policy
+}
+
+// Validate checks if the TaskRelocatePayload is valid
+func (p TaskRelocatePayload) Validate() error {
+	if err := p.TaskUID.Validate(); err != nil {
+		return fmt.Errorf("invalid task_uid in TaskRelocatePayload: %w", err)
+	}
+	if err := p.FromProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid from_project_uid in TaskRelocatePayload: %w", err)
+	}
+	if err := p.ToProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid to_project_uid in TaskRelocatePayload: %w", err)
+	}
+	if err := p.NumberPolicy.Validate(); err != nil {
+		return fmt.Errorf("invalid number_policy in TaskRelocatePayload: %w", err)
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a TaskRelocatePayload
+func (p *TaskRelocatePayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias TaskRelocatePayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal TaskRelocatePayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // NumberPolicyPayload is embedded in TaskRelocatePayload
 type NumberPolicyPayload struct {
 	Mode   string `json:"mode"`             // keep, auto, force, fail
-	Number int64  `json:"number,omitempty"` // used when mode == "force"
+	Number int64  `json:"number,omitempty"` // used when mode == "force" (must be positive)
+}
+
+// Validate checks if the NumberPolicyPayload is valid
+func (p NumberPolicyPayload) Validate() error {
+	switch p.Mode {
+	case "keep", "auto", "force", "fail":
+		if p.Mode == "force" && p.Number <= 0 {
+			return fmt.Errorf("invalid number in NumberPolicyPayload: when mode is 'force', number must be positive, got %d", p.Number)
+		}
+		return nil
+	default:
+		return fmt.Errorf("invalid mode in NumberPolicyPayload: must be one of [keep, auto, force, fail], got %q", p.Mode)
+	}
 }
 
 // TaskTitleSetPayload is the payload for task.title.set events

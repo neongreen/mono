@@ -108,9 +108,9 @@ func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor
 	}
 
 	payload := types.TaskRelocatePayload{
-		TaskUID:        taskUID,
-		FromProjectUID: fromProjectUID,
-		ToProjectUID:   toProjectUID,
+		TaskUID:        types.TaskUID(taskUID),
+		FromProjectUID: types.ProjectUID(fromProjectUID),
+		ToProjectUID:   types.ProjectUID(toProjectUID),
 		NumberPolicy:   numberPolicy,
 	}
 

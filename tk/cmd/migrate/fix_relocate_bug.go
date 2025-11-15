@@ -206,9 +206,9 @@ func recreateProject(db *database.DB, syntheticUID, name string) error {
 		}
 
 		relocatePayload := types.TaskRelocatePayload{
-			TaskUID:        taskUID,
-			FromProjectUID: syntheticUID,
-			ToProjectUID:   newProjectUID.String(),
+			TaskUID:        types.TaskUID(taskUID),
+			FromProjectUID: types.ProjectUID(syntheticUID),
+			ToProjectUID:   newProjectUID,
 			NumberPolicy: types.NumberPolicyPayload{
 				Mode:   "force",
 				Number: oldNumber,
