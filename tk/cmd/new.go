@@ -51,8 +51,27 @@ Examples:
 		itemKind, _ := cmd.Flags().GetString("kind")
 		title := args[0]
 
+		// Resolve parent task first (if --parent is specified)
+		var parentUUID string
+		if parentRef != "" {
+			parentUUID, err = database.ResolveTaskReference(db, types.NewTaskRef(parentRef))
+			if err != nil {
+				return fmt.Errorf("failed to resolve parent task %q: %w", parentRef, err)
+			}
+
+			// If --parent is specified and --project was not explicitly set, use parent's project
+			if !cmd.Flags().Changed("project") {
+				var parentProjectUID string
+				err := db.Db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, parentUUID).Scan(&parentProjectUID)
+				if err != nil {
+					return fmt.Errorf("failed to get project from parent task: %w", err)
+				}
+				projectRef = parentProjectUID
+			}
+		}
+
 		// Auto-detect project from "project: title" format only if -p was not explicitly specified
-		if !cmd.Flags().Changed("project") {
+		if !cmd.Flags().Changed("project") && parentRef == "" {
 			if idx := strings.Index(title, ": "); idx > 0 {
 				prefix := title[:idx]
 				restOfTitle := title[idx+2:]
@@ -75,15 +94,6 @@ Examples:
 		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
-		}
-
-		// Resolve parent task BEFORE creating the new task (if --parent is specified)
-		var parentUUID string
-		if parentRef != "" {
-			parentUUID, err = database.ResolveTaskReference(db, types.NewTaskRef(parentRef))
-			if err != nil {
-				return fmt.Errorf("failed to resolve parent task %q: %w", parentRef, err)
-			}
 		}
 
 		result, err := tasks.Create(db, tasks.CreateParams{
