@@ -22,6 +22,7 @@ pnpm = "latest"
 node = "latest"
 "go:golang.org/x/tools/gopls" = "latest"
 gotestsum = "latest"
+golangci-lint = "latest"
 fnox = "latest"
 opentofu = "latest"
 spacectl = "latest"
@@ -83,8 +84,8 @@ description = "Detect useless function wrappers"
 run = "go run ./linters/uselesswrapper/cmd/uselesswrapper ./..."
 
 [tasks."lint:go:cobra"]
-description = "Lint Cobra commands for conventions"
-run = "go run ./linters/cobralint/cmd/cobralint ./..."
+description = "Lint tk Cobra commands for conventions"
+run = "go run ./linters/cobralint/cmd/cobralint ./tk/..."
 
 [tasks."lint:go"]
 description = "Lint all Go code"
