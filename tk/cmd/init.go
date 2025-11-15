@@ -46,7 +46,8 @@ var initCmd = &cobra.Command{
 
 		fmt.Printf("Database initialized at %s\n", path)
 
-		// Create default "me" project
+		// Create default "me" project (used as default when -p flag is not specified)
+		fmt.Printf("Creating default project \"me\"...\n")
 		actor, err := utils.GetCurrentUser()
 		if err != nil {
 			return fmt.Errorf("failed to get current user: %w", err)
@@ -94,7 +95,10 @@ var initCmd = &cobra.Command{
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 
-		fmt.Printf("Created default project: me\n")
+		fmt.Printf("✓ Created default project \"me\" (Personal tasks)\n")
+		fmt.Printf("  This project will be used by default when you don't specify -p.\n")
+		fmt.Printf("\nYou can now create tasks with:\n")
+		fmt.Printf("  tk new \"Your task title\"\n")
 		return nil
 	},
 }

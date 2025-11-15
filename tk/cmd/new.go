@@ -67,7 +67,8 @@ Examples:
 		// Resolve project reference to UID
 		projectUID, err := database.ResolveProjectRef(db, types.NewProjectRef(projectRef))
 		if err != nil {
-			return fmt.Errorf("project/alias %q not found. Create it first with: tk project create %s", projectRef, projectRef)
+			// Provide helpful error message based on whether other projects exist
+			return handleProjectNotFoundError(db, projectRef, cmd.Flags().Changed("project"))
 		}
 
 		currentUser, err := utils.GetCurrentUser()
@@ -155,4 +156,71 @@ Examples:
 
 		return nil
 	},
+}
+
+// handleProjectNotFoundError provides a helpful error message when a project is not found.
+// It checks if other projects exist and tailors the message accordingly.
+func handleProjectNotFoundError(db *database.DB, projectRef string, projectFlagWasExplicit bool) error {
+	// Get all existing projects
+	rows, err := db.Db.Query(`SELECT name FROM projects ORDER BY name`)
+	if err != nil {
+		return fmt.Errorf("project %q not found", projectRef)
+	}
+	defer rows.Close()
+
+	var existingProjects []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			continue
+		}
+		existingProjects = append(existingProjects, name)
+	}
+
+	// If no projects exist at all, suggest creating "me" as the default
+	if len(existingProjects) == 0 {
+		return fmt.Errorf(`project %q not found.
+
+No projects exist yet. You can:
+  1. Create the default "me" project (recommended for personal tasks):
+     tk project create me "Personal tasks"
+
+     This will become your default project.
+
+  2. Create a custom project:
+     tk project create <name> "<description>"
+
+     Then use -p <name> when creating tasks, or set it as default in your config.`, projectRef)
+	}
+
+	// If trying to use "me" but it doesn't exist and other projects do exist
+	if projectRef == "me" && !projectFlagWasExplicit {
+		return fmt.Errorf(`project "me" not found (no -p flag was specified, so "me" is used by default).
+
+Available projects: %s
+
+You can:
+  1. Specify which project to use with -p flag:
+     tk new -p <project> "Task title"
+
+  2. Create the "me" project to use as your default:
+     tk project create me "Personal tasks"
+
+     After creating "me", commands without -p will use it automatically.`, strings.Join(existingProjects, ", "))
+	}
+
+	// User explicitly specified a project that doesn't exist
+	if len(existingProjects) > 0 {
+		return fmt.Errorf(`project %q not found.
+
+Available projects: %s
+
+Create it with:
+  tk project create %s "<description>"
+
+Or use an existing project with -p:
+  tk new -p <project> "Task title"`, projectRef, strings.Join(existingProjects, ", "), projectRef)
+	}
+
+	return fmt.Errorf("project %q not found", projectRef)
 }
