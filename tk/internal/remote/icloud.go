@@ -26,32 +26,33 @@ func isICloudPath(path string) bool {
 
 // forceDownloadICloudFiles attempts to download iCloud files using brctl.
 // This is macOS-only and silently does nothing on other platforms or if brctl is not available.
-func forceDownloadICloudFiles(path string) {
+// Returns true if download was initiated, false otherwise.
+func forceDownloadICloudFiles(path string) bool {
 	// Only run on macOS
 	if runtime.GOOS != "darwin" {
-		return
+		return false
 	}
 
 	// Check if this is an iCloud path
 	if !isICloudPath(path) {
-		return
+		return false
 	}
 
 	// Check if brctl is available
 	if _, err := exec.LookPath("brctl"); err != nil {
 		slog.Debug("brctl not found, skipping iCloud download", "path", path)
-		return
+		return false
 	}
 
 	// Run brctl download
-	slog.Debug("forcing iCloud download", "path", path)
+	slog.Info("downloading iCloud files (this may take a moment)...", "path", path)
 	cmd := exec.Command("brctl", "download", path)
 
 	// Run asynchronously - we don't wait for completion
 	// brctl download returns immediately and files download in background
 	if err := cmd.Start(); err != nil {
-		slog.Debug("failed to start brctl download", "path", path, "error", err)
-		return
+		slog.Warn("failed to start iCloud download", "path", path, "error", err)
+		return false
 	}
 
 	// Don't wait for completion - let it download in background
@@ -62,4 +63,6 @@ func forceDownloadICloudFiles(path string) {
 			slog.Debug("brctl download initiated", "path", path)
 		}
 	}()
+
+	return true
 }
