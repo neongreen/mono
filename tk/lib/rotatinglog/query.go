@@ -50,11 +50,9 @@ func Query(dir string, sqlQuery string, args ...any) ([]QueryResult, error) {
 	// Build SQL script with prepared statement if there are parameters
 	var fullSQL string
 	if len(args) > 0 {
-		// Convert ? placeholders to DuckDB's $1, $2, etc. format
-		preparedQuery := sqlQuery
-		for i := 1; i <= len(args); i++ {
-			preparedQuery = strings.Replace(preparedQuery, "?", fmt.Sprintf("$%d", i), 1)
-		}
+		// DuckDB's PREPARE natively supports ? placeholders
+		// No conversion needed - DuckDB correctly distinguishes between
+		// literal ? characters in strings and placeholder ? markers
 
 		// Build EXECUTE statement with parameters
 		var paramList []string
@@ -77,7 +75,7 @@ func Query(dir string, sqlQuery string, args ...any) ([]QueryResult, error) {
 		}
 
 		fullSQL = fmt.Sprintf("%s\nPREPARE query AS %s;\nEXECUTE query(%s);",
-			createView, preparedQuery, strings.Join(paramList, ", "))
+			createView, sqlQuery, strings.Join(paramList, ", "))
 	} else {
 		// No parameters, just execute the query directly
 		fullSQL = createView + "\n" + sqlQuery
