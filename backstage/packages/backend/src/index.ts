@@ -7,11 +7,60 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+import {
+  coreServices,
+  createBackendModule,
+} from '@backstage/backend-plugin-api';
+import { CATALOG_ERRORS_TOPIC } from '@backstage/plugin-catalog-backend';
+import { EventParams, eventsServiceRef } from '@backstage/plugin-events-node';
+
+interface EventsPayload {
+  entity: string;
+  location?: string;
+  errors: Error[];
+}
+
+interface EventsParamsWithPayload extends EventParams {
+  eventPayload: EventsPayload;
+}
+
+const eventsModuleCatalogErrors = createBackendModule({
+  pluginId: 'events',
+  moduleId: 'catalog-errors',
+  register(env) {
+    env.registerInit({
+      deps: {
+        events: eventsServiceRef,
+        logger: coreServices.logger,
+      },
+      async init({ events, logger }) {
+        events.subscribe({
+          id: 'catalog',
+          topics: [CATALOG_ERRORS_TOPIC],
+          async onEvent(params: EventParams): Promise<void> {
+            const event = params as EventsParamsWithPayload;
+            const { entity, location, errors } = event.eventPayload;
+
+            // Emit a warning for each catalog error so operators can inspect them.
+            for (const error of errors) {
+              logger.warn(error.message, {
+                entity,
+                location,
+              });
+            }
+          },
+        });
+      },
+    });
+  },
+});
 
 const backend = createBackend();
 
 backend.add(import('@backstage/plugin-app-backend'));
 backend.add(import('@backstage/plugin-proxy-backend'));
+// See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
+backend.add(import('@backstage/plugin-events-backend'));
 
 // scaffolder plugin
 backend.add(import('@backstage/plugin-scaffolder-backend'));
@@ -37,6 +86,7 @@ backend.add(
 
 // See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
 backend.add(import('@backstage/plugin-catalog-backend-module-logs'));
+backend.add(eventsModuleCatalogErrors);
 
 // permission plugin
 backend.add(import('@backstage/plugin-permission-backend'));

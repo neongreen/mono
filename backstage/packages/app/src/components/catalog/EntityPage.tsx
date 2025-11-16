@@ -1,4 +1,6 @@
 import { Button, Grid } from '@material-ui/core';
+import { EntityHetznerContent } from '@gluo-nv/backstage-plugin-hetzner';
+import { isHetznerResource } from './utils';
 import {
   EntityApiDefinitionCard,
   EntityConsumedApisCard,
@@ -133,6 +135,18 @@ const overviewContent = (
     <Grid item md={6} xs={12}>
       <EntityCatalogGraphCard variant="gridItem" height={400} />
     </Grid>
+
+    {/* Hetzner Cloud Plugin */}
+    <EntitySwitch>
+      <EntitySwitch.Case
+        if={entity => isKind('resource')(entity) && isHetznerResource(entity)}
+      >
+        <Grid item md={6}>
+          <EntityHetznerContent />
+        </Grid>
+      </EntitySwitch.Case>
+    </EntitySwitch>
+    {/* Hetzner Cloud Plugin */}
 
     <Grid item md={4} xs={12}>
       <EntityLinksCard />
