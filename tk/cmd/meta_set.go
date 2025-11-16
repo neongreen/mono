@@ -105,7 +105,7 @@ by authority (human > qa > rel > agent > bot).`,
 }
 
 func init() {
-	SetCmd.Flags().String("role", "", "Role making the claim (human, agent, bot, qa, rel)")
+	metaSetCmd.Flags().String("role", "", "Role making the claim (human, agent, bot, qa, rel)")
 }
 
 func getCurrentUser() (string, error) {

@@ -144,5 +144,5 @@ var projectLsCmd = &cobra.Command{
 }
 
 func init() {
-	LsCmd.Flags().Bool("json", false, "Output as JSON")
+	projectLsCmd.Flags().Bool("json", false, "Output as JSON")
 }

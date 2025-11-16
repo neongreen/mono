@@ -111,8 +111,8 @@ Examples:
 }
 
 func init() {
-	ListCmd.Flags().Int("limit", 0, "Limit the number of events to show")
-	ListCmd.Flags().String("kind", "", "Filter events by kind")
-	ListCmd.Flags().Bool("verbose", false, "Show full event details including payload")
-	ListCmd.Flags().Bool("json", false, "Output events as JSON")
+	debugEventsLsCmd.Flags().Int("limit", 0, "Limit the number of events to show")
+	debugEventsLsCmd.Flags().String("kind", "", "Filter events by kind")
+	debugEventsLsCmd.Flags().Bool("verbose", false, "Show full event details including payload")
+	debugEventsLsCmd.Flags().Bool("json", false, "Output events as JSON")
 }

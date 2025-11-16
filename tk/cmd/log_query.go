@@ -68,5 +68,5 @@ Examples:
 }
 
 func init() {
-	QueryCmd.Flags().Bool("json", false, "Output as JSON")
+	logQueryCmd.Flags().Bool("json", false, "Output as JSON")
 }

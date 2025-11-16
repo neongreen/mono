@@ -145,5 +145,5 @@ Examples:
 }
 
 func init() {
-	AddCmd.Flags().String("note", "", "Optional note for the relation")
+	relateAddCmd.Flags().String("note", "", "Optional note for the relation")
 }

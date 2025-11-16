@@ -96,6 +96,6 @@ Examples:
 }
 
 func init() {
-	SearchCmd.Flags().Bool("json", false, "Output as JSON")
-	SearchCmd.Flags().Int("limit", 100, "Maximum number of results")
+	logSearchCmd.Flags().Bool("json", false, "Output as JSON")
+	logSearchCmd.Flags().Int("limit", 100, "Maximum number of results")
 }

@@ -152,5 +152,5 @@ Example:
 }
 
 func init() {
-	ExportCmd.Flags().BoolVar(&exportJSON, "json", false, "Output as JSON")
+	schemaExportCmd.Flags().BoolVar(&exportJSON, "json", false, "Output as JSON")
 }

@@ -70,6 +70,6 @@ var taskConflictsCmd = &cobra.Command{
 }
 
 func init() {
-	NumbersCmd.Flags().String("project", "", "Project alias or UID to inspect")
-	NumbersCmd.Flags().Bool("json", false, "Output as JSON")
+	taskConflictsCmd.Flags().String("project", "", "Project alias or UID to inspect")
+	taskConflictsCmd.Flags().Bool("json", false, "Output as JSON")
 }

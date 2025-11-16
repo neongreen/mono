@@ -57,7 +57,7 @@ Examples:
 }
 
 func init() {
-	RepairCmd.Flags().Bool("dry-run", false, "Show what would be fixed without making changes")
+	debugRepairCmd.Flags().Bool("dry-run", false, "Show what would be fixed without making changes")
 }
 
 // repairLamportTimestamps recomputes all Lamport timestamps based on wall clock order

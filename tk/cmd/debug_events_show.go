@@ -60,5 +60,5 @@ Examples:
 }
 
 func init() {
-	ShowCmd.Flags().Bool("json", false, "Output as JSON")
+	debugEventsShowCmd.Flags().Bool("json", false, "Output as JSON")
 }

@@ -142,7 +142,7 @@ var syncStatusCmd = &cobra.Command{
 }
 
 func init() {
-	SyncCmd.Flags().Bool("json", false, "Output as JSON")
+	syncStatusCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
 // loadIndexFile loads an index.json file

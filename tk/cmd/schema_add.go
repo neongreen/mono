@@ -197,8 +197,8 @@ func createItemKind(db *database.DB, kindName, description, llmHint string) erro
 }
 
 func init() {
-	AddCmd.Flags().StringVar(&addDescription, "description", "", "Description of the kind")
-	AddCmd.Flags().StringVar(&addLLMHint, "llm-hint", "", "LLM guidance for when to use this kind (item kinds only)")
+	schemaAddCmd.Flags().StringVar(&addDescription, "description", "", "Description of the kind")
+	schemaAddCmd.Flags().StringVar(&addLLMHint, "llm-hint", "", "LLM guidance for when to use this kind (item kinds only)")
 }
 
 // Keep old command for backward compatibility (deprecated)

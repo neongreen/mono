@@ -67,7 +67,7 @@ var debugDoctorCmd = &cobra.Command{
 }
 
 func init() {
-	DoctorCmd.Flags().Bool("json", false, "Output as JSON")
+	debugDoctorCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
 func RunDoctor(db *database.DB) (*DoctorReport, error) {

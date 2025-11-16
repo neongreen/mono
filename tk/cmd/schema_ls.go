@@ -140,7 +140,7 @@ var schemaLsCmd = &cobra.Command{
 }
 
 func init() {
-	ListCmd.Flags().BoolVar(&listAll, "all", false, "Show deprecated kinds")
+	schemaLsCmd.Flags().BoolVar(&listAll, "all", false, "Show deprecated kinds")
 }
 
 // Keep old command for backward compatibility (deprecated)

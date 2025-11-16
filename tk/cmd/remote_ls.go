@@ -51,5 +51,5 @@ var remoteLsCmd = &cobra.Command{
 }
 
 func init() {
-	LsCmd.Flags().Bool("json", false, "Output as JSON")
+	remoteLsCmd.Flags().Bool("json", false, "Output as JSON")
 }

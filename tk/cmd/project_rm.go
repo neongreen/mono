@@ -97,5 +97,5 @@ var projectRmCmd = &cobra.Command{
 }
 
 func init() {
-	RmCmd.Flags().Bool("force", false, "Force deletion even if project has tasks")
+	projectRmCmd.Flags().Bool("force", false, "Force deletion even if project has tasks")
 }

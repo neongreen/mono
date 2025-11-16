@@ -82,5 +82,5 @@ var metaLsCmd = &cobra.Command{
 }
 
 func init() {
-	ListCmd.Flags().Bool("json", false, "Output as JSON")
+	metaLsCmd.Flags().Bool("json", false, "Output as JSON")
 }

@@ -83,6 +83,6 @@ WARNING: This will temporarily clear all projection tables. The operation is ato
 }
 
 func init() {
-	RebuildCmd.Flags().Bool("dry-run", false, "Show what would be done without making changes")
-	RebuildCmd.Flags().Bool("verify", false, "Verify projection determinism without rebuilding")
+	debugRebuildCmd.Flags().Bool("dry-run", false, "Show what would be done without making changes")
+	debugRebuildCmd.Flags().Bool("verify", false, "Verify projection determinism without rebuilding")
 }

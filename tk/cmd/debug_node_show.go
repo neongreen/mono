@@ -40,5 +40,5 @@ var debugNodeShowCmd = &cobra.Command{
 }
 
 func init() {
-	ShowCmd.Flags().Bool("json", false, "Output as JSON")
+	debugNodeShowCmd.Flags().Bool("json", false, "Output as JSON")
 }

@@ -126,5 +126,5 @@ Examples:
 }
 
 func init() {
-	StatsCmd.Flags().Bool("json", false, "Output as JSON")
+	debugEventsStatsCmd.Flags().Bool("json", false, "Output as JSON")
 }
