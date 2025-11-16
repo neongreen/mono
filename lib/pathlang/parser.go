@@ -18,7 +18,7 @@ type pathAST struct {
 
 // segmentAST represents a parsed segment.
 type segmentAST struct {
-	Name       string         `@Ident`
+	Name       string         `@(BareValue | Ident)`
 	Predicates *predicatesAST `@@?`
 }
 
@@ -29,7 +29,7 @@ type predicatesAST struct {
 
 // predicateAST represents a single predicate.
 type predicateAST struct {
-	Field string `@Ident`
+	Field string `@(BareValue | Ident)`
 	Op    string `@( "!=" | "~=" | "=" )`
 	Value string `@( String | BareValue | Ident )`
 }
@@ -50,10 +50,10 @@ func NewParser() (*Parser, error) {
 		{Name: "Match", Pattern: `~=`},
 		{Name: "Eq", Pattern: `=`},
 		{Name: "Punct", Pattern: `[/\[\],]`},
-		{Name: "Ident", Pattern: `[a-zA-Z_][a-zA-Z0-9_-]*`},
-		// BareValue matches anything that's not whitespace or special chars
-		// It must come after Ident so identifiers are recognized as such
+		// BareValue must come before Ident so values like "foo.bar" are captured as a single token
+		// Otherwise "foo.bar" would be tokenized as Ident("foo") + BareValue(".bar")
 		{Name: "BareValue", Pattern: `[^ \t\n\r/\[\],=!~@"']+`},
+		{Name: "Ident", Pattern: `[a-zA-Z_][a-zA-Z0-9_-]*`},
 	})
 
 	parser, err := participle.Build[pathAST](
@@ -116,6 +116,11 @@ func astToPath(ast *pathAST) (*Path, error) {
 	segments := make([]Segment, len(ast.Segments))
 
 	for i, segAST := range ast.Segments {
+		// Validate that segment name is a valid identifier
+		if !isValidIdentifier(segAST.Name) {
+			return nil, fmt.Errorf("invalid segment name %q: must start with letter or underscore and contain only alphanumeric, underscore, or dash characters", segAST.Name)
+		}
+
 		seg := Segment{
 			Name: segAST.Name,
 		}
@@ -123,6 +128,11 @@ func astToPath(ast *pathAST) (*Path, error) {
 		if segAST.Predicates != nil {
 			preds := make([]Predicate, len(segAST.Predicates.Predicates))
 			for j, predAST := range segAST.Predicates.Predicates {
+				// Validate that field name is a valid identifier
+				if !isValidIdentifier(predAST.Field) {
+					return nil, fmt.Errorf("invalid field name %q in predicate: must start with letter or underscore and contain only alphanumeric, underscore, or dash characters", predAST.Field)
+				}
+
 				op, err := parseOp(predAST.Op)
 				if err != nil {
 					return nil, err
@@ -160,6 +170,28 @@ func parseOp(op string) (Op, error) {
 	default:
 		return 0, fmt.Errorf("unknown operator: %s", op)
 	}
+}
+
+// isValidIdentifier checks if a string is a valid identifier.
+// Valid identifiers start with a letter or underscore and contain only
+// alphanumeric characters, underscores, or dashes.
+func isValidIdentifier(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	// First character must be letter or underscore
+	first := rune(s[0])
+	if !((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z') || first == '_') {
+		return false
+	}
+	// Remaining characters must be alphanumeric, underscore, or dash
+	for i := 1; i < len(s); i++ {
+		c := rune(s[i])
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-') {
+			return false
+		}
+	}
+	return true
 }
 
 // unescapeValue processes a value, removing quotes and handling escape sequences if needed.

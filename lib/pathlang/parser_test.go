@@ -187,6 +187,48 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "bare value with dot",
+			input: "/tasks[url=foo.bar]",
+			want: &Path{
+				Segments: []Segment{
+					{
+						Name: "tasks",
+						Predicates: []Predicate{
+							{Field: "url", Op: OpEq, Value: "foo.bar"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "bare value with colon",
+			input: "/tasks[url=foo:bar]",
+			want: &Path{
+				Segments: []Segment{
+					{
+						Name: "tasks",
+						Predicates: []Predicate{
+							{Field: "url", Op: OpEq, Value: "foo:bar"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:  "bare value with backslash",
+			input: `/tasks[path=with\backslash]`,
+			want: &Path{
+				Segments: []Segment{
+					{
+						Name: "tasks",
+						Predicates: []Predicate{
+							{Field: "path", Op: OpEq, Value: `with\backslash`},
+						},
+					},
+				},
+			},
+		},
 		// Error cases
 		{
 			name:    "empty string",
@@ -236,6 +278,21 @@ func TestParse(t *testing.T) {
 		{
 			name:    "trailing slash",
 			input:   "/projects/",
+			wantErr: true,
+		},
+		{
+			name:    "segment name with dot",
+			input:   "/foo.bar",
+			wantErr: true,
+		},
+		{
+			name:    "field name with dot",
+			input:   "/tasks[foo.bar=value]",
+			wantErr: true,
+		},
+		{
+			name:    "segment name with colon",
+			input:   "/foo:bar",
 			wantErr: true,
 		},
 	}
@@ -331,6 +388,9 @@ func TestRoundTrip(t *testing.T) {
 		`/projects[description="line1\nline2"]`,
 		"/tasks[id!=42]",
 		"/tasks[description~=bug]",
+		"/tasks[url=foo.bar]",
+		"/tasks[url=foo:bar]",
+		`/tasks[path=with\backslash]`,
 	}
 
 	for _, input := range tests {
