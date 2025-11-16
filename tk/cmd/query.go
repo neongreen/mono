@@ -9,6 +9,7 @@ import (
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/pathlang_resolver"
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
@@ -19,21 +20,24 @@ var queryCmd = &cobra.Command{
 	Long: `Query tasks and projects using path syntax.
 
 Examples:
-  tk query /foo          # Show project 'foo'
-  tk query /foo-13       # Show task 'foo-13'
+  tk query /foo                # Show project 'foo'
+  tk query /foo-13             # Show task 'foo-13'
+  tk query /foo/tasks          # List all tasks in project 'foo'
   tk query /foo-13/subtasks    # Show subtasks of 'foo-13'
   tk query /foo-13/blockers    # Show tasks blocking 'foo-13'
   tk query /foo-13/notes       # Show notes for 'foo-13'
+  tk query /foo-13/json        # Show task as JSON
 
 Path syntax:
   /project-alias           # Project by alias
   /project-alias-number    # Task by display ID
+  /project/tasks           # All tasks in project
   /task/subtasks           # Child tasks
   /task/blockers           # Blocking tasks
-  /task/notes              # Task notes`,
+  /task/notes              # Task notes
+  /resource/json           # JSON representation`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		jsonOutput, _ := cmd.Flags().GetBool("json")
 		pathStr := args[0]
 
 		// Parse the path
@@ -72,78 +76,26 @@ Path syntax:
 		}
 
 		if len(nodes) == 0 {
-			if jsonOutput {
-				fmt.Println("[]")
-			} else {
-				fmt.Println("No results found.")
-			}
+			fmt.Println("No results found.")
 			return nil
 		}
 
 		// Display results
-		if jsonOutput {
-			return displayResultsJSON(db, nodes)
-		}
-		return displayResultsHuman(db, reducer, nodes)
+		return displayResults(db, reducer, nodes, pathStr)
 	},
 }
 
-// displayResultsJSON outputs results in JSON format
-func displayResultsJSON(db *database.DB, nodes []pathlang.Node) error {
-	var results []map[string]any
-
-	for _, n := range nodes {
-		node := n.(*pathlang_resolver.Node)
-		result := map[string]any{
-			"type": string(node.Type),
+// displayResults outputs results in appropriate format
+func displayResults(db *database.DB, reducer *reducer.Reducer, nodes []pathlang.Node, currentPath string) error {
+	// Check if we're displaying JSON
+	if len(nodes) == 1 {
+		node := nodes[0].(*pathlang_resolver.Node)
+		if node.Type == pathlang_resolver.NodeTypeJSON {
+			return displayAsJSON(db, node)
 		}
-
-		switch node.Type {
-		case pathlang_resolver.NodeTypeProject:
-			// Query project info
-			var name string
-			var projType string
-			err := db.Db.QueryRow(`
-				SELECT name, COALESCE(type, 'local') FROM projects WHERE project_uid = ?
-			`, node.ProjectUID).Scan(&name, &projType)
-			if err == nil {
-				result["project_uid"] = node.ProjectUID
-				result["name"] = name
-				if projType != "" && projType != "local" {
-					result["type_str"] = projType
-				}
-			}
-		case pathlang_resolver.NodeTypeTask:
-			if node.Task != nil {
-				result["task_uid"] = node.TaskUID
-				result["project_uid"] = node.ProjectUID
-				result["title"] = node.Task.Title
-				result["status"] = getTaskStatus(node.Task)
-			}
-		case pathlang_resolver.NodeTypeNotes:
-			if node.Task != nil {
-				result["task_uid"] = node.TaskUID
-				var notes []string
-				for _, note := range node.Task.Notes {
-					notes = append(notes, note.Markdown)
-				}
-				result["notes"] = notes
-			}
-		}
-
-		results = append(results, result)
 	}
 
-	output, err := json.MarshalIndent(results, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal results: %w", err)
-	}
-	fmt.Println(string(output))
-	return nil
-}
-
-// displayResultsHuman outputs results in human-readable format
-func displayResultsHuman(db *database.DB, reducer interface{}, nodes []pathlang.Node) error {
+	// Otherwise display normally
 	for i, n := range nodes {
 		if i > 0 {
 			fmt.Println()
@@ -153,11 +105,14 @@ func displayResultsHuman(db *database.DB, reducer interface{}, nodes []pathlang.
 
 		switch node.Type {
 		case pathlang_resolver.NodeTypeProject:
-			displayProject(db, node)
+			displayProject(db, node, currentPath)
 		case pathlang_resolver.NodeTypeTask:
-			displayTask(db, node)
+			displayTask(db, node, currentPath)
+		case pathlang_resolver.NodeTypeTasks:
+			// This shouldn't happen as tasks is a collection
+			fmt.Println("Tasks collection")
 		case pathlang_resolver.NodeTypeNotes:
-			displayNotes(node)
+			displayNotes(node, currentPath)
 		default:
 			fmt.Printf("Unknown node type: %s\n", node.Type)
 		}
@@ -165,7 +120,42 @@ func displayResultsHuman(db *database.DB, reducer interface{}, nodes []pathlang.
 	return nil
 }
 
-func displayProject(db *database.DB, node *pathlang_resolver.Node) {
+// displayAsJSON outputs a resource as JSON
+func displayAsJSON(db *database.DB, node *pathlang_resolver.Node) error {
+	var data interface{}
+
+	switch node.Type {
+	case pathlang_resolver.NodeTypeJSON:
+		// Determine what to serialize based on what's in the node
+		if node.Task != nil {
+			data = node.Task
+		} else if node.ProjectUID != "" {
+			// Query project info
+			var name string
+			var projType string
+			err := db.Db.QueryRow(`
+				SELECT name, COALESCE(type, 'local') FROM projects WHERE project_uid = ?
+			`, node.ProjectUID).Scan(&name, &projType)
+			if err != nil {
+				return fmt.Errorf("failed to query project: %w", err)
+			}
+			data = map[string]interface{}{
+				"project_uid": node.ProjectUID,
+				"name":        name,
+				"type":        projType,
+			}
+		}
+	}
+
+	output, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+	fmt.Println(string(output))
+	return nil
+}
+
+func displayProject(db *database.DB, node *pathlang_resolver.Node, currentPath string) {
 	if node.ProjectUID == "" {
 		fmt.Println("Project (no UID)")
 		return
@@ -195,9 +185,22 @@ func displayProject(db *database.DB, node *pathlang_resolver.Node) {
 	if projType != "" && projType != "local" {
 		fmt.Printf("Type: %s\n", projType)
 	}
+
+	// Show available sub-resources
+	fmt.Println("\nAvailable paths:")
+	// Use the access alias if available
+	pathName := node.AccessAlias
+	if pathName == "" {
+		pathName = alias
+	}
+	if pathName == "" {
+		pathName = name
+	}
+	fmt.Printf("  /%s/tasks  - List all tasks in this project\n", pathName)
+	fmt.Printf("  /%s/json   - JSON representation\n", pathName)
 }
 
-func displayTask(db *database.DB, node *pathlang_resolver.Node) {
+func displayTask(db *database.DB, node *pathlang_resolver.Node, currentPath string) {
 	if node.Task == nil {
 		fmt.Println("Task (no data)")
 		return
@@ -218,15 +221,35 @@ func displayTask(db *database.DB, node *pathlang_resolver.Node) {
 	if status != "" {
 		fmt.Printf("Status: %s\n", colorizeStatus(status))
 	}
+
+	// Show available sub-resources
+	fmt.Println("\nAvailable paths:")
+	fmt.Printf("  /%s/notes     - View notes\n", displayID)
+	fmt.Printf("  /%s/json      - JSON representation\n", displayID)
+
+	// Show subtasks if they exist
+	if node.Task.Relations != nil && len(node.Task.Relations.Subtask.Children) > 0 {
+		fmt.Printf("  /%s/subtasks  - View %d subtask(s)\n", displayID, len(node.Task.Relations.Subtask.Children))
+	}
+
+	// Show blockers if they exist
+	if len(node.Task.Blockers) > 0 {
+		fmt.Printf("  /%s/blockers  - View %d blocker(s)\n", displayID, len(node.Task.Blockers))
+	}
 }
 
-func displayNotes(node *pathlang_resolver.Node) {
+func displayNotes(node *pathlang_resolver.Node, currentPath string) {
 	if node.Task == nil || len(node.Task.Notes) == 0 {
 		fmt.Println("No notes")
 		return
 	}
 
-	fmt.Printf("Notes for task %s:\n", node.TaskUID)
+	// Get display ID for the task
+	displayID := node.TaskUID
+	// Try to get a better display ID if we have the full task info
+	// (we should, since we're showing notes)
+
+	fmt.Printf("Notes for task %s:\n", displayID)
 	for i, note := range node.Task.Notes {
 		if i > 0 {
 			fmt.Println()
@@ -248,6 +271,10 @@ func displayNotes(node *pathlang_resolver.Node) {
 			fmt.Println(note.Markdown)
 		}
 	}
+
+	// Show that JSON is available
+	fmt.Println("\nAvailable paths:")
+	fmt.Printf("  %s/json  - JSON representation\n", currentPath)
 }
 
 func getTaskStatus(task *types.Task) string {

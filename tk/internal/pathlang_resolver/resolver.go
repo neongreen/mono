@@ -18,17 +18,20 @@ const (
 	NodeTypeRoot     NodeType = "root"
 	NodeTypeProject  NodeType = "project"
 	NodeTypeTask     NodeType = "task"
+	NodeTypeTasks    NodeType = "tasks" // Collection of tasks in a project
 	NodeTypeSubtasks NodeType = "subtasks"
 	NodeTypeBlockers NodeType = "blockers"
 	NodeTypeNotes    NodeType = "notes"
+	NodeTypeJSON     NodeType = "json" // JSON representation
 )
 
 // Node represents a node in the tk path hierarchy
 type Node struct {
-	Type       NodeType
-	ProjectUID string      // For project and task nodes
-	TaskUID    string      // For task nodes
-	Task       *types.Task // For task nodes (cached)
+	Type        NodeType
+	ProjectUID  string      // For project and task nodes
+	TaskUID     string      // For task nodes
+	Task        *types.Task // For task nodes (cached)
+	AccessAlias string      // The alias/name used to access this resource
 }
 
 // TkResolver implements pathlang.Resolver for tk's domain model
@@ -60,10 +63,12 @@ func (r *TkResolver) Children(ctx context.Context, parent pathlang.Node, seg pat
 	switch node.Type {
 	case NodeTypeRoot:
 		return r.resolveFromRoot(seg)
+	case NodeTypeProject:
+		return r.resolveFromProject(node, seg)
 	case NodeTypeTask:
 		return r.resolveFromTask(node, seg)
 	default:
-		// Projects, subtasks, blockers, notes don't have children
+		// Leaf nodes (tasks collection, subtasks, blockers, notes, json) don't have children
 		return nil, nil
 	}
 }
@@ -107,8 +112,9 @@ func (r *TkResolver) resolveFromRoot(seg pathlang.Segment) ([]pathlang.Node, err
 
 	return []pathlang.Node{
 		&Node{
-			Type:       NodeTypeProject,
-			ProjectUID: projectUID,
+			Type:        NodeTypeProject,
+			ProjectUID:  projectUID,
+			AccessAlias: name, // Store the alias used to access it
 		},
 	}, nil
 }
@@ -139,11 +145,53 @@ func (r *TkResolver) looksLikeDisplayID(s string) bool {
 	return true
 }
 
+// resolveFromProject handles paths from a project node
+// Supports:
+// - /project/tasks -> all tasks in the project
+// - /project/json -> JSON representation
+func (r *TkResolver) resolveFromProject(projectNode *Node, seg pathlang.Segment) ([]pathlang.Node, error) {
+	switch seg.Name {
+	case "tasks":
+		// Return all tasks in this project
+		return r.getTasksInProject(projectNode)
+	case "json":
+		// Return JSON representation node
+		return []pathlang.Node{
+			&Node{
+				Type:       NodeTypeJSON,
+				ProjectUID: projectNode.ProjectUID,
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("unknown project child: %s", seg.Name)
+	}
+}
+
+// getTasksInProject returns all tasks in a project
+func (r *TkResolver) getTasksInProject(projectNode *Node) ([]pathlang.Node, error) {
+	var nodes []pathlang.Node
+
+	// Iterate through all tasks in the reducer
+	for taskUID, task := range r.reducer.Tasks() {
+		if task.ProjectUUID == projectNode.ProjectUID {
+			nodes = append(nodes, &Node{
+				Type:       NodeTypeTask,
+				TaskUID:    taskUID,
+				ProjectUID: task.ProjectUUID,
+				Task:       task,
+			})
+		}
+	}
+
+	return nodes, nil
+}
+
 // resolveFromTask handles paths from a task node
 // Supports:
 // - /task/subtasks -> children tasks
 // - /task/blockers -> blocking tasks
 // - /task/notes -> task notes (returns a special node)
+// - /task/json -> JSON representation
 func (r *TkResolver) resolveFromTask(taskNode *Node, seg pathlang.Segment) ([]pathlang.Node, error) {
 	if taskNode.Task == nil {
 		return nil, fmt.Errorf("task node has no task data")
@@ -159,6 +207,16 @@ func (r *TkResolver) resolveFromTask(taskNode *Node, seg pathlang.Segment) ([]pa
 		return []pathlang.Node{
 			&Node{
 				Type:       NodeTypeNotes,
+				TaskUID:    taskNode.TaskUID,
+				ProjectUID: taskNode.ProjectUID,
+				Task:       taskNode.Task,
+			},
+		}, nil
+	case "json":
+		// Return JSON representation node
+		return []pathlang.Node{
+			&Node{
+				Type:       NodeTypeJSON,
 				TaskUID:    taskNode.TaskUID,
 				ProjectUID: taskNode.ProjectUID,
 				Task:       taskNode.Task,

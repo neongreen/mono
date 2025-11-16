@@ -40,8 +40,6 @@ var RootCmd = &cobra.Command{
 
 func init() {
 	RootCmd.PersistentFlags().BoolVar(&debugFlag, "debug", false, "Enable debug logging")
-	// Add json flag for path queries
-	RootCmd.Flags().Bool("json", false, "Output as JSON (for path queries)")
 
 	//
 	// Core task management commands
@@ -73,7 +71,6 @@ func init() {
 	showCmd.Flags().Bool("json", false, "Output as JSON")
 	RootCmd.AddCommand(showCmd)
 
-	queryCmd.Flags().Bool("json", false, "Output as JSON")
 	RootCmd.AddCommand(queryCmd)
 
 	RootCmd.AddCommand(markCmd)
