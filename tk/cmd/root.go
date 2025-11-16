@@ -25,10 +25,23 @@ var RootCmd = &cobra.Command{
 			slog.Debug("debug logging enabled")
 		}
 	},
+	// Allow arbitrary args so paths like /foo work
+	Args: cobra.ArbitraryArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// If an argument starts with /, treat it as a path query
+		if len(args) > 0 && len(args[0]) > 0 && args[0][0] == '/' {
+			// Delegate to query command
+			return queryCmd.RunE(cmd, args)
+		}
+		// Otherwise show help
+		return cmd.Help()
+	},
 }
 
 func init() {
 	RootCmd.PersistentFlags().BoolVar(&debugFlag, "debug", false, "Enable debug logging")
+	// Add json flag for path queries
+	RootCmd.Flags().Bool("json", false, "Output as JSON (for path queries)")
 
 	//
 	// Core task management commands
