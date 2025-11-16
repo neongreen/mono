@@ -70,7 +70,7 @@ func (m *Machine) createProject(alias, name string) types.ProjectUID {
 
 	payload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
-		Type:        "local",
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: "",
 		CreatedBy:   "machine-" + m.nodeID,

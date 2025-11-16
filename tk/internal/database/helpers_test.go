@@ -83,7 +83,7 @@ func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
 
 	projectPayload := types.ProjectCreatedPayload{
 		ProjectUID:  types.ProjectUID(projectUID),
-		Type:        "local",
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: name + " project",
 		CreatedBy:   "tester",
@@ -189,7 +189,7 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) types.Event {
 	payload := types.ProjectCreatedPayload{
 		ProjectUID:  types.ProjectUID(projectUID),
-		Type:        "local",
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: description,
 		CreatedBy:   createdBy,

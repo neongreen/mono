@@ -167,7 +167,7 @@ func createTestEventSet() []types.Event {
 func createProjectEvent(ts int64, projectUID types.ProjectUID, name string) types.Event {
 	payload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
-		Type:        "local",
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: "",
 		CreatedBy:   "test",
