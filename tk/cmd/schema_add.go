@@ -200,12 +200,3 @@ func init() {
 	schemaAddCmd.Flags().StringVar(&addDescription, "description", "", "Description of the kind")
 	schemaAddCmd.Flags().StringVar(&addLLMHint, "llm-hint", "", "LLM guidance for when to use this kind (item kinds only)")
 }
-
-// Keep old command for backward compatibility (deprecated)
-// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
-var schemaAddCmd = &cobra.Command{
-	Use:   "schema-add",
-	Deprecated: "use 'tk schema add' instead",
-	Hidden:     true,
-	RunE:       AddCmd.RunE,
-}

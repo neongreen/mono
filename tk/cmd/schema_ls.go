@@ -142,11 +142,3 @@ var schemaLsCmd = &cobra.Command{
 func init() {
 	schemaLsCmd.Flags().BoolVar(&listAll, "all", false, "Show deprecated kinds")
 }
-
-// Keep old command for backward compatibility (deprecated)
-var schemaLsCmd = &cobra.Command{
-	Use:   "schema-ls",
-	Deprecated: "use 'tk schema list' instead",
-	Hidden:     true,
-	RunE:       ListCmd.RunE,
-}
