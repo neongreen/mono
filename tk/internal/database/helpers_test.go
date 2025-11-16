@@ -50,7 +50,7 @@ func seedProject(t *testing.T, db *DB, name string) string {
 
 	projectPayload := types.ProjectCreatedPayload{
 		ProjectUID:  types.ProjectUID(projectUID),
-		Type:        "local",
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: name + " project",
 		CreatedBy:   "tester",
