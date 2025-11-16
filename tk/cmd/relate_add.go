@@ -15,7 +15,7 @@ import (
 
 // cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var relateAddCmd = &cobra.Command{
-	Use:   "relate-add [source-task] [relation-type] [target-task]",
+	Use:   "relate-add",
 	Short: "Add a relation between two tasks",
 	Long: `Add a relation between two tasks.
 
@@ -29,9 +29,9 @@ Relation types:
   supersedes    - Source task supersedes target task
 
 Examples:
-  tk relate-add tk-1 blocks tk-2
-  tk relate-add tk-3 subtask tk-1
-  tk relate-add tk-4 related tk-5 --note "Both implement auth"`,
+  tk relate add tk-1 blocks tk-2
+  tk relate add tk-3 subtask tk-1
+  tk relate add tk-4 related tk-5 --note "Both implement auth"`,
 	Args: cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		srcTaskID := args[0]
@@ -145,5 +145,5 @@ Examples:
 }
 
 func init() {
-	relateAddCmd.Flags().String("note", "", "Optional note for the relation")
+	AddCmd.Flags().String("note", "", "Optional note for the relation")
 }

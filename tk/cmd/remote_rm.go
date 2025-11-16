@@ -10,12 +10,12 @@ import (
 
 // cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var remoteRmCmd = &cobra.Command{
-	Use:   "remote-rm [name]",
+	Use:   "remote-rm",
 	Short: "Remove a remote",
 	Long: `Remove a configured remote.
 
 Examples:
-  tk remote-rm icloud
+  tk remote rm icloud
 `,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {

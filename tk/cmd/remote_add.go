@@ -10,12 +10,12 @@ import (
 
 // cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var remoteAddCmd = &cobra.Command{
-	Use:   "remote-add [name] [type] [path]",
+	Use:   "remote-add",
 	Short: "Add a new remote",
 	Long: `Add a new remote for syncing events.
 
 Examples:
-  tk remote-add icloud folder ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events
+  tk remote add icloud folder ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events
 `,
 	Args: cobra.ExactArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
