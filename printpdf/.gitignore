@@ -2,3 +2,5 @@ _build/
 printpdf
 *.pdf
 !samples/*.pdf
+node_modules/
+dist/

@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/neongreen/mono/printpdf/pkg/readability"
 )
 
 const (
@@ -16,7 +18,7 @@ const (
 )
 
 // Fetch retrieves content from various sources and returns the content, content type, and any error
-func Fetch(input string) ([]byte, string, error) {
+func Fetch(input string, engine readability.Engine) ([]byte, string, error) {
 	// Check if it's a local file
 	if _, err := os.Stat(input); err == nil {
 		return fetchLocalFile(input)
@@ -24,7 +26,7 @@ func Fetch(input string) ([]byte, string, error) {
 
 	// Check if it's a URL
 	if strings.HasPrefix(input, "http://") || strings.HasPrefix(input, "https://") {
-		return fetchURL(input)
+		return fetchURL(input, engine)
 	}
 
 	// Try as a local file again with error
@@ -41,17 +43,17 @@ func fetchLocalFile(path string) ([]byte, string, error) {
 	return content, contentType, nil
 }
 
-func fetchURL(urlStr string) ([]byte, string, error) {
+func fetchURL(urlStr string, engine readability.Engine) ([]byte, string, error) {
 	// Check if it's a GitHub URL
 	if isGitHubURL(urlStr) {
 		return fetchGitHubFile(urlStr)
 	}
 
 	// Regular HTTP fetch
-	return fetchHTTP(urlStr)
+	return fetchHTTP(urlStr, engine)
 }
 
-func fetchHTTP(urlStr string) ([]byte, string, error) {
+func fetchHTTP(urlStr string, engine readability.Engine) ([]byte, string, error) {
 	resp, err := http.Get(urlStr)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to fetch URL: %w", err)
@@ -71,8 +73,8 @@ func fetchHTTP(urlStr string) ([]byte, string, error) {
 	contentType := detectContentType(urlStr, content)
 
 	// If it looks like HTML but not markdown, use Readability
-	if contentType == ContentTypeHTML && !strings.HasSuffix(urlStr, ".md") {
-		content, err = extractReadableContent(content)
+	if contentType == ContentTypeHTML && !strings.HasSuffix(urlStr, ".md") && engine != nil {
+		content, err = engine.Extract(content, urlStr)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to extract readable content: %w", err)
 		}

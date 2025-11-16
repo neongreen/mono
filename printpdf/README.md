@@ -13,7 +13,29 @@ A versatile tool for converting various content sources to PDF format using mult
   - Raw URLs: `https://raw.githubusercontent.com/owner/repo/branch/file.md`
   - Commit URLs: `https://github.com/owner/repo/blob/commit-sha/file.md`
   - Commit file URLs: `https://github.com/owner/repo/files/commit-sha/path/to/file.md`
-- **Web pages**: Regular web pages (processed with Mozilla Readability for clean content)
+- **Web pages**: Regular web pages with multiple readability engine options for clean content extraction
+
+### Readability Engines
+
+The tool supports multiple readability engines for extracting clean content from web pages:
+
+- **custom** (default): Built-in Go implementation, no dependencies required
+- **mozilla**: Official Mozilla Readability (requires Node.js) - the most accurate
+- **pure-md**: Remote service at https://pure.md/ - no Node.js needed
+- **jina**: Jina Reader at https://r.jina.ai/ - no Node.js needed
+
+Select engine with `--readability-engine`:
+```bash
+# Use Mozilla Readability (best quality, requires Node.js)
+printpdf --readability-engine mozilla https://example.com/article
+
+# Use remote services (no Node.js needed)
+printpdf --readability-engine pure-md https://example.com/article
+printpdf --readability-engine jina https://example.com/article
+
+# Use built-in Go implementation (default)
+printpdf --readability-engine custom https://example.com/article
+```
 
 ### PDF Converters
 
@@ -62,8 +84,29 @@ printpdf https://github.com/owner/repo/blob/main/README.md
 export GITHUB_TOKEN=your_token_here
 printpdf https://github.com/owner/repo/blob/main/README.md
 
-# Convert a web page (uses Readability)
+# Convert a web page (uses custom readability by default)
 printpdf https://example.com/article
+
+# Convert with Mozilla Readability (requires Node.js)
+printpdf --readability-engine mozilla https://example.com/article
+```
+
+### Readability Engine Options
+
+Choose how web pages are processed for clean content extraction:
+
+```bash
+# Mozilla Readability (best quality, requires Node.js)
+printpdf --readability-engine mozilla https://example.com/article
+
+# pure.md service (no Node.js needed)
+printpdf --readability-engine pure-md https://example.com/article
+
+# Jina Reader service (no Node.js needed)
+printpdf --readability-engine jina https://example.com/article
+
+# Built-in Go implementation (default, always available)
+printpdf --readability-engine custom https://example.com/article
 ```
 
 ### Options
@@ -227,8 +270,11 @@ See the `samples/` directory for example PDF outputs generated from various sour
 - Internet connection (for downloading converters and fetching remote content)
 
 Optional:
+- **Node.js** (for Mozilla Readability engine - highly recommended for best quality)
 - Python 3 with pip (for WeasyPrint)
 - Prince XML license (for Prince converter)
+
+**Note**: The `mozilla` readability engine requires Node.js. If Node.js is not installed, the tool will display an error message and exit when using `--readability-engine mozilla`. The built-in `custom` engine and remote services (`pure-md`, `jina`) do not require Node.js.
 
 ## Development
 
