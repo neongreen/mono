@@ -99,6 +99,26 @@ depends = ["lint:go:golangci", "lint:go:uselesswrapper", "lint:go:cobra", "lint:
 description = "Test all Go code"
 run = "go test -run=^$ ./..."
 
+[tasks."fuzz:pathlang"]
+description = "Run fuzz tests on pathlang parser (30s smoke test)"
+dir = "lib/pathlang"
+run = """
+echo "Fuzzing Parse..."
+go test -fuzz=FuzzParse -fuzztime=15s
+echo "Fuzzing RoundTrip..."
+go test -fuzz=FuzzParseRoundTrip -fuzztime=15s
+echo "Fuzz testing complete. To run longer: go test -fuzz=FuzzParse -fuzztime=1h"
+"""
+
+[tasks."fuzz:pathlang:long"]
+description = "Run extended fuzz tests on pathlang parser (5 minutes)"
+dir = "lib/pathlang"
+run = """
+echo "Running extended fuzzing (5 minutes)..."
+go test -fuzz=FuzzParse -fuzztime=2m30s
+go test -fuzz=FuzzParseRoundTrip -fuzztime=2m30s
+"""
+
 [tasks."lint:actions:actionlint"]
 description = "Lint GitHub Actions workflows with actionlint"
 run = "actionlint"
