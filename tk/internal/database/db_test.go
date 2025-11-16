@@ -82,7 +82,7 @@ func TestEvents(t *testing.T) {
 	t.Run("project.created", func(t *testing.T) {
 		payload := types.ProjectCreatedPayload{
 			ProjectUID:  types.NewProjectUID(),
-			Type:        "local",
+			Type:        types.ProjectTypeLocal,
 			Name:        "test-project",
 			Description: "A test project",
 			CreatedBy:   "testuser",
