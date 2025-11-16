@@ -12,19 +12,28 @@ This is a browser-based demo of tk that runs entirely in your web browser using 
 
 ## Quick Start
 
-### Build the demo
+### Option 1: Using Dagger (Recommended)
+
+The easiest way to build and serve the demo:
+
+```bash
+# From the repository root
+cd .dagger
+
+# Build and serve on port 8080
+dagger call project tk wasm-serve up --ports 8080:8080
+
+# Open http://localhost:8080 in your browser
+```
+
+See [DAGGER.md](DAGGER.md) for more options.
+
+### Option 2: Manual Build
+
+Build the demo manually using the provided scripts:
 
 ```bash
 ./build.sh
-```
-
-This will:
-1. Compile tk to WebAssembly (`tk.wasm` - approximately 25MB)
-2. Copy the Go WASM runtime (`wasm_exec.js`)
-
-### Run the demo
-
-```bash
 ./serve.sh
 ```
 
