@@ -74,7 +74,7 @@ func (r *TkResolver) Children(ctx context.Context, parent pathlang.Node, seg pat
 // - /project-alias-number -> task
 func (r *TkResolver) resolveFromRoot(seg pathlang.Segment) ([]pathlang.Node, error) {
 	name := seg.Name
-	
+
 	// Check if this looks like a display ID (contains a hyphen followed by digits)
 	// e.g., "foo-13" or "my-proj-42"
 	if r.looksLikeDisplayID(name) {
@@ -86,7 +86,7 @@ func (r *TkResolver) resolveFromRoot(seg pathlang.Segment) ([]pathlang.Node, err
 			if !ok {
 				return nil, fmt.Errorf("task %s not found", name)
 			}
-			
+
 			return []pathlang.Node{
 				&Node{
 					Type:       NodeTypeTask,
@@ -98,13 +98,13 @@ func (r *TkResolver) resolveFromRoot(seg pathlang.Segment) ([]pathlang.Node, err
 		}
 		// If it failed to resolve as task, try as project alias
 	}
-	
+
 	// Try to resolve as project alias
 	projectUID, err := database.ResolveProjectByAlias(r.db, name)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve %s: not found as project or task", name)
 	}
-	
+
 	return []pathlang.Node{
 		&Node{
 			Type:       NodeTypeProject,
@@ -120,13 +120,13 @@ func (r *TkResolver) looksLikeDisplayID(s string) bool {
 	if !strings.Contains(s, "-") {
 		return false
 	}
-	
+
 	// Split and check if last part (or second-to-last if there's a node hint) is numeric
 	parts := strings.Split(s, "-")
 	if len(parts) < 2 {
 		return false
 	}
-	
+
 	// Check if last part is numeric
 	lastPart := parts[len(parts)-1]
 	for _, c := range lastPart {
@@ -135,7 +135,7 @@ func (r *TkResolver) looksLikeDisplayID(s string) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -148,7 +148,7 @@ func (r *TkResolver) resolveFromTask(taskNode *Node, seg pathlang.Segment) ([]pa
 	if taskNode.Task == nil {
 		return nil, fmt.Errorf("task node has no task data")
 	}
-	
+
 	switch seg.Name {
 	case "subtasks":
 		return r.getSubtasks(taskNode)
@@ -174,14 +174,14 @@ func (r *TkResolver) getSubtasks(taskNode *Node) ([]pathlang.Node, error) {
 	if taskNode.Task.Relations == nil || len(taskNode.Task.Relations.Subtask.Children) == 0 {
 		return nil, nil
 	}
-	
+
 	var nodes []pathlang.Node
 	for _, childUID := range taskNode.Task.Relations.Subtask.Children {
 		childTask, ok := r.reducer.GetTask(childUID)
 		if !ok {
 			continue
 		}
-		
+
 		nodes = append(nodes, &Node{
 			Type:       NodeTypeTask,
 			TaskUID:    childUID,
@@ -189,7 +189,7 @@ func (r *TkResolver) getSubtasks(taskNode *Node) ([]pathlang.Node, error) {
 			Task:       childTask,
 		})
 	}
-	
+
 	return nodes, nil
 }
 
@@ -198,14 +198,14 @@ func (r *TkResolver) getBlockers(taskNode *Node) ([]pathlang.Node, error) {
 	if len(taskNode.Task.Blockers) == 0 {
 		return nil, nil
 	}
-	
+
 	var nodes []pathlang.Node
 	for _, blocker := range taskNode.Task.Blockers {
 		blockerTask, ok := r.reducer.GetTask(blocker.TaskUUID)
 		if !ok {
 			continue
 		}
-		
+
 		nodes = append(nodes, &Node{
 			Type:       NodeTypeTask,
 			TaskUID:    blocker.TaskUUID,
@@ -213,6 +213,6 @@ func (r *TkResolver) getBlockers(taskNode *Node) ([]pathlang.Node, error) {
 			Task:       blockerTask,
 		})
 	}
-	
+
 	return nodes, nil
 }

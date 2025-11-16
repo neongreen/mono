@@ -73,7 +73,7 @@ func fixInitFunction(filePath string) error {
 			whitespace := parts[1]
 			matchedCmd := parts[2]
 			method := parts[3]
-			
+
 			// Only replace if it looks like an old-style command reference
 			// and isn't the actual command variable from this file
 			if matchedCmd != cmdVarName {

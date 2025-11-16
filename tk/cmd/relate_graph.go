@@ -271,7 +271,7 @@ func init() {
 	relateGraphCmd.Flags().String("type", "blocks", "Relation type to graph (blocks, subtask, related)")
 	relateGraphCmd.Flags().Int("depth", 10, "Maximum depth to traverse")
 	relateGraphCmd.Flags().Bool("json", false, "Output as JSON")
-	
+
 	graphCmd.Flags().String("type", "blocks", "Relation type to graph (blocks, subtask, related)")
 	graphCmd.Flags().Int("depth", 10, "Maximum depth to traverse")
 	graphCmd.Flags().Bool("json", false, "Output as JSON")

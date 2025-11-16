@@ -91,13 +91,13 @@ Path syntax:
 // displayResultsJSON outputs results in JSON format
 func displayResultsJSON(db *database.DB, nodes []pathlang.Node) error {
 	var results []map[string]any
-	
+
 	for _, n := range nodes {
 		node := n.(*pathlang_resolver.Node)
 		result := map[string]any{
 			"type": string(node.Type),
 		}
-		
+
 		switch node.Type {
 		case pathlang_resolver.NodeTypeProject:
 			// Query project info
@@ -130,10 +130,10 @@ func displayResultsJSON(db *database.DB, nodes []pathlang.Node) error {
 				result["notes"] = notes
 			}
 		}
-		
+
 		results = append(results, result)
 	}
-	
+
 	output, err := json.MarshalIndent(results, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal results: %w", err)
@@ -148,9 +148,9 @@ func displayResultsHuman(db *database.DB, reducer interface{}, nodes []pathlang.
 		if i > 0 {
 			fmt.Println()
 		}
-		
+
 		node := n.(*pathlang_resolver.Node)
-		
+
 		switch node.Type {
 		case pathlang_resolver.NodeTypeProject:
 			displayProject(db, node)
@@ -170,22 +170,22 @@ func displayProject(db *database.DB, node *pathlang_resolver.Node) {
 		fmt.Println("Project (no UID)")
 		return
 	}
-	
+
 	// Query project info from database
 	var name string
 	var projType string
 	err := db.Db.QueryRow(`
 		SELECT name, COALESCE(type, 'local') FROM projects WHERE project_uid = ?
 	`, node.ProjectUID).Scan(&name, &projType)
-	
+
 	if err != nil {
 		fmt.Printf("Project UID: %s (error loading details: %v)\n", node.ProjectUID, err)
 		return
 	}
-	
+
 	// Try to get preferred alias
 	alias, _ := database.PreferredAliasForProject(db, types.ProjectUID(node.ProjectUID))
-	
+
 	if alias != "" {
 		fmt.Printf("Project: %s (%s)\n", boldText(alias), name)
 	} else {
@@ -202,18 +202,18 @@ func displayTask(db *database.DB, node *pathlang_resolver.Node) {
 		fmt.Println("Task (no data)")
 		return
 	}
-	
+
 	// Get display ID
 	displayID, err := database.RenderTaskDisplayID(db, node.TaskUID)
 	if err != nil {
 		displayID = node.TaskUID
 	}
-	
+
 	fmt.Printf("Task: %s\n", boldText(displayID))
 	if node.Task.Title != "" {
 		fmt.Printf("Title: %s\n", node.Task.Title)
 	}
-	
+
 	status := getTaskStatus(node.Task)
 	if status != "" {
 		fmt.Printf("Status: %s\n", colorizeStatus(status))
@@ -225,7 +225,7 @@ func displayNotes(node *pathlang_resolver.Node) {
 		fmt.Println("No notes")
 		return
 	}
-	
+
 	fmt.Printf("Notes for task %s:\n", node.TaskUID)
 	for i, note := range node.Task.Notes {
 		if i > 0 {
