@@ -7,10 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/neongreen/mono/tk/internal/config"
-
 	"github.com/neongreen/mono/tk/internal/reducer"
-
-	_ "modernc.org/sqlite"
 )
 
 const (
@@ -26,21 +23,25 @@ type DB struct {
 
 // OpenDB opens or creates a tk database at the given path
 func OpenDB(path string) (*DB, error) {
-	// Ensure the directory exists
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return nil, fmt.Errorf("failed to create directory %s: %w", dir, err)
+	// Ensure the directory exists (skip for in-memory databases)
+	if path != ":memory:" {
+		dir := filepath.Dir(path)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, fmt.Errorf("failed to create directory %s: %w", dir, err)
+		}
 	}
 
-	db, err := sql.Open("sqlite", path)
+	db, err := sql.Open(driverName, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Enable WAL mode
-	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
+	// Enable WAL mode (skip for in-memory databases)
+	if path != ":memory:" {
+		if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
+		}
 	}
 
 	// Disable foreign keys (as per spec)
