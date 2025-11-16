@@ -11,9 +11,11 @@ import (
 
 	"github.com/golang-cz/devslog"
 	main "github.com/neongreen/mono/dissect/cmd"
+	"github.com/neongreen/mono/dissect/pkg/commands"
 	"github.com/neongreen/mono/dissect/pkg/dependencies"
 	"github.com/neongreen/mono/dissect/pkg/externaltest"
 	"github.com/neongreen/mono/dissect/pkg/goutils"
+	"github.com/neongreen/mono/dissect/pkg/lsp"
 	"github.com/neongreen/mono/dissect/pkg/testutils"
 	"github.com/pelletier/go-toml/v2"
 )
@@ -124,11 +126,24 @@ func runDissectIntegrationTest(t *testing.T, tomlFileName string) {
 	// Setup tools (gopls and goimports)
 	goplsPath, goimportsPath := setupTools(t, tmpProjectDir)
 
+	// Create LSP manager and client
+	lspMgr := lsp.NewManager()
+	defer func() {
+		if err := lspMgr.CloseAll(); err != nil {
+			t.Logf("Error closing LSP clients: %v", err)
+		}
+	}()
+	
+	lspClient, err := lspMgr.GetClient(goplsPath, tmpProjectDir)
+	if err != nil {
+		t.Fatalf("Failed to create LSP client: %v", err)
+	}
+
 	// Run dissect
 	for filePath := range testData.FilesIn {
 		if strings.HasSuffix(filePath, ".go") {
 			slog.Debug("Found Go file for dissect", "file", filePath)
-			main.ProcessFile(filepath.Join(tmpProjectDir, filePath), goplsPath, goimportsPath)
+			main.ProcessFile(filepath.Join(tmpProjectDir, filePath), goplsPath, goimportsPath, lspClient)
 		} else {
 			slog.Debug("Skipping non-Go file for dissect", "file", filePath)
 		}
@@ -282,9 +297,29 @@ func TestExternalProjects(t *testing.T) {
 				config.ShowDiff = true
 			}
 
-			// Inject ProcessFile dependency with installed tools
+			// Create LSP manager for this test
+			lspMgr := lsp.NewManager()
+			defer func() {
+				if err := lspMgr.CloseAll(); err != nil {
+					t.Logf("Error closing LSP clients: %v", err)
+				}
+			}()
+
+			// Inject ProcessFile dependency with installed tools and LSP support
 			config.ProcessFile = func(absPath string) (int, string, error) {
-				status, exclusionReason, err := main.ProcessFile(absPath, goplsPath, goimportsPath)
+				// Find module root from the file path
+				moduleRoot, err := commands.FindGoModuleRoot(absPath)
+				if err != nil {
+					return int(main.Failed), "", err
+				}
+				
+				// Get or create LSP client for this module
+				lspClient, err := lspMgr.GetClient(goplsPath, moduleRoot)
+				if err != nil {
+					return int(main.Failed), "", err
+				}
+				
+				status, exclusionReason, err := main.ProcessFile(absPath, goplsPath, goimportsPath, lspClient)
 				return int(status), exclusionReason, err
 			}
 

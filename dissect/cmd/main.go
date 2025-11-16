@@ -11,6 +11,7 @@ import (
 	"github.com/golang-cz/devslog"
 	"github.com/neongreen/mono/dissect/pkg/commands"
 	"github.com/neongreen/mono/dissect/pkg/dependencies"
+	"github.com/neongreen/mono/dissect/pkg/lsp"
 	"github.com/spf13/cobra"
 )
 
@@ -99,13 +100,29 @@ following Go's best practices for code organization.`,
 
 		slog.Info("Found Go files", "count", len(filesToProcess))
 
+		// Create LSP manager for persistent gopls connections
+		lspMgr := lsp.NewManager()
+		defer func() {
+			if err := lspMgr.CloseAll(); err != nil {
+				slog.Error("Error closing LSP clients", "error", err)
+			}
+		}()
+
+		// Get LSP client for the module
+		lspClient, err := lspMgr.GetClient(goplsPath, moduleRoot)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating LSP client: %v\n", err)
+			fmt.Fprintf(os.Stderr, "LSP mode is required. Cannot fall back to CLI mode.\n")
+			os.Exit(1)
+		}
+
 		refactored := 0
 		nothingToDo := 0
 		skipped := 0
 		failed := 0
 
 		for _, file := range filesToProcess {
-			result, _, _ := ProcessFile(file, goplsPath, goimportsPath) // Ignore `err` since it's logged inside ProcessFile already
+			result, _, _ := ProcessFile(file, goplsPath, goimportsPath, lspClient) // Ignore `err` since it's logged inside ProcessFile already
 			switch result {
 			case Refactored:
 				refactored++
