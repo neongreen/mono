@@ -104,7 +104,7 @@ tk project-create, tk project-ls, tk project-rename, tk project-rm
 ```bash
 tk queue-create, tk queue-push, tk queue-pop, tk queue-ls, tk queue-show, tk queue-rename, tk queue-rm
 tk stack-create, tk stack-push, tk stack-pop, tk stack-ls, tk stack-show, tk stack-rename, tk stack-rm
-tk group-create, tk group-add, tk group-rm, tk group-ls, tk group-show, tk group-rename, tk group-delete
+tk group-create, tk group-addtask, tk group-rmtask, tk group-ls, tk group-show, tk group-rename, tk group-delete
 ```
 
 **Schema & Metadata:**
@@ -355,8 +355,8 @@ tk meta-claims      - Show all competing claims for a metadata key
 tk debug-doctor     - Verify database health and report issues
 tk debug-repair     - UNSAFE: Repair Lamport timestamp corruption
 tk debug-rebuild    - Rebuild all projection tables from events
-tk debug-rebuild-from-remote  - Rebuild local database from remote segments
-tk debug-fix-timestamps       - Reassign Lamport timestamps to events
+tk debug-rebuild-from-remote  - Rebuild local database from remote segments (not yet available)
+tk debug-fix-timestamps       - Reassign Lamport timestamps to events (not yet available)
 
 tk debug-events-ls    - List all events in the database
 tk debug-events-show  - Show detailed information about a specific event

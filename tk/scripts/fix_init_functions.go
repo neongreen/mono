@@ -55,15 +55,32 @@ func fixInitFunction(filePath string) error {
 	// Determine the correct command variable name from the file
 	cmdVarName := getCmdVarName(filePath)
 
+	// Read the actual var declaration to verify the command variable name
+	varDeclRe := regexp.MustCompile(`(?m)^var\s+(\w+Cmd)\s*=\s*&cobra\.Command`)
+	if matches := varDeclRe.FindStringSubmatch(text); len(matches) > 1 {
+		cmdVarName = matches[1]
+	}
+
 	// Find all old Cmd references in init() and replace them
-	// Pattern: SomeCmd.Flags() or SomeCmd.Something
-	oldCmdRe := regexp.MustCompile(`\b([A-Z]\w+Cmd)\.(Flags|PersistentFlags|AddCommand)`)
+	// Pattern: CapitalizedCmd.Method where Method is Flags, PersistentFlags, or AddCommand
+	// Only match when preceded by whitespace or start of line to avoid false matches
+	oldCmdRe := regexp.MustCompile(`(?m)(^|\s)([A-Z]\w+Cmd)\.(Flags|PersistentFlags|AddCommand)\b`)
 
 	text = oldCmdRe.ReplaceAllStringFunc(text, func(match string) string {
-		// Only replace if it's in an init() function
-		// For simplicity, replace all old-style Cmd references
-		parts := strings.Split(match, ".")
-		return cmdVarName + "." + parts[1]
+		// Check if the matched command variable is different from the current file's command
+		parts := oldCmdRe.FindStringSubmatch(match)
+		if len(parts) > 3 {
+			whitespace := parts[1]
+			matchedCmd := parts[2]
+			method := parts[3]
+			
+			// Only replace if it looks like an old-style command reference
+			// and isn't the actual command variable from this file
+			if matchedCmd != cmdVarName {
+				return whitespace + cmdVarName + "." + method
+			}
+		}
+		return match
 	})
 
 	if err := os.WriteFile(filePath, []byte(text), 0644); err != nil {
