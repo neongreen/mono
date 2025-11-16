@@ -60,6 +60,9 @@ func init() {
 	showCmd.Flags().Bool("json", false, "Output as JSON")
 	RootCmd.AddCommand(showCmd)
 
+	queryCmd.Flags().Bool("json", false, "Output as JSON")
+	RootCmd.AddCommand(queryCmd)
+
 	RootCmd.AddCommand(markCmd)
 	RootCmd.AddCommand(editCmd)
 	RootCmd.AddCommand(describeCmd)
