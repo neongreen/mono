@@ -13,7 +13,7 @@ var jjRunBinary string
 
 func init() {
 	// Build the jj-run binary before running tests
-	cmd := exec.Command("go", "build", "-o", "../jj-run", "../cmd/main.go")
+	cmd := exec.Command("go", "build", "-o", "../jj-run", "..")
 	if err := cmd.Run(); err != nil {
 		panic("Failed to build jj-run binary: " + err.Error())
 	}

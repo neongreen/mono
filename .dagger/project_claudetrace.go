@@ -12,7 +12,7 @@ type ClaudeTraceProject struct {
 
 func (p *ClaudeTraceProject) Build(ctx context.Context) (*dagger.File, error) {
 	src := getFilteredSource("claude-trace", dag.CurrentModule().Source().Directory(".."))
-	return buildProject(ctx, "claude-trace", "./cmd", src)
+	return buildProject(ctx, "claude-trace", ".", src)
 }
 
 func (p *ClaudeTraceProject) Test(ctx context.Context,

@@ -12,7 +12,7 @@ type PrintpdfProject struct {
 
 func (p *PrintpdfProject) Build(ctx context.Context) (*dagger.File, error) {
 	src := getFilteredSource("printpdf", dag.CurrentModule().Source().Directory(".."))
-	return buildProject(ctx, "printpdf", "./cmd", src)
+	return buildProject(ctx, "printpdf", ".", src)
 }
 
 // Test runs tests for printpdf with PDF tools installed.

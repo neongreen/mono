@@ -12,7 +12,7 @@ type ConfProject struct {
 
 func (p *ConfProject) Build(ctx context.Context) (*dagger.File, error) {
 	src := getFilteredSource("conf", dag.CurrentModule().Source().Directory(".."))
-	return buildProject(ctx, "conf", "./cmd/main.go", src)
+	return buildProject(ctx, "conf", ".", src)
 }
 
 func (p *ConfProject) Test(ctx context.Context,

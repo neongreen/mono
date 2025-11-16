@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/golang-cz/devslog"
-	main "github.com/neongreen/mono/dissect/cmd"
+	main "github.com/neongreen/mono/dissect"
 	"github.com/neongreen/mono/dissect/pkg/dependencies"
 	"github.com/neongreen/mono/dissect/pkg/externaltest"
 	"github.com/neongreen/mono/dissect/pkg/goutils"

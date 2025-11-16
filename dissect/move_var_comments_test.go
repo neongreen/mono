@@ -64,7 +64,7 @@ func main() {
 
 	// Build the dissect binary
 	dissectBinary := filepath.Join(tmpDir, "dissect")
-	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect/cmd")
+	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect")
 	buildCmd.Dir = findRepoRoot(t)
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)
