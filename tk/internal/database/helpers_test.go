@@ -49,8 +49,8 @@ func seedProject(t *testing.T, db *DB, name string) string {
 	now := time.Now()
 
 	projectPayload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
+		ProjectUID:  types.ProjectUID(projectUID),
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: name + " project",
 		CreatedBy:   "tester",
@@ -82,8 +82,8 @@ func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
 	now := time.Now()
 
 	projectPayload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
+		ProjectUID:  types.ProjectUID(projectUID),
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: name + " project",
 		CreatedBy:   "tester",
@@ -150,8 +150,8 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 	}
 
 	numberPayload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     "seed",
 	}
@@ -188,8 +188,8 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 
 func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) types.Event {
 	payload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
+		ProjectUID:  types.ProjectUID(projectUID),
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: description,
 		CreatedBy:   createdBy,
@@ -233,8 +233,8 @@ func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, cr
 
 func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason string) types.Event {
 	payload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     reason,
 	}

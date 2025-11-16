@@ -59,7 +59,7 @@ func TestScanEvent_IgnoresNonDeprecatedEvents(t *testing.T) {
 	// Create a project.created event (no deprecated fields)
 	payload := types.ProjectCreatedPayload{
 		ProjectUID:  "prj_123",
-		Type:        "local",
+		Type:        types.ProjectTypeLocal,
 		Name:        "test",
 		Description: "test project",
 		CreatedBy:   "tester",

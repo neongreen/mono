@@ -40,7 +40,7 @@ func TestEventProjectionIdempotency(t *testing.T) {
 
 	// Create a project event
 	projectUID := string(types.NewProjectUID())
-	projectEvent := createProjectCreatedEvent(projectUID, "Test Project", "A test", "alice", nodeA)
+	projectEvent := createProjectCreatedEvent(projectUID, "test-project", "A test", "alice", nodeA)
 
 	// Insert and project once
 	if err := db.InsertEvent(projectEvent); err != nil {
@@ -99,7 +99,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 
 	// Create a project
 	projectUID := string(types.NewProjectUID())
-	projectEvent := createProjectCreatedEvent(projectUID, "Test", "Test", "alice", nodeA)
+	projectEvent := createProjectCreatedEvent(projectUID, "test", "Test", "alice", nodeA)
 	if err := db.InsertEvent(projectEvent); err != nil {
 		t.Fatalf("failed to insert project: %v", err)
 	}

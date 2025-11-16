@@ -202,7 +202,7 @@ func (r *Reducer) applyProjectDelete(e types.Event) error {
 	// Find all tasks in this project and delete them
 	tasksToDelete := make([]string, 0)
 	for taskUUID, taskProjectUID := range r.taskProjects {
-		if taskProjectUID == projectUID {
+		if taskProjectUID == projectUID.String() {
 			tasksToDelete = append(tasksToDelete, taskUUID)
 		}
 	}
@@ -524,7 +524,7 @@ func (r *Reducer) applyTaskRelocate(e types.Event) error {
 
 	// Update the task's project mapping so project.delete can correctly
 	// remove tasks that belong to the deleted project
-	r.taskProjects[payload.TaskUID] = payload.ToProjectUID
+	r.taskProjects[payload.TaskUID.String()] = payload.ToProjectUID.String()
 
 	return nil
 }
@@ -538,7 +538,7 @@ func (r *Reducer) applyTaskTitleSet(e types.Event) error {
 	taskUID := payload.TaskUID
 
 	// Find the task
-	task, exists := r.tasks[taskUID]
+	task, exists := r.tasks[taskUID.String()]
 	if !exists {
 		return fmt.Errorf("task %s not found", taskUID)
 	}

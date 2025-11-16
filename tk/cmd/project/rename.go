@@ -54,7 +54,7 @@ var RenameCmd = &cobra.Command{
 
 		// Create project.name.set event
 		payload := types.ProjectNameSetPayload{
-			ProjectUID: string(projectUID),
+			ProjectUID: projectUID,
 			Name:       newName,
 		}
 

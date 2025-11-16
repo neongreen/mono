@@ -88,9 +88,9 @@ func TestReducer_ProjectDelete_WithMultipleTasks(t *testing.T) {
 
 	// Relocate task 2 from A to B
 	relocatePayload := types.TaskRelocatePayload{
-		TaskUID:        task2UID,
-		FromProjectUID: projectA,
-		ToProjectUID:   projectB,
+		TaskUID:        types.TaskUID(task2UID),
+		FromProjectUID: types.ProjectUID(projectA),
+		ToProjectUID:   types.ProjectUID(projectB),
 		NumberPolicy: types.NumberPolicyPayload{
 			Mode: "keep",
 		},
@@ -121,7 +121,7 @@ func TestReducer_ProjectDelete_WithMultipleTasks(t *testing.T) {
 	}
 
 	// Delete project B - should delete task 1 (created in B) and task 2 (relocated to B)
-	deleteBPayload := types.ProjectDeletePayload{ProjectUID: projectB}
+	deleteBPayload := types.ProjectDeletePayload{ProjectUID: types.ProjectUID(projectB)}
 	deleteBPayloadJSON, _ := json.Marshal(deleteBPayload)
 
 	deleteBEvent := types.Event{

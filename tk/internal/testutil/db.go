@@ -52,8 +52,8 @@ func SeedProject(t *testing.T, db *database.DB, name string) string {
 	now := time.Now()
 
 	projectPayload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
+		ProjectUID:  types.ProjectUID(projectUID),
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: name + " project",
 		CreatedBy:   "tester",
@@ -121,8 +121,8 @@ func SeedTaskWithNode(t *testing.T, db *database.DB, projectUID string, title st
 	}
 
 	numberPayload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     "seed",
 	}

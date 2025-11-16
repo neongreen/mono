@@ -81,9 +81,9 @@ func TestEvents(t *testing.T) {
 	// Test project.created event
 	t.Run("project.created", func(t *testing.T) {
 		payload := types.ProjectCreatedPayload{
-			ProjectUID:  string(types.NewProjectUID()),
-			Type:        "local",
-			Name:        "Test Project",
+			ProjectUID:  types.NewProjectUID(),
+			Type:        types.ProjectTypeLocal,
+			Name:        "test-project",
 			Description: "A test project",
 			CreatedBy:   "testuser",
 		}
@@ -170,7 +170,7 @@ func TestEvents(t *testing.T) {
 
 		// Now change the title
 		titlePayload := types.TaskTitleSetPayload{
-			TaskUID: string(taskUID),
+			TaskUID: taskUID,
 			Title:   "Updated Title",
 		}
 		titlePayloadJSON, _ := json.Marshal(titlePayload)

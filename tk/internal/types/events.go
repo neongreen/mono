@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -47,11 +48,41 @@ func ValidateProjectName(name string) error {
 
 // ProjectCreatedPayload is the payload for project.created events
 type ProjectCreatedPayload struct {
-	ProjectUID  string `json:"project_uid"`
-	Type        string `json:"type"`        // local, github, linear, jira
-	Name        string `json:"name"`        // human-readable name
-	Description string `json:"description"` // text description
-	CreatedBy   string `json:"created_by"`  // actor who created it
+	ProjectUID  ProjectUID  `json:"project_uid"`  // Must be valid ProjectUID (prj_<ulid>)
+	Type        ProjectType `json:"type"`         // Project type (local, github, linear, jira)
+	Name        string      `json:"name"`         // Project name (lowercase, dashes, validated)
+	Description string      `json:"description"`  // Text description (any string)
+	CreatedBy   string      `json:"created_by"`   // Actor who created it (any string)
+}
+
+// Validate checks if the ProjectCreatedPayload is valid
+func (p ProjectCreatedPayload) Validate() error {
+	if err := p.ProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in ProjectCreatedPayload: %w", err)
+	}
+	if err := p.Type.Validate(); err != nil {
+		return fmt.Errorf("invalid type in ProjectCreatedPayload: %w", err)
+	}
+	if err := ValidateProjectName(p.Name); err != nil {
+		return fmt.Errorf("invalid name in ProjectCreatedPayload: %w", err)
+	}
+	// Description and CreatedBy can be any string
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a ProjectCreatedPayload
+func (p *ProjectCreatedPayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias ProjectCreatedPayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal ProjectCreatedPayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ProjectAliasAddPayload is the payload for project.alias.add events
@@ -73,13 +104,62 @@ type ProjectAliasRemovePayload struct {
 
 // ProjectDeletePayload is the payload for project.delete events
 type ProjectDeletePayload struct {
-	ProjectUID string `json:"project_uid"`
+	ProjectUID ProjectUID `json:"project_uid"` // Must be valid ProjectUID (prj_<ulid>)
+}
+
+// Validate checks if the ProjectDeletePayload is valid
+func (p ProjectDeletePayload) Validate() error {
+	if err := p.ProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in ProjectDeletePayload: %w", err)
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a ProjectDeletePayload
+func (p *ProjectDeletePayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias ProjectDeletePayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal ProjectDeletePayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ProjectNameSetPayload is the payload for project.name.set events
 type ProjectNameSetPayload struct {
-	ProjectUID string `json:"project_uid"`
-	Name       string `json:"name"` // new project name
+	ProjectUID ProjectUID `json:"project_uid"` // Must be valid ProjectUID (prj_<ulid>)
+	Name       string     `json:"name"`        // New project name (lowercase, dashes, validated)
+}
+
+// Validate checks if the ProjectNameSetPayload is valid
+func (p ProjectNameSetPayload) Validate() error {
+	if err := p.ProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in ProjectNameSetPayload: %w", err)
+	}
+	if err := ValidateProjectName(p.Name); err != nil {
+		return fmt.Errorf("invalid name in ProjectNameSetPayload: %w", err)
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a ProjectNameSetPayload
+func (p *ProjectNameSetPayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias ProjectNameSetPayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal ProjectNameSetPayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // TaskCreatedPayload is the payload for task.created events
@@ -95,30 +175,131 @@ type TaskCreatedPayload struct {
 
 // TaskNumberSetPayload is the payload for task.number.set events
 type TaskNumberSetPayload struct {
-	TaskUID    string `json:"task_uid"`
-	ProjectUID string `json:"project_uid"`
-	Number     int64  `json:"number"`
-	Reason     string `json:"reason,omitempty"` // e.g., "collision resolved", "manual renumber"
+	TaskUID    TaskUID    `json:"task_uid"`     // Must be valid TaskUID (tsk_<ulid>)
+	ProjectUID ProjectUID `json:"project_uid"`  // Must be valid ProjectUID (prj_<ulid>)
+	Number     int64      `json:"number"`       // Task number (must be positive)
+	Reason     string     `json:"reason,omitempty"` // e.g., "collision resolved", "manual renumber"
+}
+
+// Validate checks if the TaskNumberSetPayload is valid
+func (p TaskNumberSetPayload) Validate() error {
+	if err := p.TaskUID.Validate(); err != nil {
+		return fmt.Errorf("invalid task_uid in TaskNumberSetPayload: %w", err)
+	}
+	if err := p.ProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in TaskNumberSetPayload: %w", err)
+	}
+	if p.Number <= 0 {
+		return fmt.Errorf("invalid number in TaskNumberSetPayload: must be positive, got %d", p.Number)
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a TaskNumberSetPayload
+func (p *TaskNumberSetPayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias TaskNumberSetPayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal TaskNumberSetPayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // TaskRelocatePayload is the payload for task.relocate events
 type TaskRelocatePayload struct {
-	TaskUID        string              `json:"task_uid"`
-	FromProjectUID string              `json:"from_project_uid"`
-	ToProjectUID   string              `json:"to_project_uid"`
-	NumberPolicy   NumberPolicyPayload `json:"number_policy"`
+	TaskUID        TaskUID             `json:"task_uid"`         // Must be valid TaskUID (tsk_<ulid>)
+	FromProjectUID ProjectUID          `json:"from_project_uid"` // Must be valid ProjectUID (prj_<ulid>)
+	ToProjectUID   ProjectUID          `json:"to_project_uid"`   // Must be valid ProjectUID (prj_<ulid>)
+	NumberPolicy   NumberPolicyPayload `json:"number_policy"`    // Number assignment policy
+}
+
+// Validate checks if the TaskRelocatePayload is valid
+func (p TaskRelocatePayload) Validate() error {
+	if err := p.TaskUID.Validate(); err != nil {
+		return fmt.Errorf("invalid task_uid in TaskRelocatePayload: %w", err)
+	}
+	if err := p.FromProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid from_project_uid in TaskRelocatePayload: %w", err)
+	}
+	if err := p.ToProjectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid to_project_uid in TaskRelocatePayload: %w", err)
+	}
+	if err := p.NumberPolicy.Validate(); err != nil {
+		return fmt.Errorf("invalid number_policy in TaskRelocatePayload: %w", err)
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a TaskRelocatePayload
+func (p *TaskRelocatePayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias TaskRelocatePayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal TaskRelocatePayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // NumberPolicyPayload is embedded in TaskRelocatePayload
 type NumberPolicyPayload struct {
 	Mode   string `json:"mode"`             // keep, auto, force, fail
-	Number int64  `json:"number,omitempty"` // used when mode == "force"
+	Number int64  `json:"number,omitempty"` // used when mode == "force" (must be positive)
+}
+
+// Validate checks if the NumberPolicyPayload is valid
+func (p NumberPolicyPayload) Validate() error {
+	switch p.Mode {
+	case "keep", "auto", "force", "fail":
+		if p.Mode == "force" && p.Number <= 0 {
+			return fmt.Errorf("invalid number in NumberPolicyPayload: when mode is 'force', number must be positive, got %d", p.Number)
+		}
+		return nil
+	default:
+		return fmt.Errorf("invalid mode in NumberPolicyPayload: must be one of [keep, auto, force, fail], got %q", p.Mode)
+	}
 }
 
 // TaskTitleSetPayload is the payload for task.title.set events
 type TaskTitleSetPayload struct {
-	TaskUID string `json:"task_uid"`
-	Title   string `json:"title"`
+	TaskUID TaskUID `json:"task_uid"` // Must be valid TaskUID (tsk_<ulid>)
+	Title   string  `json:"title"`    // Task title (non-empty, trimmed)
+}
+
+// Validate checks if the TaskTitleSetPayload is valid
+func (p TaskTitleSetPayload) Validate() error {
+	if err := p.TaskUID.Validate(); err != nil {
+		return fmt.Errorf("invalid task_uid in TaskTitleSetPayload: %w", err)
+	}
+	title := strings.TrimSpace(p.Title)
+	if title == "" {
+		return fmt.Errorf("invalid title in TaskTitleSetPayload: title cannot be empty")
+	}
+	return nil
+}
+
+// UnmarshalJSON unmarshals and validates a TaskTitleSetPayload
+func (p *TaskTitleSetPayload) UnmarshalJSON(data []byte) error {
+	// Use a type alias to avoid infinite recursion
+	type Alias TaskTitleSetPayload
+	aux := &struct{ *Alias }{Alias: (*Alias)(p)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return fmt.Errorf("failed to unmarshal TaskTitleSetPayload: %w", err)
+	}
+	// Validate after unmarshaling
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Container event payloads (v6 event-defined capabilities)

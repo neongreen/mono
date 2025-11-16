@@ -50,7 +50,7 @@ var RmCmd = &cobra.Command{
 
 		// Create project.delete event
 		payload := types.ProjectDeletePayload{
-			ProjectUID: projectUID.String(),
+			ProjectUID: projectUID,
 		}
 
 		payloadJSON, err := json.Marshal(payload)

@@ -69,8 +69,8 @@ func (m *Machine) createProject(alias, name string) types.ProjectUID {
 	projectUID := types.NewProjectUID()
 
 	payload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID.String(),
-		Type:        "local",
+		ProjectUID:  projectUID,
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: "",
 		CreatedBy:   "machine-" + m.nodeID,
@@ -130,8 +130,8 @@ func (m *Machine) createTask(projectUID types.ProjectUID, title string) types.Ta
 	// Also create number.set event
 	ts2, _ := m.db.GetNextLamportTS()
 	numberPayload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID.String(),
-		ProjectUID: projectUID.String(),
+		TaskUID:    taskUID,
+		ProjectUID: projectUID,
 		Number:     1,
 		Reason:     "initial",
 	}
@@ -210,8 +210,8 @@ func TestSimulation_DifferentCreatedAt(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(50, 0))
 
 	// Both create the same project (must be in sync first)
-	projectUID := machineA.createProject("test", "Test Project")
-	machineB.createProject("test", "Test Project") // Same alias and name
+	projectUID := machineA.createProject("test", "test-project")
+	machineB.createProject("test", "test-project") // Same alias and name
 
 	// Machine A creates task at T=100 (later wall clock)
 	machineA.clock.Set(time.Unix(100, 0))
@@ -267,8 +267,8 @@ func TestSimulation_DuplicateWithTiming(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(50, 0))
 
 	// Create shared project
-	projectUID := machineA.createProject("test", "Test Project")
-	machineB.createProject("test", "Test Project")
+	projectUID := machineA.createProject("test", "test-project")
+	machineB.createProject("test", "test-project")
 
 	// Both machines create a task with THE SAME UID (duplicate!)
 	// But at different times with different titles
@@ -356,8 +356,8 @@ func TestSimulation_NetworkPartition(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(0, 0))
 
 	// Phase 1: Connected - create shared project
-	projectUID := machineA.createProject("test", "Test Project")
-	machineB.createProject("test", "Test Project")
+	projectUID := machineA.createProject("test", "test-project")
+	machineB.createProject("test", "test-project")
 	syncMachines(t, machineA, machineB)
 
 	t.Logf("Phase 1: Both machines connected, shared project created")
@@ -425,8 +425,8 @@ func TestSimulation_OutOfOrderDelivery(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(0, 0))
 
 	// Both create shared project
-	projectUID := machineA.createProject("test", "Test Project")
-	machineB.createProject("test", "Test Project")
+	projectUID := machineA.createProject("test", "test-project")
+	machineB.createProject("test", "test-project")
 
 	// Machine A creates 3 tasks with status changes in order
 	machineA.clock.Set(time.Unix(100, 0))
@@ -500,8 +500,8 @@ func TestSimulation_ConcurrentTaskCreation(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(0, 0))
 
 	// Create shared project
-	projectUID := machineA.createProject("test", "Test Project")
-	machineB.createProject("test", "Test Project")
+	projectUID := machineA.createProject("test", "test-project")
+	machineB.createProject("test", "test-project")
 
 	// Both machines create a task "at the same time" (concurrent)
 	// Give them the same Lamport TS to simulate concurrent creation
@@ -538,8 +538,8 @@ func TestSimulation_ConcurrentTaskCreation(t *testing.T) {
 		Role:      "human",
 		Kind:      string(types.EventKindTaskNumberSet),
 		Payload: mustMarshal(types.TaskNumberSetPayload{
-			TaskUID:    taskA.String(),
-			ProjectUID: projectUID.String(),
+			TaskUID:    taskA,
+			ProjectUID: projectUID,
 			Number:     1,
 			Reason:     "initial",
 		}),
@@ -578,8 +578,8 @@ func TestSimulation_ConcurrentTaskCreation(t *testing.T) {
 		Role:      "human",
 		Kind:      string(types.EventKindTaskNumberSet),
 		Payload: mustMarshal(types.TaskNumberSetPayload{
-			TaskUID:    taskB.String(),
-			ProjectUID: projectUID.String(),
+			TaskUID:    taskB,
+			ProjectUID: projectUID,
 			Number:     1,
 			Reason:     "initial",
 		}),

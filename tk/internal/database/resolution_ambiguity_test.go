@@ -42,9 +42,9 @@ func TestResolveProjectRefNotFoundListsProjects(t *testing.T) {
 	db := openTempDB(t)
 
 	// Create a few projects
-	_ = seedProject(t, db, "project1")
-	_ = seedProject(t, db, "project2")
-	_ = seedProject(t, db, "project3")
+	_ = seedProject(t, db, "project-a")
+	_ = seedProject(t, db, "project-b")
+	_ = seedProject(t, db, "project-c")
 
 	// Try to resolve nonexistent project
 	_, err := ResolveProjectRef(db, types.NewProjectRef("nonexistent"))
@@ -54,7 +54,7 @@ func TestResolveProjectRefNotFoundListsProjects(t *testing.T) {
 
 	errMsg := err.Error()
 	// Error should suggest available projects
-	if !strings.Contains(errMsg, "project1") || !strings.Contains(errMsg, "project2") || !strings.Contains(errMsg, "project3") {
+	if !strings.Contains(errMsg, "project-a") || !strings.Contains(errMsg, "project-b") || !strings.Contains(errMsg, "project-c") {
 		t.Errorf("error should list available projects, got: %s", errMsg)
 	}
 }

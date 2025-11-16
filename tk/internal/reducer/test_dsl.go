@@ -44,7 +44,7 @@ func (rt *ReducerTest) DeleteProject(projectUID string) {
 	rt.ts++
 
 	payload := types.ProjectDeletePayload{
-		ProjectUID: projectUID,
+		ProjectUID: types.ProjectUID(projectUID),
 	}
 	payloadJSON, _ := json.Marshal(payload)
 
@@ -164,9 +164,9 @@ func (th *TaskHandle) Relocate(toProjectUID string) *TaskHandle {
 	th.test.ts++
 
 	payload := types.TaskRelocatePayload{
-		TaskUID:        th.UID,
-		FromProjectUID: th.ProjectUID,
-		ToProjectUID:   toProjectUID,
+		TaskUID:        types.TaskUID(th.UID),
+		FromProjectUID: types.ProjectUID(th.ProjectUID),
+		ToProjectUID:   types.ProjectUID(toProjectUID),
 		NumberPolicy: types.NumberPolicyPayload{
 			Mode: "keep",
 		},
@@ -233,7 +233,7 @@ func (th *TaskHandle) SetTitle(newTitle string) *TaskHandle {
 	th.test.ts++
 
 	payload := types.TaskTitleSetPayload{
-		TaskUID: th.UID,
+		TaskUID: types.TaskUID(th.UID),
 		Title:   newTitle,
 	}
 	payloadJSON, _ := json.Marshal(payload)

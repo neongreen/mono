@@ -29,8 +29,8 @@ func CreateProjectTool(db *database.DB) func(context.Context, *sdk.CallToolReque
 
 		// Create project.created event
 		payload := types.ProjectCreatedPayload{
-			ProjectUID:  string(projectUID),
-			Type:        "local",
+			ProjectUID:  projectUID,
+			Type:        types.ProjectTypeLocal,
 			Name:        args.Name,
 			Description: args.Description,
 			CreatedBy:   actor,

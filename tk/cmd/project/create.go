@@ -54,8 +54,8 @@ var CreateCmd = &cobra.Command{
 
 		// Create project.created event
 		payload := types.ProjectCreatedPayload{
-			ProjectUID:  string(projectUID),
-			Type:        "local",
+			ProjectUID:  projectUID,
+			Type:        types.ProjectTypeLocal,
 			Name:        name,
 			Description: description,
 			CreatedBy:   actor,

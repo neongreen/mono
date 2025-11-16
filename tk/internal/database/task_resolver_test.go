@@ -93,7 +93,7 @@ func TestRenderTaskDisplayIDWithoutAlias(t *testing.T) {
 	db := openTempDB(t)
 
 	// Create a project without an alias
-	projectUID := seedProjectWithoutAlias(t, db, "My Project")
+	projectUID := seedProjectWithoutAlias(t, db, "my-project")
 	taskUID := seedTask(t, db, projectUID, "task", 1)
 
 	displayID, err := RenderTaskDisplayID(db, taskUID)
@@ -102,7 +102,7 @@ func TestRenderTaskDisplayIDWithoutAlias(t *testing.T) {
 	}
 
 	// Should use project name, not projectUID
-	expected := "My Project-1"
+	expected := "my-project-1"
 	if displayID != expected {
 		t.Fatalf("expected %s, got %s", expected, displayID)
 	}

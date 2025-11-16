@@ -69,8 +69,8 @@ func TestProjectTaskNumberSetEvent(t *testing.T) {
 
 	// Update the number
 	payload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     42,
 		Reason:     "manual",
 	}
@@ -115,7 +115,7 @@ func TestProjectTaskTitleSetEvent(t *testing.T) {
 
 	// Update the title
 	payload := types.TaskTitleSetPayload{
-		TaskUID: taskUID,
+		TaskUID: types.TaskUID(taskUID),
 		Title:   "New title",
 	}
 

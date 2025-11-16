@@ -92,8 +92,8 @@ func Create(db *database.DB, params CreateParams, actor string, clk clock.Clock)
 	}
 
 	numberPayload := types.TaskNumberSetPayload{
-		TaskUID:    string(taskUID),
-		ProjectUID: params.ProjectUID.String(),
+		TaskUID:    taskUID,
+		ProjectUID: params.ProjectUID,
 		Number:     proposedNumber,
 		Reason:     "initial",
 	}

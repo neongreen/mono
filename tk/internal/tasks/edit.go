@@ -82,8 +82,8 @@ func EditNumber(db *database.DB, taskUID string, value string, actor string, clk
 	}
 
 	payload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     "edit",
 	}
@@ -127,7 +127,7 @@ func EditTitle(db *database.DB, taskUID string, value string, actor string, clk 
 	}
 
 	payload := types.TaskTitleSetPayload{
-		TaskUID: taskUID,
+		TaskUID: types.TaskUID(taskUID),
 		Title:   value,
 	}
 

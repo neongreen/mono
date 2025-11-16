@@ -1,9 +1,12 @@
 package migrate
 
 import (
+	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/neongreen/mono/tk/internal/testutil"
+	"github.com/neongreen/mono/tk/internal/types"
 )
 
 func TestRecreateProject(t *testing.T) {
@@ -19,7 +22,65 @@ func TestRecreateProject(t *testing.T) {
 	}
 
 	// Create a task in the synthetic project
-	taskUID := testutil.SeedTask(t, db, "abc", "test task", 5)
+	// Note: We bypass validation by inserting events and projections directly,
+	// because this tests legacy migration functionality with old-format UIDs
+	taskUID := string(types.NewTaskUID())
+	nodeID, err := db.GetOrCreateNodeID()
+	if err != nil {
+		t.Fatalf("failed to get node ID: %v", err)
+	}
+
+	// Insert task.created event directly (bypassing validation)
+	taskPayload := map[string]interface{}{
+		"task_uid":        taskUID,
+		"project_uid":     "abc",
+		"proposed_number": 5,
+		"created_node":    nodeID,
+		"title":           "test task",
+		"created_by":      "tester",
+	}
+	taskJSON, _ := json.Marshal(taskPayload)
+	_, err = db.Db.Exec(`
+		INSERT INTO events (id, ts, created_at, actor, role, kind, payload)
+		VALUES (?, 1, ?, 'tester', 'human', 'task.created', ?)
+	`, types.NewEventID().String(), time.Now().Unix(), taskJSON)
+	if err != nil {
+		t.Fatalf("failed to insert task.created event: %v", err)
+	}
+
+	// Insert task into tasks table directly
+	_, err = db.Db.Exec(`
+		INSERT INTO tasks (task_uid, project_uid, created_node, title, created_at, created_by)
+		VALUES (?, 'abc', ?, 'test task', unixepoch(), 'tester')
+	`, taskUID, nodeID)
+	if err != nil {
+		t.Fatalf("failed to insert task: %v", err)
+	}
+
+	// Insert task.number.set event directly (bypassing validation)
+	numberPayload := map[string]interface{}{
+		"task_uid":    taskUID,
+		"project_uid": "abc",
+		"number":      5,
+		"reason":      "seed",
+	}
+	numberJSON, _ := json.Marshal(numberPayload)
+	_, err = db.Db.Exec(`
+		INSERT INTO events (id, ts, created_at, actor, role, kind, payload)
+		VALUES (?, 2, ?, 'tester', 'human', 'task.number.set', ?)
+	`, types.NewEventID().String(), time.Now().Unix(), numberJSON)
+	if err != nil {
+		t.Fatalf("failed to insert task.number.set event: %v", err)
+	}
+
+	// Insert task number directly
+	_, err = db.Db.Exec(`
+		INSERT INTO task_numbers (task_uid, project_uid, number)
+		VALUES (?, 'abc', 5)
+	`, taskUID)
+	if err != nil {
+		t.Fatalf("failed to insert task number: %v", err)
+	}
 
 	// Verify synthetic project exists
 	var isSynthetic int
