@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neongreen/mono/tk/cmd/schema"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -284,7 +283,7 @@ func getGroupMembers(t *testing.T, db *database.DB, groupID string) []string {
 	return members
 }
 
-func exportSchema(t *testing.T, db *database.DB) schema.SchemaExport {
+func exportSchema(t *testing.T, db *database.DB) SchemaExport {
 	rows, err := db.Db.Query(`
 		SELECT name, primitive, description
 		FROM container_kinds
@@ -296,10 +295,10 @@ func exportSchema(t *testing.T, db *database.DB) schema.SchemaExport {
 	}
 	defer rows.Close()
 
-	export := schema.SchemaExport{
-		QueueKinds: []schema.ContainerKindExport{},
-		StackKinds: []schema.ContainerKindExport{},
-		GroupKinds: []schema.ContainerKindExport{},
+	export := SchemaExport{
+		QueueKinds: []ContainerKindExport{},
+		StackKinds: []ContainerKindExport{},
+		GroupKinds: []ContainerKindExport{},
 	}
 
 	for rows.Next() {
@@ -309,7 +308,7 @@ func exportSchema(t *testing.T, db *database.DB) schema.SchemaExport {
 
 		rows.Scan(&name, &primitive, &description)
 
-		kind := schema.ContainerKindExport{
+		kind := ContainerKindExport{
 			Name: name,
 		}
 		if description.Valid {

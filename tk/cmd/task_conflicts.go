@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	debug_pkg "github.com/neongreen/mono/tk/cmd/debug"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +30,7 @@ var taskConflictsCmd = &cobra.Command{
 			projectUID = resolved
 		}
 
-		collisions, err := debug_pkg.GetNumberCollisions(db, projectUID)
+		collisions, err := GetNumberCollisions(db, projectUID)
 		if err != nil {
 			return err
 		}

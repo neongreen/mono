@@ -123,20 +123,13 @@ func transformFile(t Transformation) error {
 	text = packageRe.ReplaceAllString(text, "package cmd")
 
 	// 2. Change command variable name
-	// Extract old command name from Use field or filename
-	cmdName := strings.TrimPrefix(t.NewCommand, strings.Split(t.NewCommand, "-")[0]+"-")
-	if cmdName == t.NewCommand {
-		cmdName = filepath.Base(t.SourcePath)
-		cmdName = strings.TrimSuffix(cmdName, ".go")
-	}
-
 	// Build new variable name (e.g., remote-add -> remoteAddCmd)
 	newVarName := toCamelCase(t.NewCommand) + "Cmd"
 
 	// Find and replace var declaration
-	varRe := regexp.MustCompile(`var\s+(\w+Cmd)\s*=`)
+	varRe := regexp.MustCompile(`(?m)^var\s+(\w+Cmd)\s*=\s*&cobra\.Command`)
 	text = varRe.ReplaceAllStringFunc(text, func(match string) string {
-		return "var " + newVarName + " ="
+		return "var " + newVarName + " = &cobra.Command"
 	})
 
 	// 3. Change Use field
@@ -157,7 +150,7 @@ func toCamelCase(s string) string {
 		if len(parts[i]) > 0 {
 			if i == 0 {
 				// Keep first part lowercase
-				parts[i] = parts[i]
+				parts[i] = strings.ToLower(parts[i])
 			} else {
 				// Capitalize subsequent parts
 				parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
