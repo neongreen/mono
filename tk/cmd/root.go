@@ -30,46 +30,15 @@ var RootCmd = &cobra.Command{
 func init() {
 	RootCmd.PersistentFlags().BoolVar(&debugFlag, "debug", false, "Enable debug logging")
 
+	//
+	// Core task management commands
+	//
 	RootCmd.AddCommand(initCmd)
-
-	dbCmd := &cobra.Command{
-		Use:   "db",
-		Short: "Database commands",
-		Long: `Database management commands.
-
-Default database location: ~/.tk/tk.db
-
-You can override the database location using the TK_DB_PATH environment variable:
-  export TK_DB_PATH=/custom/path/tk.db
-  tk ls  # Uses custom database
-
-This is useful for:
-- Testing with isolated databases
-- Running multiple tk instances
-- Custom database locations`,
-	}
-	dbPathCmd.Flags().Bool("json", false, "Output as JSON")
-	dbCmd.AddCommand(dbPathCmd)
-	RootCmd.AddCommand(dbCmd)
 
 	newCmd.Flags().StringP("project", "p", "me", "Project alias or UID to use")
 	newCmd.Flags().String("parent", "", "Parent task (creates a subtask relation)")
 	newCmd.Flags().String("kind", "task", "Item kind (task, decision, resource, etc.)")
 	RootCmd.AddCommand(newCmd)
-
-	RootCmd.AddCommand(markCmd)
-	RootCmd.AddCommand(statusCmd)
-
-	RootCmd.AddCommand(noteCmd)
-
-	attachCmd.Flags().Bool("list", false, "List attachments for a task")
-	attachCmd.Flags().String("get", "", "Get an attachment by ID")
-	attachCmd.Flags().String("open", "", "Open an attachment by ID")
-	attachCmd.Flags().StringP("description", "d", "", "Description for the attachment")
-	RootCmd.AddCommand(attachCmd)
-
-	showCmd.Flags().Bool("json", false, "Output as JSON")
-	RootCmd.AddCommand(showCmd)
 
 	lsCmd.Flags().String("status", "", "Filter by status. Supports multiple values with comma: --status wip,next (next, wip, done, closed)")
 	lsCmd.Flags().String("axis", "", "Filter by axis:state")
@@ -85,37 +54,144 @@ This is useful for:
 	lsCmd.Flags().String("grep", "", "Filter by regex pattern (RE2 syntax; searches title and notes)")
 	lsCmd.Flags().Int("limit", 0, "Limit number of tasks displayed (0 = no limit)")
 	lsCmd.Flags().String("in", "", "Filter by container (show only tasks in this container)")
-	// Hide --axis flag from help but keep it functional
-	lsCmd.Flags().MarkHidden("axis")
+	lsCmd.Flags().MarkHidden("axis") // Hide --axis flag from help but keep it functional
 	RootCmd.AddCommand(lsCmd)
 
+	showCmd.Flags().Bool("json", false, "Output as JSON")
+	RootCmd.AddCommand(showCmd)
+
+	RootCmd.AddCommand(markCmd)
 	RootCmd.AddCommand(editCmd)
 	RootCmd.AddCommand(describeCmd)
+	RootCmd.AddCommand(noteCmd)
+
+	attachCmd.Flags().Bool("list", false, "List attachments for a task")
+	attachCmd.Flags().String("get", "", "Get an attachment by ID")
+	attachCmd.Flags().String("open", "", "Open an attachment by ID")
+	attachCmd.Flags().StringP("description", "d", "", "Description for the attachment")
+	RootCmd.AddCommand(attachCmd)
+
 	RootCmd.AddCommand(rmCmd)
 	RootCmd.AddCommand(mvCmd)
-	RootCmd.AddCommand(relateCmd)
-	RootCmd.AddCommand(dupCmd)
-	RootCmd.AddCommand(blockersCmd)
-	RootCmd.AddCommand(blockedCmd)
-	RootCmd.AddCommand(graphCmd)
-	RootCmd.AddCommand(conflictsCmd)
-	RootCmd.AddCommand(remoteCmd)
-	RootCmd.AddCommand(ingestCmd)
-	RootCmd.AddCommand(importBeadsCmd)
+	RootCmd.AddCommand(historyCmd)
+
+	//
+	// Relations & dependencies
+	//
+	RootCmd.AddCommand(relateAddCmd)
+	RootCmd.AddCommand(relateLsCmd)
+	RootCmd.AddCommand(relateRmCmd)
+	RootCmd.AddCommand(relateDupCmd)
+	RootCmd.AddCommand(dupCmd) // Alias
+	RootCmd.AddCommand(relateBlockersCmd)
+	RootCmd.AddCommand(blockersCmd) // Alias
+	RootCmd.AddCommand(relateBlockedCmd)
+	RootCmd.AddCommand(blockedCmd) // Alias
+	RootCmd.AddCommand(relateGraphCmd)
+	RootCmd.AddCommand(graphCmd) // Alias
+	RootCmd.AddCommand(relateConflictsCmd)
+	RootCmd.AddCommand(conflictsCmd) // Alias
+	RootCmd.AddCommand(taskConflictsCmd)
+
+	//
+	// Projects
+	//
+	RootCmd.AddCommand(projectCreateCmd)
+	RootCmd.AddCommand(projectLsCmd)
+	RootCmd.AddCommand(projectRenameCmd)
+	RootCmd.AddCommand(projectRmCmd)
+
+	//
+	// Sync & remote
+	//
+	RootCmd.AddCommand(syncCmd)
 	RootCmd.AddCommand(pushCmd)
 	RootCmd.AddCommand(pullCmd)
-	RootCmd.AddCommand(syncCmd)
-	RootCmd.AddCommand(debugCmd)
-	RootCmd.AddCommand(projectCmd)
-	RootCmd.AddCommand(schemaCmd)
-	RootCmd.AddCommand(queueCmd)
-	RootCmd.AddCommand(stackCmd)
-	RootCmd.AddCommand(groupCmd)
-	RootCmd.AddCommand(metaCmd)
-	RootCmd.AddCommand(migrateCmd)
-	RootCmd.AddCommand(logCmd)
-	RootCmd.AddCommand(historyCmd)
+	RootCmd.AddCommand(ingestCmd)
+	RootCmd.AddCommand(importBeadsCmd)
+	RootCmd.AddCommand(syncStatusCmd)
+
+	RootCmd.AddCommand(remoteAddCmd)
+	RootCmd.AddCommand(remoteLsCmd)
+	RootCmd.AddCommand(remoteRmCmd)
+
+	//
+	// Containers - Queues
+	//
+	RootCmd.AddCommand(queueCreateCmd)
+	RootCmd.AddCommand(queuePushCmd)
+	RootCmd.AddCommand(queuePopCmd)
+	RootCmd.AddCommand(queueLsCmd)
+	RootCmd.AddCommand(queueShowCmd)
+	RootCmd.AddCommand(queueRenameCmd)
+	RootCmd.AddCommand(queueRmCmd)
+
+	//
+	// Containers - Stacks
+	//
+	RootCmd.AddCommand(stackCreateCmd)
+	RootCmd.AddCommand(stackPushCmd)
+	RootCmd.AddCommand(stackPopCmd)
+	RootCmd.AddCommand(stackLsCmd)
+	RootCmd.AddCommand(stackShowCmd)
+	RootCmd.AddCommand(stackRenameCmd)
+	RootCmd.AddCommand(stackRmCmd)
+
+	//
+	// Containers - Groups
+	//
+	RootCmd.AddCommand(groupCreateCmd)
+	RootCmd.AddCommand(groupAddtaskCmd)
+	RootCmd.AddCommand(groupRmtaskCmd)
+	RootCmd.AddCommand(groupLsCmd)
+	RootCmd.AddCommand(groupShowCmd)
+	RootCmd.AddCommand(groupRenameCmd)
+	RootCmd.AddCommand(groupDeleteCmd)
+
+	//
+	// Schema & metadata
+	//
+	RootCmd.AddCommand(schemaAddCmd)
+	RootCmd.AddCommand(schemaLsCmd)
+	RootCmd.AddCommand(schemaExportCmd)
+
+	RootCmd.AddCommand(metaSetCmd)
+	RootCmd.AddCommand(metaGetCmd)
+	RootCmd.AddCommand(metaLsCmd)
+	RootCmd.AddCommand(metaClaimsCmd)
+
+	//
+	// Debug
+	//
+	RootCmd.AddCommand(debugDoctorCmd)
+	RootCmd.AddCommand(debugRepairCmd)
+	RootCmd.AddCommand(debugRebuildCmd)
+	RootCmd.AddCommand(debugEventsLsCmd)
+	RootCmd.AddCommand(debugEventsShowCmd)
+	RootCmd.AddCommand(debugEventsStatsCmd)
+	RootCmd.AddCommand(debugNodeShowCmd)
+	RootCmd.AddCommand(debugNodeRegenCmd)
+	RootCmd.AddCommand(debugIdCmd)
+	RootCmd.AddCommand(idCmd) // Alias
+
+	//
+	// Migration & logs
+	//
+	RootCmd.AddCommand(migrateFixContainerItemIdsCmd)
+	RootCmd.AddCommand(migrateFixRelocateBugCmd)
+	RootCmd.AddCommand(migrateScanDeprecatedCmd)
+
+	RootCmd.AddCommand(logQueryCmd)
+	RootCmd.AddCommand(logSearchCmd)
+
+	//
+	// Database & system
+	//
+	dbPathCmd.Flags().Bool("json", false, "Output as JSON")
+	RootCmd.AddCommand(dbPathCmd)
+
 	RootCmd.AddCommand(statuslineCmd)
+	RootCmd.AddCommand(mcpCmd)
 
 	// Apply "See Also" sections to all commands
 	// This adds cross-references to help improve command discoverability
