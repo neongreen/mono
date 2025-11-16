@@ -12,7 +12,7 @@ type DissectProject struct {
 
 func (p *DissectProject) Build(ctx context.Context) (*dagger.File, error) {
 	src := getFilteredSource("dissect", dag.CurrentModule().Source().Directory(".."))
-	return buildProject(ctx, "dissect", "./cmd", src)
+	return buildProject(ctx, "dissect", ".", src)
 }
 
 func (p *DissectProject) Test(ctx context.Context,

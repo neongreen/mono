@@ -12,7 +12,7 @@ type JjRunProject struct {
 
 func (p *JjRunProject) Build(ctx context.Context) (*dagger.File, error) {
 	src := getFilteredSource("jj-run", dag.CurrentModule().Source().Directory(".."))
-	return buildProject(ctx, "jj-run", "./cmd", src)
+	return buildProject(ctx, "jj-run", ".", src)
 }
 
 // Test runs tests for jj-run with jujutsu installed.

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
+	"github.com/neongreen/mono/dissect/internal/testutils"
 )
 
 // TestMoveEdgeCases tests edge cases and potential issues with moving declarations
@@ -29,7 +29,7 @@ go 1.24
 
 	// Build the dissect binary
 	dissectBinary := filepath.Join(tmpDir, "dissect")
-	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect/cmd")
+	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect")
 	buildCmd.Dir = findRepoRoot(t)
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)

@@ -12,7 +12,7 @@ type IngestProject struct {
 
 func (p *IngestProject) Build(ctx context.Context) (*dagger.File, error) {
 	src := getFilteredSource("ingest", dag.CurrentModule().Source().Directory(".."))
-	return buildProject(ctx, "ingest", "./cmd", src)
+	return buildProject(ctx, "ingest", ".", src)
 }
 
 // Test runs tests for ingest including integration tests.

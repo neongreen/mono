@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neongreen/mono/dissect/cmd/internal/testutils"
+	"github.com/neongreen/mono/dissect/internal/testutils"
 )
 
 // TestMoveToFileWithExistingContent tests moving a function to a file that already has content.
@@ -70,7 +70,7 @@ func anotherFunc() {
 	}
 
 	dissectBinary := filepath.Join(tmpDir, "dissect")
-	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect/cmd")
+	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect")
 	buildCmd.Dir = findRepoRoot(t)
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)
@@ -192,7 +192,7 @@ func existingFunc() {
 	}
 
 	dissectBinary := filepath.Join(tmpDir, "dissect")
-	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect/cmd")
+	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect")
 	buildCmd.Dir = findRepoRoot(t)
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)
@@ -314,7 +314,7 @@ func processData() {
 	}
 
 	dissectBinary := filepath.Join(tmpDir, "dissect")
-	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect/cmd")
+	buildCmd := exec.Command("go", "build", "-o", dissectBinary, "./dissect")
 	buildCmd.Dir = findRepoRoot(t)
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("Failed to build dissect: %v\nOutput: %s", err, output)
