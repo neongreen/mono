@@ -166,7 +166,7 @@ func createTestEventSet() []types.Event {
 
 func createProjectEvent(ts int64, projectUID types.ProjectUID, name string) types.Event {
 	payload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID.String(),
+		ProjectUID:  projectUID,
 		Type:        "local",
 		Name:        name,
 		Description: "",
@@ -209,8 +209,8 @@ func createTaskEvent(ts int64, taskUID types.TaskUID, projectUID types.ProjectUI
 
 func setTaskNumberEvent(ts int64, taskUID types.TaskUID, projectUID types.ProjectUID, number int64) types.Event {
 	payload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID.String(),
-		ProjectUID: projectUID.String(),
+		TaskUID:    taskUID,
+		ProjectUID: projectUID,
 		Number:     number,
 		Reason:     "initial",
 	}
@@ -228,9 +228,9 @@ func setTaskNumberEvent(ts int64, taskUID types.TaskUID, projectUID types.Projec
 
 func createTaskRelocateEvent(ts int64, taskUID types.TaskUID, fromProjectUID, toProjectUID types.ProjectUID, mode string, number int64) types.Event {
 	payload := types.TaskRelocatePayload{
-		TaskUID:        taskUID.String(),
-		FromProjectUID: fromProjectUID.String(),
-		ToProjectUID:   toProjectUID.String(),
+		TaskUID:        taskUID,
+		FromProjectUID: fromProjectUID,
+		ToProjectUID:   toProjectUID,
 		NumberPolicy: types.NumberPolicyPayload{
 			Mode:   mode,
 			Number: number,

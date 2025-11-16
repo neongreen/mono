@@ -13,7 +13,7 @@ func TestProjectProjectCreatedEvent(t *testing.T) {
 
 	projectUID := string(types.NewProjectUID())
 	payload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
+		ProjectUID:  types.ProjectUID(projectUID),
 		Type:        "local",
 		Name:        "test-project",
 		Description: "Test description",

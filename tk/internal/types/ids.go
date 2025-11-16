@@ -15,11 +15,11 @@ import (
 // validatePrefixedULID validates a ULID with a specific prefix
 func validatePrefixedULID(s, prefix, typeName string) error {
 	if !strings.HasPrefix(s, prefix) {
-		return fmt.Errorf("invalid %s: must start with %s", typeName, prefix)
+		return fmt.Errorf("invalid %s: must start with %s, got %q", typeName, prefix, s)
 	}
 	ulidPart := strings.TrimPrefix(s, prefix)
 	if _, err := ulid.Parse(ulidPart); err != nil {
-		return fmt.Errorf("invalid %s ULID part: %w", typeName, err)
+		return fmt.Errorf("invalid %s ULID part in %q: %w", typeName, s, err)
 	}
 	return nil
 }

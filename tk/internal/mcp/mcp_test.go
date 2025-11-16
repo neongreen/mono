@@ -42,7 +42,8 @@ func setupTestDB(t *testing.T) (*database.DB, string, func()) {
 	}
 
 	projectPayload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID.String(),
+		ProjectUID:  projectUID,
+		Type:        types.ProjectTypeLocal,
 		Name:        "test",
 		Description: "Test project",
 		CreatedBy:   "test",
