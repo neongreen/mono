@@ -24,3 +24,6 @@ linters/uselesswrapper/uselesswrapper
 
 # Idk
 actionlint
+
+# Dagger CLI (downloaded by install script)
+bin/dagger
