@@ -240,3 +240,155 @@ When working on tk:
 ---
 
 *This document should be updated whenever CLI design patterns change.*
+
+---
+
+## Complete Command Reference
+
+After the refactoring, all tk commands use a flat, hyphenated structure. Here's the complete list:
+
+### Core Task Management
+```
+tk new              - Create a new task
+tk ls               - List tasks
+tk show             - Show task details
+tk mark             - Set task status
+tk edit             - Edit task fields (number, title, status)
+tk describe         - Change task title
+tk note             - Add a note to a task
+tk attach           - Attach a file to a task
+tk rm               - Delete a task
+tk mv               - Move a task to another project
+tk history          - Show recent task status changes
+```
+
+### Relations & Dependencies
+```
+# Full commands
+tk relate-add       - Add a relation between two tasks
+tk relate-ls        - List all relations for a task
+tk relate-rm        - Remove a relation between two tasks
+tk relate-dup       - Mark two tasks as duplicates
+tk relate-blockers  - List blockers for a task
+tk relate-blocked   - List all blocked tasks
+tk relate-graph     - Show a graph of task relations
+tk relate-conflicts - Show relation conflicts for a task
+tk task-conflicts   - List task number collisions
+
+# Short aliases (same implementation)
+tk dup              - Alias for relate-dup
+tk blockers         - Alias for relate-blockers
+tk blocked          - Alias for relate-blocked
+tk graph            - Alias for relate-graph
+tk conflicts        - Alias for relate-conflicts
+```
+
+### Projects
+```
+tk project-create   - Create a new project
+tk project-ls       - List all projects
+tk project-rename   - Rename a project
+tk project-rm       - Delete a project
+```
+
+### Sync & Remote
+```
+tk sync             - Sync with remote (pull → ingest → export → push)
+tk push             - Push local segments to remote
+tk pull             - Pull segments from remote
+tk ingest           - Ingest events from segment files
+tk import-beads     - Import issues from beads JSONL format
+tk sync-status      - Show sync status for all remotes
+
+tk remote-add       - Add a new remote
+tk remote-ls        - List configured remotes
+tk remote-rm        - Remove a remote
+```
+
+### Containers - Queues (FIFO)
+```
+tk queue-create     - Create a new queue
+tk queue-push       - Push an item onto a queue
+tk queue-pop        - Pop an item from a queue
+tk queue-ls         - List queues or queue members
+tk queue-show       - Show queue details
+tk queue-rename     - Rename a queue
+tk queue-rm         - Remove a queue (soft delete)
+```
+
+### Containers - Stacks (LIFO)
+```
+tk stack-create     - Create a new stack
+tk stack-push       - Push an item onto a stack
+tk stack-pop        - Pop an item from a stack
+tk stack-ls         - List stacks or stack members
+tk stack-show       - Show stack details
+tk stack-rename     - Rename a stack
+tk stack-rm         - Remove a stack (soft delete)
+```
+
+### Containers - Groups (Unordered Sets)
+```
+tk group-create     - Create a new group
+tk group-addtask    - Add an item to a group
+tk group-rmtask     - Remove an item from a group
+tk group-ls         - List groups or group members
+tk group-show       - Show group details
+tk group-rename     - Rename a group
+tk group-delete     - Remove a group (soft delete)
+```
+
+### Schema & Metadata
+```
+tk schema-add       - Define a new schema kind
+tk schema-ls        - List defined schema kinds
+tk schema-export    - Export schema definition
+
+tk meta-set         - Set metadata value (creates claim)
+tk meta-get         - Get effective metadata value
+tk meta-ls          - List all metadata for a task
+tk meta-claims      - Show all competing claims for a metadata key
+```
+
+### Debug
+```
+tk debug-doctor     - Verify database health and report issues
+tk debug-repair     - UNSAFE: Repair Lamport timestamp corruption
+tk debug-rebuild    - Rebuild all projection tables from events
+tk debug-rebuild-from-remote  - Rebuild local database from remote segments
+tk debug-fix-timestamps       - Reassign Lamport timestamps to events
+
+tk debug-events-ls    - List all events in the database
+tk debug-events-show  - Show detailed information about a specific event
+tk debug-events-stats - Show statistics about events in the database
+
+tk debug-node-show  - Show the current node ID
+tk debug-node-regen - Regenerate the node ID (use with caution)
+
+tk debug-id         - Show canonical identifiers for a task
+tk id               - Alias for debug-id
+```
+
+### Migration & Logs
+```
+tk migrate-fix-container-item-ids  - Fix display IDs in container_members
+tk migrate-fix-relocate-bug        - Fix orphaned tasks from corrupt events
+tk migrate-scan-deprecated         - Scan event log for deprecated field usage
+
+tk log-query        - Query invocation logs with SQL
+tk log-search       - Search invocation logs for a pattern
+```
+
+### Database & System
+```
+tk init             - Create a new tk database
+tk db-path          - Print the current database path
+tk statusline       - Display recently updated tasks
+tk mcp              - Run tk as an MCP server
+```
+
+### Total Command Count
+- **100+ commands** in a completely flat namespace
+- **6 commands with aliases** for frequent operations
+- **No nested subcommands** - every command is a leaf node
+- **Consistent naming** - all related commands share prefixes
