@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/neongreen/mono/lib/pathlang"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
@@ -36,14 +37,20 @@ Path syntax:
   /task/blockers           # Blocking tasks
   /task/notes              # Task notes
   /resource/json           # JSON representation`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		pathStr := args[0]
+		// Join all args to handle action syntax like: tk /foo-13/notes @add hello world
+		pathStr := strings.Join(args, " ")
 
 		// Parse the path
 		path, err := pathlang.Parse(pathStr)
 		if err != nil {
 			return fmt.Errorf("failed to parse path %q: %w", pathStr, err)
+		}
+
+		// Check if this is an action invocation
+		if path.Action != "" {
+			return handleAction(cmd, path)
 		}
 
 		// Open database
@@ -424,4 +431,55 @@ func displayRoot(db *database.DB, reducer *reducer.Reducer) error {
 	fmt.Println("  /*/json                 - JSON representation of any resource")
 
 	return nil
+}
+
+// handleAction processes an action invocation on a resource
+func handleAction(cmd *cobra.Command, path *pathlang.Path) error {
+	// Open database
+	db, err := database.OpenExistingDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Load config
+	config, err := config_pkg.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Get reducer
+	reducer, err := db.GetCachedReducerWithConfig(config)
+	if err != nil {
+		return err
+	}
+
+	// Create resolver
+	resolver := pathlang_resolver.NewTkResolver(db, reducer)
+
+	// Evaluate path to get the resource
+	ctx := context.Background()
+	nodes, err := pathlang.Eval(ctx, resolver, path)
+	if err != nil {
+		return fmt.Errorf("failed to evaluate path: %w", err)
+	}
+
+	if len(nodes) == 0 {
+		return fmt.Errorf("resource not found")
+	}
+
+	// Get the first node (actions operate on single resources)
+	node := nodes[0].(*pathlang_resolver.Node)
+
+	// Dispatch to appropriate action handler based on resource type
+	switch node.Type {
+	case pathlang_resolver.NodeTypeTask:
+		return handleTaskAction(db, reducer, node, path.Action, path.ActionArgs)
+	case pathlang_resolver.NodeTypeProject:
+		return handleProjectAction(db, reducer, node, path.Action, path.ActionArgs)
+	case pathlang_resolver.NodeTypeNotes:
+		return handleNotesAction(db, reducer, node, path.Action, path.ActionArgs)
+	default:
+		return fmt.Errorf("actions not supported for resource type %s", node.Type)
+	}
 }
