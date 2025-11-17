@@ -54,6 +54,7 @@ func (p *PrintpdfProject) Test(ctx context.Context,
 		Stdout(ctx)
 }
 
+//nolint:unparam // ctx kept for Dagger interface consistency
 func (p *PrintpdfProject) Coverage(ctx context.Context,
 	// +optional
 	// +default="testname"

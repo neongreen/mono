@@ -5,7 +5,3 @@ import (
 )
 
 type Config = config_pkg.Config
-
-func LoadConfig() (*Config, error) {
-	return config_pkg.LoadConfig()
-}

@@ -29,10 +29,8 @@ func handleTaskAction(db *database.DB, reducer *reducer.Reducer, node *pathlang_
 // handleProjectAction handles actions on project resources
 func handleProjectAction(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, action string, args []string) error {
 	switch action {
-	case "status":
+	case "status", "info":
 		return projectActionStatus(db, reducer, node, args)
-	case "info":
-		return projectActionInfo(db, reducer, node, args)
 	default:
 		return fmt.Errorf("unknown project action: %s", action)
 	}
@@ -134,11 +132,6 @@ func projectActionStatus(db *database.DB, reducer *reducer.Reducer, node *pathla
 	}
 
 	return nil
-}
-
-// projectActionInfo displays detailed information about a project
-func projectActionInfo(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, args []string) error {
-	return projectActionStatus(db, reducer, node, args)
 }
 
 // notesActionAdd adds a note to a task

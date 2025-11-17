@@ -11,6 +11,8 @@ import (
 // projectName: the project directory (e.g., "tk", "want")
 // buildTarget: the build target ("." or "./cmd")
 // source: filtered source directory (use getFilteredSource helper)
+//
+//nolint:unparam // ctx kept for consistency with other helper functions
 func buildProject(ctx context.Context, projectName string, buildTarget string, source *dagger.Directory) (*dagger.File, error) {
 	return dag.Container().
 		From("golang:1.24.7").
@@ -77,6 +79,8 @@ func getFilteredSource(
 // projectName: the project directory (e.g., "tk", "want")
 // format: gotestsum format
 // source: filtered source directory (use getFilteredSource helper)
+//
+//nolint:unparam // ctx kept for consistency with other helper functions
 func coverageFile(ctx context.Context, projectName string, format string, source *dagger.Directory) (*dagger.File, error) {
 	ctr := testContainer(projectName, format, source)
 	return ctr.File("coverage.out"), nil
@@ -132,6 +136,8 @@ func testProjectWithSetup(ctx context.Context, projectName string, format string
 // format: gotestsum format
 // source: source directory (typically full repo for projects needing custom tools)
 // setupFn: optional function to add setup steps (tool installation, etc.) to the container
+//
+//nolint:unparam // ctx kept for consistency with other helper functions
 func coverageFileWithSetup(ctx context.Context, projectName string, format string, source *dagger.Directory, setupFn func(*dagger.Container) *dagger.Container) (*dagger.File, error) {
 	ctr := testContainerWithSetup(projectName, format, source, setupFn)
 	return ctr.File("coverage.out"), nil

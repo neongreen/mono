@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -15,7 +16,7 @@ func TaskResource(db *database.DB) func(context.Context, *sdk.ReadResourceReques
 		// Extract task ID from URI (task://{id})
 		taskID := req.Params.URI[7:] // Remove "task://"
 
-		cfg, err := LoadConfig()
+		cfg, err := config_pkg.LoadConfig()
 		if err != nil {
 			return nil, fmt.Errorf("failed to load config: %w", err)
 		}

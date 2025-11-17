@@ -48,6 +48,7 @@ func (p *JjRunProject) Test(ctx context.Context,
 		Stdout(ctx)
 }
 
+//nolint:unparam // ctx kept for Dagger interface consistency
 func (p *JjRunProject) Coverage(ctx context.Context,
 	// +optional
 	// +default="testname"

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	sdk "github.com/modelcontextprotocol/go-sdk/mcp"
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/query"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -13,7 +14,7 @@ import (
 
 func ListTasksTool(db *database.DB) func(context.Context, *sdk.CallToolRequest, ListTasksArgs) (*sdk.CallToolResult, any, error) {
 	return func(ctx context.Context, req *sdk.CallToolRequest, args ListTasksArgs) (*sdk.CallToolResult, any, error) {
-		cfg, err := LoadConfig()
+		cfg, err := config_pkg.LoadConfig()
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to load config: %w", err)
 		}

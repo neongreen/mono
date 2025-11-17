@@ -46,6 +46,7 @@ func (p *IngestProject) Test(ctx context.Context,
 		Stdout(ctx)
 }
 
+//nolint:unparam // ctx kept for Dagger interface consistency
 func (p *IngestProject) Coverage(ctx context.Context,
 	// +optional
 	// +default="testname"

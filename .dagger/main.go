@@ -24,6 +24,8 @@ type Platform struct {
 // project: the project directory to build (e.g., "tk", "ingest")
 // version: the version string (currently unused, kept for API compatibility)
 // gitCommit: the git commit hash (currently unused, kept for API compatibility)
+//
+//nolint:unparam // version and gitCommit kept for API compatibility
 func (m *Dagger) BuildRelease(ctx context.Context, project string, version string, gitCommit string) (*dagger.Directory, error) {
 	repo := dag.CurrentModule().Source().Directory("..")
 

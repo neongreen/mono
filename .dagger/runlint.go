@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"slices"
+
 	"dagger/internal/dagger"
 	"dagger/internal/parallel"
 )
@@ -73,15 +75,7 @@ func (m *Dagger) Lint(ctx context.Context,
 	})
 
 	// Lint tk project with cobralint (only if linting all projects or tk specifically)
-	shouldLintTk := len(projects) == 0
-	if !shouldLintTk {
-		for _, p := range projects {
-			if p == "tk" {
-				shouldLintTk = true
-				break
-			}
-		}
-	}
+	shouldLintTk := len(projects) == 0 || slices.Contains(projects, "tk")
 	if shouldLintTk {
 		jobs = jobs.WithJob("lint tk (cobralint)", func(ctx context.Context) error {
 			_, err := goContainer.
@@ -94,15 +88,7 @@ func (m *Dagger) Lint(ctx context.Context,
 	}
 
 	// Lint .dagger module (only if linting all projects or dagger specifically)
-	shouldLintDagger := len(projects) == 0
-	if !shouldLintDagger {
-		for _, p := range projects {
-			if p == "dagger" || p == ".dagger" {
-				shouldLintDagger = true
-				break
-			}
-		}
-	}
+	shouldLintDagger := len(projects) == 0 || slices.Contains(projects, "dagger") || slices.Contains(projects, ".dagger")
 	if shouldLintDagger {
 		jobs = jobs.WithJob("lint .dagger", func(ctx context.Context) error {
 			_, err := baseContainer.
@@ -119,6 +105,8 @@ func (m *Dagger) Lint(ctx context.Context,
 
 // ModernizeFix runs golangci-lint with --fix to automatically fix modernize issues
 // Returns a Changeset showing what was fixed
+//
+//nolint:unparam // ctx kept for Dagger interface consistency
 func (m *Dagger) ModernizeFix(ctx context.Context) (*dagger.Changeset, error) {
 	repo := dag.CurrentModule().Source().Directory("..")
 
@@ -145,6 +133,8 @@ func (m *Dagger) ModernizeFix(ctx context.Context) (*dagger.Changeset, error) {
 
 // AutoFix applies all automatic code fixes: modernize, staticcheck, goimports, cargo fmt, and go mod tidy
 // Returns a Changeset showing all fixes applied
+//
+//nolint:unparam // ctx kept for Dagger interface consistency
 func (m *Dagger) AutoFix(ctx context.Context) (*dagger.Changeset, error) {
 	repo := dag.CurrentModule().Source().Directory("..")
 

@@ -164,7 +164,7 @@ func TestSetTaskMetadata(t *testing.T) {
 	}
 
 	// Verify metadata was set
-	cfg, err := LoadConfig()
+	cfg, err := config_pkg.LoadConfig()
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
