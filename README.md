@@ -14,13 +14,6 @@ This repository contains multiple independent projects.
 | [ingest](ingest/) | pre-alpha | Data ingestion orchestrator; schema and connectors change frequently. |
 | [diagram-dsl](diagram-dsl/) | pre-alpha | TypeScript DSL for diagrams; layout system under active refactor. |
 | [mdbook-comments](mdbook-comments/) | alpha | mdbook preprocessor for paragraph-level commenting with Supabase backend. |
-| [want](want/) | pre-alpha | Planning/fulfilment assistant; core design still in flux. |
-| [claude-trace](claude-trace/) | alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
-| [conf](conf/) | pre-alpha | Smart configuration manager; command coverage incomplete. |
-| [tk](tk/) | pre-alpha | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
-| [jj-run](jj-run/) | alpha | Script to execute shell commands across multiple repository changes in isolated workspaces using jj. |
-| [ghrelease](lib/ghrelease/) | internal library | Shared helper for fetching release assets; API may change without notice. |
-| [svghatch](lib/svghatch/) | internal library | Replaces solid colors in SVG files with line patterns for black and white printing. |
 | [want](want/) | alpha | Planning/fulfilment assistant; core design still in flux. |
 | [claude-trace](claude-trace/) | pre-alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
 | [conf](conf/) | alpha | Smart configuration manager; command coverage incomplete. |
@@ -36,6 +29,7 @@ This repository contains multiple independent projects.
 | [configschema](lib/configschema/) | alpha | Centralized schema registry for configuration tools (jj, mise, starship, claude); schemas updated via mise task. |
 | [ghclient](lib/ghclient/) | alpha | GitHub API client helper; used by ghrelease and other tools. |
 | [ghrelease](lib/ghrelease/) | beta | Helper for fetching GitHub release assets; API may change without notice. |
+| [svghatch](lib/svghatch/) | alpha | Replaces solid colors in SVG files with line patterns for black and white printing. |
 | [toml](lib/toml/) | beta | Surgical TOML editor with comment preservation; used by conf. |
 | [version](lib/version/) | stable | Shared version command implementation for CLI tools. |
 | [cli](lib/cli/) | stable | Unified CLI color/styling utilities for all tools. |
