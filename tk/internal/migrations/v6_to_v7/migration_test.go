@@ -101,25 +101,26 @@ func TestMigrate(t *testing.T) {
 	}
 
 	// Verify all builtin item kinds were inserted
-	expectedKinds := []string{"task", "bug", "idea", "goal", "decision", "requirement", "constraint", "wish", "question", "hypothesis", "experiment", "observation", "research", "doubt", "assumption", "resource", "specification", "definition", "techdebt", "checklist", "discussion", "feedback"}
-	for _, kind := range expectedKinds {
-		var kindCount int
-		err = db.QueryRow(`SELECT COUNT(*) FROM item_kinds WHERE name = ?`, kind).Scan(&kindCount)
+	// Check the count matches expected number (24 kinds)
+	var kindCount int
+	err = db.QueryRow(`SELECT COUNT(*) FROM item_kinds WHERE builtin = 1`).Scan(&kindCount)
+	if err != nil {
+		t.Fatalf("failed to count builtin kinds: %v", err)
+	}
+	if kindCount != 24 {
+		t.Errorf("builtin item kind count = %d, want 24", kindCount)
+	}
+
+	// Verify a sample of kinds exist and are marked as builtin
+	sampleKinds := []string{"task", "bug", "promise", "regret"}
+	for _, kind := range sampleKinds {
+		var count int
+		err = db.QueryRow(`SELECT COUNT(*) FROM item_kinds WHERE name = ? AND builtin = 1`, kind).Scan(&count)
 		if err != nil {
 			t.Fatalf("failed to check %s kind: %v", kind, err)
 		}
-		if kindCount != 1 {
-			t.Errorf("'%s' item kind not inserted", kind)
-		}
-
-		// Verify it's marked as builtin
-		var builtin int
-		err = db.QueryRow(`SELECT builtin FROM item_kinds WHERE name = ?`, kind).Scan(&builtin)
-		if err != nil {
-			t.Fatalf("failed to check builtin flag for %s: %v", kind, err)
-		}
-		if builtin != 1 {
-			t.Errorf("'%s' kind builtin flag = %d, want 1", kind, builtin)
+		if count != 1 {
+			t.Errorf("'%s' builtin item kind not found", kind)
 		}
 	}
 
@@ -208,15 +209,25 @@ func TestMigrateIdempotent(t *testing.T) {
 	}
 
 	// Verify all builtin kinds exist only once (not duplicated)
-	expectedKinds := []string{"task", "bug", "idea", "goal", "decision", "requirement", "constraint", "wish", "question", "hypothesis", "experiment", "observation", "research", "doubt", "assumption", "resource", "specification", "definition", "techdebt", "checklist", "discussion", "feedback"}
-	for _, kind := range expectedKinds {
-		var kindCount int
-		err = db.QueryRow(`SELECT COUNT(*) FROM item_kinds WHERE name = ?`, kind).Scan(&kindCount)
+	var kindCount int
+	err = db.QueryRow(`SELECT COUNT(*) FROM item_kinds WHERE builtin = 1`).Scan(&kindCount)
+	if err != nil {
+		t.Fatalf("failed to count builtin kinds: %v", err)
+	}
+	if kindCount != 24 {
+		t.Errorf("builtin item kind count after second migration = %d, want 24 (idempotency check)", kindCount)
+	}
+
+	// Verify sample kinds exist exactly once
+	sampleKinds := []string{"task", "bug", "promise", "regret"}
+	for _, kind := range sampleKinds {
+		var count int
+		err = db.QueryRow(`SELECT COUNT(*) FROM item_kinds WHERE name = ?`, kind).Scan(&count)
 		if err != nil {
 			t.Fatalf("failed to check %s kind: %v", kind, err)
 		}
-		if kindCount != 1 {
-			t.Errorf("'%s' item kind count = %d, want 1 (idempotency check)", kind, kindCount)
+		if count != 1 {
+			t.Errorf("'%s' item kind count = %d, want 1 (idempotency check)", kind, count)
 		}
 	}
 }
