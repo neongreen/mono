@@ -29,6 +29,13 @@ Examples:
   tk query /foo-13/notes       # Show notes for 'foo-13'
   tk query /foo-13/json        # Show task as JSON
 
+Action examples:
+  tk /foo-13 @status           # Show task status
+  tk /foo-13 @note "Add note"  # Add note to task
+  tk /foo-13/notes @add text   # Add note via notes resource
+  tk /foo-13/notes @list       # List all notes
+  tk /foo @status              # Show project status
+
 Path syntax:
   /project-alias           # Project by alias
   /project-alias-number    # Task by display ID
@@ -36,7 +43,11 @@ Path syntax:
   /task/subtasks           # Child tasks
   /task/blockers           # Blocking tasks
   /task/notes              # Task notes
-  /resource/json           # JSON representation`,
+  /resource/json           # JSON representation
+
+Action syntax:
+  /resource @action [args...]  # Invoke action on resource
+                               # Arguments can be quoted for multi-word text`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Join all args to handle action syntax like: tk /foo-13/notes @add hello world
