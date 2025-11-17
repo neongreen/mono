@@ -81,6 +81,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	type cellData struct {
 		displayID string
 		aliases   string
+		kind      string
 		status    string
 		priority  string
 		labels    string
@@ -95,6 +96,13 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 			displayID = task.TaskDisplayID
 		}
 		cellValues[i].displayID = displayID
+
+		// Extract kind (default to "task" if empty)
+		kind := task.ItemKind
+		if kind == "" {
+			kind = "task"
+		}
+		cellValues[i].kind = kind
 
 		status := ""
 		if axis, ok := task.Axes["generic"]; ok {
@@ -170,6 +178,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 			row = []string{
 				padRight(cell.displayID, widths.ID),
 				padRight(cell.aliases, widths.Aliases),
+				padRight(cell.kind, widths.Kind),
 				padRight(cell.status, widths.Status),
 				padRight(cell.priority, widths.Priority),
 				padRight(cell.labels, widths.Labels),
@@ -178,6 +187,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 		} else {
 			row = []string{
 				padRight(cell.displayID, widths.ID),
+				padRight(cell.kind, widths.Kind),
 				padRight(cell.status, widths.Status),
 				padRight(cell.priority, widths.Priority),
 				padRight(cell.labels, widths.Labels),
@@ -193,6 +203,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 		headers = []string{
 			padRight("ID", widths.ID),
 			padRight("ALIASES", widths.Aliases),
+			padRight("KIND", widths.Kind),
 			padRight("STATUS", widths.Status),
 			padRight("P", widths.Priority),
 			padRight("LABELS", widths.Labels),
@@ -201,6 +212,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 	} else {
 		headers = []string{
 			padRight("ID", widths.ID),
+			padRight("KIND", widths.Kind),
 			padRight("STATUS", widths.Status),
 			padRight("P", widths.Priority),
 			padRight("LABELS", widths.Labels),

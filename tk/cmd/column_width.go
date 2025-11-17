@@ -8,6 +8,7 @@ import (
 type ColumnWidths struct {
 	ID         int
 	Aliases    int
+	Kind       int
 	Status     int
 	Priority   int
 	Labels     int
@@ -54,6 +55,15 @@ func CalculateColumnWidths(tasks []*types.Task, displayIDs map[string]string, co
 			widths.ID = len(displayID)
 		}
 
+		// Kind width
+		itemKind := task.ItemKind
+		if itemKind == "" {
+			itemKind = "task"
+		}
+		if len(itemKind) > widths.Kind {
+			widths.Kind = len(itemKind)
+		}
+
 		// Status width
 		if axis, ok := task.Axes["generic"]; ok {
 			statusLen := len(axis.Effective)
@@ -96,6 +106,9 @@ func CalculateColumnWidths(tasks []*types.Task, displayIDs map[string]string, co
 	if widths.ID < 2 {
 		widths.ID = 2 // "ID"
 	}
+	if widths.Kind < 4 {
+		widths.Kind = 4 // "KIND"
+	}
 	if widths.Status < 6 {
 		widths.Status = 6 // "STATUS"
 	}
@@ -110,13 +123,13 @@ func CalculateColumnWidths(tasks []*types.Task, displayIDs map[string]string, co
 	widths.Labels = constraints.LabelsMaxWidth
 
 	// Calculate space used by fixed columns
-	numColumns := 5 // ID, Status, P, Labels, Title
+	numColumns := 6 // ID, Kind, Status, P, Labels, Title
 	if constraints.ShowAliases {
-		numColumns = 6
+		numColumns = 7
 	}
 	numSeparators := numColumns - 1
 
-	usedSpace := widths.ID + widths.Status + widths.Priority + widths.Labels
+	usedSpace := widths.ID + widths.Kind + widths.Status + widths.Priority + widths.Labels
 	if constraints.ShowAliases {
 		usedSpace += widths.Aliases
 	}
