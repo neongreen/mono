@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -24,6 +25,7 @@ Examples:
   tk history --limit 50`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		limit, _ := cmd.Flags().GetInt("limit")
+		jsonOutput, _ := cmd.Flags().GetBool("json")
 
 		db, err := database.OpenExistingDB()
 		if err != nil {
@@ -51,9 +53,11 @@ Examples:
 		defer rows.Close()
 
 		type StatusChange struct {
-			TaskUUID  string
-			State     string
-			Timestamp time.Time
+			TaskUUID  string    `json:"task_uuid"`
+			DisplayID string    `json:"display_id"`
+			State     string    `json:"state"`
+			Title     string    `json:"title"`
+			Timestamp time.Time `json:"timestamp"`
 		}
 
 		var changes []StatusChange
@@ -70,52 +74,53 @@ Examples:
 		}
 
 		if len(changes) == 0 {
-			fmt.Println("No status changes found")
+			if jsonOutput {
+				fmt.Println("[]")
+			} else {
+				fmt.Println("No status changes found")
+			}
 			return nil
 		}
 
 		// Get display IDs and titles for all tasks
-		taskInfo := make(map[string]struct {
-			DisplayID string
-			Title     string
-		})
-
-		for _, change := range changes {
-			if _, exists := taskInfo[change.TaskUUID]; !exists {
-				displayID, err := database.RenderTaskDisplayID(db, change.TaskUUID)
-				if err != nil {
-					displayID = change.TaskUUID[:8]
-				}
-
-				var title string
-				err = db.QueryRow(`
-					SELECT title FROM tasks WHERE task_uid = ?
-				`, change.TaskUUID).Scan(&title)
-				if err != nil {
-					title = ""
-				}
-
-				taskInfo[change.TaskUUID] = struct {
-					DisplayID string
-					Title     string
-				}{displayID, title}
+		for i := range changes {
+			displayID, err := database.RenderTaskDisplayID(db, changes[i].TaskUUID)
+			if err != nil {
+				displayID = changes[i].TaskUUID[:8]
 			}
+			changes[i].DisplayID = displayID
+
+			var title string
+			err = db.QueryRow(`
+				SELECT title FROM tasks WHERE task_uid = ?
+			`, changes[i].TaskUUID).Scan(&title)
+			if err != nil {
+				title = ""
+			}
+			changes[i].Title = title
 		}
 
-		// Print timeline
-		for _, change := range changes {
-			info := taskInfo[change.TaskUUID]
-			timestamp := change.Timestamp.Format("15:04:05")
+		if jsonOutput {
+			output, err := json.MarshalIndent(changes, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal JSON: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			// Print timeline
+			for _, change := range changes {
+				timestamp := change.Timestamp.Format("15:04:05")
 
-			// Colorize status
-			stateStr := colorizeStatus(change.State)
+				// Colorize status
+				stateStr := colorizeStatus(change.State)
 
-			fmt.Printf("%s  %-12s → %-8s  %s\n",
-				color.New(color.Faint).Sprint(timestamp),
-				info.DisplayID,
-				stateStr,
-				truncate(info.Title, 60),
-			)
+				fmt.Printf("%s  %-12s → %-8s  %s\n",
+					color.New(color.Faint).Sprint(timestamp),
+					change.DisplayID,
+					stateStr,
+					truncate(change.Title, 60),
+				)
+			}
 		}
 
 		return nil
