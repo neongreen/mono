@@ -520,3 +520,7 @@ func handleAction(cmd *cobra.Command, path *pathlang.Path) error {
 		return fmt.Errorf("actions not supported for resource type %s", node.Type)
 	}
 }
+
+func init() {
+	queryCmd.Flags().Bool("json", false, "Output as JSON")
+}

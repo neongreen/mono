@@ -128,3 +128,7 @@ Examples:
 		return nil
 	},
 }
+
+func init() {
+	relateLsCmd.Flags().Bool("json", false, "Output as JSON")
+}

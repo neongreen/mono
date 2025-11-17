@@ -79,6 +79,10 @@ Examples:
 	},
 }
 
+func init() {
+	stackLsCmd.Flags().Bool("json", false, "Output as JSON")
+}
+
 func listStackMembers(db *database.DB, stackID string) error {
 	// Verify stack exists
 	var primitive string

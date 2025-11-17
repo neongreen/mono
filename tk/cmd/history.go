@@ -124,6 +124,7 @@ Examples:
 
 func init() {
 	historyCmd.Flags().Int("limit", 20, "Number of recent changes to show")
+	historyCmd.Flags().Bool("json", false, "Output as JSON")
 }
 
 // truncate truncates a string to maxLen, adding "..." if needed

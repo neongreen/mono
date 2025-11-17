@@ -141,4 +141,5 @@ var schemaLsCmd = &cobra.Command{
 
 func init() {
 	schemaLsCmd.Flags().BoolVar(&listAll, "all", false, "Show deprecated kinds")
+	schemaLsCmd.Flags().Bool("json", false, "Output as JSON")
 }

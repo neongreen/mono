@@ -79,6 +79,10 @@ Examples:
 	},
 }
 
+func init() {
+	groupLsCmd.Flags().Bool("json", false, "Output as JSON")
+}
+
 func listGroupMembers(db *database.DB, groupID string) error {
 	// Verify group exists
 	var primitive string

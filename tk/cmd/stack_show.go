@@ -83,3 +83,7 @@ Example:
 		return nil
 	},
 }
+
+func init() {
+	stackShowCmd.Flags().Bool("json", false, "Output as JSON")
+}

@@ -79,3 +79,7 @@ var metaClaimsCmd = &cobra.Command{
 		return nil
 	},
 }
+
+func init() {
+	metaClaimsCmd.Flags().Bool("json", false, "Output as JSON")
+}
