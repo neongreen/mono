@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/neongreen/mono/lib/pathlang"
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
@@ -28,6 +29,13 @@ Examples:
   tk query /foo-13/notes       # Show notes for 'foo-13'
   tk query /foo-13/json        # Show task as JSON
 
+Action examples:
+  tk /foo-13 @status           # Show task status
+  tk /foo-13 @note "Add note"  # Add note to task
+  tk /foo-13/notes @add text   # Add note via notes resource
+  tk /foo-13/notes @list       # List all notes
+  tk /foo @status              # Show project status
+
 Path syntax:
   /project-alias           # Project by alias
   /project-alias-number    # Task by display ID
@@ -35,15 +43,46 @@ Path syntax:
   /task/subtasks           # Child tasks
   /task/blockers           # Blocking tasks
   /task/notes              # Task notes
-  /resource/json           # JSON representation`,
-	Args: cobra.ExactArgs(1),
+  /resource/json           # JSON representation
+
+Action syntax:
+  /resource @action [args...]  # Invoke action on resource
+                               # Arguments can be quoted for multi-word text`,
+	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		pathStr := args[0]
+		// Reconstruct path string, preserving argument boundaries
+		// Cobra strips shell quoting, so we need to re-quote args containing spaces
+		var pathBuilder strings.Builder
+		for i, arg := range args {
+			if i > 0 {
+				pathBuilder.WriteString(" ")
+			}
+			// Re-quote arguments containing spaces to preserve boundaries
+			if strings.ContainsAny(arg, " \t\n") {
+				pathBuilder.WriteString(`"`)
+				// Escape any existing quotes and backslashes
+				for _, r := range arg {
+					if r == '"' || r == '\\' {
+						pathBuilder.WriteRune('\\')
+					}
+					pathBuilder.WriteRune(r)
+				}
+				pathBuilder.WriteString(`"`)
+			} else {
+				pathBuilder.WriteString(arg)
+			}
+		}
+		pathStr := pathBuilder.String()
 
 		// Parse the path
 		path, err := pathlang.Parse(pathStr)
 		if err != nil {
 			return fmt.Errorf("failed to parse path %q: %w", pathStr, err)
+		}
+
+		// Check if this is an action invocation
+		if path.Action != "" {
+			return handleAction(cmd, path)
 		}
 
 		// Open database
@@ -424,4 +463,60 @@ func displayRoot(db *database.DB, reducer *reducer.Reducer) error {
 	fmt.Println("  /*/json                 - JSON representation of any resource")
 
 	return nil
+}
+
+// handleAction processes an action invocation on a resource
+func handleAction(cmd *cobra.Command, path *pathlang.Path) error {
+	// Open database
+	db, err := database.OpenExistingDB()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	// Load config
+	config, err := config_pkg.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Get reducer
+	reducer, err := db.GetCachedReducerWithConfig(config)
+	if err != nil {
+		return err
+	}
+
+	// Create resolver
+	resolver := pathlang_resolver.NewTkResolver(db, reducer)
+
+	// Evaluate path to get the resource
+	ctx := context.Background()
+	nodes, err := pathlang.Eval(ctx, resolver, path)
+	if err != nil {
+		return fmt.Errorf("failed to evaluate path: %w", err)
+	}
+
+	if len(nodes) == 0 {
+		return fmt.Errorf("resource not found")
+	}
+
+	// Actions must operate on exactly one resource
+	if len(nodes) > 1 {
+		return fmt.Errorf("action cannot be applied to multiple resources (matched %d resources); please refine your path to select a single resource", len(nodes))
+	}
+
+	// Get the single node
+	node := nodes[0].(*pathlang_resolver.Node)
+
+	// Dispatch to appropriate action handler based on resource type
+	switch node.Type {
+	case pathlang_resolver.NodeTypeTask:
+		return handleTaskAction(db, reducer, node, path.Action, path.ActionArgs)
+	case pathlang_resolver.NodeTypeProject:
+		return handleProjectAction(db, reducer, node, path.Action, path.ActionArgs)
+	case pathlang_resolver.NodeTypeNotes:
+		return handleNotesAction(db, reducer, node, path.Action, path.ActionArgs)
+	default:
+		return fmt.Errorf("actions not supported for resource type %s", node.Type)
+	}
 }

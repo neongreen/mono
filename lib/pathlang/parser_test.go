@@ -295,6 +295,64 @@ func TestParse(t *testing.T) {
 			input:   "/foo:bar",
 			wantErr: true,
 		},
+		// Action tests
+		{
+			name:  "simple action without args",
+			input: "/foo-13/notes @add",
+			want: &Path{
+				Segments: []Segment{
+					{Name: "foo-13"},
+					{Name: "notes"},
+				},
+				Action: "add",
+			},
+		},
+		{
+			name:  "action with single arg",
+			input: "/foo-13/notes @add hello",
+			want: &Path{
+				Segments: []Segment{
+					{Name: "foo-13"},
+					{Name: "notes"},
+				},
+				Action:     "add",
+				ActionArgs: []string{"hello"},
+			},
+		},
+		{
+			name:  "action with multiple args",
+			input: "/foo-13/notes @add hello world",
+			want: &Path{
+				Segments: []Segment{
+					{Name: "foo-13"},
+					{Name: "notes"},
+				},
+				Action:     "add",
+				ActionArgs: []string{"hello", "world"},
+			},
+		},
+		{
+			name:  "action with quoted arg",
+			input: `/foo-13/notes @add "hello world"`,
+			want: &Path{
+				Segments: []Segment{
+					{Name: "foo-13"},
+					{Name: "notes"},
+				},
+				Action:     "add",
+				ActionArgs: []string{"hello world"},
+			},
+		},
+		{
+			name:  "project action",
+			input: "/myproject @status",
+			want: &Path{
+				Segments: []Segment{
+					{Name: "myproject"},
+				},
+				Action: "status",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -391,6 +449,12 @@ func TestRoundTrip(t *testing.T) {
 		"/tasks[url=foo.bar]",
 		"/tasks[url=foo:bar]",
 		`/tasks[path=with\backslash]`,
+		// Action tests
+		"/foo-13/notes @add",
+		"/foo-13/notes @add hello",
+		"/foo-13/notes @add hello world",
+		`/foo-13/notes @add "hello world"`,
+		"/myproject @status",
 	}
 
 	for _, input := range tests {
@@ -426,6 +490,17 @@ func pathEqual(a, b *Path) bool {
 	}
 	for i := range a.Segments {
 		if !segmentEqual(a.Segments[i], b.Segments[i]) {
+			return false
+		}
+	}
+	if a.Action != b.Action {
+		return false
+	}
+	if len(a.ActionArgs) != len(b.ActionArgs) {
+		return false
+	}
+	for i := range a.ActionArgs {
+		if a.ActionArgs[i] != b.ActionArgs[i] {
 			return false
 		}
 	}

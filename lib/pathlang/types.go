@@ -80,17 +80,32 @@ type Path struct {
 	// Segments are the path components.
 	// Empty for root path (/).
 	Segments []Segment
+	// Action is the optional action name (e.g., "add" from "@add").
+	// Empty string means no action specified.
+	Action string
+	// ActionArgs are the arguments for the action.
+	// Empty when no action or no arguments provided.
+	ActionArgs []string
 }
 
 // String returns the canonical string representation of a path.
 func (p *Path) String() string {
-	if len(p.Segments) == 0 {
-		return "/"
-	}
 	var sb strings.Builder
-	for _, seg := range p.Segments {
+	if len(p.Segments) == 0 {
 		sb.WriteString("/")
-		sb.WriteString(seg.String())
+	} else {
+		for _, seg := range p.Segments {
+			sb.WriteString("/")
+			sb.WriteString(seg.String())
+		}
+	}
+	if p.Action != "" {
+		sb.WriteString(" @")
+		sb.WriteString(p.Action)
+		for _, arg := range p.ActionArgs {
+			sb.WriteString(" ")
+			sb.WriteString(quoteValue(arg))
+		}
 	}
 	return sb.String()
 }
