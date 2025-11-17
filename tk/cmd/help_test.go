@@ -105,8 +105,8 @@ func TestSeeAlsoWithDescriptions(t *testing.T) {
 		},
 		{
 			name:     "subcommand",
-			commands: []string{"relate add"},
-			contains: []string{"tk relate add", "Add a relation between two tasks"},
+			commands: []string{"relate-add"},
+			contains: []string{"tk relate-add", "Add a relation between two tasks"},
 		},
 	}
 
