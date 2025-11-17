@@ -68,18 +68,138 @@ func NewParser() (*Parser, error) {
 	return &Parser{parser: parser}, nil
 }
 
+// splitPathAndAction splits the input into path and action parts.
+// Returns: pathStr, actionName, actionArgs
+func splitPathAndAction(input string) (string, string, []string) {
+	// Find @ that's not inside quotes
+	inQuote := false
+	escapeNext := false
+	atPos := -1
+
+	for i, ch := range input {
+		if escapeNext {
+			escapeNext = false
+			continue
+		}
+		if ch == '\\' {
+			escapeNext = true
+			continue
+		}
+		if ch == '"' {
+			inQuote = !inQuote
+			continue
+		}
+		if ch == '@' && !inQuote {
+			atPos = i
+			break
+		}
+	}
+
+	// No action found
+	if atPos == -1 {
+		return input, "", nil
+	}
+
+	pathStr := strings.TrimSpace(input[:atPos])
+	actionStr := strings.TrimSpace(input[atPos+1:])
+
+	if actionStr == "" {
+		return pathStr, "", nil
+	}
+
+	// Parse action and arguments
+	// We need to handle quoted arguments properly
+	parts := parseActionParts(actionStr)
+	if len(parts) == 0 {
+		return pathStr, "", nil
+	}
+
+	return pathStr, parts[0], parts[1:]
+}
+
+// parseActionParts parses action string into action name and arguments
+// handling quoted strings properly.
+func parseActionParts(s string) []string {
+	var parts []string
+	var current strings.Builder
+	inQuote := false
+	escapeNext := false
+
+	for i := 0; i < len(s); i++ {
+		ch := rune(s[i])
+
+		if escapeNext {
+			// Handle escape sequences
+			switch ch {
+			case '\\':
+				current.WriteRune('\\')
+			case '"':
+				current.WriteRune('"')
+			case 'n':
+				current.WriteRune('\n')
+			case 't':
+				current.WriteRune('\t')
+			default:
+				// Unknown escape, keep as-is
+				current.WriteRune('\\')
+				current.WriteRune(ch)
+			}
+			escapeNext = false
+			continue
+		}
+
+		if ch == '\\' {
+			escapeNext = true
+			continue
+		}
+
+		if ch == '"' {
+			inQuote = !inQuote
+			continue
+		}
+
+		if ch == ' ' && !inQuote {
+			if current.Len() > 0 {
+				parts = append(parts, current.String())
+				current.Reset()
+			}
+			continue
+		}
+
+		current.WriteRune(ch)
+	}
+
+	if current.Len() > 0 {
+		parts = append(parts, current.String())
+	}
+
+	return parts
+}
+
 // Parse parses an input string into a Path.
 func (p *Parser) Parse(input string) (*Path, error) {
 	if input == "" {
 		return nil, fmt.Errorf("empty path")
 	}
 
-	ast, err := p.parser.ParseString("", input)
+	// Split on @ to separate path from action
+	// We need to be careful not to split on @ inside quoted strings
+	pathStr, action, actionArgs := splitPathAndAction(input)
+
+	ast, err := p.parser.ParseString("", pathStr)
 	if err != nil {
 		return nil, fmt.Errorf("parse error: %w", err)
 	}
 
-	return astToPath(ast)
+	path, err := astToPath(ast)
+	if err != nil {
+		return nil, err
+	}
+
+	path.Action = action
+	path.ActionArgs = actionArgs
+
+	return path, nil
 }
 
 // MustParse parses an input string and panics on error.
