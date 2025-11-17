@@ -29,6 +29,7 @@ This repository contains multiple independent projects.
 | [configschema](lib/configschema/) | alpha | Centralized schema registry for configuration tools (jj, mise, starship, claude); schemas updated via mise task. |
 | [ghclient](lib/ghclient/) | alpha | GitHub API client helper; used by ghrelease and other tools. |
 | [ghrelease](lib/ghrelease/) | beta | Helper for fetching GitHub release assets; API may change without notice. |
+| [svghatch](lib/svghatch/) | alpha | Replaces solid colors in SVG files with line patterns for black and white printing. |
 | [toml](lib/toml/) | beta | Surgical TOML editor with comment preservation; used by conf. |
 | [version](lib/version/) | stable | Shared version command implementation for CLI tools. |
 | [cli](lib/cli/) | stable | Unified CLI color/styling utilities for all tools. |
