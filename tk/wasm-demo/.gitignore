@@ -1,0 +1,14 @@
+# Build artifacts
+tk.wasm
+wasm_exec.js
+
+# Editor files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Test database
+*.db
+*.db-wal
+*.db-shm

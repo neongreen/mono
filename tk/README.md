@@ -41,6 +41,10 @@ tk mark work-1 in_progress
 tk ls
 ```
 
+## WebAssembly Demo
+
+Try tk directly in your browser! See [wasm-demo/](wasm-demo/) for a WebAssembly version that runs entirely client-side.
+
 ## Documentation
 
 - **[Usage Guide](docs/usage.md)** - How to use tk (projects, tasks, relations, sync)
