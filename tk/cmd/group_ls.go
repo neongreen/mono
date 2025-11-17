@@ -167,7 +167,7 @@ func listGroupMembers(cmd *cobra.Command, db *database.DB, groupID string) error
 	}
 
 	if jsonOutput {
-		result := map[string]interface{}{
+		result := map[string]any{
 			"group_id":   groupID,
 			"group_name": groupName,
 			"members":    members,
