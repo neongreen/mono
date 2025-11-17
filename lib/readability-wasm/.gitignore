@@ -1,0 +1,6 @@
+# Node modules and build artifacts
+js/node_modules/
+js/dist/
+
+# Note: parser.wasm is checked in for convenience
+# Rebuild it with 'make build-wasm' after changing JavaScript code

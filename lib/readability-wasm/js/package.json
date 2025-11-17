@@ -1,0 +1,16 @@
+{
+  "name": "postlight-parser-wasm",
+  "version": "1.0.0",
+  "description": "Postlight Parser compiled to WASM",
+  "main": "index.js",
+  "scripts": {
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "@postlight/parser": "^2.2.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
+  }
+}
