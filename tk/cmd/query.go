@@ -50,8 +50,29 @@ Action syntax:
                                # Arguments can be quoted for multi-word text`,
 	Args: cobra.MinimumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Join all args to handle action syntax like: tk /foo-13/notes @add hello world
-		pathStr := strings.Join(args, " ")
+		// Reconstruct path string, preserving argument boundaries
+		// Cobra strips shell quoting, so we need to re-quote args containing spaces
+		var pathBuilder strings.Builder
+		for i, arg := range args {
+			if i > 0 {
+				pathBuilder.WriteString(" ")
+			}
+			// Re-quote arguments containing spaces to preserve boundaries
+			if strings.ContainsAny(arg, " \t\n") {
+				pathBuilder.WriteString(`"`)
+				// Escape any existing quotes and backslashes
+				for _, r := range arg {
+					if r == '"' || r == '\\' {
+						pathBuilder.WriteRune('\\')
+					}
+					pathBuilder.WriteRune(r)
+				}
+				pathBuilder.WriteString(`"`)
+			} else {
+				pathBuilder.WriteString(arg)
+			}
+		}
+		pathStr := pathBuilder.String()
 
 		// Parse the path
 		path, err := pathlang.Parse(pathStr)
@@ -479,7 +500,12 @@ func handleAction(cmd *cobra.Command, path *pathlang.Path) error {
 		return fmt.Errorf("resource not found")
 	}
 
-	// Get the first node (actions operate on single resources)
+	// Actions must operate on exactly one resource
+	if len(nodes) > 1 {
+		return fmt.Errorf("action cannot be applied to multiple resources (matched %d resources); please refine your path to select a single resource", len(nodes))
+	}
+
+	// Get the single node
 	node := nodes[0].(*pathlang_resolver.Node)
 
 	// Dispatch to appropriate action handler based on resource type
