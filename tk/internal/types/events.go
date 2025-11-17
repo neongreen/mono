@@ -48,11 +48,11 @@ func ValidateProjectName(name string) error {
 
 // ProjectCreatedPayload is the payload for project.created events
 type ProjectCreatedPayload struct {
-	ProjectUID  ProjectUID  `json:"project_uid"`  // Must be valid ProjectUID (prj_<ulid>)
-	Type        ProjectType `json:"type"`         // Project type (local, github, linear, jira)
-	Name        string      `json:"name"`         // Project name (lowercase, dashes, validated)
-	Description string      `json:"description"`  // Text description (any string)
-	CreatedBy   string      `json:"created_by"`   // Actor who created it (any string)
+	ProjectUID  ProjectUID  `json:"project_uid"` // Must be valid ProjectUID (prj_<ulid>)
+	Type        ProjectType `json:"type"`        // Project type (local, github, linear, jira)
+	Name        string      `json:"name"`        // Project name (lowercase, dashes, validated)
+	Description string      `json:"description"` // Text description (any string)
+	CreatedBy   string      `json:"created_by"`  // Actor who created it (any string)
 }
 
 // Validate checks if the ProjectCreatedPayload is valid
@@ -175,9 +175,9 @@ type TaskCreatedPayload struct {
 
 // TaskNumberSetPayload is the payload for task.number.set events
 type TaskNumberSetPayload struct {
-	TaskUID    TaskUID    `json:"task_uid"`     // Must be valid TaskUID (tsk_<ulid>)
-	ProjectUID ProjectUID `json:"project_uid"`  // Must be valid ProjectUID (prj_<ulid>)
-	Number     int64      `json:"number"`       // Task number (must be positive)
+	TaskUID    TaskUID    `json:"task_uid"`         // Must be valid TaskUID (tsk_<ulid>)
+	ProjectUID ProjectUID `json:"project_uid"`      // Must be valid ProjectUID (prj_<ulid>)
+	Number     int64      `json:"number"`           // Task number (must be positive)
 	Reason     string     `json:"reason,omitempty"` // e.g., "collision resolved", "manual renumber"
 }
 

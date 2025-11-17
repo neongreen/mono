@@ -79,6 +79,7 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
+	github.com/neongreen/mono/lib/pathlang v0.0.0 // indirect
 	github.com/pjbgf/sha1cd v0.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
@@ -104,5 +105,7 @@ require (
 )
 
 replace github.com/neongreen/mono/lib/setlang => ./lib/setlang
+
+replace github.com/neongreen/mono/lib/pathlang => ./lib/pathlang
 
 replace gopkg.in/yaml.v3 => github.com/go-yaml/yaml/v3 v3.0.1
