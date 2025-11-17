@@ -79,6 +79,10 @@ Examples:
 	},
 }
 
+func init() {
+	queueLsCmd.Flags().Bool("json", false, "Output as JSON")
+}
+
 func listQueueMembers(db *database.DB, queueID string) error {
 	// Verify queue exists
 	var primitive string

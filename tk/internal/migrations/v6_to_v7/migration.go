@@ -88,10 +88,9 @@ func Migrate(db DB) error {
 	_, err = db.Exec(`
 		ALTER TABLE tasks ADD COLUMN item_kind TEXT NOT NULL DEFAULT 'task'
 	`)
-	if err != nil {
-		// SQLite returns error if column already exists - this is OK for idempotent migration
-		// We just continue - the important thing is the column exists after this runs
-	}
+	// SQLite returns error if column already exists - this is OK for idempotent migration
+	// We just continue - the important thing is the column exists after this runs
+	_ = err
 
 	// Create index on item_kind for performance
 	_, err = db.Exec(`

@@ -169,7 +169,7 @@ func displayResults(db *database.DB, reducer *reducer.Reducer, nodes []pathlang.
 
 // displayAsJSON outputs a resource as JSON
 func displayAsJSON(db *database.DB, node *pathlang_resolver.Node) error {
-	var data interface{}
+	var data any
 
 	switch node.Type {
 	case pathlang_resolver.NodeTypeJSON:
@@ -186,7 +186,7 @@ func displayAsJSON(db *database.DB, node *pathlang_resolver.Node) error {
 			if err != nil {
 				return fmt.Errorf("failed to query project: %w", err)
 			}
-			data = map[string]interface{}{
+			data = map[string]any{
 				"project_uid": node.ProjectUID,
 				"name":        name,
 				"type":        projType,
@@ -519,4 +519,8 @@ func handleAction(cmd *cobra.Command, path *pathlang.Path) error {
 	default:
 		return fmt.Errorf("actions not supported for resource type %s", node.Type)
 	}
+}
+
+func init() {
+	queryCmd.Flags().Bool("json", false, "Output as JSON")
 }

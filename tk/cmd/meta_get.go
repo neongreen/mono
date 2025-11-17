@@ -62,3 +62,7 @@ var metaGetCmd = &cobra.Command{
 		return nil
 	},
 }
+
+func init() {
+	metaGetCmd.Flags().Bool("json", false, "Output as JSON")
+}

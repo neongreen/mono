@@ -31,7 +31,7 @@ func TestRecreateProject(t *testing.T) {
 	}
 
 	// Insert task.created event directly (bypassing validation)
-	taskPayload := map[string]interface{}{
+	taskPayload := map[string]any{
 		"task_uid":        taskUID,
 		"project_uid":     "abc",
 		"proposed_number": 5,
@@ -58,7 +58,7 @@ func TestRecreateProject(t *testing.T) {
 	}
 
 	// Insert task.number.set event directly (bypassing validation)
-	numberPayload := map[string]interface{}{
+	numberPayload := map[string]any{
 		"task_uid":    taskUID,
 		"project_uid": "abc",
 		"number":      5,

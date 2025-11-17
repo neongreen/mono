@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/neongreen/mono/tk/internal/database"
@@ -19,6 +20,8 @@ Examples:
   tk group list g-1   # List members of group g-1`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+
 		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
@@ -36,7 +39,7 @@ Examples:
 
 		// If group ID provided, list members
 		if len(args) == 1 {
-			return listGroupMembers(db, args[0])
+			return listGroupMembers(cmd, db, args[0])
 		}
 
 		// Otherwise list all groups
@@ -51,11 +54,14 @@ Examples:
 		}
 		defer rows.Close()
 
-		// Print header
-		fmt.Printf("%-8s %-12s %-30s\n", "ID", "KIND", "NAME")
-		fmt.Println("────────────────────────────────────────────────────────────────")
+		type Group struct {
+			ID       string `json:"id"`
+			Kind     string `json:"kind"`
+			Name     string `json:"name"`
+			Metadata string `json:"metadata,omitempty"`
+		}
 
-		count := 0
+		var groups []Group
 		for rows.Next() {
 			var id string
 			var kind string
@@ -66,20 +72,49 @@ Examples:
 				return fmt.Errorf("failed to scan row: %w", err)
 			}
 
-			fmt.Printf("%-8s %-12s %-30s\n", id, kind, name)
-			count++
+			g := Group{
+				ID:   id,
+				Kind: kind,
+				Name: name,
+			}
+			if metadata.Valid {
+				g.Metadata = metadata.String
+			}
+			groups = append(groups, g)
 		}
 
-		if count == 0 {
-			fmt.Println("No groups found.")
-			fmt.Println("\nCreate one with: tk group create <kind> <name>")
+		if jsonOutput {
+			output, err := json.MarshalIndent(groups, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal JSON: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			// Print header
+			fmt.Printf("%-8s %-12s %-30s\n", "ID", "KIND", "NAME")
+			fmt.Println("────────────────────────────────────────────────────────────────")
+
+			for _, g := range groups {
+				fmt.Printf("%-8s %-12s %-30s\n", g.ID, g.Kind, g.Name)
+			}
+
+			if len(groups) == 0 {
+				fmt.Println("No groups found.")
+				fmt.Println("\nCreate one with: tk group-create <kind> <name>")
+			}
 		}
 
 		return nil
 	},
 }
 
-func listGroupMembers(db *database.DB, groupID string) error {
+func init() {
+	groupLsCmd.Flags().Bool("json", false, "Output as JSON")
+}
+
+func listGroupMembers(cmd *cobra.Command, db *database.DB, groupID string) error {
+	jsonOutput, _ := cmd.Flags().GetBool("json")
+
 	// Verify group exists
 	var primitive string
 	var groupName string
@@ -113,13 +148,7 @@ func listGroupMembers(db *database.DB, groupID string) error {
 	}
 	defer rows.Close()
 
-	// Print header
-	fmt.Printf("Group %s: %s\n", groupID, groupName)
-	fmt.Println()
-	fmt.Println("ITEM")
-	fmt.Println("─────────────────")
-
-	count := 0
+	var members []string
 	for rows.Next() {
 		var itemID string
 
@@ -134,14 +163,36 @@ func listGroupMembers(db *database.DB, groupID string) error {
 			displayID = itemID
 		}
 
-		fmt.Println(displayID)
-		count++
+		members = append(members, displayID)
 	}
 
-	if count == 0 {
-		fmt.Println("(empty)")
+	if jsonOutput {
+		result := map[string]interface{}{
+			"group_id":   groupID,
+			"group_name": groupName,
+			"members":    members,
+		}
+		output, err := json.MarshalIndent(result, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal JSON: %w", err)
+		}
+		fmt.Println(string(output))
 	} else {
-		fmt.Printf("\n%d items in group\n", count)
+		// Print header
+		fmt.Printf("Group %s: %s\n", groupID, groupName)
+		fmt.Println()
+		fmt.Println("ITEM")
+		fmt.Println("─────────────────")
+
+		for _, displayID := range members {
+			fmt.Println(displayID)
+		}
+
+		if len(members) == 0 {
+			fmt.Println("(empty)")
+		} else {
+			fmt.Printf("\n%d items in group\n", len(members))
+		}
 	}
 
 	return nil

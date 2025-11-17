@@ -95,23 +95,6 @@ func TestContainerRebuildFromEvents(t *testing.T) {
 		}
 	}
 
-	// Take snapshot of state
-	var activeMembers []string
-	rows, err := db.Db.Query(`
-		SELECT item_id FROM container_members
-		WHERE container_id = 'q-1' AND removed = 0
-		ORDER BY position
-	`)
-	if err != nil {
-		t.Fatalf("failed to query members: %v", err)
-	}
-	for rows.Next() {
-		var itemID string
-		rows.Scan(&itemID)
-		activeMembers = append(activeMembers, itemID)
-	}
-	rows.Close()
-
 	// Drop tables and rebuild
 	db.Db.Exec(`DROP TABLE container_kinds`)
 	db.Db.Exec(`DROP TABLE containers`)
@@ -131,7 +114,7 @@ func TestContainerRebuildFromEvents(t *testing.T) {
 
 	// Verify state matches
 	var rebuiltMembers []string
-	rows, err = db.Db.Query(`
+	rows, err := db.Db.Query(`
 		SELECT item_id FROM container_members
 		WHERE container_id = 'q-1' AND removed = 0
 		ORDER BY position
@@ -141,7 +124,9 @@ func TestContainerRebuildFromEvents(t *testing.T) {
 	}
 	for rows.Next() {
 		var itemID string
-		rows.Scan(&itemID)
+		if err := rows.Scan(&itemID); err != nil {
+			t.Fatalf("failed to scan row: %v", err)
+		}
 		rebuiltMembers = append(rebuiltMembers, itemID)
 	}
 	rows.Close()

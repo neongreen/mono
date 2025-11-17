@@ -26,7 +26,7 @@ type DB struct {
 func OpenDB(path string) (*DB, error) {
 	// Check if this is an in-memory database
 	isInMemory := path == ":memory:" || strings.HasPrefix(path, "file:") && strings.Contains(path, "mode=memory")
-	
+
 	// Ensure the directory exists (skip for in-memory databases)
 	if !isInMemory {
 		dir := filepath.Dir(path)

@@ -88,10 +88,7 @@ func SeeAlsoWithDescriptions(root *cobra.Command, commands ...string) string {
 //	SeeAlsoWithDescriptions(cmd.Root(), related...)
 func ApplySeeAlso(cmd *cobra.Command) {
 	// Get the command path without the root "tk" prefix
-	cmdPath := cmd.CommandPath()
-	if strings.HasPrefix(cmdPath, "tk ") {
-		cmdPath = cmdPath[3:] // Remove "tk " prefix
-	}
+	cmdPath := strings.TrimPrefix(cmd.CommandPath(), "tk ")
 
 	// Apply "See Also" if this command is in the registry
 	if related, ok := seeAlsoRegistry[cmdPath]; ok {

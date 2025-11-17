@@ -207,11 +207,11 @@ func recreateProject(db *database.DB, syntheticUID, name string) error {
 
 		// Note: Use map instead of typed payload to bypass validation
 		// This is a migration dealing with legacy project UIDs that don't match current format
-		relocatePayload := map[string]interface{}{
+		relocatePayload := map[string]any{
 			"task_uid":         taskUID,
 			"from_project_uid": syntheticUID,
 			"to_project_uid":   newProjectUID.String(),
-			"number_policy": map[string]interface{}{
+			"number_policy": map[string]any{
 				"mode":   "force",
 				"number": oldNumber,
 			},

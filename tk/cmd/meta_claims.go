@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/neongreen/mono/tk/internal/database"
@@ -17,6 +18,7 @@ var metaClaimsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
 		key := args[1]
+		jsonOutput, _ := cmd.Flags().GetBool("json")
 
 		db, err := database.OpenExistingDB()
 		if err != nil {
@@ -57,25 +59,37 @@ var metaClaimsCmd = &cobra.Command{
 			return fmt.Errorf("metadata key %q not found for task %s", key, taskRef)
 		}
 
-		// Print effective value
-		fmt.Printf("Effective: %s\n\n", string(metaStatus.Effective))
+		if jsonOutput {
+			output, err := json.MarshalIndent(metaStatus, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal JSON: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			// Print effective value
+			fmt.Printf("Effective: %s\n\n", string(metaStatus.Effective))
 
-		// Print all claims
-		if len(metaStatus.Claims) > 1 {
-			fmt.Println("Claims:")
-			for _, claim := range metaStatus.Claims {
-				tentativeStr := ""
-				if claim.Tentative {
-					tentativeStr = " (tentative)"
+			// Print all claims
+			if len(metaStatus.Claims) > 1 {
+				fmt.Println("Claims:")
+				for _, claim := range metaStatus.Claims {
+					tentativeStr := ""
+					if claim.Tentative {
+						tentativeStr = " (tentative)"
+					}
+					fmt.Printf("  %s by %s (ts: %d)%s\n",
+						string(claim.Value),
+						claim.Role,
+						claim.TS,
+						tentativeStr)
 				}
-				fmt.Printf("  %s by %s (ts: %d)%s\n",
-					string(claim.Value),
-					claim.Role,
-					claim.TS,
-					tentativeStr)
 			}
 		}
 
 		return nil
 	},
+}
+
+func init() {
+	metaClaimsCmd.Flags().Bool("json", false, "Output as JSON")
 }

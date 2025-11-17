@@ -53,6 +53,8 @@ func (p *TkProject) Coverage(ctx context.Context,
 }
 
 // WasmBuild builds the tk WASM binary and returns a directory with the compiled assets
+//
+//nolint:unparam // ctx kept for Dagger interface consistency
 func (p *TkProject) WasmBuild(ctx context.Context) (*dagger.Directory, error) {
 	repo := dag.CurrentModule().Source().Directory("..")
 

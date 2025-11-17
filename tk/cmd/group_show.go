@@ -19,6 +19,8 @@ Example:
   tk group show q-1`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		jsonOutput, _ := cmd.Flags().GetBool("json")
+
 		db, err := database.OpenExistingDB()
 		if err != nil {
 			return err
@@ -57,29 +59,67 @@ Example:
 			return fmt.Errorf("failed to count members: %w", err)
 		}
 
-		// Display
-		fmt.Printf("Group: %s\n", groupID)
-		fmt.Printf("Name: %s\n", name)
-		fmt.Printf("Kind: %s\n", kind)
-		fmt.Printf("Members: %d\n", memberCount)
+		if jsonOutput {
+			type GroupInfo struct {
+				ID          string         `json:"id"`
+				Name        string         `json:"name"`
+				Kind        string         `json:"kind"`
+				Primitive   string         `json:"primitive"`
+				MemberCount int            `json:"member_count"`
+				Removed     bool           `json:"removed"`
+				Metadata    map[string]any `json:"metadata,omitempty"`
+			}
 
-		if removed == 1 {
-			fmt.Println("Status: REMOVED")
-		}
+			info := GroupInfo{
+				ID:          groupID,
+				Name:        name,
+				Kind:        kind,
+				Primitive:   primitive,
+				MemberCount: memberCount,
+				Removed:     removed == 1,
+			}
 
-		if metadata.Valid && metadata.String != "" && metadata.String != "null" {
-			fmt.Println("\nMetadata:")
-			// Pretty-print JSON metadata
-			var metaMap map[string]any
-			if err := json.Unmarshal([]byte(metadata.String), &metaMap); err == nil {
-				for k, v := range metaMap {
-					fmt.Printf("  %s: %v\n", k, v)
+			if metadata.Valid && metadata.String != "" && metadata.String != "null" {
+				var metaMap map[string]any
+				if err := json.Unmarshal([]byte(metadata.String), &metaMap); err == nil {
+					info.Metadata = metaMap
 				}
-			} else {
-				fmt.Printf("  %s\n", metadata.String)
+			}
+
+			output, err := json.MarshalIndent(info, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal JSON: %w", err)
+			}
+			fmt.Println(string(output))
+		} else {
+			// Display
+			fmt.Printf("Group: %s\n", groupID)
+			fmt.Printf("Name: %s\n", name)
+			fmt.Printf("Kind: %s\n", kind)
+			fmt.Printf("Members: %d\n", memberCount)
+
+			if removed == 1 {
+				fmt.Println("Status: REMOVED")
+			}
+
+			if metadata.Valid && metadata.String != "" && metadata.String != "null" {
+				fmt.Println("\nMetadata:")
+				// Pretty-print JSON metadata
+				var metaMap map[string]any
+				if err := json.Unmarshal([]byte(metadata.String), &metaMap); err == nil {
+					for k, v := range metaMap {
+						fmt.Printf("  %s: %v\n", k, v)
+					}
+				} else {
+					fmt.Printf("  %s\n", metadata.String)
+				}
 			}
 		}
 
 		return nil
 	},
+}
+
+func init() {
+	groupShowCmd.Flags().Bool("json", false, "Output as JSON")
 }
