@@ -1,10 +1,11 @@
 // flatten_commands.go - Script to flatten nested command structure
+//go:build ignore
+
 package main
 
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 )
