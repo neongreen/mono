@@ -54,7 +54,7 @@ jj x <command>    # run a command on all mutable&reachable changes
 Full form:
 
 ```sh
-jj x -r <revset> [-e <error_strategy>] [-d] <command>
+jj x [-r <revset>] [-e <error_strategy>] [-d] [--repo-untested <url>] <command>
 ```
 
 - `-r`, `--revset`: The revset of changes to process. If not provided, defaults to `reachable(@, mutable())` (same as `jj fix`).
@@ -63,6 +63,7 @@ jj x -r <revset> [-e <error_strategy>] [-d] <command>
   - `stop`: Stop on the first error, but finish already started changes.
   - `fatal`: Abort immediately on any error.
 - `-d`, `--direct`: Enable direct mode (see below).
+- `--repo-untested <url>`: Clone and work on a remote repository. The repository will be cloned to a temporary directory, commands will be executed there, and you'll be prompted to push changes when done. **Note: This feature is AI-written and untested.**
 - `<command>`: **Required positional argument.** The shell command to execute for each change (runs in the temp workspace, or in main repo in direct mode).
 
 ## Direct Mode
@@ -87,6 +88,37 @@ jj x --direct -r 'mutable()' 'jj describe -m "$(jj log -r @ --no-graph -T descri
 # Add a co-author to recent commits
 jj x --direct -r '::@' 'jj describe -m "$(jj log -r @ --no-graph -T description)\n\nCo-authored-by: Name <email>"'
 ```
+
+## Working with Remote Repositories
+
+**⚠️ EXPERIMENTAL: This feature is AI-written and untested. Use at your own risk.**
+
+The `--repo-untested` flag allows you to work on remote repositories without manually cloning them first:
+
+- The repository is cloned to a temporary directory
+- All commands are executed in that temporary directory
+- After processing, you'll be prompted whether to push changes
+- The temporary directory is cleaned up automatically
+
+**Use cases:**
+- Fix formatting issues in pull requests
+- Run automated fixes across repositories
+- Test changes on a clean clone
+- Apply batch updates to remote branches
+
+**Examples:**
+```sh
+# Fix formatting in a remote repository
+jj-run --repo-untested https://github.com/user/repo 'go fmt ./...'
+
+# Run go mod tidy on all mutable changes
+jj-run --repo-untested https://github.com/user/repo 'go mod tidy'
+
+# Work on a specific branch by checking it out first
+jj-run --repo-untested https://github.com/user/repo --direct 'jj new main && npm run format'
+```
+
+**Note:** When working with private repositories, make sure you have appropriate SSH keys or credentials configured for git operations.
 
 ## Limitations
 
