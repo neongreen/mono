@@ -70,6 +70,12 @@ Path syntax:
 
 		// Evaluate path
 		ctx := context.Background()
+
+		// Special case: if path is just "/", show root
+		if len(path.Segments) == 0 {
+			return displayRoot(db, reducer)
+		}
+
 		nodes, err := pathlang.Eval(ctx, resolver, path)
 		if err != nil {
 			return fmt.Errorf("failed to evaluate path: %w", err)
@@ -113,6 +119,8 @@ func displayResults(db *database.DB, reducer *reducer.Reducer, nodes []pathlang.
 			fmt.Println("Tasks collection")
 		case pathlang_resolver.NodeTypeNotes:
 			displayNotes(node, currentPath)
+		case pathlang_resolver.NodeTypeRelations:
+			displayRelations(db, node, currentPath)
 		default:
 			fmt.Printf("Unknown node type: %s\n", node.Type)
 		}
@@ -225,16 +233,19 @@ func displayTask(db *database.DB, node *pathlang_resolver.Node, currentPath stri
 	// Show available sub-resources
 	fmt.Println("\nAvailable paths:")
 	fmt.Printf("  /%s/notes     - View notes\n", displayID)
+	fmt.Printf("  /%s/relations - View all relations\n", displayID)
 	fmt.Printf("  /%s/json      - JSON representation\n", displayID)
 
 	// Show subtasks if they exist
 	if node.Task.Relations != nil && len(node.Task.Relations.Subtask.Children) > 0 {
-		fmt.Printf("  /%s/subtasks  - View %d subtask(s)\n", displayID, len(node.Task.Relations.Subtask.Children))
+		count := len(node.Task.Relations.Subtask.Children)
+		fmt.Printf("  /%s/subtasks  - View %d %s\n", displayID, count, pluralize(count, "subtask", "subtasks"))
 	}
 
 	// Show blockers if they exist
 	if len(node.Task.Blockers) > 0 {
-		fmt.Printf("  /%s/blockers  - View %d blocker(s)\n", displayID, len(node.Task.Blockers))
+		count := len(node.Task.Blockers)
+		fmt.Printf("  /%s/blockers  - View %d %s\n", displayID, count, pluralize(count, "blocker", "blockers"))
 	}
 }
 
@@ -277,6 +288,72 @@ func displayNotes(node *pathlang_resolver.Node, currentPath string) {
 	fmt.Printf("  %s/json  - JSON representation\n", currentPath)
 }
 
+func displayRelations(db *database.DB, node *pathlang_resolver.Node, currentPath string) {
+	if node.Task == nil {
+		fmt.Println("No relations")
+		return
+	}
+
+	// Get display ID for the task
+	displayID, err := database.RenderTaskDisplayID(db, node.TaskUID)
+	if err != nil {
+		displayID = node.TaskUID
+	}
+
+	fmt.Printf("Relations for task %s:\n\n", displayID)
+
+	// Show all relation types
+	hasRelations := false
+
+	// Subtask relations (parent -> children)
+	if node.Task.Relations != nil && len(node.Task.Relations.Subtask.Children) > 0 {
+		hasRelations = true
+		fmt.Printf("Subtasks (%d):\n", len(node.Task.Relations.Subtask.Children))
+		for _, childUID := range node.Task.Relations.Subtask.Children {
+			childDisplayID, err := database.RenderTaskDisplayID(db, childUID)
+			if err != nil {
+				childDisplayID = childUID
+			}
+			fmt.Printf("  - %s\n", childDisplayID)
+		}
+		fmt.Println()
+	}
+
+	// Parent relation (child -> parent)
+	if node.Task.Relations != nil && node.Task.Relations.Subtask.Parent != "" {
+		hasRelations = true
+		parentDisplayID, err := database.RenderTaskDisplayID(db, node.Task.Relations.Subtask.Parent)
+		if err != nil {
+			parentDisplayID = node.Task.Relations.Subtask.Parent
+		}
+		fmt.Printf("Parent:\n  - %s\n\n", parentDisplayID)
+	}
+
+	// Blockers (tasks blocking this task)
+	if len(node.Task.Blockers) > 0 {
+		hasRelations = true
+		fmt.Printf("Blocked by (%d):\n", len(node.Task.Blockers))
+		for _, blocker := range node.Task.Blockers {
+			blockerDisplayID, err := database.RenderTaskDisplayID(db, blocker.TaskUUID)
+			if err != nil {
+				blockerDisplayID = blocker.TaskUUID
+			}
+			fmt.Printf("  - %s\n", blockerDisplayID)
+		}
+		fmt.Println()
+	}
+
+	// TODO: Add other relation types when they exist (blocks, duplicates, etc.)
+
+	if !hasRelations {
+		fmt.Println("No relations")
+	}
+
+	// Show that JSON is available
+	fmt.Println("Available paths:")
+	fmt.Printf("  %s/json  - JSON representation\n", currentPath)
+}
+
 func getTaskStatus(task *types.Task) string {
 	if task == nil || task.Axes == nil {
 		return ""
@@ -286,4 +363,64 @@ func getTaskStatus(task *types.Task) string {
 		return ""
 	}
 	return axis.Effective
+}
+
+// pluralize returns the singular or plural form based on count
+func pluralize(count int, singular, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
+}
+
+// displayRoot displays the root path showing all projects and available patterns
+func displayRoot(db *database.DB, reducer *reducer.Reducer) error {
+	fmt.Println("tk root paths:\n")
+
+	// List all projects
+	rows, err := db.Db.Query(`
+		SELECT project_uid, name FROM projects ORDER BY created_at
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to query projects: %w", err)
+	}
+	defer rows.Close()
+
+	projectCount := 0
+	fmt.Println("Projects:")
+	for rows.Next() {
+		var projectUID, name string
+		if err := rows.Scan(&projectUID, &name); err != nil {
+			return fmt.Errorf("failed to scan project: %w", err)
+		}
+
+		// Try to get preferred alias
+		alias, _ := database.PreferredAliasForProject(db, types.ProjectUID(projectUID))
+		if alias != "" {
+			fmt.Printf("  /%s - %s\n", alias, name)
+		} else {
+			fmt.Printf("  /%s - %s\n", name, name)
+		}
+		projectCount++
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("failed to iterate projects: %w", err)
+	}
+
+	if projectCount == 0 {
+		fmt.Println("  (no projects)")
+	}
+
+	// Show available patterns
+	fmt.Println("\nAvailable path patterns:")
+	fmt.Println("  /:project-alias         - View project details")
+	fmt.Println("  /:project-alias/tasks   - List all tasks in project")
+	fmt.Println("  /:task-id               - View task (e.g., /me-1)")
+	fmt.Println("  /:task-id/subtasks      - View subtasks")
+	fmt.Println("  /:task-id/blockers      - View blockers")
+	fmt.Println("  /:task-id/notes         - View notes")
+	fmt.Println("  /:task-id/relations     - View all relations")
+	fmt.Println("  /*/json                 - JSON representation of any resource")
+
+	return nil
 }

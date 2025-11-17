@@ -15,14 +15,15 @@ import (
 type NodeType string
 
 const (
-	NodeTypeRoot     NodeType = "root"
-	NodeTypeProject  NodeType = "project"
-	NodeTypeTask     NodeType = "task"
-	NodeTypeTasks    NodeType = "tasks" // Collection of tasks in a project
-	NodeTypeSubtasks NodeType = "subtasks"
-	NodeTypeBlockers NodeType = "blockers"
-	NodeTypeNotes    NodeType = "notes"
-	NodeTypeJSON     NodeType = "json" // JSON representation
+	NodeTypeRoot      NodeType = "root"
+	NodeTypeProject   NodeType = "project"
+	NodeTypeTask      NodeType = "task"
+	NodeTypeTasks     NodeType = "tasks" // Collection of tasks in a project
+	NodeTypeSubtasks  NodeType = "subtasks"
+	NodeTypeBlockers  NodeType = "blockers"
+	NodeTypeNotes     NodeType = "notes"
+	NodeTypeRelations NodeType = "relations" // All relations for a task
+	NodeTypeJSON      NodeType = "json"      // JSON representation
 )
 
 // Node represents a node in the tk path hierarchy
@@ -202,6 +203,16 @@ func (r *TkResolver) resolveFromTask(taskNode *Node, seg pathlang.Segment) ([]pa
 		return r.getSubtasks(taskNode)
 	case "blockers":
 		return r.getBlockers(taskNode)
+	case "relations":
+		// Return a special node representing all relations
+		return []pathlang.Node{
+			&Node{
+				Type:       NodeTypeRelations,
+				TaskUID:    taskNode.TaskUID,
+				ProjectUID: taskNode.ProjectUID,
+				Task:       taskNode.Task,
+			},
+		}, nil
 	case "notes":
 		// Return a special node representing notes
 		return []pathlang.Node{

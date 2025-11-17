@@ -24,9 +24,12 @@ func TestNodeTypes(t *testing.T) {
 		{pathlang_resolver.NodeTypeRoot, "root"},
 		{pathlang_resolver.NodeTypeProject, "project"},
 		{pathlang_resolver.NodeTypeTask, "task"},
+		{pathlang_resolver.NodeTypeTasks, "tasks"},
 		{pathlang_resolver.NodeTypeSubtasks, "subtasks"},
 		{pathlang_resolver.NodeTypeBlockers, "blockers"},
 		{pathlang_resolver.NodeTypeNotes, "notes"},
+		{pathlang_resolver.NodeTypeRelations, "relations"},
+		{pathlang_resolver.NodeTypeJSON, "json"},
 	}
 
 	for _, tt := range tests {
