@@ -101,7 +101,7 @@ func TestMigrate(t *testing.T) {
 	}
 
 	// Verify all builtin item kinds were inserted
-	expectedKinds := []string{"task", "idea", "wish", "goal", "requirement", "constraint"}
+	expectedKinds := []string{"task", "bug", "idea", "goal", "decision", "requirement", "constraint", "wish", "question", "hypothesis", "experiment", "observation", "research", "doubt", "assumption", "resource", "specification", "definition", "techdebt", "checklist", "discussion", "feedback"}
 	for _, kind := range expectedKinds {
 		var kindCount int
 		err = db.QueryRow(`SELECT COUNT(*) FROM item_kinds WHERE name = ?`, kind).Scan(&kindCount)
@@ -208,7 +208,7 @@ func TestMigrateIdempotent(t *testing.T) {
 	}
 
 	// Verify all builtin kinds exist only once (not duplicated)
-	expectedKinds := []string{"task", "idea", "wish", "goal", "requirement", "constraint"}
+	expectedKinds := []string{"task", "bug", "idea", "goal", "decision", "requirement", "constraint", "wish", "question", "hypothesis", "experiment", "observation", "research", "doubt", "assumption", "resource", "specification", "definition", "techdebt", "checklist", "discussion", "feedback"}
 	for _, kind := range expectedKinds {
 		var kindCount int
 		err = db.QueryRow(`SELECT COUNT(*) FROM item_kinds WHERE name = ?`, kind).Scan(&kindCount)

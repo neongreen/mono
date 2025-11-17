@@ -16,7 +16,7 @@ type DB interface {
 //
 // This migration:
 //  1. Creates item_kinds table
-//  2. Adds builtin item kinds (task, idea, wish, goal, requirement, constraint)
+//  2. Adds builtin item kinds (task, bug, idea, goal, decision, requirement, constraint, wish, question, hypothesis, experiment, observation, research, doubt, assumption, resource, specification, definition, techdebt, checklist, discussion, feedback)
 //  3. Adds item_kind column to tasks table (defaults to 'task')
 //  4. Creates index on item_kind for performance
 //  5. Updates db_version to 7
@@ -47,12 +47,28 @@ func Migrate(db DB) error {
 		description string
 		llmHint     string
 	}{
-		{"task", "Work items to be done", "Use for tracking work that needs to be completed"},
-		{"idea", "Ideas to explore or consider", "Use for capturing ideas that may become tasks later"},
-		{"wish", "Desired features or improvements", "Use for wishlist items or nice-to-have features"},
-		{"goal", "High-level objectives", "Use for tracking goals and objectives"},
-		{"requirement", "Requirements or specifications", "Use for documenting requirements and specifications"},
-		{"constraint", "Constraints or limitations", "Use for documenting constraints and limitations"},
+		{"task", "Actionable work to be done", "Use for concrete work items that need to be completed"},
+		{"bug", "Defect or error to fix", "Use for software bugs, errors, or defects that need fixing"},
+		{"idea", "Unrefined concept to explore", "Use for raw ideas that haven't been developed into actionable items yet"},
+		{"goal", "Desired outcome to achieve", "Use for high-level objectives or targets you want to reach"},
+		{"decision", "Choice to be made", "Use for decisions that need to be made or have been made"},
+		{"requirement", "Must-have feature or capability", "Use for definite requirements that must be satisfied"},
+		{"constraint", "Limitation or boundary condition", "Use for restrictions, limits, or conditions that must be respected"},
+		{"wish", "Nice-to-have desire", "Use for aspirational features or improvements that aren't requirements"},
+		{"question", "Something needing an answer", "Use for questions that need to be answered or clarified"},
+		{"hypothesis", "Testable proposition", "Use for theories or assumptions that need to be validated through testing"},
+		{"experiment", "Test to validate hypothesis", "Use for experiments or trials designed to test hypotheses"},
+		{"observation", "Recorded fact or finding", "Use for observations, data points, or findings from experiments"},
+		{"research", "Investigation topic", "Use for topics that need investigation or information gathering"},
+		{"doubt", "Uncertainty to resolve", "Use for concerns, uncertainties, or risks that need addressing"},
+		{"assumption", "Accepted premise", "Use for assumptions that underlie decisions or plans"},
+		{"resource", "Reference or material", "Use for documentation, tools, links, or materials to reference"},
+		{"specification", "Detailed technical definition", "Use for detailed technical specs or implementation details"},
+		{"definition", "Meaning or explanation", "Use for defining terms, concepts, or establishing shared understanding"},
+		{"techdebt", "Technical debt to address", "Use for technical debt, code quality issues, or refactoring needs"},
+		{"checklist", "List of items to complete", "Use for checklists or sequences of steps to follow"},
+		{"discussion", "Topic for conversation", "Use for topics that need discussion or conversation among stakeholders"},
+		{"feedback", "Input or critique received", "Use for feedback, comments, or suggestions from users or stakeholders"},
 	}
 
 	for _, kind := range builtinKinds {

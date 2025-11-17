@@ -19,18 +19,60 @@ var newCmd = &cobra.Command{
 	Use:     "new [title]",
 	Aliases: []string{"add"},
 	Short:   "Create a new task",
-	Long: `Create a new item (task, idea, wish, goal, requirement, constraint, etc.).
+	Long: `Create a new item. Items can be of different kinds to help organize your work.
 
-Item kinds define what type of item you're creating. Default is 'task'.
-Built-in kinds: task, idea, wish, goal, requirement, constraint
+ITEM KINDS:
 
-Use 'tk schema list' to see all available item kinds, or define custom ones with 'tk schema add item <name>'.
+  task          Actionable work to be done
+  bug           Defect or error to fix
+  idea          Unrefined concept to explore
+  goal          Desired outcome to achieve
+  decision      Choice to be made
+  requirement   Must-have feature or capability
+  constraint    Limitation or boundary condition
+  wish          Nice-to-have desire
+  question      Something needing an answer
+  hypothesis    Testable proposition
+  experiment    Test to validate hypothesis
+  observation   Recorded fact or finding
+  research      Investigation topic
+  doubt         Uncertainty to resolve
+  assumption    Accepted premise
+  resource      Reference or material
+  specification Detailed technical definition
+  definition    Meaning or explanation
+  techdebt      Technical debt to address
+  checklist     List of items to complete
+  discussion    Topic for conversation
+  feedback      Input or critique received
 
-Examples:
-  tk new "Fix bug"                           # Creates a task
-  tk new "Use microservices" --kind idea     # Creates an idea
-  tk new "Dark mode" --kind wish             # Creates a wish
-  tk new "Increase revenue 20%" --kind goal  # Creates a goal
+Use 'tk schema-ls' to see all available item kinds (including custom ones).
+Define custom kinds with 'tk schema-add item <name>'.
+
+EXAMPLES:
+
+  tk new "Fix login bug"                       # task (default)
+  tk new "Button doesn't work" --kind bug
+  tk new "Use event sourcing" --kind idea
+  tk new "Increase conversion by 20%" --kind goal
+  tk new "Choose database system" --kind decision
+  tk new "API must be RESTful" --kind requirement
+  tk new "Budget limit $50k" --kind constraint
+  tk new "Dark mode would be nice" --kind wish
+  tk new "How do users prefer this?" --kind question
+  tk new "Caching improves speed" --kind hypothesis
+  tk new "A/B test new UI" --kind experiment
+  tk new "Users click Buy 3x more" --kind observation
+  tk new "Research competitor pricing" --kind research
+  tk new "Will this scale?" --kind doubt
+  tk new "Users want speed" --kind assumption
+  tk new "Design system docs" --kind resource
+  tk new "Auth flow: OAuth2 + JWT" --kind specification
+  tk new "Technical debt" --kind definition
+  tk new "Refactor auth module" --kind techdebt
+  tk new "Deployment steps" --kind checklist
+  tk new "Discuss API design" --kind discussion
+  tk new "Users want offline mode" --kind feedback
 `,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
