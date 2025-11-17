@@ -30,6 +30,7 @@ func runBinary(binaryPath string, args []string) error {
 
 	return cmd.Run()
 }
+
 func printUsage() {
 	fmt.Println("prrun - Run binaries from GitHub PR releases")
 	fmt.Println()

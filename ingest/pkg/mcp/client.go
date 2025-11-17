@@ -10,10 +10,6 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
-
 // Option modifies client construction.
 type Option func(*clientOptions)
 
@@ -221,11 +217,6 @@ func (s *Session) ReadResource(ctx context.Context, params *sdkmcp.ReadResourceP
 		return nil, err
 	}
 	return result, nil
-}
-
-// Internal client session access for advanced use cases.
-func (s *Session) raw() *sdkmcp.ClientSession {
-	return s.session
 }
 
 func (s *Session) retryOperation(ctx context.Context, op func() error) error {

@@ -42,16 +42,18 @@ func GetCurrentPlatform() Platform {
 	archName := runtime.GOARCH
 
 	// Normalize OS name
-	if osName == "darwin" {
+	switch osName {
+	case "darwin":
 		osName = "darwin"
-	} else if osName == "linux" {
+	case "linux":
 		osName = "linux"
 	}
 
 	// Normalize architecture name
-	if archName == "amd64" {
+	switch archName {
+	case "amd64":
 		archName = "amd64"
-	} else if archName == "arm64" {
+	case "arm64":
 		archName = "arm64"
 	}
 
@@ -59,6 +61,8 @@ func GetCurrentPlatform() Platform {
 }
 
 // GetGitHubToken retrieves a GitHub token using the shared client utilities.
+//
+//nolint:uselesswrapper // Provides stable public API for the package
 func GetGitHubToken() string {
 	return ghclient.GetToken()
 }
@@ -203,7 +207,7 @@ func DownloadAssetWithContext(ctx context.Context, asset *Asset, destPath string
 		return fmt.Errorf("download of %s failed with status %d (URL: %s)", asset.Name, resp.StatusCode, downloadURL)
 	}
 
-	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(destPath), 0o755); err != nil {
 		return fmt.Errorf("failed to create cache directory %s: %w", filepath.Dir(destPath), err)
 	}
 
@@ -217,7 +221,7 @@ func DownloadAssetWithContext(ctx context.Context, asset *Asset, destPath string
 		return fmt.Errorf("failed to write binary to %s: %w", destPath, err)
 	}
 
-	if err := os.Chmod(destPath, 0755); err != nil {
+	if err := os.Chmod(destPath, 0o755); err != nil {
 		return fmt.Errorf("failed to make binary executable at %s: %w", destPath, err)
 	}
 

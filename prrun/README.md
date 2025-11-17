@@ -74,11 +74,11 @@ This shows:
 
 ```bash
 cd prrun
-go build -ldflags="-X main.GitCommit=$(git rev-parse HEAD) -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o prrun .
+go build -o prrun .
 sudo mv prrun /usr/local/bin/
 ```
 
-Note: The build includes version information (commit hash and build time) for the `--version` flag.
+Note: Version information (commit hash and build time) is automatically embedded via Go's VCS stamping.
 
 ### Once Released
 

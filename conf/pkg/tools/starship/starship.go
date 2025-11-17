@@ -5,12 +5,15 @@ import (
 
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
+	"github.com/neongreen/mono/conf/pkg/schemas"
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // StarshipTool implements starship configuration management
 type StarshipTool struct {
 	configPath string
 	editor     *editors.TOMLEditor
+	parser     *schemas.StarshipSchemaParser
 	dryRun     bool
 }
 
@@ -35,9 +38,16 @@ func NewStarshipToolWithDryRun(dryRun bool) (*StarshipTool, error) {
 	// Create TOML editor for starship config file
 	editor := editors.NewTOMLEditorWithDryRun(starshipConfig.ConfigPath, dryRun)
 
+	// Create starship schema parser
+	parser, err := schemas.NewStarshipSchemaParser()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create starship schema parser: %w", err)
+	}
+
 	return &StarshipTool{
 		configPath: starshipConfig.ConfigPath,
 		editor:     editor,
+		parser:     parser,
 		dryRun:     dryRun,
 	}, nil
 }
@@ -49,7 +59,7 @@ func (s *StarshipTool) SetDryRun(dryRun bool) {
 }
 
 // SetConfig sets a configuration value using dotted path notation
-func (s *StarshipTool) SetConfig(path string, value interface{}) error {
+func (s *StarshipTool) SetConfig(path string, value any) error {
 	// Validate the path is reasonable (basic validation)
 	if !s.isValidPath(path) {
 		return s.createInvalidPathError(path)
@@ -64,7 +74,7 @@ func (s *StarshipTool) SetConfig(path string, value interface{}) error {
 }
 
 // GetConfig retrieves a configuration value using dotted path notation
-func (s *StarshipTool) GetConfig(path string) (interface{}, error) {
+func (s *StarshipTool) GetConfig(path string) (any, error) {
 	// Validate the path is reasonable (basic validation)
 	if !s.isValidPath(path) {
 		return nil, s.createInvalidPathError(path)
@@ -95,7 +105,7 @@ func (s *StarshipTool) UnsetConfig(path string) error {
 }
 
 // PreviewSetConfig shows what setting a config value would do without doing it
-func (s *StarshipTool) PreviewSetConfig(path string, value interface{}) (string, error) {
+func (s *StarshipTool) PreviewSetConfig(path string, value any) (string, error) {
 	// Validate the path is reasonable (basic validation)
 	if !s.isValidPath(path) {
 		return "", s.createInvalidPathError(path)
@@ -117,7 +127,7 @@ func (s *StarshipTool) IsDryRun() bool {
 // SetAllValues sets multiple configuration values from a nested map structure
 // This is more efficient than setting individual paths as it avoids the need
 // to flatten/unflatten the structure and parse quoted keys
-func (s *StarshipTool) SetAllValues(values map[string]interface{}) error {
+func (s *StarshipTool) SetAllValues(values map[string]any) error {
 	if s.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil
@@ -146,69 +156,99 @@ func (s *StarshipTool) createInvalidPathError(path string) error {
 	return fmt.Errorf("%s", errorMsg)
 }
 
-// ListCommonSettings returns a list of commonly used starship settings with descriptions
-func (s *StarshipTool) ListCommonSettings() []CommonSetting {
-	return []CommonSetting{
-		{
-			Path:        "format",
-			Description: "Custom format string for the prompt",
-			Type:        "string",
-			Example:     "$all$character",
-		},
-		{
-			Path:        "add_newline",
-			Description: "Add a blank line before the prompt",
-			Type:        "boolean",
-			Example:     "true",
-		},
-		{
-			Path:        "command_timeout",
-			Description: "Timeout for commands run by starship (in milliseconds)",
-			Type:        "integer",
-			Example:     "500",
-		},
-		{
-			Path:        "scan_timeout",
-			Description: "Timeout for scanning files and directories (in milliseconds)",
-			Type:        "integer",
-			Example:     "30",
-		},
-		{
-			Path:        "character.success_symbol",
-			Description: "Symbol shown when the last command succeeded",
-			Type:        "string",
-			Example:     "[➜](bold green)",
-		},
-		{
-			Path:        "character.error_symbol",
-			Description: "Symbol shown when the last command failed",
-			Type:        "string",
-			Example:     "[➜](bold red)",
-		},
-		{
-			Path:        "directory.truncation_length",
-			Description: "Number of parent directories to show",
-			Type:        "integer",
-			Example:     "3",
-		},
-		{
-			Path:        "git_branch.format",
-			Description: "Format string for git branch display",
-			Type:        "string",
-			Example:     "on [$symbol$branch]($style) ",
-		},
-	}
-}
-
-// CommonSetting represents a commonly used configuration setting
-type CommonSetting struct {
-	Path        string
-	Description string
-	Type        string
-	Example     string
-}
-
 // GetAllValues returns all configuration values from the starship config file as a nested map
-func (s *StarshipTool) GetAllValues() (map[string]interface{}, error) {
+func (s *StarshipTool) GetAllValues() (map[string]any, error) {
 	return s.editor.GetAllValues()
+}
+
+// ListAllSettings returns comprehensive information about all starship settings from schema
+func (s *StarshipTool) ListAllSettings() ([]configschema.SettingInfo, error) {
+	// Get all settings from schema
+	schemaSettings := s.parser.GetAllSettingsWithInfo()
+
+	// Read config file once to avoid re-parsing for every setting
+	allValues, err := s.editor.GetAllValues()
+	if err != nil {
+		// If we can't read the config, return settings without current values
+		return schemaSettings, nil
+	}
+
+	// Enhance with current values by looking up in the in-memory map
+	for i := range schemaSettings {
+		currentValue := lookupValueByPath(allValues, schemaSettings[i].Path)
+		if currentValue != nil {
+			schemaSettings[i].CurrentValue = currentValue
+			schemaSettings[i].IsSet = true
+		} else {
+			schemaSettings[i].IsSet = false
+		}
+	}
+
+	return schemaSettings, nil
+}
+
+// lookupValueByPath traverses a nested map using a dotted path to find a value
+func lookupValueByPath(data map[string]any, path string) any {
+	if path == "" {
+		return nil
+	}
+
+	parts := splitPath(path)
+	current := data
+
+	for i, part := range parts {
+		value, exists := current[part]
+		if !exists {
+			return nil
+		}
+
+		// If this is the last part, return the value
+		if i == len(parts)-1 {
+			return value
+		}
+
+		// Otherwise, expect a nested map and continue traversing
+		nestedMap, ok := value.(map[string]any)
+		if !ok {
+			return nil
+		}
+		current = nestedMap
+	}
+
+	return nil
+}
+
+// splitPath splits a dotted path into parts, handling quoted segments
+func splitPath(path string) []string {
+	if path == "" {
+		return nil
+	}
+
+	var parts []string
+	var current []rune
+	inQuotes := false
+
+	for _, ch := range path {
+		switch ch {
+		case '"':
+			inQuotes = !inQuotes
+		case '.':
+			if !inQuotes {
+				if len(current) > 0 {
+					parts = append(parts, string(current))
+					current = nil
+				}
+			} else {
+				current = append(current, ch)
+			}
+		default:
+			current = append(current, ch)
+		}
+	}
+
+	if len(current) > 0 {
+		parts = append(parts, string(current))
+	}
+
+	return parts
 }

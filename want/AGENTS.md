@@ -63,13 +63,3 @@ This guideline was created in response to issue where `want --dry-run mise` show
 2. Only mark steps as manual when they truly need user action
 3. Provide a summary of manual steps at the end
 
-------------------------------------------------------------
-
-## Code Formatting
-
-**All Go code must be formatted with `go fmt` before work is considered complete.**
-
-Before submitting any changes:
-- Run `go fmt ./...` in the want directory
-- Ensure all Go files are properly formatted
-- This applies to both new and modified Go code

@@ -81,7 +81,7 @@ email = "bob@example.com"
 [snapshot]
 max-new-file-size = 1024
 `
-	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	err = os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
@@ -131,7 +131,7 @@ email = "charlie@example.com"
 [snapshot]
 max-new-file-size = 2048
 `
-	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	err = os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
@@ -218,7 +218,7 @@ other_key = 42
 [other_section]
 some_setting = true
 `
-	err = os.WriteFile(testFile, []byte(initialContent), 0644)
+	err = os.WriteFile(testFile, []byte(initialContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write initial test file: %v", err)
 	}
@@ -291,15 +291,15 @@ func TestTOMLEditor_GetAllValues(t *testing.T) {
 	}
 
 	// Verify all values are present in nested representation
-	expected := map[string]interface{}{
-		"user": map[string]interface{}{
+	expected := map[string]any{
+		"user": map[string]any{
 			"name":  "Alice",
 			"email": "alice@example.com",
 		},
-		"snapshot": map[string]interface{}{
+		"snapshot": map[string]any{
 			"max-new-file-size": int64(1024),
 		},
-		"ui": map[string]interface{}{
+		"ui": map[string]any{
 			"diff-editor": "vimdiff",
 		},
 	}
@@ -328,7 +328,7 @@ name = "Alice"
 ".." = ["bar"]
 normal = "baz"
 `
-	err = os.WriteFile(testFile, []byte(testContent), 0644)
+	err = os.WriteFile(testFile, []byte(testContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
@@ -341,7 +341,7 @@ normal = "baz"
 		t.Fatalf("Failed to get all values: %v", err)
 	}
 
-	user, ok := values["user"].(map[string]interface{})
+	user, ok := values["user"].(map[string]any)
 	if !ok {
 		t.Fatalf("Expected user section to be a map, got %T", values["user"])
 	}
@@ -349,13 +349,13 @@ normal = "baz"
 		t.Errorf("Expected user.name to be Alice, got %v", user["name"])
 	}
 
-	aliases, ok := values["aliases"].(map[string]interface{})
+	aliases, ok := values["aliases"].(map[string]any)
 	if !ok {
 		t.Fatalf("Expected aliases section to be a map, got %T", values["aliases"])
 	}
 
 	if val, ok := aliases["."]; ok {
-		if arr, isArr := val.([]interface{}); !isArr {
+		if arr, isArr := val.([]any); !isArr {
 			t.Errorf("Expected aliases[\".\"] to be array, got %T", val)
 		} else if len(arr) != 1 || arr[0] != "foo" {
 			t.Errorf("Expected aliases[\".\"] = [\"foo\"], got %v", arr)
@@ -365,7 +365,7 @@ normal = "baz"
 	}
 
 	if val, ok := aliases[".."]; ok {
-		if arr, isArr := val.([]interface{}); !isArr {
+		if arr, isArr := val.([]any); !isArr {
 			t.Errorf("Expected aliases[\"..\"] to be array, got %T", val)
 		} else if len(arr) != 1 || arr[0] != "bar" {
 			t.Errorf("Expected aliases[\"..\"] = [\"bar\"], got %v", arr)

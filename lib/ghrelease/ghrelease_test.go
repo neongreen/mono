@@ -1,67 +1,15 @@
 package ghrelease
 
 import (
-	"bytes"
-	"log/slog"
-	"os"
-	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/neongreen/mono/lib/testhelpers"
 )
 
-func setupTestLogger(t *testing.T) *bytes.Buffer {
-	t.Helper()
-	var buf bytes.Buffer
-	handler := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})
-	prev := slog.Default()
-	slog.SetDefault(slog.New(handler))
-	t.Cleanup(func() {
-		slog.SetDefault(prev)
-	})
-	return &buf
-}
+// Test helper functions moved to lib/testhelpers
 
-func installGhStub(t *testing.T, stdout string, exitCode int) {
-	t.Helper()
-	dir := t.TempDir()
-
-	var scriptName string
-	var content string
-	if runtime.GOOS == "windows" {
-		scriptName = "gh.bat"
-		content = "@echo off\r\n"
-		if stdout != "" {
-			content += "echo " + stdout + "\r\n"
-		}
-		content += "exit /b " + strconv.Itoa(exitCode) + "\r\n"
-	} else {
-		scriptName = "gh"
-		content = "#!/bin/sh\n"
-		if stdout != "" {
-			content += "printf '%s\\n' '" + stdout + "'\n"
-		}
-		content += "exit " + strconv.Itoa(exitCode) + "\n"
-	}
-
-	mode := os.FileMode(0o755)
-	if runtime.GOOS == "windows" {
-		mode = 0o666
-	}
-
-	scriptPath := filepath.Join(dir, scriptName)
-	if err := os.WriteFile(scriptPath, []byte(content), mode); err != nil {
-		t.Fatalf("failed to write gh stub: %v", err)
-	}
-
-	originalPath := os.Getenv("PATH")
-	if originalPath == "" {
-		t.Setenv("PATH", dir)
-		return
-	}
-	t.Setenv("PATH", dir+string(os.PathListSeparator)+originalPath)
-}
 func TestGetCurrentPlatform(t *testing.T) {
 	platform := GetCurrentPlatform()
 
@@ -84,7 +32,7 @@ func TestGetCurrentPlatform(t *testing.T) {
 
 func TestGetGitHubToken(t *testing.T) {
 	t.Run("GITHUB_TOKEN takes precedence", func(t *testing.T) {
-		buf := setupTestLogger(t)
+		buf := testhelpers.SetupTestLogger(t)
 		t.Setenv("GITHUB_TOKEN", "github_token")
 		t.Setenv("MISE_GITHUB_TOKEN", "mise_token")
 
@@ -103,7 +51,7 @@ func TestGetGitHubToken(t *testing.T) {
 	})
 
 	t.Run("MISE_GITHUB_TOKEN used when GITHUB_TOKEN not set", func(t *testing.T) {
-		buf := setupTestLogger(t)
+		buf := testhelpers.SetupTestLogger(t)
 		t.Setenv("GITHUB_TOKEN", "")
 		t.Setenv("MISE_GITHUB_TOKEN", "mise_token")
 
@@ -122,10 +70,10 @@ func TestGetGitHubToken(t *testing.T) {
 	})
 
 	t.Run("returns empty string when no tokens available", func(t *testing.T) {
-		buf := setupTestLogger(t)
+		buf := testhelpers.SetupTestLogger(t)
 		t.Setenv("GITHUB_TOKEN", "")
 		t.Setenv("MISE_GITHUB_TOKEN", "")
-		installGhStub(t, "", 1)
+		testhelpers.InstallGhStub(t, "", 1)
 
 		token := GetGitHubToken()
 		if token != "" {
@@ -142,10 +90,10 @@ func TestGetGitHubToken(t *testing.T) {
 	})
 
 	t.Run("gh CLI token used when available", func(t *testing.T) {
-		buf := setupTestLogger(t)
+		buf := testhelpers.SetupTestLogger(t)
 		t.Setenv("GITHUB_TOKEN", "")
 		t.Setenv("MISE_GITHUB_TOKEN", "")
-		installGhStub(t, "cli_token", 0)
+		testhelpers.InstallGhStub(t, "cli_token", 0)
 
 		token := GetGitHubToken()
 		if token != "cli_token" {
@@ -197,7 +145,9 @@ func TestFindPlatformAsset(t *testing.T) {
 			TagName: "dissect--pr-123.1",
 			Assets: []Asset{
 				{Name: "dissect-pr-123.1-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/123"},
-				{Name: "dissect-pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/124"},
+				{Name: "dissect-pr-123.1-linux-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/124"},
+				{Name: "dissect-pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/125"},
+				{Name: "dissect-pr-123.1-darwin-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/126"},
 			},
 		}
 
@@ -237,8 +187,10 @@ func TestFindPlatformAsset(t *testing.T) {
 		release := &Release{
 			TagName: "dissect--pr-123.1",
 			Assets: []Asset{
-				{Name: "dissect--pr-123.1-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/125"},
-				{Name: "dissect--pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/126"},
+				{Name: "dissect--pr-123.1-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/127"},
+				{Name: "dissect--pr-123.1-linux-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/128"},
+				{Name: "dissect--pr-123.1-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/129"},
+				{Name: "dissect--pr-123.1-darwin-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/130"},
 			},
 		}
 
@@ -257,8 +209,10 @@ func TestFindPlatformAsset(t *testing.T) {
 		release := &Release{
 			TagName: "want--main.3",
 			Assets: []Asset{
-				{Name: "want-main.3-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/127"},
-				{Name: "want-main.3-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/128"},
+				{Name: "want-main.3-linux-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/131"},
+				{Name: "want-main.3-linux-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/132"},
+				{Name: "want-main.3-darwin-arm64", URL: "https://api.github.com/repos/example/repo/releases/assets/133"},
+				{Name: "want-main.3-darwin-amd64", URL: "https://api.github.com/repos/example/repo/releases/assets/134"},
 			},
 		}
 

@@ -3,14 +3,18 @@ package converter
 import (
 	"bytes"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	htmlrenderer "github.com/yuin/goldmark/renderer/html"
+	"go.abhg.dev/goldmark/frontmatter"
 	stdhtml "golang.org/x/net/html"
 	htmlatom "golang.org/x/net/html/atom"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 const htmlFootnoteCSS = `sup[id^="fnref:"] {
@@ -38,6 +42,7 @@ span.printpdf-footnote::footnote-marker {
 
 // markdownToHTMLBody converts markdown content to HTML body content (without wrapping in full document)
 func markdownToHTMLBody(markdown []byte) ([]byte, error) {
+	extender := &frontmatter.Extender{}
 	md := goldmark.New(
 		goldmark.WithExtensions(
 			extension.GFM, // GitHub Flavored Markdown
@@ -46,6 +51,7 @@ func markdownToHTMLBody(markdown []byte) ([]byte, error) {
 			extension.Strikethrough,
 			extension.Linkify,
 			extension.TaskList,
+			extender, // YAML/TOML frontmatter
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(), // Auto-generate heading IDs
@@ -56,11 +62,22 @@ func markdownToHTMLBody(markdown []byte) ([]byte, error) {
 	)
 
 	var buf bytes.Buffer
-	if err := md.Convert(markdown, &buf); err != nil {
+	ctx := parser.NewContext()
+	if err := md.Convert(markdown, &buf, parser.WithContext(ctx)); err != nil {
 		return nil, fmt.Errorf("failed to convert markdown to HTML: %w", err)
 	}
 
-	content, err := enhanceHTMLFootnotes(buf.Bytes())
+	// Extract and render frontmatter if present
+	var result bytes.Buffer
+	if meta := frontmatter.Get(ctx); meta != nil {
+		var data map[string]any
+		if err := meta.Decode(&data); err == nil && len(data) > 0 {
+			result.WriteString(renderFrontmatterHTML(data))
+		}
+	}
+	result.Write(buf.Bytes())
+
+	content, err := enhanceHTMLFootnotes(result.Bytes())
 	if err != nil {
 		return nil, fmt.Errorf("failed to enhance footnotes: %w", err)
 	}
@@ -68,14 +85,46 @@ func markdownToHTMLBody(markdown []byte) ([]byte, error) {
 	return content, nil
 }
 
+// renderFrontmatterHTML renders frontmatter as an HTML definition list
+func renderFrontmatterHTML(data map[string]any) string {
+	var buf strings.Builder
+	buf.WriteString(`<div class="frontmatter">`)
+	buf.WriteString("<dl>")
+	titleCaser := cases.Title(language.English)
+	for key, value := range data {
+		buf.WriteString("<dt>")
+		buf.WriteString(titleCaser.String(strings.ReplaceAll(key, "_", " ")))
+		buf.WriteString("</dt>")
+		buf.WriteString("<dd>")
+		buf.WriteString(fmt.Sprintf("%v", value))
+		buf.WriteString("</dd>")
+	}
+	buf.WriteString("</dl>")
+	buf.WriteString("</div>")
+	return buf.String()
+}
+
 // generatePageCSS generates the @page CSS rules based on page options
 func generatePageCSS(options PageOptions) string {
-	margin := options.cssMarginValue()
 	var pageCSS strings.Builder
+	orientation := "portrait"
 	if options.Orientation == "landscape" {
-		fmt.Fprintf(&pageCSS, "@page { size: A4 landscape; margin: %s; }\n", margin)
+		orientation = "landscape"
+	}
+
+	if options.isBookletMode() {
+		// Booklet mode: generate separate rules for :left and :right pages
+		topRight, outerRight, bottomRight, innerRight, topLeft, innerLeft, bottomLeft, outerLeft, _ := options.resolveBookletMargins()
+
+		fmt.Fprintf(&pageCSS, "@page { size: A4 %s; }\n", orientation)
+		// For right pages (odd): outer is on right, inner is on left
+		fmt.Fprintf(&pageCSS, "@page :right { margin: %s %s %s %s; }\n", topRight, outerRight, bottomRight, innerRight)
+		// For left pages (even): inner is on right, outer is on left
+		fmt.Fprintf(&pageCSS, "@page :left { margin: %s %s %s %s; }\n", topLeft, innerLeft, bottomLeft, outerLeft)
 	} else {
-		fmt.Fprintf(&pageCSS, "@page { size: A4 portrait; margin: %s; }\n", margin)
+		// Normal mode: use standard margin
+		margin := options.cssMarginValue()
+		fmt.Fprintf(&pageCSS, "@page { size: A4 %s; margin: %s; }\n", orientation, margin)
 	}
 
 	if guide := strings.TrimSpace(options.FirstPageGuide); guide != "" {
@@ -215,6 +264,31 @@ hr {
     margin: 24px 0;
     background-color: #e1e4e8;
     border: 0;
+}
+
+.frontmatter {
+    background-color: #f6f8fa;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.frontmatter dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+}
+
+.frontmatter dt {
+    font-weight: 600;
+    color: #24292e;
+}
+
+.frontmatter dd {
+    margin: 0;
+    color: #57606a;
 }`
 }
 
@@ -615,10 +689,8 @@ func hasClass(node *stdhtml.Node, class string) bool {
 	}
 	for _, attr := range node.Attr {
 		if attr.Key == "class" {
-			for _, part := range strings.Fields(attr.Val) {
-				if part == class {
-					return true
-				}
+			if slices.Contains(strings.Fields(attr.Val), class) {
+				return true
 			}
 		}
 	}

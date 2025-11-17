@@ -59,7 +59,7 @@ func main() {
 			}
 		} else {
 			// Default: write in-place
-			err = os.WriteFile(filename, output, 0644)
+			err = os.WriteFile(filename, output, 0o644)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error writing file %s: %v\n", filename, err)
 				os.Exit(1)

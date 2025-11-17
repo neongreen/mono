@@ -1,0 +1,34 @@
+package main
+
+import (
+	"context"
+
+	"dagger/internal/dagger"
+)
+
+type WantProject struct {
+	Dagger *Dagger // +private
+}
+
+func (p *WantProject) Build(ctx context.Context) (*dagger.File, error) {
+	src := getFilteredSource("want", dag.CurrentModule().Source().Directory(".."))
+	return buildProject(ctx, "want", ".", src)
+}
+
+func (p *WantProject) Test(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string,
+) (string, error) {
+	src := getFilteredSource("want", dag.CurrentModule().Source().Directory(".."))
+	return testProject(ctx, "want", format, src)
+}
+
+func (p *WantProject) Coverage(ctx context.Context,
+	// +optional
+	// +default="testname"
+	format string,
+) (*dagger.File, error) {
+	src := getFilteredSource("want", dag.CurrentModule().Source().Directory(".."))
+	return coverageFile(ctx, "want", format, src)
+}

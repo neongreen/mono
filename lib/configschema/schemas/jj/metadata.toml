@@ -1,0 +1,9 @@
+[pinned]
+version = "v0.34.0"
+url = "https://jj-vcs.github.io/jj/v0.34.0/config-schema.json"
+downloaded = "2025-11-07"
+fixes = ["Removed duplicate 'hermit' from platforms enum"]
+
+[latest]
+url = "https://jj-vcs.github.io/jj/latest/config-schema.json"
+downloaded = "2025-11-07"

@@ -47,9 +47,9 @@ When concurrent claims exist (same Lamport timestamp), the claim with highest au
 - `tk init` - Initialize a new database (optional, auto-created on first use)
 - `tk db path` - Show database path (defaults to `~/.tk/tk.db`)
 - `tk new "title"` - Create a new task
-- `tk status set <id> <state>` - Set task status (supports --axis and --role flags)
+- `tk mark <id> <state>` - Set task status (supports --axis and --role flags)
 - `tk note <id> "text"` - Add a note to a task
-- `tk view <id>` - View task with all claims (JSON output)
+- `tk show <id>` - Show task with all claims (human readable by default, JSON with --json)
 - `tk ls` - List all tasks (supports --axis filter and --sort)
 
 **Sync commands (v1):**
@@ -57,7 +57,7 @@ When concurrent claims exist (same Lamport timestamp), the claim with highest au
 - `tk node regen` - Regenerate node ID (use with caution)
 - `tk remote add <name> folder <path>` - Add a sync remote
 - `tk remote ls` - List configured remotes
-- `tk export [remote]` - Export local events to segments
+- `tk push [remote]` - Export local events and push to remote
 - `tk ingest [remote|file]` - Ingest events from segments
 - `tk pull [remote]` - Pull segments from remote
 - `tk push [remote]` - Push segments to remote
@@ -147,13 +147,13 @@ Created task tk-1: Implement authentication
 $ tk db path
 /home/user/.tk/tk.db
 
-$ tk status set tk-1 in_progress
+$ tk mark tk-1 in_progress
 Set status for task tk-1: generic=in_progress
 
-$ tk status set tk-1 done --role agent
+$ tk mark tk-1 done --role agent
 Set status for task tk-1: generic=done
 
-$ tk view tk-1
+$ tk show tk-1
 {
   "task_id": "tk-1-AbC123",
   "title": "Implement authentication",

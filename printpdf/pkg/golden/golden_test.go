@@ -71,10 +71,10 @@ func (suite *GoldenTestSuite) Run(t *testing.T) {
 	}
 
 	// Ensure directories exist
-	if err := os.MkdirAll(suite.config.OutputDir, 0755); err != nil {
+	if err := os.MkdirAll(suite.config.OutputDir, 0o755); err != nil {
 		t.Fatalf("Failed to create output directory: %v", err)
 	}
-	if err := os.MkdirAll(suite.config.GoldenDir, 0755); err != nil {
+	if err := os.MkdirAll(suite.config.GoldenDir, 0o755); err != nil {
 		t.Fatalf("Failed to create golden directory: %v", err)
 	}
 
@@ -204,7 +204,7 @@ func (suite *GoldenTestSuite) updateGoldenImages(t *testing.T, outputDir, golden
 	}
 
 	// Create golden directory
-	if err := os.MkdirAll(goldenDir, 0755); err != nil {
+	if err := os.MkdirAll(goldenDir, 0o755); err != nil {
 		t.Fatalf("Failed to create golden directory: %v", err)
 	}
 
@@ -297,44 +297,4 @@ func (suite *GoldenTestSuite) copyFile(src, dst string) error {
 
 	_, err = srcFile.WriteTo(dstFile)
 	return err
-}
-
-// copyDir recursively copies a directory
-func (suite *GoldenTestSuite) copyDir(src, dst string) error {
-	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		// Calculate the target path
-		relPath, err := filepath.Rel(src, path)
-		if err != nil {
-			return err
-		}
-		targetPath := filepath.Join(dst, relPath)
-
-		if info.IsDir() {
-			return os.MkdirAll(targetPath, info.Mode())
-		}
-
-		// Copy file
-		srcFile, err := os.Open(path)
-		if err != nil {
-			return err
-		}
-		defer srcFile.Close()
-
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
-			return err
-		}
-
-		dstFile, err := os.Create(targetPath)
-		if err != nil {
-			return err
-		}
-		defer dstFile.Close()
-
-		_, err = srcFile.WriteTo(dstFile)
-		return err
-	})
 }

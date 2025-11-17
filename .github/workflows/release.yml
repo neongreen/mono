@@ -91,20 +91,16 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
-        with:
-          go-version: "1.24.7"
-          cache-dependency-path: ${{ matrix.project }}/go.sum
-
       - name: Determine version and branch
         id: version
         run: |
           PROJECT="${MATRIX_PROJECT}"
 
-          # For main branch releases
-          REF="main"
-          REF_SAFE="main"
+          # Extract branch name from github.ref (e.g., refs/heads/main -> main)
+          REF="${GITHUB_REF#refs/heads/}"
+
+          # Create safe version for tags (replace / with -)
+          REF_SAFE="${REF//\//-}"
 
           # Find existing tags for this project+ref combination
           TAG_PREFIX="${PROJECT}--${REF_SAFE}."
@@ -134,83 +130,32 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
           echo "Building ${PROJECT} version ${VERSION} (tag: ${TAG})"
+          echo "Branch: ${REF} (safe: ${REF_SAFE})"
         env:
           MATRIX_PROJECT: ${{ matrix.project }}
 
-      - name: Build binaries
+      - name: Build binaries with Dagger
         id: build
-        run: |
-          set -euo pipefail
-          PROJECT="${MATRIX_PROJECT}"
-          VERSION="${STEPS_VERSION_OUTPUTS_VERSION}"
+        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+        with:
+          version: "0.19.6"
+          verb: call
+          args: build-release --project="${{ matrix.project }}" --version="${{ steps.version.outputs.version }}" --git-commit="${{ github.sha }}" export --path=dist
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
-          if [ -f "$PROJECT/cmd/main.go" ]; then
-            BUILD_TARGET="./cmd"
-          else
-            BUILD_TARGET="."
-          fi
+      - name: Package Homebrew archives with Dagger
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
+        uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
+        with:
+          version: "0.19.6"
+          verb: call
+          args: package-homebrew --binaries-dir=dist --project="${{ matrix.project }}" export --path=homebrew-dist
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
 
-          mkdir -p dist
-          DIST_DIR="$(pwd)/dist"
-
-          PLATFORMS=(
-            "linux/amd64"
-            "linux/arm64"
-            "darwin/amd64"
-            "darwin/arm64"
-          )
-
-          for platform in "${PLATFORMS[@]}"; do
-            IFS='/' read -r GOOS GOARCH <<< "$platform"
-            OUTPUT_NAME="${PROJECT}-${VERSION}-${GOOS}-${GOARCH}"
-
-            echo "Building for $GOOS/$GOARCH..."
-
-            BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            LDFLAGS="-X main.Version=${VERSION} -X main.GitCommit=${{ github.sha }} -X main.BuildTime=${BUILD_TIME}"
-
-            if ! (cd "$PROJECT" && GOOS="$GOOS" GOARCH="$GOARCH" go build -ldflags="$LDFLAGS" -o "$DIST_DIR/$OUTPUT_NAME" "$BUILD_TARGET"); then
-              echo "Failed to build for $GOOS/$GOARCH" >&2
-              exit 1
-            fi
-
-            echo "Built: dist/$OUTPUT_NAME"
-          done
-
-          ls -lh dist/
-        env:
-          MATRIX_PROJECT: ${{ matrix.project }}
-          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
-
-      - name: Package Homebrew archives
+      - name: Copy Homebrew archives to dist
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         run: |
-          set -euo pipefail
-          PROJECT="${MATRIX_PROJECT}"
-          VERSION="${STEPS_VERSION_OUTPUTS_VERSION}"
-
-          for binary in dist/"${PROJECT}-${VERSION}-"*; do
-            if [[ ! -f "$binary" ]]; then
-              continue
-            fi
-            if [[ "$binary" == *.tar.gz ]]; then
-              continue
-            fi
-            prefix="dist/${PROJECT}-${VERSION}-"
-            platform="${binary#"$prefix"}"
-            tmpdir="$(mktemp -d)"
-            cp "$binary" "$tmpdir/${PROJECT}"
-            tarball="dist/${PROJECT}-${VERSION}-${platform}.tar.gz"
-            (
-              cd "$tmpdir"
-              tar -czf "$OLDPWD/$tarball" "${PROJECT}"
-            )
-            rm -rf "$tmpdir"
-            echo "Created $tarball"
-          done
-        env:
-          MATRIX_PROJECT: ${{ matrix.project }}
-          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
+          cp homebrew-dist/*.tar.gz dist/
 
       - name: Create Release
         uses: softprops/action-gh-release@6da8fa9354ddfdc4aeace5fc48d7f679b5214090 # v2.4.1
@@ -220,7 +165,7 @@ jobs:
           body: |
             Release of **${{ matrix.project }}** version `${{ steps.version.outputs.version }}`
 
-            Built from: main branch
+            Built from: `${{ steps.version.outputs.ref }}` branch
             Commit: ${{ github.sha }}
 
             ## Installation
@@ -258,127 +203,51 @@ jobs:
           path: tap
           persist-credentials: true
 
-      - name: Update Homebrew formula
+      - name: Install Dagger CLI
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
-        working-directory: tap
+        run: |
+          curl -fsSL https://dl.dagger.io/dagger/install.sh | BIN_DIR=/usr/local/bin sh
+          dagger version
+
+      - name: Generate Homebrew formula with Dagger
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}
         env:
           PROJECT: ${{ matrix.project }}
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
-          MIRROR_REPO: ${{ needs.detect.outputs.mirror_repo }}
-          MIRROR_METADATA: ${{ needs.detect.outputs.mirror_metadata }}
           SOURCE_REPO: ${{ github.repository }}
+          MIRROR_METADATA: ${{ needs.detect.outputs.mirror_metadata }}
+          DAGGER_CLOUD_TOKEN: ${{ secrets.DAGGER_CLOUD_TOKEN }}
         run: |
-          python3 - <<'PY'
-          import hashlib
-          import json
-          import os
-          from pathlib import Path
+          # Extract project metadata from the mirror config
+          METADATA=$(echo "$MIRROR_METADATA" | jq -r --arg proj "$PROJECT" '.[$proj]')
+          DESC=$(echo "$METADATA" | jq -r '.desc // ""')
+          HOMEPAGE=$(echo "$METADATA" | jq -r '.homepage // ""')
+          BINARY=$(echo "$METADATA" | jq -r '.binary // ""')
+          TEST_ARGS=$(echo "$METADATA" | jq -r '.test_args // [] | join(",")')
 
-          project = os.environ["PROJECT"]
-          version = os.environ["VERSION"]
-          tag = os.environ["TAG"]
-          mirror_repo = os.environ["MIRROR_REPO"]
-          source_repo = os.environ["SOURCE_REPO"]
-          metadata = json.loads(os.environ["MIRROR_METADATA"])
+          # Build Dagger command with optional parameters
+          DAGGER_CMD="dagger call generate-homebrew-formula --project=${PROJECT} --version=${VERSION} --tag=${TAG} --source-repo=${SOURCE_REPO} --archives-dir=dist"
 
-          project_meta = metadata.get(project, {})
-          binary_name = project_meta.get("binary", project)
+          if [ -n "$DESC" ]; then
+            DAGGER_CMD="$DAGGER_CMD --desc=\"$DESC\""
+          fi
+          if [ -n "$HOMEPAGE" ]; then
+            DAGGER_CMD="$DAGGER_CMD --homepage=\"$HOMEPAGE\""
+          fi
+          if [ -n "$BINARY" ]; then
+            DAGGER_CMD="$DAGGER_CMD --binary-name=\"$BINARY\""
+          fi
+          if [ -n "$TEST_ARGS" ]; then
+            DAGGER_CMD="$DAGGER_CMD --test-args=\"$TEST_ARGS\""
+          fi
 
-          def escape(value: str) -> str:
-              return value.replace("\\", "\\\\").replace("\"", "\\\"")
+          # Execute the command and export the result
+          eval "$DAGGER_CMD export --path=formula.rb"
 
-          desc = escape(project_meta.get("desc", f"{project} CLI"))
-          homepage = escape(project_meta.get("homepage", f"https://github.com/{source_repo}"))
-          test_args = project_meta.get("test_args", ["--help"])
-
-          class_name = project_meta.get("formula_class")
-          if not class_name:
-              class_name = "".join(part.capitalize() for part in project.split("-"))
-
-          dist_dir = Path(os.getcwd()).parent / "dist"
-          artifacts = {}
-
-          for archive in dist_dir.glob(f"{project}-{version}-*.tar.gz"):
-              name = archive.name
-              platform = name.split(f"{project}-{version}-", 1)[1].removesuffix(".tar.gz")
-              digest = hashlib.sha256(archive.read_bytes()).hexdigest()
-              artifacts[platform] = {
-                  "filename": name,
-                  "sha256": digest,
-              }
-
-          if not artifacts:
-              raise SystemExit(f"No packaged Homebrew archives found for {project}")
-
-          def url_for(filename: str) -> str:
-              return f"https://github.com/{source_repo}/releases/download/{tag}/{filename}"
-
-          def block_lines(os_name: str, arch: str):
-              entry = artifacts.get(f"{os_name}-{arch}")
-              if not entry:
-                  return None
-              return [
-                  f'url "{url_for(entry["filename"])}"',
-                  f'sha256 "{entry["sha256"]}"',
-              ]
-
-          mac_blocks = {
-              "arm64": block_lines("darwin", "arm64"),
-              "amd64": block_lines("darwin", "amd64"),
-          }
-          linux_blocks = {
-              "arm64": block_lines("linux", "arm64"),
-              "amd64": block_lines("linux", "amd64"),
-          }
-
-          lines = [
-              f"class {class_name} < Formula",
-              f"  desc \"{desc}\"",
-              f"  homepage \"{homepage}\"",
-              f"  version \"{version}\"",
-          ]
-
-          def append_os_section(buffer, os_name: str, blocks: dict):
-              order = ["arm64", "amd64"]
-              entries = []
-              for arch_name in order:
-                  block = blocks.get(arch_name)
-                  if not block:
-                      continue
-                  cpu_method = "arm?" if arch_name == "arm64" else "intel?"
-                  entries.append((cpu_method, block))
-              if not entries:
-                  return
-              buffer.append(f"  on_{os_name} do")
-              for cpu_method, block in entries:
-                  buffer.append(f"    if Hardware::CPU.{cpu_method}")
-                  for line in block:
-                      buffer.append(f"      {line}")
-                  buffer.append("    end")
-              buffer.append("  end")
-
-          append_os_section(lines, "macos", mac_blocks)
-          append_os_section(lines, "linux", linux_blocks)
-
-          test_args_ruby = ", ".join([f'"{arg}"' for arg in test_args]) if test_args else '"--help"'
-
-          lines.extend([
-              "  def install",
-              f"    bin.install \"{binary_name}\"",
-              "  end",
-              "",
-              "  test do",
-              f"    system \"#{{bin}}/{binary_name}\", {test_args_ruby}",
-              "  end",
-              "end",
-          ])
-
-          formula_dir = Path("Formula")
-          formula_dir.mkdir(parents=True, exist_ok=True)
-          formula_path = formula_dir / f"{project}.rb"
-          formula_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-          PY
+          # Move formula to tap directory
+          mkdir -p tap/Formula
+          mv formula.rb tap/Formula/${PROJECT}.rb
 
       - name: Run brew audit
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && contains(fromJson(needs.detect.outputs.mirror_projects), matrix.project) }}

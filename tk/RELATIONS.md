@@ -98,7 +98,7 @@ tk ls --blocked
 tk ls --unblocked
 
 # Combine with other filters
-tk ls --prefix foo --blocked
+tk ls -p foo --blocked
 tk ls --axis generic:in_progress --unblocked
 ```
 
@@ -149,7 +149,7 @@ The system detects cycles in `blocks` and `subtask` relations. Cycles are not cu
 
 ## JSON Output
 
-Relations are included in task JSON when using `tk view`:
+Relations are included in task JSON when using `tk show`:
 
 ```json
 {

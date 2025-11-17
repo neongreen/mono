@@ -2,10 +2,12 @@ package jj
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/editors"
 	"github.com/neongreen/mono/conf/pkg/schemas"
+	"github.com/neongreen/mono/lib/configschema"
 )
 
 // JJTool implements jj configuration management
@@ -58,7 +60,7 @@ func (j *JJTool) SetDryRun(dryRun bool) {
 }
 
 // SetConfig sets a configuration value using dotted path notation
-func (j *JJTool) SetConfig(path string, value interface{}) error {
+func (j *JJTool) SetConfig(path string, value any) error {
 	// Validate the path exists in schema
 	if !j.parser.ValidatePath(path) {
 		return j.createInvalidPathError(path)
@@ -73,7 +75,7 @@ func (j *JJTool) SetConfig(path string, value interface{}) error {
 }
 
 // GetConfig retrieves a configuration value using dotted path notation
-func (j *JJTool) GetConfig(path string) (interface{}, error) {
+func (j *JJTool) GetConfig(path string) (any, error) {
 	// Validate the path exists in schema
 	if !j.parser.ValidatePath(path) {
 		return nil, j.createInvalidPathError(path)
@@ -104,7 +106,7 @@ func (j *JJTool) UnsetConfig(path string) error {
 }
 
 // PreviewSetConfig shows what setting a config value would do without doing it
-func (j *JJTool) PreviewSetConfig(path string, value interface{}) (string, error) {
+func (j *JJTool) PreviewSetConfig(path string, value any) (string, error) {
 	// Validate the path exists in schema
 	if !j.parser.ValidatePath(path) {
 		return "", fmt.Errorf("invalid configuration path: %s", path)
@@ -133,38 +135,8 @@ func (j *JJTool) IsDryRun() bool {
 	return j.dryRun
 }
 
-// ListCommonSettings returns a list of commonly used jj settings with descriptions
-func (j *JJTool) ListCommonSettings() []CommonSetting {
-	return []CommonSetting{
-		{
-			Path:        "user.name",
-			Description: "Full name of the user, used in commits",
-			Type:        "string",
-			Example:     "Alice Smith",
-		},
-		{
-			Path:        "user.email",
-			Description: "User's email address, used in commits",
-			Type:        "string",
-			Example:     "alice@example.com",
-		},
-		{
-			Path:        "ui.default-command",
-			Description: "Default command to run when no command is specified",
-			Type:        "string",
-			Example:     "log",
-		},
-		{
-			Path:        "snapshot.max-new-file-size",
-			Description: "Maximum size of new files to automatically track",
-			Type:        "integer",
-			Example:     "1048576",
-		},
-	}
-}
-
 // ListAllSettings returns comprehensive information about all jj settings from schema
-func (j *JJTool) ListAllSettings() ([]schemas.SettingInfo, error) {
+func (j *JJTool) ListAllSettings() ([]configschema.SettingInfo, error) {
 	// Get all settings from schema
 	schemaSettings := j.parser.GetAllSettingsWithInfo()
 
@@ -198,18 +170,19 @@ func (j *JJTool) createInvalidPathError(path string) error {
 		}
 	}
 
-	errorMsg := fmt.Sprintf("invalid configuration path: %s", path)
+	var errorMsg strings.Builder
+	errorMsg.WriteString(fmt.Sprintf("invalid configuration path: %s", path))
 
 	if len(suggestions) > 0 {
-		errorMsg += "\n\nDid you mean one of these?"
+		errorMsg.WriteString("\n\nDid you mean one of these?")
 		for _, suggestion := range suggestions {
-			errorMsg += fmt.Sprintf("\n  - %s", suggestion)
+			errorMsg.WriteString(fmt.Sprintf("\n  - %s", suggestion))
 		}
 	} else {
-		errorMsg += "\n\nUse 'conf jj list' to see available configuration options"
+		errorMsg.WriteString("\n\nUse 'conf jj list' to see available configuration options")
 	}
 
-	return fmt.Errorf("%s", errorMsg)
+	return fmt.Errorf("%s", errorMsg.String())
 }
 
 // containsSubstring checks if s contains substr (case-insensitive)
@@ -223,23 +196,15 @@ func containsSubstring(s, substr string) bool {
 			(len(s) > len(substr) && s[len(s)-len(substr):] == substr))
 }
 
-// CommonSetting represents a commonly used configuration setting
-type CommonSetting struct {
-	Path        string
-	Description string
-	Type        string
-	Example     string
-}
-
 // GetAllValues returns all configuration values from the jj config file as a nested map
-func (j *JJTool) GetAllValues() (map[string]interface{}, error) {
+func (j *JJTool) GetAllValues() (map[string]any, error) {
 	return j.editor.GetAllValues()
 }
 
 // SetAllValues sets multiple configuration values from a nested map structure
 // This is more efficient than setting individual paths as it avoids the need
 // to flatten/unflatten the structure and parse quoted keys
-func (j *JJTool) SetAllValues(values map[string]interface{}) error {
+func (j *JJTool) SetAllValues(values map[string]any) error {
 	if j.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil

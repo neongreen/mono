@@ -3,11 +3,11 @@ package linear
 import (
 	"context"
 	"fmt"
-	"github.com/neongreen/mono/ingest/pkg/database"
 	"os"
 	"testing"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/neongreen/mono/ingest/pkg/database"
 )
 
 type fakeSession struct {

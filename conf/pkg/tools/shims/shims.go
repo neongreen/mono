@@ -48,7 +48,7 @@ func (s *ShimsTool) CreateShim(name, command string) error {
 
 	// Ensure shims directory exists
 	if !s.dryRun {
-		if err := os.MkdirAll(s.shimsDir, 0755); err != nil {
+		if err := os.MkdirAll(s.shimsDir, 0o755); err != nil {
 			return fmt.Errorf("failed to create shims directory %s: %w", s.shimsDir, err)
 		}
 	}
@@ -75,7 +75,7 @@ func (s *ShimsTool) CreateShim(name, command string) error {
 	}
 
 	// Write shim file
-	if err := os.WriteFile(shimPath, []byte(shimContent), 0755); err != nil {
+	if err := os.WriteFile(shimPath, []byte(shimContent), 0o755); err != nil {
 		return fmt.Errorf("failed to write shim file %s: %w", shimPath, err)
 	}
 
@@ -208,10 +208,10 @@ func (s *ShimsTool) extractCommandFromShim(shimPath string) (string, error) {
 		return "", err
 	}
 
-	lines := strings.Split(string(content), "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "# Command: ") {
-			return strings.TrimPrefix(line, "# Command: "), nil
+	lines := strings.SplitSeq(string(content), "\n")
+	for line := range lines {
+		if after, ok := strings.CutPrefix(line, "# Command: "); ok {
+			return after, nil
 		}
 	}
 

@@ -21,7 +21,7 @@ func TestNewStarshipTool(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -30,7 +30,7 @@ func TestNewStarshipTool(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -64,7 +64,7 @@ func TestNewStarshipToolWithDryRun(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -72,7 +72,7 @@ func TestNewStarshipToolWithDryRun(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -102,7 +102,7 @@ func TestStarshipTool_SetDryRun(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -110,7 +110,7 @@ func TestStarshipTool_SetDryRun(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -147,7 +147,7 @@ func TestStarshipTool_GetConfigPath(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -155,7 +155,7 @@ func TestStarshipTool_GetConfigPath(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -187,7 +187,7 @@ func TestStarshipTool_SetAndGetConfig(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -196,7 +196,7 @@ add_newline = true
 command_timeout = 500
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -245,7 +245,7 @@ func TestStarshipTool_UnsetConfig(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -254,7 +254,7 @@ add_newline = true
 command_timeout = 500
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -297,7 +297,7 @@ func TestStarshipTool_ValidatePath(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -305,7 +305,7 @@ func TestStarshipTool_ValidatePath(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -353,7 +353,7 @@ func TestStarshipTool_PreviewSetConfig(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -361,7 +361,7 @@ func TestStarshipTool_PreviewSetConfig(t *testing.T) {
 add_newline = true
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -389,81 +389,6 @@ add_newline = true
 	}
 }
 
-func TestStarshipTool_ListCommonSettings(t *testing.T) {
-	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "starship-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Override home directory for testing
-	originalHome := os.Getenv("HOME")
-	os.Setenv("HOME", tempDir)
-	defer os.Setenv("HOME", originalHome)
-
-	// Create minimal starship config structure
-	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
-		t.Fatalf("Failed to create starship config dir: %v", err)
-	}
-
-	configContent := `# Starship config for testing
-add_newline = true
-`
-	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
-		t.Fatalf("Failed to write config file: %v", err)
-	}
-
-	tool, err := NewStarshipTool()
-	if err != nil {
-		t.Fatalf("Failed to create starship tool: %v", err)
-	}
-
-	settings := tool.ListCommonSettings()
-
-	if len(settings) == 0 {
-		t.Error("Expected some common settings to be returned")
-	}
-
-	// Verify structure of common settings
-	for i, setting := range settings {
-		if setting.Path == "" {
-			t.Errorf("Setting %d has empty path", i)
-		}
-		if setting.Description == "" {
-			t.Errorf("Setting %d has empty description", i)
-		}
-		if setting.Type == "" {
-			t.Errorf("Setting %d has empty type", i)
-		}
-		if setting.Example == "" {
-			t.Errorf("Setting %d has empty example", i)
-		}
-	}
-
-	// Check for some expected common settings
-	expectedPaths := map[string]bool{
-		"format":                   false,
-		"add_newline":              false,
-		"command_timeout":          false,
-		"character.success_symbol": false,
-	}
-
-	for _, setting := range settings {
-		if _, exists := expectedPaths[setting.Path]; exists {
-			expectedPaths[setting.Path] = true
-		}
-	}
-
-	for path, found := range expectedPaths {
-		if !found {
-			t.Errorf("Expected common setting '%s' not found", path)
-		}
-	}
-}
-
 func TestStarshipTool_NestedConfiguration(t *testing.T) {
 	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "starship-test")
@@ -479,7 +404,7 @@ func TestStarshipTool_NestedConfiguration(t *testing.T) {
 
 	// Create minimal starship config structure
 	starshipConfigDir := filepath.Join(tempDir, ".config")
-	if err := os.MkdirAll(starshipConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
 		t.Fatalf("Failed to create starship config dir: %v", err)
 	}
 
@@ -491,7 +416,7 @@ success_symbol = "[➜](bold green)"
 error_symbol = "[➜](bold red)"
 `
 	configPath := filepath.Join(starshipConfigDir, "starship.toml")
-	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
 		t.Fatalf("Failed to write config file: %v", err)
 	}
 
@@ -537,6 +462,190 @@ error_symbol = "[➜](bold red)"
 	}
 	if value != "🌱 " {
 		t.Errorf("Expected '🌱 ', got %v", value)
+	}
+}
+
+func TestStarshipTool_ListAllSettings(t *testing.T) {
+	// Create temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "starship-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Override home directory for testing
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	// Create minimal starship config structure
+	starshipConfigDir := filepath.Join(tempDir, ".config")
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
+		t.Fatalf("Failed to create starship config dir: %v", err)
+	}
+
+	configContent := `# Starship config for testing
+add_newline = true
+command_timeout = 1000
+
+[character]
+success_symbol = "[➜](bold green)"
+`
+	configPath := filepath.Join(starshipConfigDir, "starship.toml")
+	if err := os.WriteFile(configPath, []byte(configContent), 0o644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	tool, err := NewStarshipTool()
+	if err != nil {
+		t.Fatalf("Failed to create starship tool: %v", err)
+	}
+
+	// Test listing all settings
+	settings, err := tool.ListAllSettings()
+	if err != nil {
+		t.Fatalf("Failed to list all settings: %v", err)
+	}
+
+	// Should have many settings from schema
+	if len(settings) < 50 {
+		t.Errorf("Expected at least 50 settings from schema, got %d", len(settings))
+	}
+
+	// Check that we have some expected top-level settings
+	expectedSettings := map[string]bool{
+		"format":          false,
+		"add_newline":     false,
+		"command_timeout": false,
+	}
+
+	for _, setting := range settings {
+		if _, exists := expectedSettings[setting.Path]; exists {
+			expectedSettings[setting.Path] = true
+
+			// Verify setting has required fields
+			if setting.Type == "" {
+				t.Errorf("Setting %s has empty type", setting.Path)
+			}
+		}
+	}
+
+	// Verify expected settings were found
+	for path, found := range expectedSettings {
+		if !found {
+			t.Errorf("Expected setting %s not found in all settings", path)
+		}
+	}
+
+	// Check that current values are populated for configured settings
+	var addNewlineFound, commandTimeoutFound bool
+	for _, setting := range settings {
+		if setting.Path == "add_newline" {
+			addNewlineFound = true
+			if !setting.IsSet {
+				t.Error("Expected add_newline to be marked as set")
+			}
+			if setting.CurrentValue != true {
+				t.Errorf("Expected add_newline current value to be true, got %v", setting.CurrentValue)
+			}
+		}
+		if setting.Path == "command_timeout" {
+			commandTimeoutFound = true
+			if !setting.IsSet {
+				t.Error("Expected command_timeout to be marked as set")
+			}
+			if setting.CurrentValue != int64(1000) {
+				t.Errorf("Expected command_timeout current value to be 1000, got %v", setting.CurrentValue)
+			}
+		}
+	}
+
+	if !addNewlineFound {
+		t.Error("add_newline setting not found")
+	}
+	if !commandTimeoutFound {
+		t.Error("command_timeout setting not found")
+	}
+
+	// Verify that unset settings have IsSet=false
+	for _, setting := range settings {
+		if setting.Path == "scan_timeout" { // This one is not set in our test config
+			if setting.IsSet {
+				t.Error("Expected scan_timeout to not be marked as set")
+			}
+			if setting.CurrentValue != nil {
+				t.Error("Expected scan_timeout CurrentValue to be nil")
+			}
+			// Should have a default value from schema
+			if setting.Default == nil {
+				t.Error("Expected scan_timeout to have a default value from schema")
+			}
+		}
+	}
+}
+
+func TestLookupValueByPath(t *testing.T) {
+	data := map[string]any{
+		"top_level": "value1",
+		"nested": map[string]any{
+			"key1": "value2",
+			"key2": map[string]any{
+				"deep": "value3",
+			},
+		},
+		"number": int64(42),
+	}
+
+	tests := []struct {
+		name     string
+		path     string
+		expected any
+	}{
+		{"top level key", "top_level", "value1"},
+		{"nested key", "nested.key1", "value2"},
+		{"deeply nested key", "nested.key2.deep", "value3"},
+		{"number value", "number", int64(42)},
+		{"non-existent key", "nonexistent", nil},
+		{"non-existent nested", "nested.nonexistent", nil},
+		{"empty path", "", nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := lookupValueByPath(data, tt.path)
+			if result != tt.expected {
+				t.Errorf("lookupValueByPath(%q) = %v, want %v", tt.path, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestSplitPath(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected []string
+	}{
+		{"simple path", "a.b.c", []string{"a", "b", "c"}},
+		{"single segment", "single", []string{"single"}},
+		{"empty path", "", nil},
+		{"quoted segment", `a."b.c".d`, []string{"a", "b.c", "d"}},
+		{"nested path", "character.success_symbol", []string{"character", "success_symbol"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := splitPath(tt.path)
+			if len(result) != len(tt.expected) {
+				t.Errorf("splitPath(%q) returned %d parts, want %d", tt.path, len(result), len(tt.expected))
+				return
+			}
+			for i := range result {
+				if result[i] != tt.expected[i] {
+					t.Errorf("splitPath(%q)[%d] = %q, want %q", tt.path, i, result[i], tt.expected[i])
+				}
+			}
+		})
 	}
 }
 

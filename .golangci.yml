@@ -1,0 +1,64 @@
+version: "2"
+
+# NOTE: This config requires golangci-lint v2.6.1 or newer (see .dagger/runlint.go)
+# Some linters like 'modernize' are not available in older versions
+
+linters:
+  default: none
+  enable:
+  - modernize
+  - unused
+  - unparam
+  - staticcheck
+  - govet
+  - errorlint
+  - ineffassign
+  - depguard
+  - gosec  # Security linter - detects SQL injection, command injection, etc.
+  # - nilerr  # Routinely flags graceful degradation patterns as bugs (e.g., fallback to UID when name lookup fails)
+  settings:
+    gosec:
+      excludes:
+        - G306  # File permissions - config files appropriately use 0o644
+        - G404  # Weak random number generator - we use math/rand for non-security purposes (test data, sampling, etc.)
+    depguard:
+      rules:
+        prevent-flag-package:
+          files:
+            - "$all"
+          deny:
+            - pkg: "flag"
+              desc: "use github.com/spf13/cobra instead of the flag package"
+    staticcheck:
+      checks:
+      - all
+      - -QF1001  # De Morgan's law - whatever
+      - -ST1003  # Don't complain about naming conventions
+      - -ST1005  # Error strings capitalized - low impact, not worth AI agent iterations
+      - -S1039   # Unnecessary sprintf - low impact, not worth AI agent iterations 
+    govet:
+      enable-all: true
+      disable:
+        - shadow  # Don't complain about 'err' being shadowed
+        - fieldalignment  # We don't care about field alignment
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - .*\.gen\.go$
+      - node_modules
+      - _gotools
+      - _build
+      - third_party$
+      - builtin$
+      - examples$
+      - .dagger/internal/.*
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+

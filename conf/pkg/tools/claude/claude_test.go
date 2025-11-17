@@ -15,7 +15,7 @@ func setupTestConfig(t *testing.T) (string, func()) {
 	claudeConfigPath := filepath.Join(tmpDir, ".config", "claude", "config.json")
 
 	// Create conf config directory
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
@@ -27,7 +27,7 @@ func setupTestConfig(t *testing.T) (string, func()) {
 name = "claude"
 path = "` + claudeConfigPath + `"
 `
-	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0644); err != nil {
+	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0o644); err != nil {
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
@@ -62,7 +62,7 @@ func TestClaudeTool_SetConfig(t *testing.T) {
 		t.Fatalf("Failed to read config: %v", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
@@ -77,16 +77,16 @@ func TestClaudeTool_GetConfig(t *testing.T) {
 	defer cleanup()
 
 	// Create initial config
-	data := map[string]interface{}{
+	data := map[string]any{
 		"model":                 "sonnet",
 		"alwaysThinkingEnabled": true,
 		"outputStyle":           "markdown",
 		"apiKeyHelper":          "/path/to/helper.sh",
 	}
 
-	os.MkdirAll(filepath.Dir(claudeConfigPath), 0755)
+	os.MkdirAll(filepath.Dir(claudeConfigPath), 0o755)
 	content, _ := json.MarshalIndent(data, "", "  ")
-	os.WriteFile(claudeConfigPath, content, 0644)
+	os.WriteFile(claudeConfigPath, content, 0o644)
 
 	tool, err := NewClaudeTool()
 	if err != nil {
@@ -97,7 +97,7 @@ func TestClaudeTool_GetConfig(t *testing.T) {
 	tests := []struct {
 		name     string
 		path     string
-		expected interface{}
+		expected any
 	}{
 		{
 			name:     "get model",
@@ -135,14 +135,14 @@ func TestClaudeTool_UnsetConfig(t *testing.T) {
 	defer cleanup()
 
 	// Create initial config
-	data := map[string]interface{}{
+	data := map[string]any{
 		"model":                 "sonnet",
 		"alwaysThinkingEnabled": true,
 	}
 
-	os.MkdirAll(filepath.Dir(claudeConfigPath), 0755)
+	os.MkdirAll(filepath.Dir(claudeConfigPath), 0o755)
 	content, _ := json.MarshalIndent(data, "", "  ")
-	os.WriteFile(claudeConfigPath, content, 0644)
+	os.WriteFile(claudeConfigPath, content, 0o644)
 
 	tool, err := NewClaudeTool()
 	if err != nil {
@@ -179,7 +179,7 @@ func TestClaudeTool_SetAllValues(t *testing.T) {
 		t.Fatalf("Failed to create Claude tool: %v", err)
 	}
 
-	values := map[string]interface{}{
+	values := map[string]any{
 		"model":                 "sonnet",
 		"alwaysThinkingEnabled": true,
 		"outputStyle":           "markdown",

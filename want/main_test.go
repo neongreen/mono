@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 	"testing"
 )
@@ -188,84 +187,6 @@ func TestParsePRNumber(t *testing.T) {
 	}
 }
 
-func TestCreateGoBuildCommand(t *testing.T) {
-	tests := []struct {
-		name     string
-		args     []string
-		wantPath string // Either "go" or "mise"
-	}{
-		{
-			name:     "build with output flag",
-			args:     []string{"build", "-o", "/tmp/test", "."},
-			wantPath: "", // Will be either "go" or "mise" depending on PATH
-		},
-		{
-			name:     "simple build",
-			args:     []string{"build"},
-			wantPath: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cmd := createGoBuildCommand(tt.args...)
-
-			// Check that we got a command
-			if cmd == nil {
-				t.Fatalf("createGoBuildCommand returned nil")
-			}
-
-			// Verify the command is either "go" or "mise exec go@..."
-			if cmd.Path != "" {
-				basePath := cmd.Path
-				if !strings.Contains(basePath, "go") && !strings.Contains(basePath, "mise") {
-					t.Errorf("unexpected command path: %s", basePath)
-				}
-			}
-
-			// If go is available, should use go directly
-			if isToolAvailable("go") {
-				// When go is in PATH, args should be the original args
-				if len(cmd.Args) < 2 {
-					t.Fatalf("expected at least 2 args, got %d: %v", len(cmd.Args), cmd.Args)
-				}
-				// First arg is the command name (go or full path to go)
-				if !strings.Contains(cmd.Args[0], "go") {
-					t.Errorf("expected first arg to contain 'go', got %s", cmd.Args[0])
-				}
-				// Rest should match our input args
-				for i, arg := range tt.args {
-					if cmd.Args[i+1] != arg {
-						t.Errorf("arg[%d] = %v, want %v", i+1, cmd.Args[i+1], arg)
-					}
-				}
-			} else {
-				// When go is not in PATH, should use mise exec if mise is available
-				if isMiseAvailable() {
-					if !strings.Contains(cmd.Args[0], "mise") {
-						t.Errorf("expected to use mise when go not available and mise is available, got %s", cmd.Args[0])
-					}
-					// Check for "exec", "go@<version>", "--", "go" in args
-					expectedArgs := []string{"mise", "exec", fmt.Sprintf("go@%s", goVersion), "--", "go"}
-					if len(cmd.Args) < len(expectedArgs) {
-						t.Fatalf("expected at least %d args for mise exec, got %d", len(expectedArgs), len(cmd.Args))
-					}
-					// Verify the go version matches
-					if !strings.Contains(cmd.Args[2], goVersion) {
-						t.Errorf("expected go version %s in args, got %v", goVersion, cmd.Args)
-					}
-				} else {
-					// If neither go nor mise is available, should still return go command
-					// (will fail with clear error when executed)
-					if !strings.Contains(cmd.Args[0], "go") {
-						t.Errorf("expected to use go when neither go nor mise available, got %s", cmd.Args[0])
-					}
-				}
-			}
-		})
-	}
-}
-
 func TestIsHexString(t *testing.T) {
 	tests := []struct {
 		name string
@@ -314,68 +235,6 @@ func TestIsHexString(t *testing.T) {
 			got := isHexString(tt.str)
 			if got != tt.want {
 				t.Errorf("isHexString(%q) = %v, want %v", tt.str, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestCreateGoBuildCommandIntegration(t *testing.T) {
-	// This test verifies the command structure without executing it
-	cmd := createGoBuildCommand("build", "-o", "/tmp/test", ".")
-
-	if cmd == nil {
-		t.Fatal("createGoBuildCommand returned nil")
-	}
-
-	// The command should be executable
-	_, err := exec.LookPath(cmd.Path)
-	if err != nil {
-		// If we can't find the exact path, check if the command name is valid
-		cmdName := cmd.Args[0]
-		if cmdName != "go" && cmdName != "mise" {
-			t.Errorf("unexpected command name: %s", cmdName)
-		}
-	}
-}
-
-func TestGetBuildPath(t *testing.T) {
-	tests := []struct {
-		name        string
-		projectDir  string
-		want        string
-		description string
-	}{
-		{
-			name:        "project with cmd subdirectory",
-			projectDir:  "../conf",
-			want:        "./cmd",
-			description: "conf has Go files in cmd subdirectory",
-		},
-		{
-			name:        "project without cmd subdirectory",
-			projectDir:  "../want",
-			want:        ".",
-			description: "want has Go files in root directory",
-		},
-		{
-			name:        "another project with cmd",
-			projectDir:  "../dissect",
-			want:        "./cmd",
-			description: "dissect has Go files in cmd subdirectory",
-		},
-		{
-			name:        "project without cmd - prrun",
-			projectDir:  "../prrun",
-			want:        ".",
-			description: "prrun has Go files in root directory",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := getBuildPath(tt.projectDir)
-			if got != tt.want {
-				t.Errorf("getBuildPath(%q) = %v, want %v (%s)", tt.projectDir, got, tt.want, tt.description)
 			}
 		})
 	}

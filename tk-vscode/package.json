@@ -1,0 +1,320 @@
+{
+  "name": "tk",
+  "displayName": "tk",
+  "description": "View tk tasks inside VS Code.",
+  "version": "0.0.1",
+  "publisher": "Emily",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neongreen/mono"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:tkExplorer",
+    "onView:tkDetailView"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "tk.refresh",
+        "title": "tk: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "tk.editTitle",
+        "title": "Edit Title",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "tk.rotateStatus",
+        "title": "Status",
+        "icon": "$(circle-outline)"
+      },
+      {
+        "command": "tk.markDone",
+        "title": "Mark Done",
+        "icon": "$(check)"
+      },
+      {
+        "command": "tk.createTask",
+        "title": "Create Task",
+        "icon": "$(add)"
+      },
+      {
+        "command": "tk.showTaskDetails",
+        "title": "Show Task Details"
+      },
+      {
+        "command": "tk.createProject",
+        "title": "Create Project",
+        "icon": "$(add)"
+      },
+      {
+        "command": "tk.deleteTask",
+        "title": "Delete Task",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "tk.deleteProject",
+        "title": "Delete Project",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "tk.toggleDone",
+        "title": "Show All",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "tk.toggleDoneHide",
+        "title": "Hide Done",
+        "icon": "$(filter-filled)"
+      },
+      {
+        "command": "tk.expandAll",
+        "title": "Expand All",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "tk.collapseAll",
+        "title": "Collapse All",
+        "icon": "$(collapse-all)"
+      },
+      {
+        "command": "tk.search",
+        "title": "Search Tasks",
+        "icon": "$(search)"
+      },
+      {
+        "command": "tk.clearSearch",
+        "title": "Clear Search",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "tk.quickCreateTask",
+        "title": "Quick Create Task"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "tk.toggleDone",
+          "when": "view == tkExplorer && !tk.showingDone",
+          "group": "navigation@1"
+        },
+        {
+          "command": "tk.toggleDoneHide",
+          "when": "view == tkExplorer && tk.showingDone",
+          "group": "navigation@1"
+        },
+        {
+          "command": "tk.refresh",
+          "when": "view == tkExplorer",
+          "group": "navigation@2"
+        },
+        {
+          "command": "tk.expandAll",
+          "when": "view == tkExplorer",
+          "group": "navigation@3"
+        },
+        {
+          "command": "tk.collapseAll",
+          "when": "view == tkExplorer",
+          "group": "navigation@4"
+        },
+        {
+          "command": "tk.createProject",
+          "when": "view == tkExplorer",
+          "group": "navigation@5"
+        },
+        {
+          "command": "tk.search",
+          "when": "view == tkExplorer && !tk.searching",
+          "group": "navigation@6"
+        },
+        {
+          "command": "tk.clearSearch",
+          "when": "view == tkExplorer && tk.searching",
+          "group": "navigation@6"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "tk.editTitle",
+          "when": "view == tkExplorer && viewItem == tkTask && tk.ui.showEditTitleButton",
+          "group": "inline"
+        },
+        {
+          "command": "tk.rotateStatus",
+          "when": "view == tkExplorer && viewItem == tkTask",
+          "group": "inline"
+        },
+        {
+          "command": "tk.deleteTask",
+          "when": "view == tkExplorer && viewItem == tkTask && tk.ui.showDeleteButton",
+          "group": "inline"
+        },
+        {
+          "command": "tk.createTask",
+          "when": "view == tkExplorer && viewItem == tkGroup",
+          "group": "inline"
+        },
+        {
+          "command": "tk.deleteProject",
+          "when": "view == tkExplorer && viewItem == tkGroup",
+          "group": "inline"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "tkContainer",
+          "title": "tk Tasks",
+          "icon": "$(checklist)"
+        }
+      ]
+    },
+    "views": {
+      "tkContainer": [
+        {
+          "id": "tkExplorer",
+          "name": "tk"
+        },
+        {
+          "id": "tkDetailView",
+          "name": "Task Details",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "tk",
+      "properties": {
+        "tk.binaryPath": {
+          "type": "string",
+          "default": "tk",
+          "description": "Path to the tk executable."
+        },
+        "tk.workingDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Directory to run tk ls --json from. Defaults to home directory if no workspace is open."
+        },
+        "tk.group": {
+          "type": "string",
+          "default": "prefix",
+          "enum": [
+            "prefix",
+            "project",
+            "status",
+            "none"
+          ],
+          "description": "Value passed to --group when listing tasks."
+        },
+        "tk.taskDetails.fontFamily": {
+          "type": "string",
+          "default": "",
+          "description": "Font family for task details. Leave empty to use system default."
+        },
+        "tk.taskDetails.fontSize": {
+          "type": "number",
+          "default": 14,
+          "description": "Font size for task details in pixels."
+        },
+        "tk.ui.showDeleteButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show delete button in tree view. If disabled, delete button will appear in task details instead."
+        },
+        "tk.ui.showEditTitleButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show edit title button in tree view."
+        },
+        "tk.ui.showTooltips": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show tooltips when hovering over tasks in the tree view."
+        },
+        "tk.autoRefresh.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic refresh of the task list."
+        },
+        "tk.autoRefresh.intervalSeconds": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Auto-refresh interval in seconds."
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "tk.markDone",
+        "key": ".",
+        "when": "focusedView == tkExplorer && !inputFocus"
+      },
+      {
+        "command": "tk.search",
+        "key": "ctrl+f",
+        "mac": "cmd+f",
+        "when": "focusedView == tkExplorer && !inputFocus"
+      },
+      {
+        "command": "tk.search",
+        "key": "/",
+        "when": "focusedView == tkExplorer && !inputFocus"
+      },
+      {
+        "command": "tk.clearSearch",
+        "key": "escape",
+        "when": "focusedView == tkExplorer && !inputFocus && tk.searching"
+      },
+      {
+        "command": "tk.quickCreateTask",
+        "key": "ctrl+r ctrl+r",
+        "mac": "cmd+r cmd+r"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile && npm run compile:webview",
+    "compile": "tsc -p .",
+    "compile:webview": "node build-webview.mjs",
+    "watch": "tsc -w -p .",
+    "watch:webview": "node build-webview.mjs --watch",
+    "package": "vsce package",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/he": "^1.2.3",
+    "@types/node": "^24.10.0",
+    "@types/vscode": "^1.85.0",
+    "@vitest/ui": "^4.0.8",
+    "@vscode/vsce": "^3.6.2",
+    "esbuild": "^0.24.2",
+    "happy-dom": "^20.0.10",
+    "typescript": "^5.6.3",
+    "vitest": "^4.0.8"
+  },
+  "dependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/marked": "^5.0.2",
+    "dompurify": "^3.3.0",
+    "he": "^1.2.0",
+    "isomorphic-dompurify": "^2.30.1",
+    "marked": "^16.4.1",
+    "preact": "^10.26.1"
+  }
+}

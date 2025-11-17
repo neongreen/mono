@@ -2,6 +2,17 @@
 
 This document contains guidelines for AI agents and automated tools working on projects in this monorepo.
 
+## Dagger Best Practices
+
+When working with Dagger modules (`.dagger/` directory):
+- **Always check the official Dagger repository for best practices**: https://github.com/dagger/dagger
+- Look at their own Dagger modules for reference implementations (e.g., `modules/go/main.go` for Go project handling)
+- Don't reinvent the wheel - see how the Dagger team solves common problems like:
+  - Configuration file handling (golangci-lint automatically searches parent directories)
+  - Caching strategies (module cache, build cache, tool caches)
+  - Parallel execution with limits
+  - Directory mounting and workdir patterns
+
 ## Multi-Agent Environment
 
 **IMPORTANT: Multiple agents may be working on this repository simultaneously.** When making commits, always specify the specific files and subdirectories you're changing to avoid conflicts and provide clear change boundaries.
@@ -20,8 +31,8 @@ This document contains guidelines for AI agents and automated tools working on p
 
 - All tools are written in Go unless stated otherwise.
 - All new projects are created as top-level folders in the repository unless stated otherwise.
-- All projects must contain a `mise.toml`. Check existing `mise.toml` files to see what is expected from you.
 - All new Go projects must have CI workflows in `.github/workflows/<project-name>.yml`. Check existing workflow files to see what is expected from you.
+- All project tasks are defined in the top-level `mise.toml` file with project-name prefixes (e.g., `project-name:task-name`).
 - Always create commits with `jj commit -m "commit message"` (use the `-m` flag explicitly).
 - In all prose that you write, don't be excited, don't use emojis unless necessary, and don't use pervasive bold text.
 - All temporary files (like summaries of fixes you did, one-off scripts you wrote during PR development, etc) must have names prefixed with `ai-temp-`.
@@ -54,61 +65,274 @@ When you are asked to do something "always" or "never", you must also record thi
 
 ------------------------------------------------------------
 
-## Pull Request Template
-
-All pull requests must include a code block at the very start showing how to run the PR with the `prrun` tool. This is handled automatically via the pull request template at `.github/pull_request_template.md`. The template should:
-
-- Be at the very start of the PR description
-- Show the `prrun` command with placeholders for PR number and project name
-- Provide clear examples of how to use it
-- Assume the user already has `prrun` installed
-
-------------------------------------------------------------
-
 ## Build and Run Guidelines
 
 **Always use `mise` for building and running Go projects. Never use `go build` or `go run` directly.**
+
+### Installing mise in Agent Environments
+
+If you're working in an agent/web environment without mise installed:
+
+```bash
+# Install mise
+curl https://mise.jdx.dev/install.sh | sh
+
+# Add to PATH and trust the config
+export PATH="$HOME/.local/bin:$PATH"
+mise trust
+
+# Verify installation
+mise tasks
+```
+
+Mise will automatically install required tools (Go, Node, Rust, etc.) when you run tasks.
 
 ### Running Go Projects
 
 Use the mise task syntax from the monorepo root:
 ```bash
-mise run //project-name:task-name
+mise run project-name:task-name
 ```
 
 Examples:
-- `mise run //claude-trace:run` - Run claude-trace with default command (TUI mode)
-- `mise run //claude-trace:run list` - Run claude-trace list command
-- `mise run //claude-trace:run extract -o output` - Run claude-trace extract command
+- `mise run claude-trace` - Run claude-trace with default command (TUI mode)
+- `mise run jj-run:test` - Run tests for jj-run
+- `mise run printpdf:build` - Build printpdf binary
 
 ### Why mise?
 
 - Ensures correct Go version is used
 - Manages dependencies consistently
 - Provides consistent build environment
-- Defined in each project's `mise.toml` file
+- All tasks are centrally defined in the top-level `mise.toml` file
 
 ### Project Tasks
 
-All projects should define standard tasks in their `mise.toml` where applicable:
+All project tasks are defined in the top-level `mise.toml` file with project-name prefixes. Standard tasks where applicable:
 
-- **`run`** - Build and run the project (for applications)
-- **`test`** - Run all tests
+- **`project-name`** - Build and run the project (for applications)
+- **`project-name:test`** - Run all tests
+- **`project-name:build`** - Build binary
 
-These tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
+For code formatting, use the top-level `fmt` task which formats all Go code in the monorepo.
+
+These namespaced tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
+
+------------------------------------------------------------
+
+## Go Module Download Issues
+
+**If `go test` or `go build` fails with DNS/network errors when downloading modules, try bypassing the Go proxy.**
+
+### Symptom
+
+When running tests or builds, you see errors like:
+```
+go: downloading modernc.org/sqlite v1.39.1
+dial tcp: lookup storage.googleapis.com on [::1]:53: read udp [::1]:53: connection refused
+```
+
+Some modules download successfully while others fail - this indicates DNS resolution issues for the Go module proxy (`proxy.golang.org`).
+
+### Solution
+
+Use direct downloads instead of the proxy:
+
+```bash
+# Run tests with direct module downloads (no proxy)
+GOPROXY=direct go test ./...
+
+# Build with direct module downloads (no proxy)
+GOPROXY=direct go build ./...
+```
+
+### Why This Works
+
+- Go's default `GOPROXY` is `https://proxy.golang.org,direct`
+- The proxy (`proxy.golang.org`) resolves to `storage.googleapis.com` which may have DNS issues in some environments
+- Setting `GOPROXY=direct` skips the proxy and fetches modules directly from their source repositories (GitHub, etc.)
+- Direct downloads work better in environments with restricted DNS or network configurations
+
+### When to Use
+
+- Claude Code web environments with DNS restrictions
+- Containerized environments with network isolation
+- CI environments with proxy issues
+- Any environment where the Go module proxy is unreachable
+
+### Permanent Configuration
+
+To set this permanently for your shell session:
+```bash
+export GOPROXY=direct
+```
+
+Or configure it in your Go environment:
+```bash
+go env -w GOPROXY=direct
+```
 
 ------------------------------------------------------------
 
 ## Code Formatting
 
-**All Go code must be formatted with `go fmt` before work is considered complete.**
+**All Go code must be formatted before work is considered complete.**
 
 Before submitting any changes to Go projects:
-- Run `go fmt ./...` in the project directory
-- Ensure all Go files are properly formatted
-- This applies to both new and modified Go code
+- Run `mise run format` from the repository root
+- Applies to both new and modified Go code
 
-The `go fmt` tool ensures consistent formatting across all Go code in the monorepo and is a standard requirement for Go development.
+The centralized `format` task ensures consistent formatting across all Go code in the monorepo.
+
+------------------------------------------------------------
+
+## Table Display Library
+
+**All Go code that displays ASCII-style tables must use `github.com/jedib0t/go-pretty/v6/table`.**
+
+The standard table configuration should use:
+- `table.NewWriter()` to create a table
+- `t.SetOutputMirror(os.Stdout)` to output directly to stdout
+- `t.SetStyle(table.StyleLight)` for consistent styling
+- `t.Style().Options.SeparateRows = true` to separate rows
+- `t.Style().Options.DrawBorder = false` to hide outer borders
+- `t.Render()` to render the table
+
+Example:
+```go
+import (
+    "os"
+    "github.com/jedib0t/go-pretty/v6/table"
+)
+
+t := table.NewWriter()
+t.SetOutputMirror(os.Stdout)
+t.AppendHeader(table.Row{"ID", "Status", "Title"})
+
+t.SetStyle(table.StyleLight)
+t.Style().Options.SeparateRows = true
+t.Style().Options.DrawBorder = false
+
+t.AppendRow(table.Row{"1", "done", "Example task"})
+t.Render()
+```
+
+See `tk/display.go` (renderTaskTable function) for a reference implementation.
+
+------------------------------------------------------------
+
+## Go Style Guide
+
+**All Go code must follow the standards defined in [GO_STYLE_GUIDE.md](./GO_STYLE_GUIDE.md).**
+
+The style guide covers:
+- CLI framework usage (Cobra)
+- Error handling patterns
+- Project structure
+- Code organization
+- Testing patterns
+- Documentation conventions
+
+Key standards:
+- Use Cobra for all CLI applications
+- Use `RunE` for command handlers (return errors, main handles exit codes)
+- CLI applications have `main.go` in project root (not in cmd/ subdirectory)
+- The cmd/ subdirectory is optional and used for Cobra command logic (not package main)
+- Use `fmt.Fprintf(os.Stderr, "Error: %v\n", err)` for error output in main
+- See `GO_STYLE_GUIDE.md` for complete details and examples
+
+------------------------------------------------------------
+
+## Testing Guidelines
+
+**Do not write useless tests. See [BULLSHIT_TESTS.md](./BULLSHIT_TESTS.md) for examples of tests to avoid.**
+
+Avoid tests that:
+- Verify that constructors return non-nil
+- Check that struct fields were assigned the values passed to constructors
+- Test that basic language features work (field assignment, struct creation)
+- Verify that framework registration happened (Cobra commands, HTTP routes)
+- Test library functionality instead of your application logic
+
+Write tests that:
+- Verify business logic and algorithms
+- Test error conditions and edge cases
+- Validate data transformations
+- Check integration between components
+- Exercise failure modes and recovery
+
+See [BULLSHIT_TESTS.md](./BULLSHIT_TESTS.md) for detailed examples of what was removed and why.
+
+------------------------------------------------------------
+
+## Version Subcommand Pattern
+
+**All Go CLI tools must implement a `version` subcommand using the shared `lib/version` package.**
+
+### Implementation
+
+1. Import the version package in your cmd directory:
+   ```go
+   import "github.com/neongreen/mono/lib/version"
+   ```
+
+2. Add the version command in an `init()` function in a `version.go` file:
+   ```go
+   func init() {
+       rootCmd.AddCommand(version.NewVersionCommand("tool-name"))
+   }
+   ```
+
+3. The version command automatically provides:
+   - Human-readable output: `tool-name version dev`
+   - JSON output with `--json` flag
+   - Version, git commit, build time, and Go version information
+
+### Build-time Version Information
+
+Version information is automatically embedded by Go's VCS stamping (available since Go 1.18). When building with `go build`, Go automatically includes:
+- Git commit hash
+- Build time from VCS
+- Whether the working tree was modified
+
+This works automatically when:
+- Building from a git repository
+- Building a package directory (e.g., `.`) rather than a specific file (e.g., `./main.go`)
+- Not in a detached HEAD state (or using go build from the module root)
+
+The `lib/version` package reads this information from `debug.ReadBuildInfo()` at runtime.
+
+### Example Usage
+
+```bash
+# Human-readable output
+$ conf version
+conf version main.42
+  commit: a1b2c3d
+  built:  Jan 15, 2024 10:30 PST
+  go:     go1.24.7
+
+# JSON output
+$ conf version --json
+{
+  "build_time": "2024-01-15T18:30:00Z",
+  "commit": "a1b2c3d",
+  "go_version": "go1.24.7",
+  "version": "main.42"
+}
+```
+
+### Tools with Version Commands
+
+All Go CLI tools in this monorepo have version subcommands:
+- tk
+- want
+- conf
+- dissect
+- ingest
+- printpdf
+- claude-trace
+- jj-run
 
 ------------------------------------------------------------
 
@@ -169,6 +393,124 @@ if resp.StatusCode != http.StatusOK {
 - Prefer functions with context variants (e.g., `http.NewRequestWithContext`)
 - Provide both context and non-context versions for backward compatibility
 - Default to `context.Background()` in non-context wrapper functions
+
+------------------------------------------------------------
+
+## Logging Guidelines
+
+**All Go code must follow consistent logging patterns to avoid duplicate and unclear log messages.**
+
+### Core Principle: Log at the Boundaries, Not in Utilities
+
+**Callees (utility functions, library code) should NOT log. Callers (business logic, command handlers) should log.**
+
+### Why This Matters
+
+1. **Avoid duplicates**: If both caller and callee log, you get redundant messages
+2. **Context**: Only the caller knows the business context worth logging
+3. **Reusability**: Utility functions shouldn't pollute logs when used in different contexts
+4. **Separation of concerns**: Low-level functions do work, high-level functions coordinate and log
+
+### The Pattern
+
+```go
+// ❌ BAD: Utility function logs
+func LoadIndexFile(path string) (*IndexFile, error) {
+    slog.Debug("loading index file", "path", path)  // Don't do this
+    data, err := os.ReadFile(path)
+    // ...
+}
+
+// ✅ GOOD: Utility function is silent
+func LoadIndexFile(path string) (*IndexFile, error) {
+    data, err := os.ReadFile(path)
+    if err != nil {
+        return nil, fmt.Errorf("failed to read index: %w", err)  // Just return errors
+    }
+    // ...
+}
+
+// ✅ GOOD: Business logic logs
+func Push(...) error {
+    log := slog.With("remote", remoteName, "space", space)
+    log.Debug("push: loading local index", "path", localIndexPath)
+    localIndex, err := LoadIndexFile(localIndexPath)  // Silent utility
+    if err != nil {
+        log.Error("push: failed to load local index", "error", err)
+        return err
+    }
+    log.Info("push: local index loaded", "segments", len(localIndex.Segments))
+}
+```
+
+### When Lower-Level Code CAN Log
+
+**Exception cases** where lower-level code logs (but still pass logger explicitly):
+
+1. **Long-running background processes** (servers, workers) with no clear caller
+2. **Infrastructure components** (database connection pools, caches)
+3. **Progress updates** for operations taking >1 second
+4. **But**: Pass a logger down explicitly: `func Process(ctx context.Context, log *slog.Logger)`
+
+### Log Message Format
+
+**Make log messages self-descriptive** - include the operation name in the message text:
+
+```go
+// ✅ GOOD: Operation is clear from message
+log.Debug("push: starting", "remote_path", remote.Path)
+log.Debug("push: loading local index", "path", localIndexPath)
+log.Info("push: local index loaded", "segments", len(localIndex.Segments))
+
+// ❌ BAD: Have to read attributes to understand what's happening
+log.Debug("starting", "operation", "push", "remote_path", remote.Path)
+log.Debug("loading local index", "operation", "push", "path", localIndexPath)
+```
+
+### Scoped Loggers
+
+Use `slog.With()` to create scoped loggers with default attributes:
+
+```go
+func Push(remoteName string, remote config.RemoteConfig, space string, stateDir string) error {
+    log := slog.With("remote", remoteName, "space", space)
+    log.Debug("push: starting")  // Automatically includes remote and space
+    log.Debug("push: loading local index", "path", localIndexPath)
+    // ...
+}
+```
+
+### The Decision Rule
+
+**If a function is called from multiple places, it should NOT log.**
+
+Examples:
+- **Utility functions** (`LoadIndexFile`, `SaveIndexFile`, `CalculateSHA256`) - NO logging
+- **Business logic** (Push, Pull, Export, command handlers) - YES logging
+- **Infrastructure** (segment writer writing files) - YES logging with passed logger
+
+### Go Community Consensus
+
+From the Go community and standard library patterns:
+
+1. **"Errors are values"** - return them, don't log them
+2. **Libraries return errors, applications log them** - standard Go proverb
+3. **Log at the edges** - handlers, main functions, top-level business logic
+4. **Pass loggers explicitly** when needed (not via global state)
+
+### Example: tk Push Operation
+
+Good example from `tk/internal/remote/sync.go`:
+
+- `LoadIndexFile()` - utility function, does NOT log
+- `SaveIndexFile()` - utility function, does NOT log  
+- `Push()` - business logic, logs all operations with context
+
+This prevents duplicate messages like:
+```
+[08:34:55] DEBUG  push: loading local index
+[08:34:55] DEBUG  loading index file        ← Duplicate!
+```
 
 ------------------------------------------------------------
 
@@ -406,256 +748,108 @@ The goal is continuous improvement: learn from mistakes and build better practic
 
 ------------------------------------------------------------
 
-## bd (Beads) Issue Tracker
+## tk Issue Tracker
 
-This repository uses **bd (beads)** for issue tracking instead of Markdown TODO files or external issue trackers.
-
-### What is bd?
-
-bd is a lightweight, git-based issue tracker designed specifically for AI coding agents. It stores issues in `.beads/issues.jsonl` (committed to git) and maintains a local SQLite database for fast queries.
+This repository uses **tk** for issue tracking. tk is an event-sourced task tracker with claims-based status, metadata support, and multi-machine sync.
 
 ### Installation
 
-bd is installed globally via:
-
+Built from this monorepo:
 ```bash
-# Quick install (recommended)
-curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/install.sh | bash
-
-# Or via Homebrew
-brew tap steveyegge/beads
-brew install bd
-
-# Or via go install
-go install github.com/steveyegge/beads/cmd/bd@latest
+want mono tk@local
 ```
 
-### Basic Usage
+### Project Organization
 
-**Check for ready work:**
+Tasks are organized into projects:
+
+- **Tool projects** (want, conf, tk, print, mdbook, dissect, etc.) - Tasks specific to each tool in the repo
+- **mono** - Repository-wide concerns (CI, formatting, build systems, monorepo tooling)
+- **Personal projects** (life, infra, ema) - Personal/work tasks
+
+### Common Commands
+
+**List tasks:**
 ```bash
-bd ready --json
+tk ls                        # All tasks
+tk ls -p want                # Want tool tasks only
+tk ls -p mono                # Repo-wide tasks
+tk ls --json                 # JSON output with full metadata
 ```
 
-**Create a new issue:**
+**Create task:**
 ```bash
-bd create "Issue title" -t bug|feature|task -p 0-4 -d "Description" --json
+tk new "Fix bug" --project want
+tk new "Update CI workflow" --project mono
 ```
 
-**Update issue status:**
+**Update status:**
 ```bash
-bd update <id> --status in_progress --json
+tk mark want-1 wip           # Mark as in progress
+tk mark want-1 done          # Mark as done
+tk mark want-1 wip --role agent  # Agent can claim status
 ```
 
-**Close an issue:**
+**View task:**
 ```bash
-bd close <id> --reason "Done" --json
+tk show want-1               # Show full details
+tk show want-1 --json        # JSON output
 ```
 
-**Show issue details:**
+**Add notes:**
 ```bash
-bd show <id> --json
+tk note want-1 "Implemented feature X"
 ```
 
-**List all issues:**
+**Metadata (priority, labels, custom fields):**
 ```bash
-bd list --json
+tk meta set want-1 priority 1
+tk meta set want-1 labels '["bug","urgent"]'
+tk meta get want-1 priority
+tk meta list want-1          # Show all metadata
 ```
 
-**Add dependencies:**
+**Relationships:**
 ```bash
-bd dep add <issue-id> <blocks-id> --type blocks
+tk relate want-1 blocks want-2
+tk blockers want-2           # See what's blocking a task
+tk blocked                   # List all blocked tasks
 ```
 
-**Show dependency tree:**
+### For Agents
+
+**Workflow:**
+1. Check tasks: `tk ls -p <project>` 
+2. Start work: `tk mark <id> wip --role agent`
+3. Add progress notes: `tk note <id> "Status update"`
+4. Complete: `tk mark <id> done --role agent`
+5. Set metadata: `tk meta set <id> priority N --role agent`
+
+**Claims and Authority:**
+- Agents use `--role agent` when making status changes
+- Human claims override agent claims (authority lattice: human > qa > rel > agent > bot)
+- Conflicting claims are preserved as "tentative"
+
+### Database
+
+- **Default location**: `~/.tk/tk.db`
+- **Custom location**: Set `TK_DB_PATH` environment variable
+  ```bash
+  export TK_DB_PATH=/tmp/test.db
+  tk ls  # Uses /tmp/test.db instead of ~/.tk/tk.db
+  ```
+- **Use cases**: Testing, multiple instances, custom locations
+- **Diagnostics**: Run `tk debug doctor` to check database health
+
+### Sync (Multi-Machine)
+
+tk supports syncing across machines:
 ```bash
-bd dep tree <id>
+tk remote add icloud folder ~/Library/Mobile\ Documents/...
+tk sync icloud
 ```
 
-### Issue Types
-
-- `bug` - Something broken that needs fixing
-- `feature` - New functionality
-- `task` - Work item (tests, docs, refactoring)
-- `epic` - Large feature composed of multiple issues
-- `chore` - Maintenance work (dependencies, tooling)
-
-### Priorities
-
-- `0` - Critical (security, data loss, broken builds)
-- `1` - High (major features, important bugs)
-- `2` - Medium (nice-to-have features, minor bugs)
-- `3` - Low (polish, optimization)
-- `4` - Backlog (future ideas)
-
-### Dependency Types
-
-- `blocks` - Hard dependency (issue X blocks issue Y)
-- `related` - Soft relationship (issues are connected)
-- `parent-child` - Epic/subtask relationship
-- `discovered-from` - Track issues discovered during work
-
-Only `blocks` dependencies affect the ready work queue.
-
-### Workflow
-
-1. **At session start**: Run `bd ready` to see what's unblocked
-2. **Claim a task**: `bd update <id> --status in_progress`
-3. **Work on it**: Implement, test, document
-4. **Discover new work**: Create issues for bugs/TODOs found during work
-5. **Complete**: `bd close <id> --reason "Implemented"`
-6. **Auto-sync**: Changes automatically export to `.beads/issues.jsonl` after 5 seconds
-
-### Agent Guidelines
-
-- **Always use `--json` flag** for programmatic use
-- **Use bd instead of Markdown** for all new work tracking
-- **Link discovered issues** using `discovered-from` dependency type
-- **Check `bd ready`** before asking "what should I work on next?"
-- **Auto-sync is enabled**: JSONL is automatically updated after CRUD operations
-- **Issues are git-versioned**: The `.beads/issues.jsonl` file is the source of truth
-- **SQLite DB is local**: The `*.db` files are in `.gitignore` and regenerated from JSONL
-
-### Git Workflow
-
-bd automatically handles git synchronization:
-
-- **Export**: After any CRUD operation, changes are exported to `.beads/issues.jsonl` (5-second debounce)
-- **Import**: When JSONL is newer than DB (e.g., after `git pull`), it's automatically imported
-
-```bash
-# Make changes
-bd create "Fix bug" -p 1
-bd update mono-42 --status in_progress
-
-# Wait 5 seconds for auto-export, or run manually
-bd export
-
-# Commit
-git add .beads/issues.jsonl
-git commit -m "Your message"
-
-# After pull, BD auto-imports the updated JSONL
-git pull
-bd ready  # Fresh data from git
-```
-
-### Repository Setup
-
-This repository has been initialized with:
-- Database at `.beads/mono.db` (not committed)
-- Issue prefix: `mono` (issues are named `mono-1`, `mono-2`, etc.)
-- JSONL export at `.beads/issues.jsonl` (committed to git)
-
-### Resources
-
-- [bd GitHub Repository](https://github.com/steveyegge/beads)
-- [bd Documentation](https://github.com/steveyegge/beads/blob/main/README.md)
-- [bd Workflow Guide](https://github.com/steveyegge/beads/blob/main/WORKFLOW.md)
-- [bd for Agents](https://github.com/steveyegge/beads/blob/main/AGENTS.md)
-
-### Merge Tool Configuration
-
-This repository includes `beads-merge`, a custom 3-way merge tool for `.beads/issues.jsonl` files. To use it with jj:
-
-1. Build the tool: `cd beads-merge && go build -o beads-merge .`
-2. Add to your jj config (`~/.jjconfig.toml`):
-
-```toml
-[merge-tools.beads-merge]
-program = "/absolute/path/to/mono/beads-merge/beads-merge"
-merge-args = ["$output", "$base", "$left", "$right"]
-merge-conflict-exit-codes = [1]
-
-[merge-tools.beads-merge.diff-args]
-# Optional: configure for 2-way diff if needed
-program = "diff"
-```
-
-3. Configure automatic merge for .jsonl files in `.beads/`:
-
-```toml
-[merge]
-# Use beads-merge for .beads/issues.jsonl
-tool-edits = [
-  { pattern = ".beads/issues.jsonl", tool = "beads-merge" }
-]
-```
-
-The `merge-conflict-exit-codes = [1]` setting tells jj that exit code 1 indicates conflict markers are present in the output file, not that the merge should be aborted.
-
-The merge tool will:
-- Match issues by id, created_at, and created_by
-- Intelligently merge field changes
-- Combine dependency arrays
-- Write conflict markers to the output file for unresolvable conflicts
-
-See [beads-merge/README.md](./beads-merge/README.md) for details on the merge algorithm.
-
-------------------------------------------------------------
-
-## Go Workspace Management
-
-This monorepo uses a Go workspace (`go.work`) to manage multiple modules. Follow these rules to avoid dependency resolution errors.
-
-### Rules
-
-1. **Never run `go mod tidy` in individual module directories.** Always use `mise run //:go:tidy-all` from the workspace root, which runs `go work sync`.
-
-2. **Use `v0.0.0` for all workspace-local module dependencies.** All modules in this workspace should depend on other workspace modules using exactly `v0.0.0` (not pseudo-versions like `v0.0.0-20251022141859-f6ab99927bb0`).
-
-3. **Replace directives must match actual module versions.** The `go.work` file must contain replace directives that exactly match the versions required by modules:
-   ```go
-   replace (
-       github.com/neongreen/mono/lib/ghclient v0.0.0 => ./lib/ghclient
-       github.com/neongreen/mono/lib/ghrelease v0.0.0 => ./lib/ghrelease
-       github.com/neongreen/mono/lib/toml v0.0.0 => ./lib/toml
-   )
-   ```
-
-4. **Use `go work sync` to synchronize versions.** This command updates all workspace modules to use consistent versions from the workspace build list. This is what `mise run //:go:tidy-all` does.
-
-5. **Run the workspace linter before committing.** Use `mise run //:lint:go-workspace` to validate that replace directives match module requirements.
-
-6. **CI validation.** The `go-workspace-lint.yml` workflow runs on every PR to ensure:
-   - No individual modules have local replace directives (they should all be in `go.work`)
-   - Workspace replace directives match module requirements
-   - `go work sync` succeeds without modifications
-
-### Why This Matters
-
-Running `go mod tidy` in individual module directories causes Go to attempt downloading dependencies from the remote repository, even with workspace replace directives in place. Since our local module versions (like `v0.0.0`) don't exist as git tags remotely, this results in errors like:
-
-```
-unknown revision lib/ghclient/v0.0.0
-```
-
-The solution is to use `go work sync` from the workspace root, which handles all dependency resolution for workspace modules without attempting remote downloads. Individual module tidying is not necessary in a workspace setup.
-
-### Quick Reference
-
-```bash
-# Synchronize all workspace modules
-mise run //:go:tidy-all
-
-# Or run go work sync directly
-export GOPRIVATE=github.com/neongreen/mono
-export GONOSUMDB=github.com/neongreen/mono
-go work sync
-
-# Validate workspace consistency
-mise run //:lint:go-workspace
-```
-
-### Adding New Workspace Modules
-
-When adding a new module to the workspace:
-
-1. Add it to the `use` directive in `go.work`
-2. Use `v0.0.0` for any dependencies on other workspace modules
-3. Add corresponding `replace` directives in `go.work` for the `v0.0.0` versions
-4. Run `mise run //:go:tidy-all` to synchronize everything
-5. Verify with `mise run //:lint:go-workspace`
+Events are stored as immutable segments that can be synced via iCloud, git, or other remotes.
 
 ------------------------------------------------------------
 
@@ -734,3 +928,123 @@ func applyTool(conf *config.Config, toolName string) error {
 - Configuration file serialization: TOML, JSON, YAML
 
 **The key principle**: If you control both ends (caller and callee), use structured data. Only render to strings at the boundaries.
+
+------------------------------------------------------------
+
+## CLI Output Styling
+
+**All CLI tools must follow the unified styling guidelines defined in [CLI_STYLE_GUIDE.md](./CLI_STYLE_GUIDE.md).**
+
+### Required Library
+
+Use `lib/cli` package for all CLI color formatting:
+
+```go
+import "github.com/neongreen/mono/lib/cli"
+
+// Success messages
+cli.PrintSuccess("✓ Operation completed")
+
+// Error messages  
+cli.PrintError("Error: Failed to process")
+
+// Colored elements
+fmt.Printf("Config: %s\n", cli.Path("/path/to/file"))
+fmt.Printf("%s: %s\n", cli.Key("setting"), cli.Value("value"))
+```
+
+### Semantic Colors
+
+- **Success** (green): `cli.Success()` - checkmarks, success messages
+- **Warning** (yellow): `cli.Warning()` - warnings, in-progress status
+- **Error** (red): `cli.Error()` - errors, failures
+- **Key** (cyan bold): `cli.Key()` - config keys, identifiers
+- **Path** (cyan): `cli.Path()` - file paths
+- **Value** (green): `cli.Value()` - configured values
+- **Type** (yellow): `cli.Type()` - type information
+- **Muted** (bright black): `cli.Muted()` - unset values, placeholders
+- **Header** (bold): `cli.Header()` - section headers
+
+### Guidelines
+
+- Use colors purposefully, not excessively
+- Maintain consistency across all tools (want, conf, jj-run, etc.)
+- Colors should enhance readability, not distract
+- The `fatih/color` library automatically respects NO_COLOR environment variable
+
+See [CLI_STYLE_GUIDE.md](./CLI_STYLE_GUIDE.md) for complete documentation and examples.
+
+------------------------------------------------------------
+
+## GitHub Copilot Agent
+
+This section contains specific guidance for the GitHub Copilot coding agent.
+
+### Accessing GitHub Pull Request Review Comments
+
+**Problem**: When asked to address PR review comments, the agent may claim it doesn't have access to them, when in fact the GitHub MCP tools are available.
+
+**Solution**: Use the GitHub MCP server tools to fetch PR review comments. Here's the correct workflow:
+
+1. **Find the PR number** by searching for PRs on the branch:
+   ```
+   Tool: github-mcp-server-search_pull_requests
+   Parameters:
+     - owner: "neongreen"
+     - repo: "mono"
+     - query: "head:BRANCH_NAME repo:neongreen/mono"
+   ```
+
+2. **Get review comments** (inline code review comments):
+   ```
+   Tool: github-mcp-server-pull_request_read
+   Parameters:
+     - method: "get_review_comments"
+     - owner: "neongreen"
+     - repo: "mono"
+     - pullNumber: <PR_NUMBER>
+   ```
+
+3. **Get reviews** (overall review summaries):
+   ```
+   Tool: github-mcp-server-pull_request_read
+   Parameters:
+     - method: "get_reviews"
+     - owner: "neongreen"
+     - repo: "mono"
+     - pullNumber: <PR_NUMBER>
+   ```
+
+4. **Get general comments** (issue comments on the PR):
+   ```
+   Tool: github-mcp-server-pull_request_read
+   Parameters:
+     - method: "get_comments"
+     - owner: "neongreen"
+     - repo: "mono"
+     - pullNumber: <PR_NUMBER>
+   ```
+
+5. **Get PR details**:
+   ```
+   Tool: github-mcp-server-pull_request_read
+   Parameters:
+     - method: "get"
+     - owner: "neongreen"
+     - repo: "mono"
+     - pullNumber: <PR_NUMBER>
+   ```
+
+**Important notes**:
+- The tool name is `github-mcp-server-pull_request_read`, NOT `pull_request_read`
+- Review comments contain inline code feedback with file paths, line numbers, and diffs
+- Reviews contain overall review summaries and approval states
+- Comments contain general discussion on the PR
+- Always check all three to get complete feedback
+
+**Example from PR #259**:
+- Review comments included P0 (critical) issues about missing imports
+- Review comments included P1 (important) issues about silent error handling
+- Each comment had specific file paths, line numbers, and detailed explanations
+
+**Common mistake**: Saying "I don't have access to review comments" without first trying the GitHub MCP tools. Always try fetching them first.

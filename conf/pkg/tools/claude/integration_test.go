@@ -18,7 +18,7 @@ func TestClaudeTool_Integration(t *testing.T) {
 
 	// Create conf config directory
 	configDir := filepath.Join(tmpDir, ".config", "conf")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
@@ -30,7 +30,7 @@ func TestClaudeTool_Integration(t *testing.T) {
 name = "claude"
 path = "` + claudeConfigPath + `"
 `
-	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0644); err != nil {
+	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0o644); err != nil {
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
@@ -43,7 +43,7 @@ path = "` + claudeConfigPath + `"
 	// Test setting various configuration values
 	testCases := []struct {
 		path  string
-		value interface{}
+		value any
 	}{
 		{"model", "sonnet"},
 		{"alwaysThinkingEnabled", true},
@@ -63,7 +63,7 @@ path = "` + claudeConfigPath + `"
 		t.Fatalf("Failed to read config file: %v", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}
@@ -112,7 +112,7 @@ path = "` + claudeConfigPath + `"
 		t.Fatalf("Failed to read config file: %v", err)
 	}
 
-	var finalData map[string]interface{}
+	var finalData map[string]any
 	if err := json.Unmarshal(content, &finalData); err != nil {
 		t.Fatalf("Failed to parse JSON after unset: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestClaudeTool_IntegrationWithConfState(t *testing.T) {
 
 	// Create conf config directory
 	configDir := filepath.Join(tmpDir, ".config", "conf")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
@@ -149,7 +149,7 @@ func TestClaudeTool_IntegrationWithConfState(t *testing.T) {
 name = "claude"
 path = "` + claudeConfigPath + `"
 `
-	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0644); err != nil {
+	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0o644); err != nil {
 		t.Fatalf("Failed to write config: %v", err)
 	}
 
@@ -189,7 +189,7 @@ path = "` + claudeConfigPath + `"
 		t.Fatalf("Failed to read config file: %v", err)
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.Unmarshal(content, &data); err != nil {
 		t.Fatalf("Failed to parse JSON: %v", err)
 	}

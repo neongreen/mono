@@ -1,23 +1,11 @@
 package schemas
 
 import (
+	"slices"
 	"testing"
+
+	"github.com/neongreen/mono/lib/configschema"
 )
-
-func TestNewClaudeSchemaParser(t *testing.T) {
-	parser, err := NewClaudeSchemaParser()
-	if err != nil {
-		t.Fatalf("Failed to create Claude schema parser: %v", err)
-	}
-
-	if parser == nil {
-		t.Fatal("Expected parser to be non-nil")
-	}
-
-	if parser.schema == nil {
-		t.Fatal("Expected schema to be non-nil")
-	}
-}
 
 func TestClaudeSchemaParser_ValidatePath(t *testing.T) {
 	parser, err := NewClaudeSchemaParser()
@@ -61,9 +49,9 @@ func TestClaudeSchemaParser_ValidatePath(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "invalid top-level path",
+			name:     "nonexistent top-level path (allowed by additionalProperties)",
 			path:     "nonexistent",
-			expected: false,
+			expected: true, // Claude schema has additionalProperties: true
 		},
 	}
 
@@ -167,13 +155,7 @@ func TestClaudeSchemaParser_GetAllPaths(t *testing.T) {
 	}
 
 	for _, expectedPath := range expectedPaths {
-		found := false
-		for _, path := range paths {
-			if path == expectedPath {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(paths, expectedPath)
 		if !found {
 			t.Errorf("Expected path %q not found in results", expectedPath)
 		}
@@ -193,8 +175,8 @@ func TestClaudeSchemaParser_GetAllSettingsWithInfo(t *testing.T) {
 	}
 
 	// Check for specific settings from official schema
-	var modelSetting *SettingInfo
-	var hooksSetting *SettingInfo
+	var modelSetting *configschema.SettingInfo
+	var hooksSetting *configschema.SettingInfo
 
 	for i := range settings {
 		if settings[i].Path == "model" {

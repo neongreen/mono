@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/pmezard/go-difflib/difflib"
 )
 
@@ -43,11 +43,8 @@ func DisplayUnifiedDiff(before, after, filename string) bool {
 
 // displayColoredDiff displays a unified diff string with color highlighting
 func displayColoredDiff(diffText string) {
-	red := color.New(color.FgRed)
-	green := color.New(color.FgGreen)
-
-	lines := strings.Split(diffText, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(diffText, "\n")
+	for line := range lines {
 		if line == "" {
 			continue
 		}
@@ -62,10 +59,10 @@ func displayColoredDiff(diffText string) {
 			continue
 		case strings.HasPrefix(line, "-"):
 			// Deletions
-			red.Println(line)
+			fmt.Println(cli.Error(line))
 		case strings.HasPrefix(line, "+"):
 			// Additions
-			green.Println(line)
+			fmt.Println(cli.Success(line))
 		case strings.HasPrefix(line, " "):
 			// Context lines
 			fmt.Println(line)

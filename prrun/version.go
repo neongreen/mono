@@ -8,20 +8,14 @@ import (
 	"time"
 
 	"github.com/neongreen/mono/lib/ghrelease"
-)
-
-// These variables are set at build time using -ldflags
-var (
-	Version   = "dev"
-	GitCommit = "unknown"
-	BuildTime = "unknown"
+	"github.com/neongreen/mono/lib/version"
 )
 
 // printVersion prints version information and checks for updates
 func printVersion() {
-	fmt.Printf("prrun version: %s\n", Version)
-	fmt.Printf("Git commit: %s\n", GitCommit)
-	fmt.Printf("Build time: %s\n", BuildTime)
+	fmt.Printf("prrun version: %s\n", version.Version)
+	fmt.Printf("Git commit: %s\n", version.GitCommit)
+	fmt.Printf("Build time: %s\n", version.BuildTime)
 
 	// Check for newer version
 	checkForNewerVersion()
@@ -30,7 +24,7 @@ func printVersion() {
 // checkForNewerVersion checks if there's a newer version available in main
 func checkForNewerVersion() {
 	// Only check if we have a valid commit hash
-	if GitCommit == "unknown" || GitCommit == "" {
+	if version.GitCommit == "unknown" || version.GitCommit == "" {
 		return
 	}
 
@@ -77,7 +71,7 @@ func checkForNewerVersion() {
 	latestSHA := latestCommit.SHA
 
 	// Compare commit SHAs (case-insensitive, allowing for short hashes)
-	currentCommit := strings.ToLower(GitCommit)
+	currentCommit := strings.ToLower(version.GitCommit)
 	latestCommitLower := strings.ToLower(latestSHA)
 
 	// Check if current commit is a prefix of latest, or exact match
@@ -86,8 +80,8 @@ func checkForNewerVersion() {
 	} else {
 		fmt.Printf("\n⚠️  A newer version is available!\n")
 		fmt.Printf("   Latest commit: %s\n", latestSHA[:12])
-		fmt.Printf("   Your commit:   %s\n", GitCommit)
+		fmt.Printf("   Your commit:   %s\n", version.GitCommit)
 		fmt.Printf("\nTo update prrun, rebuild from the latest main branch:\n")
-		fmt.Printf("  cd prrun && git pull && go build -ldflags=\"-X main.GitCommit=$(git rev-parse HEAD) -X main.BuildTime=$(date -u +%%Y-%%m-%%dT%%H:%%M:%%SZ)\" -o prrun .\n")
+		fmt.Printf("  cd prrun && git pull && go build -o prrun .\n")
 	}
 }

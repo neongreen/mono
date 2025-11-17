@@ -1,6 +1,7 @@
 package testutils
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -26,10 +27,10 @@ func CompareDirectories(t *testing.T, expectedFiles map[string]string, actualDir
 	for filePath, content := range expectedFiles {
 		fullPath := filepath.Join(expectedDirPath, filePath)
 		dir := filepath.Dir(fullPath)
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}
-		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(fullPath, []byte(content), 0o644); err != nil {
 			return fmt.Errorf("failed to write expected file %s: %w", fullPath, err)
 		}
 	}
@@ -45,10 +46,10 @@ func CompareDirectories(t *testing.T, expectedFiles map[string]string, actualDir
 	// 2. Compare directories using git diff --no-index
 	cmd := exec.Command("git", "diff", "--no-index", expectedDirPath, actualDirPath)
 	output, err := cmd.CombinedOutput()
-
 	if err != nil {
 		// git diff returns non-zero exit code if differences are found
-		if exitError, ok := err.(*exec.ExitError); ok && exitError.ExitCode() == 1 {
+		exitError := &exec.ExitError{}
+		if errors.As(err, &exitError) {
 			// Differences found, return the diff output as an error
 			return fmt.Errorf("directories differ:\n%s", string(output))
 		}

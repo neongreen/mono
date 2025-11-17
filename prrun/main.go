@@ -1,11 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 func main() {
@@ -72,7 +75,7 @@ func main() {
 	// Only show debug info on errors, not on success
 
 	// Find the PR release (or all releases if no project specified)
-	var release *GitHubRelease
+	var release *ghrelease.Release
 	if projectName != "" {
 		// Project explicitly specified
 		release, err = findPRRelease(prInfo.Owner, prInfo.Repo, prInfo.PRNum, projectName)
@@ -158,7 +161,8 @@ func main() {
 	// Run the binary (no debug output on success)
 
 	if err := runBinary(cachePath, binaryArgs); err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
 			os.Exit(exitErr.ExitCode())
 		}
 		fmt.Fprintf(os.Stderr, "Error running binary: %v\n", err)

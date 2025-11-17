@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -24,7 +25,7 @@ func TestGitHubLiveIngestion(t *testing.T) {
 
 	testutil.WithTempHome(t)
 
-	result, err := jobs.RunGitHub(nil, nil, jobs.GitHubOptions{Owner: owner, Repo: repo})
+	result, err := jobs.RunGitHub(context.Background(), nil, jobs.GitHubOptions{Owner: owner, Repo: repo})
 	if err != nil {
 		t.Fatalf("RunGitHub failed: %v", err)
 	}

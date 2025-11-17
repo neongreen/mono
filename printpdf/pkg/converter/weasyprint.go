@@ -75,7 +75,7 @@ func (w *WeasyPrintConverter) createPythonWrapper(pythonPath string) (string, er
 exec %s -m weasyprint "$@"
 `, pythonPath)
 
-	if err := os.WriteFile(wrapperPath, []byte(script), 0755); err != nil {
+	if err := os.WriteFile(wrapperPath, []byte(script), 0o755); err != nil {
 		return "", err
 	}
 
@@ -106,7 +106,7 @@ func (w *WeasyPrintConverter) prepareInput(content []byte, contentType string, o
 	}
 
 	if options.KeepIntermediates && options.IntermediateDir != "" {
-		if err := os.MkdirAll(options.IntermediateDir, 0755); err != nil {
+		if err := os.MkdirAll(options.IntermediateDir, 0o755); err != nil {
 			return "", false, fmt.Errorf("failed to create intermediate directory %s: %w", options.IntermediateDir, err)
 		}
 		file, err := os.CreateTemp(options.IntermediateDir, "stage-*.html")

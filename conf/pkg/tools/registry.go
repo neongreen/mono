@@ -11,11 +11,11 @@ import (
 
 // Tool interface represents a configuration tool
 type Tool interface {
-	SetConfig(path string, value interface{}) error
-	GetConfig(path string) (interface{}, error)
+	SetConfig(path string, value any) error
+	GetConfig(path string) (any, error)
 	// SetAllValues sets multiple configuration values from a nested map structure
 	// This is more efficient than flattening and setting individual paths
-	SetAllValues(values map[string]interface{}) error
+	SetAllValues(values map[string]any) error
 }
 
 // ToolFactory is a function that creates a new tool instance
@@ -57,7 +57,7 @@ func GetSupportedTools() []string {
 }
 
 // ApplyToolValue applies a single configuration value to a tool using the registry
-func ApplyToolValue(toolName, path string, value interface{}) error {
+func ApplyToolValue(toolName, path string, value any) error {
 	tool, err := GetTool(toolName)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func ApplyToolValue(toolName, path string, value interface{}) error {
 }
 
 // GetActualValue gets the actual value from a tool config file using the registry
-func GetActualValue(toolName, path string) (interface{}, error) {
+func GetActualValue(toolName, path string) (any, error) {
 	tool, err := GetTool(toolName)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func GetActualValue(toolName, path string) (interface{}, error) {
 
 // ApplyAllToolValues applies a nested map of configuration values to a tool
 // This is more efficient than flattening and applying individual paths
-func ApplyAllToolValues(toolName string, values map[string]interface{}) error {
+func ApplyAllToolValues(toolName string, values map[string]any) error {
 	tool, err := GetTool(toolName)
 	if err != nil {
 		return err

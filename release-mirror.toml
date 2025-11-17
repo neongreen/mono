@@ -64,6 +64,13 @@ homepage = "https://github.com/neongreen/mono/tree/main/tk"
 binary = "tk"
 test_args = ["--help"]
 
+[[mirror.projects]]
+name = "jj-run"
+desc = "Execute shell commands across multiple repository changes in isolated workspaces using jj."
+homepage = "https://github.com/neongreen/mono/tree/main/jj-run"
+binary = "jj-run"
+test_args = ["--help"]
+
 # idk if this works for non-Go projects right now, see bd-341
 #
 # [[mirror.projects]]

@@ -2,11 +2,11 @@ package tui
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"strings"
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 )
 
 // addTag toggles a tag on the current trace and adds an annotation
@@ -29,8 +29,7 @@ func (m *Model) updateViewport() {
 		traces) {
 		return
 	}
-	trace :=
-		m.traces[m.currentIdx]
+	trace := m.traces[m.currentIdx]
 	var content strings.Builder
 	content.WriteString(lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf("Trace: %s\n",
 		trace.Name)))

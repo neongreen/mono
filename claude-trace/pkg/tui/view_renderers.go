@@ -74,8 +74,7 @@ func (m Model) viewAnnotate() string {
 	s.WriteString(m.textarea.
 		View())
 	s.WriteString("\n\n")
-	helpStyle :=
-		lipgloss.NewStyle().Faint(true)
+	helpStyle := lipgloss.NewStyle().Faint(true)
 	s.WriteString(helpStyle.Render("ctrl+s: Save and return | esc: Cancel"))
 	if m.message != "" && time.Since(m.
 		messageTime,

@@ -3,8 +3,6 @@ package converter
 import (
 	"fmt"
 	"strings"
-
-	"github.com/neongreen/mono/printpdf/pkg/fetcher"
 )
 
 // PageOptions contains page layout options for PDF conversion
@@ -16,13 +14,21 @@ type PageOptions struct {
 	MarginRight       string // Optional right margin override
 	MarginBottom      string // Optional bottom margin override
 	MarginLeft        string // Optional left margin override
+	MarginInner       string // Optional inner margin for booklet printing (binding side)
+	MarginOuter       string // Optional outer margin for booklet printing (outer edge)
 	Zoom              int    // Zoom percentage (e.g., 80 for 80%, 100 is default)
 	FirstPageGuide    string // Optional distance for a vertical guide on the first page (e.g., "3cm")
 	KeepIntermediates bool   // When true, intermediate artifacts (HTML, Typst, etc.) are preserved on disk
 	IntermediateDir   string // Directory where intermediate artifacts should be stored
 }
 
+// isBookletMode returns true if booklet margins (inner/outer) are specified
+func (o PageOptions) isBookletMode() bool {
+	return o.MarginInner != "" || o.MarginOuter != ""
+}
+
 // resolveMargins returns each side's margin along with the default value that was applied.
+// For booklet mode, the inner/outer values are mapped to left/right for :left and :right pages separately.
 func (o PageOptions) resolveMargins() (top, right, bottom, left, uniform string) {
 	uniform = o.Margin
 	if uniform == "" {
@@ -52,6 +58,50 @@ func (o PageOptions) resolveMargins() (top, right, bottom, left, uniform string)
 	return top, right, bottom, left, uniform
 }
 
+// resolveBookletMargins returns the margins for left and right pages in booklet mode
+// Returns (top, outer, bottom, inner, uniform) and (top, inner, bottom, outer, uniform)
+// for :right and :left pages respectively
+func (o PageOptions) resolveBookletMargins() (topRight, outerRight, bottomRight, innerRight, topLeft, innerLeft, bottomLeft, outerLeft, uniform string) {
+	uniform = o.Margin
+	if uniform == "" {
+		uniform = "2cm"
+	}
+
+	top := uniform
+	if o.MarginTop != "" {
+		top = o.MarginTop
+	}
+
+	bottom := uniform
+	if o.MarginBottom != "" {
+		bottom = o.MarginBottom
+	}
+
+	inner := uniform
+	if o.MarginInner != "" {
+		inner = o.MarginInner
+	}
+
+	outer := uniform
+	if o.MarginOuter != "" {
+		outer = o.MarginOuter
+	}
+
+	// Right pages (odd): inner is on left, outer is on right
+	topRight = top
+	outerRight = outer
+	bottomRight = bottom
+	innerRight = inner
+
+	// Left pages (even): inner is on right, outer is on left
+	topLeft = top
+	innerLeft = inner
+	bottomLeft = bottom
+	outerLeft = outer
+
+	return topRight, outerRight, bottomRight, innerRight, topLeft, innerLeft, bottomLeft, outerLeft, uniform
+}
+
 // cssMarginValue returns the CSS margin shorthand that should be applied.
 func (o PageOptions) cssMarginValue() string {
 	top, right, bottom, left, uniform := o.resolveMargins()
@@ -64,6 +114,42 @@ func (o PageOptions) cssMarginValue() string {
 
 // typstMarginValue returns the Typst margin expression.
 func (o PageOptions) typstMarginValue() string {
+	if o.isBookletMode() {
+		// Booklet mode: use inside/outside margins
+		uniform := o.Margin
+		if uniform == "" {
+			uniform = "2cm"
+		}
+
+		top := uniform
+		if o.MarginTop != "" {
+			top = o.MarginTop
+		}
+
+		bottom := uniform
+		if o.MarginBottom != "" {
+			bottom = o.MarginBottom
+		}
+
+		inside := uniform
+		if o.MarginInner != "" {
+			inside = o.MarginInner
+		}
+
+		outside := uniform
+		if o.MarginOuter != "" {
+			outside = o.MarginOuter
+		}
+
+		// Check if all margins are uniform
+		if top == uniform && bottom == uniform && inside == uniform && outside == uniform {
+			return uniform
+		}
+
+		return fmt.Sprintf("(top: %s, outside: %s, bottom: %s, inside: %s)", top, outside, bottom, inside)
+	}
+
+	// Normal mode: use standard left/right margins
 	top, right, bottom, left, uniform := o.resolveMargins()
 	if top == uniform && right == uniform && bottom == uniform && left == uniform {
 		return uniform
@@ -89,7 +175,7 @@ func ParseConverterList(convertersStr string) []Converter {
 	}
 
 	var converters []Converter
-	for _, name := range strings.Split(convertersStr, ",") {
+	for name := range strings.SplitSeq(convertersStr, ",") {
 		name = strings.TrimSpace(name)
 		switch strings.ToLower(name) {
 		case "typst":
@@ -101,18 +187,4 @@ func ParseConverterList(convertersStr string) []Converter {
 		}
 	}
 	return converters
-}
-
-// prepareContent converts content to the appropriate format for conversion
-func prepareContent(content []byte, contentType string) ([]byte, error) {
-	switch contentType {
-	case fetcher.ContentTypeMarkdown:
-		// Keep as markdown - converters will handle it
-		return content, nil
-	case fetcher.ContentTypeHTML:
-		// Keep as HTML - converters will handle it
-		return content, nil
-	default:
-		return nil, fmt.Errorf("unsupported content type: %s", contentType)
-	}
 }

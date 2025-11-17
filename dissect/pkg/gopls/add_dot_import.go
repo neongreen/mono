@@ -2,21 +2,22 @@ package gopls
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"go/ast"
 	"go/token"
 	"path/filepath"
+
+	"github.com/neongreen/mono/dissect/pkg/goutils"
 )
 
 // AddDotImport adds a dot import to the given file.
-func AddDotImport(filePath string, importPath string, moduleRoot string) error {
+func AddDotImport(goplsPath string, filePath string, importPath string, moduleRoot string) error {
 	absFilePath := filePath
 	if !filepath.IsAbs(filePath) {
 		absFilePath = filepath.Join(moduleRoot, filePath)
 	}
 
 	// First call AddImport to add the import
-	if err := AddImport(absFilePath, importPath, moduleRoot); err != nil {
+	if err := AddImport(goplsPath, absFilePath, importPath, moduleRoot); err != nil {
 		return fmt.Errorf("error adding import: %w", err)
 	}
 

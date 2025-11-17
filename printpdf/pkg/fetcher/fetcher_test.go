@@ -12,7 +12,7 @@ func TestFetchLocalFile(t *testing.T) {
 	tmpFile := filepath.Join(tmpDir, "test.md")
 	content := []byte("# Test\n\nThis is a test.")
 
-	if err := os.WriteFile(tmpFile, content, 0644); err != nil {
+	if err := os.WriteFile(tmpFile, content, 0o644); err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 

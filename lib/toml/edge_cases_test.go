@@ -91,7 +91,7 @@ func TestArrayOfInlineTables(t *testing.T) {
 		name          string
 		input         string
 		modifyKey     string
-		modifyValue   interface{}
+		modifyValue   any
 		shouldContain []string
 	}{
 		{
@@ -187,7 +187,7 @@ func TestArrayOfTablesPreservation(t *testing.T) {
 		name          string
 		input         string
 		modifyKey     string
-		modifyValue   interface{}
+		modifyValue   any
 		shouldContain []string
 	}{
 		{
@@ -340,7 +340,7 @@ func TestQuotedKeys(t *testing.T) {
 		name          string
 		input         string
 		modifyKey     string
-		modifyValue   interface{}
+		modifyValue   any
 		shouldContain []string
 	}{
 		{
@@ -616,7 +616,7 @@ func TestQuotedDotKey(t *testing.T) {
 			foundValue = true
 
 			// Verify it's the expected array
-			arr, ok := val.([]interface{})
+			arr, ok := val.([]any)
 			if !ok {
 				t.Errorf("Expected array, got %T", val)
 			} else if len(arr) != 2 {

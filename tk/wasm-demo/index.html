@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tk - Task Tracker (WASM Demo)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2d2d30;
+            padding: 20px;
+            border-bottom: 2px solid #007acc;
+        }
+
+        .header h1 {
+            color: #007acc;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 14px;
+        }
+
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .terminal {
+            flex: 1;
+            background: #1e1e1e;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 15px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .terminal-line {
+            margin-bottom: 8px;
+        }
+
+        .prompt {
+            color: #4ec9b0;
+            font-weight: bold;
+        }
+
+        .command {
+            color: #d4d4d4;
+            margin-left: 10px;
+        }
+
+        .output {
+            color: #cccccc;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-left: 10px;
+        }
+
+        .error {
+            color: #f48771;
+        }
+
+        .success {
+            color: #4ec9b0;
+        }
+
+        .input-area {
+            display: flex;
+            align-items: center;
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .input-prompt {
+            color: #4ec9b0;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        #commandInput {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #d4d4d4;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .button {
+            background: #007acc;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .button:hover {
+            background: #005a9e;
+        }
+
+        .button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            color: #ce9178;
+        }
+
+        .info-box {
+            background: #2d2d30;
+            border-left: 3px solid #007acc;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        .info-box h3 {
+            color: #007acc;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            margin-bottom: 5px;
+            color: #888;
+        }
+
+        .info-box code {
+            background: #1e1e1e;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: #ce9178;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>tk - System-wide Event-sourced Task Tracker</h1>
+        <p>WebAssembly Demo - Try tk commands directly in your browser!</p>
+    </div>
+
+    <div class="container">
+        <div class="info-box">
+            <h3>Getting Started</h3>
+            <ul>
+                <li>🚀 Try: <code>init</code> to initialize the database</li>
+                <li>📝 Try: <code>new "My first task" --project demo</code> to create a task</li>
+                <li>📋 Try: <code>ls</code> to list all tasks</li>
+                <li>✅ Try: <code>mark demo-1 done</code> to mark a task as done</li>
+                <li>❓ Try: <code>--help</code> to see all available commands</li>
+            </ul>
+        </div>
+
+        <div class="terminal" id="terminal">
+            <div class="terminal-line loading">Loading tk WebAssembly module...</div>
+        </div>
+
+        <div class="input-area">
+            <span class="input-prompt">tk $</span>
+            <input 
+                type="text" 
+                id="commandInput" 
+                placeholder="Enter a tk command (e.g., 'ls', 'new \"task title\"', '--help')"
+                disabled
+            >
+            <button class="button" id="executeBtn" disabled>Execute</button>
+            <button class="button" id="clearBtn">Clear</button>
+        </div>
+    </div>
+
+    <script src="wasm_exec.js"></script>
+    <script>
+        const terminal = document.getElementById('terminal');
+        const commandInput = document.getElementById('commandInput');
+        const executeBtn = document.getElementById('executeBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        let wasmReady = false;
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        function addTerminalLine(content, className = '') {
+            const line = document.createElement('div');
+            line.className = 'terminal-line ' + className;
+            line.textContent = content;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function addCommand(command) {
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.innerHTML = '<span class="prompt">tk $</span><span class="command">' + 
+                             escapeHtml(command) + '</span>';
+            terminal.appendChild(line);
+        }
+
+        function addOutput(text, isError = false) {
+            if (!text) return;
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.innerHTML = '<span class="output ' + (isError ? 'error' : '') + '">' + 
+                             escapeHtml(text) + '</span>';
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function executeCommand() {
+            const command = commandInput.value.trim();
+            if (!command || !wasmReady) return;
+
+            addCommand(command);
+            commandHistory.push(command);
+            historyIndex = commandHistory.length;
+            commandInput.value = '';
+
+            try {
+                const result = tkExecute(command);
+                
+                if (result.stdout) {
+                    addOutput(result.stdout);
+                }
+                
+                if (result.stderr) {
+                    addOutput(result.stderr, true);
+                }
+
+                if (!result.success && !result.stderr && !result.stdout) {
+                    addOutput('Command failed', true);
+                }
+            } catch (error) {
+                addOutput('Error: ' + error.message, true);
+            }
+        }
+
+        function clearTerminal() {
+            terminal.innerHTML = '';
+            addTerminalLine('Terminal cleared', 'success');
+        }
+
+        // Load WASM
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch('tk.wasm'), go.importObject)
+            .then((result) => {
+                go.run(result.instance);
+                
+                // Wait a bit for the WASM module to fully initialize
+                setTimeout(() => {
+                    terminal.innerHTML = '';
+                    addTerminalLine('✓ tk WASM module loaded successfully!', 'success');
+                    addTerminalLine('');
+                    addTerminalLine('Type a tk command and press Enter or click Execute.');
+                    addTerminalLine('');
+                    
+                    wasmReady = true;
+                    commandInput.disabled = false;
+                    executeBtn.disabled = false;
+                    commandInput.focus();
+                }, 100);
+            })
+            .catch((err) => {
+                terminal.innerHTML = '';
+                addTerminalLine('Failed to load WASM module: ' + err, 'error');
+            });
+
+        // Event listeners
+        executeBtn.addEventListener('click', executeCommand);
+        clearBtn.addEventListener('click', clearTerminal);
+
+        commandInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                executeCommand();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    commandInput.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    commandInput.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    commandInput.value = '';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

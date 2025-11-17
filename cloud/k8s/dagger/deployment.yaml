@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dagger
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dagger-engine
+  namespace: dagger
+  labels:
+    app: dagger-engine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dagger-engine
+  template:
+    metadata:
+      labels:
+        app: dagger-engine
+    spec:
+      # Note: Dagger Engine itself can't run in gVisor due to privileged requirements
+      # (CNI, network namespaces). Use gVisor for workloads that Dagger runs instead.
+      containers:
+        - name: engine
+          image: registry.dagger.io/engine:v0.19.6
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: DAGGER_ENGINE_VERSION
+              value: "v0.19.6"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: cache
+              mountPath: /var/lib/dagger
+      volumes:
+        - name: cache
+          persistentVolumeClaim:
+            claimName: dagger-cache
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dagger-engine
+  namespace: dagger
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: dagger-engine
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dagger-cache
+  namespace: dagger
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 20Gi

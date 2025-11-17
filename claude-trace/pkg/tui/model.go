@@ -1,14 +1,13 @@
 package tui
 
 import (
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
-
 	"time"
 
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 )
 
 type mode int
@@ -84,10 +83,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	if m.mode == modeView {
+	switch m.mode {
+	case modeView:
 		m.viewport, cmd = m.viewport.Update(msg)
 		cmds = append(cmds, cmd)
-	} else if m.mode == modeAnnotate {
+	case modeAnnotate:
 		m.textarea, cmd = m.textarea.Update(msg)
 		cmds = append(cmds, cmd)
 	}

@@ -1,8 +1,4 @@
 [[project]]
-dir = "beads-merge"
-module = "github.com/neongreen/mono/beads-merge"
-
-[[project]]
 dir = "claude-trace"
 module = "claude-trace"
 
@@ -19,6 +15,14 @@ dir = "ingest"
 module = "ingest"
 
 [[project]]
+dir = "lib/cli"
+module = "github.com/neongreen/mono/lib/cli"
+
+[[project]]
+dir = "lib/configschema"
+module = "github.com/neongreen/mono/lib/configschema"
+
+[[project]]
 dir = "lib/ghclient"
 module = "github.com/neongreen/mono/lib/ghclient"
 
@@ -29,6 +33,10 @@ module = "github.com/neongreen/mono/lib/ghrelease"
 [[project]]
 dir = "lib/toml"
 module = "github.com/neongreen/mono/lib/toml"
+
+[[project]]
+dir = "lib/version"
+module = "github.com/neongreen/mono/lib/version"
 
 [[project]]
 dir = "markdown-format"

@@ -1,8 +1,9 @@
 package goutils_test
 
 import (
-	"github.com/neongreen/mono/dissect/pkg/goutils"
 	"testing"
+
+	"github.com/neongreen/mono/dissect/pkg/goutils"
 )
 
 func TestNormalizeImports(t *testing.T) {

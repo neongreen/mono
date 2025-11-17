@@ -20,10 +20,10 @@ type Config struct {
 
 // ToolConfig represents configuration for a specific tool
 type ToolConfig struct {
-	Name       string                 `toml:"name"`
-	ConfigPath string                 `toml:"path"`
-	SchemaPath string                 `toml:"schema,omitempty"`
-	Values     map[string]interface{} `toml:"values,omitempty"`
+	Name       string         `toml:"name"`
+	ConfigPath string         `toml:"path"`
+	SchemaPath string         `toml:"schema,omitempty"`
+	Values     map[string]any `toml:"values,omitempty"`
 }
 
 // DefaultConfig returns a new Config with default settings
@@ -178,7 +178,7 @@ func (c *Config) loadPerToolConfigs() error {
 		}
 
 		// Parse per-tool config into a nested map
-		var perToolNested map[string]interface{}
+		var perToolNested map[string]any
 		if err := tomlv2.Unmarshal(data, &perToolNested); err != nil {
 			return fmt.Errorf("failed to parse per-tool config %s: %w", perToolPath, err)
 		}
@@ -201,7 +201,7 @@ func (c *Config) Save() error {
 	}
 
 	// Ensure config directory exists
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -212,7 +212,7 @@ func (c *Config) Save() error {
 		// Save to per-tool file if it exists
 		if _, err := os.Stat(perToolPath); err == nil {
 			// Save values if they exist
-			if tool.Values != nil && len(tool.Values) > 0 {
+			if len(tool.Values) > 0 {
 				if err := tomlcp.WriteFile(perToolPath, tool.Values); err != nil {
 					return fmt.Errorf("failed to write %s config: %w", toolName, err)
 				}
@@ -264,37 +264,6 @@ func (c *Config) Save() error {
 	return nil
 }
 
-// savePerToolConfigs saves values to per-tool config files if they exist
-func (c *Config) savePerToolConfigs() error {
-	configDir, err := ConfigDir()
-	if err != nil {
-		return err
-	}
-
-	for toolName, tool := range c.Tools {
-		perToolPath := filepath.Join(configDir, toolName+".toml")
-
-		// Check if per-tool file exists
-		if _, err := os.Stat(perToolPath); err != nil {
-			// Per-tool file doesn't exist, keep values in config.toml
-			continue
-		}
-
-		// Per-tool file exists, save values there
-		if tool.Values != nil && len(tool.Values) > 0 {
-			if err := tomlcp.WriteFile(perToolPath, tool.Values); err != nil {
-				return fmt.Errorf("failed to write per-tool config %s: %w", perToolPath, err)
-			}
-
-			// Remove values from main config since they're in per-tool file
-			tool.Values = nil
-			c.Tools[toolName] = tool
-		}
-	}
-
-	return nil
-}
-
 // GetTool returns the configuration for a specific tool with expanded paths
 func (c *Config) GetTool(name string) (ToolConfig, bool) {
 	tool, exists := c.Tools[name]
@@ -320,7 +289,7 @@ func (c *Config) SetTool(name string, tool ToolConfig) {
 
 // SetToolValue sets a specific configuration value for a tool
 // and ensures the per-tool config file will be created on Save()
-func (c *Config) SetToolValue(toolName, path string, value interface{}) {
+func (c *Config) SetToolValue(toolName, path string, value any) {
 	if c.Tools == nil {
 		c.Tools = make(map[string]ToolConfig)
 	}
@@ -344,14 +313,14 @@ func (c *Config) SetToolValue(toolName, path string, value interface{}) {
 
 	// Create empty file if it doesn't exist, so Save() will write to it
 	if _, err := os.Stat(perToolPath); os.IsNotExist(err) {
-		os.MkdirAll(configDir, 0755)
-		os.WriteFile(perToolPath, []byte{}, 0644)
+		os.MkdirAll(configDir, 0o755)
+		os.WriteFile(perToolPath, []byte{}, 0o644)
 	}
 }
 
 // MergeToolValues merges a map of values into a tool's configuration.
 // Nested maps are merged recursively.
-func (c *Config) MergeToolValues(toolName string, values map[string]interface{}) {
+func (c *Config) MergeToolValues(toolName string, values map[string]any) {
 	if c.Tools == nil {
 		c.Tools = make(map[string]ToolConfig)
 	}
@@ -368,13 +337,13 @@ func (c *Config) MergeToolValues(toolName string, values map[string]interface{})
 	perToolPath := filepath.Join(configDir, toolName+".toml")
 
 	if _, err := os.Stat(perToolPath); os.IsNotExist(err) {
-		os.MkdirAll(configDir, 0755)
-		os.WriteFile(perToolPath, []byte{}, 0644)
+		os.MkdirAll(configDir, 0o755)
+		os.WriteFile(perToolPath, []byte{}, 0o644)
 	}
 }
 
 // GetToolValue gets a specific configuration value for a tool
-func (c *Config) GetToolValue(toolName, path string) (interface{}, bool) {
+func (c *Config) GetToolValue(toolName, path string) (any, bool) {
 	tool, exists := c.Tools[toolName]
 	if !exists || tool.Values == nil {
 		return nil, false
@@ -432,20 +401,20 @@ func (c *Config) UnsetShim(name string) {
 
 // FlattenValues converts nested configuration maps to dotted-path representation.
 // Keys are quoted when necessary to produce TOML-compliant paths (e.g., aliases.".")
-func FlattenValues(values map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
+func FlattenValues(values map[string]any) map[string]any {
+	result := make(map[string]any)
 	normalized := normalizeValues(values)
 	flattenRecursive(normalized, "", result)
 	return result
 }
 
-func marshalToMap(v interface{}) (map[string]interface{}, error) {
+func marshalToMap(v any) (map[string]any, error) {
 	data, err := tomlv2.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
 
-	var result map[string]interface{}
+	var result map[string]any
 	if err := tomlv2.Unmarshal(data, &result); err != nil {
 		return nil, err
 	}
@@ -454,12 +423,12 @@ func marshalToMap(v interface{}) (map[string]interface{}, error) {
 }
 
 // ExpandValues converts a map of dotted paths back into a nested map structure.
-func ExpandValues(flat map[string]interface{}) map[string]interface{} {
+func ExpandValues(flat map[string]any) map[string]any {
 	if flat == nil {
 		return nil
 	}
 
-	result := make(map[string]interface{})
+	result := make(map[string]any)
 	for path, val := range flat {
 		key, err := parser.ParseKey(path)
 		if err != nil || len(key) == 0 {
@@ -471,7 +440,7 @@ func ExpandValues(flat map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func flattenRecursive(values map[string]interface{}, prefix string, result map[string]interface{}) {
+func flattenRecursive(values map[string]any, prefix string, result map[string]any) {
 	if values == nil {
 		return
 	}
@@ -484,7 +453,7 @@ func flattenRecursive(values map[string]interface{}, prefix string, result map[s
 			fullKey = prefix + "." + formattedKey
 		}
 
-		if nested, ok := val.(map[string]interface{}); ok {
+		if nested, ok := val.(map[string]any); ok {
 			flattenRecursive(nested, fullKey, result)
 			continue
 		}
@@ -506,26 +475,26 @@ func isBareKey(key string) bool {
 		return false
 	}
 	for _, r := range key {
-		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-') {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' && r != '-' {
 			return false
 		}
 	}
 	return true
 }
 
-func ensureMap(m map[string]interface{}) map[string]interface{} {
+func ensureMap(m map[string]any) map[string]any {
 	if m == nil {
-		return make(map[string]interface{})
+		return make(map[string]any)
 	}
 	return m
 }
 
-func normalizeValues(values map[string]interface{}) map[string]interface{} {
+func normalizeValues(values map[string]any) map[string]any {
 	if values == nil {
 		return nil
 	}
 
-	normalized := make(map[string]interface{}, len(values))
+	normalized := make(map[string]any, len(values))
 	for rawKey, rawVal := range values {
 		normalizedVal := normalizeValue(rawVal)
 		key, err := parser.ParseKey(rawKey)
@@ -542,12 +511,12 @@ func normalizeValues(values map[string]interface{}) map[string]interface{} {
 	return normalized
 }
 
-func normalizeValue(value interface{}) interface{} {
+func normalizeValue(value any) any {
 	switch v := value.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		return normalizeValues(v)
-	case map[interface{}]interface{}:
-		converted := make(map[string]interface{}, len(v))
+	case map[any]any:
+		converted := make(map[string]any, len(v))
 		for k, elem := range v {
 			strKey, ok := k.(string)
 			if !ok {
@@ -556,8 +525,8 @@ func normalizeValue(value interface{}) interface{} {
 			converted[strKey] = normalizeValue(elem)
 		}
 		return normalizeValues(converted)
-	case []interface{}:
-		out := make([]interface{}, len(v))
+	case []any:
+		out := make([]any, len(v))
 		for i, elem := range v {
 			out[i] = normalizeValue(elem)
 		}
@@ -567,10 +536,10 @@ func normalizeValue(value interface{}) interface{} {
 	}
 }
 
-func mergeNestedValues(dst map[string]interface{}, src map[string]interface{}) map[string]interface{} {
+func mergeNestedValues(dst map[string]any, src map[string]any) map[string]any {
 	dst = normalizeValues(dst)
 	if dst == nil {
-		dst = make(map[string]interface{})
+		dst = make(map[string]any)
 	}
 
 	srcNormalized := normalizeValues(src)
@@ -580,8 +549,8 @@ func mergeNestedValues(dst map[string]interface{}, src map[string]interface{}) m
 
 	for key, val := range srcNormalized {
 		if existing, ok := dst[key]; ok {
-			existingMap, existingIsMap := existing.(map[string]interface{})
-			newMap, newIsMap := val.(map[string]interface{})
+			existingMap, existingIsMap := existing.(map[string]any)
+			newMap, newIsMap := val.(map[string]any)
 			if existingIsMap && newIsMap {
 				dst[key] = mergeNestedValues(existingMap, newMap)
 				continue
@@ -593,7 +562,7 @@ func mergeNestedValues(dst map[string]interface{}, src map[string]interface{}) m
 	return dst
 }
 
-func setNestedValue(m map[string]interface{}, key parser.Key, value interface{}) {
+func setNestedValue(m map[string]any, key parser.Key, value any) {
 	if len(key) == 0 {
 		return
 	}
@@ -603,15 +572,15 @@ func setNestedValue(m map[string]interface{}, key parser.Key, value interface{})
 		part := key[i]
 		next, ok := current[part]
 		if !ok {
-			nextMap := make(map[string]interface{})
+			nextMap := make(map[string]any)
 			current[part] = nextMap
 			current = nextMap
 			continue
 		}
 
-		nextMap, ok := next.(map[string]interface{})
+		nextMap, ok := next.(map[string]any)
 		if !ok {
-			nextMap = make(map[string]interface{})
+			nextMap = make(map[string]any)
 			current[part] = nextMap
 		}
 		current = nextMap
@@ -620,13 +589,13 @@ func setNestedValue(m map[string]interface{}, key parser.Key, value interface{})
 	current[key[len(key)-1]] = normalizeValue(value)
 }
 
-func getNestedValue(m map[string]interface{}, key parser.Key) (interface{}, bool) {
+func getNestedValue(m map[string]any, key parser.Key) (any, bool) {
 	if len(key) == 0 {
 		return nil, false
 	}
 
 	current := m
-	for i := 0; i < len(key); i++ {
+	for i := range key {
 		part := key[i]
 		val, ok := current[part]
 		if !ok {
@@ -637,7 +606,7 @@ func getNestedValue(m map[string]interface{}, key parser.Key) (interface{}, bool
 			return val, true
 		}
 
-		nextMap, ok := val.(map[string]interface{})
+		nextMap, ok := val.(map[string]any)
 		if !ok {
 			return nil, false
 		}
@@ -647,18 +616,18 @@ func getNestedValue(m map[string]interface{}, key parser.Key) (interface{}, bool
 	return nil, false
 }
 
-func unsetNestedValue(m map[string]interface{}, key parser.Key) bool {
+func unsetNestedValue(m map[string]any, key parser.Key) bool {
 	if len(key) == 0 {
 		return false
 	}
 
 	current := m
-	stack := make([]map[string]interface{}, 0, len(key))
+	stack := make([]map[string]any, 0, len(key))
 	stack = append(stack, current)
 
 	for i := 0; i < len(key)-1; i++ {
 		part := key[i]
-		next, ok := current[part].(map[string]interface{})
+		next, ok := current[part].(map[string]any)
 		if !ok {
 			return false
 		}
@@ -676,7 +645,7 @@ func unsetNestedValue(m map[string]interface{}, key parser.Key) bool {
 	for i := len(stack) - 1; i > 0; i-- {
 		parent := stack[i-1]
 		childKey := key[i-1]
-		child, ok := parent[childKey].(map[string]interface{})
+		child, ok := parent[childKey].(map[string]any)
 		if !ok {
 			break
 		}

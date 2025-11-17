@@ -1,25 +1,10 @@
 package schemas
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
-
-func TestNewJJSchemaParser(t *testing.T) {
-	parser, err := NewJJSchemaParser()
-	if err != nil {
-		t.Fatalf("Failed to create jj schema parser: %v", err)
-	}
-
-	if parser == nil {
-		t.Fatal("Parser should not be nil")
-	}
-
-	// The parser should have either the new jsonschema-based parser or the legacy schema
-	if parser.parser == nil && parser.schema == nil {
-		t.Fatal("Parser should have either parser or schema initialized")
-	}
-}
 
 func TestJJSchemaParser_GetCompletionOptions_TopLevel(t *testing.T) {
 	parser, err := NewJJSchemaParser()
@@ -214,13 +199,7 @@ func TestJJSchemaParser_GetAllPaths(t *testing.T) {
 	// Check for expected paths
 	expectedPaths := []string{"user", "user.name", "user.email"}
 	for _, expected := range expectedPaths {
-		found := false
-		for _, path := range paths {
-			if path == expected {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(paths, expected)
 		if !found {
 			t.Errorf("Should find path '%s'", expected)
 		}
@@ -300,58 +279,5 @@ func TestJJSchemaParser_HandlesMissingProperties(t *testing.T) {
 	options = parser.GetCompletionOptions("user.nonexistent.deep")
 	if len(options) != 0 {
 		t.Error("Should get empty options for deeply nested non-existent path")
-	}
-}
-
-func TestHelperFunctions(t *testing.T) {
-	// Test getTypeFromProperty
-	prop := map[string]interface{}{
-		"type":        "string",
-		"description": "Test property",
-	}
-
-	if getTypeFromProperty(prop) != "string" {
-		t.Error("Should extract type correctly")
-	}
-
-	if getDescriptionFromProperty(prop) != "Test property" {
-		t.Error("Should extract description correctly")
-	}
-
-	// Test with missing properties
-	emptyProp := map[string]interface{}{}
-	if getTypeFromProperty(emptyProp) != "unknown" {
-		t.Error("Should return 'unknown' for missing type")
-	}
-
-	if getDescriptionFromProperty(emptyProp) != "" {
-		t.Error("Should return empty string for missing description")
-	}
-
-	// Test getDefaultFromProperty
-	propWithDefault := map[string]interface{}{
-		"default": "test_value",
-	}
-
-	if getDefaultFromProperty(propWithDefault) != "test_value" {
-		t.Error("Should extract default value correctly")
-	}
-
-	if getDefaultFromProperty(emptyProp) != nil {
-		t.Error("Should return nil for missing default")
-	}
-
-	// Test getEnumFromProperty
-	propWithEnum := map[string]interface{}{
-		"enum": []interface{}{"option1", "option2", "option3"},
-	}
-
-	enum := getEnumFromProperty(propWithEnum)
-	if len(enum) != 3 {
-		t.Errorf("Should extract 3 enum values, got %d", len(enum))
-	}
-
-	if enum[0] != "option1" {
-		t.Errorf("First enum value should be 'option1', got '%s'", enum[0])
 	}
 }

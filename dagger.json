@@ -1,0 +1,26 @@
+{
+  "name": "dagger",
+  "engineVersion": "v0.19.6",
+  "sdk": {
+    "source": "go"
+  },
+  "include": [
+    "go.mod",
+    "go.sum",
+    ".golangci.yml",
+    ".dagger/**",
+    "linters/**",
+    "tk/**",
+    "dissect/**",
+    "jj-run/**",
+    "lib/**",
+    "conf/**",
+    "ingest/**",
+    "printpdf/**",
+    "prrun/**",
+    "claude-trace/**",
+    "want/**",
+    "markdown-format/**"
+  ],
+  "source": ".dagger"
+}

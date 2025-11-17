@@ -6,13 +6,13 @@ This repository contains multiple independent projects.
 
 | Project | Status | Notes |
 | --- | --- | --- |
-| [dissect](dissect/) | beta (actively used internally) | Go tool for structural code refactoring; feature set continues to grow. |
+| [dissect](dissect/) | beta | Go tool for structural code refactoring; feature set continues to grow. |
 | [markdown-format](markdown-format/) | alpha | Markdown formatter; command surface and formatting rules are still evolving. |
 | [prrun](prrun/) | deprecated | Was designed to run binaries from PR releases; PR releases are no longer created. |
-| [printpdf](printpdf/) | alpha | Markdown/web-to-PDF tool; rendering pipeline has known gaps documented in project issues. |
-| [beads-merge](beads-merge/) | alpha | 3-way merge tool for beads `.jsonl` issue files; designed for jj version control. |
+| [printpdf](printpdf/) | beta | Markdown/web-to-PDF tool; rendering pipeline has known gaps documented in project issues. |
+| beads-merge | merged | Merged into [beads](https://github.com/steveyegge/beads). See [#240](https://github.com/neongreen/mono/issues/240). |
 | [ingest](ingest/) | pre-alpha | Data ingestion orchestrator; schema and connectors change frequently. |
-| [diagram-dsl](diagram-dsl/) | experimental | TypeScript DSL for diagrams; layout system under active refactor. |
+| [diagram-dsl](diagram-dsl/) | pre-alpha | TypeScript DSL for diagrams; layout system under active refactor. |
 | [mdbook-comments](mdbook-comments/) | alpha | mdbook preprocessor for paragraph-level commenting with Supabase backend. |
 | [want](want/) | pre-alpha | Planning/fulfilment assistant; core design still in flux. |
 | [claude-trace](claude-trace/) | alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
@@ -21,6 +21,31 @@ This repository contains multiple independent projects.
 | [jj-run](jj-run/) | alpha | Script to execute shell commands across multiple repository changes in isolated workspaces using jj. |
 | [ghrelease](lib/ghrelease/) | internal library | Shared helper for fetching release assets; API may change without notice. |
 | [svghatch](lib/svghatch/) | internal library | Replaces solid colors in SVG files with line patterns for black and white printing. |
+| [want](want/) | alpha | Planning/fulfilment assistant; core design still in flux. |
+| [claude-trace](claude-trace/) | pre-alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
+| [conf](conf/) | alpha | Smart configuration manager; command coverage incomplete. |
+| [tk](tk/) | beta | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
+| [jj-run](jj-run/) | alpha | Jujutsu subcommand to execute shell commands against multiple revisions. |
+| [jj-run-py](jj-run-py/) | deprecated | Old version of jj-run written in Python. |
+| [tk-vscode](tk-vscode/) | alpha | VS Code extension that lists tk tasks by running `tk ls --json`. |
+
+## Libraries
+
+| Library | Status | Notes |
+| --- | --- | --- |
+| [configschema](lib/configschema/) | alpha | Centralized schema registry for configuration tools (jj, mise, starship, claude); schemas updated via mise task. |
+| [ghclient](lib/ghclient/) | alpha | GitHub API client helper; used by ghrelease and other tools. |
+| [ghrelease](lib/ghrelease/) | beta | Helper for fetching GitHub release assets; API may change without notice. |
+| [toml](lib/toml/) | beta | Surgical TOML editor with comment preservation; used by conf. |
+| [version](lib/version/) | stable | Shared version command implementation for CLI tools. |
+| [cli](lib/cli/) | stable | Unified CLI color/styling utilities for all tools. |
+| [linters/uselesswrapper](linters/uselesswrapper/) | alpha | Static analysis tool that detects useless function wrappers; integrated via Dagger and mise. |
+
+## Infrastructure
+
+| Project | Status | Notes |
+| --- | --- | --- |
+| [.dagger](.dagger/) | alpha | Dagger module for building, testing, and linting all Go projects. |
 
 ## Installing Tools
 
@@ -100,27 +125,43 @@ For testing released versions, see the [Releases](#releases) section above.
 
 Each project has its own development workflow and documentation. See the individual project directories for details.
 
-### Issue Tracking with bd
+### Issue Tracking with tk
 
-This repository uses **bd (beads)** for issue tracking. bd is a lightweight, git-based issue tracker designed for AI coding agents.
+This repository uses **tk** for issue tracking. tk is an event-sourced task tracker with claims-based status, metadata support, and multi-machine sync.
 
 **Quick Reference:**
 
 ```bash
-# Check for ready work
-bd ready
+# List tasks
+tk ls                        # All tasks
+tk ls -p want                # Want tool tasks
+tk ls -p mono                # Repo-wide tasks
 
-# Create an issue
-bd create "Issue title" -t bug|feature|task -p 0-4
+# Create task
+tk new "Fix bug" --project want
+tk new "Update CI" --project mono
 
 # Update status
-bd update <id> --status in_progress
+tk mark want-1 wip           # Mark as in progress
+tk mark want-1 done          # Complete
 
-# Close an issue
-bd close <id> --reason "Done"
+# View details
+tk show want-1
+
+# Add metadata
+tk meta set want-1 priority 1
+tk meta set want-1 labels '["bug"]'
 ```
 
-Issues are stored in `.beads/issues.jsonl` and tracked in a local SQLite database. See [AGENTS.md](AGENTS.md#bd-beads-issue-tracker) for complete documentation.
+Tasks are tracked in `~/.tk/tk.db` (event-sourced SQLite database). 
+
+**Custom database location:**
+```bash
+export TK_DB_PATH=/custom/path/tk.db
+tk ls  # Uses custom database
+```
+
+See [AGENTS.md](AGENTS.md#tk-issue-tracker) for complete documentation.
 
 ### CI/CD
 

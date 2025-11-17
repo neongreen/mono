@@ -13,10 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pelletier/go-toml/v2"
-
 	"github.com/neongreen/mono/ingest/pkg/jobs"
 	mcppkg "github.com/neongreen/mono/ingest/pkg/mcp"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // Config represents the contents of ingest.config.toml.

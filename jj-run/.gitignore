@@ -1,3 +1,8 @@
-*.egg-info/
-__pycache__/
-build/
+# Binary
+jj-run
+
+# Test binaries
+*.test
+
+# Coverage
+*.out

@@ -1,5 +1,0 @@
-[tasks.fmt]
-run = "go fmt ./..."
-
-[tasks.test]
-run = "go test ./..."

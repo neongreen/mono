@@ -36,7 +36,6 @@ func TestPrivateReleaseDownload(t *testing.T) {
 	downloadCmd := exec.Command("./prrun-test", prURL, project, "--", "--help")
 	downloadCmd.Dir = "."
 	output, err := downloadCmd.CombinedOutput()
-
 	if err != nil {
 		t.Errorf("prrun failed: %v\nOutput: %s", err, string(output))
 		return

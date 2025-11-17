@@ -154,7 +154,7 @@ func loadHeadersFromEnv(provider string) map[string]string {
 	headers := map[string]string{}
 
 	parseHeader := func(value string) {
-		for _, segment := range strings.Split(value, ",") {
+		for segment := range strings.SplitSeq(value, ",") {
 			segment = strings.TrimSpace(segment)
 			if segment == "" {
 				continue

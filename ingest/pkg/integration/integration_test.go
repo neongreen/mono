@@ -1,9 +1,10 @@
 package integration
 
 import (
+	"testing"
+
 	"github.com/neongreen/mono/ingest/pkg/git"
 	"github.com/neongreen/mono/ingest/pkg/testutil"
-	"testing"
 )
 
 func TestGitIngestion(t *testing.T) {

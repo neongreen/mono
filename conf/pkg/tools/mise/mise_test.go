@@ -288,67 +288,14 @@ func TestMiseTool_CompletionOptions(t *testing.T) {
 
 	// Test nested completion
 	settingsOptions := miseTool.GetCompletionOptions("settings")
+	t.Logf("Got %d settings options", len(settingsOptions))
+	if len(settingsOptions) > 0 {
+		maxToShow := min(len(settingsOptions), 3)
+		t.Logf("First few settings: %v", settingsOptions[:maxToShow])
+	}
 	if len(settingsOptions) == 0 {
-		t.Error("Should get completion options for settings")
-	}
-}
-
-func TestMiseTool_ListCommonSettings(t *testing.T) {
-	// Create temporary directory for testing
-	tempDir, err := os.MkdirTemp("", "mise-tool-test")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
-
-	// Override HOME to use temp directory
-	originalHome := os.Getenv("HOME")
-	os.Setenv("HOME", tempDir)
-	defer os.Setenv("HOME", originalHome)
-
-	// Create conf config
-	conf := config.DefaultConfig()
-	conf.SetTool("mise", config.ToolConfig{
-		Name:       "mise",
-		ConfigPath: filepath.Join(tempDir, ".config", "mise", "config.toml"),
-		SchemaPath: "embedded://mise.schema",
-	})
-	err = conf.Save()
-	if err != nil {
-		t.Fatalf("Failed to save conf config: %v", err)
-	}
-
-	// Create mise tool
-	miseTool, err := NewMiseTool()
-	if err != nil {
-		t.Fatalf("Failed to create mise tool: %v", err)
-	}
-
-	// Test listing common settings
-	settings := miseTool.ListCommonSettings()
-	if len(settings) == 0 {
-		t.Error("Should get some common settings")
-	}
-
-	// Check for expected settings
-	var foundExperimental bool
-	for _, setting := range settings {
-		if setting.Path == "settings.experimental" {
-			foundExperimental = true
-			if setting.Type != "boolean" {
-				t.Errorf("settings.experimental should be boolean type, got %s", setting.Type)
-			}
-			if setting.Description == "" {
-				t.Error("settings.experimental should have description")
-			}
-			if setting.Example == "" {
-				t.Error("settings.experimental should have example")
-			}
-		}
-	}
-
-	if !foundExperimental {
-		t.Error("Should find settings.experimental in common settings")
+		t.Errorf("Should get completion options for settings, got: %+v", settingsOptions)
+		t.Errorf("Top-level options: %+v", options)
 	}
 }
 

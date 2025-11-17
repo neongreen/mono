@@ -109,7 +109,7 @@ enabled = false
 	tests := []struct {
 		name     string
 		path     string
-		want     interface{}
+		want     any
 		wantType string
 	}{
 		{
@@ -182,7 +182,7 @@ func TestSet(t *testing.T) {
 		name     string
 		initial  string
 		path     string
-		value    interface{}
+		value    any
 		expected string
 	}{
 		{
@@ -372,7 +372,7 @@ func TestCommentPreservation(t *testing.T) {
 		name           string
 		input          string
 		path           string
-		value          interface{}
+		value          any
 		mustContain    []string
 		mustNotContain []string
 	}{
@@ -529,22 +529,22 @@ func TestArrays(t *testing.T) {
 	tests := []struct {
 		name  string
 		path  string
-		value interface{}
+		value any
 	}{
 		{
 			name:  "string array",
 			path:  "tags",
-			value: []interface{}{"go", "toml", "parser"},
+			value: []any{"go", "toml", "parser"},
 		},
 		{
 			name:  "integer array",
 			path:  "numbers",
-			value: []interface{}{1, 2, 3, 4, 5},
+			value: []any{1, 2, 3, 4, 5},
 		},
 		{
 			name:  "empty array",
 			path:  "empty",
-			value: []interface{}{},
+			value: []any{},
 		},
 	}
 
@@ -567,13 +567,13 @@ func TestArrays(t *testing.T) {
 				return
 			}
 
-			gotArr, ok := got.([]interface{})
+			gotArr, ok := got.([]any)
 			if !ok {
 				t.Errorf("Get() returned %T, want []interface{}", got)
 				return
 			}
 
-			wantArr := tt.value.([]interface{})
+			wantArr := tt.value.([]any)
 			if len(gotArr) != len(wantArr) {
 				t.Errorf("Array length = %d, want %d", len(gotArr), len(wantArr))
 				return
@@ -610,7 +610,7 @@ person = { name = "John", age = 30 }
 		t.Fatalf("Get() error = %v", err)
 	}
 
-	table, ok := got.(map[string]interface{})
+	table, ok := got.(map[string]any)
 	if !ok {
 		t.Fatalf("Get() returned %T, want map[string]interface{}", got)
 	}
@@ -631,7 +631,7 @@ func TestSetInlineTable(t *testing.T) {
 		t.Fatalf("ParseString() error = %v", err)
 	}
 
-	value := map[string]interface{}{
+	value := map[string]any{
 		"name": "Alice",
 		"age":  25,
 	}
@@ -648,7 +648,7 @@ func TestSetInlineTable(t *testing.T) {
 		return
 	}
 
-	table, ok := got.(map[string]interface{})
+	table, ok := got.(map[string]any)
 	if !ok {
 		t.Errorf("Get() returned %T, want map[string]interface{}", got)
 		return

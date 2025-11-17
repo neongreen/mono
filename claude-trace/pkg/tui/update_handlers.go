@@ -2,10 +2,10 @@ package tui
 
 import (
 	"fmt"
-	"github.com/neongreen/mono/claude-trace/pkg/storage"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/neongreen/mono/claude-trace/pkg/storage"
 )
 
 // updateList handles key events in list mode
@@ -45,12 +45,10 @@ func (m Model) updateList(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // updateView handles key events in view mode
 func (m Model) updateView(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
-	case "q",
-		"esc":
+	case "q", "esc":
 		m.mode = modeList
 		return m, nil
-	case
-		"g":
+	case "g":
 		m.addTag(
 			"good")
 	case "s":
@@ -103,8 +101,7 @@ func (m Model) updateAnnotate(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				err)
 		} else {
 			m.
-				message =
-				"Annotations saved!"
+				message = "Annotations saved!"
 		}
 		m.
 			messageTime = time.

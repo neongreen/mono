@@ -81,17 +81,18 @@ func TestZoomCalculationsHTML(t *testing.T) {
 
 func formatFloat(f float64) string {
 	// Match the %.2f format used in the actual code
-	if f == 5.50 {
+	switch f {
+	case 5.50:
 		return "5.50"
-	} else if f == 8.80 {
+	case 8.80:
 		return "8.80"
-	} else if f == 11.00 {
+	case 11.00:
 		return "11.00"
-	} else if f == 13.20 {
+	case 13.20:
 		return "13.20"
-	} else if f == 16.50 {
+	case 16.50:
 		return "16.50"
-	} else if f == 22.00 {
+	case 22.00:
 		return "22.00"
 	}
 	return ""

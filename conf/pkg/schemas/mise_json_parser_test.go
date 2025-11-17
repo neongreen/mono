@@ -1,24 +1,11 @@
 package schemas
 
 import (
+	"slices"
 	"testing"
+
+	"github.com/neongreen/mono/lib/configschema"
 )
-
-func TestNewMiseSchemaParser(t *testing.T) {
-	parser, err := NewMiseSchemaParser()
-	if err != nil {
-		t.Fatalf("Failed to create Mise schema parser: %v", err)
-	}
-
-	if parser == nil {
-		t.Fatal("Expected parser to be non-nil")
-	}
-
-	// The parser should have either the new jsonschema-based parser or the legacy schema
-	if parser.parser == nil && parser.schema == nil {
-		t.Fatal("Parser should have either parser or schema initialized")
-	}
-}
 
 func TestMiseSchemaParser_ValidatePath(t *testing.T) {
 	parser, err := NewMiseSchemaParser()
@@ -138,13 +125,7 @@ func TestMiseSchemaParser_GetAllPaths(t *testing.T) {
 	}
 
 	for _, expectedPath := range expectedPaths {
-		found := false
-		for _, path := range paths {
-			if path == expectedPath {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(paths, expectedPath)
 		if !found {
 			t.Errorf("Expected path %q not found in results", expectedPath)
 		}
@@ -164,8 +145,8 @@ func TestMiseSchemaParser_GetAllSettingsWithInfo(t *testing.T) {
 	}
 
 	// Check for specific settings from official schema
-	var envSetting *SettingInfo
-	var toolsSetting *SettingInfo
+	var envSetting *configschema.SettingInfo
+	var toolsSetting *configschema.SettingInfo
 
 	for i := range settings {
 		if settings[i].Path == "env" {

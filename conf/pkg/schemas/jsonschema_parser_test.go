@@ -1,9 +1,11 @@
 package schemas
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/neongreen/mono/lib/configschema"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
 
@@ -31,13 +33,7 @@ func TestJSONSchemaParser_WithJJSchema(t *testing.T) {
 			t.Error("Expected some paths")
 		}
 		// Check for a known path
-		found := false
-		for _, p := range paths {
-			if p == "user.name" {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(paths, "user.name")
 		if !found {
 			t.Error("Expected to find user.name in paths")
 		}
@@ -124,6 +120,15 @@ func TestJSONSchemaParser_WithMiseSchema(t *testing.T) {
 	if len(options) == 0 {
 		t.Error("Expected some top-level options")
 	}
+
+	// Test nested completion for settings (which uses $ref)
+	settingsOptions := parser.GetCompletionOptions("settings")
+	t.Logf("Got %d settings options", len(settingsOptions))
+	if len(settingsOptions) == 0 {
+		t.Error("Expected settings to have nested options (schema uses $ref: #/$defs/settings)")
+	} else {
+		t.Logf("First 3 settings: %+v", settingsOptions[:min(3, len(settingsOptions))])
+	}
 }
 
 func TestJSONSchemaParser_Navigation(t *testing.T) {
@@ -160,7 +165,7 @@ func TestJSONSchemaParser_Navigation(t *testing.T) {
 		t.Fatalf("Failed to compile schema: %v", err)
 	}
 
-	parser := NewJSONSchemaParser(schema)
+	parser := configschema.NewJSONSchemaParser(schema)
 
 	// Test navigation
 	t.Run("validate_simple_path", func(t *testing.T) {
@@ -232,7 +237,7 @@ func TestJSONSchemaParser_AdditionalProperties(t *testing.T) {
 		t.Fatalf("Failed to compile schema: %v", err)
 	}
 
-	parser := NewJSONSchemaParser(schema)
+	parser := configschema.NewJSONSchemaParser(schema)
 
 	// Test that any property under env is valid
 	t.Run("validate_additional_property", func(t *testing.T) {

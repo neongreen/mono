@@ -1,0 +1,8 @@
+[providers.keychain]
+type = "keychain"
+service = "fnox"
+
+[secrets]
+SPACELIFT_API_KEY_ID= { provider = "keychain", value = "SPACELIFT_API_KEY_ID" }
+SPACELIFT_API_KEY_SECRET= { provider = "keychain", value = "SPACELIFT_API_KEY_SECRET" }
+SPACELIFT_API_KEY_ENDPOINT= { provider = "keychain", value = "SPACELIFT_API_KEY_ENDPOINT" }

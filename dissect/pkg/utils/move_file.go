@@ -10,7 +10,7 @@ import (
 func MoveFile(srcPath, destPath string) error {
 	// Create destination directory if it doesn't exist
 	destDir := filepath.Dir(destPath)
-	if err := os.MkdirAll(destDir, 0755); err != nil {
+	if err := os.MkdirAll(destDir, 0o755); err != nil {
 		return fmt.Errorf("error creating destination directory %s: %w", destDir, err)
 	}
 

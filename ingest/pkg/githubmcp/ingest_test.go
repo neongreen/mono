@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/neongreen/mono/ingest/pkg/database"
-
 	gh "github.com/google/go-github/v61/github"
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/neongreen/mono/ingest/pkg/database"
 )
 
 type fakeSession struct {
@@ -31,11 +31,6 @@ func (f *fakeSession) enqueue(tool string, args map[string]any, payload any) {
 	key := responseKey(tool, args)
 	data, _ := json.Marshal(payload)
 	f.responses[key] = append(f.responses[key], textResult(string(data)))
-}
-
-func (f *fakeSession) enqueueError(tool string, args map[string]any, err error) {
-	key := responseKey(tool, args)
-	f.errors[key] = err
 }
 
 func (f *fakeSession) CallTool(_ context.Context, tool string, args map[string]any) (*sdkmcp.CallToolResult, error) {
@@ -70,11 +65,12 @@ func responseKey(tool string, args map[string]any) string {
 			}
 		}
 	}
-	result := tool
+	var result strings.Builder
+	result.WriteString(tool)
 	for _, p := range parts {
-		result += fmt.Sprintf("|%s=%v", p.k, p.v)
+		result.WriteString(fmt.Sprintf("|%s=%v", p.k, p.v))
 	}
-	return result
+	return result.String()
 }
 
 func textResult(text string) *sdkmcp.CallToolResult {

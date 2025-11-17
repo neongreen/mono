@@ -241,7 +241,7 @@ mise run test
 ### Format code
 
 ```bash
-mise run fmt
+mise run format
 ```
 
 ### Build

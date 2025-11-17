@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -25,13 +26,7 @@ func TestGetSupportedTools(t *testing.T) {
 	}
 
 	for expectedTool := range expectedTools {
-		found := false
-		for _, tool := range tools {
-			if tool == expectedTool {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(tools, expectedTool)
 		if !found {
 			t.Errorf("Expected tool %s not found", expectedTool)
 		}

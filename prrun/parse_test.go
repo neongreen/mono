@@ -36,8 +36,10 @@ func TestParsePRURL(t *testing.T) {
 		})
 	}
 }
+
 func TestGetCacheDir(t *testing.
-	T) {
+	T,
+) {
 	cacheDir,
 		err := getCacheDir()
 	if err != nil {

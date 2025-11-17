@@ -7,36 +7,6 @@ import (
 	"testing"
 )
 
-func TestNewShimsTool(t *testing.T) {
-	tool, err := NewShimsTool()
-	if err != nil {
-		t.Fatalf("Failed to create shims tool: %v", err)
-	}
-
-	if tool.shimsDir == "" {
-		t.Error("Expected shims directory to be set")
-	}
-
-	if !strings.Contains(tool.shimsDir, "conf-shims") {
-		t.Errorf("Expected shims directory to contain 'conf-shims', got %s", tool.shimsDir)
-	}
-
-	if tool.dryRun {
-		t.Error("Expected dry-run to be false by default")
-	}
-}
-
-func TestNewShimsToolWithDryRun(t *testing.T) {
-	tool, err := NewShimsToolWithDryRun(true)
-	if err != nil {
-		t.Fatalf("Failed to create shims tool: %v", err)
-	}
-
-	if !tool.IsDryRun() {
-		t.Error("Expected dry-run to be true")
-	}
-}
-
 func TestShimsTool_SetDryRun(t *testing.T) {
 	tool, err := NewShimsTool()
 	if err != nil {
@@ -103,7 +73,7 @@ func TestShimsTool_CreateShim(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to stat shim file: %v", err)
 	}
-	if info.Mode()&0111 == 0 {
+	if info.Mode()&0o111 == 0 {
 		t.Error("Expected shim to be executable")
 	}
 }

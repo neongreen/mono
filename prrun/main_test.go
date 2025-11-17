@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/neongreen/mono/lib/ghrelease"
 )
 
 func TestExtractProjectFromTag(t *testing.T) {
@@ -57,12 +60,12 @@ func TestFindAllPRReleases(t *testing.T) {
 func TestExtractUniqueProjects(t *testing.T) {
 	tests := []struct {
 		name     string
-		releases []GitHubRelease
+		releases []ghrelease.Release
 		want     []string
 	}{
 		{
 			name: "single project with multiple versions",
-			releases: []GitHubRelease{
+			releases: []ghrelease.Release{
 				{TagName: "printpdf--pr-54.1"},
 				{TagName: "printpdf--pr-54.2"},
 				{TagName: "printpdf--pr-54.3"},
@@ -71,7 +74,7 @@ func TestExtractUniqueProjects(t *testing.T) {
 		},
 		{
 			name: "multiple different projects",
-			releases: []GitHubRelease{
+			releases: []ghrelease.Release{
 				{TagName: "dissect--pr-123.1"},
 				{TagName: "markdown-format--pr-123.1"},
 			},
@@ -79,7 +82,7 @@ func TestExtractUniqueProjects(t *testing.T) {
 		},
 		{
 			name: "multiple projects with multiple versions each",
-			releases: []GitHubRelease{
+			releases: []ghrelease.Release{
 				{TagName: "dissect--pr-123.1"},
 				{TagName: "dissect--pr-123.2"},
 				{TagName: "markdown-format--pr-123.1"},
@@ -89,12 +92,12 @@ func TestExtractUniqueProjects(t *testing.T) {
 		},
 		{
 			name:     "empty releases list",
-			releases: []GitHubRelease{},
+			releases: []ghrelease.Release{},
 			want:     []string{},
 		},
 		{
 			name: "single release",
-			releases: []GitHubRelease{
+			releases: []ghrelease.Release{
 				{TagName: "dissect--pr-1.1"},
 			},
 			want: []string{"dissect"},
@@ -163,7 +166,8 @@ func TestHelpFlagPositioning(t *testing.T) {
 			output, err := cmd.CombinedOutput()
 
 			// All these cases should exit with code 0
-			if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() != 0 {
+			exitErr := &exec.ExitError{}
+			if errors.As(err, &exitErr) {
 				t.Errorf("Expected exit code 0, got %d", exitErr.ExitCode())
 			}
 

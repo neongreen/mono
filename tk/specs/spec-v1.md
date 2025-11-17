@@ -131,7 +131,7 @@ pull = true
 
 8.1 tk remote add icloud folder ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events
 8.2 tk remote ls → list remotes and discovered nodes per remote
-8.3 tk export [--space personal]
+8.3 tk push --all [--space personal]
 8.4 tk pull icloud [--space personal]
 8.5 tk ingest [path]
 8.6 tk push icloud [--space personal]
@@ -147,9 +147,9 @@ pull = true
 9.1 keep task ids unchanged (tk-<n>-<node>), no renaming
 9.2 event ids
  9.2.1 if v0 events already have unique ids: reuse them
- 9.2.2 else: on first export --all, synthesize ev-<rowid>-<node> and persist a mapping table event_id_map(rowid,event_id) for stable dedupe
+ 9.2.2 else: on first push --all, synthesize ev-<rowid>-<node> and persist a mapping table event_id_map(rowid,event_id) for stable dedupe
 9.3 seed segments
- 9.3.1 tk export --all creates initial segments from sqlite
+ 9.3.1 tk push --all creates initial segments from sqlite
  9.3.2 add the iCloud folder remote, then tk sync icloud on both laptops
 9.4 lock out db file sync
  9.4.1 stop syncing the sqlite tk.db itself; only sync segments
@@ -158,7 +158,7 @@ pull = true
 
 10 tests
 
-10.1 round-trip: 1k events → export → ingest into fresh db → projection matches
+10.1 round-trip: 1k events → push --all → ingest into fresh db → projection matches
 10.2 dup ingest: same segment twice → event count stable
 10.3 concurrent writers: two nodes produce segments, merge via sync → deterministic state
 10.4 checksum fail: corrupt file detected and doesn’t poison sqlite
@@ -192,13 +192,13 @@ icloud/personal: local +1 seg, remote +0 seg, diverged: no, last_sync: 1m
 13 implementation tasks (bead-sized)
 
 13.1 persist node id in sqlite if not present; expose tk node show
-13.2 event id backfill: export --all synthesizes ev-<rowid>-<node> when needed
+13.2 event id backfill: push --all synthesizes ev-<rowid>-<node> when needed
 13.3 segment writer: rotate by size/age, zstd, atomic rename
 13.4 folder remote adapter: read/write files, generate/consume index.json
 13.5 ingest: stream zstd, dedupe by event.id, bump lamport
-13.6 sync orchestrator: pull → ingest → export → push → status
+13.6 sync orchestrator: pull → ingest → push → status
 13.7 collision check: scan producer nodes in remote; block on clash
-13.8 cli: remote add|ls, export|ingest|push|pull|sync, status sync, node show|regen
+13.8 cli: remote add|ls, ingest|push|pull|sync, status sync, node show|regen
 13.9 tests: round-trip, dup, concurrent, checksum, partial, collision, perf
 13.10 icloud advisory: detect iCloud path and warn if files "waiting to upload"; suggest "Keep Downloaded"
 13.11 docs: two-Mac iCloud quickstart
@@ -211,7 +211,7 @@ icloud/personal: local +1 seg, remote +0 seg, diverged: no, last_sync: 1m
 14.2 no data loss; re-running sync is a no-op
 14.3 existing tk-<n>-<node> ids remain valid; new tasks continue the per-node counter
 14.4 node id collision is detected and blocked with clear remedy
-14.5 initial export --all migrates v0 cleanly
+14.5 initial push --all migrates v0 cleanly
 
 ⸻
 
@@ -231,7 +231,6 @@ icloud/personal: local +1 seg, remote +0 seg, diverged: no, last_sync: 1m
 ```
 pull: +3 segments, 0 errors
 ingest: +420 events (total 7,314)
-export: +1 segment
 push: +1 segment, index updated
 status: clean
 ```
@@ -256,7 +255,7 @@ status: clean
 
 19 quickstart checklist (two Macs)
 
-19.1 on Mac A: tk export --all
+19.1 on Mac A: tk push --all
 19.2 on Mac A: tk remote add icloud folder ~/Library/Mobile\ Documents/com~apple~CloudDocs/tk-events
 19.3 on Mac A: tk sync icloud
 19.4 wait for iCloud to finish uploading (Finder status dots)
