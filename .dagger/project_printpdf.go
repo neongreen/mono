@@ -11,7 +11,8 @@ type PrintpdfProject struct {
 }
 
 func (p *PrintpdfProject) Build(ctx context.Context) (*dagger.File, error) {
-	return buildProject(ctx, "printpdf", "./cmd")
+	src := getFilteredSource("printpdf", dag.CurrentModule().Source().Directory(".."))
+	return buildProject(ctx, "printpdf", ".", src)
 }
 
 // Test runs tests for printpdf with PDF tools installed.

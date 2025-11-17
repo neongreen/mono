@@ -25,145 +25,188 @@ var RootCmd = &cobra.Command{
 			slog.Debug("debug logging enabled")
 		}
 	},
+	// Allow arbitrary args so paths like /foo work
+	Args: cobra.ArbitraryArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// If an argument starts with /, treat it as a path query
+		if len(args) > 0 && len(args[0]) > 0 && args[0][0] == '/' {
+			// Delegate to query command
+			return queryCmd.RunE(cmd, args)
+		}
+		// Otherwise show help
+		return cmd.Help()
+	},
 }
-
-// TODO: move these abandoned comments!
-
-// Always use project-based path
-
-// When --unset is true, expect exactly 1 arg (task-id)
-
-// Otherwise, expect exactly 2 args (task-id and state)
-
-// Get next Lamport timestamp from DB
-
-// Get next Lamport timestamp from DB
-
-// Load config for relation processing
-
-// Build reducer to get task and all its IDs (current + aliases)
-// Use cached reducer for performance
-
-// Always output JSON for now (backward compatibility)
-// TODO: Add human-readable format if needed
-
-// Respect color environment variables
-
-// Load config for relation processing
-
-// Use cached reducer for performance
-
-// Filter by project if specified
-
-// Filter tasks by project
-
-// Filter by axis if specified
-
-// Filter by blocked status if specified
-
-// Sort tasks based on the --sort flag
-
-// JSON output mode
-
-// Get terminal width for wrapping
-
-// default width if terminal size cannot be determined
-
-// Group and render tasks based on groupBy flag
-
-// Group tasks by project
-
-// To maintain consistent order
-
-// First, get all projects to ensure we include empty ones
-
-// Initialize all projects in the grouped map
-
-// Now add tasks to their respective groups
-
-// Group by project alias
-
-// Fallback to UID
-
-// If this is a new group (shouldn't happen if we got all projects), add it
-
-// Sort projects alphabetically
-
-// Render a table for each project group
-
-// Add blank line between tables
-
-// Group tasks by status
-
-// Render a table for each status group
-
-// Add blank line between tables
-
-// No grouping - render single table
 
 func init() {
 	RootCmd.PersistentFlags().BoolVar(&debugFlag, "debug", false, "Enable debug logging")
 
+	//
+	// Core task management commands
+	//
 	RootCmd.AddCommand(initCmd)
 
-	dbCmd := &cobra.Command{
-		Use:   "db",
-		Short: "Database commands",
-		Long: `Database management commands.
-
-Default database location: ~/.tk/tk.db
-
-You can override the database location using the TK_DB_PATH environment variable:
-  export TK_DB_PATH=/custom/path/tk.db
-  tk ls  # Uses custom database
-
-This is useful for:
-- Testing with isolated databases
-- Running multiple tk instances
-- Custom database locations`,
-	}
-	dbPathCmd.Flags().Bool("json", false, "Output as JSON")
-	dbCmd.AddCommand(dbPathCmd)
-	RootCmd.AddCommand(dbCmd)
-
-	newCmd.Flags().StringP("project", "p", "tk", "Project alias or UID to use")
+	newCmd.Flags().StringP("project", "p", "me", "Project alias or UID to use")
+	newCmd.Flags().String("parent", "", "Parent task (creates a subtask relation)")
+	newCmd.Flags().String("kind", "task", "Item kind (task, decision, resource, etc.)")
 	RootCmd.AddCommand(newCmd)
 
-	RootCmd.AddCommand(markCmd)
-	RootCmd.AddCommand(statusCmd)
-
-	RootCmd.AddCommand(noteCmd)
+	lsCmd.Flags().String("status", "", "Filter by status. Supports multiple values with comma: --status wip,next (next, wip, done, closed)")
+	lsCmd.Flags().String("axis", "", "Filter by axis:state")
+	lsCmd.Flags().String("kind", "", "Filter by item kind. Supports multiple values with comma: --kind decision,resource")
+	lsCmd.Flags().String("query", "", "Taskset query expression (e.g., 'status(wip) & kind(decision)')")
+	lsCmd.Flags().String("sort", "created", "Sort order: created, updated, id, title, or status. Add -desc for descending (e.g., updated-desc for most recently updated)")
+	lsCmd.Flags().StringSliceP("project", "p", []string{}, "Filter by project (alias, UID, or name; can be specified multiple times)")
+	lsCmd.Flags().Bool("aliases", false, "Show task aliases")
+	lsCmd.Flags().String("group", "project", "Group tasks by: project, status, or none (default: project, or none when --sort is used)")
+	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
+	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
+	lsCmd.Flags().Bool("json", false, "Output tasks as JSON")
+	lsCmd.Flags().String("grep", "", "Filter by regex pattern (RE2 syntax; searches title and notes)")
+	lsCmd.Flags().Int("limit", 0, "Limit number of tasks displayed (0 = no limit)")
+	lsCmd.Flags().String("in", "", "Filter by container (show only tasks in this container)")
+	lsCmd.Flags().MarkHidden("axis") // Hide --axis flag from help but keep it functional
+	RootCmd.AddCommand(lsCmd)
 
 	showCmd.Flags().Bool("json", false, "Output as JSON")
 	RootCmd.AddCommand(showCmd)
 
-	lsCmd.Flags().String("axis", "", "Filter by axis:state")
-	lsCmd.Flags().String("sort", "created", "Sort order: created, id, or title (default: created)")
-	lsCmd.Flags().StringSliceP("project", "p", []string{}, "Filter by project (alias, UID, or name; can be specified multiple times)")
-	lsCmd.Flags().Bool("aliases", false, "Show task aliases")
-	lsCmd.Flags().String("group", "project", "Group tasks by: project, status, or none (default: project)")
-	lsCmd.Flags().Bool("blocked", false, "Show only blocked tasks")
-	lsCmd.Flags().Bool("unblocked", false, "Show only unblocked tasks")
-	lsCmd.Flags().Bool("json", false, "Output tasks as JSON")
-	RootCmd.AddCommand(lsCmd)
+	RootCmd.AddCommand(queryCmd)
 
+	RootCmd.AddCommand(markCmd)
 	RootCmd.AddCommand(editCmd)
 	RootCmd.AddCommand(describeCmd)
+	RootCmd.AddCommand(noteCmd)
+
+	attachCmd.Flags().Bool("list", false, "List attachments for a task")
+	attachCmd.Flags().String("get", "", "Get an attachment by ID")
+	attachCmd.Flags().String("open", "", "Open an attachment by ID")
+	attachCmd.Flags().StringP("description", "d", "", "Description for the attachment")
+	RootCmd.AddCommand(attachCmd)
+
 	RootCmd.AddCommand(rmCmd)
 	RootCmd.AddCommand(mvCmd)
-	RootCmd.AddCommand(relateCmd)
-	RootCmd.AddCommand(dupCmd)
-	RootCmd.AddCommand(blockersCmd)
-	RootCmd.AddCommand(blockedCmd)
-	RootCmd.AddCommand(graphCmd)
-	RootCmd.AddCommand(conflictsCmd)
-	RootCmd.AddCommand(remoteCmd)
-	RootCmd.AddCommand(ingestCmd)
-	RootCmd.AddCommand(importBeadsCmd)
+	RootCmd.AddCommand(historyCmd)
+
+	//
+	// Relations & dependencies
+	//
+	RootCmd.AddCommand(relateAddCmd)
+	RootCmd.AddCommand(relateLsCmd)
+	RootCmd.AddCommand(relateRmCmd)
+	RootCmd.AddCommand(relateDupCmd)
+	RootCmd.AddCommand(dupCmd) // Alias
+	RootCmd.AddCommand(relateBlockersCmd)
+	RootCmd.AddCommand(blockersCmd) // Alias
+	RootCmd.AddCommand(relateBlockedCmd)
+	RootCmd.AddCommand(blockedCmd) // Alias
+	RootCmd.AddCommand(relateGraphCmd)
+	RootCmd.AddCommand(graphCmd) // Alias
+	RootCmd.AddCommand(relateConflictsCmd)
+	RootCmd.AddCommand(conflictsCmd) // Alias
+	RootCmd.AddCommand(taskConflictsCmd)
+
+	//
+	// Projects
+	//
+	RootCmd.AddCommand(projectCreateCmd)
+	RootCmd.AddCommand(projectLsCmd)
+	RootCmd.AddCommand(projectRenameCmd)
+	RootCmd.AddCommand(projectRmCmd)
+
+	//
+	// Sync & remote
+	//
+	RootCmd.AddCommand(syncCmd)
 	RootCmd.AddCommand(pushCmd)
 	RootCmd.AddCommand(pullCmd)
-	RootCmd.AddCommand(syncCmd)
-	RootCmd.AddCommand(debugCmd)
-	RootCmd.AddCommand(projectCmd)
-	RootCmd.AddCommand(metaCmd)
+	RootCmd.AddCommand(ingestCmd)
+	RootCmd.AddCommand(importBeadsCmd)
+	RootCmd.AddCommand(syncStatusCmd)
+
+	RootCmd.AddCommand(remoteAddCmd)
+	RootCmd.AddCommand(remoteLsCmd)
+	RootCmd.AddCommand(remoteRmCmd)
+
+	//
+	// Containers - Queues
+	//
+	RootCmd.AddCommand(queueCreateCmd)
+	RootCmd.AddCommand(queuePushCmd)
+	RootCmd.AddCommand(queuePopCmd)
+	RootCmd.AddCommand(queueLsCmd)
+	RootCmd.AddCommand(queueShowCmd)
+	RootCmd.AddCommand(queueRenameCmd)
+	RootCmd.AddCommand(queueRmCmd)
+
+	//
+	// Containers - Stacks
+	//
+	RootCmd.AddCommand(stackCreateCmd)
+	RootCmd.AddCommand(stackPushCmd)
+	RootCmd.AddCommand(stackPopCmd)
+	RootCmd.AddCommand(stackLsCmd)
+	RootCmd.AddCommand(stackShowCmd)
+	RootCmd.AddCommand(stackRenameCmd)
+	RootCmd.AddCommand(stackRmCmd)
+
+	//
+	// Containers - Groups
+	//
+	RootCmd.AddCommand(groupCreateCmd)
+	RootCmd.AddCommand(groupAddtaskCmd)
+	RootCmd.AddCommand(groupRmtaskCmd)
+	RootCmd.AddCommand(groupLsCmd)
+	RootCmd.AddCommand(groupShowCmd)
+	RootCmd.AddCommand(groupRenameCmd)
+	RootCmd.AddCommand(groupDeleteCmd)
+
+	//
+	// Schema & metadata
+	//
+	RootCmd.AddCommand(schemaAddCmd)
+	RootCmd.AddCommand(schemaLsCmd)
+	RootCmd.AddCommand(schemaExportCmd)
+
+	RootCmd.AddCommand(metaSetCmd)
+	RootCmd.AddCommand(metaGetCmd)
+	RootCmd.AddCommand(metaLsCmd)
+	RootCmd.AddCommand(metaClaimsCmd)
+
+	//
+	// Debug
+	//
+	RootCmd.AddCommand(debugDoctorCmd)
+	RootCmd.AddCommand(debugRepairCmd)
+	RootCmd.AddCommand(debugRebuildCmd)
+	RootCmd.AddCommand(debugEventsLsCmd)
+	RootCmd.AddCommand(debugEventsShowCmd)
+	RootCmd.AddCommand(debugEventsStatsCmd)
+	RootCmd.AddCommand(debugNodeShowCmd)
+	RootCmd.AddCommand(debugNodeRegenCmd)
+	RootCmd.AddCommand(debugIdCmd)
+	RootCmd.AddCommand(idCmd) // Alias
+
+	//
+	// Migration & logs
+	//
+	RootCmd.AddCommand(migrateFixContainerItemIdsCmd)
+	RootCmd.AddCommand(migrateFixRelocateBugCmd)
+	RootCmd.AddCommand(migrateScanDeprecatedCmd)
+
+	RootCmd.AddCommand(logQueryCmd)
+	RootCmd.AddCommand(logSearchCmd)
+
+	//
+	// Database & system
+	//
+	dbPathCmd.Flags().Bool("json", false, "Output as JSON")
+	RootCmd.AddCommand(dbPathCmd)
+
+	RootCmd.AddCommand(statuslineCmd)
+	RootCmd.AddCommand(mcpCmd)
+
+	// Apply "See Also" sections to all commands
+	// This adds cross-references to help improve command discoverability
+	ApplySeeAlso(RootCmd)
 }

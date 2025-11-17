@@ -11,8 +11,11 @@ func (m *Dagger) Test(ctx context.Context,
 	// +optional
 	// +default="testname"
 	format string,
+	// +optional
+	// +default=3
+	parallelLimit int,
 ) error {
-	jobs := parallel.New()
+	jobs := parallel.New().WithLimit(parallelLimit)
 	p := m.Project()
 
 	addTest := func(name string, testFn func(context.Context, string) (string, error)) {
@@ -38,6 +41,8 @@ func (m *Dagger) Test(ctx context.Context,
 	addTest("test lib/ghrelease", p.LibGhrelease().Test)
 	addTest("test lib/toml", p.LibToml().Test)
 	addTest("test lib/version", p.LibVersion().Test)
+	addTest("test linters/cobralint", p.LintersCobralint().Test)
+	addTest("test linters/uselesswrapper", p.LintersUselesswrapper().Test)
 
 	return jobs.Run(ctx)
 }

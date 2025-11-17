@@ -9,9 +9,9 @@ This document defines coding standards for Go code in this monorepo. These patte
 All CLI applications must use [Cobra](https://github.com/spf13/cobra) for command-line argument parsing and command structure.
 
 **Examples:**
-- `conf/cmd/main.go` - Full-featured CLI with subcommands
+- `conf/main.go` - Full-featured CLI with subcommands (uses cmd/ package for command logic)
 - `tk/main.go` - Simple CLI with RunE handlers
-- `dissect/cmd/main.go` - CLI with subcommands
+- `dissect/main.go` - CLI with subcommands
 
 **Exceptions:**
 - `prrun/main.go` - Uses manual flag parsing due to simplicity (single command with minimal flags)
@@ -163,28 +163,32 @@ Use `fmt.Fprintf(os.Stderr, "Error: %v\n", err)` consistently. The error returne
 
 ### CLI Applications
 
-**CLI applications must use `cmd/` subdirectory for main.go.**
+**Single-application projects must have `main.go` in the project root.**
+
+The `/cmd/{app}/main.go` pattern is for repositories that produce **multiple different binaries** (e.g., kubernetes/kubernetes with kubelet, kube-apiserver, kubectl). Since each project in this monorepo is a single application, `main.go` belongs at the project root.
 
 ```
 project/
-├── cmd/
-│   └── main.go        # CLI entry point
+├── main.go            # CLI entry point (package main)
+├── cmd/               # Command logic (optional, for Cobra commands)
+│   ├── root.go
+│   ├── list.go
+│   └── ...
 ├── pkg/
 │   └── ...            # Package code
+├── internal/
+│   └── ...            # Internal packages
 ├── go.mod
 └── mise.toml
 ```
 
-**Examples:**
-- `conf/cmd/main.go`
-- `dissect/cmd/main.go`
-- `ingest/cmd/main.go`
-- `claude-trace/cmd/main.go`
-- `printpdf/cmd/main.go`
+**Pattern used in all projects:**
+- `tk/main.go`, `want/main.go`, `conf/main.go`, `dissect/main.go`, `ingest/main.go`, `claude-trace/main.go`, `printpdf/main.go`, `prrun/main.go`, `markdown-format/main.go`, `jj-run/main.go`
 
-**Exceptions:**
-- Simple single-file tools may use `main.go` in root if they don't have a `pkg/` directory
-- `tk/main.go` - Exception due to flat structure with all code in root
+**cmd/ subdirectory (optional):**
+- For projects using Cobra, the `cmd/` subdirectory may contain command implementation files (e.g., `tk/cmd/root.go`, `conf/cmd/jj.go`)
+- These are **not** package main - they're part of a `cmd` package imported by `main.go`
+- This provides clean separation between entry point and command logic
 
 ### Libraries
 
@@ -227,7 +231,7 @@ import (
 )
 ```
 
-**Example:** See `conf/cmd/main.go` and `tk/main.go` for reference.
+**Example:** See `conf/main.go` and `tk/main.go` for reference.
 
 ### Package Naming
 
@@ -362,10 +366,10 @@ func Load() (*Config, error) {
 
 Some existing code does not follow these standards yet:
 
-- `conf/cmd/main.go` - Uses `Run` instead of `RunE` (migration recommended)
-- `dissect/cmd/main.go` - Uses `Run` instead of `RunE` (migration recommended)
-- `ingest/cmd/main.go` - Uses `Run` instead of `RunE` (migration recommended)
-- `printpdf/cmd/main.go` - Uses `Run` instead of `RunE` (migration recommended)
+- `conf/main.go` - Uses `Run` instead of `RunE` (migration recommended)
+- `dissect/main.go` - Uses `Run` instead of `RunE` (migration recommended)
+- `ingest/main.go` - Uses `Run` instead of `RunE` (migration recommended)
+- `printpdf/main.go` - Uses `Run` instead of `RunE` (migration recommended)
 - `tk/main.go` - Main error output uses `fmt.Fprintln` instead of `fmt.Fprintf` (minor inconsistency)
 
 New code should follow these standards. Existing code should be migrated when convenient.

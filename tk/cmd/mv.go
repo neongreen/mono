@@ -5,14 +5,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/neongreen/mono/tk/internal/utils"
-
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var mvCmd = &cobra.Command{
 	Use:   "mv <task> <target>",
 	Short: "Move a task to another project",
@@ -124,7 +125,7 @@ func moveTask(db *database.DB, taskRef string, targetSpec string, opts tasks.Mov
 	}
 
 	// Move the task using business logic
-	if err := tasks.Move(db, taskUID, toProjectUID, opts, currentUser); err != nil {
+	if err := tasks.Move(db, taskUID, toProjectUID, opts, currentUser, &clock.RealClock{}); err != nil {
 		return err
 	}
 
@@ -140,7 +141,7 @@ func moveTask(db *database.DB, taskRef string, targetSpec string, opts tasks.Mov
 
 func init() {
 	mvCmd.Flags().Bool("keep", false, "Keep the existing task number in the new project")
-	mvCmd.Flags().Bool("auto", false, "Auto-assign the next available number in the new project")
+	mvCmd.Flags().Bool("auto", true, "Auto-assign the next available number in the new project")
 	mvCmd.Flags().Int64("force", 0, "Force a specific number in the new project")
 	mvCmd.Flags().String("on-collision", "fail", "Collision handling strategy (fail|auto)")
 }

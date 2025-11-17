@@ -15,11 +15,11 @@ import (
 // validatePrefixedULID validates a ULID with a specific prefix
 func validatePrefixedULID(s, prefix, typeName string) error {
 	if !strings.HasPrefix(s, prefix) {
-		return fmt.Errorf("invalid %s: must start with %s", typeName, prefix)
+		return fmt.Errorf("invalid %s: must start with %s, got %q", typeName, prefix, s)
 	}
 	ulidPart := strings.TrimPrefix(s, prefix)
 	if _, err := ulid.Parse(ulidPart); err != nil {
-		return fmt.Errorf("invalid %s ULID part: %w", typeName, err)
+		return fmt.Errorf("invalid %s ULID part in %q: %w", typeName, s, err)
 	}
 	return nil
 }
@@ -171,44 +171,70 @@ func (n NodeID) String() string { return string(n) }
 type DisplayID string
 
 // Parse extracts components from a display ID
-// Format: <alias>-<number> or <alias>-<number>-<nodeHint>
+// Format: <alias>-<number>, <alias>-<number>-<nodeHint>, or <alias><number> (dashless)
 // The alias can contain hyphens, so we parse from right to left
 func (d DisplayID) Parse() (alias string, number int64, nodeHint string, err error) {
-	parts := strings.Split(string(d), "-")
-	if len(parts) < 2 {
-		return "", 0, "", fmt.Errorf("invalid display ID format")
-	}
+	s := string(d)
 
-	// Parse from right to left
-	// Try to parse the last segment as the node hint, second-to-last as number
-	// If that fails, try to parse second-to-last as number (no node hint)
-
-	lastIdx := len(parts) - 1
-	secondLastIdx := lastIdx - 1
-
-	// Try parsing second-to-last as number (assuming last is node hint)
-	if secondLastIdx > 0 {
-		num, parseErr := strconv.ParseInt(parts[secondLastIdx], 10, 64)
-		if parseErr == nil {
-			// Success - we have alias-number-nodeHint format
-			alias = strings.Join(parts[:secondLastIdx], "-")
-			number = num
-			nodeHint = parts[lastIdx]
-			return alias, number, nodeHint, nil
+	// First try the dashed format (original logic)
+	if strings.Contains(s, "-") {
+		parts := strings.Split(s, "-")
+		if len(parts) < 2 {
+			return "", 0, "", fmt.Errorf("invalid display ID format")
 		}
+
+		// Parse from right to left
+		// Try to parse the last segment as the node hint, second-to-last as number
+		// If that fails, try to parse second-to-last as number (no node hint)
+
+		lastIdx := len(parts) - 1
+		secondLastIdx := lastIdx - 1
+
+		// Try parsing second-to-last as number (assuming last is node hint)
+		if secondLastIdx > 0 {
+			num, parseErr := strconv.ParseInt(parts[secondLastIdx], 10, 64)
+			if parseErr == nil {
+				// Success - we have alias-number-nodeHint format
+				alias = strings.Join(parts[:secondLastIdx], "-")
+				number = num
+				nodeHint = parts[lastIdx]
+				return alias, number, nodeHint, nil
+			}
+		}
+
+		// Try parsing last segment as number (no node hint)
+		num, parseErr := strconv.ParseInt(parts[lastIdx], 10, 64)
+		if parseErr != nil {
+			return "", 0, "", fmt.Errorf("invalid number in display ID: %w", parseErr)
+		}
+
+		// Success - we have alias-number format
+		alias = strings.Join(parts[:lastIdx], "-")
+		number = num
+		nodeHint = ""
+		return alias, number, nodeHint, nil
 	}
 
-	// Try parsing last segment as number (no node hint)
-	num, parseErr := strconv.ParseInt(parts[lastIdx], 10, 64)
+	// Try dashless format: find where digits start from the end
+	// e.g., "tk123" -> alias="tk", number=123
+	i := len(s) - 1
+	for i >= 0 && s[i] >= '0' && s[i] <= '9' {
+		i--
+	}
+
+	// If we didn't find any digits, or all characters are digits, it's invalid
+	if i == len(s)-1 || i < 0 {
+		return "", 0, "", fmt.Errorf("invalid display ID format: must contain both alias and number")
+	}
+
+	alias = s[:i+1]
+	numStr := s[i+1:]
+	num, parseErr := strconv.ParseInt(numStr, 10, 64)
 	if parseErr != nil {
 		return "", 0, "", fmt.Errorf("invalid number in display ID: %w", parseErr)
 	}
 
-	// Success - we have alias-number format
-	alias = strings.Join(parts[:lastIdx], "-")
-	number = num
-	nodeHint = ""
-	return alias, number, nodeHint, nil
+	return alias, num, "", nil
 }
 
 func (d DisplayID) String() string { return string(d) }
@@ -235,21 +261,42 @@ func (e EventID) String() string { return string(e) }
 type EventKind string
 
 const (
-	EventKindProjectCreated     EventKind = "project.created"
-	EventKindProjectAliasAdd    EventKind = "project.alias.add"
-	EventKindProjectAliasRemove EventKind = "project.alias.remove"
-	EventKindProjectDelete      EventKind = "project.delete"
-	EventKindTaskCreated        EventKind = "task.created"
-	EventKindTaskNumberSet      EventKind = "task.number.set"
-	EventKindTaskRelocate       EventKind = "task.relocate"
-	EventKindTaskStatusSet      EventKind = "task.status.set"
-	EventKindTaskNoteAdd        EventKind = "task.note.add"
-	EventKindTaskTitleSet       EventKind = "task.title.set"
-	EventKindTaskDelete         EventKind = "task.delete"
-	EventKindTaskMetaSet        EventKind = "task.meta.set"
-	EventKindRelationAdd        EventKind = "relation.add"
-	EventKindRelationRemove     EventKind = "relation.remove"
-	EventKindRelationNote       EventKind = "relation.note"
+	EventKindProjectCreated       EventKind = "project.created"
+	EventKindProjectAliasAdd      EventKind = "project.alias.add"    // deprecated:v5 track:true - Alias events no longer generated
+	EventKindProjectAliasRemove   EventKind = "project.alias.remove" // deprecated:v5 track:true - Alias events no longer generated
+	EventKindProjectDelete        EventKind = "project.delete"
+	EventKindProjectNameSet       EventKind = "project.name.set"
+	EventKindTaskCreated          EventKind = "task.created"
+	EventKindTaskNumberSet        EventKind = "task.number.set"
+	EventKindTaskRelocate         EventKind = "task.relocate"
+	EventKindTaskStatusSet        EventKind = "task.status.set"
+	EventKindTaskNoteAdd          EventKind = "task.note.add"
+	EventKindTaskTitleSet         EventKind = "task.title.set"
+	EventKindTaskDelete           EventKind = "task.delete"
+	EventKindTaskMetaSet          EventKind = "task.meta.set"
+	EventKindRelationAdd          EventKind = "relation.add"
+	EventKindRelationRemove       EventKind = "relation.remove"
+	EventKindRelationNote         EventKind = "relation.note"
+	EventKindTaskAttachmentAdd    EventKind = "task.attachment.add"
+	EventKindTaskAttachmentRemove EventKind = "task.attachment.remove"
+
+	// Container events (v6)
+	EventKindContainerKindDefine     EventKind = "container.kind.define"
+	EventKindContainerKindDeprecate  EventKind = "container.kind.deprecate"
+	EventKindContainerCreate         EventKind = "container.create"
+	EventKindContainerRename         EventKind = "container.rename"
+	EventKindContainerMetadataUpdate EventKind = "container.metadata.update"
+	EventKindContainerRemove         EventKind = "container.remove"
+	EventKindQueuePush               EventKind = "queue.push"
+	EventKindQueuePop                EventKind = "queue.pop"
+	EventKindStackPush               EventKind = "stack.push"
+	EventKindStackPop                EventKind = "stack.pop"
+	EventKindGroupAdd                EventKind = "group.add"
+	EventKindGroupRemove             EventKind = "group.remove"
+
+	// Item kind events (v7)
+	EventKindItemKindDefine    EventKind = "item_kind.define"
+	EventKindItemKindDeprecate EventKind = "item_kind.deprecate"
 )
 
 type eventKindIndex int
@@ -259,6 +306,7 @@ const (
 	eventKindProjectAliasAddIndex
 	eventKindProjectAliasRemoveIndex
 	eventKindProjectDeleteIndex
+	eventKindProjectNameSetIndex
 	eventKindTaskCreatedIndex
 	eventKindTaskNumberSetIndex
 	eventKindTaskRelocateIndex
@@ -270,25 +318,58 @@ const (
 	eventKindRelationAddIndex
 	eventKindRelationRemoveIndex
 	eventKindRelationNoteIndex
+	eventKindTaskAttachmentAddIndex
+	eventKindTaskAttachmentRemoveIndex
+	eventKindContainerKindDefineIndex
+	eventKindContainerKindDeprecateIndex
+	eventKindContainerCreateIndex
+	eventKindContainerRenameIndex
+	eventKindContainerMetadataUpdateIndex
+	eventKindContainerRemoveIndex
+	eventKindQueuePushIndex
+	eventKindQueuePopIndex
+	eventKindStackPushIndex
+	eventKindStackPopIndex
+	eventKindGroupAddIndex
+	eventKindGroupRemoveIndex
+	eventKindItemKindDefineIndex
+	eventKindItemKindDeprecateIndex
 	eventKindCount
 )
 
 var AllEventKinds = [...]EventKind{
-	eventKindProjectCreatedIndex:     EventKindProjectCreated,
-	eventKindProjectAliasAddIndex:    EventKindProjectAliasAdd,
-	eventKindProjectAliasRemoveIndex: EventKindProjectAliasRemove,
-	eventKindProjectDeleteIndex:      EventKindProjectDelete,
-	eventKindTaskCreatedIndex:        EventKindTaskCreated,
-	eventKindTaskNumberSetIndex:      EventKindTaskNumberSet,
-	eventKindTaskRelocateIndex:       EventKindTaskRelocate,
-	eventKindTaskStatusSetIndex:      EventKindTaskStatusSet,
-	eventKindTaskNoteAddIndex:        EventKindTaskNoteAdd,
-	eventKindTaskTitleSetIndex:       EventKindTaskTitleSet,
-	eventKindTaskDeleteIndex:         EventKindTaskDelete,
-	eventKindTaskMetaSetIndex:        EventKindTaskMetaSet,
-	eventKindRelationAddIndex:        EventKindRelationAdd,
-	eventKindRelationRemoveIndex:     EventKindRelationRemove,
-	eventKindRelationNoteIndex:       EventKindRelationNote,
+	eventKindProjectCreatedIndex:          EventKindProjectCreated,
+	eventKindProjectAliasAddIndex:         EventKindProjectAliasAdd,
+	eventKindProjectAliasRemoveIndex:      EventKindProjectAliasRemove,
+	eventKindProjectDeleteIndex:           EventKindProjectDelete,
+	eventKindProjectNameSetIndex:          EventKindProjectNameSet,
+	eventKindTaskCreatedIndex:             EventKindTaskCreated,
+	eventKindTaskNumberSetIndex:           EventKindTaskNumberSet,
+	eventKindTaskRelocateIndex:            EventKindTaskRelocate,
+	eventKindTaskStatusSetIndex:           EventKindTaskStatusSet,
+	eventKindTaskNoteAddIndex:             EventKindTaskNoteAdd,
+	eventKindTaskTitleSetIndex:            EventKindTaskTitleSet,
+	eventKindTaskDeleteIndex:              EventKindTaskDelete,
+	eventKindTaskMetaSetIndex:             EventKindTaskMetaSet,
+	eventKindRelationAddIndex:             EventKindRelationAdd,
+	eventKindRelationRemoveIndex:          EventKindRelationRemove,
+	eventKindRelationNoteIndex:            EventKindRelationNote,
+	eventKindTaskAttachmentAddIndex:       EventKindTaskAttachmentAdd,
+	eventKindTaskAttachmentRemoveIndex:    EventKindTaskAttachmentRemove,
+	eventKindContainerKindDefineIndex:     EventKindContainerKindDefine,
+	eventKindContainerKindDeprecateIndex:  EventKindContainerKindDeprecate,
+	eventKindContainerCreateIndex:         EventKindContainerCreate,
+	eventKindContainerRenameIndex:         EventKindContainerRename,
+	eventKindContainerMetadataUpdateIndex: EventKindContainerMetadataUpdate,
+	eventKindContainerRemoveIndex:         EventKindContainerRemove,
+	eventKindQueuePushIndex:               EventKindQueuePush,
+	eventKindQueuePopIndex:                EventKindQueuePop,
+	eventKindStackPushIndex:               EventKindStackPush,
+	eventKindStackPopIndex:                EventKindStackPop,
+	eventKindGroupAddIndex:                EventKindGroupAdd,
+	eventKindGroupRemoveIndex:             EventKindGroupRemove,
+	eventKindItemKindDefineIndex:          EventKindItemKindDefine,
+	eventKindItemKindDeprecateIndex:       EventKindItemKindDeprecate,
 }
 
 var (

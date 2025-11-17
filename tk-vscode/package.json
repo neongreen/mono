@@ -85,6 +85,20 @@
         "command": "tk.collapseAll",
         "title": "Collapse All",
         "icon": "$(collapse-all)"
+      },
+      {
+        "command": "tk.search",
+        "title": "Search Tasks",
+        "icon": "$(search)"
+      },
+      {
+        "command": "tk.clearSearch",
+        "title": "Clear Search",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "tk.quickCreateTask",
+        "title": "Quick Create Task"
       }
     ],
     "menus": {
@@ -118,12 +132,22 @@
           "command": "tk.createProject",
           "when": "view == tkExplorer",
           "group": "navigation@5"
+        },
+        {
+          "command": "tk.search",
+          "when": "view == tkExplorer && !tk.searching",
+          "group": "navigation@6"
+        },
+        {
+          "command": "tk.clearSearch",
+          "when": "view == tkExplorer && tk.searching",
+          "group": "navigation@6"
         }
       ],
       "view/item/context": [
         {
           "command": "tk.editTitle",
-          "when": "view == tkExplorer && viewItem == tkTask",
+          "when": "view == tkExplorer && viewItem == tkTask && tk.ui.showEditTitleButton",
           "group": "inline"
         },
         {
@@ -133,7 +157,7 @@
         },
         {
           "command": "tk.deleteTask",
-          "when": "view == tkExplorer && viewItem == tkTask",
+          "when": "view == tkExplorer && viewItem == tkTask && tk.ui.showDeleteButton",
           "group": "inline"
         },
         {
@@ -193,6 +217,42 @@
             "none"
           ],
           "description": "Value passed to --group when listing tasks."
+        },
+        "tk.taskDetails.fontFamily": {
+          "type": "string",
+          "default": "",
+          "description": "Font family for task details. Leave empty to use system default."
+        },
+        "tk.taskDetails.fontSize": {
+          "type": "number",
+          "default": 14,
+          "description": "Font size for task details in pixels."
+        },
+        "tk.ui.showDeleteButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show delete button in tree view. If disabled, delete button will appear in task details instead."
+        },
+        "tk.ui.showEditTitleButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show edit title button in tree view."
+        },
+        "tk.ui.showTooltips": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show tooltips when hovering over tasks in the tree view."
+        },
+        "tk.autoRefresh.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable automatic refresh of the task list."
+        },
+        "tk.autoRefresh.intervalSeconds": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Auto-refresh interval in seconds."
         }
       }
     },
@@ -201,6 +261,27 @@
         "command": "tk.markDone",
         "key": ".",
         "when": "focusedView == tkExplorer && !inputFocus"
+      },
+      {
+        "command": "tk.search",
+        "key": "ctrl+f",
+        "mac": "cmd+f",
+        "when": "focusedView == tkExplorer && !inputFocus"
+      },
+      {
+        "command": "tk.search",
+        "key": "/",
+        "when": "focusedView == tkExplorer && !inputFocus"
+      },
+      {
+        "command": "tk.clearSearch",
+        "key": "escape",
+        "when": "focusedView == tkExplorer && !inputFocus && tk.searching"
+      },
+      {
+        "command": "tk.quickCreateTask",
+        "key": "ctrl+r ctrl+r",
+        "mac": "cmd+r cmd+r"
       }
     ]
   },
@@ -210,15 +291,22 @@
     "compile:webview": "node build-webview.mjs",
     "watch": "tsc -w -p .",
     "watch:webview": "node build-webview.mjs --watch",
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
     "@types/he": "^1.2.3",
-    "@types/node": "^18.19.50",
+    "@types/node": "^24.10.0",
     "@types/vscode": "^1.85.0",
+    "@vitest/ui": "^4.0.8",
     "@vscode/vsce": "^3.6.2",
     "esbuild": "^0.24.2",
-    "typescript": "^5.6.3"
+    "happy-dom": "^20.0.10",
+    "typescript": "^5.6.3",
+    "vitest": "^4.0.8"
   },
   "dependencies": {
     "@types/dompurify": "^3.0.5",

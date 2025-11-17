@@ -20,12 +20,3 @@ type IngestWatermark struct {
 	LastLamport int64     `json:"last_lamport"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
-
-// ExportState tracks export state per remote/space
-type ExportState struct {
-	RemoteName          string    `json:"remote_name"`
-	Space               string    `json:"space"`
-	LastExportedEventID string    `json:"last_exported_event_id"`
-	SegmentSeq          int64     `json:"segment_seq"`
-	UpdatedAt           time.Time `json:"updated_at"`
-}

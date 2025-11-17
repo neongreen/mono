@@ -184,6 +184,7 @@ func (d *DB) GetTaskIDsByProjects(projects []string) ([]string, error) {
 	}
 
 	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(projectUIDs)), ",")
+	// #nosec G201 - placeholders are safe "?,?,?" pattern, actual values use parameterized query
 	query := fmt.Sprintf(`
 		SELECT DISTINCT task_uid
 		FROM tasks

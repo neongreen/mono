@@ -6,11 +6,24 @@ import (
 	"os"
 	"time"
 
+	"github.com/neongreen/mono/lib/version"
 	"github.com/neongreen/mono/tk/cmd"
 	"github.com/neongreen/mono/tk/internal/invlog"
 )
 
 func main() {
+	// Check if invocation logging should be skipped
+	// Used by tkvscode extension to avoid log accumulation
+	skipInvLog := os.Getenv("TK_SKIP_INVLOG") != ""
+
+	if skipInvLog {
+		// Run command directly without logging
+		if err := cmd.RootCmd.Execute(); err != nil {
+			os.Exit(1)
+		}
+		return
+	}
+
 	startTime := time.Now()
 
 	// Capture stdout and stderr
@@ -90,21 +103,36 @@ func main() {
 		user = os.Getenv("USERNAME")
 	}
 
-	log := invlog.InvocationLog{
-		Timestamp:  startTime,
-		Command:    "tk",
-		Args:       os.Args[1:],
-		PID:        os.Getpid(),
-		PPID:       os.Getppid(),
-		User:       user,
-		Success:    exitCode == 0,
-		ExitCode:   exitCode,
-		Stdout:     stdoutBuf.String(),
-		Stderr:     stderrBuf.String(),
-		DurationMs: duration.Milliseconds(),
+	// Get binary path (os.Args[0] may be relative, try to get absolute path)
+	binaryPath := os.Args[0]
+	if absPath, err := os.Executable(); err == nil {
+		binaryPath = absPath
 	}
 
-	// Write log entry (ignore errors to avoid disrupting the main command)
+	log := invlog.InvocationLog{
+		SchemaVersion: invlog.SchemaVersion,
+		TkVersion:     version.Version,
+		TkCommit:      version.GitCommit,
+		Timestamp:     startTime.UnixNano(),
+		Command:       "tk",
+		Args:          os.Args[1:],
+		PID:           os.Getpid(),
+		PPID:          os.Getppid(),
+		User:          user,
+		Success:       exitCode == 0,
+		ExitCode:      exitCode,
+		Stdout:        stdoutBuf.String(),
+		Stderr:        stderrBuf.String(),
+		DurationMs:    duration.Milliseconds(),
+
+		// Schema v2 fields (tk-81)
+		TkCommitFull:  version.GitCommitFull,
+		TkCommitTime:  version.CommitTime,
+		TkGitModified: version.GitModified,
+		TkBinaryPath:  binaryPath,
+	}
+
+	// Write log entry to rotating JSONL log (ignore errors to avoid disrupting the main command)
 	_ = invlog.WriteLog(log)
 
 	if exitCode != 0 {

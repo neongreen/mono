@@ -11,7 +11,8 @@ type WantProject struct {
 }
 
 func (p *WantProject) Build(ctx context.Context) (*dagger.File, error) {
-	return buildProject(ctx, "want", "./cmd")
+	src := getFilteredSource("want", dag.CurrentModule().Source().Directory(".."))
+	return buildProject(ctx, "want", ".", src)
 }
 
 func (p *WantProject) Test(ctx context.Context,
@@ -19,7 +20,8 @@ func (p *WantProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	return testProject(ctx, "want", format)
+	src := getFilteredSource("want", dag.CurrentModule().Source().Directory(".."))
+	return testProject(ctx, "want", format, src)
 }
 
 func (p *WantProject) Coverage(ctx context.Context,
@@ -27,5 +29,6 @@ func (p *WantProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	return coverageFile(ctx, "want", format)
+	src := getFilteredSource("want", dag.CurrentModule().Source().Directory(".."))
+	return coverageFile(ctx, "want", format, src)
 }

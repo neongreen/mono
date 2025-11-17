@@ -168,6 +168,11 @@ func Pull(remoteName string, remote config.RemoteConfig, space string, stateDir 
 	log := slog.With("remote", remoteName, "space", space)
 	log.Debug("pull: starting", "remote_path", remote.Path)
 
+	// Force download from iCloud if needed (macOS only, no-op on other platforms)
+	if forceDownloadICloudFiles(remote.Path) {
+		log.Info("initiated iCloud download for remote files")
+	}
+
 	// Load remote index
 	remoteIndexPath := filepath.Join(remote.Path, space, "index.json")
 	log.Debug("pull: loading remote index", "path", remoteIndexPath)

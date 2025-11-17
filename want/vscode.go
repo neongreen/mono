@@ -32,6 +32,12 @@ func createMiseRunCommand(taskPath string) *exec.Cmd {
 
 // buildVSCodeExtensionFromSource builds a VS Code extension from a branch or commit
 func buildVSCodeExtensionFromSource(project, refSpec, refDescription string, isCommitSHA bool, dryRun bool, planJson bool) {
+	// Special handling for local builds
+	if refSpec == "local" {
+		buildVSCodeExtensionFromLocal(project, dryRun, planJson)
+		return
+	}
+
 	var cloneCmd string
 	if isCommitSHA {
 		cloneCmd = fmt.Sprintf("git clone https://github.com/neongreen/mono.git <tmpdir> && cd <tmpdir> && git checkout %s", refSpec)
@@ -349,4 +355,118 @@ func buildVSCodeExtensionFromPR(project string, prNumber int, dryRun bool, planJ
 
 	fmt.Println()
 	fmt.Printf("%s Built and installed %s from PR #%d\n", cli.Success("✓"), cli.Key(project), prNumber)
+}
+
+// findMonoRoot walks up the directory tree looking for the mono repository root
+// findMonoRoot moved to repo.go (shared between vscode.go and mono_build.go)
+
+// buildVSCodeExtensionFromLocal builds and installs the VS Code extension from the current local checkout
+func buildVSCodeExtensionFromLocal(project string, dryRun bool, planJson bool) {
+	// Get current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		cli.PrintError(fmt.Sprintf("Error: Failed to get current directory: %v", err))
+		os.Exit(1)
+	}
+
+	// Find mono repository root
+	monoRoot, err := findMonoRoot(cwd)
+	if err != nil {
+		cli.PrintError(fmt.Sprintf("Error: %v", err))
+		fmt.Printf("  Current directory: %s\n", cwd)
+		os.Exit(1)
+	}
+
+	// Check if tk-vscode directory exists
+	projectDir := filepath.Join(monoRoot, "tk-vscode")
+	if stat, err := os.Stat(projectDir); os.IsNotExist(err) || !stat.IsDir() {
+		cli.PrintError("Error: tk-vscode directory not found in mono repository")
+		fmt.Printf("  Mono root: %s\n", monoRoot)
+		fmt.Printf("  Looking for: %s\n", projectDir)
+		os.Exit(1)
+	}
+
+	plan := FulfillmentPlan{
+		Requirement: fmt.Sprintf("mono %s@local", project),
+		Steps: []PlanStep{
+			{
+				Type:        "install",
+				Description: "Install dependencies",
+				Command:     "cd tk-vscode && mise run tk-vscode:install-deps",
+				Automatic:   true,
+			},
+			{
+				Type:        "install",
+				Description: "Build extension (compile & package)",
+				Command:     "cd tk-vscode && mise run tk-vscode:build",
+				Automatic:   true,
+			},
+			{
+				Type:        "install",
+				Description: "Install VS Code extension",
+				Command:     "cd tk-vscode && mise run tk-vscode:install",
+				Automatic:   true,
+			},
+		},
+	}
+
+	if planJson {
+		jsonStr, err := plan.ToJSON()
+		if err != nil {
+			cli.PrintError(fmt.Sprintf("Error: Failed to generate JSON: %v", err))
+			os.Exit(1)
+		}
+		fmt.Println(jsonStr)
+		return
+	}
+
+	if dryRun {
+		fmt.Printf("Building %s from local checkout...\n", cli.Key(project))
+		fmt.Println()
+		plan.PrintPlan()
+		return
+	}
+
+	fmt.Printf("Building %s from local checkout...\n", cli.Key(project))
+	fmt.Println()
+	plan.PrintPlan()
+	fmt.Println()
+
+	// Step 1: Install dependencies
+	fmt.Println("Installing dependencies...")
+	cmd := createMiseRunCommand("tk-vscode:install-deps")
+	cmd.Dir = monoRoot
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		cli.PrintError(fmt.Sprintf("\nError: Failed to install dependencies: %v", err))
+		os.Exit(1)
+	}
+
+	// Step 2: Build extension
+	fmt.Println()
+	fmt.Println("Building extension...")
+	cmd = createMiseRunCommand("tk-vscode:build")
+	cmd.Dir = monoRoot
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		cli.PrintError(fmt.Sprintf("\nError: Failed to build extension: %v", err))
+		os.Exit(1)
+	}
+
+	// Step 3: Install extension
+	fmt.Println()
+	fmt.Println("Installing extension...")
+	cmd = createMiseRunCommand("tk-vscode:install")
+	cmd.Dir = monoRoot
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		cli.PrintError(fmt.Sprintf("\nError: Failed to install extension: %v", err))
+		os.Exit(1)
+	}
+
+	fmt.Println()
+	fmt.Printf("%s Built and installed %s from local checkout\n", cli.Success("✓"), cli.Key(project))
 }

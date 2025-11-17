@@ -85,6 +85,7 @@ func (d *DB) incrementCounter(tableName, columnName string) (int64, error) {
 	defer tx.Rollback()
 
 	var lastID int64
+	// #nosec G201 - tableName and columnName are hardcoded constants from callers, not user input
 	query := fmt.Sprintf("SELECT %s FROM %s", columnName, tableName)
 	err = tx.QueryRow(query).Scan(&lastID)
 	if err != nil {
@@ -92,6 +93,7 @@ func (d *DB) incrementCounter(tableName, columnName string) (int64, error) {
 	}
 
 	nextID := lastID + 1
+	// #nosec G201 - tableName and columnName are hardcoded constants from callers, not user input
 	updateQuery := fmt.Sprintf("UPDATE %s SET %s = ?", tableName, columnName)
 	_, err = tx.Exec(updateQuery, nextID)
 	if err != nil {

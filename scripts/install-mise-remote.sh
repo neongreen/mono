@@ -19,6 +19,16 @@ fi
 # Download and install mise
 curl https://mise.jdx.dev/install.sh | sh
 
+# Fix Go module downloads by removing no_proxy restrictions
+# The environment has an HTTP proxy that handles DNS, but *.googleapis.com in no_proxy
+# prevents Go from using it, causing DNS resolution failures.
+if [ -n "$CLAUDE_ENV_FILE" ]; then
+  echo 'unset no_proxy' >> "$CLAUDE_ENV_FILE"
+  echo 'unset NO_PROXY' >> "$CLAUDE_ENV_FILE"
+fi
+unset no_proxy
+unset NO_PROXY
+
 # Add mise to PATH for this session via CLAUDE_ENV_FILE
 if [ -n "$CLAUDE_ENV_FILE" ]; then
   echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$CLAUDE_ENV_FILE"

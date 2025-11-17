@@ -33,8 +33,8 @@ func TestProjectionDeterminism(t *testing.T) {
 	// Shuffle events for db2
 	shuffled := make([]types.Event, len(events))
 	copy(shuffled, events)
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(shuffled), func(i, j int) {
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(shuffled), func(i, j int) {
 		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
 	})
 
@@ -143,6 +143,7 @@ func createTempDB(t *testing.T) *DB {
 	require.NoError(t, err)
 	require.NoError(t, db.InitDB())
 	require.NoError(t, db.SetDBVersion(4))
+	require.NoError(t, db.RunMigrationsIfNeeded())
 	return db
 }
 
@@ -154,20 +155,19 @@ func createTestEventSet() []types.Event {
 
 	return []types.Event{
 		createProjectEvent(1, projectUID, "test"),
-		addProjectAliasEvent(2, projectUID, "test", "node1"),
-		createTaskEvent(3, task1UID, projectUID, "Task 1"),
-		setTaskNumberEvent(4, task1UID, projectUID, 1),
-		createTaskEvent(5, task2UID, projectUID, "Task 2"),
-		setTaskNumberEvent(6, task2UID, projectUID, 2),
-		createTaskEvent(7, task3UID, projectUID, "Task 3"),
-		setTaskNumberEvent(8, task3UID, projectUID, 3),
+		createTaskEvent(2, task1UID, projectUID, "Task 1"),
+		setTaskNumberEvent(3, task1UID, projectUID, 1),
+		createTaskEvent(4, task2UID, projectUID, "Task 2"),
+		setTaskNumberEvent(5, task2UID, projectUID, 2),
+		createTaskEvent(6, task3UID, projectUID, "Task 3"),
+		setTaskNumberEvent(7, task3UID, projectUID, 3),
 	}
 }
 
 func createProjectEvent(ts int64, projectUID types.ProjectUID, name string) types.Event {
 	payload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID.String(),
-		Type:        "local",
+		ProjectUID:  projectUID,
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: "",
 		CreatedBy:   "test",
@@ -184,24 +184,7 @@ func createProjectEvent(ts int64, projectUID types.ProjectUID, name string) type
 	}
 }
 
-func addProjectAliasEvent(ts int64, projectUID types.ProjectUID, alias, node string) types.Event {
-	payload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID.String(),
-		Alias:      alias,
-		Node:       node,
-		AddedBy:    "test",
-	}
-	payloadJSON, _ := json.Marshal(payload)
-	return types.Event{
-		ID:        types.NewEventID().String(),
-		TS:        ts,
-		CreatedAt: time.Now(),
-		Actor:     "test",
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   payloadJSON,
-	}
-}
+// addProjectAliasEvent removed - aliases no longer supported
 
 func createTaskEvent(ts int64, taskUID types.TaskUID, projectUID types.ProjectUID, title string) types.Event {
 	payload := types.TaskCreatedPayload{
@@ -226,8 +209,8 @@ func createTaskEvent(ts int64, taskUID types.TaskUID, projectUID types.ProjectUI
 
 func setTaskNumberEvent(ts int64, taskUID types.TaskUID, projectUID types.ProjectUID, number int64) types.Event {
 	payload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID.String(),
-		ProjectUID: projectUID.String(),
+		TaskUID:    taskUID,
+		ProjectUID: projectUID,
 		Number:     number,
 		Reason:     "initial",
 	}
@@ -245,9 +228,9 @@ func setTaskNumberEvent(ts int64, taskUID types.TaskUID, projectUID types.Projec
 
 func createTaskRelocateEvent(ts int64, taskUID types.TaskUID, fromProjectUID, toProjectUID types.ProjectUID, mode string, number int64) types.Event {
 	payload := types.TaskRelocatePayload{
-		TaskUID:        taskUID.String(),
-		FromProjectUID: fromProjectUID.String(),
-		ToProjectUID:   toProjectUID.String(),
+		TaskUID:        taskUID,
+		FromProjectUID: fromProjectUID,
+		ToProjectUID:   toProjectUID,
 		NumberPolicy: types.NumberPolicyPayload{
 			Mode:   mode,
 			Number: number,
@@ -272,18 +255,16 @@ func createProjectInDB(t *testing.T, db *DB, projectUID types.ProjectUID, name s
 }
 
 type ProjectionSnapshot struct {
-	Projects       map[string]string // project_uid -> name
-	ProjectAliases map[string]string // alias -> project_uid
-	Tasks          map[string]string // task_uid -> title
-	TaskNumbers    map[string]int64  // task_uid -> number
+	Projects    map[string]string // project_uid -> name
+	Tasks       map[string]string // task_uid -> title
+	TaskNumbers map[string]int64  // task_uid -> number
 }
 
 func captureProjectionSnapshot(t *testing.T, db *DB) ProjectionSnapshot {
 	snapshot := ProjectionSnapshot{
-		Projects:       make(map[string]string),
-		ProjectAliases: make(map[string]string),
-		Tasks:          make(map[string]string),
-		TaskNumbers:    make(map[string]int64),
+		Projects:    make(map[string]string),
+		Tasks:       make(map[string]string),
+		TaskNumbers: make(map[string]int64),
 	}
 
 	// Capture projects
@@ -296,15 +277,7 @@ func captureProjectionSnapshot(t *testing.T, db *DB) ProjectionSnapshot {
 	}
 	rows.Close()
 
-	// Capture project aliases
-	rows, err = db.Db.Query("SELECT alias, project_uid FROM project_aliases")
-	require.NoError(t, err)
-	for rows.Next() {
-		var alias, uid string
-		require.NoError(t, rows.Scan(&alias, &uid))
-		snapshot.ProjectAliases[alias] = uid
-	}
-	rows.Close()
+	// Note: project_aliases table removed (aliases no longer supported)
 
 	// Capture tasks
 	rows, err = db.Db.Query("SELECT task_uid, title FROM tasks")
@@ -335,7 +308,6 @@ func assertProjectionsEqual(t *testing.T, db1, db2 *DB) {
 	snap2 := captureProjectionSnapshot(t, db2)
 
 	assert.Equal(t, snap1.Projects, snap2.Projects, "projects should be identical")
-	assert.Equal(t, snap1.ProjectAliases, snap2.ProjectAliases, "project aliases should be identical")
 	assert.Equal(t, snap1.Tasks, snap2.Tasks, "tasks should be identical")
 	assert.Equal(t, snap1.TaskNumbers, snap2.TaskNumbers, "task numbers should be identical")
 }

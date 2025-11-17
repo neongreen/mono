@@ -3,9 +3,12 @@ GOPRIVATE = "github.com/neongreen/mono"
 GONOSUMDB = "github.com/neongreen/mono"
 # Prevent Go from auto-upgrading to newer versions (fixes version mismatch errors)
 GOTOOLCHAIN = "local"
+# Add bin/ directory to PATH for dev build scripts
+_.path = ["./bin"]
 
 [tools]
 go = "1.24.7"
+dagger = "0.19.6"
 "go:github.com/rhysd/actionlint/cmd/actionlint" = "latest"
 "go:github.com/suzuki-shunsuke/pinact/v3/cmd/pinact" = "latest"
 zizmor = "latest"
@@ -19,6 +22,7 @@ pnpm = "latest"
 node = "latest"
 "go:golang.org/x/tools/gopls" = "latest"
 gotestsum = "latest"
+golangci-lint = "latest"
 fnox = "latest"
 opentofu = "latest"
 spacectl = "latest"
@@ -46,6 +50,20 @@ description = "Format Rust code"
 dir = "mdbook-comments"
 run = "cargo fmt"
 
+[tasks.deprecations]
+description = "List all scheduled deprecations across codebase"
+run = '''
+echo "=== Scheduled Deprecations ==="
+echo ""
+echo "Format: deprecated:VERSION [track:BOOL] [remove-after:CONDITION] [reason:TEXT]"
+echo ""
+rg --color=never --no-heading --line-number "deprecated:v\d+" -g "*.go" -g "*.rs" -g "*.ts" | \
+  sed 's|^\([^:]*\):\([^:]*\):\(.*\)|\1:\2: \3|' | \
+  sort
+echo ""
+echo "To scan event logs for usage: tk migrate scan-deprecated"
+'''
+
 # NOTE: Project run tasks (tk, conf, printpdf, etc.) are intentionally flat names
 # without the :run suffix for convenience, since running is the most common operation.
 # All other tasks remain namespaced (project:test, project:build, etc.).
@@ -58,19 +76,48 @@ jj git fetch && jj b t "glob:*@origin"
 
 [tasks."lint:go:golangci"]
 description = "Lint all Go code with golangci-lint"
-run = "golangci-lint run"
+# Use --new-from-rev to grandfather existing violations (see tk-330)
+run = "golangci-lint run --new-from-rev=0c23a5a5"
 
 [tasks."lint:go:uselesswrapper"]
 description = "Detect useless function wrappers"
-run = "go run ./lib/linters/uselesswrapper/cmd/uselesswrapper ./..."
+run = "go run ./linters/uselesswrapper/cmd/uselesswrapper ./..."
+
+[tasks."lint:go:cobra"]
+description = "Lint tk Cobra commands for conventions"
+run = "go run ./linters/cobralint/cmd/cobralint ./tk/..."
+
+[tasks."lint:go:dircheck"]
+description = "Detect file writes without directory existence checks"
+run = "go run ./linters/dircheck/cmd/dircheck ./..."
 
 [tasks."lint:go"]
 description = "Lint all Go code"
-depends = ["lint:go:golangci", "lint:go:uselesswrapper"]
+depends = ["lint:go:golangci", "lint:go:uselesswrapper", "lint:go:cobra", "lint:go:dircheck"]
 
 [tasks."test:go"]
 description = "Test all Go code"
 run = "go test -run=^$ ./..."
+
+[tasks."fuzz:pathlang"]
+description = "Run fuzz tests on pathlang parser (30s smoke test)"
+dir = "lib/pathlang"
+run = """
+echo "Fuzzing Parse..."
+go test -fuzz=FuzzParse -fuzztime=15s
+echo "Fuzzing RoundTrip..."
+go test -fuzz=FuzzParseRoundTrip -fuzztime=15s
+echo "Fuzz testing complete. To run longer: go test -fuzz=FuzzParse -fuzztime=1h"
+"""
+
+[tasks."fuzz:pathlang:long"]
+description = "Run extended fuzz tests on pathlang parser (5 minutes)"
+dir = "lib/pathlang"
+run = """
+echo "Running extended fuzzing (5 minutes)..."
+go test -fuzz=FuzzParse -fuzztime=2m30s
+go test -fuzz=FuzzParseRoundTrip -fuzztime=2m30s
+"""
 
 [tasks."lint:actions:actionlint"]
 description = "Lint GitHub Actions workflows with actionlint"
@@ -503,26 +550,26 @@ run = """
 
 [tasks."tk-vscode:install-deps"]
 description = "Install dependencies for tk-vscode"
-dir = "tk-vscode"
-run = "npm install"
+run = "cd tk-vscode && npm install"
 
 [tasks."tk-vscode:build"]
 description = "Compile & package the VS Code extension"
-dir = "tk-vscode"
 run = """
+cd tk-vscode
 npm run compile
 npm run package
 """
 
 [tasks."tk-vscode:install"]
 description = "Install the VS Code extension"
-dir = "tk-vscode"
-run = "code --install-extension tk-0.0.1.vsix --force"
+run = """
+cd tk-vscode
+code --install-extension tk-0.0.1.vsix --force
+"""
 
 [tasks."tk-vscode:watch"]
 description = "Recompile on source changes"
-dir = "tk-vscode"
-run = "npm run watch"
+run = "cd tk-vscode && npm run watch"
 
 # ============================================================================
 # conf
@@ -808,6 +855,18 @@ go build -trimpath -o {{cwd}}/_build/tk .
 echo "{{cwd}}/_build/tk"
 """
 
+[tasks."tk:log:errors"]
+description = "Show recent tk command errors from the invocation log"
+tools.glow = "latest"
+tools.jq = "latest"
+run = '''
+  tail -10000 ~/.tk/log.jsonl |
+    jq -r 'select(.exit_code != 0) | 
+      (.stderr | split("\n")) as $lines |
+      "## \($lines[0])\n\n`\(.command) \(.args | join(" "))` exited with \(.exit_code)\n\n```\n\($lines[:10] | join("\n"))\n```\n\n"' | 
+    glow -
+''' 
+
 # ============================================================================
 # want
 # ============================================================================
@@ -976,6 +1035,6 @@ dir = "cloud"
 quiet = true
 run = '''
 set -euo pipefail
-POD=$(mise run cloud:kubectl get pods -n dagger -l app.kubernetes.io/name=dagger-engine -o jsonpath='{.items[0].metadata.name}')
+POD=$(mise run cloud:kubectl get pods -n dagger -l app=dagger-engine -o jsonpath='{.items[0].metadata.name}')
 mise run cloud:kubectl logs -n dagger "$POD" "$@"
 '''

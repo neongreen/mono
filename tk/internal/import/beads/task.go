@@ -7,7 +7,6 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
-	"github.com/neongreen/mono/tk/internal/utils"
 )
 
 // ImportBeadsIssue imports a single beads issue as a tk task
@@ -19,10 +18,7 @@ func ImportBeadsIssue(db *database.DB, issue BeadsIssue, projectUID string, numb
 	}
 
 	// Generate task UID
-	taskUID, err := utils.GenerateTaskUUID()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate task UUID: %w", err)
-	}
+	taskUID := types.NewTaskUID().String()
 
 	// Parse created_at time if available
 	createdAt := parseCreatedAt(issue.CreatedAt)
@@ -151,8 +147,8 @@ func createTaskCreatedEvent(db *database.DB, taskUID, projectUID string, number 
 // createTaskNumberEvent creates a task.number.set event
 func createTaskNumberEvent(db *database.DB, taskUID, projectUID string, number int64, actor string, createdAt time.Time) error {
 	payload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     "imported",
 	}

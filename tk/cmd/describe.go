@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/neongreen/mono/tk/internal/utils"
-
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var describeCmd = &cobra.Command{
 	Use:     "describe <task> <title>",
 	Aliases: []string{"desc", "d"},
@@ -39,7 +40,7 @@ var describeCmd = &cobra.Command{
 		}
 
 		// Edit task title using business logic
-		if err := tasks.EditTitle(db, taskUID, title, currentUser); err != nil {
+		if err := tasks.EditTitle(db, taskUID, title, currentUser, &clock.RealClock{}); err != nil {
 			return err
 		}
 

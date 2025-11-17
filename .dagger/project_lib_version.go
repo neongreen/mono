@@ -17,7 +17,8 @@ func (p *LibVersionProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	return testProject(ctx, "lib/version", format)
+	src := getFilteredSource("lib/version", dag.CurrentModule().Source().Directory(".."))
+	return testProject(ctx, "lib/version", format, src)
 }
 
 // Coverage runs tests for lib/version and returns coverage file
@@ -26,5 +27,6 @@ func (p *LibVersionProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	return coverageFile(ctx, "lib/version", format)
+	src := getFilteredSource("lib/version", dag.CurrentModule().Source().Directory(".."))
+	return coverageFile(ctx, "lib/version", format, src)
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"testing"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/tasks"
 )
 
@@ -12,7 +13,7 @@ func TestEditNumber(t *testing.T) {
 	projectUID := seedProject(t, db, "edit")
 	taskUID := seedTask(t, db, projectUID, "edit task", 1)
 
-	if err := tasks.EditNumber(db, taskUID, "5", "test-user"); err != nil {
+	if err := tasks.EditNumber(db, taskUID, "5", "test-user", &clock.RealClock{}); err != nil {
 		t.Fatalf("EditNumber failed: %v", err)
 	}
 
@@ -31,7 +32,7 @@ func TestEditTitle(t *testing.T) {
 	projectUID := seedProject(t, db, "title")
 	taskUID := seedTask(t, db, projectUID, "Old Title", 3)
 
-	if err := tasks.EditTitle(db, taskUID, "New Title", "test-user"); err != nil {
+	if err := tasks.EditTitle(db, taskUID, "New Title", "test-user", &clock.RealClock{}); err != nil {
 		t.Fatalf("EditTitle failed: %v", err)
 	}
 

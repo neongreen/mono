@@ -5,7 +5,7 @@ import "encoding/json"
 // TaskStatusSetPayload is the payload for task.status.set events
 type TaskStatusSetPayload struct {
 	TaskUUID string `json:"task_uuid,omitempty"` // New field for UUID-based updates
-	TaskID   string `json:"task_id"`             // Legacy field, still required for now
+	TaskID   string `json:"task_id"`             // Legacy: only for reading old events. See tk-190 for removal plan.
 	Axis     string `json:"axis"`                // e.g. "generic"
 	State    string `json:"state"`               // e.g. "in_progress", "done", "blocked"
 	Role     string `json:"role"`                // human / agent / bot / qa / rel
@@ -14,7 +14,7 @@ type TaskStatusSetPayload struct {
 // TaskNoteAddPayload is the payload for task.note.add events
 type TaskNoteAddPayload struct {
 	TaskUUID string `json:"task_uuid,omitempty"` // New field for UUID-based updates
-	TaskID   string `json:"task_id"`             // Legacy field, still required for now
+	TaskID   string `json:"task_id"`             // Legacy: only for reading old events. See tk-190 for removal plan.
 	Markdown string `json:"markdown"`
 }
 
@@ -52,4 +52,21 @@ type RelationNotePayload struct {
 	Type     string `json:"type"`     // Relation type
 	Dst      string `json:"dst"`      // Destination task UUID
 	Markdown string `json:"markdown"` // Note text
+}
+
+// TaskAttachmentAddPayload is the payload for task.attachment.add events
+type TaskAttachmentAddPayload struct {
+	TaskUUID       string `json:"task_uuid"`
+	AttachmentID   string `json:"attachment_id"`   // Attachment ID (e.g., "att-1")
+	AttachmentHash string `json:"attachment_hash"` // SHA256 hash of content
+	Filename       string `json:"filename"`
+	Description    string `json:"description,omitempty"`
+	MimeType       string `json:"mime_type,omitempty"`
+	Size           int64  `json:"size"`
+}
+
+// TaskAttachmentRemovePayload is the payload for task.attachment.remove events
+type TaskAttachmentRemovePayload struct {
+	TaskUUID     string `json:"task_uuid"`
+	AttachmentID string `json:"attachment_id"` // Attachment ID
 }

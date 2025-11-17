@@ -15,7 +15,8 @@ func (p *LibTomlProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	return testProject(ctx, "lib/toml", format)
+	src := getFilteredSource("lib/toml", dag.CurrentModule().Source().Directory(".."))
+	return testProject(ctx, "lib/toml", format, src)
 }
 
 func (p *LibTomlProject) Coverage(ctx context.Context,
@@ -23,5 +24,6 @@ func (p *LibTomlProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	return coverageFile(ctx, "lib/toml", format)
+	src := getFilteredSource("lib/toml", dag.CurrentModule().Source().Directory(".."))
+	return coverageFile(ctx, "lib/toml", format, src)
 }

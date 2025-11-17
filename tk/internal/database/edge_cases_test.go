@@ -28,6 +28,11 @@ func TestEventProjectionIdempotency(t *testing.T) {
 		t.Fatalf("failed to set version: %v", err)
 	}
 
+	// Run migrations to get to latest schema
+	if err := db.RunMigrationsIfNeeded(); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
+	}
+
 	nodeA, err := db.GetOrCreateNodeID()
 	if err != nil {
 		t.Fatalf("failed to get node: %v", err)
@@ -35,7 +40,7 @@ func TestEventProjectionIdempotency(t *testing.T) {
 
 	// Create a project event
 	projectUID := string(types.NewProjectUID())
-	projectEvent := createProjectCreatedEvent(projectUID, "Test Project", "A test", "alice", nodeA)
+	projectEvent := createProjectCreatedEvent(projectUID, "test-project", "A test", "alice", nodeA)
 
 	// Insert and project once
 	if err := db.InsertEvent(projectEvent); err != nil {
@@ -82,6 +87,11 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 		t.Fatalf("failed to set version: %v", err)
 	}
 
+	// Run migrations to get to latest schema
+	if err := db.RunMigrationsIfNeeded(); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
+	}
+
 	nodeA, err := db.GetOrCreateNodeID()
 	if err != nil {
 		t.Fatalf("failed to get node: %v", err)
@@ -89,7 +99,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 
 	// Create a project
 	projectUID := string(types.NewProjectUID())
-	projectEvent := createProjectCreatedEvent(projectUID, "Test", "Test", "alice", nodeA)
+	projectEvent := createProjectCreatedEvent(projectUID, "test", "Test", "alice", nodeA)
 	if err := db.InsertEvent(projectEvent); err != nil {
 		t.Fatalf("failed to insert project: %v", err)
 	}
@@ -97,13 +107,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 		t.Fatalf("failed to project project: %v", err)
 	}
 
-	aliasEvent := createProjectAliasAddEvent(projectUID, "test", nodeA, "alice")
-	if err := db.InsertEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to insert alias: %v", err)
-	}
-	if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to project alias: %v", err)
-	}
+	// Note: alias creation removed (tk-246)
 
 	// Create two tasks with the same number (collision)
 	task1UID := string(types.NewTaskUID())

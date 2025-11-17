@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var importBeadsCmd = &cobra.Command{
 	Use:   "import-beads [path]",
 	Short: "Import issues from beads JSONL format",

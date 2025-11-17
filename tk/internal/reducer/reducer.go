@@ -69,6 +69,10 @@ func (r *Reducer) Apply(e types.Event) error {
 		return r.applyRelationRemove(e)
 	case "relation.note":
 		return r.applyRelationNote(e)
+	case "task.attachment.add":
+		return r.applyTaskAttachmentAdd(e)
+	case "task.attachment.remove":
+		return r.applyTaskAttachmentRemove(e)
 	default:
 		// Unknown events are ignored for forward compatibility
 		return nil
@@ -84,7 +88,8 @@ func (r *Reducer) applyTaskStatusSet(e types.Event) error {
 	// Resolve task ID to UUID
 	taskUUID := payload.TaskUUID
 	if taskUUID == "" {
-		// Legacy event - look up UUID by task ID
+		// Legacy event fallback - only for reading old pre-UUID events
+		// See tk-190: can be removed after running 'tk migrate compact-remote' on all machines
 		var ok bool
 		taskUUID, ok = r.taskByID[payload.TaskID]
 		if !ok {
@@ -118,6 +123,7 @@ func (r *Reducer) applyTaskStatusSet(e types.Event) error {
 	r.resolveEffectiveStatus(&axis)
 
 	task.Axes[payload.Axis] = axis
+	task.UpdatedAt = e.CreatedAt
 
 	return nil
 }
@@ -131,7 +137,8 @@ func (r *Reducer) applyTaskNoteAdd(e types.Event) error {
 	// Resolve task ID to UUID
 	taskUUID := payload.TaskUUID
 	if taskUUID == "" {
-		// Legacy event - look up UUID by task ID
+		// Legacy event fallback - only for reading old pre-UUID events
+		// See tk-190: can be removed after running 'tk migrate compact-remote' on all machines
 		var ok bool
 		taskUUID, ok = r.taskByID[payload.TaskID]
 		if !ok {
@@ -150,6 +157,7 @@ func (r *Reducer) applyTaskNoteAdd(e types.Event) error {
 		Timestamp: e.CreatedAt, // Use actual creation time from event
 	}
 	task.Notes = append(task.Notes, note)
+	task.UpdatedAt = e.CreatedAt
 
 	return nil
 }
@@ -194,7 +202,7 @@ func (r *Reducer) applyProjectDelete(e types.Event) error {
 	// Find all tasks in this project and delete them
 	tasksToDelete := make([]string, 0)
 	for taskUUID, taskProjectUID := range r.taskProjects {
-		if taskProjectUID == projectUID {
+		if taskProjectUID == projectUID.String() {
 			tasksToDelete = append(tasksToDelete, taskUUID)
 		}
 	}
@@ -435,22 +443,57 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 
 	taskUID := payload.TaskUID
 
-	// Guard against duplicate task.created for same UID
-	if _, exists := r.tasks[taskUID]; exists {
+	// Default item kind to "task" if not specified (backward compatibility)
+	itemKind := payload.ItemKind
+	if itemKind == "" {
+		itemKind = "task"
+	}
+
+	// Handle duplicate task.created events deterministically
+	// If a task with this UID already exists, keep the one with earlier Lamport timestamp
+	if existing, exists := r.tasks[taskUID]; exists {
+		// Keep the task with earlier Lamport timestamp (deterministic)
+		if e.TS < existing.CreatedAtTS {
+			// This event is earlier, replace existing task
+			// (But keep any state changes that happened after creation)
+			r.tasks[taskUID] = &types.Task{
+				TaskUUID:      taskUID,
+				TaskDisplayID: taskUID,
+				ProjectUUID:   payload.ProjectUID,
+				Aliases:       []string{},
+				Title:         payload.Title,
+				ItemKind:      itemKind,
+				Axes:          existing.Axes,     // Preserve status changes
+				Metadata:      existing.Metadata, // Preserve metadata
+				Notes:         existing.Notes,    // Preserve notes
+				CreatedBy:     payload.CreatedBy,
+				CreatedAt:     e.CreatedAt,
+				CreatedAtTS:   e.TS,
+				UpdatedAt:     existing.UpdatedAt, // Preserve updated timestamp
+				Relations:     existing.Relations,
+				Blocked:       existing.Blocked,
+				Blockers:      existing.Blockers,
+			}
+		}
+		// Otherwise, keep existing task (it has earlier Lamport TS)
 		return nil
 	}
 
 	// types.Task display ID is derived from project alias + number
 	// For now, we'll use the task_uid as the task_id until we compute the display ID
 	r.tasks[taskUID] = &types.Task{
-		TaskID:        taskUID,
+		TaskUUID:      taskUID,
 		TaskDisplayID: taskUID, // Placeholder, will be replaced by display ID
+		ProjectUUID:   payload.ProjectUID,
 		Aliases:       []string{},
 		Title:         payload.Title,
+		ItemKind:      itemKind,
 		Axes:          make(map[string]types.AxisStatus),
 		Notes:         []types.Note{},
 		CreatedBy:     payload.CreatedBy,
 		CreatedAt:     e.CreatedAt,
+		CreatedAtTS:   e.TS,
+		UpdatedAt:     e.CreatedAt, // Initially same as CreatedAt
 	}
 
 	// Register task by UID
@@ -481,7 +524,7 @@ func (r *Reducer) applyTaskRelocate(e types.Event) error {
 
 	// Update the task's project mapping so project.delete can correctly
 	// remove tasks that belong to the deleted project
-	r.taskProjects[payload.TaskUID] = payload.ToProjectUID
+	r.taskProjects[payload.TaskUID.String()] = payload.ToProjectUID.String()
 
 	return nil
 }
@@ -495,13 +538,70 @@ func (r *Reducer) applyTaskTitleSet(e types.Event) error {
 	taskUID := payload.TaskUID
 
 	// Find the task
-	task, exists := r.tasks[taskUID]
+	task, exists := r.tasks[taskUID.String()]
 	if !exists {
 		return fmt.Errorf("task %s not found", taskUID)
 	}
 
 	// Update the title
 	task.Title = payload.Title
+	task.UpdatedAt = e.CreatedAt
+
+	return nil
+}
+
+func (r *Reducer) applyTaskAttachmentAdd(e types.Event) error {
+	var payload types.TaskAttachmentAddPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.attachment.add payload: %w", err)
+	}
+
+	task, ok := r.tasks[payload.TaskUUID]
+	if !ok {
+		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
+	}
+
+	// Add attachment if not already present
+	for _, att := range task.Attachments {
+		if att.ID == payload.AttachmentID {
+			// Already attached, skip
+			return nil
+		}
+	}
+
+	task.Attachments = append(task.Attachments, types.Attachment{
+		ID:          payload.AttachmentID,
+		Hash:        payload.AttachmentHash,
+		Filename:    payload.Filename,
+		Description: payload.Description,
+		MimeType:    payload.MimeType,
+		Size:        payload.Size,
+	})
+	task.UpdatedAt = e.CreatedAt
+
+	return nil
+}
+
+func (r *Reducer) applyTaskAttachmentRemove(e types.Event) error {
+	var payload types.TaskAttachmentRemovePayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal task.attachment.remove payload: %w", err)
+	}
+
+	task, ok := r.tasks[payload.TaskUUID]
+	if !ok {
+		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
+	}
+
+	// Remove attachment by ID
+	filtered := make([]types.Attachment, 0, len(task.Attachments))
+	for _, att := range task.Attachments {
+		if att.ID != payload.AttachmentID {
+			filtered = append(filtered, att)
+		}
+	}
+	task.Attachments = filtered
+	task.UpdatedAt = e.CreatedAt
 
 	return nil
 }

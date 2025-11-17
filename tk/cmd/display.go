@@ -6,16 +6,64 @@ import (
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/fatih/color"
-	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
+// padRight pads a string to the specified width with trailing spaces
+func padRight(s string, width int) string {
+	// Account for ANSI color codes in length calculation
+	visibleLen := len(stripAnsiCodes(s))
+	if visibleLen >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-visibleLen)
+}
+
+// truncateOrPad truncates or pads a string to the specified width
+func truncateOrPad(s string, width int) string {
+	visibleLen := len(stripAnsiCodes(s))
+	if visibleLen > width {
+		// Truncate with ellipsis
+		if width <= 3 {
+			return s[:width]
+		}
+		return s[:width-3] + "..."
+	}
+	return padRight(s, width)
+}
+
+// stripAnsiCodes removes ANSI color codes for length calculation
+func stripAnsiCodes(s string) string {
+	// Simple regex to strip ANSI escape codes
+	// This handles most common color codes
+	var result strings.Builder
+	inEscape := false
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\x1b' && i+1 < len(s) && s[i+1] == '[' {
+			inEscape = true
+			i++ // skip '['
+			continue
+		}
+		if inEscape {
+			if (s[i] >= 'A' && s[i] <= 'Z') || (s[i] >= 'a' && s[i] <= 'z') {
+				inEscape = false
+			}
+			continue
+		}
+		result.WriteString(string(s[i]))
+	}
+	return result.String()
+}
+
 // colorizeStatus returns a colored status string based on the status value
 func colorizeStatus(status string) string {
 	switch status {
+	case "next":
+		return blueStatus(status)
 	case "wip":
 		return yellowStatus(status)
 	case "done", "fixed":
@@ -25,70 +73,42 @@ func colorizeStatus(status string) string {
 	}
 }
 
-// renderTaskTable renders a table of tasks with the specified configuration
-// If widths is nil, it will calculate widths based on the provided tasks
+// renderTaskTable renders a table of tasks using lipgloss/table.
+// If widths is nil, it will calculate widths from the given tasks.
+// Pass a non-nil widths to use consistent column widths across multiple tables.
 func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, termWidth int, widths *ColumnWidths) {
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-
-	if showAliases {
-		t.AppendHeader(table.Row{"ID", "Aliases", "Status", "P", "Labels", "Title"})
-	} else {
-		t.AppendHeader(table.Row{"ID", "Status", "P", "Labels", "Title"})
+	// First pass: collect all raw cell values
+	type cellData struct {
+		displayID string
+		aliases   string
+		kind      string
+		status    string
+		priority  string
+		labels    string
+		title     string
 	}
 
-	t.SetStyle(table.StyleLight)
-	t.Style().Options.SeparateRows = true
-	t.Style().Options.DrawBorder = false
+	cellValues := make([]cellData, len(tasks))
 
-	// Calculate widths if not provided
-	if widths == nil {
-		// Build displayID map for width calculation
-		displayIDs := make(map[string]string)
-		for _, task := range tasks {
-			displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
-			if err == nil {
-				displayIDs[task.TaskID] = displayID
-			}
-		}
-
-		// Calculate optimal column widths based on actual data
-		constraints := DefaultColumnConstraints(termWidth, showAliases)
-		calculatedWidths := CalculateColumnWidths(tasks, displayIDs, constraints)
-		widths = &calculatedWidths
-	}
-
-	// Configure columns with calculated widths
-	// Set both WidthMin and WidthMax to force fixed widths for consistency across groups
-	if showAliases {
-		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                          // ID
-			{Number: 2, AutoMerge: false, WidthMin: widths.Aliases, WidthMax: widths.Aliases},                                // Aliases
-			{Number: 3, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                                  // Status
-			{Number: 4, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                              // P
-			{Number: 5, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
-			{Number: 6, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},   // Title
-		})
-	} else {
-		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, AutoMerge: false, WidthMin: widths.ID, WidthMax: widths.ID},                                          // ID
-			{Number: 2, AutoMerge: false, WidthMin: widths.Status, WidthMax: widths.Status},                                  // Status
-			{Number: 3, AutoMerge: false, WidthMin: widths.Priority, WidthMax: widths.Priority},                              // P
-			{Number: 4, AutoMerge: false, WidthMin: widths.Labels, WidthMax: widths.Labels, WidthMaxEnforcer: text.WrapSoft}, // Labels
-			{Number: 5, AutoMerge: false, WidthMin: widths.Title, WidthMax: widths.Title, WidthMaxEnforcer: text.WrapSoft},   // Title
-		})
-	}
-
-	for _, task := range tasks {
-		displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
+	for i, task := range tasks {
+		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
 			displayID = task.TaskDisplayID
 		}
+		cellValues[i].displayID = displayID
+
+		// Extract kind (default to "task" if empty)
+		kind := task.ItemKind
+		if kind == "" {
+			kind = "task"
+		}
+		cellValues[i].kind = kind
 
 		status := ""
 		if axis, ok := task.Axes["generic"]; ok {
 			status = colorizeStatus(axis.Effective)
 		}
+		cellValues[i].status = status
 
 		// Extract priority
 		priority := ""
@@ -98,6 +118,7 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 				priority = fmt.Sprintf("%v", p)
 			}
 		}
+		cellValues[i].priority = priority
 
 		// Extract labels
 		labelsStr := ""
@@ -111,34 +132,137 @@ func renderTaskTable(db *database.DB, tasks []*types.Task, showAliases bool, ter
 				labelsStr = strings.Join(labelStrs, ", ")
 			}
 		}
+		cellValues[i].labels = labelsStr
 
-		if showAliases {
-
-			aliasesStr := ""
-			if len(task.Aliases) > 0 {
-				var shortAliases []string
-				for _, alias := range task.Aliases {
-					shortAliases = append(shortAliases, database.FormatTaskID(db, alias))
-				}
-				aliasesStr = strings.Join(shortAliases, ", ")
+		// Extract aliases
+		aliasesStr := ""
+		if showAliases && len(task.Aliases) > 0 {
+			var shortAliases []string
+			for _, alias := range task.Aliases {
+				shortAliases = append(shortAliases, database.FormatTaskID(db, alias))
 			}
-			t.AppendRow(table.Row{displayID, aliasesStr, status, priority, labelsStr, task.Title})
+			aliasesStr = strings.Join(shortAliases, ", ")
+		}
+		cellValues[i].aliases = aliasesStr
+
+		// Display empty titles as "(empty)"
+		title := task.Title
+		if title == "" {
+			title = "(empty)"
+		}
+
+		// Take only first line of title
+		if idx := strings.Index(title, "\n"); idx != -1 {
+			title = title[:idx]
+		}
+		cellValues[i].title = title
+	}
+
+	// Calculate optimal column widths if not provided
+	var calculatedWidths ColumnWidths
+	if widths == nil {
+		displayIDs := make(map[string]string)
+		for i, task := range tasks {
+			displayIDs[task.TaskUUID] = cellValues[i].displayID
+		}
+		constraints := DefaultColumnConstraints(termWidth, showAliases)
+		calculatedWidths = CalculateColumnWidths(tasks, displayIDs, constraints)
+		widths = &calculatedWidths
+	}
+
+	// Build padded rows using calculated widths
+	var rows [][]string
+	for _, cell := range cellValues {
+		var row []string
+		if showAliases {
+			row = []string{
+				padRight(cell.displayID, widths.ID),
+				padRight(cell.aliases, widths.Aliases),
+				padRight(cell.kind, widths.Kind),
+				padRight(cell.status, widths.Status),
+				padRight(cell.priority, widths.Priority),
+				padRight(cell.labels, widths.Labels),
+				truncateOrPad(cell.title, widths.Title),
+			}
 		} else {
-			t.AppendRow(table.Row{displayID, status, priority, labelsStr, task.Title})
+			row = []string{
+				padRight(cell.displayID, widths.ID),
+				padRight(cell.kind, widths.Kind),
+				padRight(cell.status, widths.Status),
+				padRight(cell.priority, widths.Priority),
+				padRight(cell.labels, widths.Labels),
+				truncateOrPad(cell.title, widths.Title),
+			}
+		}
+		rows = append(rows, row)
+	}
+
+	// Create headers with same padding
+	var headers []string
+	if showAliases {
+		headers = []string{
+			padRight("ID", widths.ID),
+			padRight("ALIASES", widths.Aliases),
+			padRight("KIND", widths.Kind),
+			padRight("STATUS", widths.Status),
+			padRight("P", widths.Priority),
+			padRight("LABELS", widths.Labels),
+			padRight("TITLE", widths.Title),
+		}
+	} else {
+		headers = []string{
+			padRight("ID", widths.ID),
+			padRight("KIND", widths.Kind),
+			padRight("STATUS", widths.Status),
+			padRight("P", widths.Priority),
+			padRight("LABELS", widths.Labels),
+			padRight("TITLE", widths.Title),
 		}
 	}
 
-	t.Render()
+	// Create table with padding
+	re := lipgloss.NewRenderer(os.Stdout)
+
+	var baseStyle = re.NewStyle().Padding(0, 1)
+	var headerStyle = baseStyle.Bold(true).Foreground(lipgloss.Color("240"))
+
+	t := table.New().
+		Width(termWidth).
+		Wrap(true).
+		Border(lipgloss.NormalBorder()).
+		BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("240"))).
+		BorderLeft(false).
+		BorderRight(false).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			if row == 0 {
+				return headerStyle
+			}
+			return baseStyle
+		}).
+		Headers(headers...).
+		Rows(rows...)
+
+	fmt.Println(t.Render())
 }
 
 // outputTasksJSON outputs tasks as a JSON array
+// NOTE: This always returns a flat array of tasks, not grouped JSON.
+// VSCode extension and other clients should group tasks on the client side.
+// See tk-vscode/src/extension.ts:fetchTk for the client-side grouping logic.
 func outputTasksJSON(db *database.DB, tasks []*types.Task) error {
 	for _, task := range tasks {
-		displayID, err := database.RenderTaskDisplayID(db, task.TaskID)
+		displayID, err := database.RenderTaskDisplayID(db, task.TaskUUID)
 		if err != nil {
 			displayID = task.TaskDisplayID
 		}
 		task.TaskDisplayID = displayID
+
+		// Populate project UUID from database
+		var projectUID string
+		err = db.Db.QueryRow(`SELECT project_uid FROM tasks WHERE task_uid = ?`, task.TaskUUID).Scan(&projectUID)
+		if err == nil {
+			task.ProjectUUID = projectUID
+		}
 	}
 
 	jsonOutput, err := json.MarshalIndent(tasks, "", "  ")
@@ -152,6 +276,7 @@ func outputTasksJSON(db *database.DB, tasks []*types.Task) error {
 
 var (
 	// Color formatters for status display
+	blueStatus   = color.New(color.FgBlue).SprintFunc()
 	yellowStatus = color.New(color.FgYellow).SprintFunc()
 	greenStatus  = color.New(color.FgGreen).SprintFunc()
 	redText      = color.New(color.FgRed).SprintFunc()

@@ -124,46 +124,33 @@ func TestImportBeads_PreservesNumbering(t *testing.T) {
 func TestImportBeads_AlwaysCreatesNewProject(t *testing.T) {
 	db := openTempDB(t)
 
-	// Create first project with alias "bd-mono"
+	// Create first project
 	uid1, err := beads.CreateProjectForImport(db, "mono", "bd-mono", "test-actor")
 	assert.NoError(t, err)
 
-	// Create second project - different alias required (same node can't have duplicate)
+	// Create second project (same name, should create new project)
 	uid2, err := beads.CreateProjectForImport(db, "mono", "beads-mono", "test-actor")
 	assert.NoError(t, err)
 
 	// Should be different UIDs
 	assert.NotEqual(t, uid1, uid2, "should create different projects")
 
-	// Should have different aliases
+	// Verify both projects exist
 	var count int
-	err = db.Db.QueryRow("SELECT COUNT(*) FROM project_aliases WHERE alias = 'bd-mono'").Scan(&count)
+	err = db.Db.QueryRow("SELECT COUNT(*) FROM projects").Scan(&count)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, count, "should have 1 project with 'bd-mono' alias")
-
-	err = db.Db.QueryRow("SELECT COUNT(*) FROM project_aliases WHERE alias = 'beads-mono'").Scan(&count)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, count, "should have 1 project with 'beads-mono' alias")
+	assert.Equal(t, 2, count, "should have 2 projects")
 }
 
-func TestImportBeads_CreatesSingleAlias(t *testing.T) {
+func TestImportBeads_CreatesProject(t *testing.T) {
 	db := openTempDB(t)
 
 	projectUID, err := beads.CreateProjectForImport(db, "test", "bd-test", "test-actor")
 	assert.NoError(t, err)
 
-	// Verify only one alias created
-	var aliases []string
-	rows, err := db.Db.Query("SELECT alias FROM project_aliases WHERE project_uid = ?", projectUID)
+	// Verify project was created
+	var name string
+	err = db.Db.QueryRow("SELECT name FROM projects WHERE project_uid = ?", projectUID).Scan(&name)
 	assert.NoError(t, err)
-	defer rows.Close()
-
-	for rows.Next() {
-		var alias string
-		rows.Scan(&alias)
-		aliases = append(aliases, alias)
-	}
-
-	assert.Len(t, aliases, 1, "should have 1 alias")
-	assert.Contains(t, aliases, "bd-test", "should have the specified alias")
+	assert.Equal(t, "test", name, "should have correct project name")
 }

@@ -36,20 +36,26 @@ func OpenTempDB(t *testing.T) *database.DB {
 	`, "v4"); err != nil {
 		t.Fatalf("failed to set remote_subdir: %v", err)
 	}
+
+	// Run migrations to get to latest schema
+	if err := db.RunMigrationsIfNeeded(); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
+	}
+
 	return db
 }
 
-// SeedProject creates a test project with an alias
-func SeedProject(t *testing.T, db *database.DB, alias string) string {
+// SeedProject creates a test project with the given name
+func SeedProject(t *testing.T, db *database.DB, name string) string {
 	t.Helper()
 	projectUID := string(types.NewProjectUID())
 	now := time.Now()
 
 	projectPayload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
-		Name:        alias,
-		Description: alias + " project",
+		ProjectUID:  types.ProjectUID(projectUID),
+		Type:        types.ProjectTypeLocal,
+		Name:        name,
+		Description: name + " project",
 		CreatedBy:   "tester",
 	}
 
@@ -68,34 +74,6 @@ func SeedProject(t *testing.T, db *database.DB, alias string) string {
 	}
 	if err := db.ProjectProjectCreatedEvent(event); err != nil {
 		t.Fatalf("failed to project project.created: %v", err)
-	}
-
-	nodeID, err := db.GetOrCreateNodeID()
-	if err != nil {
-		t.Fatalf("failed to get node id: %v", err)
-	}
-
-	aliasPayload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID,
-		Alias:      alias,
-		Node:       nodeID,
-		AddedBy:    "tester",
-	}
-	aliasJSON := MustJSON(t, aliasPayload)
-	aliasEvent := types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: now,
-		Actor:     "tester",
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   aliasJSON,
-	}
-	if err := db.InsertEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to insert project.alias.add: %v", err)
-	}
-	if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to project project.alias.add: %v", err)
 	}
 
 	return projectUID
@@ -143,8 +121,8 @@ func SeedTaskWithNode(t *testing.T, db *database.DB, projectUID string, title st
 	}
 
 	numberPayload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     "seed",
 	}

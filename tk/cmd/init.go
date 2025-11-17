@@ -1,12 +1,17 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Create a new tk database",
@@ -30,7 +35,71 @@ var initCmd = &cobra.Command{
 			return err
 		}
 
+		// Set initial DB version to 4
+		if err := db.SetDBVersion(4); err != nil {
+			return fmt.Errorf("failed to set DB version: %w", err)
+		}
+
+		// Run migrations to get to latest version (v5)
+		if err := db.RunMigrationsIfNeeded(); err != nil {
+			return fmt.Errorf("failed to run migrations: %w", err)
+		}
+
 		fmt.Printf("Database initialized at %s\n", path)
+
+		// Create default "me" project (used as default when -p flag is not specified)
+		fmt.Printf("Creating default project \"me\"...\n")
+		actor, err := utils.GetCurrentUser()
+		if err != nil {
+			return fmt.Errorf("failed to get current user: %w", err)
+		}
+
+		projectUID := types.NewProjectUID()
+		payload := types.ProjectCreatedPayload{
+			ProjectUID:  projectUID,
+			Type:        types.ProjectTypeLocal,
+			Name:        "me",
+			Description: "Personal tasks",
+			CreatedBy:   actor,
+		}
+
+		payloadJSON, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal payload: %w", err)
+		}
+
+		eventID, err := database.GenerateEventID(db)
+		if err != nil {
+			return fmt.Errorf("failed to generate event ID: %w", err)
+		}
+
+		ts, err := db.GetNextLamportTS()
+		if err != nil {
+			return fmt.Errorf("failed to get next lamport timestamp: %w", err)
+		}
+
+		event := types.Event{
+			ID:        eventID,
+			TS:        ts,
+			CreatedAt: time.Now(),
+			Actor:     actor,
+			Role:      "human",
+			Kind:      string(types.EventKindProjectCreated),
+			Payload:   payloadJSON,
+		}
+
+		if err := db.InsertEvent(event); err != nil {
+			return fmt.Errorf("failed to insert event: %w", err)
+		}
+
+		if err := db.ProjectProjectCreatedEvent(event); err != nil {
+			return fmt.Errorf("failed to project event: %w", err)
+		}
+
+		fmt.Printf("✓ Created default project \"me\" (Personal tasks)\n")
+		fmt.Printf("  This project will be used by default when you don't specify -p.\n")
+		fmt.Printf("\nYou can now create tasks with:\n")
+		fmt.Printf("  tk new \"Your task title\"\n")
 		return nil
 	},
 }

@@ -236,7 +236,8 @@ The style guide covers:
 Key standards:
 - Use Cobra for all CLI applications
 - Use `RunE` for command handlers (return errors, main handles exit codes)
-- CLI applications must use `cmd/` subdirectory
+- CLI applications have `main.go` in project root (not in cmd/ subdirectory)
+- The cmd/ subdirectory is optional and used for Cobra command logic (not package main)
 - Use `fmt.Fprintf(os.Stderr, "Error: %v\n", err)` for error output in main
 - See `GO_STYLE_GUIDE.md` for complete details and examples
 
@@ -296,7 +297,7 @@ Version information is automatically embedded by Go's VCS stamping (available si
 
 This works automatically when:
 - Building from a git repository
-- Building a package (e.g., `./cmd`) rather than a specific file (e.g., `./cmd/main.go`)
+- Building a package directory (e.g., `.`) rather than a specific file (e.g., `./main.go`)
 - Not in a detached HEAD state (or using go build from the module root)
 
 The `lib/version` package reads this information from `debug.ReadBuildInfo()` at runtime.

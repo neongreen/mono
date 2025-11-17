@@ -1,17 +1,17 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"time"
 
-	"github.com/neongreen/mono/tk/internal/utils"
-
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var noteCmd = &cobra.Command{
 	Use:   "note [task-id] [text]",
 	Short: "Add a note to a task",
@@ -36,47 +36,27 @@ var noteCmd = &cobra.Command{
 			displayID = taskRef
 		}
 
+		// Get task title for display
+		var taskTitle string
+		err = db.Db.QueryRow(`SELECT title FROM tasks WHERE task_uid = ?`, taskUUID).Scan(&taskTitle)
+		if err != nil {
+			taskTitle = "" // If we can't get title, just use ID
+		}
+
 		currentUser, err := utils.GetCurrentUser()
 		if err != nil {
 			return err
 		}
 
-		eventID, err := database.GenerateEventID(db)
-		if err != nil {
+		if err := tasks.AddNote(db, taskUUID, text, currentUser, &clock.RealClock{}); err != nil {
 			return err
 		}
 
-		lamportTS, err := db.GetNextLamportTS()
-		if err != nil {
-			return err
+		if taskTitle != "" {
+			fmt.Printf("Added note to task %s: %s\n", displayID, taskTitle)
+		} else {
+			fmt.Printf("Added note to task %s\n", displayID)
 		}
-
-		payload := types.TaskNoteAddPayload{
-			TaskUUID: taskUUID,
-			TaskID:   taskRef,
-			Markdown: text,
-		}
-		payloadJSON, err := json.Marshal(payload)
-		if err != nil {
-			return fmt.Errorf("failed to marshal payload: %w", err)
-		}
-
-		now := time.Now()
-		event := types.Event{
-			ID:        eventID,
-			TS:        lamportTS,
-			CreatedAt: now,
-			Actor:     currentUser,
-			Role:      "human",
-			Kind:      "task.note.add",
-			Payload:   payloadJSON,
-		}
-
-		if err := db.InsertEvent(event); err != nil {
-			return err
-		}
-
-		fmt.Printf("Added note to task %s\n", displayID)
 		return nil
 	},
 }

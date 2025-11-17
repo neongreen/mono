@@ -13,8 +13,13 @@ import (
 var (
 	// Version information - automatically populated from VCS
 	Version   = "dev"
-	GitCommit = "unknown"
+	GitCommit = "unknown" // Short commit hash (12 chars) for display
 	BuildTime = "unknown"
+
+	// Additional version metadata
+	GitCommitFull = "unknown" // Full commit hash
+	GitModified   = false     // Whether there are uncommitted changes
+	CommitTime    = "unknown" // Commit timestamp (vcs.time)
 )
 
 func init() {
@@ -39,6 +44,7 @@ func init() {
 
 	// Populate GitCommit if we have revision info
 	if revision != "" {
+		GitCommitFull = revision // Store full commit hash
 		// Use short commit hash (first 12 chars) for display
 		if len(revision) > 12 {
 			GitCommit = revision[:12]
@@ -47,13 +53,19 @@ func init() {
 		}
 	}
 
-	// Populate BuildTime if we have VCS time info
+	// Populate BuildTime and CommitTime if we have VCS time info
 	if vcsTime != "" {
 		BuildTime = vcsTime
+		CommitTime = vcsTime
+	}
+
+	// Store modified flag
+	if modified == "true" {
+		GitModified = true
 	}
 
 	// Append "-dirty" to version if there are uncommitted changes
-	if modified == "true" && Version == "dev" {
+	if GitModified && Version == "dev" {
 		Version = "dev-dirty"
 	}
 }

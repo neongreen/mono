@@ -10,9 +10,9 @@ import (
 func TestSortTasks_ByCreated(t *testing.T) {
 	now := time.Now()
 	tasks := []*types.Task{
-		{TaskID: "tk-3", Title: "Third", CreatedAt: now.Add(2 * time.Second)},
-		{TaskID: "tk-1", Title: "First", CreatedAt: now},
-		{TaskID: "tk-2", Title: "Second", CreatedAt: now.Add(1 * time.Second)},
+		{TaskDisplayID: "tk-3", Title: "Third", CreatedAt: now.Add(2 * time.Second)},
+		{TaskDisplayID: "tk-1", Title: "First", CreatedAt: now},
+		{TaskDisplayID: "tk-2", Title: "Second", CreatedAt: now.Add(1 * time.Second)},
 	}
 
 	types.SortTasks(tasks, "created")
@@ -31,9 +31,9 @@ func TestSortTasks_ByCreated(t *testing.T) {
 func TestSortTasks_ByID(t *testing.T) {
 	now := time.Now()
 	tasks := []*types.Task{
-		{TaskID: "tk-3", Title: "Third", CreatedAt: now},
-		{TaskID: "tk-1", Title: "First", CreatedAt: now},
-		{TaskID: "tk-2", Title: "Second", CreatedAt: now},
+		{TaskDisplayID: "tk-3", Title: "Third", CreatedAt: now},
+		{TaskDisplayID: "tk-1", Title: "First", CreatedAt: now},
+		{TaskDisplayID: "tk-2", Title: "Second", CreatedAt: now},
 	}
 
 	types.SortTasks(tasks, "id")
@@ -52,9 +52,9 @@ func TestSortTasks_ByID(t *testing.T) {
 func TestSortTasks_ByTitle(t *testing.T) {
 	now := time.Now()
 	tasks := []*types.Task{
-		{TaskID: "tk-1", Title: "Zebra", CreatedAt: now},
-		{TaskID: "tk-2", Title: "Apple", CreatedAt: now},
-		{TaskID: "tk-3", Title: "Banana", CreatedAt: now},
+		{TaskDisplayID: "tk-1", Title: "Zebra", CreatedAt: now},
+		{TaskDisplayID: "tk-2", Title: "Apple", CreatedAt: now},
+		{TaskDisplayID: "tk-3", Title: "Banana", CreatedAt: now},
 	}
 
 	types.SortTasks(tasks, "title")
@@ -73,9 +73,9 @@ func TestSortTasks_ByTitle(t *testing.T) {
 func TestSortTasks_DefaultToCreated(t *testing.T) {
 	now := time.Now()
 	tasks := []*types.Task{
-		{TaskID: "tk-3", Title: "Third", CreatedAt: now.Add(2 * time.Second)},
-		{TaskID: "tk-1", Title: "First", CreatedAt: now},
-		{TaskID: "tk-2", Title: "Second", CreatedAt: now.Add(1 * time.Second)},
+		{TaskDisplayID: "tk-3", Title: "Third", CreatedAt: now.Add(2 * time.Second)},
+		{TaskDisplayID: "tk-1", Title: "First", CreatedAt: now},
+		{TaskDisplayID: "tk-2", Title: "Second", CreatedAt: now.Add(1 * time.Second)},
 	}
 
 	// Test with empty string (should default to created)
@@ -95,9 +95,9 @@ func TestSortTasks_DefaultToCreated(t *testing.T) {
 func TestSortTasks_UnknownSortType(t *testing.T) {
 	now := time.Now()
 	tasks := []*types.Task{
-		{TaskID: "tk-3", Title: "Third", CreatedAt: now.Add(2 * time.Second)},
-		{TaskID: "tk-1", Title: "First", CreatedAt: now},
-		{TaskID: "tk-2", Title: "Second", CreatedAt: now.Add(1 * time.Second)},
+		{TaskDisplayID: "tk-3", Title: "Third", CreatedAt: now.Add(2 * time.Second)},
+		{TaskDisplayID: "tk-1", Title: "First", CreatedAt: now},
+		{TaskDisplayID: "tk-2", Title: "Second", CreatedAt: now.Add(1 * time.Second)},
 	}
 
 	// Test with unknown sort type (should default to created)
@@ -118,9 +118,9 @@ func TestSortTasks_StableSorting(t *testing.T) {
 	// Test that sorting is stable - tasks with same sort key maintain relative order
 	now := time.Now()
 	tasks := []*types.Task{
-		{TaskID: "tk-1", Title: "Task A", CreatedAt: now},
-		{TaskID: "tk-2", Title: "Task A", CreatedAt: now},
-		{TaskID: "tk-3", Title: "Task B", CreatedAt: now},
+		{TaskDisplayID: "tk-1", Title: "Task A", CreatedAt: now},
+		{TaskDisplayID: "tk-2", Title: "Task A", CreatedAt: now},
+		{TaskDisplayID: "tk-3", Title: "Task B", CreatedAt: now},
 	}
 
 	types.SortTasks(tasks, "title")

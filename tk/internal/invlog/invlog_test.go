@@ -31,7 +31,7 @@ func TestWriteLog(t *testing.T) {
 
 	// Write a test log entry
 	testLog := InvocationLog{
-		Timestamp:  time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
+		Timestamp:  time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC).UnixNano(),
 		Command:    "tk",
 		Args:       []string{"new", "test task"},
 		PID:        12345,
@@ -49,8 +49,9 @@ func TestWriteLog(t *testing.T) {
 		t.Fatalf("WriteLog failed: %v", err)
 	}
 
-	// Read back the log file
-	expectedPath := filepath.Join(tkDir, "log.jsonl")
+	// Read back the log file from rotating log directory
+	logDir := filepath.Join(tkDir, "invlogs")
+	expectedPath := filepath.Join(logDir, "current.jsonl")
 	data, err := os.ReadFile(expectedPath)
 	if err != nil {
 		t.Fatalf("failed to read log file: %v", err)
@@ -104,7 +105,7 @@ func TestWriteLogAppend(t *testing.T) {
 
 	// Write two log entries
 	log1 := InvocationLog{
-		Timestamp:  time.Now(),
+		Timestamp:  time.Now().UnixNano(),
 		Command:    "tk",
 		Args:       []string{"new", "task 1"},
 		PID:        100,
@@ -114,7 +115,7 @@ func TestWriteLogAppend(t *testing.T) {
 	}
 
 	log2 := InvocationLog{
-		Timestamp:  time.Now(),
+		Timestamp:  time.Now().UnixNano(),
 		Command:    "tk",
 		Args:       []string{"ls"},
 		PID:        101,
@@ -130,8 +131,9 @@ func TestWriteLogAppend(t *testing.T) {
 		t.Fatalf("WriteLog(log2) failed: %v", err)
 	}
 
-	// Read back the log file
-	expectedPath := filepath.Join(tkDir, "log.jsonl")
+	// Read back the log file from rotating log directory
+	logDir := filepath.Join(tkDir, "invlogs")
+	expectedPath := filepath.Join(logDir, "current.jsonl")
 	data, err := os.ReadFile(expectedPath)
 	if err != nil {
 		t.Fatalf("failed to read log file: %v", err)

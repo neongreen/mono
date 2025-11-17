@@ -3,7 +3,6 @@ package remote
 import (
 	"fmt"
 	"log/slog"
-	"os"
 	"path/filepath"
 	"time"
 
@@ -49,16 +48,15 @@ func Export(db *database.DB, params ExportParams) (*ExportResult, error) {
 	}
 	log.Debug("export: got events from database", "total_events", len(events))
 
-	// Get or create export state
-	exportStateFile := filepath.Join(params.StateDir, "export", params.RemoteName, params.Space+".json")
-	log.Debug("export: loading export state", "path", exportStateFile)
-	exportState, err := LoadExportState(exportStateFile)
-	if err != nil && !os.IsNotExist(err) {
+	// Get or create export state from database
+	log.Debug("export: loading export state from database")
+	exportState, err := db.GetExportState(params.RemoteName, params.Space)
+	if err != nil {
 		return nil, fmt.Errorf("failed to load export state: %w", err)
 	}
 	if exportState == nil {
 		log.Debug("export: no export state found, creating new state")
-		exportState = &ExportState{
+		exportState = &database.ExportState{
 			RemoteName:          params.RemoteName,
 			Space:               params.Space,
 			LastExportedEventID: "",
@@ -109,8 +107,8 @@ func Export(db *database.DB, params ExportParams) (*ExportResult, error) {
 		exportState.SegmentSeq = exportState.SegmentSeq + int64(len(segmentsWritten))
 		exportState.UpdatedAt = time.Now()
 
-		log.Debug("export: saving export state", "path", exportStateFile, "last_exported_id", exportState.LastExportedEventID, "segment_seq", exportState.SegmentSeq)
-		if err := SaveExportState(exportStateFile, exportState); err != nil {
+		log.Debug("export: saving export state to database", "last_exported_event_id", exportState.LastExportedEventID, "segment_seq", exportState.SegmentSeq)
+		if err := db.SaveExportState(exportState); err != nil {
 			return nil, fmt.Errorf("failed to save export state: %w", err)
 		}
 	}
@@ -152,6 +150,15 @@ func filterEventsToExport(events []types.Event, lastExportedEventID string, expo
 			foundLast = true
 		}
 	}
+
+	// Warn if we never found the last exported ID (likely stale state from deleted DB)
+	if !foundLast && lastExportedEventID != "" {
+		slog.Warn("export: last_exported_event_id not found in events, exporting all events",
+			"last_exported_event_id", lastExportedEventID,
+			"total_events", len(events))
+		return events // Export everything
+	}
+
 	return eventsToExport
 }
 
@@ -219,18 +226,4 @@ func writeSegments(
 
 	log.Debug("export: writeSegments completed", "segments_written", len(segmentsWritten))
 	return segmentsWritten, nil
-}
-
-// LoadExportState loads the export state from a file
-//
-//nolint:uselesswrapper // Type-safe wrapper for LoadJSON
-func LoadExportState(path string) (*ExportState, error) {
-	return LoadJSON[ExportState](path)
-}
-
-// SaveExportState saves the export state to a file
-//
-//nolint:uselesswrapper // Type-safe wrapper for SaveJSON
-func SaveExportState(path string, state *ExportState) error {
-	return SaveJSON(path, state)
 }

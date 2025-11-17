@@ -4,18 +4,22 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/neongreen/mono/tk/internal/utils"
-
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/utils"
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var editCmd = &cobra.Command{
 	Use:   "edit <task> <field> <value>",
 	Short: "Edit task fields (number, title, status)",
-	Args:  cobra.MinimumNArgs(3),
+	Long: `Edit task fields (number, title, status).
+
+For editing just the title, you can also use 'tk describe <task> <new-title>' as a shortcut.`,
+	Args: cobra.MinimumNArgs(3),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskRef := args[0]
 		field := strings.ToLower(args[1])
@@ -39,7 +43,7 @@ var editCmd = &cobra.Command{
 		}
 
 		// Edit the field using business logic
-		if err := tasks.EditField(db, taskUID, field, value, currentUser); err != nil {
+		if err := tasks.EditField(db, taskUID, field, value, currentUser, &clock.RealClock{}); err != nil {
 			return err
 		}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var pushCmd = &cobra.Command{
 	Use:   "push [remote-name]",
 	Short: "Push local segments to remote",
@@ -93,6 +94,7 @@ Examples:
 	},
 }
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var pullCmd = &cobra.Command{
 	Use:   "pull [remote-name]",
 	Short: "Pull segments from remote",
@@ -163,6 +165,7 @@ Examples:
 	},
 }
 
+// cobralint:exemptjson reason: Modifies state; JSON only required for read-only commands
 var syncCmd = &cobra.Command{
 	Use:   "sync [remote-name]",
 	Short: "Sync with remote (pull → ingest → export → push)",

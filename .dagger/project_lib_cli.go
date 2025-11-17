@@ -17,7 +17,8 @@ func (p *LibCliProject) Test(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (string, error) {
-	return testProject(ctx, "lib/cli", format)
+	src := getFilteredSource("lib/cli", dag.CurrentModule().Source().Directory(".."))
+	return testProject(ctx, "lib/cli", format, src)
 }
 
 // Coverage runs tests for lib/cli and returns coverage file
@@ -26,5 +27,6 @@ func (p *LibCliProject) Coverage(ctx context.Context,
 	// +default="testname"
 	format string,
 ) (*dagger.File, error) {
-	return coverageFile(ctx, "lib/cli", format)
+	src := getFilteredSource("lib/cli", dag.CurrentModule().Source().Directory(".."))
+	return coverageFile(ctx, "lib/cli", format, src)
 }

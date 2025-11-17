@@ -1,6 +1,7 @@
 package database
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/neongreen/mono/tk/internal/types"
@@ -92,7 +93,7 @@ func TestRenderTaskDisplayIDWithoutAlias(t *testing.T) {
 	db := openTempDB(t)
 
 	// Create a project without an alias
-	projectUID := seedProjectWithoutAlias(t, db, "My Project")
+	projectUID := seedProjectWithoutAlias(t, db, "my-project")
 	taskUID := seedTask(t, db, projectUID, "task", 1)
 
 	displayID, err := RenderTaskDisplayID(db, taskUID)
@@ -101,8 +102,131 @@ func TestRenderTaskDisplayIDWithoutAlias(t *testing.T) {
 	}
 
 	// Should use project name, not projectUID
-	expected := "My Project-1"
+	expected := "my-project-1"
 	if displayID != expected {
 		t.Fatalf("expected %s, got %s", expected, displayID)
+	}
+}
+
+// TestResolveTaskReferenceEmptyString tests that empty references are rejected
+func TestResolveTaskReferenceEmptyString(t *testing.T) {
+	db := openTempDB(t)
+
+	_, err := ResolveTaskReference(db, types.NewTaskRef(""))
+	if err == nil {
+		t.Fatal("expected error for empty reference, got nil")
+	}
+	if !strings.Contains(err.Error(), "cannot be empty") {
+		t.Errorf("expected 'cannot be empty' error, got: %v", err)
+	}
+}
+
+// TestResolveTaskReferenceWhitespaceOnly tests that whitespace-only references are rejected
+func TestResolveTaskReferenceWhitespaceOnly(t *testing.T) {
+	db := openTempDB(t)
+
+	_, err := ResolveTaskReference(db, types.NewTaskRef("   \t\n  "))
+	if err == nil {
+		t.Fatal("expected error for whitespace-only reference, got nil")
+	}
+	if !strings.Contains(err.Error(), "cannot be empty") {
+		t.Errorf("expected 'cannot be empty' error, got: %v", err)
+	}
+}
+
+// TestResolveTaskReferencePureNumeric tests that pure numbers are rejected as ambiguous
+func TestResolveTaskReferencePureNumeric(t *testing.T) {
+	db := openTempDB(t)
+
+	_, err := ResolveTaskReference(db, types.NewTaskRef("123"))
+	if err == nil {
+		t.Fatal("expected error for numeric reference, got nil")
+	}
+	if !strings.Contains(err.Error(), "ambiguous") || !strings.Contains(err.Error(), "numeric") {
+		t.Errorf("expected ambiguous numeric error, got: %v", err)
+	}
+}
+
+// TestResolveTaskReferenceNotFound tests that non-existent tasks return appropriate error
+func TestResolveTaskReferenceNotFound(t *testing.T) {
+	db := openTempDB(t)
+
+	projectUID := seedProject(t, db, "proj")
+	// Create task 1 but not task 99
+	_ = seedTask(t, db, projectUID, "task", 1)
+
+	_, err := ResolveTaskReference(db, types.NewTaskRef("proj-99"))
+	if err == nil {
+		t.Fatal("expected error for non-existent task, got nil")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' error, got: %v", err)
+	}
+}
+
+// TestResolveTaskReferenceInvalidNodeHint tests that invalid node hints return appropriate error
+func TestResolveTaskReferenceInvalidNodeHint(t *testing.T) {
+	db := openTempDB(t)
+
+	projectUID := seedProject(t, db, "proj")
+	nodeA := "NODE_A"
+	nodeB := "NODE_B"
+	if _, err := db.Db.Exec(`INSERT OR REPLACE INTO metadata (key, value) VALUES ('node_id', ?)`, nodeA); err != nil {
+		t.Fatalf("failed to override node id: %v", err)
+	}
+	_ = seedTaskWithNode(t, db, projectUID, "first", 5, nodeA)
+	_ = seedTaskWithNode(t, db, projectUID, "second", 5, nodeB)
+
+	// Use a hint that doesn't match either task
+	invalidHint := "xyz123"
+	_, err := ResolveTaskReference(db, types.NewTaskRef("proj-5-"+invalidHint))
+	if err == nil {
+		t.Fatal("expected error for invalid node hint, got nil")
+	}
+	if !strings.Contains(err.Error(), "node hint") && !strings.Contains(err.Error(), "does not match") {
+		t.Errorf("expected node hint error, got: %v", err)
+	}
+}
+
+// TestResolveTaskReferenceDirectUIDNotFound tests that non-existent UIDs return appropriate error
+func TestResolveTaskReferenceDirectUIDNotFound(t *testing.T) {
+	db := openTempDB(t)
+
+	_, err := ResolveTaskReference(db, types.NewTaskRef("tsk_01NONEXISTENT12345"))
+	if err == nil {
+		t.Fatal("expected error for non-existent UID, got nil")
+	}
+	if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("expected 'not found' error, got: %v", err)
+	}
+}
+
+// TestResolveTaskReferenceWithWhitespace tests that references with leading/trailing whitespace work
+func TestResolveTaskReferenceWithWhitespace(t *testing.T) {
+	db := openTempDB(t)
+
+	projectUID := seedProject(t, db, "proj")
+	taskUID := seedTask(t, db, projectUID, "task", 7)
+
+	resolved, err := ResolveTaskReference(db, types.NewTaskRef("  proj-7  \t"))
+	if err != nil {
+		t.Fatalf("resolve with whitespace failed: %v", err)
+	}
+	if resolved != taskUID {
+		t.Fatalf("expected %s, got %s", taskUID, resolved)
+	}
+}
+
+// TestResolveTaskReferenceNonexistentProject tests that references to non-existent projects fail
+func TestResolveTaskReferenceNonexistentProject(t *testing.T) {
+	db := openTempDB(t)
+
+	_, err := ResolveTaskReference(db, types.NewTaskRef("nonexistent-1"))
+	if err == nil {
+		t.Fatal("expected error for non-existent project, got nil")
+	}
+	// Should mention the project wasn't found (not just the task)
+	if !strings.Contains(err.Error(), "nonexistent") {
+		t.Errorf("error should mention project name, got: %v", err)
 	}
 }

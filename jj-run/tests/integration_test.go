@@ -13,7 +13,7 @@ var jjRunBinary string
 
 func init() {
 	// Build the jj-run binary before running tests
-	cmd := exec.Command("go", "build", "-o", "../jj-run", "../cmd/main.go")
+	cmd := exec.Command("go", "build", "-o", "../jj-run", "..")
 	if err := cmd.Run(); err != nil {
 		panic("Failed to build jj-run binary: " + err.Error())
 	}
@@ -651,4 +651,132 @@ func TestDirectModeNoWorkspaces(t *testing.T) {
 	}
 
 	t.Logf("Test passed: direct mode doesn't create workspaces")
+}
+
+// TestParallelModeBasic tests basic parallel mode functionality
+func TestParallelModeBasic(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create several commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "one .txt file", "one.txt")
+
+	twoFile := filepath.Join(repoDir, "two.txt")
+	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write two.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "two .txt file", "two.txt")
+
+	threeFile := filepath.Join(repoDir, "three.txt")
+	if err := os.WriteFile(threeFile, []byte("Third commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write three.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "three .txt file", "three.txt")
+
+	// Use parallel mode with 2 workers to modify files
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "-j", "2", "-r", "::", `for f in *.txt; do echo "modified by parallel worker" > "$f"; done`)
+
+	if exitCode != 0 {
+		t.Logf("jj-run stderr: %s", stderr)
+		t.Fatalf("jj-run failed with exit code %d", exitCode)
+	}
+
+	// Check that the command reported rewrites
+	if !strings.Contains(stderr, "Rewrote") {
+		t.Errorf("Expected 'Rewrote' in stderr, got: %s", stderr)
+	}
+
+	// Parse the rewrite count - should be "Rewrote 3/3 commits" or similar
+	if strings.Contains(stderr, "Rewrote 0/") {
+		t.Errorf("Expected at least 1 commit to be rewritten in parallel mode, but got 0. stderr: %s", stderr)
+	}
+
+	// Verify the files were actually modified in the commits
+	logOutput, _, _ := runCommand(t, repoDir, "jj", "log", "-p", "-r", "::")
+
+	if !strings.Contains(logOutput, "modified by parallel worker") {
+		t.Errorf("Expected 'modified by parallel worker' in the commit content, got: %s", logOutput)
+	}
+
+	t.Logf("Test passed: parallel mode basic functionality works")
+}
+
+// TestParallelModeParentRewriting tests that parent rewriting works in parallel mode
+func TestParallelModeParentRewriting(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create several commits with specific content
+	file1 := filepath.Join(repoDir, "file1.txt")
+	if err := os.WriteFile(file1, []byte("original1\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write file1.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "file1.txt")
+
+	file2 := filepath.Join(repoDir, "file2.txt")
+	if err := os.WriteFile(file2, []byte("original2\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write file2.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "second commit", "file2.txt")
+
+	file3 := filepath.Join(repoDir, "file3.txt")
+	if err := os.WriteFile(file3, []byte("original3\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write file3.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "third commit", "file3.txt")
+
+	// Run jj-run in parallel mode with 2 workers to modify the files
+	stdout, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "-j", "2", "-r", "::", `for f in file*.txt; do echo "parallel-modified" > "$f"; done`)
+
+	if exitCode != 0 {
+		t.Logf("jj-run stdout: %s", stdout)
+		t.Logf("jj-run stderr: %s", stderr)
+		t.Fatalf("jj-run failed with exit code %d", exitCode)
+	}
+
+	t.Logf("jj-run stdout: %s", stdout)
+	t.Logf("jj-run stderr: %s", stderr)
+
+	// Check that the command reported rewrites
+	if !strings.Contains(stderr, "Rewrote") {
+		t.Errorf("Expected 'Rewrote' in stderr")
+	}
+
+	// THIS IS THE KEY TEST: In parallel mode, all commits should be rewritten
+	// If the bug exists, it will report "Rewrote 0/3 commits" instead
+	if strings.Contains(stderr, "Rewrote 0/") {
+		t.Errorf("REGRESSION: Parent rewriting failed in parallel mode - expected at least 1 commit to be rewritten, but got 0. This indicates the workspace update bug.")
+	}
+
+	// Verify that ALL commits were actually modified
+	logOutput, _, _ := runCommand(t, repoDir, "jj", "log", "-p", "-r", "::")
+
+	// Count how many times "parallel-modified" appears - should be 3 (one per commit)
+	modifiedCount := strings.Count(logOutput, "parallel-modified")
+	if modifiedCount < 3 {
+		t.Errorf("Expected 'parallel-modified' to appear 3 times in log (once per commit), but got %d times. Log output: %s", modifiedCount, logOutput)
+	}
+
+	// Original content should not be present anymore
+	if strings.Contains(logOutput, "original1") || strings.Contains(logOutput, "original2") || strings.Contains(logOutput, "original3") {
+		t.Errorf("Expected original content to be replaced, but found it in log output: %s", logOutput)
+	}
+
+	t.Logf("Test passed: parallel mode parent rewriting works correctly")
 }

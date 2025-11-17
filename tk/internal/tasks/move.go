@@ -3,8 +3,8 @@ package tasks
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -18,7 +18,24 @@ type MoveOptions struct {
 }
 
 // Move relocates a task from one project to another
-func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor string) error {
+func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor string, clk clock.Clock) error {
+	// Validate task UID format
+	if err := types.TaskUID(taskUID).Validate(); err != nil {
+		return fmt.Errorf("invalid task UID: %w", err)
+	}
+
+	// Validate destination project UID format
+	if err := types.ProjectUID(toProjectUID).Validate(); err != nil {
+		return fmt.Errorf("invalid destination project UID: %w", err)
+	}
+
+	// Verify destination project exists (prevents tk-281 bug)
+	var exists bool
+	err := db.Db.QueryRow(`SELECT 1 FROM projects WHERE project_uid = ?`, toProjectUID).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("destination project %s does not exist", toProjectUID)
+	}
+
 	fromProjectUID, oldNumber, err := GetProjectAndNumberForTask(db, taskUID)
 	if err != nil {
 		return err
@@ -91,9 +108,9 @@ func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor
 	}
 
 	payload := types.TaskRelocatePayload{
-		TaskUID:        taskUID,
-		FromProjectUID: fromProjectUID,
-		ToProjectUID:   toProjectUID,
+		TaskUID:        types.TaskUID(taskUID),
+		FromProjectUID: types.ProjectUID(fromProjectUID),
+		ToProjectUID:   types.ProjectUID(toProjectUID),
 		NumberPolicy:   numberPolicy,
 	}
 
@@ -105,7 +122,7 @@ func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor
 	event := types.Event{
 		ID:        string(types.NewEventID()),
 		TS:        lamport,
-		CreatedAt: time.Now(),
+		CreatedAt: clk.Now(),
 		Actor:     actor,
 		Role:      "human",
 		Kind:      string(types.EventKindTaskRelocate),

@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// cobralint:exemptjson reason: Diagnostic tool; JSON only required for read-only data commands
 var debugEventsCmd = &cobra.Command{
 	Use:   "debug-events [task-id]",
 	Short: "Dump all raw events for a task ID (for debugging)",
@@ -125,8 +126,4 @@ func containsTaskRef(payloadStr string, taskID string) bool {
 	// This is intentionally naive for debugging purposes
 	return len(payloadStr) > 0 && (strings.Contains(payloadStr, `"`+taskID+`"`) ||
 		strings.Contains(payloadStr, taskID))
-}
-
-func init() {
-	debugCmd.AddCommand(debugEventsCmd)
 }

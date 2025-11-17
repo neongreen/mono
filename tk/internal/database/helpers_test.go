@@ -34,19 +34,25 @@ func openTempDB(t *testing.T) *DB {
 	`, "v4"); err != nil {
 		t.Fatalf("failed to set remote_subdir: %v", err)
 	}
+
+	// Run migrations to get to latest schema
+	if err := db.RunMigrationsIfNeeded(); err != nil {
+		t.Fatalf("failed to run migrations: %v", err)
+	}
+
 	return db
 }
 
-func seedProject(t *testing.T, db *DB, alias string) string {
+func seedProject(t *testing.T, db *DB, name string) string {
 	t.Helper()
 	projectUID := string(types.NewProjectUID())
 	now := time.Now()
 
 	projectPayload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
-		Name:        alias,
-		Description: alias + " project",
+		ProjectUID:  types.ProjectUID(projectUID),
+		Type:        types.ProjectTypeLocal,
+		Name:        name,
+		Description: name + " project",
 		CreatedBy:   "tester",
 	}
 
@@ -67,34 +73,6 @@ func seedProject(t *testing.T, db *DB, alias string) string {
 		t.Fatalf("failed to project project.created: %v", err)
 	}
 
-	nodeID, err := db.GetOrCreateNodeID()
-	if err != nil {
-		t.Fatalf("failed to get node id: %v", err)
-	}
-
-	aliasPayload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID,
-		Alias:      alias,
-		Node:       nodeID,
-		AddedBy:    "tester",
-	}
-	aliasJSON := mustJSON(t, aliasPayload)
-	aliasEvent := types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: now,
-		Actor:     "tester",
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   aliasJSON,
-	}
-	if err := db.InsertEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to insert project.alias.add: %v", err)
-	}
-	if err := db.ProjectProjectAliasAddEvent(aliasEvent); err != nil {
-		t.Fatalf("failed to project project.alias.add: %v", err)
-	}
-
 	return projectUID
 }
 
@@ -104,8 +82,8 @@ func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
 	now := time.Now()
 
 	projectPayload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
+		ProjectUID:  types.ProjectUID(projectUID),
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: name + " project",
 		CreatedBy:   "tester",
@@ -172,8 +150,8 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 	}
 
 	numberPayload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     "seed",
 	}
@@ -210,8 +188,8 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 
 func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) types.Event {
 	payload := types.ProjectCreatedPayload{
-		ProjectUID:  projectUID,
-		Type:        "local",
+		ProjectUID:  types.ProjectUID(projectUID),
+		Type:        types.ProjectTypeLocal,
 		Name:        name,
 		Description: description,
 		CreatedBy:   createdBy,
@@ -229,25 +207,7 @@ func createProjectCreatedEvent(projectUID, name, description, createdBy, node st
 	}
 }
 
-func createProjectAliasAddEvent(projectUID, alias, node, addedBy string) types.Event {
-	payload := types.ProjectAliasAddPayload{
-		ProjectUID: projectUID,
-		Alias:      alias,
-		Node:       node,
-		AddedBy:    addedBy,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	return types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     addedBy,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectAliasAdd),
-		Payload:   payloadJSON,
-	}
-}
+// createProjectAliasAddEvent removed - aliases no longer supported
 
 func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) types.Event {
 	payload := types.TaskCreatedPayload{
@@ -273,8 +233,8 @@ func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, cr
 
 func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason string) types.Event {
 	payload := types.TaskNumberSetPayload{
-		TaskUID:    taskUID,
-		ProjectUID: projectUID,
+		TaskUID:    types.TaskUID(taskUID),
+		ProjectUID: types.ProjectUID(projectUID),
 		Number:     number,
 		Reason:     reason,
 	}
@@ -288,5 +248,72 @@ func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason s
 		Role:      "human",
 		Kind:      string(types.EventKindTaskNumberSet),
 		Payload:   payloadJSON,
+	}
+}
+
+func seedContainerKindAndInstance(t *testing.T, db *DB, kindName string, primitive types.ContainerPrimitive, containerID string, containerName string) {
+	t.Helper()
+
+	// Define kind
+	definePayload := types.DefineContainerKindPayload{
+		Name:        kindName,
+		Primitive:   primitive,
+		Description: "Test container",
+		CreatedBy:   "tester",
+	}
+	definePayloadJSON, _ := json.Marshal(definePayload)
+	defineEvent := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        0,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerKindDefine),
+		Payload:   definePayloadJSON,
+	}
+	db.ProjectContainerKindDefineEvent(defineEvent)
+
+	// Create container
+	createPayload := types.CreateContainerPayload{
+		ID:        containerID,
+		Primitive: primitive,
+		Kind:      kindName,
+		Name:      containerName,
+		CreatedBy: "tester",
+	}
+	createPayloadJSON, _ := json.Marshal(createPayload)
+	createEvent := types.Event{
+		ID:        string(types.NewEventID()),
+		TS:        1,
+		CreatedAt: time.Now(),
+		Actor:     "tester",
+		Role:      "human",
+		Kind:      string(types.EventKindContainerCreate),
+		Payload:   createPayloadJSON,
+	}
+	db.ProjectContainerCreateEvent(createEvent)
+}
+
+func seedQueueItems(t *testing.T, db *DB, containerID string, itemIDs []string) {
+	t.Helper()
+
+	for i, itemID := range itemIDs {
+		payload := types.QueuePushPayload{
+			ContainerID: containerID,
+			ItemID:      types.TaskUID(itemID),
+		}
+		payloadJSON, _ := json.Marshal(payload)
+		event := types.Event{
+			ID:        string(types.NewEventID()),
+			TS:        int64(i),
+			CreatedAt: time.Now(),
+			Actor:     "tester",
+			Role:      "human",
+			Kind:      string(types.EventKindQueuePush),
+			Payload:   payloadJSON,
+		}
+		if err := db.ProjectQueuePushEvent(event); err != nil {
+			t.Fatalf("ProjectQueuePushEvent() error = %v", err)
+		}
 	}
 }

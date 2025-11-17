@@ -3,6 +3,7 @@ package cmd
 import (
 	"testing"
 
+	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/tasks"
 )
 
@@ -12,7 +13,7 @@ func TestDescribeCommand(t *testing.T) {
 	projectUID := seedProject(t, db, "desc")
 	taskUID := seedTask(t, db, projectUID, "Old Title", 1)
 
-	if err := tasks.EditTitle(db, taskUID, "New Title", "test-user"); err != nil {
+	if err := tasks.EditTitle(db, taskUID, "New Title", "test-user", &clock.RealClock{}); err != nil {
 		t.Fatalf("EditTitle failed: %v", err)
 	}
 
@@ -32,7 +33,7 @@ func TestDescribeByTaskRef(t *testing.T) {
 	taskUID := seedTask(t, db, projectUID, "Initial Task", 5)
 
 	// Edit the task title directly using the task UID
-	if err := tasks.EditTitle(db, taskUID, "Updated Task Title", "test-user"); err != nil {
+	if err := tasks.EditTitle(db, taskUID, "Updated Task Title", "test-user", &clock.RealClock{}); err != nil {
 		t.Fatalf("EditTitle failed: %v", err)
 	}
 
@@ -52,7 +53,7 @@ func TestDescribeEmptyTitle(t *testing.T) {
 	taskUID := seedTask(t, db, projectUID, "Some Title", 1)
 
 	// EditTitle should reject empty titles
-	err := tasks.EditTitle(db, taskUID, "", "test-user")
+	err := tasks.EditTitle(db, taskUID, "", "test-user", &clock.RealClock{})
 	if err == nil {
 		t.Fatal("expected error for empty title, got nil")
 	}
