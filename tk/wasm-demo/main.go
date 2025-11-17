@@ -67,8 +67,9 @@ func executeCommand(this js.Value, args []js.Value) interface{} {
 
 // initDB initializes the tk database in browser storage
 func initDB(this js.Value, args []js.Value) interface{} {
-	// Use in-memory database for WASM demo
-	os.Setenv("TK_DB_PATH", ":memory:")
+	// Use shared in-memory database for WASM demo
+	// The cache=shared parameter allows multiple connections to share the same in-memory database
+	os.Setenv("TK_DB_PATH", "file:tk?mode=memory&cache=shared")
 
 	// Run tk init
 	return executeCommand(this, []js.Value{js.ValueOf("init")})
@@ -80,8 +81,10 @@ func main() {
 	// Set up environment for WASM
 	os.Setenv("HOME", ".")
 	os.Setenv("USER", "wasm-demo")
-	// Use in-memory database for WASM demo
-	os.Setenv("TK_DB_PATH", ":memory:")
+	// Use shared in-memory database for WASM demo
+	// The cache=shared parameter allows multiple connections to share the same in-memory database
+	// This ensures data persists across command invocations within the same WASM session
+	os.Setenv("TK_DB_PATH", "file:tk?mode=memory&cache=shared")
 
 	// Register JavaScript functions
 	js.Global().Set("tkExecute", js.FuncOf(executeCommand))

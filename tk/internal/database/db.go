@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/reducer"
@@ -23,8 +24,11 @@ type DB struct {
 
 // OpenDB opens or creates a tk database at the given path
 func OpenDB(path string) (*DB, error) {
+	// Check if this is an in-memory database
+	isInMemory := path == ":memory:" || strings.HasPrefix(path, "file:") && strings.Contains(path, "mode=memory")
+	
 	// Ensure the directory exists (skip for in-memory databases)
-	if path != ":memory:" {
+	if !isInMemory {
 		dir := filepath.Dir(path)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return nil, fmt.Errorf("failed to create directory %s: %w", dir, err)
@@ -37,7 +41,7 @@ func OpenDB(path string) (*DB, error) {
 	}
 
 	// Enable WAL mode (skip for in-memory databases)
-	if path != ":memory:" {
+	if !isInMemory {
 		if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
 			db.Close()
 			return nil, fmt.Errorf("failed to enable WAL mode: %w", err)
