@@ -100,7 +100,7 @@ Examples:
 
 			if len(groups) == 0 {
 				fmt.Println("No groups found.")
-				fmt.Println("\nCreate one with: tk group create <kind> <name>")
+				fmt.Println("\nCreate one with: tk group-create <kind> <name>")
 			}
 		}
 
