@@ -20,6 +20,7 @@ require (
 	github.com/klauspost/compress v1.18.1
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/modelcontextprotocol/go-sdk v1.0.0
+	github.com/ncruces/go-sqlite3 v0.30.1
 	github.com/neongreen/mono/lib/pathlang v0.0.0
 	github.com/neongreen/mono/lib/setlang v0.0.0-20251114154744-d4ca1565e977
 	github.com/oklog/ulid/v2 v2.1.1
@@ -79,10 +80,8 @@ require (
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
-	github.com/ncruces/go-sqlite3 v0.30.1 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/ncruces/julianday v1.0.0 // indirect
-	github.com/neongreen/mono/lib/pathlang v0.0.0 // indirect
 	github.com/pjbgf/sha1cd v0.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
