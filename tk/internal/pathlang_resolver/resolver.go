@@ -134,16 +134,36 @@ func (r *TkResolver) looksLikeDisplayID(s string) bool {
 		return false
 	}
 
-	// Check if last part is numeric
+	// Check if last part is numeric (alias-number format)
 	lastPart := parts[len(parts)-1]
+	isLastNumeric := true
 	for _, c := range lastPart {
 		if c < '0' || c > '9' {
-			// Not numeric - might be project alias with hyphens
-			return false
+			isLastNumeric = false
+			break
 		}
 	}
 
-	return true
+	if isLastNumeric {
+		// Format: alias-number
+		return true
+	}
+
+	// Check if second-to-last part is numeric (alias-number-nodehint format)
+	if len(parts) >= 3 {
+		secondToLast := parts[len(parts)-2]
+		for _, c := range secondToLast {
+			if c < '0' || c > '9' {
+				// Not numeric - project alias with hyphens
+				return false
+			}
+		}
+		// Format: alias-number-nodehint
+		return true
+	}
+
+	// Not a task display ID
+	return false
 }
 
 // resolveFromProject handles paths from a project node

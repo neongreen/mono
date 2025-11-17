@@ -1,4 +1,6 @@
 // fix_init_functions.go - Fix init() functions to use new variable names
+//go:build ignore
+
 package main
 
 import (

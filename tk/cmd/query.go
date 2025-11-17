@@ -375,7 +375,8 @@ func pluralize(count int, singular, plural string) string {
 
 // displayRoot displays the root path showing all projects and available patterns
 func displayRoot(db *database.DB, reducer *reducer.Reducer) error {
-	fmt.Println("tk root paths:\n")
+	fmt.Println("tk root paths:")
+	fmt.Println()
 
 	// List all projects
 	rows, err := db.Db.Query(`
