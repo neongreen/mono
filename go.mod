@@ -20,6 +20,7 @@ require (
 	github.com/klauspost/compress v1.18.1
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/modelcontextprotocol/go-sdk v1.0.0
+	github.com/neongreen/mono/lib/pathlang v0.0.0
 	github.com/neongreen/mono/lib/setlang v0.0.0-20251114154744-d4ca1565e977
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/owenrumney/go-sarif/v2 v2.3.3
