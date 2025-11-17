@@ -48,6 +48,38 @@ func main() {
 }
 ```
 
+### Command Flags
+
+**Prefer using `init()` to define command flags** rather than defining them in `root.go` or elsewhere. This keeps flag definitions close to the command they belong to, making the code more maintainable and self-contained.
+
+**Good:**
+```go
+var lsCmd = &cobra.Command{
+    Use:   "ls",
+    Short: "List items",
+    RunE: func(cmd *cobra.Command, args []string) error {
+        status, _ := cmd.Flags().GetString("status")
+        jsonOutput, _ := cmd.Flags().GetBool("json")
+        // ... implementation
+        return nil
+    },
+}
+
+func init() {
+    lsCmd.Flags().String("status", "", "Filter by status")
+    lsCmd.Flags().Bool("json", false, "Output as JSON")
+}
+```
+
+**Acceptable (for commands with many flags):**
+```go
+// In root.go, for commands with 10+ flags where centralization aids discoverability
+lsCmd.Flags().String("status", "", "Filter by status")
+lsCmd.Flags().String("kind", "", "Filter by kind")
+// ... many more flags
+RootCmd.AddCommand(lsCmd)
+```
+
 ### Use RunE for Command Handlers
 
 **Always use `RunE` instead of `Run` for command handlers.** This allows errors to be returned and handled consistently in main.
