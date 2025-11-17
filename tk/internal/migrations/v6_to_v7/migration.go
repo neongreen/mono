@@ -16,7 +16,7 @@ type DB interface {
 //
 // This migration:
 //  1. Creates item_kinds table
-//  2. Adds builtin item kinds (task, bug, idea, goal, decision, requirement, constraint, wish, question, hypothesis, experiment, observation, research, doubt, assumption, resource, specification, definition, techdebt, checklist, discussion, feedback)
+//  2. Adds builtin item kinds (task, bug, idea, goal, decision, requirement, constraint, wish, question, hypothesis, experiment, observation, research, doubt, assumption, resource, specification, definition, techdebt, checklist, discussion, feedback, promise, regret)
 //  3. Adds item_kind column to tasks table (defaults to 'task')
 //  4. Creates index on item_kind for performance
 //  5. Updates db_version to 7
@@ -69,6 +69,8 @@ func Migrate(db DB) error {
 		{"checklist", "List of items to complete", "Use for checklists or sequences of steps to follow"},
 		{"discussion", "Topic for conversation", "Use for topics that need discussion or conversation among stakeholders"},
 		{"feedback", "Input or critique received", "Use for feedback, comments, or suggestions from users or stakeholders"},
+		{"promise", "Commitment to deliver", "Use for commitments, promises, or guarantees made to stakeholders"},
+		{"regret", "Past decision to reconsider", "Use for decisions or choices that need to be revisited or lessons learned"},
 	}
 
 	for _, kind := range builtinKinds {
