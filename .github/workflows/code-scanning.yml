@@ -34,7 +34,7 @@ jobs:
         continue-on-error: true  # Don't fail the workflow if linter finds issues
         run: |
           # Run the linter with SARIF output format
-          go run ./linters/cobralint/cmd/cobralint -format=sarif ./... > cobra-lint.sarif || true
+          go run ./linters/cobralint/cmd/cobralint --format=sarif ./... > cobra-lint.sarif || true
 
           # Check if SARIF file is valid (not empty and has valid JSON)
           if [ ! -s cobra-lint.sarif ] || ! jq empty cobra-lint.sarif 2>/dev/null; then
