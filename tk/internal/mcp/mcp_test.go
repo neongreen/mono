@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/neongreen/mono/tk/internal/clock"
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
