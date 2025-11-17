@@ -376,7 +376,8 @@ func (r *Replacer) replaceColorsInNode(node *SVGNode) {
 
 // replaceColorInAttr replaces a color in an attribute value with a pattern reference
 func (r *Replacer) replaceColorInAttr(attr *xml.Attr, patternIdx int) {
-	if attr.Name.Local == "fill" {
+	switch attr.Name.Local {
+	case "fill":
 		// Direct fill attribute
 		for i, mapping := range r.mappings {
 			if normalizeColor(attr.Value) == normalizeColor(mapping.SourceColor) {
@@ -384,7 +385,7 @@ func (r *Replacer) replaceColorInAttr(attr *xml.Attr, patternIdx int) {
 				return
 			}
 		}
-	} else if attr.Name.Local == "style" {
+	case "style":
 		// Style attribute containing fill
 		style := attr.Value
 		for i, mapping := range r.mappings {
@@ -425,8 +426,8 @@ func normalizeColor(color string) string {
 	}
 
 	// Convert rgb() to hex
-	if strings.HasPrefix(color, "rgb(") {
-		parts := strings.TrimSuffix(strings.TrimPrefix(color, "rgb("), ")")
+	if after, ok := strings.CutPrefix(color, "rgb("); ok {
+		parts := strings.TrimSuffix(after, ")")
 		components := strings.Split(parts, ",")
 		if len(components) == 3 {
 			var values [3]int

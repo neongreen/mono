@@ -39,10 +39,8 @@ func NewWriter(dir string, maxSize int64) (*Writer, error) {
 // Performs rotation and compression in the background if size threshold is exceeded.
 func (w *Writer) Append(data []byte) error {
 	// Check if rotation is needed and perform it (before trying to append)
-	if err := w.maybeRotate(); err != nil {
-		// Rotation failure is not fatal - log it but continue
-		// This ensures writes don't fail if rotation has issues
-	}
+	// Rotation failure is not fatal - we continue to ensure writes don't fail
+	_ = w.maybeRotate()
 
 	// Try to append to current.jsonl, with fallback filenames
 	for i := 1; i <= 10; i++ {
