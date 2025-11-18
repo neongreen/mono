@@ -57,14 +57,23 @@ type ProjectCreatedPayload struct {
 
 // Validate checks if the ProjectCreatedPayload is valid
 func (p ProjectCreatedPayload) Validate() error {
-	if err := p.ProjectUID.Validate(); err != nil {
-		return fmt.Errorf("invalid project_uid in ProjectCreatedPayload: %w", err)
-	}
+	// TEMPORARY: Validation disabled for ProjectUID and project name due to historical data
+	// that doesn't conform to current format requirements (e.g., project_uid = "lovable"
+	// instead of "prj_<ulid>", name = "Foo-Bar" instead of "foo-bar"). These fields have
+	// broken data in the past, so we cannot enforce strict validation during deserialization
+	// without breaking existing databases.
+	//
+	// TODO: Re-enable validation after migrating historical data to conform to current format
+	//
+	// if err := p.ProjectUID.Validate(); err != nil {
+	// 	return fmt.Errorf("invalid project_uid in ProjectCreatedPayload: %w", err)
+	// }
+	// if err := ValidateProjectName(p.Name); err != nil {
+	// 	return fmt.Errorf("invalid name in ProjectCreatedPayload: %w", err)
+	// }
+
 	if err := p.Type.Validate(); err != nil {
 		return fmt.Errorf("invalid type in ProjectCreatedPayload: %w", err)
-	}
-	if err := ValidateProjectName(p.Name); err != nil {
-		return fmt.Errorf("invalid name in ProjectCreatedPayload: %w", err)
 	}
 	// Description and CreatedBy can be any string
 	return nil
@@ -109,9 +118,17 @@ type ProjectDeletePayload struct {
 
 // Validate checks if the ProjectDeletePayload is valid
 func (p ProjectDeletePayload) Validate() error {
-	if err := p.ProjectUID.Validate(); err != nil {
-		return fmt.Errorf("invalid project_uid in ProjectDeletePayload: %w", err)
-	}
+	// TEMPORARY: Validation disabled for ProjectUID due to historical data
+	// that doesn't conform to current format requirements (e.g., project_uid = "lovable"
+	// instead of "prj_<ulid>"). These fields have broken data in the past, so we cannot
+	// enforce strict validation during deserialization without breaking existing databases.
+	//
+	// TODO: Re-enable validation after migrating historical data to conform to current format
+	//
+	// if err := p.ProjectUID.Validate(); err != nil {
+	// 	return fmt.Errorf("invalid project_uid in ProjectDeletePayload: %w", err)
+	// }
+
 	return nil
 }
 
@@ -138,12 +155,21 @@ type ProjectNameSetPayload struct {
 
 // Validate checks if the ProjectNameSetPayload is valid
 func (p ProjectNameSetPayload) Validate() error {
-	if err := p.ProjectUID.Validate(); err != nil {
-		return fmt.Errorf("invalid project_uid in ProjectNameSetPayload: %w", err)
-	}
-	if err := ValidateProjectName(p.Name); err != nil {
-		return fmt.Errorf("invalid name in ProjectNameSetPayload: %w", err)
-	}
+	// TEMPORARY: Validation disabled for ProjectUID and project name due to historical data
+	// that doesn't conform to current format requirements (e.g., project_uid = "lovable"
+	// instead of "prj_<ulid>", name = "Foo-Bar" instead of "foo-bar"). These fields have
+	// broken data in the past, so we cannot enforce strict validation during deserialization
+	// without breaking existing databases.
+	//
+	// TODO: Re-enable validation after migrating historical data to conform to current format
+	//
+	// if err := p.ProjectUID.Validate(); err != nil {
+	// 	return fmt.Errorf("invalid project_uid in ProjectNameSetPayload: %w", err)
+	// }
+	// if err := ValidateProjectName(p.Name); err != nil {
+	// 	return fmt.Errorf("invalid name in ProjectNameSetPayload: %w", err)
+	// }
+
 	return nil
 }
 
@@ -183,12 +209,20 @@ type TaskNumberSetPayload struct {
 
 // Validate checks if the TaskNumberSetPayload is valid
 func (p TaskNumberSetPayload) Validate() error {
-	if err := p.TaskUID.Validate(); err != nil {
-		return fmt.Errorf("invalid task_uid in TaskNumberSetPayload: %w", err)
-	}
-	if err := p.ProjectUID.Validate(); err != nil {
-		return fmt.Errorf("invalid project_uid in TaskNumberSetPayload: %w", err)
-	}
+	// TEMPORARY: Validation disabled for TaskUID and ProjectUID due to historical data
+	// that doesn't conform to current format requirements (e.g., project_uid = "lovable"
+	// instead of "prj_<ulid>"). These fields have broken data in the past, so we cannot
+	// enforce strict validation during deserialization without breaking existing databases.
+	//
+	// TODO: Re-enable validation after migrating historical data to conform to current format
+	//
+	// if err := p.TaskUID.Validate(); err != nil {
+	// 	return fmt.Errorf("invalid task_uid in TaskNumberSetPayload: %w", err)
+	// }
+	// if err := p.ProjectUID.Validate(); err != nil {
+	// 	return fmt.Errorf("invalid project_uid in TaskNumberSetPayload: %w", err)
+	// }
+
 	if p.Number <= 0 {
 		return fmt.Errorf("invalid number in TaskNumberSetPayload: must be positive, got %d", p.Number)
 	}
@@ -220,15 +254,25 @@ type TaskRelocatePayload struct {
 
 // Validate checks if the TaskRelocatePayload is valid
 func (p TaskRelocatePayload) Validate() error {
-	if err := p.TaskUID.Validate(); err != nil {
-		return fmt.Errorf("invalid task_uid in TaskRelocatePayload: %w", err)
-	}
-	if err := p.FromProjectUID.Validate(); err != nil {
-		return fmt.Errorf("invalid from_project_uid in TaskRelocatePayload: %w", err)
-	}
-	if err := p.ToProjectUID.Validate(); err != nil {
-		return fmt.Errorf("invalid to_project_uid in TaskRelocatePayload: %w", err)
-	}
+	// TEMPORARY: Validation disabled for TaskUID and ProjectUID due to historical data
+	// that doesn't conform to current format requirements (e.g., project_uid = "lovable"
+	// instead of "prj_<ulid>"). These fields have broken data in the past, so we cannot
+	// enforce strict validation during deserialization without breaking existing databases.
+	//
+	// TODO: Re-enable validation after:
+	// 1. Migrating historical data to conform to current format, OR
+	// 2. Implementing a version-aware validation strategy
+	//
+	// if err := p.TaskUID.Validate(); err != nil {
+	// 	return fmt.Errorf("invalid task_uid in TaskRelocatePayload: %w", err)
+	// }
+	// if err := p.FromProjectUID.Validate(); err != nil {
+	// 	return fmt.Errorf("invalid from_project_uid in TaskRelocatePayload: %w", err)
+	// }
+	// if err := p.ToProjectUID.Validate(); err != nil {
+	// 	return fmt.Errorf("invalid to_project_uid in TaskRelocatePayload: %w", err)
+	// }
+
 	if err := p.NumberPolicy.Validate(); err != nil {
 		return fmt.Errorf("invalid number_policy in TaskRelocatePayload: %w", err)
 	}
@@ -277,9 +321,17 @@ type TaskTitleSetPayload struct {
 
 // Validate checks if the TaskTitleSetPayload is valid
 func (p TaskTitleSetPayload) Validate() error {
-	if err := p.TaskUID.Validate(); err != nil {
-		return fmt.Errorf("invalid task_uid in TaskTitleSetPayload: %w", err)
-	}
+	// TEMPORARY: Validation disabled for TaskUID due to historical data
+	// that doesn't conform to current format requirements. These fields have
+	// broken data in the past, so we cannot enforce strict validation during
+	// deserialization without breaking existing databases.
+	//
+	// TODO: Re-enable validation after migrating historical data to conform to current format
+	//
+	// if err := p.TaskUID.Validate(); err != nil {
+	// 	return fmt.Errorf("invalid task_uid in TaskTitleSetPayload: %w", err)
+	// }
+
 	title := strings.TrimSpace(p.Title)
 	if title == "" {
 		return fmt.Errorf("invalid title in TaskTitleSetPayload: title cannot be empty")
