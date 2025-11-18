@@ -594,9 +594,7 @@ func (r *Reducer) applyTaskAttachmentAdd(e types.Event) error {
 
 	task, ok := r.tasks[payload.TaskUUID]
 	if !ok {
-		// Task was deleted (likely via project.delete cascade)
-		// Skip orphaned event silently - this is expected for old data
-		return nil
+		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
 	}
 
 	// Add attachment if not already present
@@ -628,9 +626,7 @@ func (r *Reducer) applyTaskAttachmentRemove(e types.Event) error {
 
 	task, ok := r.tasks[payload.TaskUUID]
 	if !ok {
-		// Task was deleted (likely via project.delete cascade)
-		// Skip orphaned event silently - this is expected for old data
-		return nil
+		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
 	}
 
 	// Remove attachment by ID
