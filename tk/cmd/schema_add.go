@@ -115,7 +115,7 @@ Examples:
 		}
 
 		// Project the event into container_kinds table
-		if err := db.ProjectContainerKindDefineEvent(event); err != nil {
+		if err := db.RebuildProjections(); err != nil {
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 
@@ -182,7 +182,7 @@ func createItemKind(db *database.DB, kindName, description, llmHint string) erro
 	}
 
 	// Project the event into item_kinds table
-	if err := db.ProjectItemKindDefineEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		return fmt.Errorf("failed to project event: %w", err)
 	}
 

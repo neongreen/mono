@@ -39,7 +39,7 @@ func deleteTaskByUID(db *database.DB, taskUID string) error {
 		return err
 	}
 
-	return db.ProjectTaskDeleteEvent(event)
+	return db.RebuildProjections()
 }
 
 func TestDeleteTask(t *testing.T) {

@@ -48,7 +48,7 @@ func newMachine(t *testing.T, nodeID string, startTime time.Time) *Machine {
 	if err := db.InitDB(); err != nil {
 		t.Fatalf("failed to init db: %v", err)
 	}
-	if err := db.SetDBVersion(4); err != nil {
+	if err := db.SetDBVersion(8); err != nil {
 		t.Fatalf("failed to set version: %v", err)
 	}
 
@@ -90,7 +90,7 @@ func (m *Machine) createProject(alias, name string) types.ProjectUID {
 	}
 
 	m.db.InsertEvent(event)
-	m.db.ProjectProjectCreatedEvent(event)
+	m.db.RebuildProjections()
 
 	// Note: Alias events no longer needed - aliases deprecated in v5
 	// Projects are referenced by name instead
@@ -125,7 +125,7 @@ func (m *Machine) createTask(projectUID types.ProjectUID, title string) types.Ta
 	}
 
 	m.db.InsertEvent(event)
-	m.db.ProjectTaskCreatedEvent(event)
+	m.db.RebuildProjections()
 
 	// Also create number.set event
 	ts2, _ := m.db.GetNextLamportTS()
@@ -148,7 +148,7 @@ func (m *Machine) createTask(projectUID types.ProjectUID, title string) types.Ta
 	}
 
 	m.db.InsertEvent(numberEvent)
-	m.db.ProjectTaskNumberSetEvent(numberEvent)
+	m.db.RebuildProjections()
 
 	return taskUID
 }
@@ -294,7 +294,7 @@ func TestSimulation_DuplicateWithTiming(t *testing.T) {
 		}),
 	}
 	machineB.db.InsertEvent(event2)
-	machineB.db.ProjectTaskCreatedEvent(event2)
+	machineB.db.RebuildProjections()
 
 	// Machine A creates at T=100 with later Lamport TS
 	machineA.clock.Set(time.Unix(100, 0))
@@ -315,7 +315,7 @@ func TestSimulation_DuplicateWithTiming(t *testing.T) {
 		}),
 	}
 	machineA.db.InsertEvent(event1)
-	machineA.db.ProjectTaskCreatedEvent(event1)
+	machineA.db.RebuildProjections()
 
 	t.Logf("Machine A: created_at T=100, Lamport TS=%d, title='Task from A (TS=10, later)'", event1.TS)
 	t.Logf("Machine B: created_at T=50, Lamport TS=%d, title='Task from B (TS=2, earlier)'", event2.TS)
@@ -527,7 +527,7 @@ func TestSimulation_ConcurrentTaskCreation(t *testing.T) {
 		}),
 	}
 	machineA.db.InsertEvent(eventA)
-	machineA.db.ProjectTaskCreatedEvent(eventA)
+	machineA.db.RebuildProjections()
 
 	// Number event for A
 	eventA_num := types.Event{
@@ -545,7 +545,7 @@ func TestSimulation_ConcurrentTaskCreation(t *testing.T) {
 		}),
 	}
 	machineA.db.InsertEvent(eventA_num)
-	machineA.db.ProjectTaskNumberSetEvent(eventA_num)
+	machineA.db.RebuildProjections()
 
 	// Machine B creates task concurrently
 	machineB.clock.Set(time.Unix(100, 0)) // Different wall clock
@@ -567,7 +567,7 @@ func TestSimulation_ConcurrentTaskCreation(t *testing.T) {
 		}),
 	}
 	machineB.db.InsertEvent(eventB)
-	machineB.db.ProjectTaskCreatedEvent(eventB)
+	machineB.db.RebuildProjections()
 
 	// Number event for B
 	eventB_num := types.Event{
@@ -585,7 +585,7 @@ func TestSimulation_ConcurrentTaskCreation(t *testing.T) {
 		}),
 	}
 	machineB.db.InsertEvent(eventB_num)
-	machineB.db.ProjectTaskNumberSetEvent(eventB_num)
+	machineB.db.RebuildProjections()
 
 	t.Logf("Machine A: created task at T=50, Lamport TS=%d, proposed number=1", eventA.TS)
 	t.Logf("Machine B: created task at T=100, Lamport TS=%d, proposed number=1", eventB.TS)

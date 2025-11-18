@@ -133,7 +133,7 @@ func Move(db *database.DB, taskUID, toProjectUID string, opts MoveOptions, actor
 		return fmt.Errorf("failed to insert task.relocate event: %w", err)
 	}
 
-	if err := db.ProjectTaskRelocateEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		return fmt.Errorf("failed to project task.relocate event: %w", err)
 	}
 

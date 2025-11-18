@@ -14,6 +14,7 @@ func TestAddNote(t *testing.T) {
 	db := testutil.OpenTempDB(t)
 
 	projectUID := testutil.SeedProject(t, db, "test")
+	testutil.RebuildTestProjections(t, db)
 
 	clk := clock.NewVirtualClock(time.Unix(500, 0))
 	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester", clk)
@@ -47,6 +48,7 @@ func TestAddMultipleNotes(t *testing.T) {
 	db := testutil.OpenTempDB(t)
 
 	projectUID := testutil.SeedProject(t, db, "test")
+	testutil.RebuildTestProjections(t, db)
 
 	clk := clock.NewVirtualClock(time.Unix(600, 0))
 	result, err := Create(db, CreateParams{ProjectUID: types.ProjectUID(projectUID), Title: "Test task"}, "tester", clk)

@@ -10,4 +10,6 @@ type Project struct {
 	Description string      `json:"description,omitempty"`
 	CreatedAt   time.Time   `json:"created_at"`
 	CreatedBy   string      `json:"created_by"`
+	Deleted     bool        `json:"deleted"`
+	DeletedAt   time.Time   `json:"deleted_at,omitempty"`
 }

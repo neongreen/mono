@@ -126,7 +126,6 @@ func init() {
 	RootCmd.AddCommand(pushCmd)
 	RootCmd.AddCommand(pullCmd)
 	RootCmd.AddCommand(ingestCmd)
-	RootCmd.AddCommand(importBeadsCmd)
 	RootCmd.AddCommand(syncStatusCmd)
 
 	RootCmd.AddCommand(remoteAddCmd)
@@ -198,7 +197,6 @@ func init() {
 	// Migration & logs
 	//
 	RootCmd.AddCommand(migrateFixContainerItemIdsCmd)
-	RootCmd.AddCommand(migrateFixRelocateBugCmd)
 	RootCmd.AddCommand(migrateScanDeprecatedCmd)
 
 	RootCmd.AddCommand(logQueryCmd)

@@ -83,7 +83,7 @@ var projectRmCmd = &cobra.Command{
 		}
 
 		// Project the event (removes the project from the table)
-		if err := db.ProjectProjectDeleteEvent(event); err != nil {
+		if err := db.RebuildProjections(); err != nil {
 			return fmt.Errorf("failed to project project deletion: %w", err)
 		}
 

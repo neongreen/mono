@@ -25,7 +25,7 @@ func openTempDB(t *testing.T) *DB {
 	if err := db.InitDB(); err != nil {
 		t.Fatalf("failed to initialise db: %v", err)
 	}
-	if err := db.SetDBVersion(4); err != nil {
+	if err := db.SetDBVersion(8); err != nil {
 		t.Fatalf("failed to set database version: %v", err)
 	}
 	if _, err := db.Db.Exec(`
@@ -69,7 +69,7 @@ func seedProject(t *testing.T, db *DB, name string) string {
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert project.created: %v", err)
 	}
-	if err := db.ProjectProjectCreatedEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project project.created: %v", err)
 	}
 
@@ -102,7 +102,7 @@ func seedProjectWithoutAlias(t *testing.T, db *DB, name string) string {
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert project.created: %v", err)
 	}
-	if err := db.ProjectProjectCreatedEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project project.created: %v", err)
 	}
 
@@ -145,7 +145,7 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 	if err := db.InsertEvent(taskEvent); err != nil {
 		t.Fatalf("failed to insert task.created: %v", err)
 	}
-	if err := db.ProjectTaskCreatedEvent(taskEvent); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project task.created: %v", err)
 	}
 
@@ -168,7 +168,7 @@ func seedTaskWithNode(t *testing.T, db *DB, projectUID string, title string, num
 	if err := db.InsertEvent(numberEvent); err != nil {
 		t.Fatalf("failed to insert task.number.set: %v", err)
 	}
-	if err := db.ProjectTaskNumberSetEvent(numberEvent); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project task.number.set: %v", err)
 	}
 
@@ -186,70 +186,8 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 
 // Helper functions for creating events without testing context
 
-func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) types.Event {
-	payload := types.ProjectCreatedPayload{
-		ProjectUID:  types.ProjectUID(projectUID),
-		Type:        types.ProjectTypeLocal,
-		Name:        name,
-		Description: description,
-		CreatedBy:   createdBy,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	return types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     createdBy,
-		Role:      "human",
-		Kind:      string(types.EventKindProjectCreated),
-		Payload:   payloadJSON,
-	}
-}
-
 // createProjectAliasAddEvent removed - aliases no longer supported
 
-func createTaskCreatedEvent(taskUID, projectUID string, proposedNumber int64, createdNode, title, createdBy string) types.Event {
-	payload := types.TaskCreatedPayload{
-		TaskUID:        taskUID,
-		ProjectUID:     projectUID,
-		ProposedNumber: proposedNumber,
-		CreatedNode:    createdNode,
-		Title:          title,
-		CreatedBy:      createdBy,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	return types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     createdBy,
-		Role:      "human",
-		Kind:      string(types.EventKindTaskCreated),
-		Payload:   payloadJSON,
-	}
-}
-
-func createTaskNumberSetEvent(taskUID, projectUID string, number int64, reason string) types.Event {
-	payload := types.TaskNumberSetPayload{
-		TaskUID:    types.TaskUID(taskUID),
-		ProjectUID: types.ProjectUID(projectUID),
-		Number:     number,
-		Reason:     reason,
-	}
-	payloadJSON, _ := json.Marshal(payload)
-
-	return types.Event{
-		ID:        string(types.NewEventID()),
-		TS:        0,
-		CreatedAt: time.Now(),
-		Actor:     "system",
-		Role:      "human",
-		Kind:      string(types.EventKindTaskNumberSet),
-		Payload:   payloadJSON,
-	}
-}
 
 func seedContainerKindAndInstance(t *testing.T, db *DB, kindName string, primitive types.ContainerPrimitive, containerID string, containerName string) {
 	t.Helper()
@@ -271,7 +209,9 @@ func seedContainerKindAndInstance(t *testing.T, db *DB, kindName string, primiti
 		Kind:      string(types.EventKindContainerKindDefine),
 		Payload:   definePayloadJSON,
 	}
-	db.ProjectContainerKindDefineEvent(defineEvent)
+	if err := db.InsertEvent(defineEvent); err != nil {
+		t.Fatalf("failed to insert define event: %v", err)
+	}
 
 	// Create container
 	createPayload := types.CreateContainerPayload{
@@ -291,7 +231,14 @@ func seedContainerKindAndInstance(t *testing.T, db *DB, kindName string, primiti
 		Kind:      string(types.EventKindContainerCreate),
 		Payload:   createPayloadJSON,
 	}
-	db.ProjectContainerCreateEvent(createEvent)
+	if err := db.InsertEvent(createEvent); err != nil {
+		t.Fatalf("failed to insert create event: %v", err)
+	}
+
+	// Rebuild projections from events
+	if err := db.RebuildProjections(); err != nil {
+		t.Fatalf("failed to rebuild: %v", err)
+	}
 }
 
 func seedQueueItems(t *testing.T, db *DB, containerID string, itemIDs []string) {
@@ -312,8 +259,13 @@ func seedQueueItems(t *testing.T, db *DB, containerID string, itemIDs []string) 
 			Kind:      string(types.EventKindQueuePush),
 			Payload:   payloadJSON,
 		}
-		if err := db.ProjectQueuePushEvent(event); err != nil {
-			t.Fatalf("ProjectQueuePushEvent() error = %v", err)
+		if err := db.InsertEvent(event); err != nil {
+			t.Fatalf("failed to insert queue push event: %v", err)
 		}
+	}
+
+	// Rebuild projections after all events inserted
+	if err := db.RebuildProjections(); err != nil {
+		t.Fatalf("failed to rebuild projections: %v", err)
 	}
 }

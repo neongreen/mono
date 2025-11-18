@@ -8,6 +8,7 @@ import (
 
 	"github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
+	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/segment"
 )
 
@@ -67,30 +68,31 @@ func IngestFile(db *database.DB, path string) (*IngestFileResult, error) {
 		ingested++
 	}
 
-	// Phase 2: Project newly inserted events in Lamport timestamp order
-	// We need to fetch these events from the database to get them in correct order
+	// Phase 2: Build reducer state from ALL events and persist to database
+	// This replaces event-based projections with state-based persistence
 	var projectionErrors []string
 	if len(insertedEvents) > 0 {
-		// Get all events from DB in Lamport order and project only the newly inserted ones
+		// Get all events from DB in Lamport order
 		allEvents, err := db.GetEvents()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get events for projection: %w", err)
 		}
 
-		// Create a set of newly inserted event IDs for fast lookup
-		insertedSet := make(map[string]bool, len(insertedEvents))
-		for _, id := range insertedEvents {
-			insertedSet[id] = true
+		// Build reducer state from all events
+		// The reducer uses lax types and properly handles legacy event formats
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load config: %w", err)
 		}
 
-		// Project only newly inserted events, in Lamport order
-		for _, event := range allEvents {
-			if insertedSet[event.ID] {
-				if err := db.ProjectEvent(event); err != nil {
-					// Non-fatal error - track and continue processing
-					projectionErrors = append(projectionErrors, fmt.Sprintf("event %s: %v", event.ID, err))
-				}
-			}
+		r, err := reducer.BuildFromEventsWithConfig(allEvents, cfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build reducer: %w", err)
+		}
+
+		// Persist reducer state to database
+		if err := db.PersistReducerState(r); err != nil {
+			return nil, fmt.Errorf("failed to persist reducer state: %w", err)
 		}
 	}
 
@@ -198,29 +200,30 @@ func ingestRemoteSpace(db *database.DB, remoteName string, remoteConfig config.R
 		}
 	}
 
-	// Phase 2: Project newly inserted events in Lamport timestamp order
-	// This ensures deterministic projection regardless of segment file order
+	// Phase 2: Build reducer state from ALL events and persist to database
+	// This replaces event-based projections with state-based persistence
 	if len(insertedEvents) > 0 {
-		// Get all events from DB in Lamport order and project only the newly inserted ones
+		// Get all events from DB in Lamport order
 		allEvents, err := db.GetEvents()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get events for projection: %w", err)
 		}
 
-		// Create a set of newly inserted event IDs for fast lookup
-		insertedSet := make(map[string]bool, len(insertedEvents))
-		for _, id := range insertedEvents {
-			insertedSet[id] = true
+		// Build reducer state from all events
+		// The reducer uses lax types and properly handles legacy event formats
+		cfg, err := config.LoadConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load config: %w", err)
 		}
 
-		// Project only newly inserted events, in Lamport order
-		for _, event := range allEvents {
-			if insertedSet[event.ID] {
-				if err := db.ProjectEvent(event); err != nil {
-					// Non-fatal error - track and continue processing
-					projectionErrors = append(projectionErrors, fmt.Sprintf("event %s: %v", event.ID, err))
-				}
-			}
+		r, err := reducer.BuildFromEventsWithConfig(allEvents, cfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build reducer: %w", err)
+		}
+
+		// Persist reducer state to database
+		if err := db.PersistReducerState(r); err != nil {
+			return nil, fmt.Errorf("failed to persist reducer state: %w", err)
 		}
 	}
 

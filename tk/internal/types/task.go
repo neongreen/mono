@@ -29,12 +29,15 @@ type Task struct {
 	Notes         []Note                    `json:"notes"`
 	Attachments   []Attachment              `json:"attachments,omitempty"` // File attachments
 	CreatedBy     string                    `json:"created_by"`
+	CreatedNode   string                    `json:"created_node,omitempty"`  // Node ID that created this task
 	CreatedAt     time.Time                 `json:"created_at"`
 	CreatedAtTS   int64                     `json:"created_at_ts,omitempty"` // Lamport timestamp of task.created event
 	UpdatedAt     time.Time                 `json:"updated_at"`              // Timestamp of most recent event affecting this task
 	Relations     *Relations                `json:"relations,omitempty"`     // Task relations
 	Blocked       bool                      `json:"blocked,omitempty"`       // Is this task blocked
 	Blockers      []Blocker                 `json:"blockers,omitempty"`      // List of blocking tasks
+	Deleted       bool                      `json:"deleted"`                 // Soft delete flag
+	DeletedAt     time.Time                 `json:"deleted_at,omitempty"`    // When task was deleted
 }
 
 // MarshalJSON provides deterministic JSON output by sorting relation slices

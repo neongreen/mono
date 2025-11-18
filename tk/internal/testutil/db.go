@@ -27,17 +27,17 @@ func OpenTempDB(t *testing.T) *database.DB {
 	if err := db.InitDB(); err != nil {
 		t.Fatalf("failed to initialise db: %v", err)
 	}
-	if err := db.SetDBVersion(4); err != nil {
+	if err := db.SetDBVersion(8); err != nil {
 		t.Fatalf("failed to set database version: %v", err)
 	}
 	if _, err := db.Db.Exec(`
 		INSERT OR REPLACE INTO metadata (key, value)
 		VALUES ('remote_subdir', ?)
-	`, "v4"); err != nil {
+	`, "v8"); err != nil {
 		t.Fatalf("failed to set remote_subdir: %v", err)
 	}
 
-	// Run migrations to get to latest schema
+	// Run migrations (should be none for v8)
 	if err := db.RunMigrationsIfNeeded(); err != nil {
 		t.Fatalf("failed to run migrations: %v", err)
 	}
@@ -71,9 +71,6 @@ func SeedProject(t *testing.T, db *database.DB, name string) string {
 	}
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert project.created: %v", err)
-	}
-	if err := db.ProjectProjectCreatedEvent(event); err != nil {
-		t.Fatalf("failed to project project.created: %v", err)
 	}
 
 	return projectUID
@@ -116,9 +113,6 @@ func SeedTaskWithNode(t *testing.T, db *database.DB, projectUID string, title st
 	if err := db.InsertEvent(taskEvent); err != nil {
 		t.Fatalf("failed to insert task.created: %v", err)
 	}
-	if err := db.ProjectTaskCreatedEvent(taskEvent); err != nil {
-		t.Fatalf("failed to project task.created: %v", err)
-	}
 
 	numberPayload := types.TaskNumberSetPayload{
 		TaskUID:    types.TaskUID(taskUID),
@@ -139,11 +133,17 @@ func SeedTaskWithNode(t *testing.T, db *database.DB, projectUID string, title st
 	if err := db.InsertEvent(numberEvent); err != nil {
 		t.Fatalf("failed to insert task.number.set: %v", err)
 	}
-	if err := db.ProjectTaskNumberSetEvent(numberEvent); err != nil {
-		t.Fatalf("failed to project task.number.set: %v", err)
-	}
 
 	return taskUID
+}
+
+// RebuildTestProjections rebuilds all projection tables from events
+// Call this after seeding test data
+func RebuildTestProjections(t *testing.T, db *database.DB) {
+	t.Helper()
+	if err := db.RebuildProjections(); err != nil {
+		t.Fatalf("failed to rebuild projections: %v", err)
+	}
 }
 
 // MustJSON marshals a value to JSON or fails the test

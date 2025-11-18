@@ -35,12 +35,12 @@ var initCmd = &cobra.Command{
 			return err
 		}
 
-		// Set initial DB version to 4
-		if err := db.SetDBVersion(4); err != nil {
+		// Set initial DB version to 8 (latest)
+		if err := db.SetDBVersion(8); err != nil {
 			return fmt.Errorf("failed to set DB version: %w", err)
 		}
 
-		// Run migrations to get to latest version (v5)
+		// Run migrations if needed (should be none for new DBs)
 		if err := db.RunMigrationsIfNeeded(); err != nil {
 			return fmt.Errorf("failed to run migrations: %w", err)
 		}
@@ -92,7 +92,7 @@ var initCmd = &cobra.Command{
 			return fmt.Errorf("failed to insert event: %w", err)
 		}
 
-		if err := db.ProjectProjectCreatedEvent(event); err != nil {
+		if err := db.RebuildProjections(); err != nil {
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 

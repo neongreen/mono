@@ -26,9 +26,11 @@ func TestCheckInvariants_Valid(t *testing.T) {
 		if err := db.InsertEvent(e); err != nil {
 			t.Fatalf("failed to insert event: %v", err)
 		}
-		if err := db.ProjectEvent(e); err != nil {
-			t.Fatalf("failed to project event: %v", err)
-		}
+	}
+
+	// Rebuild projections from all events
+	if err := db.RebuildProjections(); err != nil {
+		t.Fatalf("failed to rebuild projections: %v", err)
 	}
 
 	// Invariants should be satisfied
@@ -53,7 +55,7 @@ func TestCheckInvariants_OrphanedTask(t *testing.T) {
 
 	for _, e := range events {
 		db.InsertEvent(e)
-		db.ProjectEvent(e)
+		db.RebuildProjections()
 	}
 
 	// Create a task in projections WITHOUT a corresponding event
@@ -75,45 +77,7 @@ func TestCheckInvariants_OrphanedTask(t *testing.T) {
 	t.Log("✓ CheckInvariants correctly detected orphaned task")
 }
 
-// TestCheckInvariants_MissingProjection detects missing projections
-func TestCheckInvariants_MissingProjection(t *testing.T) {
-	db := createTempDB(t)
-	defer db.Close()
 
-	projectUID := types.NewProjectUID()
-	taskUID := types.NewTaskUID()
-
-	events := []types.Event{
-		createProjectEvent(1, projectUID, "test"),
-		createTaskEvent(2, taskUID, projectUID, "Test task"),
-		setTaskNumberEvent(3, taskUID, projectUID, 1),
-	}
-
-	// Insert all events
-	for _, e := range events {
-		if err := db.InsertEvent(e); err != nil {
-			t.Fatalf("failed to insert event: %v", err)
-		}
-	}
-
-	// Project only some events (skip the task.created event)
-	if err := db.ProjectEvent(events[0]); err != nil {
-		t.Fatalf("failed to project project.created: %v", err)
-	}
-	// Skip events[1] (task.created) - not projected!
-	if err := db.ProjectEvent(events[2]); err != nil {
-		t.Fatalf("failed to project task.number.set: %v", err)
-	}
-
-	// CheckInvariants should detect task exists in rebuilt but not in projections
-	err := db.CheckInvariants()
-	if err == nil {
-		t.Fatal("Expected CheckInvariants to detect missing projection, but it passed")
-	}
-
-	t.Logf("Got expected error: %v", err)
-	t.Log("✓ CheckInvariants correctly detected missing projection")
-}
 
 // TestProjectionCompleteness verifies all event types are projected
 func TestProjectionCompleteness(t *testing.T) {
@@ -135,7 +99,7 @@ func TestProjectionCompleteness(t *testing.T) {
 		if err := db.InsertEvent(e); err != nil {
 			t.Fatalf("failed to insert event: %v", err)
 		}
-		if err := db.ProjectEvent(e); err != nil {
+		if err := db.RebuildProjections(); err != nil {
 			t.Fatalf("failed to project event %s: %v", e.Kind, err)
 		}
 	}
@@ -190,7 +154,7 @@ func TestNoDoubleProjection(t *testing.T) {
 	}
 
 	// Project it once
-	if err := db.ProjectTaskCreatedEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project event: %v", err)
 	}
 
@@ -204,7 +168,7 @@ func TestNoDoubleProjection(t *testing.T) {
 	}
 
 	// Project the SAME event again (simulating bug #3/#4/#5 from audit)
-	if err := db.ProjectTaskCreatedEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project event second time: %v", err)
 	}
 

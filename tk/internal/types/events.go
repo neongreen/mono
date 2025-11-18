@@ -59,6 +59,22 @@ import (
 // - no consecutive dashes
 var projectNamePattern = regexp.MustCompile(`^[a-z]+(-[a-z]+)*$`)
 
+// NormalizeProjectName converts a project name to valid format:
+// - Converts to lowercase
+// - Removes invalid characters (keeps only a-z and dashes)
+// - Collapses consecutive dashes
+// - Trims leading/trailing dashes
+func NormalizeProjectName(name string) string {
+	normalized := strings.ToLower(name)
+	// Remove invalid characters
+	normalized = regexp.MustCompile(`[^a-z-]+`).ReplaceAllString(normalized, "")
+	// Replace consecutive dashes with single dash
+	normalized = regexp.MustCompile(`-+`).ReplaceAllString(normalized, "-")
+	// Remove leading/trailing dashes
+	normalized = strings.Trim(normalized, "-")
+	return normalized
+}
+
 // ValidateProjectName validates a project name according to the rules:
 // - Must be at least 1 character
 // - Lowercase letters (a-z) and dashes (-) only
@@ -71,13 +87,7 @@ func ValidateProjectName(name string) error {
 
 	if !projectNamePattern.MatchString(name) {
 		// Generate a helpful suggestion
-		suggestion := strings.ToLower(name)
-		// Remove invalid characters
-		suggestion = regexp.MustCompile(`[^a-z-]+`).ReplaceAllString(suggestion, "")
-		// Replace consecutive dashes with single dash
-		suggestion = regexp.MustCompile(`-+`).ReplaceAllString(suggestion, "-")
-		// Remove leading/trailing dashes
-		suggestion = strings.Trim(suggestion, "-")
+		suggestion := NormalizeProjectName(name)
 
 		if suggestion != "" && suggestion != name {
 			return fmt.Errorf("invalid project name '%s': must be lowercase letters and dashes only, no leading/trailing dashes or consecutive dashes. Try: '%s'", name, suggestion)
@@ -86,6 +96,16 @@ func ValidateProjectName(name string) error {
 	}
 
 	return nil
+}
+
+// ProjectCreatedPayloadLax is used when reading project.created events from the log.
+// Accepts any project name format and normalizes it.
+type ProjectCreatedPayloadLax struct {
+	ProjectUID  string `json:"project_uid"`  // Could be: "prj_<ulid>" (validated later)
+	Type        string `json:"type"`         // Project type (validated later)
+	Name        string `json:"name"`         // Project name (any format, normalized to lowercase)
+	Description string `json:"description"`  // Text description (any string)
+	CreatedBy   string `json:"created_by"`   // Actor who created it (any string)
 }
 
 // ProjectCreatedPayload is the payload for project.created events

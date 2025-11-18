@@ -12,6 +12,13 @@ import (
 	"github.com/neongreen/mono/tk/internal/utils"
 )
 
+// TaskNumber represents a task number assignment
+type TaskNumber struct {
+	ProjectUID string
+	Number     int64
+	TaskUID    string
+}
+
 // Reducer reconstructs task state from events
 type Reducer struct {
 	tasks        map[string]*types.Task    // Key: task UUID
@@ -24,6 +31,9 @@ type Reducer struct {
 	projectByName           map[string]string         // Key: project name/alias -> Value: project UID
 	temporaryProjects       map[string]bool           // Key: project UID -> Value: true (tracks synthetic projects)
 	syntheticProjectCounter int                       // Counter for deterministic synthetic project UIDs
+
+	// Task number assignments - Key: task UUID -> Value: TaskNumber
+	taskNumbers map[string]TaskNumber
 }
 
 // NewReducer creates a new reducer
@@ -37,6 +47,7 @@ func NewReducer() *Reducer {
 		projectByName:           make(map[string]string),
 		temporaryProjects:       make(map[string]bool),
 		syntheticProjectCounter: 0,
+		taskNumbers:             make(map[string]TaskNumber),
 	}
 }
 
@@ -48,6 +59,46 @@ func (r *Reducer) Relations() *relations.RelationsGraph {
 // Tasks returns the tasks map
 func (r *Reducer) Tasks() map[string]*types.Task {
 	return r.tasks
+}
+
+// TaskNumbers returns the task numbers map
+func (r *Reducer) TaskNumbers() map[string]TaskNumber {
+	return r.taskNumbers
+}
+
+// Projects returns the projects map
+func (r *Reducer) Projects() map[string]*types.Project {
+	return r.projects
+}
+
+// isProjectDeleted checks if a project is deleted
+func (r *Reducer) isProjectDeleted(projectUID string) bool {
+	project, exists := r.projects[projectUID]
+	return exists && project.Deleted
+}
+
+// isTaskVisible checks if a task should be shown
+// A task is hidden if:
+// - Task is explicitly deleted, OR
+// - Task's project is deleted
+func (r *Reducer) isTaskVisible(task *types.Task) bool {
+	if task.Deleted {
+		return false
+	}
+
+	// Check if task's project is deleted
+	return !r.isProjectDeleted(task.ProjectUUID)
+}
+
+// GetVisibleProjects returns all non-deleted projects
+func (r *Reducer) GetVisibleProjects() []*types.Project {
+	projects := make([]*types.Project, 0, len(r.projects))
+	for _, project := range r.projects {
+		if !project.Deleted {
+			projects = append(projects, project)
+		}
+	}
+	return projects
 }
 
 // Apply applies an event to update the task state
@@ -179,7 +230,12 @@ func (r *Reducer) applyTaskDelete(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.delete payload: %w", err)
 	}
 
-	r.removeTaskFromMaps(payload.TaskUUID)
+	// Mark task as deleted (soft delete)
+	if task, exists := r.tasks[payload.TaskUUID]; exists {
+		task.Deleted = true
+		task.DeletedAt = e.CreatedAt
+	}
+
 	return nil
 }
 
@@ -208,19 +264,13 @@ func (r *Reducer) applyProjectDelete(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.delete payload: %w", err)
 	}
 
-	projectUID := payload.ProjectUID
+	projectUID := payload.ProjectUID.String()
 
-	// Find all tasks in this project and delete them
-	tasksToDelete := make([]string, 0)
-	for taskUUID, taskProjectUID := range r.taskProjects {
-		if taskProjectUID == projectUID.String() {
-			tasksToDelete = append(tasksToDelete, taskUUID)
-		}
-	}
-
-	// Delete each task using the helper
-	for _, taskUUID := range tasksToDelete {
-		r.removeTaskFromMaps(taskUUID)
+	// Mark project as deleted (soft delete)
+	// Tasks in deleted projects are implicitly hidden via visibility checks
+	if project, exists := r.projects[projectUID]; exists {
+		project.Deleted = true
+		project.DeletedAt = e.CreatedAt
 	}
 
 	return nil
@@ -293,11 +343,14 @@ func (r *Reducer) GetTask(idOrUUID string) (*types.Task, bool) {
 	return task, ok
 }
 
-// GetAllTasks returns all tasks
+// GetAllTasks returns all visible (non-deleted) tasks
+// Tasks are hidden if they are explicitly deleted OR if their project is deleted
 func (r *Reducer) GetAllTasks() []*types.Task {
 	tasks := make([]*types.Task, 0, len(r.tasks))
 	for _, task := range r.tasks {
-		tasks = append(tasks, task)
+		if r.isTaskVisible(task) {
+			tasks = append(tasks, task)
+		}
 	}
 	return tasks
 }
@@ -397,7 +450,7 @@ func BuildFromEventsWithConfig(events []types.Event, config *config.Config) (*Re
 	return reducer, nil
 }
 
-// V4 Event Reducer Functions
+// Event Reducer Functions
 // Handles events (project.created, task.created, task.number.set, task.relocate, etc.)
 
 // ApplyProjectEvent applies an event-specific handler
@@ -426,25 +479,42 @@ func (r *Reducer) ApplyProjectEvent(e types.Event) (bool, error) {
 }
 
 func (r *Reducer) applyProjectCreated(e types.Event) error {
-	var payload types.ProjectCreatedPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+	var laxPayload types.ProjectCreatedPayloadLax
+	if err := json.Unmarshal(e.Payload, &laxPayload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.created payload: %w", err)
 	}
 
-	// Store project in memory for identifier resolution
-	projectUID := payload.ProjectUID.String()
-	project := &types.Project{
-		UID:         payload.ProjectUID,
-		Type:        payload.Type,
-		Name:        payload.Name,
-		Description: payload.Description,
-		CreatedAt:   e.CreatedAt,
-		CreatedBy:   payload.CreatedBy,
+	// Validate and normalize project UID
+	projectUID := types.ProjectUID(laxPayload.ProjectUID)
+	if err := projectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in project.created: %w", err)
 	}
-	r.projects[projectUID] = project
+
+	// Validate project type
+	projectType := types.ProjectType(laxPayload.Type)
+	if err := projectType.Validate(); err != nil {
+		return fmt.Errorf("invalid type in project.created: %w", err)
+	}
+
+	// Normalize project name (convert uppercase to lowercase, clean up)
+	normalizedName := types.NormalizeProjectName(laxPayload.Name)
+	if normalizedName == "" {
+		return fmt.Errorf("project name normalizes to empty string: %q", laxPayload.Name)
+	}
+
+	// Store project in memory for identifier resolution
+	project := &types.Project{
+		UID:         projectUID,
+		Type:        projectType,
+		Name:        normalizedName,
+		Description: laxPayload.Description,
+		CreatedAt:   e.CreatedAt,
+		CreatedBy:   laxPayload.CreatedBy,
+	}
+	r.projects[projectUID.String()] = project
 
 	// Map project name to UID for legacy identifier resolution
-	r.projectByName[payload.Name] = projectUID
+	r.projectByName[normalizedName] = projectUID.String()
 
 	return nil
 }
@@ -511,6 +581,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 				Metadata:      existing.Metadata, // Preserve metadata
 				Notes:         existing.Notes,    // Preserve notes
 				CreatedBy:     payload.CreatedBy,
+				CreatedNode:   payload.CreatedNode,
 				CreatedAt:     e.CreatedAt,
 				CreatedAtTS:   e.TS,
 				UpdatedAt:     existing.UpdatedAt, // Preserve updated timestamp
@@ -535,6 +606,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 		Axes:          make(map[string]types.AxisStatus),
 		Notes:         []types.Note{},
 		CreatedBy:     payload.CreatedBy,
+		CreatedNode:   payload.CreatedNode,
 		CreatedAt:     e.CreatedAt,
 		CreatedAtTS:   e.TS,
 		UpdatedAt:     e.CreatedAt, // Initially same as CreatedAt
@@ -556,22 +628,23 @@ func (r *Reducer) applyTaskNumberSet(e types.Event) error {
 	}
 
 	// Resolve lax identifiers to validated UIDs
-	// Note: We don't actually need to use these resolved values for anything
-	// since number assignments are managed by DB projections (task_numbers table)
-	// The reducer doesn't need to track this in memory.
-	// However, we still resolve to validate the event can be processed.
-	_, err := r.resolveTaskUID(laxPayload.TaskUID)
+	taskUID, err := r.resolveTaskUID(laxPayload.TaskUID)
 	if err != nil {
 		return fmt.Errorf("failed to resolve task UID in task.number.set: %w", err)
 	}
 
-	_, err = r.resolveProjectUID(laxPayload.ProjectUID)
+	projectUID, err := r.resolveProjectUID(laxPayload.ProjectUID)
 	if err != nil {
 		return fmt.Errorf("failed to resolve project UID in task.number.set: %w", err)
 	}
 
-	// Number assignments are managed by DB projections (task_numbers table)
-	// The reducer doesn't need to track this in memory
+	// Track the task number assignment
+	r.taskNumbers[taskUID] = TaskNumber{
+		ProjectUID: projectUID,
+		Number:     laxPayload.Number,
+		TaskUID:    taskUID,
+	}
+
 	return nil
 }
 
@@ -595,6 +668,12 @@ func (r *Reducer) applyTaskRelocate(e types.Event) error {
 	// Update the task's project mapping so project.delete can correctly
 	// remove tasks that belong to the deleted project
 	r.taskProjects[taskUID] = toProjectUID
+
+	// Also update the task object's ProjectUUID field
+	if task, exists := r.tasks[taskUID]; exists {
+		task.ProjectUUID = toProjectUID
+		task.UpdatedAt = e.CreatedAt
+	}
 
 	return nil
 }
