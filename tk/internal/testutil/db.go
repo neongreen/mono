@@ -72,6 +72,10 @@ func SeedProject(t *testing.T, db *database.DB, name string) string {
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert project.created: %v", err)
 	}
+	// Rebuild projections so the project appears in the database
+	if err := db.RebuildProjections(); err != nil {
+		t.Fatalf("failed to rebuild projections: %v", err)
+	}
 
 	return projectUID
 }
@@ -132,6 +136,10 @@ func SeedTaskWithNode(t *testing.T, db *database.DB, projectUID string, title st
 	}
 	if err := db.InsertEvent(numberEvent); err != nil {
 		t.Fatalf("failed to insert task.number.set: %v", err)
+	}
+	// Rebuild projections so the task appears in the database
+	if err := db.RebuildProjections(); err != nil {
+		t.Fatalf("failed to rebuild projections: %v", err)
 	}
 
 	return taskUID
