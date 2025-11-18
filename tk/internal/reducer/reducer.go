@@ -17,15 +17,25 @@ type Reducer struct {
 	taskByID     map[string]string         // Key: task ID (current or alias) -> Value: task UUID
 	taskProjects map[string]string         // Key: task UUID -> Value: project UID
 	relations    *relations.RelationsGraph // Relations graph
+
+	// Project resolution maps for lax identifier handling
+	projects                map[string]*types.Project // Key: project UID -> Value: project
+	projectByName           map[string]string         // Key: project name/alias -> Value: project UID
+	temporaryProjects       map[string]bool           // Key: project UID -> Value: true (tracks synthetic projects)
+	syntheticProjectCounter int                       // Counter for deterministic synthetic project UIDs
 }
 
 // NewReducer creates a new reducer
 func NewReducer() *Reducer {
 	return &Reducer{
-		tasks:        make(map[string]*types.Task),
-		taskByID:     make(map[string]string),
-		taskProjects: make(map[string]string),
-		relations:    relations.NewRelationsGraph(),
+		tasks:                   make(map[string]*types.Task),
+		taskByID:                make(map[string]string),
+		taskProjects:            make(map[string]string),
+		relations:               relations.NewRelationsGraph(),
+		projects:                make(map[string]*types.Project),
+		projectByName:           make(map[string]string),
+		temporaryProjects:       make(map[string]bool),
+		syntheticProjectCounter: 0,
 	}
 }
 
@@ -506,9 +516,24 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 }
 
 func (r *Reducer) applyTaskNumberSet(e types.Event) error {
-	var payload types.TaskNumberSetPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+	var laxPayload types.TaskNumberSetPayloadLax
+	if err := json.Unmarshal(e.Payload, &laxPayload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.number.set payload: %w", err)
+	}
+
+	// Resolve lax identifiers to validated UIDs
+	// Note: We don't actually need to use these resolved values for anything
+	// since number assignments are managed by DB projections (task_numbers table)
+	// The reducer doesn't need to track this in memory.
+	// However, we still resolve to validate the event can be processed.
+	_, err := r.resolveTaskUID(laxPayload.TaskUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve task UID in task.number.set: %w", err)
+	}
+
+	_, err = r.resolveProjectUID(laxPayload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve project UID in task.number.set: %w", err)
 	}
 
 	// Number assignments are managed by DB projections (task_numbers table)
@@ -517,14 +542,25 @@ func (r *Reducer) applyTaskNumberSet(e types.Event) error {
 }
 
 func (r *Reducer) applyTaskRelocate(e types.Event) error {
-	var payload types.TaskRelocatePayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+	var laxPayload types.TaskRelocatePayloadLax
+	if err := json.Unmarshal(e.Payload, &laxPayload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.relocate payload: %w", err)
+	}
+
+	// Resolve lax identifiers to validated UIDs
+	taskUID, err := r.resolveTaskUID(laxPayload.TaskUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve task UID in task.relocate: %w", err)
+	}
+
+	toProjectUID, err := r.resolveProjectUID(laxPayload.ToProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve to_project_uid in task.relocate: %w", err)
 	}
 
 	// Update the task's project mapping so project.delete can correctly
 	// remove tasks that belong to the deleted project
-	r.taskProjects[payload.TaskUID.String()] = payload.ToProjectUID.String()
+	r.taskProjects[taskUID] = toProjectUID
 
 	return nil
 }
@@ -558,7 +594,9 @@ func (r *Reducer) applyTaskAttachmentAdd(e types.Event) error {
 
 	task, ok := r.tasks[payload.TaskUUID]
 	if !ok {
-		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
+		// Task was deleted (likely via project.delete cascade)
+		// Skip orphaned event silently - this is expected for old data
+		return nil
 	}
 
 	// Add attachment if not already present
@@ -590,7 +628,9 @@ func (r *Reducer) applyTaskAttachmentRemove(e types.Event) error {
 
 	task, ok := r.tasks[payload.TaskUUID]
 	if !ok {
-		return fmt.Errorf("task UUID not found: %s", payload.TaskUUID)
+		// Task was deleted (likely via project.delete cascade)
+		// Skip orphaned event silently - this is expected for old data
+		return nil
 	}
 
 	// Remove attachment by ID
@@ -602,6 +642,32 @@ func (r *Reducer) applyTaskAttachmentRemove(e types.Event) error {
 	}
 	task.Attachments = filtered
 	task.UpdatedAt = e.CreatedAt
+
+	return nil
+}
+
+// CleanupTemporaryProjects checks if any temporary (synthetic) projects have tasks.
+// - Empty projects → Silently ignore (they were just scaffolding)
+// - Non-empty projects → ERROR (manual cleanup required)
+//
+// This should be called after all events have been replayed.
+func (r *Reducer) CleanupTemporaryProjects() error {
+	for projectUID := range r.temporaryProjects {
+		// Count tasks in this project
+		taskCount := 0
+		for _, taskProjectUID := range r.taskProjects {
+			if taskProjectUID == projectUID {
+				taskCount++
+			}
+		}
+
+		if taskCount > 0 {
+			// Non-empty temporary project - ERROR
+			project := r.projects[projectUID]
+			return fmt.Errorf("temporary project %q has %d tasks - manual cleanup required. This indicates malformed event data that is no longer supported.", project.Name, taskCount)
+		}
+		// Empty temporary projects are OK - they were just scaffolding for resolution
+	}
 
 	return nil
 }

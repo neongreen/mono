@@ -10,6 +10,48 @@ import (
 // types.Event Payload Definitions
 // Based on tk/specs/v4.md
 
+// ============================================================================
+// Event Payload Type Pattern: Lax vs Strict
+// ============================================================================
+//
+// PROBLEM:
+// Historical tk databases contain events with malformed identifiers:
+// - Project UIDs like "lovable" (name/alias) instead of "prj_<ulid>"
+// - Task IDs like "123" (old format) instead of "tsk_<ulid>"
+//
+// SOLUTION: Lax/Strict Pattern
+// -----------------------------
+// For events where validation has been tightened, we use two types:
+//
+// 1. *PayloadLax (e.g., TaskNumberSetPayloadLax)
+//    - Used when READING events from the log
+//    - Fields are permissive (plain strings, etc.)
+//    - Accepts legacy/malformed data
+//    - Superset of what strict type accepts
+//
+// 2. *Payload (e.g., TaskNumberSetPayload)
+//    - Used when WRITING/EMITTING new events
+//    - Fields are strict (typed UIDs, validation)
+//    - Only accepts properly formatted data
+//    - Subset of what lax type accepts
+//
+// INVARIANTS:
+// -----------
+// 1. New code NEVER emits lax events - always use strict types
+// 2. Lax types ONLY for reading historical events
+// 3. Lax type MUST be superset of strict type
+// 4. After resolution, TaskUID/ProjectUID are always valid ULID format
+//
+// WORKFLOW:
+// ---------
+// Reading events (reducer):
+//   Event JSON → Unmarshal to Lax → Resolve identifiers → Use validated strings
+//
+// Creating events (tk new, tk mv):
+//   Build Strict payload → Marshal to JSON → Insert into events table
+//
+// ============================================================================
+
 // projectNamePattern matches valid project names:
 // - lowercase letters (a-z) only
 // - single dashes allowed between letter groups
@@ -173,7 +215,19 @@ type TaskCreatedPayload struct {
 	ItemKind       string `json:"item_kind,omitempty"` // v7+ item kind (task, decision, resource, etc.)
 }
 
-// TaskNumberSetPayload is the payload for task.number.set events
+// ========== TaskNumberSetPayload ==========
+
+// TaskNumberSetPayloadLax is used when reading events from the log.
+// Accepts legacy/malformed project UIDs and task IDs for backward compatibility.
+type TaskNumberSetPayloadLax struct {
+	TaskUID    string `json:"task_uid"`    // Could be: "tsk_<ulid>" OR legacy "123"
+	ProjectUID string `json:"project_uid"` // Could be: "prj_<ulid>" OR legacy "lovable"
+	Number     int64  `json:"number"`
+	Reason     string `json:"reason,omitempty"`
+}
+
+// TaskNumberSetPayload is used when creating new events.
+// Enforces strict validation - only proper ULID-based identifiers allowed.
 type TaskNumberSetPayload struct {
 	TaskUID    TaskUID    `json:"task_uid"`         // Must be valid TaskUID (tsk_<ulid>)
 	ProjectUID ProjectUID `json:"project_uid"`      // Must be valid ProjectUID (prj_<ulid>)
@@ -210,7 +264,17 @@ func (p *TaskNumberSetPayload) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// TaskRelocatePayload is the payload for task.relocate events
+// ========== TaskRelocatePayload ==========
+
+// TaskRelocatePayloadLax is used when reading events from the log.
+type TaskRelocatePayloadLax struct {
+	TaskUID        string              `json:"task_uid"`
+	FromProjectUID string              `json:"from_project_uid"`
+	ToProjectUID   string              `json:"to_project_uid"`
+	NumberPolicy   NumberPolicyPayload `json:"number_policy"`
+}
+
+// TaskRelocatePayload is used when creating new events.
 type TaskRelocatePayload struct {
 	TaskUID        TaskUID             `json:"task_uid"`         // Must be valid TaskUID (tsk_<ulid>)
 	FromProjectUID ProjectUID          `json:"from_project_uid"` // Must be valid ProjectUID (prj_<ulid>)
