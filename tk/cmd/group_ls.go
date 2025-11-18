@@ -108,10 +108,6 @@ Examples:
 	},
 }
 
-func init() {
-	groupLsCmd.Flags().Bool("json", false, "Output as JSON")
-}
-
 func listGroupMembers(cmd *cobra.Command, db *database.DB, groupID string) error {
 	jsonOutput, _ := cmd.Flags().GetBool("json")
 

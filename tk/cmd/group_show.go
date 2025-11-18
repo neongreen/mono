@@ -119,7 +119,3 @@ Example:
 		return nil
 	},
 }
-
-func init() {
-	groupShowCmd.Flags().Bool("json", false, "Output as JSON")
-}
