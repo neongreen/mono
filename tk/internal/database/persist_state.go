@@ -81,6 +81,9 @@ func (d *DB) persistProjects(tx *sql.Tx, r *reducer.Reducer) error {
 			deletedAtStr = project.DeletedAt.Format(time.RFC3339)
 		}
 
+		// Convert time.Time to Unix timestamp for INTEGER column
+		createdAtUnix := project.CreatedAt.Unix()
+
 		_, err := tx.Exec(`
 			INSERT INTO projects (project_uid, type, name, description, created_at, created_by, deleted, deleted_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -92,7 +95,7 @@ func (d *DB) persistProjects(tx *sql.Tx, r *reducer.Reducer) error {
 				created_by = excluded.created_by,
 				deleted = excluded.deleted,
 				deleted_at = excluded.deleted_at
-		`, projectUID, project.Type, project.Name, project.Description, project.CreatedAt, project.CreatedBy, deletedInt, deletedAtStr)
+		`, projectUID, project.Type, project.Name, project.Description, createdAtUnix, project.CreatedBy, deletedInt, deletedAtStr)
 		if err != nil {
 			return fmt.Errorf("failed to upsert project %s: %w", projectUID, err)
 		}
@@ -128,10 +131,13 @@ func (d *DB) persistTasks(tx *sql.Tx, r *reducer.Reducer) error {
 			itemKind = "task"
 		}
 
+		// Convert time.Time to Unix timestamp for INTEGER column
+		createdAtUnix := task.CreatedAt.Unix()
+
 		_, err := tx.Exec(`
 			INSERT INTO tasks (task_uid, project_uid, created_node, title, created_at, created_by, item_kind, deleted, deleted_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`, taskUID, task.ProjectUUID, task.CreatedNode, task.Title, task.CreatedAt, task.CreatedBy, itemKind, deletedInt, deletedAtStr)
+		`, taskUID, task.ProjectUUID, task.CreatedNode, task.Title, createdAtUnix, task.CreatedBy, itemKind, deletedInt, deletedAtStr)
 		if err != nil {
 			return fmt.Errorf("failed to insert task %s: %w", taskUID, err)
 		}
