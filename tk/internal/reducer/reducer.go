@@ -420,8 +420,21 @@ func (r *Reducer) applyProjectCreated(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.created payload: %w", err)
 	}
 
-	// Project state is managed by DB projections, not in-memory reducer
-	// This is just for completeness
+	// Store project in memory for identifier resolution
+	projectUID := payload.ProjectUID.String()
+	project := &types.Project{
+		UID:         payload.ProjectUID,
+		Type:        payload.Type,
+		Name:        payload.Name,
+		Description: payload.Description,
+		CreatedAt:   e.CreatedAt,
+		CreatedBy:   payload.CreatedBy,
+	}
+	r.projects[projectUID] = project
+
+	// Map project name to UID for legacy identifier resolution
+	r.projectByName[payload.Name] = projectUID
+
 	return nil
 }
 
@@ -431,7 +444,15 @@ func (r *Reducer) applyProjectAliasAdd(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.alias.add payload: %w", err)
 	}
 
-	// Alias state is managed by DB projections
+	// Resolve the project UID (could be legacy format)
+	projectUID, err := r.resolveProjectUID(payload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve project UID in project.alias.add: %w", err)
+	}
+
+	// Map alias to project UID for legacy identifier resolution
+	r.projectByName[payload.Alias] = projectUID
+
 	return nil
 }
 
@@ -441,7 +462,9 @@ func (r *Reducer) applyProjectAliasRemove(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.alias.remove payload: %w", err)
 	}
 
-	// Alias state is managed by DB projections
+	// Remove alias from projectByName map
+	delete(r.projectByName, payload.Alias)
+
 	return nil
 }
 
