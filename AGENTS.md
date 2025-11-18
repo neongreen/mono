@@ -65,58 +65,40 @@ When you are asked to do something "always" or "never", you must also record thi
 
 ------------------------------------------------------------
 
-## Build and Run Guidelines
+## Build and Run Guidelines for Go Projects
 
-**Always use `mise` for building and running Go projects. Never use `go build` or `go run` directly.**
+**For Go projects, agents should use `go` commands directly. Do not use `mise` for building, testing, or running Go code.**
 
-### Installing mise in Agent Environments
+### Running Go Commands
 
-If you're working in an agent/web environment without mise installed:
+All Go commands should be run from the mono repository root:
 
 ```bash
-# Install mise
-curl https://mise.jdx.dev/install.sh | sh
+# Build a project
+go build ./project-name
 
-# Add to PATH and trust the config
-export PATH="$HOME/.local/bin:$PATH"
-mise trust
+# Run tests for a project
+go test ./project-name/...
 
-# Verify installation
-mise tasks
+# Run a project
+go run ./project-name
+
+# Build and install
+go install ./project-name
 ```
 
-Mise will automatically install required tools (Go, Node, Rust, etc.) when you run tasks.
+### Why Direct Go Commands?
 
-### Running Go Projects
+- Go's toolchain is reliable and self-contained
+- Simpler for agents to execute directly
+- No additional tool installation required
+- Each project's AGENTS.md provides specific commands
 
-Use the mise task syntax from the monorepo root:
-```bash
-mise run project-name:task-name
-```
+### Project-Specific Commands
 
-Examples:
-- `mise run claude-trace` - Run claude-trace with default command (TUI mode)
-- `mise run jj-run:test` - Run tests for jj-run
-- `mise run printpdf:build` - Build printpdf binary
+Each project directory has an AGENTS.md file with specific build, test, and run commands for that project. These commands use `go` directly and should be run from the repository root.
 
-### Why mise?
-
-- Ensures correct Go version is used
-- Manages dependencies consistently
-- Provides consistent build environment
-- All tasks are centrally defined in the top-level `mise.toml` file
-
-### Project Tasks
-
-All project tasks are defined in the top-level `mise.toml` file with project-name prefixes. Standard tasks where applicable:
-
-- **`project-name`** - Build and run the project (for applications)
-- **`project-name:test`** - Run all tests
-- **`project-name:build`** - Build binary
-
-For code formatting, use the top-level `fmt` task which formats all Go code in the monorepo.
-
-These namespaced tasks ensure consistent commands across all projects and make it easy for developers and AI agents to understand how to work with each project.
+For code formatting, use `goimports -w .` from the repository root to format all Go code in the monorepo.
 
 ------------------------------------------------------------
 

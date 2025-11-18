@@ -1,5 +1,25 @@
 # Agent Guidelines for Dissect
 
+## Build, Test, and Run Commands
+
+**All commands must be run from the mono repository root.**
+
+```bash
+# Build
+go build ./dissect
+
+# Test
+go test ./dissect/...
+
+# Run
+go run ./dissect [args...]
+
+# Install (builds and places in $GOPATH/bin)
+go install ./dissect
+```
+
+**Important:** Use `go` commands directly. Do not use `mise` for building or running dissect.
+
 ## Code Manipulation Requirements
 
 ### AST-Based Manipulation Only
