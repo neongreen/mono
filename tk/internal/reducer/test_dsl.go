@@ -325,7 +325,7 @@ func (th *TaskHandle) AssertExists() *TaskHandle {
 func (th *TaskHandle) AssertDeleted() *TaskHandle {
 	th.test.t.Helper()
 
-	task, ok := th.test.reducer.GetTask(th.UID)
+	task, ok := th.test.reducer.GetTaskIncludingDeleted(th.UID)
 	if !ok {
 		th.test.t.Errorf("Task %s (%q) should exist in map even when deleted", th.UID, th.Title)
 		return th

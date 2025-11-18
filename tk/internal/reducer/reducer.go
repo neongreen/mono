@@ -230,11 +230,19 @@ func (r *Reducer) applyTaskDelete(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.delete payload: %w", err)
 	}
 
+	taskUUID := payload.TaskUUID
+
 	// Mark task as deleted (soft delete)
-	if task, exists := r.tasks[payload.TaskUUID]; exists {
+	if task, exists := r.tasks[taskUUID]; exists {
 		task.Deleted = true
 		task.DeletedAt = e.CreatedAt
 	}
+
+	// Remove task number assignment (task numbers are not shown for deleted tasks)
+	delete(r.taskNumbers, taskUUID)
+
+	// Note: We keep task ID mappings even after soft delete so that
+	// deleted tasks can still be referenced by their old IDs
 
 	return nil
 }
@@ -326,7 +334,22 @@ func (r *Reducer) resolveEffectiveStatus(axis *types.AxisStatus) {
 }
 
 // GetTask returns the current state of a task by ID (supports task ID or UUID)
+// GetTask returns a visible (non-deleted) task by ID or UUID
+// Returns (nil, false) if the task doesn't exist or is deleted/in a deleted project
 func (r *Reducer) GetTask(idOrUUID string) (*types.Task, bool) {
+	task, ok := r.GetTaskIncludingDeleted(idOrUUID)
+	if !ok {
+		return nil, false
+	}
+	if !r.isTaskVisible(task) {
+		return nil, false
+	}
+	return task, true
+}
+
+// GetTaskIncludingDeleted returns a task by ID or UUID, even if deleted
+// This is useful for internal operations that need to access deleted tasks
+func (r *Reducer) GetTaskIncludingDeleted(idOrUUID string) (*types.Task, bool) {
 	// Try direct UUID lookup first
 	task, ok := r.tasks[idOrUUID]
 	if ok {
@@ -351,6 +374,16 @@ func (r *Reducer) GetAllTasks() []*types.Task {
 		if r.isTaskVisible(task) {
 			tasks = append(tasks, task)
 		}
+	}
+	return tasks
+}
+
+// GetAllTasksIncludingDeleted returns all tasks, including deleted ones
+// This is useful for internal operations that need to access all tasks
+func (r *Reducer) GetAllTasksIncludingDeleted() []*types.Task {
+	tasks := make([]*types.Task, 0, len(r.tasks))
+	for _, task := range r.tasks {
+		tasks = append(tasks, task)
 	}
 	return tasks
 }
@@ -673,6 +706,17 @@ func (r *Reducer) applyTaskRelocate(e types.Event) error {
 	if task, exists := r.tasks[taskUID]; exists {
 		task.ProjectUUID = toProjectUID
 		task.UpdatedAt = e.CreatedAt
+	}
+
+	// Apply the number policy from the relocation
+	// The NumberPolicy should be in "force" mode with a concrete number
+	// (auto mode is resolved at event creation time, not replay time)
+	if laxPayload.NumberPolicy.Mode == "force" {
+		r.taskNumbers[taskUID] = TaskNumber{
+			ProjectUID: toProjectUID,
+			Number:     laxPayload.NumberPolicy.Number,
+			TaskUID:    taskUID,
+		}
 	}
 
 	return nil

@@ -116,7 +116,7 @@ func TestReducer_TaskDelete(t *testing.T) {
 	}
 
 	// Verify task is soft deleted (still in map but marked deleted)
-	task, ok := r.GetTask(taskUID)
+	task, ok := r.GetTaskIncludingDeleted(taskUID)
 	if !ok {
 		t.Error("Task should still exist in map after soft delete")
 	}
@@ -193,7 +193,7 @@ func TestReducer_TaskDelete_RemovesTaskIDMappings(t *testing.T) {
 	}
 
 	// Verify task is marked deleted
-	task, ok := r.GetTask(taskUID)
+	task, ok := r.GetTaskIncludingDeleted(taskUID)
 	if !ok {
 		t.Error("Task should still be retrievable after soft delete")
 	}

@@ -63,16 +63,17 @@ func TestDeleteTask(t *testing.T) {
 		t.Fatalf("deleteTask failed: %v", err)
 	}
 
-	// Verify task no longer exists in tasks table
-	err = db.Db.QueryRow(`SELECT EXISTS(SELECT 1 FROM tasks WHERE task_uid = ?)`, taskUID).Scan(&exists)
+	// Verify task is marked as deleted in tasks table
+	var deleted int
+	err = db.Db.QueryRow(`SELECT deleted FROM tasks WHERE task_uid = ?`, taskUID).Scan(&deleted)
 	if err != nil {
-		t.Fatalf("failed to check task existence after delete: %v", err)
+		t.Fatalf("failed to check task deleted status: %v", err)
 	}
-	if exists {
-		t.Fatal("task should not exist after delete")
+	if deleted != 1 {
+		t.Fatalf("task should be marked as deleted, got deleted=%d", deleted)
 	}
 
-	// Verify task no longer exists in task_numbers table
+	// Verify task numbers are removed from task_numbers table
 	err = db.Db.QueryRow(`SELECT EXISTS(SELECT 1 FROM task_numbers WHERE task_uid = ?)`, taskUID).Scan(&exists)
 	if err != nil {
 		t.Fatalf("failed to check task_numbers existence after delete: %v", err)
@@ -103,14 +104,14 @@ func TestDeleteTaskByDisplayID(t *testing.T) {
 		t.Fatalf("deleteTask failed: %v", err)
 	}
 
-	// Verify task no longer exists
-	var exists bool
-	err := db.Db.QueryRow(`SELECT EXISTS(SELECT 1 FROM tasks WHERE task_uid = ?)`, taskUID).Scan(&exists)
+	// Verify task is marked as deleted
+	var deleted int
+	err := db.Db.QueryRow(`SELECT deleted FROM tasks WHERE task_uid = ?`, taskUID).Scan(&deleted)
 	if err != nil {
-		t.Fatalf("failed to check task existence: %v", err)
+		t.Fatalf("failed to check task deleted status: %v", err)
 	}
-	if exists {
-		t.Fatal("task should not exist after delete")
+	if deleted != 1 {
+		t.Fatalf("task should be marked as deleted, got deleted=%d", deleted)
 	}
 }
 
@@ -154,16 +155,28 @@ func TestDeleteTaskWithRelations(t *testing.T) {
 		t.Fatalf("failed to rebuild reducer: %v", err)
 	}
 
-	// Verify task1 is gone
+	// Verify task1 is not visible (deleted)
 	_, exists := reducer.GetTask(task1UID)
 	if exists {
-		t.Fatal("deleted task should not exist in reducer")
+		t.Fatal("deleted task should not be returned by GetTask")
+	}
+	
+	// But should still exist if we ask for it including deleted
+	task1, exists := reducer.GetTaskIncludingDeleted(task1UID)
+	if !exists {
+		t.Fatal("deleted task should still exist in reducer (soft delete)")
+	}
+	if !task1.Deleted {
+		t.Fatal("task1 should be marked as deleted")
 	}
 
-	// Verify task2 still exists
-	_, exists = reducer.GetTask(task2UID)
+	// Verify task2 still exists and is visible
+	task2, exists := reducer.GetTask(task2UID)
 	if !exists {
 		t.Fatal("undeleted task should still exist")
+	}
+	if task2.Deleted {
+		t.Fatal("task2 should not be marked as deleted")
 	}
 }
 

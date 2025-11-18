@@ -178,7 +178,7 @@ func TestReducer_ProjectDelete_WithMultipleTasks(t *testing.T) {
 	}
 
 	// Task 1 and 2 should still exist but be hidden (project B deleted)
-	task1, ok1 := r.GetTask(task1UID)
+	task1, ok1 := r.GetTaskIncludingDeleted(task1UID)
 	if !ok1 {
 		t.Error("Task 1 should still exist in map (soft delete)")
 	}
@@ -190,7 +190,7 @@ func TestReducer_ProjectDelete_WithMultipleTasks(t *testing.T) {
 		t.Error("Task 1 should not be visible (project deleted)")
 	}
 
-	task2, ok2 := r.GetTask(task2UID)
+	task2, ok2 := r.GetTaskIncludingDeleted(task2UID)
 	if !ok2 {
 		t.Error("Task 2 should still exist in map (soft delete)")
 	}
