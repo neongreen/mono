@@ -69,7 +69,7 @@ func TestRunSanityCheck_MatchingState(t *testing.T) {
 		Actor:     "test",
 		Role:      "human",
 		Kind:      string(types.EventKindProjectCreated),
-		Payload:   mustMarshal(types.ProjectCreatedPayload{
+		Payload: mustMarshal(types.ProjectCreatedPayload{
 			ProjectUID:  projectUID,
 			Type:        types.ProjectTypeLocal,
 			Name:        "Test Project",
@@ -92,7 +92,7 @@ func TestRunSanityCheck_MatchingState(t *testing.T) {
 		Actor:     "test",
 		Role:      "human",
 		Kind:      string(types.EventKindTaskCreated),
-		Payload:   mustMarshal(types.TaskCreatedPayload{
+		Payload: mustMarshal(types.TaskCreatedPayload{
 			TaskUID:     string(taskUID),
 			ProjectUID:  projectUID.String(),
 			Title:       "Test Task",
@@ -144,7 +144,7 @@ func TestRunSanityCheck_MismatchDetection(t *testing.T) {
 		Actor:     "test",
 		Role:      "human",
 		Kind:      string(types.EventKindProjectCreated),
-		Payload:   mustMarshal(types.ProjectCreatedPayload{
+		Payload: mustMarshal(types.ProjectCreatedPayload{
 			ProjectUID:  projectUID,
 			Type:        types.ProjectTypeLocal,
 			Name:        "Test Project",
@@ -166,7 +166,7 @@ func TestRunSanityCheck_MismatchDetection(t *testing.T) {
 		Actor:     "test",
 		Role:      "human",
 		Kind:      string(types.EventKindTaskCreated),
-		Payload:   mustMarshal(types.TaskCreatedPayload{
+		Payload: mustMarshal(types.TaskCreatedPayload{
 			TaskUID:     string(taskUID),
 			ProjectUID:  projectUID.String(),
 			Title:       "Test Task",
