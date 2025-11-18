@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang-cz/devslog"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var debugFlag bool
@@ -16,10 +17,14 @@ var RootCmd = &cobra.Command{
 	Long:  `tk is a command-line tool that tracks tasks system-wide using an append-only event log in a single SQLite database.`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if debugFlag {
+			// Disable colors if stderr is not a terminal (redirected to file)
+			noColor := !term.IsTerminal(int(os.Stderr.Fd()))
+
 			slog.SetDefault(slog.New(
 				devslog.NewHandler(os.Stderr, &devslog.Options{
 					HandlerOptions:  &slog.HandlerOptions{Level: slog.LevelDebug},
 					NewLineAfterLog: true,
+					NoColor:         noColor,
 				}),
 			))
 			slog.Debug("debug logging enabled")
