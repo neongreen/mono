@@ -3,6 +3,7 @@ package reducer
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sort"
 
 	"github.com/neongreen/mono/tk/internal/config"
@@ -368,6 +369,11 @@ func BuildFromEvents(events []types.Event) (*Reducer, error) {
 	reducer := NewReducer()
 	for _, e := range events {
 		if err := reducer.Apply(e); err != nil {
+			// Dump reducer state if debug logging is enabled
+			if slog.Default().Enabled(nil, slog.LevelDebug) {
+				slog.Debug("reducer error occurred, dumping state", "event_id", e.ID, "error", err)
+				reducer.DumpDebugState()
+			}
 			return nil, fmt.Errorf("failed to apply event %s: %w", e.ID, err)
 		}
 	}
@@ -379,6 +385,11 @@ func BuildFromEventsWithConfig(events []types.Event, config *config.Config) (*Re
 	reducer := NewReducer()
 	for _, e := range events {
 		if err := reducer.Apply(e); err != nil {
+			// Dump reducer state if debug logging is enabled
+			if slog.Default().Enabled(nil, slog.LevelDebug) {
+				slog.Debug("reducer error occurred, dumping state", "event_id", e.ID, "error", err)
+				reducer.DumpDebugState()
+			}
 			return nil, fmt.Errorf("failed to apply event %s: %w", e.ID, err)
 		}
 	}
@@ -689,4 +700,59 @@ func (r *Reducer) CleanupTemporaryProjects() error {
 	}
 
 	return nil
+}
+
+// DumpDebugState logs the entire reducer state for debugging purposes.
+// This is useful when debugging reducer errors to understand the state at failure time.
+func (r *Reducer) DumpDebugState() {
+	slog.Debug("=== Reducer State Dump ===")
+
+	// Dump tasks
+	slog.Debug("tasks", "count", len(r.tasks))
+	for uuid, task := range r.tasks {
+		slog.Debug("task",
+			"uuid", uuid,
+			"display_id", task.TaskDisplayID,
+			"title", task.Title,
+			"project_uuid", task.ProjectUUID,
+			"item_kind", task.ItemKind,
+		)
+	}
+
+	// Dump taskByID mappings
+	slog.Debug("taskByID mappings", "count", len(r.taskByID))
+	for id, uuid := range r.taskByID {
+		slog.Debug("taskByID", "id", id, "uuid", uuid)
+	}
+
+	// Dump taskProjects mappings
+	slog.Debug("taskProjects mappings", "count", len(r.taskProjects))
+	for taskUUID, projectUID := range r.taskProjects {
+		slog.Debug("taskProject", "task_uuid", taskUUID, "project_uid", projectUID)
+	}
+
+	// Dump projects
+	slog.Debug("projects", "count", len(r.projects))
+	for uid, project := range r.projects {
+		slog.Debug("project",
+			"uid", uid,
+			"name", project.Name,
+			"type", project.Type,
+		)
+	}
+
+	// Dump projectByName mappings
+	slog.Debug("projectByName mappings", "count", len(r.projectByName))
+	for name, uid := range r.projectByName {
+		slog.Debug("projectByName", "name", name, "uid", uid)
+	}
+
+	// Dump temporary projects
+	slog.Debug("temporary/synthetic projects", "count", len(r.temporaryProjects))
+	for uid := range r.temporaryProjects {
+		slog.Debug("temporary_project", "uid", uid)
+	}
+
+	slog.Debug("synthetic_project_counter", "value", r.syntheticProjectCounter)
+	slog.Debug("=== End Reducer State Dump ===")
 }
