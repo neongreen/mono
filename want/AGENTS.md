@@ -1,5 +1,25 @@
 # Agent Guidelines for Want
 
+## Build, Test, and Run Commands
+
+**All commands must be run from the repository root (`/home/user/mono`).**
+
+```bash
+# Build
+go build ./want
+
+# Test
+go test ./want/...
+
+# Run
+go run ./want [args...]
+
+# Install (builds and places in $GOPATH/bin)
+go install ./want
+```
+
+**Important:** Use `go` commands directly. Do not use `mise` for building or running want.
+
 ## Automation vs Manual Steps
 
 ### Core Principle

@@ -1,5 +1,25 @@
 # Claude Trace Architecture
 
+## Build, Test, and Run Commands
+
+**All commands must be run from the repository root (`/home/user/mono`).**
+
+```bash
+# Build
+go build ./claude-trace
+
+# Test
+go test ./claude-trace/...
+
+# Run
+go run ./claude-trace [args...]
+
+# Install (builds and places in $GOPATH/bin)
+go install ./claude-trace
+```
+
+**Important:** Use `go` commands directly. Do not use `mise` for building or running claude-trace.
+
 ## Processing Pipeline
 
 The claude-trace tool follows a three-stage pipeline:

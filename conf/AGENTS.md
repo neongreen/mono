@@ -1,5 +1,25 @@
 # Agent Guidelines for conf
 
+## Build, Test, and Run Commands
+
+**All commands must be run from the repository root (`/home/user/mono`).**
+
+```bash
+# Build
+go build ./conf
+
+# Test
+go test ./conf/...
+
+# Run
+go run ./conf [args...]
+
+# Install (builds and places in $GOPATH/bin)
+go install ./conf
+```
+
+**Important:** Use `go` commands directly. Do not use `mise` for building or running conf.
+
 ## Project-Specific Rules
 
 - **Schema handling**: Use `santhosh-tekuri/jsonschema/v5` for JSON schema parsing

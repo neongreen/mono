@@ -2,6 +2,26 @@
 
 This document describes tk's design philosophy and conventions for AI agents working on the codebase.
 
+## Build, Test, and Run Commands
+
+**All commands must be run from the repository root (`/home/user/mono`).**
+
+```bash
+# Build
+go build ./tk
+
+# Test
+go test ./tk/...
+
+# Run
+go run ./tk [args...]
+
+# Install (builds and places in $GOPATH/bin)
+go install ./tk
+```
+
+**Important:** Use `go` commands directly. Do not use `mise` for building or running tk.
+
 ## CLI Command Design Philosophy
 
 tk uses a **flat, hyphenated command structure** with no nested subcommands. This design prioritizes clarity, discoverability, and eliminates ambiguity.

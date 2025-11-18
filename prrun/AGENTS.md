@@ -1,5 +1,25 @@
 # Agent Guidelines for prrun
 
+## Build, Test, and Run Commands
+
+**All commands must be run from the repository root (`/home/user/mono`).**
+
+```bash
+# Build
+go build ./prrun
+
+# Test
+go test ./prrun/...
+
+# Run
+go run ./prrun [args...]
+
+# Install (builds and places in $GOPATH/bin)
+go install ./prrun
+```
+
+**Important:** Use `go` commands directly. Do not use `mise` for building or running prrun.
+
 ## Postmortems
 
 ### Postmortem: Missing Releases Due to API Pagination (2025-01-13)
