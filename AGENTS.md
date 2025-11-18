@@ -71,7 +71,7 @@ When you are asked to do something "always" or "never", you must also record thi
 
 ### Running Go Commands
 
-All Go commands should be run from the repository root:
+All Go commands should be run from the mono repository root:
 
 ```bash
 # Build a project

@@ -2,7 +2,7 @@
 
 ## Build, Test, and Run Commands
 
-**All commands must be run from the repository root (`/home/user/mono`).**
+**All commands must be run from the mono repository root.**
 
 ```bash
 # Build
