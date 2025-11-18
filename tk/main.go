@@ -8,13 +8,20 @@ import (
 
 	"github.com/neongreen/mono/lib/version"
 	"github.com/neongreen/mono/tk/cmd"
+	"github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/invlog"
+	"github.com/neongreen/mono/tk/internal/sanitycheck"
 )
 
 func main() {
 	// Check if invocation logging should be skipped
 	// Used by tkvscode extension to avoid log accumulation
 	skipInvLog := os.Getenv("TK_SKIP_INVLOG") != ""
+
+	// Run sanity check before executing any command
+	// This is a silent, read-only check that compares reducer state to database state
+	runSanityCheckIfPossible()
 
 	if skipInvLog {
 		// Run command directly without logging
@@ -138,4 +145,38 @@ func main() {
 	if exitCode != 0 {
 		os.Exit(exitCode)
 	}
+}
+
+// runSanityCheckIfPossible attempts to run the sanity check if the database exists.
+// This function silently fails if there are any errors (database doesn't exist, etc.)
+// to avoid disrupting normal program operation.
+func runSanityCheckIfPossible() {
+	// Skip sanity check for certain commands that don't need it
+	if len(os.Args) > 1 {
+		cmd := os.Args[1]
+		// Skip for commands that don't access the database
+		switch cmd {
+		case "init", "version", "help", "--help", "-h", "--version", "-v":
+			return
+		}
+	}
+
+	// Try to open the database
+	db, err := database.OpenExistingDB()
+	if err != nil {
+		// Database doesn't exist or can't be opened - silently skip
+		return
+	}
+	defer db.Close()
+
+	// Load config
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		// Can't load config - silently skip
+		return
+	}
+
+	// Run the sanity check
+	// If differences are found, it will print a warning and write a diff file
+	_ = sanitycheck.RunSanityCheck(db, cfg)
 }
