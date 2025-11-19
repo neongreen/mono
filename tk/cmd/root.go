@@ -181,6 +181,7 @@ func init() {
 	RootCmd.AddCommand(debugDoctorCmd)
 	RootCmd.AddCommand(debugRepairCmd)
 	RootCmd.AddCommand(debugRebuildCmd)
+	RootCmd.AddCommand(debugSanitycheckCmd)
 	RootCmd.AddCommand(debugEventsLsCmd)
 	RootCmd.AddCommand(debugEventsShowCmd)
 	RootCmd.AddCommand(debugEventsStatsCmd)
