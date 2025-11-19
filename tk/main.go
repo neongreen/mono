@@ -3,9 +3,11 @@ package main
 import (
 	"bytes"
 	"io"
+	"log/slog"
 	"os"
 	"time"
 
+	"github.com/golang-cz/devslog"
 	"github.com/neongreen/mono/lib/version"
 	"github.com/neongreen/mono/tk/cmd"
 	"github.com/neongreen/mono/tk/internal/config"
@@ -15,6 +17,25 @@ import (
 )
 
 func main() {
+	// Check if debug logging should be enabled by looking at command-line args
+	// This needs to happen before running sanitycheck so debug logs are visible
+	debugEnabled := false
+	for _, arg := range os.Args {
+		if arg == "--debug" {
+			debugEnabled = true
+			break
+		}
+	}
+
+	if debugEnabled {
+		slog.SetDefault(slog.New(
+			devslog.NewHandler(os.Stderr, &devslog.Options{
+				HandlerOptions:  &slog.HandlerOptions{Level: slog.LevelDebug},
+				NewLineAfterLog: true,
+			}),
+		))
+	}
+
 	// Check if invocation logging should be skipped
 	// Used by tkvscode extension to avoid log accumulation
 	skipInvLog := os.Getenv("TK_SKIP_INVLOG") != ""

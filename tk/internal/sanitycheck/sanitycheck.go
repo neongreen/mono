@@ -3,6 +3,8 @@ package sanitycheck
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
@@ -36,19 +38,32 @@ type Difference struct {
 // If differences are found, it writes a warning and a detailed diff file to ~/.tk/
 // Returns true if differences were found, false otherwise.
 func RunSanityCheck(db *database.DB, config *config.Config) bool {
+	slog.Debug("sanitycheck: starting sanity check")
+
 	comparison, err := compareState(db, config)
 	if err != nil {
+		slog.Debug("sanitycheck: failed to compare state", "error", err)
 		// Silently ignore errors - this is a best-effort check
 		return false
 	}
 
+	slog.Debug("sanitycheck: comparison complete",
+		"event_count", comparison.EventCount,
+		"reducer_tasks", comparison.ReducerTaskCount,
+		"database_tasks", comparison.DatabaseTaskCount,
+		"differences", len(comparison.Differences))
+
 	if len(comparison.Differences) == 0 {
+		slog.Debug("sanitycheck: no differences found")
 		// States match, nothing to do
 		return false
 	}
 
+	slog.Debug("sanitycheck: writing diff file", "differences", len(comparison.Differences))
+
 	// Write diff to file
 	if err := writeDiffFile(comparison); err != nil {
+		slog.Debug("sanitycheck: failed to write diff file", "error", err)
 		// Silently ignore write errors
 		return false
 	}
@@ -58,6 +73,12 @@ func RunSanityCheck(db *database.DB, config *config.Config) bool {
 		getDiffFilePath())
 
 	return true
+}
+
+// CompareState builds state from events using the reducer and compares it to database projections.
+// This is the exported version of compareState for use by the debug-sanitycheck command.
+func CompareState(db *database.DB, config *config.Config) (*StateComparison, error) {
+	return compareState(db, config)
 }
 
 // compareState builds state from events using the reducer and compares it to database projections
@@ -233,4 +254,39 @@ func writeDiffFile(comparison *StateComparison) error {
 	}
 
 	return nil
+}
+
+// PrintComparison prints a human-readable summary of the state comparison
+func PrintComparison(comparison *StateComparison) {
+	PrintComparisonTo(os.Stdout, comparison)
+}
+
+// PrintComparisonTo prints a human-readable summary of the state comparison to the given writer
+func PrintComparisonTo(w io.Writer, comparison *StateComparison) {
+	fmt.Fprintf(w, "Sanity Check Results\n")
+	fmt.Fprintf(w, "====================\n\n")
+	fmt.Fprintf(w, "Timestamp:         %s\n", comparison.Timestamp.Format(time.RFC3339))
+	fmt.Fprintf(w, "Event Count:       %d\n", comparison.EventCount)
+	fmt.Fprintf(w, "Reducer Tasks:     %d\n", comparison.ReducerTaskCount)
+	fmt.Fprintf(w, "Database Tasks:    %d\n", comparison.DatabaseTaskCount)
+	fmt.Fprintf(w, "Differences Found: %d\n\n", len(comparison.Differences))
+
+	if len(comparison.Differences) == 0 {
+		fmt.Fprintf(w, "✓ No differences found - reducer state matches database\n")
+		return
+	}
+
+	fmt.Fprintf(w, "Differences:\n")
+	for i, diff := range comparison.Differences {
+		fmt.Fprintf(w, "\n%d. %s\n", i+1, diff.Message)
+		fmt.Fprintf(w, "   Type:    %s\n", diff.Type)
+		fmt.Fprintf(w, "   TaskUID: %s\n", diff.TaskUID)
+		if diff.Field != "" {
+			fmt.Fprintf(w, "   Field:   %s\n", diff.Field)
+			fmt.Fprintf(w, "   Reducer: %s\n", diff.ReducerVal)
+			fmt.Fprintf(w, "   Database: %s\n", diff.DatabaseVal)
+		}
+	}
+
+	fmt.Fprintf(w, "\nDetailed diff written to: %s\n", getDiffFilePath())
 }
