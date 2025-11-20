@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/golang-cz/devslog"
@@ -19,13 +20,7 @@ import (
 func main() {
 	// Check if debug logging should be enabled by looking at command-line args
 	// This needs to happen before running sanitycheck so debug logs are visible
-	debugEnabled := false
-	for _, arg := range os.Args {
-		if arg == "--debug" {
-			debugEnabled = true
-			break
-		}
-	}
+	debugEnabled := slices.Contains(os.Args, "--debug")
 
 	if debugEnabled {
 		slog.SetDefault(slog.New(
