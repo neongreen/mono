@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -188,8 +189,9 @@ EOF`,
 			if len(tt.wantInLine) > 0 {
 				for _, wantLine := range tt.wantInLine {
 					found := false
+					expectedLineStr := fmt.Sprintf("Line %d", wantLine)
 					for _, v := range violations {
-						if strings.Contains(v, string(rune(wantLine)+'0')) {
+						if strings.Contains(v, expectedLineStr) {
 							found = true
 							break
 						}
