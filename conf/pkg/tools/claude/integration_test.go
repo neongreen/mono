@@ -218,6 +218,11 @@ func TestClaudeTool_HooksConfiguration(t *testing.T) {
 
 	claudeConfigPath := filepath.Join(tmpDir, ".config", "claude", "config.json")
 
+	// Create Claude config directory
+	if err := os.MkdirAll(filepath.Dir(claudeConfigPath), 0o755); err != nil {
+		t.Fatalf("Failed to create claude config dir: %v", err)
+	}
+
 	// Create conf config file with Claude tool configuration
 	confConfigPath := filepath.Join(configDir, "config.toml")
 	tomlData := `[tools.claude]
