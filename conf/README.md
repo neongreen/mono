@@ -41,6 +41,59 @@ conf mise settings.experimental
 conf claude model
 ```
 
+### Configuring Claude Code Hooks
+
+Claude Code supports hooks that execute commands at specific points in its lifecycle. Since hooks require complex nested structures (arrays of objects), they should be configured by editing `~/.config/conf/claude.toml` directly, then applying with `conf apply`.
+
+**Example: Configure a Stop hook**
+
+Edit `~/.config/conf/claude.toml`:
+
+```toml
+# Top-level settings
+model = "claude-3-5-sonnet-20241022"
+alwaysThinkingEnabled = true
+
+# Hooks configuration
+[hooks]
+
+# Hook that runs when agents finish responding
+[[hooks.Stop]]
+hooks = [
+  { type = "command", command = "echo 'Agent stopped'" }
+]
+
+# Hook that runs after Edit or Write tool calls
+[[hooks.PostToolUse]]
+matcher = "Edit|Write"
+hooks = [
+  { type = "command", command = "prettier --write", timeout = 5 }
+]
+```
+
+Then apply the configuration:
+
+```bash
+# Apply the hooks to Claude's config.json
+conf apply claude
+
+# Check that hooks are in sync
+conf status
+```
+
+Available hook types:
+- `hooks.Stop` - Runs when agents finish responding
+- `hooks.SubagentStop` - Runs when subagents finish responding
+- `hooks.PreToolUse` - Runs before tool calls
+- `hooks.PostToolUse` - Runs after tool completion
+- `hooks.Notification` - Triggers on notifications
+- `hooks.UserPromptSubmit` - Runs when a user submits a prompt
+- `hooks.SessionStart` - Runs when a new session starts
+- `hooks.SessionEnd` - Runs when a session ends
+- `hooks.PreCompact` - Runs before the context is compacted
+
+See `conf claude --list` for all available Claude Code configuration options.
+
 ### Importing Existing Configurations
 
 Import your existing configurations into conf's state management:

@@ -202,3 +202,139 @@ path = "` + claudeConfigPath + `"
 		t.Errorf("Expected alwaysThinkingEnabled to be true, got %v", data["alwaysThinkingEnabled"])
 	}
 }
+
+func TestClaudeTool_HooksConfiguration(t *testing.T) {
+	// Set up temporary home directory
+	tmpDir := t.TempDir()
+	origHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", origHome)
+
+	// Create conf config directory
+	configDir := filepath.Join(tmpDir, ".config", "conf")
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
+		t.Fatalf("Failed to create config dir: %v", err)
+	}
+
+	claudeConfigPath := filepath.Join(tmpDir, ".config", "claude", "config.json")
+
+	// Create conf config file with Claude tool configuration
+	confConfigPath := filepath.Join(configDir, "config.toml")
+	tomlData := `[tools.claude]
+name = "claude"
+path = "` + claudeConfigPath + `"
+`
+	if err := os.WriteFile(confConfigPath, []byte(tomlData), 0o644); err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+
+	// Load conf configuration
+	conf, err := config.Load()
+	if err != nil {
+		t.Fatalf("Failed to load conf config: %v", err)
+	}
+
+	// Set up hooks configuration using nested map structure
+	// This simulates what would be loaded from claude.toml
+	hooksConfig := map[string]any{
+		"Stop": []any{
+			map[string]any{
+				"hooks": []any{
+					map[string]any{
+						"type":    "command",
+						"command": "echo 'Agent stopped'",
+					},
+				},
+			},
+		},
+		"PostToolUse": []any{
+			map[string]any{
+				"matcher": "Edit|Write",
+				"hooks": []any{
+					map[string]any{
+						"type":    "command",
+						"command": "prettier --write",
+						"timeout": 5.0,
+					},
+				},
+			},
+		},
+	}
+
+	conf.SetToolValue("claude", "hooks", hooksConfig)
+
+	// Save conf configuration
+	if err := conf.Save(); err != nil {
+		t.Fatalf("Failed to save conf config: %v", err)
+	}
+
+	// Create Claude tool and apply values
+	tool, err := NewClaudeTool()
+	if err != nil {
+		t.Fatalf("Failed to create Claude tool: %v", err)
+	}
+
+	claudeConfig, exists := conf.GetTool("claude")
+	if !exists {
+		t.Fatalf("Claude config not found")
+	}
+
+	if err := tool.SetAllValues(claudeConfig.Values); err != nil {
+		t.Fatalf("SetAllValues failed: %v", err)
+	}
+
+	// Verify hooks were written to JSON file
+	content, err := os.ReadFile(claudeConfigPath)
+	if err != nil {
+		t.Fatalf("Failed to read config file: %v", err)
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal(content, &data); err != nil {
+		t.Fatalf("Failed to parse JSON: %v", err)
+	}
+
+	// Verify hooks structure exists
+	hooks, ok := data["hooks"].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected hooks to be an object, got %T", data["hooks"])
+	}
+
+	// Verify Stop hook
+	stopHooks, ok := hooks["Stop"].([]any)
+	if !ok {
+		t.Fatalf("Expected hooks.Stop to be an array, got %T", hooks["Stop"])
+	}
+	if len(stopHooks) != 1 {
+		t.Errorf("Expected 1 Stop hook, got %d", len(stopHooks))
+	}
+
+	// Verify PostToolUse hook
+	postToolUseHooks, ok := hooks["PostToolUse"].([]any)
+	if !ok {
+		t.Fatalf("Expected hooks.PostToolUse to be an array, got %T", hooks["PostToolUse"])
+	}
+	if len(postToolUseHooks) != 1 {
+		t.Errorf("Expected 1 PostToolUse hook, got %d", len(postToolUseHooks))
+	}
+
+	// Verify PostToolUse hook structure
+	postToolUseHook, ok := postToolUseHooks[0].(map[string]any)
+	if !ok {
+		t.Fatalf("Expected PostToolUse hook to be an object, got %T", postToolUseHooks[0])
+	}
+
+	if matcher, ok := postToolUseHook["matcher"].(string); !ok || matcher != "Edit|Write" {
+		t.Errorf("Expected PostToolUse matcher to be 'Edit|Write', got %v", postToolUseHook["matcher"])
+	}
+
+	// Verify we can read the hooks back
+	retrievedHooks, err := tool.GetConfig("hooks")
+	if err != nil {
+		t.Fatalf("Failed to get hooks config: %v", err)
+	}
+
+	if retrievedHooks == nil {
+		t.Errorf("Expected hooks to be set, got nil")
+	}
+}
