@@ -3,6 +3,7 @@ package mise
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/neongreen/mono/conf/pkg/config"
@@ -360,5 +361,57 @@ func TestSplitPath(t *testing.T) {
 				t.Errorf("For input '%s', expected part %d to be '%s', got '%s'", test.input, i, test.expected[i], part)
 			}
 		}
+	}
+}
+
+func TestMiseTool_ValidateValueAndForce(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "mise-tool-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	conf := config.DefaultConfig()
+	configPath := filepath.Join(tempDir, ".config", "mise", "config.toml")
+	conf.SetTool("mise", config.ToolConfig{
+		Name:       "mise",
+		ConfigPath: configPath,
+		SchemaPath: "embedded://mise.schema",
+	})
+	if err := conf.Save(); err != nil {
+		t.Fatalf("Failed to save conf config: %v", err)
+	}
+
+	miseTool, err := NewMiseTool()
+	if err != nil {
+		t.Fatalf("Failed to create mise tool: %v", err)
+	}
+
+	if err := miseTool.SetConfig("settings.experimental", "not-bool"); err == nil {
+		t.Fatalf("Expected validation error for invalid value type")
+	}
+
+	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+		content, readErr := os.ReadFile(configPath)
+		if readErr == nil && strings.Contains(string(content), "not-bool") {
+			t.Fatalf("Config should not be written when validation fails")
+		}
+	}
+
+	miseTool.SetForce(true)
+	if err := miseTool.SetConfig("settings.experimental", "not-bool"); err != nil {
+		t.Fatalf("Force should bypass validation: %v", err)
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("Failed to read config: %v", err)
+	}
+	if !strings.Contains(string(content), "not-bool") {
+		t.Errorf("Expected config to be written when force is enabled")
 	}
 }

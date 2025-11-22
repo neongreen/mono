@@ -47,3 +47,13 @@ func (p *StarshipSchemaParser) GetPropertyInfo(path string) (configschema.Proper
 func (p *StarshipSchemaParser) GetAllSettingsWithInfo() []configschema.SettingInfo {
 	return p.parser.GetAllSettingsWithInfo()
 }
+
+// ValidateValue checks if a value conforms to the starship schema at the given path
+func (p *StarshipSchemaParser) ValidateValue(path string, value any) error {
+	return p.parser.ValidateValue(path, value)
+}
+
+// ValidateDocument validates a full starship configuration map against the schema
+func (p *StarshipSchemaParser) ValidateDocument(values map[string]any) error {
+	return p.parser.ValidateDocument(values)
+}

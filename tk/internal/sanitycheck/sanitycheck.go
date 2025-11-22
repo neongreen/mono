@@ -40,7 +40,7 @@ type Difference struct {
 func RunSanityCheck(db *database.DB, config *config.Config) bool {
 	slog.Debug("sanitycheck: starting sanity check")
 
-	comparison, err := compareState(db, config)
+	comparison, err := CompareState(db, config)
 	if err != nil {
 		slog.Debug("sanitycheck: failed to compare state", "error", err)
 		// Silently ignore errors - this is a best-effort check
@@ -76,13 +76,7 @@ func RunSanityCheck(db *database.DB, config *config.Config) bool {
 }
 
 // CompareState builds state from events using the reducer and compares it to database projections.
-// This is the exported version of compareState for use by the debug-sanitycheck command.
 func CompareState(db *database.DB, config *config.Config) (*StateComparison, error) {
-	return compareState(db, config)
-}
-
-// compareState builds state from events using the reducer and compares it to database projections
-func compareState(db *database.DB, config *config.Config) (*StateComparison, error) {
 	comparison := &StateComparison{
 		Timestamp: time.Now(),
 	}

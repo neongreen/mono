@@ -12,7 +12,7 @@ func setupTestConfig(t *testing.T) (string, func()) {
 
 	tmpDir := t.TempDir()
 	configDir := filepath.Join(tmpDir, ".config", "conf")
-	claudeConfigPath := filepath.Join(tmpDir, ".config", "claude", "config.json")
+	claudeConfigPath := filepath.Join(tmpDir, ".claude", "settings.json")
 
 	// Create conf config directory
 	if err := os.MkdirAll(configDir, 0o755); err != nil {
@@ -201,6 +201,59 @@ func TestClaudeTool_SetAllValues(t *testing.T) {
 
 	if allValues["alwaysThinkingEnabled"] != true {
 		t.Errorf("Expected alwaysThinkingEnabled to be true, got %v", allValues["alwaysThinkingEnabled"])
+	}
+}
+
+func TestClaudeTool_SetConfig_InvalidValueFails(t *testing.T) {
+	claudeConfigPath, cleanup := setupTestConfig(t)
+	defer cleanup()
+
+	tool, err := NewClaudeTool()
+	if err != nil {
+		t.Fatalf("Failed to create Claude tool: %v", err)
+	}
+
+	err = tool.SetConfig("permissions.disableBypassPermissionsMode", true)
+	if err == nil {
+		t.Fatalf("Expected validation error for boolean disableBypassPermissionsMode")
+	}
+
+	if _, statErr := os.Stat(claudeConfigPath); !os.IsNotExist(statErr) {
+		t.Errorf("Config file should not be written on validation failure")
+	}
+}
+
+func TestClaudeTool_SetConfig_ForceAllowsInvalidValue(t *testing.T) {
+	claudeConfigPath, cleanup := setupTestConfig(t)
+	defer cleanup()
+
+	tool, err := NewClaudeTool()
+	if err != nil {
+		t.Fatalf("Failed to create Claude tool: %v", err)
+	}
+	tool.SetForce(true)
+
+	if err := tool.SetConfig("permissions.disableBypassPermissionsMode", true); err != nil {
+		t.Fatalf("SetConfig should allow invalid value when force is enabled: %v", err)
+	}
+
+	content, err := os.ReadFile(claudeConfigPath)
+	if err != nil {
+		t.Fatalf("Failed to read config: %v", err)
+	}
+
+	var data map[string]any
+	if err := json.Unmarshal(content, &data); err != nil {
+		t.Fatalf("Failed to parse JSON: %v", err)
+	}
+
+	permissions, ok := data["permissions"].(map[string]any)
+	if !ok {
+		t.Fatalf("permissions should be an object, got %T", data["permissions"])
+	}
+
+	if permissions["disableBypassPermissionsMode"] != true {
+		t.Errorf("Expected disableBypassPermissionsMode to be true, got %v", permissions["disableBypassPermissionsMode"])
 	}
 }
 

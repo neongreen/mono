@@ -34,7 +34,7 @@ go install ./conf
 - **jj**: `~/.jjconfig.toml` (TOML format, schema: embedded jj.json)
 - **mise**: `~/.config/mise/config.toml` (TOML format, custom schema)
 - **starship**: `~/.config/starship.toml` (TOML format)
-- **claude**: `~/.config/claude/config.json` (JSON format, schema: embedded claude.json)
+- **claude**: `~/.claude/settings.json` (JSON format, schema: embedded claude.json)
 - **conf itself**: `~/.config/conf/config.toml` (TOML format)
 
 ## Schema Sources

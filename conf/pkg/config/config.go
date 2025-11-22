@@ -46,7 +46,7 @@ func DefaultConfig() *Config {
 			},
 			"claude": {
 				Name:       "claude",
-				ConfigPath: "~/.config/claude/config.json",
+				ConfigPath: "~/.claude/settings.json",
 				SchemaPath: "embedded://claude.json",
 			},
 		},

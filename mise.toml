@@ -8,7 +8,7 @@ _.path = ["./bin"]
 
 [tools]
 go = "1.24.7"
-dagger = "0.19.6"
+dagger = "0.19.7"
 "go:github.com/rhysd/actionlint/cmd/actionlint" = "latest"
 "go:github.com/suzuki-shunsuke/pinact/v3/cmd/pinact" = "latest"
 zizmor = "latest"
@@ -578,7 +578,7 @@ run = "cd tk-vscode && npm run watch"
 [tasks.conf]
 description = "Build and run conf"
 dir = "conf"
-run = "go run ./cmd/"
+run = "go run ."
 
 [tasks."conf:test"]
 description = "Run all tests for conf"
@@ -589,7 +589,8 @@ run = "go test -v ./..."
 description = "Build conf binary"
 dir = "conf"
 run = """
-go build -trimpath -o {{cwd}}/_build/conf ./cmd/
+set -euo pipefail
+go build -trimpath -o {{cwd}}/_build/conf .
 {{cwd}}/_build/conf version
 echo "{{cwd}}/_build/conf"
 """
@@ -602,7 +603,7 @@ echo "{{cwd}}/_build/conf"
 [tasks.claude-trace]
 description = "Build and run claude-trace"
 dir = "claude-trace"
-run = "go run ./cmd"
+run = "go run ."
 
 [tasks."claude-trace:test"]
 description = "Run tests for claude-trace"
@@ -614,7 +615,8 @@ run = "go test ./..."
 description = "Build claude-trace binary"
 dir = "claude-trace"
 run = """
-go build -trimpath -o {{cwd}}/_build/claude-trace ./cmd
+set -euo pipefail
+go build -trimpath -o {{cwd}}/_build/claude-trace .
 {{cwd}}/_build/claude-trace version
 echo "{{cwd}}/_build/claude-trace"
 """
@@ -637,7 +639,8 @@ run = "gotestsum"
 description = "Build the project into _build/dissect"
 dir = "dissect"
 run = """
-go build -trimpath -o {{cwd}}/_build/dissect ./cmd
+set -euo pipefail
+go build -trimpath -o {{cwd}}/_build/dissect .
 {{cwd}}/_build/dissect version
 echo "{{cwd}}/_build/dissect"
 """
@@ -670,7 +673,7 @@ run = "go test -run=^$ ./..."
 [tasks.jj-run]
 description = "Build and run jj-run"
 dir = "jj-run"
-run = "go run ./cmd"
+run = "go run ."
 
 [tasks."jj-run:test"]
 description = "Run all tests for jj-run"
@@ -681,7 +684,8 @@ run = "go test -v ./..."
 description = "Build jj-run binary"
 dir = "jj-run"
 run = """
-go build -trimpath -o {{cwd}}/_build/jj-run ./cmd
+set -euo pipefail
+go build -trimpath -o {{cwd}}/_build/jj-run .
 {{cwd}}/_build/jj-run --version
 echo "{{cwd}}/_build/jj-run"
 """
@@ -694,7 +698,7 @@ echo "{{cwd}}/_build/jj-run"
 [tasks.ingest]
 description = "Build and run the ingest CLI"
 dir = "ingest"
-run = "go run ./cmd"
+run = "go run ."
 
 [tasks."ingest:test"]
 description = "Run all ingest tests"
@@ -704,13 +708,14 @@ run = "go test ./..."
 [tasks."ingest:test:integration"]
 description = "Run ingest CLI and integration suites"
 dir = "ingest"
-run = "go test ./cmd ./pkg/integration"
+run = "go test . ./pkg/integration"
 
 [tasks."ingest:build"]
 description = "Build ingest binary"
 dir = "ingest"
 run = """
-go build -trimpath -o {{cwd}}/_build/ingest ./cmd
+set -euo pipefail
+go build -trimpath -o {{cwd}}/_build/ingest .
 {{cwd}}/_build/ingest version
 echo "{{cwd}}/_build/ingest"
 """
@@ -761,7 +766,7 @@ run = "go test -run=^$ ./..."
 [tasks.printpdf]
 description = "Build and run printpdf"
 dir = "printpdf"
-run = "go run ./cmd"
+run = "go run ."
 
 
 [tasks."printpdf:check"]
@@ -788,7 +793,8 @@ run = "UPDATE_GOLDENS=1 go test ./pkg/golden -v -timeout=10m"
 description = "Build the project into _build/printpdf"
 dir = "printpdf"
 run = """
-go build -trimpath -o {{cwd}}/_build/printpdf ./cmd
+set -euo pipefail
+go build -trimpath -o {{cwd}}/_build/printpdf .
 {{cwd}}/_build/printpdf version
 echo "{{cwd}}/_build/printpdf"
 """

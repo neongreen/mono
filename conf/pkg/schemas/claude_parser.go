@@ -42,3 +42,13 @@ func (p *ClaudeSchemaParser) GetAllPaths() []string {
 func (p *ClaudeSchemaParser) GetAllSettingsWithInfo() []configschema.SettingInfo {
 	return p.parser.GetAllSettingsWithInfo()
 }
+
+// ValidateValue checks if a value conforms to the Claude schema at the given path
+func (p *ClaudeSchemaParser) ValidateValue(path string, value any) error {
+	return p.parser.ValidateValue(path, value)
+}
+
+// ValidateDocument validates a full Claude configuration map against the schema
+func (p *ClaudeSchemaParser) ValidateDocument(values map[string]any) error {
+	return p.parser.ValidateDocument(values)
+}

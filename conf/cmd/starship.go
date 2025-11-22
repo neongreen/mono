@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var starshipForce bool
+
 var starshipCmd = &cobra.Command{
 	Use:   "starship [config.path] [value]",
 	Short: "Configure starship settings",
@@ -29,6 +31,7 @@ Examples:
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize starship tool: %v\n", err)
 			os.Exit(1)
 		}
+		starshipTool.SetForce(starshipForce)
 
 		// Default to list when no arguments provided
 		if len(args) == 0 {
@@ -113,5 +116,6 @@ var starshipListCmd = &cobra.Command{
 }
 
 func init() {
+	starshipCmd.Flags().BoolVar(&starshipForce, "force", false, "Bypass schema validation when setting values")
 	starshipCmd.AddCommand(starshipListCmd)
 }

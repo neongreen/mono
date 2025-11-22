@@ -375,19 +375,17 @@ experimental = false
 		t.Fatalf("Failed to create Mise tool: %v", err)
 	}
 
-	// Test valid common paths (mise is flexible, most paths should work)
-	validPaths := []string{
-		"settings.experimental",
-		"settings.jobs",
-		"settings.verbose",
-		"env.NODE_ENV",
-		"env.PATH",
-		"tasks.build.cmd",
+	validValues := map[string]any{
+		"settings.experimental": true,
+		"settings.jobs":         4,
+		"settings.verbose":      false,
+		"env.NODE_ENV":          "production",
+		"env.PATH":              "/usr/bin",
+		"tasks.build.run":       "make build",
 	}
 
-	for _, path := range validPaths {
-		err := tool.SetConfig(path, "test-value")
-		if err != nil {
+	for path, value := range validValues {
+		if err := tool.SetConfig(path, value); err != nil {
 			t.Errorf("Expected path '%s' to be valid, got error: %v", path, err)
 		}
 	}

@@ -127,3 +127,7 @@ func containsTaskRef(payloadStr string, taskID string) bool {
 	return len(payloadStr) > 0 && (strings.Contains(payloadStr, `"`+taskID+`"`) ||
 		strings.Contains(payloadStr, taskID))
 }
+
+func init() {
+	RootCmd.AddCommand(debugEventsCmd)
+}

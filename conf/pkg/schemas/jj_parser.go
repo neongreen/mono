@@ -47,3 +47,13 @@ func (p *JJSchemaParser) GetPropertyInfo(path string) (configschema.PropertyInfo
 func (p *JJSchemaParser) GetAllSettingsWithInfo() []configschema.SettingInfo {
 	return p.parser.GetAllSettingsWithInfo()
 }
+
+// ValidateValue checks if a value conforms to the jj schema at the given path
+func (p *JJSchemaParser) ValidateValue(path string, value any) error {
+	return p.parser.ValidateValue(path, value)
+}
+
+// ValidateDocument validates a full jj configuration map against the schema
+func (p *JJSchemaParser) ValidateDocument(values map[string]any) error {
+	return p.parser.ValidateDocument(values)
+}
