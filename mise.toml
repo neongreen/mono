@@ -1072,3 +1072,25 @@ set -euo pipefail
 POD=$(mise run cloud:kubectl get pods -n dagger -l app=dagger-engine -o jsonpath='{.items[0].metadata.name}')
 mise run cloud:kubectl logs -n dagger "$POD" "$@"
 '''
+
+# ============================================================================
+# lion tasks
+# ============================================================================
+
+[tasks."lion:test"]
+description = "Run tests for lion"
+dir = "lion"
+run = "go test ./..."
+
+[tasks."lion:build"]
+description = "Build the project into _build/lion"
+dir = "lion"
+run = '''
+set -euo pipefail
+mkdir -p ../_build
+go build -o ../_build/lion .
+'''
+
+[tasks."lion"]
+description = "Run lion"
+run = "go run ./lion"
