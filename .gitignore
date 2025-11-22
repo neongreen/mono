@@ -22,5 +22,8 @@ dissect/dissect
 markdown-format/markdown-format
 linters/uselesswrapper/uselesswrapper
 
+# Node
+**/node_modules
+
 # Idk
 actionlint
