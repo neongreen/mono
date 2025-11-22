@@ -129,7 +129,6 @@ var seeAlsoRegistry = map[string][]string{
 	"init":                    {"new", "project create", "remote add"},
 	"migrate":                 {"migrate scan-deprecated", "debug doctor"},
 	"migrate scan-deprecated": {"debug doctor"},
-	"import-beads":            {"new", "ls", "ingest"},
 	"version":                 {"debug doctor"},
 
 	// Database
