@@ -11,7 +11,7 @@ tk uses an event-sourced architecture with:
 
 The projection tables include:
 - `projects` - Project metadata
-- `tasks` - Task metadata  
+- `tasks` - Task metadata
 - `task_numbers` - Task numbering within projects
 - `project_aliases` - Project aliases per node
 - `containers` - Queue/stack/group instances
@@ -65,17 +65,18 @@ All container list/show/modification commands read from projection tables:
 - **`schema-ls`** - YES (reads `item_kinds`, `container_kinds`)
 - **`schema-export`** - YES (reads `container_kinds`, `item_kinds`)
 
-#### Commands that do NOT read projection tables
-- `edit` - Only writes events
-- `mv` - Only writes events
-- `rm` - Only writes events
-- `describe` - Only writes events
-- `project-create` - Only writes events
-- `project-rename` - Only writes events
-- `schema-add` - Only writes events
-- `relate-add` - Only writes events
-- `relate-rm` - Only writes events
-- `relate-dup` - Only writes events
+#### Write-only commands (neither read projection tables nor use reducer)
+These commands only write events to the event log:
+- `edit` - Modifies task fields
+- `mv` - Relocates tasks between projects
+- `rm` - Deletes tasks
+- `describe` - Sets task descriptions
+- `project-create` - Creates new projects
+- `project-rename` - Renames projects
+- `schema-add` - Defines new schemas
+- `relate-add` - Adds relationships
+- `relate-rm` - Removes relationships
+- `relate-dup` - Marks duplicates
 
 ## Key Observations
 
