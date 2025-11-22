@@ -1,6 +1,8 @@
 import { Button, Grid } from '@material-ui/core';
-import { EntityHetznerContent } from '@gluo-nv/backstage-plugin-hetzner';
-import { isHetznerResource } from './utils';
+import {
+  EntityHetznerContent,
+  isHetznerResource,
+} from '@internal/plugin-hetzner';
 import {
   EntityApiDefinitionCard,
   EntityConsumedApisCard,

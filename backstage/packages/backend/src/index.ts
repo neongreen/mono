@@ -13,6 +13,10 @@ import {
 } from '@backstage/backend-plugin-api';
 import { CATALOG_ERRORS_TOPIC } from '@backstage/plugin-catalog-backend';
 import { EventParams, eventsServiceRef } from '@backstage/plugin-events-node';
+// Temporarily disabled for local development without HCLOUD_TOKEN
+// import hetznerPlugin, {
+//   catalogModuleHetznerProvider,
+// } from '@internal/plugin-hetzner-backend';
 
 interface EventsPayload {
   entity: string;
@@ -76,6 +80,7 @@ backend.add(import('@backstage/plugin-techdocs-backend'));
 backend.add(import('@backstage/plugin-auth-backend'));
 // See https://backstage.io/docs/backend-system/building-backends/migrating#the-auth-plugin
 backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
+backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
 // See https://backstage.io/docs/auth/github/provider
 
 // catalog plugin
@@ -109,9 +114,9 @@ backend.add(import('@backstage/plugin-search-backend-module-techdocs'));
 // kubernetes plugin
 backend.add(import('@backstage/plugin-kubernetes-backend'));
 
-// hetzner cloud plugin
-backend.add(import('@gluo-nv/backstage-plugin-hetzner-backend'));
-backend.add(import('@gluo-nv/backstage-plugin-catalog-backend-module-hetzner'));
+// hetzner cloud plugin - temporarily disabled for local development
+// backend.add(hetznerPlugin);
+// backend.add(catalogModuleHetznerProvider);
 
 // notifications and signals plugins
 backend.add(import('@backstage/plugin-notifications-backend'));

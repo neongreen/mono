@@ -1,0 +1,49 @@
+app:
+  baseUrl: https://backstage.artyom.me
+  signIn:
+    auto: true
+    providers:
+      - github
+
+backend:
+  baseUrl: https://backstage.artyom.me
+  cors:
+    origin: https://backstage.artyom.me
+  database:
+    client: pg
+    connection:
+      connectionString: ${DATABASE_URL}
+  auth:
+    keys:
+      - secret: ${APP_DEFAULT_AUTH_SECRET}
+
+kubernetes:
+  serviceLocatorMethod:
+    type: multiTenant
+  clusterLocatorMethods:
+    - type: config
+      clusters:
+        - name: mono-k3s
+          url: https://91.98.238.65:6443
+          authProvider: serviceAccount
+          serviceAccountToken: ${BACKSTAGE_K8S_TOKEN}
+          skipTLSVerify: false
+          caData: ${BACKSTAGE_K8S_CA_DATA}
+
+auth:
+  environment: production
+  providers:
+    github:
+      development:
+        clientId: ${GITHUB_OAUTH_CLIENT_ID}
+        clientSecret: ${GITHUB_OAUTH_CLIENT_SECRET}
+        signIn:
+          resolvers:
+            - resolver: usernameMatchingUserEntityName
+      production:
+        clientId: ${GITHUB_OAUTH_CLIENT_ID}
+        clientSecret: ${GITHUB_OAUTH_CLIENT_SECRET}
+        callbackUrl: https://backstage.artyom.me/api/auth/github/handler/frame
+        signIn:
+          resolvers:
+            - resolver: usernameMatchingUserEntityName

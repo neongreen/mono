@@ -714,17 +714,17 @@ run = "go test ./..."
 [tasks.backstage]
 description = "Run Backstage in dev mode"
 dir = "backstage"
-run = "fnox exec -- mise exec node@20 -- yarn start"
+run = "fnox exec -- mise exec node@22 -- yarn start"
 
 [tasks."backstage:build"]
 description = "Build Backstage backend/frontend bundle"
 dir = "backstage"
-run = "fnox exec -- mise exec node@20 -- yarn build:all"
+run = "fnox exec -- mise exec node@22 -- yarn build:all"
 
 [tasks."backstage:test"]
 description = "Run Backstage unit tests"
 dir = "backstage"
-run = "fnox exec -- mise exec node@20 -- yarn test"
+run = "fnox exec -- mise exec node@22 -- yarn test"
 
 [tasks."backstage:image"]
 description = "Build (and optionally push) Backstage container image to GHCR"
@@ -734,7 +734,7 @@ set -euo pipefail
 IMAGE_TAG=${IMAGE_TAG:-dev}
 PUSH=${PUSH:-1}
 cd backstage
-fnox exec -- mise exec node@20 -- yarn build:all
+fnox exec -- mise exec node@22 -- yarn build:all
 cd ..
 IMAGE="ghcr.io/neongreen/backstage:${IMAGE_TAG}"
 if [ "$PUSH" = "1" ]; then
@@ -762,7 +762,7 @@ IMAGE_TAG=${IMAGE_TAG:-dev}
 eval "$(fnox export)" 
 
 cd backstage
-mise exec node@20 -- yarn build:all
+mise exec node@22 -- yarn build:all
 cd ..
 
 IMAGE="ghcr.io/neongreen/backstage:${IMAGE_TAG}"

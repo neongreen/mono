@@ -10,7 +10,6 @@ import {
   catalogImportPlugin,
 } from '@backstage/plugin-catalog-import';
 import { ScaffolderPage, scaffolderPlugin } from '@backstage/plugin-scaffolder';
-import { HetznerPage } from '@gluo-nv/backstage-plugin-hetzner';
 import { orgPlugin } from '@backstage/plugin-org';
 import { SearchPage } from '@backstage/plugin-search';
 import {
@@ -31,7 +30,12 @@ import {
   OAuthRequestDialog,
   SignInPage,
 } from '@backstage/core-components';
-import { githubAuthApiRef } from '@backstage/core-plugin-api';
+import {
+  configApiRef,
+  githubAuthApiRef,
+  SignInPageProps,
+  useApi,
+} from '@backstage/core-plugin-api';
 import { createApp } from '@backstage/app-defaults';
 import { AppRouter, FlatRoutes } from '@backstage/core-app-api';
 import { CatalogGraphPage } from '@backstage/plugin-catalog-graph';
@@ -39,6 +43,15 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { NotificationsPage } from '@backstage/plugin-notifications';
 import { SignalsDisplay } from '@backstage/plugin-signals';
+// Temporarily disabled for local development without HCLOUD_TOKEN
+// import { HetznerPage } from '@internal/plugin-hetzner';
+
+const AppSignInPage = (props: SignInPageProps) => {
+  // Hardcode guest provider for local development
+  // The config-based approach doesn't work because app.signIn.providers
+  // isn't visible to the frontend
+  return <SignInPage {...props} providers={['guest'] as any} />;
+};
 
 const app = createApp({
   apis,
@@ -60,20 +73,7 @@ const app = createApp({
     });
   },
   components: {
-    SignInPage: props => (
-      <SignInPage
-        {...props}
-        auto
-        providers={[
-          {
-            id: 'github',
-            title: 'GitHub',
-            message: 'Sign in using GitHub',
-            apiRef: githubAuthApiRef,
-          },
-        ]}
-      />
-    ),
+    SignInPage: AppSignInPage,
   },
 });
 
@@ -112,7 +112,8 @@ const routes = (
     <Route path="/settings" element={<UserSettingsPage />} />
     <Route path="/catalog-graph" element={<CatalogGraphPage />} />
     <Route path="/notifications" element={<NotificationsPage />} />
-    <Route path="/hetzner" element={<HetznerPage />} />
+    {/* Temporarily disabled for local development without HCLOUD_TOKEN */}
+    {/* <Route path="/hetzner" element={<HetznerPage />} /> */}
   </FlatRoutes>
 );
 

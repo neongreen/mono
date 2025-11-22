@@ -1,5 +1,9 @@
 app:
-  baseUrl: https://backstage.artyom.me
+  title: Backstage
+  baseUrl: http://localhost:3000
+  signIn:
+    providers:
+      - guest
   hetzner:
     project:
       title: "Hetzner Cloud"
@@ -7,7 +11,7 @@ app:
       lifecycle: production
 
 backend:
-  baseUrl: https://backstage.artyom.me
+  baseUrl: http://localhost:7007
   listen:
     port: 7007
   csp:
@@ -16,23 +20,27 @@ backend:
       - https://backstage.artyom.me
 
   database:
-    client: pg
-    connection:
-      connectionString: ${DATABASE_URL}
-    pluginDivisionMode: schema
+    client: better-sqlite3
+    connection: ':memory:'
 
   cache:
     store: memory
 
   auth:
     keys:
-      - secret: ${APP_DEFAULT_AUTH_SECRET}
+      - secret: LOCAL_DEV_SECRET_CHANGE_IN_PRODUCTION_1234567890123456
 
-  hetzner:
-    token: ${HCLOUD_TOKEN}
+  # hetzner:
+  #   token: ${HCLOUD_TOKEN}
+  #   entityProvider:
+  #     schedule:
+  #       frequency:
+  #         minutes: 30
+  #       timeout:
+  #         minutes: 3
 
   cors:
-    origin: https://backstage.artyom.me
+    origin: http://localhost:3000
     methods: [GET, POST, PUT, DELETE]
     credentials: true
 
@@ -48,35 +56,11 @@ catalog:
     - allow: [Component, System, API, Resource, Location, Template, User, Group]
   locations:
     - type: file
-      target: ./catalog-info.yaml
-
-kubernetes:
-  serviceLocatorMethod:
-    type: multiTenant
-  clusterLocatorMethods:
-    - type: config
-      clusters:
-        - name: mono-k3s
-          url: https://91.98.238.65:6443
-          authProvider: serviceAccount
-          serviceAccountToken: ${BACKSTAGE_K8S_TOKEN}
-          skipTLSVerify: false
-          caData: ${BACKSTAGE_K8S_CA_DATA}
+      target: /Users/artyom/code/neongreen/mono/backstage/catalog-info.yaml
 
 auth:
-  environment: production
   providers:
-    github:
-      development:
-        clientId: ${GITHUB_OAUTH_CLIENT_ID}
-        clientSecret: ${GITHUB_OAUTH_CLIENT_SECRET}
-        signIn:
-          resolvers:
-            - resolver: usernameMatchingUserEntityName
-      production:
-        clientId: ${GITHUB_OAUTH_CLIENT_ID}
-        clientSecret: ${GITHUB_OAUTH_CLIENT_SECRET}
-        callbackUrl: https://backstage.artyom.me/api/auth/github/handler/frame
-        signIn:
-          resolvers:
-            - resolver: usernameMatchingUserEntityName
+    guest:
+      userEntityRef: user:default/guest
+      ownershipEntityRefs:
+        - user:default/guest
