@@ -8,7 +8,7 @@ _.path = ["./bin"]
 
 [tools]
 go = "1.24.7"
-dagger = "0.19.6"
+dagger = "0.19.7"
 "go:github.com/rhysd/actionlint/cmd/actionlint" = "latest"
 "go:github.com/suzuki-shunsuke/pinact/v3/cmd/pinact" = "latest"
 zizmor = "latest"

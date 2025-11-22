@@ -24,7 +24,7 @@ jobs:
       - name: Run all tests with Dagger
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
-          version: "0.19.6"
+          version: "0.19.7"
           verb: call
           args: test --format=testname
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -41,7 +41,7 @@ jobs:
             echo "- Container: \`golang:1.24.7\`"
             echo "- Test runner: \`gotestsum\`"
             echo "- Parallelism: Dagger internal (18 projects)"
-            echo "- Dagger version: \`0.19.6\`"
+            echo "- Dagger version: \`0.19.7\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   lint:
@@ -57,7 +57,7 @@ jobs:
       - name: Run lint with Dagger
         uses: dagger/dagger-for-github@d913e70051faf3b907d4dd96ef1161083c88c644 # v8.2.0
         with:
-          version: "0.19.6"
+          version: "0.19.7"
           verb: call
           args: lint
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
@@ -73,7 +73,7 @@ jobs:
             echo "**Lint Environment:**"
             echo "- golangci-lint: \`golangci/golangci-lint:v2.6.1\`"
             echo "- uselesswrapper: \`golang:1.24.7\`"
-            echo "- Dagger version: \`0.19.6\`"
+            echo "- Dagger version: \`0.19.7\`"
             echo ""
             echo "**Checks Performed:**"
             echo "- golangci-lint on workspace root"
