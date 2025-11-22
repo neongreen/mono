@@ -3,12 +3,16 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
 
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/neongreen/mono/conf/pkg/config"
 	claudetool "github.com/neongreen/mono/conf/pkg/tools/claude"
 	jjtool "github.com/neongreen/mono/conf/pkg/tools/jj"
 	misetool "github.com/neongreen/mono/conf/pkg/tools/mise"
 	starshiptool "github.com/neongreen/mono/conf/pkg/tools/starship"
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -44,6 +48,7 @@ Examples:
 				toolsToImport = append(toolsToImport, toolName)
 			}
 		}
+		sort.Strings(toolsToImport)
 
 		for _, toolName := range toolsToImport {
 			if err := importTool(conf, toolName, dryRun); err != nil {
@@ -74,6 +79,7 @@ func importTool(conf *config.Config, toolName string, dryRun bool) error {
 	}
 
 	flatValues := config.FlattenValues(values)
+	existingFlat := config.FlattenValues(tool.Values)
 
 	if len(flatValues) == 0 {
 		fmt.Printf("  No values found in %s\n", tool.ConfigPath)
@@ -83,25 +89,28 @@ func importTool(conf *config.Config, toolName string, dryRun bool) error {
 	fmt.Printf("  Found %d values\n", len(flatValues))
 
 	if dryRun {
-		// Preview what would be imported
+		renderImportPreview(toolName, existingFlat, flatValues)
+		// Compatibility concise lines
 		for path, value := range flatValues {
 			fmt.Printf("  Would import: %s.%s = %v\n", toolName, path, value)
 		}
-	} else {
-		// Import all values into conf state
-		for path, value := range flatValues {
-			fmt.Printf("  ✓ Imported %s.%s = %v\n", toolName, path, value)
-		}
-
-		conf.MergeToolValues(toolName, values)
-
-		// Save conf state
-		if err := conf.Save(); err != nil {
-			return fmt.Errorf("failed to save conf state: %w", err)
-		}
-
-		fmt.Printf("  ✓ Saved to conf state\n")
+		return nil
 	}
+
+	// Import all values into conf state
+	renderImportPreview(toolName, existingFlat, flatValues)
+	for path, value := range flatValues {
+		fmt.Printf("  ✓ Imported %s.%s = %v\n", toolName, path, value)
+	}
+
+	conf.MergeToolValues(toolName, values)
+
+	// Save conf state
+	if err := conf.Save(); err != nil {
+		return fmt.Errorf("failed to save conf state: %w", err)
+	}
+
+	fmt.Printf("  ✓ Saved to conf state\n")
 
 	return nil
 }
@@ -136,4 +145,74 @@ func getTargetConfigValues(toolName string) (map[string]any, error) {
 	default:
 		return nil, fmt.Errorf("unsupported tool: %s", toolName)
 	}
+}
+
+// renderImportPreview renders a table showing what would be imported vs current conf state.
+func renderImportPreview(toolName string, existingFlat map[string]any, incomingFlat map[string]any) {
+	type row struct {
+		path     string
+		status   string
+		incoming any
+		current  any
+	}
+
+	var rows []row
+	var added, updated, same int
+
+	for path, incoming := range incomingFlat {
+		current, hasCurrent := existingFlat[path]
+		switch {
+		case !hasCurrent:
+			added++
+			rows = append(rows, row{
+				path:     path,
+				status:   cli.Success("NEW"),
+				incoming: incoming,
+				current:  nil,
+			})
+		case fmt.Sprintf("%v", incoming) == fmt.Sprintf("%v", current):
+			same++
+			rows = append(rows, row{
+				path:     path,
+				status:   cli.Muted("SAME"),
+				incoming: incoming,
+				current:  current,
+			})
+		default:
+			updated++
+			rows = append(rows, row{
+				path:     path,
+				status:   cli.Warning("UPDATE"),
+				incoming: incoming,
+				current:  current,
+			})
+		}
+	}
+
+	sort.Slice(rows, func(i, j int) bool { return rows[i].path < rows[j].path })
+
+	t := cli.NewTable(os.Stdout)
+	t.AppendHeader(table.Row{"Path", "Status", "Incoming", "Current"})
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, WidthMax: 42},
+		{Number: 2, WidthMax: 10},
+		{Number: 3, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
+		{Number: 4, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
+	})
+
+	for _, r := range rows {
+		t.AppendRow(table.Row{
+			cli.Key(r.path),
+			r.status,
+			cli.Value(formatValueShort(r.incoming)),
+			cli.Muted(formatValueShort(r.current)),
+		})
+	}
+	t.Render()
+
+	fmt.Printf("\nSummary: %s new, %s updated, %s unchanged\n",
+		cli.Successf("%d", added),
+		cli.Warningf("%d", updated),
+		cli.Mutedf("%d", same),
+	)
 }

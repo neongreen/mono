@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/spf13/cobra"
@@ -32,6 +33,7 @@ Examples:
 			for toolName := range conf.Tools {
 				toolsToCheck = append(toolsToCheck, toolName)
 			}
+			sort.Strings(toolsToCheck)
 		}
 
 		for _, toolName := range toolsToCheck {
@@ -43,6 +45,8 @@ Examples:
 	},
 }
 
+var statusShowInSync bool
+
 // showToolStatus shows drift status for a specific tool
 func showToolStatus(conf *config.Config, toolName string) error {
 	tool, exists := conf.GetTool(toolName)
@@ -50,38 +54,20 @@ func showToolStatus(conf *config.Config, toolName string) error {
 		return fmt.Errorf("tool %s not configured", toolName)
 	}
 
-	fmt.Printf("%s status:\n", toolName)
-
-	flatValues := config.FlattenValues(tool.Values)
-	if len(flatValues) == 0 {
-		fmt.Printf("  No managed values\n")
-		return nil
-	}
+	fmt.Printf("%s status:\n\n", toolName)
 
 	actualValues, err := getTargetConfigValues(toolName)
 	if err != nil {
 		return fmt.Errorf("failed to read current %s configuration: %w", toolName, err)
 	}
-	actualFlat := config.FlattenValues(actualValues)
 
-	hasChanges := false
-	for path, desiredValue := range flatValues {
-		actualValue, exists := actualFlat[path]
-
-		if !exists {
-			fmt.Printf("  %s: MISSING (desired: %v)\n", path, desiredValue)
-			hasChanges = true
-		} else if fmt.Sprintf("%v", actualValue) != fmt.Sprintf("%v", desiredValue) {
-			fmt.Printf("  %s: DRIFT (desired: %v, actual: %v)\n", path, desiredValue, actualValue)
-			hasChanges = true
-		} else {
-			fmt.Printf("  %s: IN SYNC (%v)\n", path, actualValue)
-		}
-	}
-
-	if !hasChanges {
-		fmt.Printf("  All values in sync\n")
-	}
+	renderStatusTable(toolName, tool.Values, actualValues, statusShowInSync)
+	fmt.Println()
 
 	return nil
+}
+
+func init() {
+	RootCmd.AddCommand(statusCmd)
+	statusCmd.Flags().BoolVar(&statusShowInSync, "show-in-sync", false, "Include entries already in sync")
 }

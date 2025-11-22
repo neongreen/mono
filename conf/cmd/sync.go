@@ -4,9 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/neongreen/mono/conf/pkg/config"
 	"github.com/neongreen/mono/conf/pkg/sync"
+	"github.com/neongreen/mono/lib/cli"
 	"github.com/spf13/cobra"
 )
 
@@ -54,6 +59,8 @@ Examples:
 				toolsToSync = append(toolsToSync, toolName)
 			}
 		}
+
+		sort.Strings(toolsToSync)
 
 		for _, toolName := range toolsToSync {
 			if err := syncTool(conf, configDir, toolName, dryRun); err != nil {
@@ -118,6 +125,9 @@ func syncTool(conf *config.Config, configDir, toolName string, dryRun bool) erro
 
 			fmt.Printf("  ✓ Uploaded to iCloud\n")
 		}
+		if dryRun {
+			renderSyncDiff("Upload", config.FlattenValues(localValues), nil)
+		}
 		return nil
 	}
 
@@ -144,6 +154,9 @@ func syncTool(conf *config.Config, configDir, toolName string, dryRun bool) erro
 
 			fmt.Printf("  ✓ Downloaded from iCloud\n")
 		}
+		if dryRun {
+			renderSyncDiff("Download", nil, config.FlattenValues(icloudValues))
+		}
 		return nil
 	}
 
@@ -166,9 +179,8 @@ func syncTool(conf *config.Config, configDir, toolName string, dryRun bool) erro
 	// Merge configs
 	merged := sync.MergeConfigs(localValues, icloudValues, localMtime, icloudMtime)
 
-	fmt.Printf("  Merged: %d values\n", len(merged))
-
 	if dryRun {
+		renderSyncPreview(localValues, icloudValues, merged, localMtime, icloudMtime)
 		fmt.Printf("  Would upload merged config to iCloud\n")
 		fmt.Printf("  Would update local config\n")
 	} else {
@@ -196,4 +208,148 @@ func syncTool(conf *config.Config, configDir, toolName string, dryRun bool) erro
 	}
 
 	return nil
+}
+
+// renderSyncDiff renders a simple table for one-sided sync preview (upload/download)
+func renderSyncDiff(action string, upload map[string]any, download map[string]any) {
+	var rows []struct {
+		action string
+		path   string
+		value  any
+	}
+
+	if upload != nil {
+		for path, val := range upload {
+			rows = append(rows, struct {
+				action string
+				path   string
+				value  any
+			}{action, path, val})
+		}
+	}
+	if download != nil {
+		for path, val := range download {
+			rows = append(rows, struct {
+				action string
+				path   string
+				value  any
+			}{action, path, val})
+		}
+	}
+
+	if len(rows) == 0 {
+		fmt.Println("  No values to sync")
+		return
+	}
+
+	sort.Slice(rows, func(i, j int) bool { return rows[i].path < rows[j].path })
+
+	fmt.Println()
+	fmt.Printf("  Preview (%s %d values):\n", strings.ToLower(action), len(rows))
+	printSyncTable(rows)
+}
+
+// renderSyncPreview shows merged differences for dry-run sync
+func renderSyncPreview(localValues, icloudValues, merged map[string]any, localMtime, icloudMtime int64) {
+	localFlat := config.FlattenValues(localValues)
+	icloudFlat := config.FlattenValues(icloudValues)
+	mergedFlat := config.FlattenValues(merged)
+
+	type change struct {
+		path       string
+		source     string
+		localValue any
+		cloudValue any
+		finalValue any
+	}
+
+	var rows []change
+	seen := make(map[string]struct{})
+	for k := range localFlat {
+		seen[k] = struct{}{}
+	}
+	for k := range icloudFlat {
+		seen[k] = struct{}{}
+	}
+
+	for path := range seen {
+		lVal, lOk := localFlat[path]
+		cVal, cOk := icloudFlat[path]
+		final := mergedFlat[path]
+
+		if lOk && cOk && fmt.Sprintf("%v", lVal) == fmt.Sprintf("%v", cVal) {
+			continue // no difference
+		}
+
+		source := "local"
+		if cOk && (!lOk || icloudMtime > localMtime) {
+			source = "icloud"
+		}
+
+		rows = append(rows, change{
+			path:       path,
+			source:     source,
+			localValue: lVal,
+			cloudValue: cVal,
+			finalValue: final,
+		})
+	}
+
+	if len(rows) == 0 {
+		fmt.Println("  No differences; configs already aligned")
+		return
+	}
+
+	sort.Slice(rows, func(i, j int) bool { return rows[i].path < rows[j].path })
+
+	fmt.Println()
+	fmt.Printf("  Differences (%d):\n", len(rows))
+	tableRows := make([]struct {
+		action string
+		path   string
+		value  any
+	}, 0, len(rows))
+	for _, row := range rows {
+		tableRows = append(tableRows, struct {
+			action string
+			path   string
+			value  any
+		}{
+			action: row.source,
+			path:   row.path,
+			value:  row.finalValue,
+		})
+	}
+	printSyncTable(tableRows)
+}
+
+// printSyncTable renders a compact table for sync previews
+func printSyncTable(rows []struct {
+	action string
+	path   string
+	value  any
+}) {
+	t := cli.NewTable(os.Stdout)
+	t.AppendHeader(table.Row{"Action", "Path", "Value"})
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, WidthMax: 10},
+		{Number: 2, WidthMax: 42},
+		{Number: 3, WidthMax: 60, WidthMaxEnforcer: text.WrapSoft},
+	})
+
+	for _, r := range rows {
+		action := cli.Warning(r.action)
+		if strings.EqualFold(r.action, "upload") || strings.EqualFold(r.action, "local") {
+			action = cli.Success(r.action)
+		} else if strings.EqualFold(r.action, "download") || strings.EqualFold(r.action, "icloud") {
+			action = cli.Warning(r.action)
+		}
+		t.AppendRow(table.Row{
+			action,
+			cli.Key(r.path),
+			cli.Value(formatValueShort(r.value)),
+		})
+	}
+
+	t.Render()
 }
