@@ -97,7 +97,7 @@ Commands are logically grouped by prefix, but remain flat in the CLI:
 
 **Sync operations:**
 ```bash
-tk sync, tk push, tk pull, tk ingest, tk import-beads, tk sync-status
+tk sync, tk push, tk pull, tk ingest, tk sync-status
 ```
 
 **Remote management:**
@@ -317,7 +317,6 @@ tk sync             - Sync with remote (pull → ingest → export → push)
 tk push             - Push local segments to remote
 tk pull             - Pull segments from remote
 tk ingest           - Ingest events from segment files
-tk import-beads     - Import issues from beads JSONL format
 tk sync-status      - Show sync status for all remotes
 
 tk remote-add       - Add a new remote

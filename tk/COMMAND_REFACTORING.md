@@ -23,7 +23,6 @@ tk sync             → tk sync             (cmd/sync.go)
 tk push             → tk push             (cmd/push.go - NEEDS CREATION)
 tk pull             → tk pull             (cmd/pull.go - NEEDS CREATION)
 tk ingest           → tk ingest           (cmd/ingest.go)
-tk import-beads     → tk import-beads     (cmd/import_beads.go)
 
 tk status sync      → tk sync-status      (cmd/status/sync.go → cmd/sync_status.go)
 
