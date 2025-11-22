@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Readability WASM Parser Demo ===\n")
+	fmt.Println("=== Readability WASM Parser Demo ===")
 
 	ctx := context.Background()
 

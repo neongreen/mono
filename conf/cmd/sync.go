@@ -218,23 +218,19 @@ func renderSyncDiff(action string, upload map[string]any, download map[string]an
 		value  any
 	}
 
-	if upload != nil {
-		for path, val := range upload {
-			rows = append(rows, struct {
-				action string
-				path   string
-				value  any
-			}{action, path, val})
-		}
+	for path, val := range upload {
+		rows = append(rows, struct {
+			action string
+			path   string
+			value  any
+		}{action, path, val})
 	}
-	if download != nil {
-		for path, val := range download {
-			rows = append(rows, struct {
-				action string
-				path   string
-				value  any
-			}{action, path, val})
-		}
+	for path, val := range download {
+		rows = append(rows, struct {
+			action string
+			path   string
+			value  any
+		}{action, path, val})
 	}
 
 	if len(rows) == 0 {

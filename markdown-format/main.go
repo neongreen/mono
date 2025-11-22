@@ -2,39 +2,52 @@ package main
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"regexp"
+
+	"github.com/spf13/cobra"
 )
 
-// Common abbreviations that should not be treated as sentence boundaries
-var commonAbbreviations = []string{"e.g.", "i.e.", "etc.", "vs.", "cf.", "ex.", "viz.", "approx.", "ca."}
-
-// sentenceBoundaryRegex matches sentence boundaries (. ! ?) followed by space and uppercase letter
-var sentenceBoundaryRegex = regexp.MustCompile(`([.!?])(\s+)([A-Z])`)
+var (
+	commonAbbreviations = []string{"e.g.", "i.e.", "etc.", "vs.", "cf.", "ex.", "viz.", "approx.", "ca."}
+	// sentenceBoundaryRegex matches sentence boundaries (. ! ?) followed by space and uppercase letter
+	sentenceBoundaryRegex = regexp.MustCompile(`([.!?])(\s+)([A-Z])`)
+	checkFlag             bool
+)
 
 func main() {
-	checkFlag := flag.Bool("check", false, "check if files are formatted without modifying them")
-	flag.Parse()
+	rootCmd := &cobra.Command{
+		Use:   "markdown-format [files...]",
+		Short: "Format Markdown text",
+		Args:  cobra.ArbitraryArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runFormat(args)
+		},
+	}
+	rootCmd.Flags().BoolVar(&checkFlag, "check", false, "check if files are formatted without modifying them")
 
-	args := flag.Args()
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func runFormat(args []string) error {
 
 	// If no arguments, read from stdin and write to stdout
 	if len(args) == 0 {
 		input, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading stdin: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("error reading stdin: %w", err)
 		}
 		output, err := formatMarkdown(input)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error formatting markdown: %v\n", err)
-			os.Exit(1)
+			return fmt.Errorf("error formatting markdown: %w", err)
 		}
 		fmt.Print(string(output))
-		return
+		return nil
 	}
 
 	// Handle file(s) - in-place by default
@@ -42,16 +55,14 @@ func main() {
 	for _, filename := range args {
 		input, err := os.ReadFile(filename)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error reading file %s: %v\n", filename, err)
-			os.Exit(1)
+			return fmt.Errorf("error reading file %s: %w", filename, err)
 		}
 		output, err := formatMarkdown(input)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error formatting %s: %v\n", filename, err)
-			os.Exit(1)
+			return fmt.Errorf("error formatting %s: %w", filename, err)
 		}
 
-		if *checkFlag {
+		if checkFlag {
 			// Check mode: compare without modifying
 			if !bytes.Equal(input, output) {
 				fmt.Fprintf(os.Stderr, "%s: not formatted\n", filename)
@@ -61,13 +72,13 @@ func main() {
 			// Default: write in-place
 			err = os.WriteFile(filename, output, 0o644)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error writing file %s: %v\n", filename, err)
-				os.Exit(1)
+				return fmt.Errorf("error writing file %s: %w", filename, err)
 			}
 		}
 	}
 
 	if hasErrors {
-		os.Exit(1)
+		return fmt.Errorf("unformatted files")
 	}
+	return nil
 }

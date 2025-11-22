@@ -3,6 +3,7 @@ package svghatch
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -114,7 +115,7 @@ func parseChildren(content []byte) []*SVGNode {
 	for {
 		var child SVGNode
 		err := decoder.Decode(&child)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
