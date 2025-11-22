@@ -62,42 +62,34 @@ func runStop(cmd *cobra.Command, args []string) error {
 // checkCdCommands traverses the AST and finds cd commands outside subshells
 func checkCdCommands(file *syntax.File) []string {
 	var violations []string
-
-	// Track whether we're inside a subshell or command substitution
 	inSubshell := false
 
-	syntax.Walk(file, func(node syntax.Node) bool {
-		switch n := node.(type) {
-		case *syntax.Subshell:
-			// We're entering a subshell (parentheses)
+	var walker func(syntax.Node) bool
+	walker = func(node syntax.Node) bool {
+		// Handle subshells and command substitution the same way
+		if isSubshellNode(node) {
 			oldInSubshell := inSubshell
 			inSubshell = true
-			// Continue walking into the subshell
-			syntax.Walk(n, func(innerNode syntax.Node) bool {
+			syntax.Walk(node, func(innerNode syntax.Node) bool {
 				return checkNodeForCd(innerNode, &violations, inSubshell)
 			})
 			inSubshell = oldInSubshell
-			// Don't process this subshell again
 			return false
-
-		case *syntax.CmdSubst:
-			// Command substitution $() is also a subshell
-			oldInSubshell := inSubshell
-			inSubshell = true
-			// Continue walking into the command substitution
-			syntax.Walk(n, func(innerNode syntax.Node) bool {
-				return checkNodeForCd(innerNode, &violations, inSubshell)
-			})
-			inSubshell = oldInSubshell
-			// Don't process this again
-			return false
-
-		default:
-			return checkNodeForCd(n, &violations, inSubshell)
 		}
-	})
+		return checkNodeForCd(node, &violations, inSubshell)
+	}
 
+	syntax.Walk(file, walker)
 	return violations
+}
+
+// isSubshellNode checks if a node represents a subshell context
+func isSubshellNode(node syntax.Node) bool {
+	switch node.(type) {
+	case *syntax.Subshell, *syntax.CmdSubst:
+		return true
+	}
+	return false
 }
 
 // checkNodeForCd checks if a node is a cd command and records violations
