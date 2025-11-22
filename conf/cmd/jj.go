@@ -11,6 +11,7 @@ import (
 )
 
 var jjListFlag bool
+var jjForce bool
 
 var jjCmd = &cobra.Command{
 	Use:   "jj [config.path] [value]",
@@ -33,6 +34,7 @@ Examples:
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize jj tool: %v\n", err)
 			os.Exit(1)
 		}
+		jjTool.SetForce(jjForce)
 
 		// Handle --list flag or no arguments (default to list)
 		if jjListFlag || len(args) == 0 {
@@ -155,4 +157,5 @@ Examples:
 
 func init() {
 	jjCmd.Flags().BoolVar(&jjListFlag, "list", false, "List all available jj configuration settings with current values")
+	jjCmd.Flags().BoolVar(&jjForce, "force", false, "Bypass schema validation when setting values")
 }

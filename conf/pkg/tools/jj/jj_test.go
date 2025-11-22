@@ -3,6 +3,7 @@ package jj
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -277,5 +278,84 @@ func TestJJTool_ValidatePath(t *testing.T) {
 	err = tool.SetConfig("invalid.nonexistent.path", "value")
 	if err == nil {
 		t.Error("Expected error for invalid path")
+	}
+}
+
+func TestJJTool_SetConfig_InvalidValueFails(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "jj-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	jjConfigDir := filepath.Join(tempDir, ".config", "jj")
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
+		t.Fatalf("Failed to create jj config dir: %v", err)
+	}
+
+	configPath := filepath.Join(jjConfigDir, "config.toml")
+	if err := os.WriteFile(configPath, []byte("# config"), 0o644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	tool, err := NewJJTool()
+	if err != nil {
+		t.Fatalf("Failed to create JJ tool: %v", err)
+	}
+
+	if err := tool.SetConfig("ui.paginate", "not-bool"); err == nil {
+		t.Fatalf("Expected validation error for invalid value type")
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("Failed to read config: %v", err)
+	}
+	if strings.Contains(string(content), "not-bool") {
+		t.Errorf("Config should not be written when validation fails")
+	}
+}
+
+func TestJJTool_SetConfig_ForceAllowsInvalidValue(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "jj-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	jjConfigDir := filepath.Join(tempDir, ".config", "jj")
+	if err := os.MkdirAll(jjConfigDir, 0o755); err != nil {
+		t.Fatalf("Failed to create jj config dir: %v", err)
+	}
+
+	configPath := filepath.Join(jjConfigDir, "config.toml")
+	if err := os.WriteFile(configPath, []byte("# config"), 0o644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	tool, err := NewJJTool()
+	if err != nil {
+		t.Fatalf("Failed to create JJ tool: %v", err)
+	}
+	tool.SetForce(true)
+
+	if err := tool.SetConfig("ui.paginate", "not-bool"); err != nil {
+		t.Fatalf("Force should bypass validation: %v", err)
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("Failed to read config: %v", err)
+	}
+	if !strings.Contains(string(content), "not-bool") {
+		t.Errorf("Expected config to be written when force is enabled")
 	}
 }

@@ -15,6 +15,7 @@ type StarshipTool struct {
 	editor     *editors.TOMLEditor
 	parser     *schemas.StarshipSchemaParser
 	dryRun     bool
+	force      bool
 }
 
 // NewStarshipTool creates a new starship tool instance
@@ -49,6 +50,7 @@ func NewStarshipToolWithDryRun(dryRun bool) (*StarshipTool, error) {
 		editor:     editor,
 		parser:     parser,
 		dryRun:     dryRun,
+		force:      false,
 	}, nil
 }
 
@@ -58,11 +60,22 @@ func (s *StarshipTool) SetDryRun(dryRun bool) {
 	s.editor.SetDryRun(dryRun)
 }
 
+// SetForce enables or disables schema validation bypass
+func (s *StarshipTool) SetForce(force bool) {
+	s.force = force
+}
+
 // SetConfig sets a configuration value using dotted path notation
 func (s *StarshipTool) SetConfig(path string, value any) error {
 	// Validate the path is reasonable (basic validation)
 	if !s.isValidPath(path) {
 		return s.createInvalidPathError(path)
+	}
+
+	if !s.force {
+		if err := s.parser.ValidateValue(path, value); err != nil {
+			return fmt.Errorf("invalid value for %s: %w", path, err)
+		}
 	}
 
 	// Set the value using the TOML editor
@@ -111,6 +124,12 @@ func (s *StarshipTool) PreviewSetConfig(path string, value any) (string, error) 
 		return "", s.createInvalidPathError(path)
 	}
 
+	if !s.force {
+		if err := s.parser.ValidateValue(path, value); err != nil {
+			return "", fmt.Errorf("invalid value for %s: %w", path, err)
+		}
+	}
+
 	return s.editor.PreviewSetValue(path, value)
 }
 
@@ -124,10 +143,21 @@ func (s *StarshipTool) IsDryRun() bool {
 	return s.dryRun
 }
 
+// IsForce returns whether schema validation is bypassed
+func (s *StarshipTool) IsForce() bool {
+	return s.force
+}
+
 // SetAllValues sets multiple configuration values from a nested map structure
 // This is more efficient than setting individual paths as it avoids the need
 // to flatten/unflatten the structure and parse quoted keys
 func (s *StarshipTool) SetAllValues(values map[string]any) error {
+	if !s.force {
+		if err := s.parser.ValidateDocument(values); err != nil {
+			return fmt.Errorf("invalid starship configuration: %w", err)
+		}
+	}
+
 	if s.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil
@@ -145,8 +175,7 @@ func (s *StarshipTool) isValidPath(path string) bool {
 		return false
 	}
 
-	// Allow any dotted path for starship (it's very flexible)
-	return true
+	return s.parser.ValidatePath(path)
 }
 
 // createInvalidPathError creates a helpful error message for invalid configuration paths

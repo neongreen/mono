@@ -42,3 +42,13 @@ func (p *MiseSchemaParser) GetAllPaths() []string {
 func (p *MiseSchemaParser) GetAllSettingsWithInfo() []configschema.SettingInfo {
 	return p.parser.GetAllSettingsWithInfo()
 }
+
+// ValidateValue checks if a value conforms to the mise schema at the given path
+func (p *MiseSchemaParser) ValidateValue(path string, value any) error {
+	return p.parser.ValidateValue(path, value)
+}
+
+// ValidateDocument validates a full mise configuration map against the schema
+func (p *MiseSchemaParser) ValidateDocument(values map[string]any) error {
+	return p.parser.ValidateDocument(values)
+}

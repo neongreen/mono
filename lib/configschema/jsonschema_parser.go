@@ -93,6 +93,28 @@ func (p *JSONSchemaParser) ValidatePath(path string) bool {
 	return p.navigateToPath(path) != nil
 }
 
+// ValidateValue checks if a given value conforms to the schema at the provided path
+func (p *JSONSchemaParser) ValidateValue(path string, value any) error {
+	target := p.navigateToPath(path)
+	if target == nil {
+		return fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	if err := target.Validate(value); err != nil {
+		return fmt.Errorf("value for %s does not match schema: %w", path, err)
+	}
+
+	return nil
+}
+
+// ValidateDocument validates a map of configuration values against the root schema
+func (p *JSONSchemaParser) ValidateDocument(values map[string]any) error {
+	if err := p.schema.Validate(values); err != nil {
+		return fmt.Errorf("configuration does not match schema: %w", err)
+	}
+	return nil
+}
+
 // navigateToPath navigates to a schema at the given dotted path
 // Returns nil if the path doesn't exist
 func (p *JSONSchemaParser) navigateToPath(path string) *jsonschema.Schema {

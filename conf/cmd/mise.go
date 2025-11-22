@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var miseForce bool
+
 var miseCmd = &cobra.Command{
 	Use:   "mise [config.path] [value]",
 	Short: "Configure mise settings",
@@ -29,6 +31,7 @@ Examples:
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize mise tool: %v\n", err)
 			os.Exit(1)
 		}
+		miseTool.SetForce(miseForce)
 
 		// Default to list when no arguments provided
 		if len(args) == 0 {
@@ -113,5 +116,6 @@ var miseListCmd = &cobra.Command{
 }
 
 func init() {
+	miseCmd.Flags().BoolVar(&miseForce, "force", false, "Bypass schema validation when setting values")
 	miseCmd.AddCommand(miseListCmd)
 }

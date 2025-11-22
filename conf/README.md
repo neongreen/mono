@@ -74,7 +74,7 @@ hooks = [
 Then apply the configuration:
 
 ```bash
-# Apply the hooks to Claude's config.json
+# Apply the hooks to Claude's settings.json
 conf apply claude
 
 # Check that hooks are in sync
@@ -141,7 +141,7 @@ conf --completion fish > ~/.config/fish/completions/conf.fish
 - **jj (Jujutsu)**: `~/.config/jj/config.toml` (TOML format)
 - **mise**: `~/.config/mise/config.toml` (TOML format)
 - **starship**: `~/.config/starship.toml` (TOML format)
-- **claude**: `~/.config/claude/config.json` (JSON format)
+- **claude**: `~/.claude/settings.json` (JSON format)
 
 ## Configuration
 

@@ -10,11 +10,12 @@ import (
 )
 
 var claudeListFlag bool
+var claudeForce bool
 
 var claudeCmd = &cobra.Command{
 	Use:   "claude [config.path] [value]",
 	Short: "Configure Claude Code settings",
-	Long: `Get or set configuration values in ~/.config/claude/config.json using dotted path notation.
+	Long: `Get or set configuration values in ~/.claude/settings.json using dotted path notation.
 
 Examples:
   conf claude --list                          # List all available settings with current values
@@ -32,6 +33,7 @@ Examples:
 			fmt.Fprintf(os.Stderr, "Error: Failed to initialize claude tool: %v\n", err)
 			os.Exit(1)
 		}
+		claudeTool.SetForce(claudeForce)
 
 		// Handle --list flag or no arguments (default to list)
 		if claudeListFlag || len(args) == 0 {
@@ -154,4 +156,5 @@ Examples:
 
 func init() {
 	claudeCmd.Flags().BoolVar(&claudeListFlag, "list", false, "List all available Claude Code configuration settings with current values")
+	claudeCmd.Flags().BoolVar(&claudeForce, "force", false, "Bypass schema validation when setting values")
 }

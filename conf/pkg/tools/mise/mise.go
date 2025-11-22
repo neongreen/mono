@@ -16,6 +16,7 @@ type MiseTool struct {
 	editor     *editors.TOMLEditor
 	parser     *schemas.MiseSchemaParser
 	dryRun     bool
+	force      bool
 }
 
 // NewMiseTool creates a new mise tool instance
@@ -50,6 +51,7 @@ func NewMiseToolWithDryRun(dryRun bool) (*MiseTool, error) {
 		editor:     editor,
 		parser:     parser,
 		dryRun:     dryRun,
+		force:      false,
 	}, nil
 }
 
@@ -59,11 +61,22 @@ func (m *MiseTool) SetDryRun(dryRun bool) {
 	m.editor.SetDryRun(dryRun)
 }
 
+// SetForce enables or disables schema validation bypass
+func (m *MiseTool) SetForce(force bool) {
+	m.force = force
+}
+
 // SetConfig sets a configuration value using dotted path notation
 func (m *MiseTool) SetConfig(path string, value any) error {
 	// Validate the path exists in schema
 	if !m.ValidatePath(path) {
 		return fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	if !m.force && m.parser.ValidatePath(path) {
+		if err := m.parser.ValidateValue(path, value); err != nil {
+			return fmt.Errorf("invalid value for %s: %w", path, err)
+		}
 	}
 
 	// Set the value using the TOML editor
@@ -110,6 +123,12 @@ func (m *MiseTool) PreviewSetConfig(path string, value any) (string, error) {
 	// Validate the path exists in schema
 	if !m.ValidatePath(path) {
 		return "", fmt.Errorf("invalid configuration path: %s", path)
+	}
+
+	if !m.force && m.parser.ValidatePath(path) {
+		if err := m.parser.ValidateValue(path, value); err != nil {
+			return "", fmt.Errorf("invalid value for %s: %w", path, err)
+		}
 	}
 
 	return m.editor.PreviewSetValue(path, value)
@@ -167,10 +186,21 @@ func (m *MiseTool) IsDryRun() bool {
 	return m.dryRun
 }
 
+// IsForce returns whether schema validation is bypassed
+func (m *MiseTool) IsForce() bool {
+	return m.force
+}
+
 // SetAllValues sets multiple configuration values from a nested map structure
 // This is more efficient than setting individual paths as it avoids the need
 // to flatten/unflatten the structure and parse quoted keys
 func (m *MiseTool) SetAllValues(values map[string]any) error {
+	if !m.force {
+		if err := m.parser.ValidateDocument(values); err != nil {
+			return fmt.Errorf("invalid mise configuration: %w", err)
+		}
+	}
+
 	if m.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil

@@ -22,7 +22,7 @@ func TestClaudeTool_Integration(t *testing.T) {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
-	claudeConfigPath := filepath.Join(tmpDir, ".config", "claude", "config.json")
+	claudeConfigPath := filepath.Join(tmpDir, ".claude", "settings.json")
 
 	// Create conf config file with Claude tool configuration
 	confConfigPath := filepath.Join(configDir, "config.toml")
@@ -141,7 +141,7 @@ func TestClaudeTool_IntegrationWithConfState(t *testing.T) {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
-	claudeConfigPath := filepath.Join(tmpDir, ".config", "claude", "config.json")
+	claudeConfigPath := filepath.Join(tmpDir, ".claude", "settings.json")
 
 	// Create conf config file with Claude tool configuration
 	confConfigPath := filepath.Join(configDir, "config.toml")
@@ -216,7 +216,7 @@ func TestClaudeTool_HooksConfiguration(t *testing.T) {
 		t.Fatalf("Failed to create config dir: %v", err)
 	}
 
-	claudeConfigPath := filepath.Join(tmpDir, ".config", "claude", "config.json")
+	claudeConfigPath := filepath.Join(tmpDir, ".claude", "settings.json")
 
 	// Create Claude config directory
 	if err := os.MkdirAll(filepath.Dir(claudeConfigPath), 0o755); err != nil {

@@ -3,6 +3,7 @@ package starship
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -617,6 +618,58 @@ func TestLookupValueByPath(t *testing.T) {
 				t.Errorf("lookupValueByPath(%q) = %v, want %v", tt.path, result, tt.expected)
 			}
 		})
+	}
+}
+
+func TestStarshipTool_ValidateValueAndForce(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "starship-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tempDir)
+	defer os.Setenv("HOME", originalHome)
+
+	starshipConfigDir := filepath.Join(tempDir, ".config")
+	if err := os.MkdirAll(starshipConfigDir, 0o755); err != nil {
+		t.Fatalf("Failed to create starship config dir: %v", err)
+	}
+
+	configPath := filepath.Join(starshipConfigDir, "starship.toml")
+	if err := os.WriteFile(configPath, []byte("command_timeout = 500\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write config file: %v", err)
+	}
+
+	tool, err := NewStarshipTool()
+	if err != nil {
+		t.Fatalf("Failed to create starship tool: %v", err)
+	}
+
+	if err := tool.SetConfig("command_timeout", "fast"); err == nil {
+		t.Fatalf("Expected validation error for invalid value type")
+	}
+
+	content, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("Failed to read config: %v", err)
+	}
+	if strings.Contains(string(content), "fast") {
+		t.Fatalf("Config should not be written when validation fails")
+	}
+
+	tool.SetForce(true)
+	if err := tool.SetConfig("command_timeout", "fast"); err != nil {
+		t.Fatalf("Force should bypass validation: %v", err)
+	}
+
+	content, err = os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("Failed to read config: %v", err)
+	}
+	if !strings.Contains(string(content), "fast") {
+		t.Errorf("Expected config to be written when force is enabled")
 	}
 }
 

@@ -16,6 +16,7 @@ type JJTool struct {
 	editor     *editors.TOMLEditor
 	parser     *schemas.JJSchemaParser
 	dryRun     bool
+	force      bool
 }
 
 // NewJJTool creates a new jj tool instance
@@ -50,6 +51,7 @@ func NewJJToolWithDryRun(dryRun bool) (*JJTool, error) {
 		editor:     editor,
 		parser:     parser,
 		dryRun:     dryRun,
+		force:      false,
 	}, nil
 }
 
@@ -59,11 +61,22 @@ func (j *JJTool) SetDryRun(dryRun bool) {
 	j.editor.SetDryRun(dryRun)
 }
 
+// SetForce enables or disables schema validation bypass
+func (j *JJTool) SetForce(force bool) {
+	j.force = force
+}
+
 // SetConfig sets a configuration value using dotted path notation
 func (j *JJTool) SetConfig(path string, value any) error {
 	// Validate the path exists in schema
 	if !j.parser.ValidatePath(path) {
 		return j.createInvalidPathError(path)
+	}
+
+	if !j.force {
+		if err := j.parser.ValidateValue(path, value); err != nil {
+			return fmt.Errorf("invalid value for %s: %w", path, err)
+		}
 	}
 
 	// Set the value using the TOML editor
@@ -112,6 +125,12 @@ func (j *JJTool) PreviewSetConfig(path string, value any) (string, error) {
 		return "", fmt.Errorf("invalid configuration path: %s", path)
 	}
 
+	if !j.force {
+		if err := j.parser.ValidateValue(path, value); err != nil {
+			return "", fmt.Errorf("invalid value for %s: %w", path, err)
+		}
+	}
+
 	return j.editor.PreviewSetValue(path, value)
 }
 
@@ -133,6 +152,11 @@ func (j *JJTool) GetConfigPath() string {
 // IsDryRun returns whether dry-run mode is enabled
 func (j *JJTool) IsDryRun() bool {
 	return j.dryRun
+}
+
+// IsForce returns whether schema validation is bypassed
+func (j *JJTool) IsForce() bool {
+	return j.force
 }
 
 // ListAllSettings returns comprehensive information about all jj settings from schema
@@ -205,6 +229,12 @@ func (j *JJTool) GetAllValues() (map[string]any, error) {
 // This is more efficient than setting individual paths as it avoids the need
 // to flatten/unflatten the structure and parse quoted keys
 func (j *JJTool) SetAllValues(values map[string]any) error {
+	if !j.force {
+		if err := j.parser.ValidateDocument(values); err != nil {
+			return fmt.Errorf("invalid jj configuration: %w", err)
+		}
+	}
+
 	if j.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil

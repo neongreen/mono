@@ -16,6 +16,7 @@ type ClaudeTool struct {
 	editor     *editors.JSONEditor
 	parser     *schemas.ClaudeSchemaParser
 	dryRun     bool
+	force      bool
 }
 
 // NewClaudeTool creates a new Claude tool instance
@@ -50,6 +51,7 @@ func NewClaudeToolWithDryRun(dryRun bool) (*ClaudeTool, error) {
 		editor:     editor,
 		parser:     parser,
 		dryRun:     dryRun,
+		force:      false,
 	}, nil
 }
 
@@ -59,11 +61,22 @@ func (c *ClaudeTool) SetDryRun(dryRun bool) {
 	c.editor.SetDryRun(dryRun)
 }
 
+// SetForce enables or disables schema validation bypass
+func (c *ClaudeTool) SetForce(force bool) {
+	c.force = force
+}
+
 // SetConfig sets a configuration value using dotted path notation
 func (c *ClaudeTool) SetConfig(path string, value any) error {
 	// Validate the path exists in schema
 	if !c.parser.ValidatePath(path) {
 		return c.createInvalidPathError(path)
+	}
+
+	if !c.force {
+		if err := c.parser.ValidateValue(path, value); err != nil {
+			return fmt.Errorf("invalid value for %s: %w", path, err)
+		}
 	}
 
 	// Set the value using the JSON editor
@@ -112,6 +125,12 @@ func (c *ClaudeTool) PreviewSetConfig(path string, value any) (string, error) {
 		return "", fmt.Errorf("invalid configuration path: %s", path)
 	}
 
+	if !c.force {
+		if err := c.parser.ValidateValue(path, value); err != nil {
+			return "", fmt.Errorf("invalid value for %s: %w", path, err)
+		}
+	}
+
 	return c.editor.PreviewSetValue(path, value)
 }
 
@@ -135,6 +154,11 @@ func (c *ClaudeTool) IsDryRun() bool {
 	return c.dryRun
 }
 
+// IsForce returns whether schema validation is bypassed
+func (c *ClaudeTool) IsForce() bool {
+	return c.force
+}
+
 // GetAllValues returns all configuration values from the Claude config file as a nested map
 func (c *ClaudeTool) GetAllValues() (map[string]any, error) {
 	return c.editor.GetAllValues()
@@ -142,6 +166,12 @@ func (c *ClaudeTool) GetAllValues() (map[string]any, error) {
 
 // SetAllValues sets multiple configuration values from a nested map structure
 func (c *ClaudeTool) SetAllValues(values map[string]any) error {
+	if !c.force {
+		if err := c.parser.ValidateDocument(values); err != nil {
+			return fmt.Errorf("invalid Claude configuration: %w", err)
+		}
+	}
+
 	if c.dryRun {
 		fmt.Println("DRY RUN: Would set all values")
 		return nil
