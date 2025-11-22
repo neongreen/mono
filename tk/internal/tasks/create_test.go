@@ -13,6 +13,7 @@ func TestCreate(t *testing.T) {
 	db := testutil.OpenTempDB(t)
 
 	projectUID := testutil.SeedProject(t, db, "test")
+	testutil.RebuildTestProjections(t, db)
 
 	clk := clock.NewVirtualClock(time.Unix(300, 0))
 	result, err := Create(db, CreateParams{
@@ -60,6 +61,7 @@ func TestCreateMultipleTasks(t *testing.T) {
 	db := testutil.OpenTempDB(t)
 
 	projectUID := testutil.SeedProject(t, db, "test")
+	testutil.RebuildTestProjections(t, db)
 
 	clk := clock.NewVirtualClock(time.Unix(400, 0))
 

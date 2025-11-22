@@ -93,7 +93,7 @@ Example:
 		}
 
 		// Project the event
-		if err := db.ProjectContainerRenameEvent(event); err != nil {
+		if err := db.RebuildProjections(); err != nil {
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 

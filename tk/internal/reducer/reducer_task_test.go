@@ -115,15 +115,24 @@ func TestReducer_TaskDelete(t *testing.T) {
 		t.Fatalf("Failed to apply task.delete event: %v", err)
 	}
 
-	// Verify task was removed
-	_, ok = r.GetTask(taskUID)
-	if ok {
-		t.Error("Task should not exist after delete")
+	// Verify task is soft deleted (still in map but marked deleted)
+	task, ok := r.GetTaskIncludingDeleted(taskUID)
+	if !ok {
+		t.Error("Task should still exist in map after soft delete")
+	}
+	if !task.Deleted {
+		t.Error("Task should be marked as deleted")
+	}
+	if task.DeletedAt.IsZero() {
+		t.Error("Task should have DeletedAt timestamp")
 	}
 
-	// Verify task is not in the tasks map
-	if _, exists := r.tasks[taskUID]; exists {
-		t.Error("Task should be removed from tasks map")
+	// Verify task is not visible in GetAllTasks
+	allTasks := r.GetAllTasks()
+	for _, visibleTask := range allTasks {
+		if visibleTask.TaskUUID == taskUID {
+			t.Error("Deleted task should not appear in GetAllTasks()")
+		}
 	}
 }
 
@@ -178,9 +187,18 @@ func TestReducer_TaskDelete_RemovesTaskIDMappings(t *testing.T) {
 
 	r.Apply(deleteEvent)
 
-	// Verify task ID mapping was removed
-	if _, exists := r.taskByID[taskUID]; exists {
-		t.Error("Task ID mapping should be removed after delete")
+	// Verify task ID mapping still exists (soft delete doesn't remove mappings)
+	if _, exists := r.taskByID[taskUID]; !exists {
+		t.Error("Task ID mapping should still exist after soft delete")
+	}
+
+	// Verify task is marked deleted
+	task, ok := r.GetTaskIncludingDeleted(taskUID)
+	if !ok {
+		t.Error("Task should still be retrievable after soft delete")
+	}
+	if !task.Deleted {
+		t.Error("Task should be marked as deleted")
 	}
 }
 
@@ -240,9 +258,12 @@ func TestReducer_TaskDelete_Idempotency(t *testing.T) {
 		t.Errorf("Second delete should be idempotent but got error: %v", err)
 	}
 
-	// Verify task is still deleted
-	_, ok := r.GetTask(taskUID)
-	if ok {
-		t.Error("Task should remain deleted after idempotent delete")
+	// Verify task is still soft deleted
+	task, ok := r.GetTask(taskUID)
+	if !ok {
+		t.Error("Task should still exist after soft delete")
+	}
+	if !task.Deleted {
+		t.Error("Task should remain marked as deleted after idempotent delete")
 	}
 }

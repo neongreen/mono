@@ -89,9 +89,9 @@ func (d *DB) CreateDefaultKind(primitive types.ContainerPrimitive, kindName, des
 		return fmt.Errorf("failed to insert event: %w", err)
 	}
 
-	// Project the event into container_kinds table
-	if err := d.ProjectContainerKindDefineEvent(event); err != nil {
-		return fmt.Errorf("failed to project event: %w", err)
+	// Rebuild projections from events to update database
+	if err := d.RebuildProjections(); err != nil {
+		return fmt.Errorf("failed to rebuild projections: %w", err)
 	}
 
 	return nil

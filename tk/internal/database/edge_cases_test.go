@@ -24,7 +24,7 @@ func TestEventProjectionIdempotency(t *testing.T) {
 	if err := db.CreateProjectTables(); err != nil {
 		t.Fatalf("failed to create project tables: %v", err)
 	}
-	if err := db.SetDBVersion(4); err != nil {
+	if err := db.SetDBVersion(8); err != nil {
 		t.Fatalf("failed to set version: %v", err)
 	}
 
@@ -46,12 +46,12 @@ func TestEventProjectionIdempotency(t *testing.T) {
 	if err := db.InsertEvent(projectEvent); err != nil {
 		t.Fatalf("failed to insert project event: %v", err)
 	}
-	if err := db.ProjectProjectCreatedEvent(projectEvent); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project project first time: %v", err)
 	}
 
 	// Project again (should be idempotent - no error, no duplicate)
-	if err := db.ProjectProjectCreatedEvent(projectEvent); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project project second time: %v", err)
 	}
 
@@ -83,7 +83,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	if err := db.CreateProjectTables(); err != nil {
 		t.Fatalf("failed to create project tables: %v", err)
 	}
-	if err := db.SetDBVersion(4); err != nil {
+	if err := db.SetDBVersion(8); err != nil {
 		t.Fatalf("failed to set version: %v", err)
 	}
 
@@ -103,7 +103,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	if err := db.InsertEvent(projectEvent); err != nil {
 		t.Fatalf("failed to insert project: %v", err)
 	}
-	if err := db.ProjectProjectCreatedEvent(projectEvent); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project project: %v", err)
 	}
 
@@ -115,7 +115,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	if err := db.InsertEvent(task1Event); err != nil {
 		t.Fatalf("failed to insert task1: %v", err)
 	}
-	if err := db.ProjectTaskCreatedEvent(task1Event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project task1: %v", err)
 	}
 
@@ -123,7 +123,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	if err := db.InsertEvent(number1Event); err != nil {
 		t.Fatalf("failed to insert number1: %v", err)
 	}
-	if err := db.ProjectTaskNumberSetEvent(number1Event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project number1: %v", err)
 	}
 
@@ -134,7 +134,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	if err := db.InsertEvent(task2Event); err != nil {
 		t.Fatalf("failed to insert task2: %v", err)
 	}
-	if err := db.ProjectTaskCreatedEvent(task2Event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project task2: %v", err)
 	}
 
@@ -142,7 +142,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 	if err := db.InsertEvent(number2Event); err != nil {
 		t.Fatalf("failed to insert number2: %v", err)
 	}
-	if err := db.ProjectTaskNumberSetEvent(number2Event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project number2: %v", err)
 	}
 

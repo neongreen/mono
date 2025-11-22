@@ -3,6 +3,7 @@ package reducer
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sort"
 
 	"github.com/neongreen/mono/tk/internal/config"
@@ -11,21 +12,42 @@ import (
 	"github.com/neongreen/mono/tk/internal/utils"
 )
 
+// TaskNumber represents a task number assignment
+type TaskNumber struct {
+	ProjectUID string
+	Number     int64
+	TaskUID    string
+}
+
 // Reducer reconstructs task state from events
 type Reducer struct {
 	tasks        map[string]*types.Task    // Key: task UUID
 	taskByID     map[string]string         // Key: task ID (current or alias) -> Value: task UUID
 	taskProjects map[string]string         // Key: task UUID -> Value: project UID
 	relations    *relations.RelationsGraph // Relations graph
+
+	// Project resolution maps for lax identifier handling
+	projects                map[string]*types.Project // Key: project UID -> Value: project
+	projectByName           map[string]string         // Key: project name/alias -> Value: project UID
+	temporaryProjects       map[string]bool           // Key: project UID -> Value: true (tracks synthetic projects)
+	syntheticProjectCounter int                       // Counter for deterministic synthetic project UIDs
+
+	// Task number assignments - Key: task UUID -> Value: TaskNumber
+	taskNumbers map[string]TaskNumber
 }
 
 // NewReducer creates a new reducer
 func NewReducer() *Reducer {
 	return &Reducer{
-		tasks:        make(map[string]*types.Task),
-		taskByID:     make(map[string]string),
-		taskProjects: make(map[string]string),
-		relations:    relations.NewRelationsGraph(),
+		tasks:                   make(map[string]*types.Task),
+		taskByID:                make(map[string]string),
+		taskProjects:            make(map[string]string),
+		relations:               relations.NewRelationsGraph(),
+		projects:                make(map[string]*types.Project),
+		projectByName:           make(map[string]string),
+		temporaryProjects:       make(map[string]bool),
+		syntheticProjectCounter: 0,
+		taskNumbers:             make(map[string]TaskNumber),
 	}
 }
 
@@ -37,6 +59,46 @@ func (r *Reducer) Relations() *relations.RelationsGraph {
 // Tasks returns the tasks map
 func (r *Reducer) Tasks() map[string]*types.Task {
 	return r.tasks
+}
+
+// TaskNumbers returns the task numbers map
+func (r *Reducer) TaskNumbers() map[string]TaskNumber {
+	return r.taskNumbers
+}
+
+// Projects returns the projects map
+func (r *Reducer) Projects() map[string]*types.Project {
+	return r.projects
+}
+
+// isProjectDeleted checks if a project is deleted
+func (r *Reducer) isProjectDeleted(projectUID string) bool {
+	project, exists := r.projects[projectUID]
+	return exists && project.Deleted
+}
+
+// isTaskVisible checks if a task should be shown
+// A task is hidden if:
+// - Task is explicitly deleted, OR
+// - Task's project is deleted
+func (r *Reducer) isTaskVisible(task *types.Task) bool {
+	if task.Deleted {
+		return false
+	}
+
+	// Check if task's project is deleted
+	return !r.isProjectDeleted(task.ProjectUUID)
+}
+
+// GetVisibleProjects returns all non-deleted projects
+func (r *Reducer) GetVisibleProjects() []*types.Project {
+	projects := make([]*types.Project, 0, len(r.projects))
+	for _, project := range r.projects {
+		if !project.Deleted {
+			projects = append(projects, project)
+		}
+	}
+	return projects
 }
 
 // Apply applies an event to update the task state
@@ -168,7 +230,20 @@ func (r *Reducer) applyTaskDelete(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.delete payload: %w", err)
 	}
 
-	r.removeTaskFromMaps(payload.TaskUUID)
+	taskUUID := payload.TaskUUID
+
+	// Mark task as deleted (soft delete)
+	if task, exists := r.tasks[taskUUID]; exists {
+		task.Deleted = true
+		task.DeletedAt = e.CreatedAt
+	}
+
+	// Remove task number assignment (task numbers are not shown for deleted tasks)
+	delete(r.taskNumbers, taskUUID)
+
+	// Note: We keep task ID mappings even after soft delete so that
+	// deleted tasks can still be referenced by their old IDs
+
 	return nil
 }
 
@@ -197,19 +272,13 @@ func (r *Reducer) applyProjectDelete(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.delete payload: %w", err)
 	}
 
-	projectUID := payload.ProjectUID
+	projectUID := payload.ProjectUID.String()
 
-	// Find all tasks in this project and delete them
-	tasksToDelete := make([]string, 0)
-	for taskUUID, taskProjectUID := range r.taskProjects {
-		if taskProjectUID == projectUID.String() {
-			tasksToDelete = append(tasksToDelete, taskUUID)
-		}
-	}
-
-	// Delete each task using the helper
-	for _, taskUUID := range tasksToDelete {
-		r.removeTaskFromMaps(taskUUID)
+	// Mark project as deleted (soft delete)
+	// Tasks in deleted projects are implicitly hidden via visibility checks
+	if project, exists := r.projects[projectUID]; exists {
+		project.Deleted = true
+		project.DeletedAt = e.CreatedAt
 	}
 
 	return nil
@@ -265,7 +334,22 @@ func (r *Reducer) resolveEffectiveStatus(axis *types.AxisStatus) {
 }
 
 // GetTask returns the current state of a task by ID (supports task ID or UUID)
+// GetTask returns a visible (non-deleted) task by ID or UUID
+// Returns (nil, false) if the task doesn't exist or is deleted/in a deleted project
 func (r *Reducer) GetTask(idOrUUID string) (*types.Task, bool) {
+	task, ok := r.GetTaskIncludingDeleted(idOrUUID)
+	if !ok {
+		return nil, false
+	}
+	if !r.isTaskVisible(task) {
+		return nil, false
+	}
+	return task, true
+}
+
+// GetTaskIncludingDeleted returns a task by ID or UUID, even if deleted
+// This is useful for internal operations that need to access deleted tasks
+func (r *Reducer) GetTaskIncludingDeleted(idOrUUID string) (*types.Task, bool) {
 	// Try direct UUID lookup first
 	task, ok := r.tasks[idOrUUID]
 	if ok {
@@ -282,8 +366,21 @@ func (r *Reducer) GetTask(idOrUUID string) (*types.Task, bool) {
 	return task, ok
 }
 
-// GetAllTasks returns all tasks
+// GetAllTasks returns all visible (non-deleted) tasks
+// Tasks are hidden if they are explicitly deleted OR if their project is deleted
 func (r *Reducer) GetAllTasks() []*types.Task {
+	tasks := make([]*types.Task, 0, len(r.tasks))
+	for _, task := range r.tasks {
+		if r.isTaskVisible(task) {
+			tasks = append(tasks, task)
+		}
+	}
+	return tasks
+}
+
+// GetAllTasksIncludingDeleted returns all tasks, including deleted ones
+// This is useful for internal operations that need to access all tasks
+func (r *Reducer) GetAllTasksIncludingDeleted() []*types.Task {
 	tasks := make([]*types.Task, 0, len(r.tasks))
 	for _, task := range r.tasks {
 		tasks = append(tasks, task)
@@ -358,6 +455,11 @@ func BuildFromEvents(events []types.Event) (*Reducer, error) {
 	reducer := NewReducer()
 	for _, e := range events {
 		if err := reducer.Apply(e); err != nil {
+			// Dump reducer state if debug logging is enabled
+			if slog.Default().Enabled(nil, slog.LevelDebug) {
+				slog.Debug("reducer error occurred, dumping state", "event_id", e.ID, "error", err)
+				reducer.DumpDebugState()
+			}
 			return nil, fmt.Errorf("failed to apply event %s: %w", e.ID, err)
 		}
 	}
@@ -369,6 +471,11 @@ func BuildFromEventsWithConfig(events []types.Event, config *config.Config) (*Re
 	reducer := NewReducer()
 	for _, e := range events {
 		if err := reducer.Apply(e); err != nil {
+			// Dump reducer state if debug logging is enabled
+			if slog.Default().Enabled(nil, slog.LevelDebug) {
+				slog.Debug("reducer error occurred, dumping state", "event_id", e.ID, "error", err)
+				reducer.DumpDebugState()
+			}
 			return nil, fmt.Errorf("failed to apply event %s: %w", e.ID, err)
 		}
 	}
@@ -376,7 +483,7 @@ func BuildFromEventsWithConfig(events []types.Event, config *config.Config) (*Re
 	return reducer, nil
 }
 
-// V4 Event Reducer Functions
+// Event Reducer Functions
 // Handles events (project.created, task.created, task.number.set, task.relocate, etc.)
 
 // ApplyProjectEvent applies an event-specific handler
@@ -405,13 +512,43 @@ func (r *Reducer) ApplyProjectEvent(e types.Event) (bool, error) {
 }
 
 func (r *Reducer) applyProjectCreated(e types.Event) error {
-	var payload types.ProjectCreatedPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+	var laxPayload types.ProjectCreatedPayloadLax
+	if err := json.Unmarshal(e.Payload, &laxPayload); err != nil {
 		return fmt.Errorf("failed to unmarshal project.created payload: %w", err)
 	}
 
-	// Project state is managed by DB projections, not in-memory reducer
-	// This is just for completeness
+	// Validate and normalize project UID
+	projectUID := types.ProjectUID(laxPayload.ProjectUID)
+	if err := projectUID.Validate(); err != nil {
+		return fmt.Errorf("invalid project_uid in project.created: %w", err)
+	}
+
+	// Validate project type
+	projectType := types.ProjectType(laxPayload.Type)
+	if err := projectType.Validate(); err != nil {
+		return fmt.Errorf("invalid type in project.created: %w", err)
+	}
+
+	// Normalize project name (convert uppercase to lowercase, clean up)
+	normalizedName := types.NormalizeProjectName(laxPayload.Name)
+	if normalizedName == "" {
+		return fmt.Errorf("project name normalizes to empty string: %q", laxPayload.Name)
+	}
+
+	// Store project in memory for identifier resolution
+	project := &types.Project{
+		UID:         projectUID,
+		Type:        projectType,
+		Name:        normalizedName,
+		Description: laxPayload.Description,
+		CreatedAt:   e.CreatedAt,
+		CreatedBy:   laxPayload.CreatedBy,
+	}
+	r.projects[projectUID.String()] = project
+
+	// Map project name to UID for legacy identifier resolution
+	r.projectByName[normalizedName] = projectUID.String()
+
 	return nil
 }
 
@@ -421,7 +558,15 @@ func (r *Reducer) applyProjectAliasAdd(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.alias.add payload: %w", err)
 	}
 
-	// Alias state is managed by DB projections
+	// Resolve the project UID (could be legacy format)
+	projectUID, err := r.resolveProjectUID(payload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve project UID in project.alias.add: %w", err)
+	}
+
+	// Map alias to project UID for legacy identifier resolution
+	r.projectByName[payload.Alias] = projectUID
+
 	return nil
 }
 
@@ -431,7 +576,9 @@ func (r *Reducer) applyProjectAliasRemove(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.alias.remove payload: %w", err)
 	}
 
-	// Alias state is managed by DB projections
+	// Remove alias from projectByName map
+	delete(r.projectByName, payload.Alias)
+
 	return nil
 }
 
@@ -467,6 +614,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 				Metadata:      existing.Metadata, // Preserve metadata
 				Notes:         existing.Notes,    // Preserve notes
 				CreatedBy:     payload.CreatedBy,
+				CreatedNode:   payload.CreatedNode,
 				CreatedAt:     e.CreatedAt,
 				CreatedAtTS:   e.TS,
 				UpdatedAt:     existing.UpdatedAt, // Preserve updated timestamp
@@ -491,6 +639,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 		Axes:          make(map[string]types.AxisStatus),
 		Notes:         []types.Note{},
 		CreatedBy:     payload.CreatedBy,
+		CreatedNode:   payload.CreatedNode,
 		CreatedAt:     e.CreatedAt,
 		CreatedAtTS:   e.TS,
 		UpdatedAt:     e.CreatedAt, // Initially same as CreatedAt
@@ -506,25 +655,69 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 }
 
 func (r *Reducer) applyTaskNumberSet(e types.Event) error {
-	var payload types.TaskNumberSetPayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+	var laxPayload types.TaskNumberSetPayloadLax
+	if err := json.Unmarshal(e.Payload, &laxPayload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.number.set payload: %w", err)
 	}
 
-	// Number assignments are managed by DB projections (task_numbers table)
-	// The reducer doesn't need to track this in memory
+	// Resolve lax identifiers to validated UIDs
+	taskUID, err := r.resolveTaskUID(laxPayload.TaskUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve task UID in task.number.set: %w", err)
+	}
+
+	projectUID, err := r.resolveProjectUID(laxPayload.ProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve project UID in task.number.set: %w", err)
+	}
+
+	// Track the task number assignment
+	r.taskNumbers[taskUID] = TaskNumber{
+		ProjectUID: projectUID,
+		Number:     laxPayload.Number,
+		TaskUID:    taskUID,
+	}
+
 	return nil
 }
 
 func (r *Reducer) applyTaskRelocate(e types.Event) error {
-	var payload types.TaskRelocatePayload
-	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+	var laxPayload types.TaskRelocatePayloadLax
+	if err := json.Unmarshal(e.Payload, &laxPayload); err != nil {
 		return fmt.Errorf("failed to unmarshal task.relocate payload: %w", err)
+	}
+
+	// Resolve lax identifiers to validated UIDs
+	taskUID, err := r.resolveTaskUID(laxPayload.TaskUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve task UID in task.relocate: %w", err)
+	}
+
+	toProjectUID, err := r.resolveProjectUID(laxPayload.ToProjectUID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve to_project_uid in task.relocate: %w", err)
 	}
 
 	// Update the task's project mapping so project.delete can correctly
 	// remove tasks that belong to the deleted project
-	r.taskProjects[payload.TaskUID.String()] = payload.ToProjectUID.String()
+	r.taskProjects[taskUID] = toProjectUID
+
+	// Also update the task object's ProjectUUID field
+	if task, exists := r.tasks[taskUID]; exists {
+		task.ProjectUUID = toProjectUID
+		task.UpdatedAt = e.CreatedAt
+	}
+
+	// Apply the number policy from the relocation
+	// The NumberPolicy should be in "force" mode with a concrete number
+	// (auto mode is resolved at event creation time, not replay time)
+	if laxPayload.NumberPolicy.Mode == "force" {
+		r.taskNumbers[taskUID] = TaskNumber{
+			ProjectUID: toProjectUID,
+			Number:     laxPayload.NumberPolicy.Number,
+			TaskUID:    taskUID,
+		}
+	}
 
 	return nil
 }
@@ -604,4 +797,85 @@ func (r *Reducer) applyTaskAttachmentRemove(e types.Event) error {
 	task.UpdatedAt = e.CreatedAt
 
 	return nil
+}
+
+// CleanupTemporaryProjects checks if any temporary (synthetic) projects have tasks.
+// - Empty projects → Silently ignore (they were just scaffolding)
+// - Non-empty projects → ERROR (manual cleanup required)
+//
+// This should be called after all events have been replayed.
+func (r *Reducer) CleanupTemporaryProjects() error {
+	for projectUID := range r.temporaryProjects {
+		// Count tasks in this project
+		taskCount := 0
+		for _, taskProjectUID := range r.taskProjects {
+			if taskProjectUID == projectUID {
+				taskCount++
+			}
+		}
+
+		if taskCount > 0 {
+			// Non-empty temporary project - ERROR
+			project := r.projects[projectUID]
+			return fmt.Errorf("temporary project %q has %d tasks - manual cleanup required. This indicates malformed event data that is no longer supported.", project.Name, taskCount)
+		}
+		// Empty temporary projects are OK - they were just scaffolding for resolution
+	}
+
+	return nil
+}
+
+// DumpDebugState logs the entire reducer state for debugging purposes.
+// This is useful when debugging reducer errors to understand the state at failure time.
+func (r *Reducer) DumpDebugState() {
+	slog.Debug("=== Reducer State Dump ===")
+
+	// Dump tasks
+	slog.Debug("tasks", "count", len(r.tasks))
+	for uuid, task := range r.tasks {
+		slog.Debug("task",
+			"uuid", uuid,
+			"display_id", task.TaskDisplayID,
+			"title", task.Title,
+			"project_uuid", task.ProjectUUID,
+			"item_kind", task.ItemKind,
+		)
+	}
+
+	// Dump taskByID mappings
+	slog.Debug("taskByID mappings", "count", len(r.taskByID))
+	for id, uuid := range r.taskByID {
+		slog.Debug("taskByID", "id", id, "uuid", uuid)
+	}
+
+	// Dump taskProjects mappings
+	slog.Debug("taskProjects mappings", "count", len(r.taskProjects))
+	for taskUUID, projectUID := range r.taskProjects {
+		slog.Debug("taskProject", "task_uuid", taskUUID, "project_uid", projectUID)
+	}
+
+	// Dump projects
+	slog.Debug("projects", "count", len(r.projects))
+	for uid, project := range r.projects {
+		slog.Debug("project",
+			"uid", uid,
+			"name", project.Name,
+			"type", project.Type,
+		)
+	}
+
+	// Dump projectByName mappings
+	slog.Debug("projectByName mappings", "count", len(r.projectByName))
+	for name, uid := range r.projectByName {
+		slog.Debug("projectByName", "name", name, "uid", uid)
+	}
+
+	// Dump temporary projects
+	slog.Debug("temporary/synthetic projects", "count", len(r.temporaryProjects))
+	for uid := range r.temporaryProjects {
+		slog.Debug("temporary_project", "uid", uid)
+	}
+
+	slog.Debug("synthetic_project_counter", "value", r.syntheticProjectCounter)
+	slog.Debug("=== End Reducer State Dump ===")
 }

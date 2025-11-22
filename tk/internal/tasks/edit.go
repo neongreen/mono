@@ -107,8 +107,9 @@ func EditNumber(db *database.DB, taskUID string, value string, actor string, clk
 		return fmt.Errorf("failed to insert task.number.set event: %w", err)
 	}
 
-	if err := db.ProjectTaskNumberSetEvent(event); err != nil {
-		return fmt.Errorf("failed to project task.number.set event: %w", err)
+	// Rebuild projections from events to update database
+	if err := db.RebuildProjections(); err != nil {
+		return fmt.Errorf("failed to rebuild projections: %w", err)
 	}
 
 	return nil
@@ -150,7 +151,7 @@ func EditTitle(db *database.DB, taskUID string, value string, actor string, clk 
 		return fmt.Errorf("failed to insert task.title.set event: %w", err)
 	}
 
-	if err := db.ProjectTaskTitleSetEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		return fmt.Errorf("failed to project task.title.set event: %w", err)
 	}
 

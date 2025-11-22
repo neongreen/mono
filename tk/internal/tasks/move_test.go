@@ -13,8 +13,11 @@ func TestMove_ValidatesDestinationProjectUID(t *testing.T) {
 	db := testutil.OpenTempDB(t)
 
 	projectA := testutil.SeedProject(t, db, "proj-a")
+	testutil.RebuildTestProjections(t, db)
 	projectB := testutil.SeedProject(t, db, "proj-b")
+	testutil.RebuildTestProjections(t, db)
 	taskUID := testutil.SeedTask(t, db, projectA, "task", 1)
+	testutil.RebuildTestProjections(t, db)
 
 	clk := clock.NewVirtualClock(time.Unix(100, 0))
 
@@ -48,7 +51,9 @@ func TestMove_ValidatesTaskUID(t *testing.T) {
 	db := testutil.OpenTempDB(t)
 
 	_ = testutil.SeedProject(t, db, "proj-a")
+	testutil.RebuildTestProjections(t, db)
 	projectB := testutil.SeedProject(t, db, "proj-b")
+	testutil.RebuildTestProjections(t, db)
 
 	clk := clock.NewVirtualClock(time.Unix(100, 0))
 

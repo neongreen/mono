@@ -100,7 +100,7 @@ func defineKind(t *testing.T, db *database.DB, name string, primitive types.Cont
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert define kind event: %v", err)
 	}
-	if err := db.ProjectContainerKindDefineEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project define kind event: %v", err)
 	}
 }
@@ -130,7 +130,7 @@ func createContainer(t *testing.T, db *database.DB, id string, primitive types.C
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert create container event: %v", err)
 	}
-	if err := db.ProjectContainerCreateEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project create container event: %v", err)
 	}
 }
@@ -157,7 +157,7 @@ func pushToQueue(t *testing.T, db *database.DB, queueID string, itemID string) {
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert queue push event: %v", err)
 	}
-	if err := db.ProjectQueuePushEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project queue push event: %v", err)
 	}
 }
@@ -184,7 +184,7 @@ func popFromQueue(t *testing.T, db *database.DB, queueID string, itemID string) 
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert queue pop event: %v", err)
 	}
-	if err := db.ProjectQueuePopEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project queue pop event: %v", err)
 	}
 }
@@ -211,7 +211,7 @@ func addToGroup(t *testing.T, db *database.DB, groupID string, itemID string) {
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert group add event: %v", err)
 	}
-	if err := db.ProjectGroupAddEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project group add event: %v", err)
 	}
 }
@@ -238,7 +238,7 @@ func removeFromGroup(t *testing.T, db *database.DB, groupID string, itemID strin
 	if err := db.InsertEvent(event); err != nil {
 		t.Fatalf("failed to insert group remove event: %v", err)
 	}
-	if err := db.ProjectGroupRemoveEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		t.Fatalf("failed to project group remove event: %v", err)
 	}
 }

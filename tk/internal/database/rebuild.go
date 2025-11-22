@@ -2,6 +2,9 @@ package database
 
 import (
 	"fmt"
+
+	"github.com/neongreen/mono/tk/internal/config"
+	"github.com/neongreen/mono/tk/internal/reducer"
 )
 
 // RebuildProjections clears all projection tables and rebuilds them from events.
@@ -36,19 +39,28 @@ func (d *DB) RebuildProjections() error {
 		return fmt.Errorf("failed to commit table clearing: %w", err)
 	}
 
-	// Phase 2: Replay all events in Lamport timestamp order
+	// Phase 2: Build reducer state from all events and persist to database
 	events, err := d.GetEvents()
 	if err != nil {
 		return fmt.Errorf("failed to get events for rebuild: %w", err)
 	}
 
-	projectionErrors := 0
-	for _, event := range events {
-		if err := d.ProjectEvent(event); err != nil {
-			// Track projection errors but continue
-			// Some events might not have projection handlers (like status.set, etc.)
-			projectionErrors++
-		}
+	// Load config for reducer
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Build reducer state from events
+	// The reducer uses lax types and properly handles legacy event formats
+	r, err := reducer.BuildFromEventsWithConfig(events, cfg)
+	if err != nil {
+		return fmt.Errorf("failed to build reducer from events: %w", err)
+	}
+
+	// Persist reducer state to database
+	if err := d.PersistReducerState(r); err != nil {
+		return fmt.Errorf("failed to persist reducer state: %w", err)
 	}
 
 	return nil

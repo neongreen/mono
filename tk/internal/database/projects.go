@@ -41,9 +41,9 @@ func GetProjectAliasForTask(db *DB, taskUID string) (string, error) {
 
 // GetAllProjectDisplayNames returns a map of project UIDs to their display names (alias or name).
 func GetAllProjectDisplayNames(db *DB) (map[string]string, error) {
-	// Query all projects
+	// Query all non-deleted projects
 	rows, err := db.Db.Query(`
-		SELECT project_uid, name FROM projects ORDER BY created_at
+		SELECT project_uid, name FROM projects WHERE deleted = 0 ORDER BY created_at
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query projects: %w", err)

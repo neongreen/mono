@@ -523,11 +523,11 @@ func extractTaskUUIDFromEvent(e types.Event) string {
 		return ""
 	}
 
-	// Try task_uuid first (v4 format)
+	// Try task_uuid first (current format)
 	if uuid, ok := payload["task_uuid"].(string); ok {
 		return uuid
 	}
-	// Fall back to task_uid (older format)
+	// Fall back to task_uid (legacy format)
 	if uuid, ok := payload["task_uid"].(string); ok {
 		return uuid
 	}

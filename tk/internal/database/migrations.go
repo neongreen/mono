@@ -3,17 +3,16 @@ package database
 import (
 	"fmt"
 
-	v4_to_v5 "github.com/neongreen/mono/tk/internal/migrations/v4_to_v5"
 	v5_to_v6 "github.com/neongreen/mono/tk/internal/migrations/v5_to_v6"
 	v6_to_v7 "github.com/neongreen/mono/tk/internal/migrations/v6_to_v7"
 )
 
 const (
 	// MinSupportedDBVersion is the minimum database version this binary can work with
-	MinSupportedDBVersion = 4
+	MinSupportedDBVersion = 5
 
 	// MaxSupportedDBVersion is the maximum database version this binary can work with
-	MaxSupportedDBVersion = 7
+	MaxSupportedDBVersion = 8
 )
 
 // Migration represents a database migration
@@ -26,14 +25,6 @@ type Migration struct {
 
 // migrations is the list of all available migrations
 var migrations = []Migration{
-	{
-		FromVersion: 4,
-		ToVersion:   5,
-		Name:        "Add synthetic projects support",
-		Run: func(db *DB) error {
-			return v4_to_v5.Migrate(db)
-		},
-	},
 	{
 		FromVersion: 5,
 		ToVersion:   6,
@@ -48,6 +39,44 @@ var migrations = []Migration{
 		Name:        "Add item kinds (task/decision/resource/etc)",
 		Run: func(db *DB) error {
 			return v6_to_v7.Migrate(db)
+		},
+	},
+	{
+		FromVersion: 7,
+		ToVersion:   8,
+		Name:        "Add soft deletion (deleted columns)",
+		Run: func(db *DB) error {
+			// Drop and recreate projection tables with new schema
+			// This is simpler than ALTER TABLE and guaranteed correct
+			tx, err := db.Db.Begin()
+			if err != nil {
+				return fmt.Errorf("failed to begin transaction: %w", err)
+			}
+			defer tx.Rollback()
+
+			// Drop projection tables (events table is preserved!)
+			tables := []string{"task_numbers", "tasks", "projects"}
+			for _, table := range tables {
+				if _, err := tx.Exec(fmt.Sprintf("DROP TABLE IF EXISTS %s", table)); err != nil {
+					return fmt.Errorf("failed to drop %s: %w", table, err)
+				}
+			}
+
+			if err := tx.Commit(); err != nil {
+				return fmt.Errorf("failed to commit: %w", err)
+			}
+
+			// Recreate tables with new schema (includes deleted columns)
+			if err := db.CreateProjectTables(); err != nil {
+				return fmt.Errorf("failed to recreate tables: %w", err)
+			}
+
+			// Rebuild projections from events
+			if err := db.RebuildProjections(); err != nil {
+				return fmt.Errorf("failed to rebuild projections: %w", err)
+			}
+
+			return nil
 		},
 	},
 }

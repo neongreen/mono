@@ -38,14 +38,14 @@ func TestProjectRmRequiresForceWithTasks(t *testing.T) {
 		t.Errorf("error should suggest --force flag, got: %s", errMsg)
 	}
 
-	// Verify project still exists
-	var count int
-	err = db.Db.QueryRow(`SELECT COUNT(*) FROM projects WHERE project_uid = ?`, projectUID).Scan(&count)
+	// Verify project still exists and is not marked as deleted
+	var deleted int
+	err = db.Db.QueryRow(`SELECT deleted FROM projects WHERE project_uid = ?`, projectUID).Scan(&deleted)
 	if err != nil {
 		t.Fatalf("failed to query projects: %v", err)
 	}
-	if count != 1 {
-		t.Errorf("expected project to still exist, got count=%d", count)
+	if deleted != 0 {
+		t.Errorf("expected project to not be deleted, got deleted=%d", deleted)
 	}
 
 	// Now try with --force - should succeed
@@ -54,13 +54,13 @@ func TestProjectRmRequiresForceWithTasks(t *testing.T) {
 		t.Fatalf("delete with --force failed: %v", err)
 	}
 
-	// Verify project was deleted
-	err = db.Db.QueryRow(`SELECT COUNT(*) FROM projects WHERE project_uid = ?`, projectUID).Scan(&count)
+	// Verify project was marked as deleted
+	err = db.Db.QueryRow(`SELECT deleted FROM projects WHERE project_uid = ?`, projectUID).Scan(&deleted)
 	if err != nil {
 		t.Fatalf("failed to query projects: %v", err)
 	}
-	if count != 0 {
-		t.Errorf("expected project to be deleted, got count=%d", count)
+	if deleted != 1 {
+		t.Errorf("expected project to be marked as deleted, got deleted=%d", deleted)
 	}
 }
 
@@ -77,14 +77,14 @@ func TestProjectRmEmptyProjectNoForceRequired(t *testing.T) {
 		t.Fatalf("delete empty project failed: %v", err)
 	}
 
-	// Verify project was deleted
-	var count int
-	err = db.Db.QueryRow(`SELECT COUNT(*) FROM projects WHERE project_uid = ?`, projectUID).Scan(&count)
+	// Verify project was marked as deleted
+	var deleted int
+	err = db.Db.QueryRow(`SELECT deleted FROM projects WHERE project_uid = ?`, projectUID).Scan(&deleted)
 	if err != nil {
 		t.Fatalf("failed to query projects: %v", err)
 	}
-	if count != 0 {
-		t.Errorf("expected project to be deleted, got count=%d", count)
+	if deleted != 1 {
+		t.Errorf("expected project to be marked as deleted, got deleted=%d", deleted)
 	}
 }
 
@@ -135,5 +135,5 @@ func deleteProject(db *database.DB, projectUID string, force bool) error {
 		return err
 	}
 
-	return db.ProjectProjectDeleteEvent(event)
+	return db.RebuildProjections()
 }

@@ -43,7 +43,7 @@ func Delete(db *database.DB, taskUUID string, actor string, clk clock.Clock) err
 		return err
 	}
 
-	if err := db.ProjectTaskDeleteEvent(event); err != nil {
+	if err := db.RebuildProjections(); err != nil {
 		return fmt.Errorf("failed to project task.delete event: %w", err)
 	}
 

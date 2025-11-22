@@ -54,8 +54,8 @@ func (d *DB) CheckInvariants() error {
 			return fmt.Errorf("invariant check: failed to scan task: %w", err)
 		}
 
-		// This task should exist in rebuilt state
-		if _, exists := rebuilt.GetTask(taskUID); !exists {
+		// This task should exist in rebuilt state (including deleted tasks)
+		if _, exists := rebuilt.GetTaskIncludingDeleted(taskUID); !exists {
 			return fmt.Errorf("invariant violated: task %s exists in projections but not in rebuilt state (orphaned data)", taskUID)
 		}
 	}

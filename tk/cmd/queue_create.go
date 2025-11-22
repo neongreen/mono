@@ -139,7 +139,7 @@ To define custom kinds:
 		}
 
 		// Project the event into containers table
-		if err := db.ProjectContainerCreateEvent(event); err != nil {
+		if err := db.RebuildProjections(); err != nil {
 			return fmt.Errorf("failed to project event: %w", err)
 		}
 

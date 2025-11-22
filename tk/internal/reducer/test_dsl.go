@@ -35,7 +35,33 @@ func (rt *ReducerTest) Reducer() *Reducer {
 // CreateProject creates a new project and returns its UID
 func (rt *ReducerTest) CreateProject(name string) string {
 	rt.t.Helper()
-	return string(types.NewProjectUID())
+	rt.ts++
+
+	projectUID := types.NewProjectUID()
+	payload := types.ProjectCreatedPayload{
+		ProjectUID:  projectUID,
+		Type:        types.ProjectTypeLocal,
+		Name:        name,
+		Description: "Test project: " + name,
+		CreatedBy:   "test-actor",
+	}
+	payloadJSON, _ := json.Marshal(payload)
+
+	event := types.Event{
+		ID:        rt.eventID(),
+		TS:        rt.ts,
+		CreatedAt: time.Now(),
+		Actor:     "test-actor",
+		Role:      "human",
+		Kind:      string(types.EventKindProjectCreated),
+		Payload:   payloadJSON,
+	}
+
+	if err := rt.reducer.Apply(event); err != nil {
+		rt.t.Fatalf("Failed to create project %s: %v", name, err)
+	}
+
+	return string(projectUID)
 }
 
 // DeleteProject deletes a project and all its tasks
@@ -295,13 +321,20 @@ func (th *TaskHandle) AssertExists() *TaskHandle {
 	return th
 }
 
-// AssertDeleted verifies the task does not exist in the reducer
+// AssertDeleted verifies the task is soft deleted or in a deleted project
 func (th *TaskHandle) AssertDeleted() *TaskHandle {
 	th.test.t.Helper()
 
-	_, ok := th.test.reducer.GetTask(th.UID)
-	if ok {
-		th.test.t.Errorf("Task %s (%q) should be deleted but still exists", th.UID, th.Title)
+	task, ok := th.test.reducer.GetTaskIncludingDeleted(th.UID)
+	if !ok {
+		th.test.t.Errorf("Task %s (%q) should exist in map even when deleted", th.UID, th.Title)
+		return th
+	}
+
+	// Check if task is visible (should not be)
+	if th.test.reducer.isTaskVisible(task) {
+		th.test.t.Errorf("Task %s (%q) should not be visible (deleted=%v, project deleted=%v)",
+			th.UID, th.Title, task.Deleted, th.test.reducer.isProjectDeleted(task.ProjectUUID))
 	}
 
 	return th

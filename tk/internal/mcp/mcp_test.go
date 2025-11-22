@@ -27,6 +27,11 @@ func setupTestDB(t *testing.T) (*database.DB, string, func()) {
 		t.Fatalf("Failed to initialize database: %v", err)
 	}
 
+	// Set database version to 8 (current version) before running migrations
+	if err := db.SetDBVersion(8); err != nil {
+		t.Fatalf("Failed to set database version: %v", err)
+	}
+
 	if err := db.RunMigrationsIfNeeded(); err != nil {
 		t.Fatalf("Failed to run migrations: %v", err)
 	}

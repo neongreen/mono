@@ -16,7 +16,9 @@ func (d *DB) CreateProjectTables() error {
 		name TEXT NOT NULL,
 		description TEXT NOT NULL,
 		created_at INTEGER NOT NULL,
-		created_by TEXT NOT NULL
+		created_by TEXT NOT NULL,
+		deleted INTEGER NOT NULL DEFAULT 0,
+		deleted_at TEXT
 	);
 
 	CREATE TABLE IF NOT EXISTS tasks (
@@ -25,7 +27,10 @@ func (d *DB) CreateProjectTables() error {
 		created_node TEXT NOT NULL,
 		title TEXT NOT NULL,
 		created_at INTEGER NOT NULL,
-		created_by TEXT NOT NULL
+		created_by TEXT NOT NULL,
+		item_kind TEXT NOT NULL DEFAULT 'task',
+		deleted INTEGER NOT NULL DEFAULT 0,
+		deleted_at TEXT
 	);
 
 	CREATE TABLE IF NOT EXISTS task_numbers (
@@ -79,6 +84,48 @@ func (d *DB) CreateItemKindTables() error {
 
 	if _, err := d.Db.Exec(schema); err != nil {
 		return fmt.Errorf("failed to create item kind tables: %w", err)
+	}
+
+	// Insert builtin item kinds (from v6_to_v7 migration)
+	builtinKinds := []struct {
+		name        string
+		description string
+		llmHint     string
+	}{
+		{"task", "Actionable work to be done", "Use for concrete work items that need to be completed"},
+		{"bug", "Defect or error to fix", "Use for software bugs, errors, or defects that need fixing"},
+		{"idea", "Unrefined concept to explore", "Use for raw ideas that haven't been developed into actionable items yet"},
+		{"goal", "Desired outcome to achieve", "Use for high-level objectives or targets you want to reach"},
+		{"decision", "Choice to be made", "Use for decisions that need to be made or have been made"},
+		{"requirement", "Must-have feature or capability", "Use for definite requirements that must be satisfied"},
+		{"constraint", "Limitation or boundary condition", "Use for restrictions, limits, or conditions that must be respected"},
+		{"wish", "Nice-to-have desire", "Use for aspirational features or improvements that aren't requirements"},
+		{"question", "Something needing an answer", "Use for questions that need to be answered or clarified"},
+		{"hypothesis", "Testable proposition", "Use for theories or assumptions that need to be validated through testing"},
+		{"experiment", "Test to validate hypothesis", "Use for experiments or trials designed to test hypotheses"},
+		{"observation", "Recorded fact or finding", "Use for observations, data points, or findings from experiments"},
+		{"research", "Investigation topic", "Use for topics that need investigation or information gathering"},
+		{"doubt", "Uncertainty to resolve", "Use for concerns, uncertainties, or risks that need addressing"},
+		{"assumption", "Accepted premise", "Use for assumptions that underlie decisions or plans"},
+		{"resource", "Reference or material", "Use for documentation, tools, links, or materials to reference"},
+		{"specification", "Detailed technical definition", "Use for detailed technical specs or implementation details"},
+		{"definition", "Meaning or explanation", "Use for defining terms, concepts, or establishing shared understanding"},
+		{"techdebt", "Technical debt to address", "Use for technical debt, code quality issues, or refactoring needs"},
+		{"checklist", "List of items to complete", "Use for checklists or sequences of steps to follow"},
+		{"discussion", "Topic for conversation", "Use for topics that need discussion or conversation among stakeholders"},
+		{"feedback", "Input or critique received", "Use for feedback, comments, or suggestions from users or stakeholders"},
+		{"promise", "Commitment to deliver", "Use for commitments, promises, or guarantees made to stakeholders"},
+		{"regret", "Past decision to reconsider", "Use for decisions or choices that need to be revisited or lessons learned"},
+	}
+
+	for _, kind := range builtinKinds {
+		_, err := d.Db.Exec(`
+			INSERT OR IGNORE INTO item_kinds (name, description, llm_hint, builtin, deprecated, created_at, created_by)
+			VALUES (?, ?, ?, 1, 0, 0, 'system')
+		`, kind.name, kind.description, kind.llmHint)
+		if err != nil {
+			return fmt.Errorf("failed to insert builtin %s kind: %w", kind.name, err)
+		}
 	}
 
 	return nil

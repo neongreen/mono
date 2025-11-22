@@ -87,10 +87,6 @@ func Create(db *database.DB, params CreateParams, actor string, clk clock.Clock)
 		return nil, err
 	}
 
-	if err := db.ProjectTaskCreatedEvent(event); err != nil {
-		return nil, fmt.Errorf("failed to project task: %w", err)
-	}
-
 	numberPayload := types.TaskNumberSetPayload{
 		TaskUID:    taskUID,
 		ProjectUID: params.ProjectUID,
@@ -126,8 +122,10 @@ func Create(db *database.DB, params CreateParams, actor string, clk clock.Clock)
 		return nil, fmt.Errorf("failed to insert number event: %w", err)
 	}
 
-	if err := db.ProjectTaskNumberSetEvent(numberEvent); err != nil {
-		return nil, fmt.Errorf("failed to project task number: %w", err)
+	// Rebuild projections from events to update database
+	// This ensures database consistency with reducer state
+	if err := db.RebuildProjections(); err != nil {
+		return nil, fmt.Errorf("failed to rebuild projections: %w", err)
 	}
 
 	// Get display ID

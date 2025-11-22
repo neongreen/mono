@@ -65,9 +65,9 @@ func CreateProjectTool(db *database.DB) func(context.Context, *sdk.CallToolReque
 			return nil, nil, fmt.Errorf("failed to insert event: %w", err)
 		}
 
-		// Project the event
-		if err := db.ProjectProjectCreatedEvent(event); err != nil {
-			return nil, nil, fmt.Errorf("failed to project event: %w", err)
+		// Rebuild projections from events to update database
+		if err := db.RebuildProjections(); err != nil {
+			return nil, nil, fmt.Errorf("failed to rebuild projections: %w", err)
 		}
 
 		return nil, map[string]any{

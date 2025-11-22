@@ -151,7 +151,7 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 		}
 
 		var count int
-		if err := db.Db.QueryRow(`SELECT COUNT(*) FROM projects WHERE project_uid = ?`, uid).Scan(&count); err != nil {
+		if err := db.Db.QueryRow(`SELECT COUNT(*) FROM projects WHERE project_uid = ? AND deleted = 0`, uid).Scan(&count); err != nil {
 			return "", fmt.Errorf("failed to lookup project %s: %w", uid, err)
 		}
 		if count == 0 {
@@ -165,7 +165,7 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 
 	rows, err := db.Db.Query(`
 		SELECT project_uid, name FROM projects
-		WHERE name = ?
+		WHERE name = ? AND deleted = 0
 		ORDER BY created_at
 	`, ref.String())
 	if err != nil {
@@ -212,8 +212,8 @@ func ResolveProjectRef(db *DB, ref types.ProjectRef) (types.ProjectUID, error) {
 func listAvailableProjects(db *DB) ([]string, error) {
 	var projects []string
 
-	// Get project names only (aliases removed)
-	rows, err := db.Db.Query(`SELECT name FROM projects ORDER BY name`)
+	// Get project names only (aliases removed, exclude deleted projects)
+	rows, err := db.Db.Query(`SELECT name FROM projects WHERE deleted = 0 ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}

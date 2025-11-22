@@ -128,6 +128,16 @@ func (d *DB) InitDB() error {
 		return fmt.Errorf("failed to create project tables: %w", err)
 	}
 
+	// Always create container tables (container_kinds, containers, container_members)
+	if err := d.CreateContainerTables(); err != nil {
+		return fmt.Errorf("failed to create container tables: %w", err)
+	}
+
+	// Always create item kinds table
+	if err := d.CreateItemKindTables(); err != nil {
+		return fmt.Errorf("failed to create item kinds table: %w", err)
+	}
+
 	return nil
 }
 
