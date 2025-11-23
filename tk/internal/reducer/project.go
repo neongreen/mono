@@ -41,8 +41,41 @@ func (r *Reducer) applyProjectCreated(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal project.created payload: %w", err)
 	}
 
-	// Project state is managed by DB projections, not in-memory reducer
-	// This is just for completeness
+	projectUID := string(payload.ProjectUID)
+
+	// Handle duplicate project.created events deterministically
+	// If a project with this UID already exists, keep the one with earlier Lamport timestamp
+	if existing, exists := r.projects[projectUID]; exists {
+		// Keep the project with earlier Lamport timestamp (deterministic)
+		if e.TS < existing.CreatedAtTS {
+			// This event is earlier, replace existing project
+			r.projects[projectUID] = &types.Project{
+				ProjectUID:  projectUID,
+				Type:        string(payload.Type),
+				Name:        payload.Name,
+				Description: payload.Description,
+				CreatedBy:   payload.CreatedBy,
+				CreatedAt:   e.CreatedAt,
+				CreatedAtTS: e.TS,
+				IsSynthetic: false, // Will be set to true by DB projection if needed
+			}
+		}
+		// Otherwise, keep existing project (it has earlier Lamport TS)
+		return nil
+	}
+
+	// Store project in reducer state
+	r.projects[projectUID] = &types.Project{
+		ProjectUID:  projectUID,
+		Type:        string(payload.Type),
+		Name:        payload.Name,
+		Description: payload.Description,
+		CreatedBy:   payload.CreatedBy,
+		CreatedAt:   e.CreatedAt,
+		CreatedAtTS: e.TS,
+		IsSynthetic: false, // Will be set to true by DB projection if needed
+	}
+
 	return nil
 }
 
@@ -78,6 +111,22 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 	itemKind := payload.ItemKind
 	if itemKind == "" {
 		itemKind = "task"
+	}
+
+	// Check if project exists, create synthetic project if needed
+	projectUID := payload.ProjectUID
+	if _, exists := r.projects[projectUID]; !exists {
+		// Create synthetic project (for corrupt/historical data)
+		r.projects[projectUID] = &types.Project{
+			ProjectUID:  projectUID,
+			Type:        "local",
+			Name:        projectUID, // Use UID as name for synthetic projects
+			Description: "Synthetic project created by reducer",
+			CreatedBy:   "system",
+			CreatedAt:   e.CreatedAt,
+			CreatedAtTS: e.TS,
+			IsSynthetic: true,
+		}
 	}
 
 	// Handle duplicate task.created events deterministically

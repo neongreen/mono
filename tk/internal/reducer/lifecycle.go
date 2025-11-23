@@ -57,5 +57,8 @@ func (r *Reducer) applyProjectDelete(e types.Event) error {
 		r.removeTaskFromMaps(taskUUID)
 	}
 
+	// Remove the project itself
+	delete(r.projects, projectUID.String())
+
 	return nil
 }

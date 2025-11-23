@@ -12,6 +12,7 @@ type Reducer struct {
 	tasks        map[string]*types.Task    // Key: task UUID
 	taskByID     map[string]string         // Key: task ID (current or alias) -> Value: task UUID
 	taskProjects map[string]string         // Key: task UUID -> Value: project UID
+	projects     map[string]*types.Project // Key: project UID
 	relations    *relations.RelationsGraph // Relations graph
 }
 
@@ -21,6 +22,7 @@ func NewReducer() *Reducer {
 		tasks:        make(map[string]*types.Task),
 		taskByID:     make(map[string]string),
 		taskProjects: make(map[string]string),
+		projects:     make(map[string]*types.Project),
 		relations:    relations.NewRelationsGraph(),
 	}
 }
@@ -60,6 +62,21 @@ func (r *Reducer) GetAllTasks() []*types.Task {
 		tasks = append(tasks, task)
 	}
 	return tasks
+}
+
+// GetProject returns a project by UID
+func (r *Reducer) GetProject(projectUID string) (*types.Project, bool) {
+	project, ok := r.projects[projectUID]
+	return project, ok
+}
+
+// GetAllProjects returns all projects
+func (r *Reducer) GetAllProjects() []*types.Project {
+	projects := make([]*types.Project, 0, len(r.projects))
+	for _, project := range r.projects {
+		projects = append(projects, project)
+	}
+	return projects
 }
 
 // FinalizeRelations builds relations for all tasks and computes blocked status
