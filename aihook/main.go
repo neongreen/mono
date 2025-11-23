@@ -17,20 +17,22 @@ var rootCmd = &cobra.Command{
 	Long:  `aihook validates shell commands and code patterns for Claude Code hooks.`,
 }
 
-var stopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Stop hook that validates shell commands",
-	Long:  `Stop hook that parses shell syntax and forbids 'cd' invocations outside subshells.`,
-	RunE:  runStop,
+var shellCmd = &cobra.Command{
+	Use:   "shell",
+	Short: "Shell hook that validates shell commands",
+	Long:  `Shell hook that parses shell syntax and forbids 'cd' invocations outside subshells.`,
+	RunE:  runShell,
 }
 
 var claudeFlag bool
+var blockOnCdFlag bool
 
 func init() {
-	rootCmd.AddCommand(stopCmd)
+	rootCmd.AddCommand(shellCmd)
 	rootCmd.AddCommand(version.NewVersionCommand("aihook"))
 
-	stopCmd.Flags().BoolVar(&claudeFlag, "claude", false, "Output in Claude Code hook format")
+	shellCmd.Flags().BoolVar(&claudeFlag, "claude", false, "Output in Claude Code hook format")
+	shellCmd.Flags().BoolVar(&blockOnCdFlag, "block-on-cd", false, "Block when cd commands are found outside subshells")
 }
 
 func main() {
@@ -40,7 +42,7 @@ func main() {
 	}
 }
 
-func runStop(cmd *cobra.Command, args []string) error {
+func runShell(cmd *cobra.Command, args []string) error {
 	v := validator.New()
 	violations, err := v.ValidateScript(os.Stdin)
 	if err != nil {
@@ -49,7 +51,10 @@ func runStop(cmd *cobra.Command, args []string) error {
 
 	if len(violations) > 0 {
 		msg := validator.FormatViolations(violations)
-		return formatOutput(msg, 2)
+		if blockOnCdFlag {
+			return formatOutput(msg, 2)
+		}
+		return formatOutput(msg, 0)
 	}
 
 	return formatOutput("No violations found", 0)

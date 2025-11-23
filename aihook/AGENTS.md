@@ -36,7 +36,7 @@ go test ./aihook/...
 go build ./aihook
 
 # Run
-./aihook stop < script.sh
+./aihook shell < script.sh
 ```
 
 ### Code Structure

@@ -34,16 +34,19 @@ go build ./aihook
 
 ## Usage
 
-### Stop Hook
+### Shell Hook
 
-The `stop` subcommand validates shell scripts and ensures all `cd` commands are executed within subshells:
+The `shell` subcommand validates shell scripts and ensures all `cd` commands are executed within subshells:
 
 ```bash
 # Check a shell script from stdin
-echo 'cd /tmp' | aihook stop
+echo 'cd /tmp' | aihook shell
 
 # With Claude Code hook format output
-echo 'cd /tmp' | aihook stop --claude
+echo 'cd /tmp' | aihook shell --claude
+
+# Block execution when cd violations are found
+echo 'cd /tmp' | aihook shell --claude --block-on-cd
 ```
 
 ### Examples
@@ -58,10 +61,15 @@ cd /tmp && ls
 (cd /tmp && ls)
 ```
 
+### Flags
+
+- `--claude`: Output in JSON format compatible with Claude Code hooks
+- `--block-on-cd`: When set, returns exit code 2 for violations (blocks execution). Without this flag, violations are reported but execution is not blocked (exit code 0)
+
 ### Exit Codes
 
-- `0`: No violations found
-- `2`: Violations detected (cd commands outside subshells)
+- `0`: No violations found (or violations found but `--block-on-cd` not set)
+- `2`: Violations detected and `--block-on-cd` flag is set
 - `1`: Parse error or other failure
 
 ### Output Formats
@@ -97,7 +105,7 @@ To use `aihook` as a Claude Code PreToolUse hook that validates Bash commands, a
         "hooks": [
           {
             "type": "command",
-            "command": "aihook stop --claude"
+            "command": "aihook shell --claude --block-on-cd"
           }
         ]
       }
@@ -110,7 +118,8 @@ The hook will:
 - Match any Bash tool invocation (via the `"Bash"` matcher)
 - Receive the bash command script on stdin
 - Validate that all `cd` commands are in subshells
-- Return exit code 0 to allow, or exit code 2 to block with error message
+- With `--block-on-cd`: Return exit code 2 to block execution when violations are found
+- Without `--block-on-cd`: Report violations but allow execution (exit code 0)
 - Use `--claude` flag to output in the expected JSON format
 
 For more flexible matching, you can use regex patterns like `"Bash.*cd"` to only check Bash commands containing `cd`.
