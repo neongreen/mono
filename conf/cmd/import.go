@@ -17,7 +17,7 @@ import (
 )
 
 var importCmd = &cobra.Command{
-	Use:   "import [tool]",
+	Use:   "import [tool] [path]",
 	Short: "Import configuration values from target files into conf state",
 	Long: `Read configuration values from target files (e.g., ~/.config/jj/config.toml) 
 and import them into conf's state management (stored in ~/.config/conf/).
@@ -28,10 +28,11 @@ This is useful for:
 - Syncing local configurations into conf state
 
 Examples:
-  conf import           # Import all tools
-  conf import jj        # Import only jj config
-  conf import --dry-run # Preview what would be imported`,
-	Args: cobra.MaximumNArgs(1),
+  conf import                 # Import all tools
+  conf import jj              # Import only jj config
+  conf import claude foo.bar  # Import only claude's foo.bar setting
+  conf import --dry-run       # Preview what would be imported`,
+	Args: cobra.MaximumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		conf, err := config.Load()
 		if err != nil {
@@ -39,6 +40,21 @@ Examples:
 			os.Exit(1)
 		}
 
+		// Case 1: Import a specific setting from a tool
+		if len(args) == 2 {
+			toolName := args[0]
+			configPath := args[1]
+			if err := importToolSetting(conf, toolName, configPath, dryRun); err != nil {
+				fmt.Fprintf(os.Stderr, "Error importing %s.%s: %v\n", toolName, configPath, err)
+				os.Exit(1)
+			}
+			if !dryRun {
+				fmt.Println("\n✓ Import complete")
+			}
+			return
+		}
+
+		// Case 2: Import all settings from a tool or all tools
 		var toolsToImport []string
 		if len(args) == 1 {
 			toolsToImport = []string{args[0]}
@@ -113,6 +129,123 @@ func importTool(conf *config.Config, toolName string, dryRun bool) error {
 	fmt.Printf("  ✓ Saved to conf state\n")
 
 	return nil
+}
+
+// importToolSetting imports a specific configuration value from a tool's target file into conf's state
+func importToolSetting(conf *config.Config, toolName string, configPath string, dryRun bool) error {
+	tool, exists := conf.GetTool(toolName)
+	if !exists {
+		return fmt.Errorf("tool %s not configured", toolName)
+	}
+
+	fmt.Printf("Importing %s.%s from %s...\n", toolName, configPath, tool.ConfigPath)
+
+	// Get the specific value from the target config file
+	value, err := getTargetConfigValue(toolName, configPath)
+	if err != nil {
+		return fmt.Errorf("failed to read target config: %w", err)
+	}
+
+	// Get the current value from conf state
+	existingFlat := config.FlattenValues(tool.Values)
+	currentValue, hasCurrent := existingFlat[configPath]
+
+	// Determine status
+	var status string
+	if !hasCurrent {
+		status = cli.Success("NEW")
+	} else if fmt.Sprintf("%v", value) == fmt.Sprintf("%v", currentValue) {
+		status = cli.Muted("SAME")
+	} else {
+		status = cli.Warning("UPDATE")
+	}
+
+	if dryRun {
+		// Display what would be imported
+		t := cli.NewTable(os.Stdout)
+		t.AppendHeader(table.Row{"Path", "Status", "Incoming", "Current"})
+		t.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 1, WidthMax: 42},
+			{Number: 2, WidthMax: 10},
+			{Number: 3, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
+			{Number: 4, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
+		})
+		t.AppendRow(table.Row{
+			cli.Key(configPath),
+			status,
+			cli.Value(formatValueShort(value)),
+			cli.Muted(formatValueShort(currentValue)),
+		})
+		t.Render()
+		fmt.Printf("\nWould import: %s.%s = %v\n", toolName, configPath, value)
+		return nil
+	}
+
+	// Display what will be imported
+	t := cli.NewTable(os.Stdout)
+	t.AppendHeader(table.Row{"Path", "Status", "Incoming", "Current"})
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, WidthMax: 42},
+		{Number: 2, WidthMax: 10},
+		{Number: 3, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
+		{Number: 4, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
+	})
+	t.AppendRow(table.Row{
+		cli.Key(configPath),
+		status,
+		cli.Value(formatValueShort(value)),
+		cli.Muted(formatValueShort(currentValue)),
+	})
+	t.Render()
+
+	fmt.Printf("\n  ✓ Imported %s.%s = %v\n", toolName, configPath, value)
+
+	// Convert the dotted path to nested map structure
+	nestedValues := config.ExpandValues(map[string]any{configPath: value})
+
+	// Merge into conf state
+	conf.MergeToolValues(toolName, nestedValues)
+
+	// Save conf state
+	if err := conf.Save(); err != nil {
+		return fmt.Errorf("failed to save conf state: %w", err)
+	}
+
+	fmt.Printf("  ✓ Saved to conf state\n")
+
+	return nil
+}
+
+// getTargetConfigValue reads a specific value from a tool's target config file
+func getTargetConfigValue(toolName string, configPath string) (any, error) {
+	switch toolName {
+	case "jj":
+		jjTool, err := jjtool.NewJJTool()
+		if err != nil {
+			return nil, err
+		}
+		return jjTool.GetConfig(configPath)
+	case "claude":
+		claudeTool, err := claudetool.NewClaudeTool()
+		if err != nil {
+			return nil, err
+		}
+		return claudeTool.GetConfig(configPath)
+	case "mise":
+		miseTool, err := misetool.NewMiseTool()
+		if err != nil {
+			return nil, err
+		}
+		return miseTool.GetConfig(configPath)
+	case "starship":
+		starshipTool, err := starshiptool.NewStarshipTool()
+		if err != nil {
+			return nil, err
+		}
+		return starshipTool.GetConfig(configPath)
+	default:
+		return nil, fmt.Errorf("unsupported tool: %s", toolName)
+	}
 }
 
 // getTargetConfigValues reads all values from a tool's target config file
