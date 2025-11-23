@@ -8,6 +8,7 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/neongreen/mono/conf/pkg/config"
+	"github.com/neongreen/mono/conf/pkg/tools"
 	claudetool "github.com/neongreen/mono/conf/pkg/tools/claude"
 	jjtool "github.com/neongreen/mono/conf/pkg/tools/jj"
 	misetool "github.com/neongreen/mono/conf/pkg/tools/mise"
@@ -140,8 +141,8 @@ func importToolSetting(conf *config.Config, toolName string, configPath string, 
 
 	fmt.Printf("Importing %s.%s from %s...\n", toolName, configPath, tool.ConfigPath)
 
-	// Get the specific value from the target config file
-	value, err := getTargetConfigValue(toolName, configPath)
+	// Get the specific value from the target config file using the registry
+	value, err := tools.GetActualValue(toolName, configPath)
 	if err != nil {
 		return fmt.Errorf("failed to read target config: %w", err)
 	}
@@ -184,38 +185,6 @@ func importToolSetting(conf *config.Config, toolName string, configPath string, 
 	fmt.Printf("  ✓ Saved to conf state\n")
 
 	return nil
-}
-
-// getTargetConfigValue reads a specific value from a tool's target config file
-func getTargetConfigValue(toolName string, configPath string) (any, error) {
-	switch toolName {
-	case "jj":
-		jjTool, err := jjtool.NewJJTool()
-		if err != nil {
-			return nil, err
-		}
-		return jjTool.GetConfig(configPath)
-	case "claude":
-		claudeTool, err := claudetool.NewClaudeTool()
-		if err != nil {
-			return nil, err
-		}
-		return claudeTool.GetConfig(configPath)
-	case "mise":
-		miseTool, err := misetool.NewMiseTool()
-		if err != nil {
-			return nil, err
-		}
-		return miseTool.GetConfig(configPath)
-	case "starship":
-		starshipTool, err := starshiptool.NewStarshipTool()
-		if err != nil {
-			return nil, err
-		}
-		return starshipTool.GetConfig(configPath)
-	default:
-		return nil, fmt.Errorf("unsupported tool: %s", toolName)
-	}
 }
 
 // getTargetConfigValues reads all values from a tool's target config file
