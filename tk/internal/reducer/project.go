@@ -3,6 +3,7 @@ package reducer
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/neongreen/mono/tk/internal/types"
 )
@@ -99,6 +100,20 @@ func (r *Reducer) applyProjectAliasRemove(e types.Event) error {
 	return nil
 }
 
+// createSyntheticProject creates a synthetic project entry for historical/corrupt data
+func (r *Reducer) createSyntheticProject(projectUID string, createdAt time.Time, createdAtTS int64) {
+	r.projects[projectUID] = &types.Project{
+		ProjectUID:  projectUID,
+		Type:        "local",
+		Name:        projectUID, // Use UID as name for synthetic projects
+		Description: "Synthetic project created by reducer",
+		CreatedBy:   "system",
+		CreatedAt:   createdAt,
+		CreatedAtTS: createdAtTS,
+		IsSynthetic: true,
+	}
+}
+
 func (r *Reducer) applyTaskCreated(e types.Event) error {
 	var payload types.TaskCreatedPayload
 	if err := json.Unmarshal(e.Payload, &payload); err != nil {
@@ -117,16 +132,7 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 	projectUID := payload.ProjectUID
 	if _, exists := r.projects[projectUID]; !exists {
 		// Create synthetic project (for corrupt/historical data)
-		r.projects[projectUID] = &types.Project{
-			ProjectUID:  projectUID,
-			Type:        "local",
-			Name:        projectUID, // Use UID as name for synthetic projects
-			Description: "Synthetic project created by reducer",
-			CreatedBy:   "system",
-			CreatedAt:   e.CreatedAt,
-			CreatedAtTS: e.TS,
-			IsSynthetic: true,
-		}
+		r.createSyntheticProject(projectUID, e.CreatedAt, e.TS)
 	}
 
 	// Handle duplicate task.created events deterministically
