@@ -40,6 +40,7 @@ require (
 	golang.org/x/text v0.30.0
 	golang.org/x/tools v0.38.0
 	modernc.org/sqlite v1.39.1
+	mvdan.cc/sh/v3 v3.12.0
 	pgregory.net/rapid v1.2.0
 )
 

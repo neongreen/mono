@@ -71,6 +71,13 @@ homepage = "https://github.com/neongreen/mono/tree/main/jj-run"
 binary = "jj-run"
 test_args = ["--help"]
 
+[[mirror.projects]]
+name = "aihook"
+desc = "Claude Code hook validator that enforces shell scripting best practices."
+homepage = "https://github.com/neongreen/mono/tree/main/aihook"
+binary = "aihook"
+test_args = ["--help"]
+
 # idk if this works for non-Go projects right now, see bd-341
 #
 # [[mirror.projects]]
