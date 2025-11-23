@@ -2,6 +2,7 @@ package reducer
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -71,14 +72,14 @@ func TestReducer_ProjectTracking_GetAllProjects(t *testing.T) {
 		payload := types.ProjectCreatedPayload{
 			ProjectUID:  uid,
 			Type:        "local",
-			Name:        "project-" + string(rune('a'+i)),
+			Name:        fmt.Sprintf("project-%d", i),
 			Description: "Test project",
 			CreatedBy:   "alice",
 		}
 		payloadJSON, _ := json.Marshal(payload)
 
 		event := types.Event{
-			ID:        "event_" + string(rune('1'+i)),
+			ID:        fmt.Sprintf("event_%d", i),
 			TS:        int64(i + 1),
 			CreatedAt: time.Now(),
 			Actor:     "alice",
