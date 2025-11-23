@@ -1,4 +1,8 @@
 [[project]]
+dir = "aihook"
+module = "aihook"
+
+[[project]]
 dir = "claude-trace"
 module = "claude-trace"
 

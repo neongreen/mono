@@ -595,6 +595,34 @@ go build -trimpath -o {{cwd}}/_build/conf .
 echo "{{cwd}}/_build/conf"
 """
 
+# ============================================================================
+# aihook
+# ============================================================================
+
+[tasks.aihook]
+description = "Build and run aihook"
+dir = "aihook"
+run = "go run ."
+
+[tasks."aihook:test"]
+description = "Run tests for aihook"
+dir = "aihook"
+run = "go test ./..."
+
+[tasks."aihook:build"]
+description = "Build aihook binary"
+dir = "aihook"
+run = """
+set -euo pipefail
+go build -trimpath -o {{cwd}}/_build/aihook .
+{{cwd}}/_build/aihook version
+echo "{{cwd}}/_build/aihook"
+"""
+
+[tasks."aihook:check"]
+description = "Check that Go code and tests compile and type check"
+dir = "aihook"
+run = "go test -run=^$ ./..."
 
 # ============================================================================
 # claude-trace
