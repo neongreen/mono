@@ -9,7 +9,12 @@ import (
 	"github.com/neongreen/mono/tk/internal/utils"
 )
 
+// Reducer reconstructs task state from events, mirroring projection results while keeping
+// in-memory conveniences for the CLI. It tracks tasks, projects, and relations so the CLI
+// can answer queries without hitting the database during command execution.
 // Reducer reconstructs task state from events
+//
+//lion:reducer section="Reducer overview"
 type Reducer struct {
 	tasks        map[string]*types.Task    // Key: task UUID
 	taskByID     map[string]string         // Key: task ID (current or alias) -> Value: task UUID
