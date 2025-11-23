@@ -3,78 +3,34 @@ package database
 import (
 	"fmt"
 
-	"github.com/neongreen/mono/tk/internal/types"
+	"github.com/neongreen/mono/tk/internal/reducer"
 )
 
-// GetProjectAliasForTask returns the preferred project alias for a task.
-// If no alias exists, falls back to project name, then UID.
-func GetProjectAliasForTask(db *DB, taskUID string) (string, error) {
-	// Get project UID for this task
-	var projectUID string
-	err := db.Db.QueryRow(`
-		SELECT project_uid FROM tasks WHERE task_uid = ?
-	`, taskUID).Scan(&projectUID)
-	if err != nil {
-		return "", fmt.Errorf("failed to get project for task %s: %w", taskUID, err)
+// GetProjectAliasForTask returns the project name for a task.
+// Now uses reducer instead of direct SQL queries.
+func GetProjectAliasForTask(db *DB, reducer *reducer.Reducer, taskUID string) (string, error) {
+	// Get the task from reducer
+	task, exists := reducer.GetTask(taskUID)
+	if !exists {
+		return "", fmt.Errorf("task %s not found", taskUID)
 	}
 
-	alias, err := PreferredAliasForProject(db, types.ProjectUID(projectUID))
-	if err != nil {
-		return "", err
+	// Get project from reducer
+	project, exists := reducer.GetProject(task.ProjectUUID)
+	if !exists {
+		// Fall back to project UID if project not found
+		return task.ProjectUUID, nil
 	}
 
-	if alias == "" {
-		// If no alias exists, fall back to project name
-		var projectName string
-		err := db.Db.QueryRow(`
-			SELECT name FROM projects WHERE project_uid = ?
-		`, projectUID).Scan(&projectName)
-		if err != nil {
-			// If we can't get the name, fall back to UID
-			return projectUID, nil
-		}
-		return projectName, nil
-	}
-
-	return alias, nil
+	return project.Name, nil
 }
 
-// GetAllProjectDisplayNames returns a map of project UIDs to their display names (alias or name).
-func GetAllProjectDisplayNames(db *DB) (map[string]string, error) {
-	// Query all projects
-	rows, err := db.Db.Query(`
-		SELECT project_uid, name FROM projects ORDER BY created_at
-	`)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query projects: %w", err)
-	}
-	defer rows.Close()
-
+// GetAllProjectDisplayNames returns a map of project UIDs to their display names (name).
+// Now uses reducer instead of direct SQL queries.
+func GetAllProjectDisplayNames(db *DB, reducer *reducer.Reducer) (map[string]string, error) {
 	result := make(map[string]string)
-	for rows.Next() {
-		var projectUID, name string
-		if err := rows.Scan(&projectUID, &name); err != nil {
-			return nil, err
-		}
-
-		// Try to get preferred alias
-		alias, err := PreferredAliasForProject(db, types.ProjectUID(projectUID))
-		if err != nil {
-			// On error, fall back to name
-			result[projectUID] = name
-			continue
-		}
-
-		if alias != "" {
-			result[projectUID] = alias
-		} else {
-			result[projectUID] = name
-		}
+	for _, project := range reducer.GetAllProjects() {
+		result[project.ProjectUID] = project.Name
 	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
 	return result, nil
 }

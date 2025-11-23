@@ -111,21 +111,11 @@ Examples:
 
 		// Handle --query flag if provided (taskset query language)
 		if queryExpr != "" {
-			// Build project UID to name map for query evaluation
+			// Build project UID to name map for query evaluation using reducer
 			projectUIDToName := make(map[string]string)
-			rows, err := db.Db.Query(`SELECT project_uid, name FROM projects`)
-			if err != nil {
-				return fmt.Errorf("failed to query projects: %w", err)
+			for _, project := range reducer.GetAllProjects() {
+				projectUIDToName[project.ProjectUID] = project.Name
 			}
-			for rows.Next() {
-				var uid, name string
-				if err := rows.Scan(&uid, &name); err != nil {
-					rows.Close()
-					return fmt.Errorf("failed to scan project: %w", err)
-				}
-				projectUIDToName[uid] = name
-			}
-			rows.Close()
 
 			// Create taskset context
 			ctx := taskset.NewTaskContext(tasks, projectUIDToName)
@@ -289,7 +279,7 @@ Examples:
 		case "project", "prefix":
 			// Group tasks by project
 			getProjectKey := func(task *types.Task) string {
-				projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+				projectAlias, err := database.GetProjectAliasForTask(db, reducer, task.TaskUUID)
 				if err != nil {
 					return task.TaskUUID
 				}
@@ -303,7 +293,7 @@ Examples:
 				blockedOnly || unblockedOnly || grepPattern != ""
 
 			if len(projectFilter) == 0 && !hasActiveFilters {
-				allProjects, err := database.GetAllProjectDisplayNames(db)
+				allProjects, err := database.GetAllProjectDisplayNames(db, reducer)
 				if err != nil {
 					return fmt.Errorf("failed to get projects: %w", err)
 				}

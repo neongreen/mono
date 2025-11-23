@@ -46,7 +46,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 	var groupOrder []string
 
 	// Get all projects
-	allProjects, err := database.GetAllProjectDisplayNames(db)
+	allProjects, err := database.GetAllProjectDisplayNames(db, reducer)
 	if err != nil {
 		t.Fatalf("failed to get projects: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 
 	// Add tasks to groups
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, reducer, task.TaskUUID)
 		if err != nil {
 			continue
 		}
@@ -126,7 +126,7 @@ func TestLsWithoutProjectFilterShowsAllProjects(t *testing.T) {
 	var groupOrder []string
 
 	// Get all projects (this is what happens when no -p flag is specified)
-	allProjects, err := database.GetAllProjectDisplayNames(db)
+	allProjects, err := database.GetAllProjectDisplayNames(db, reducer)
 	if err != nil {
 		t.Fatalf("failed to get projects: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestLsWithoutProjectFilterShowsAllProjects(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, reducer, task.TaskUUID)
 		if err != nil {
 			continue
 		}
@@ -224,7 +224,7 @@ func TestLsWithProjectFilterShowsOnlyFilteredProject(t *testing.T) {
 	// (this is the key behavior being tested)
 
 	for _, task := range filteredTasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, reducer, task.TaskUUID)
 		if err != nil {
 			continue
 		}
@@ -310,7 +310,7 @@ func TestLsWithProjectFilterDoesNotShowEmptyProjects(t *testing.T) {
 	// When project filter is specified, DON'T get all projects
 
 	for _, task := range filteredTasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, reducer, task.TaskUUID)
 		if err != nil {
 			continue
 		}
@@ -377,7 +377,7 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 	grouped := make(map[string]int)
 	var groupOrder []string
 
-	allProjects, err := database.GetAllProjectDisplayNames(db)
+	allProjects, err := database.GetAllProjectDisplayNames(db, reducer)
 	if err != nil {
 		t.Fatalf("failed to get projects: %v", err)
 	}
@@ -388,7 +388,7 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectAlias, err := database.GetProjectAliasForTask(db, reducer, task.TaskUUID)
 		if err != nil {
 			continue
 		}
