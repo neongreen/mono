@@ -160,43 +160,13 @@ func importToolSetting(conf *config.Config, toolName string, configPath string, 
 		status = cli.Warning("UPDATE")
 	}
 
+	// Display what would be/will be imported
+	renderSingleSettingImport(configPath, status, value, currentValue)
+
 	if dryRun {
-		// Display what would be imported
-		t := cli.NewTable(os.Stdout)
-		t.AppendHeader(table.Row{"Path", "Status", "Incoming", "Current"})
-		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 1, WidthMax: 42},
-			{Number: 2, WidthMax: 10},
-			{Number: 3, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
-			{Number: 4, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
-		})
-		t.AppendRow(table.Row{
-			cli.Key(configPath),
-			status,
-			cli.Value(formatValueShort(value)),
-			cli.Muted(formatValueShort(currentValue)),
-		})
-		t.Render()
 		fmt.Printf("\nWould import: %s.%s = %v\n", toolName, configPath, value)
 		return nil
 	}
-
-	// Display what will be imported
-	t := cli.NewTable(os.Stdout)
-	t.AppendHeader(table.Row{"Path", "Status", "Incoming", "Current"})
-	t.SetColumnConfigs([]table.ColumnConfig{
-		{Number: 1, WidthMax: 42},
-		{Number: 2, WidthMax: 10},
-		{Number: 3, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
-		{Number: 4, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
-	})
-	t.AppendRow(table.Row{
-		cli.Key(configPath),
-		status,
-		cli.Value(formatValueShort(value)),
-		cli.Muted(formatValueShort(currentValue)),
-	})
-	t.Render()
 
 	fmt.Printf("\n  ✓ Imported %s.%s = %v\n", toolName, configPath, value)
 
@@ -348,4 +318,23 @@ func renderImportPreview(toolName string, existingFlat map[string]any, incomingF
 		cli.Warningf("%d", updated),
 		cli.Mutedf("%d", same),
 	)
+}
+
+// renderSingleSettingImport renders a table showing a single setting to be imported
+func renderSingleSettingImport(configPath string, status string, incomingValue any, currentValue any) {
+	t := cli.NewTable(os.Stdout)
+	t.AppendHeader(table.Row{"Path", "Status", "Incoming", "Current"})
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, WidthMax: 42},
+		{Number: 2, WidthMax: 10},
+		{Number: 3, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
+		{Number: 4, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
+	})
+	t.AppendRow(table.Row{
+		cli.Key(configPath),
+		status,
+		cli.Value(formatValueShort(incomingValue)),
+		cli.Muted(formatValueShort(currentValue)),
+	})
+	t.Render()
 }
