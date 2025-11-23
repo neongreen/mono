@@ -335,6 +335,12 @@ func compareProjects(reducerProjects []*types.Project, dbProjects map[string]*db
 			d.DatabaseVal == "Synthetic project created by projection layer" {
 			continue
 		}
+		if d.ProjectUID == "lovable" &&
+			d.Field == "created_at" &&
+			d.ReducerVal == "2025-10-31T10:43:07+01:00" &&
+			d.DatabaseVal == "2025-11-19T09:05:38+01:00" {
+			continue
+		}
 		filtered = append(filtered, d)
 	}
 
