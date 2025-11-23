@@ -268,7 +268,7 @@ func TestReducer_ProjectTracking_DeleteProject(t *testing.T) {
 	}
 }
 
-func TestReducer_ProjectTracking_DeleteThenTaskDoesNotResurrect(t *testing.T) {
+func TestReducer_ProjectTracking_DeleteThenTaskStillCreatedButProjectStaysGone(t *testing.T) {
 	r := NewReducer()
 
 	projectUID := types.NewProjectUID()
@@ -311,7 +311,7 @@ func TestReducer_ProjectTracking_DeleteThenTaskDoesNotResurrect(t *testing.T) {
 		t.Fatalf("Failed to apply project.delete event: %v", err)
 	}
 
-	// Task referencing the deleted project should not resurrect it or create a task
+	// Task referencing the deleted project should not resurrect it; task can exist with raw project UID
 	taskPayload := types.TaskCreatedPayload{
 		TaskUID:        string(types.NewTaskUID()),
 		ProjectUID:     string(projectUID),
@@ -337,9 +337,13 @@ func TestReducer_ProjectTracking_DeleteThenTaskDoesNotResurrect(t *testing.T) {
 	if _, ok := r.GetProject(string(projectUID)); ok {
 		t.Fatalf("Deleted project resurrected by task.created")
 	}
+	found := false
 	for _, task := range r.GetAllTasks() {
 		if task.ProjectUUID == string(projectUID) {
-			t.Fatalf("Task for deleted project should not be created")
+			found = true
 		}
+	}
+	if !found {
+		t.Fatalf("Task for deleted project should be created with raw project UID")
 	}
 }

@@ -149,17 +149,16 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 		itemKind = "task"
 	}
 
-	// Check if project exists; if it was deleted, ignore this event to avoid resurrecting it
+	// Check if project exists; if it was deleted, allow the task but do not resurrect the project
 	projectUID := payload.ProjectUID
-	if r.deletedProj[projectUID] {
-		return nil
-	}
 
 	// Create synthetic project if needed (mirrors DB projections)
 	if _, exists := r.projects[projectUID]; !exists {
-		// Compatibility: create synthetic project (for corrupt/historical data).
-		// This preserves existing behavior; long-term intent is to handle deletes differently.
-		r.createSyntheticProject(projectUID, e.CreatedAt, e.TS)
+		if !r.deletedProj[projectUID] {
+			// Compatibility: create synthetic project (for corrupt/historical data).
+			// This preserves existing behavior; long-term intent is to handle deletes differently.
+			r.createSyntheticProject(projectUID, e.CreatedAt, e.TS)
+		}
 	}
 
 	// Handle duplicate task.created events deterministically
