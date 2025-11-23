@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -43,8 +44,22 @@ func main() {
 }
 
 func runShell(cmd *cobra.Command, args []string) error {
+	// Read and parse JSON input from stdin
+	var input struct {
+		Command     string `json:"command"`
+		Timeout     int    `json:"timeout,omitempty"`
+		Description string `json:"description,omitempty"`
+	}
+
+	decoder := json.NewDecoder(os.Stdin)
+	if err := decoder.Decode(&input); err != nil {
+		return formatOutput(fmt.Sprintf("failed to parse JSON input: %v", err), 1)
+	}
+
+	// Validate the command string
 	v := validator.New()
-	violations, err := v.ValidateScript(os.Stdin)
+	commandReader := strings.NewReader(input.Command)
+	violations, err := v.ValidateScript(commandReader)
 	if err != nil {
 		return formatOutput(err.Error(), 1)
 	}
