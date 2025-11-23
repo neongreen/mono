@@ -93,7 +93,6 @@ To use `aihook` as a Claude Code Stop hook, add this to your `.claude/settings.j
   "hooks": {
     "Stop": [
       {
-        "matcher": "stop",
         "hooks": [
           {
             "type": "command",
@@ -105,6 +104,8 @@ To use `aihook` as a Claude Code Stop hook, add this to your `.claude/settings.j
   }
 }
 ```
+
+Note: Stop hooks are lifecycle hooks and don't require a `matcher` field (matcher is only for PreToolUse, PermissionRequest, and PostToolUse hooks).
 
 ## Why Forbid cd Outside Subshells?
 
