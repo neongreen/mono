@@ -1,15 +1,13 @@
-package main
+package validator
 
 import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"mvdan.cc/sh/v3/syntax"
 )
 
-// TestCheckCdCommands tests the checkCdCommands function with various shell script patterns
-func TestCheckCdCommands(t *testing.T) {
+// TestValidateScript tests the ValidateScript function with various shell script patterns
+func TestValidateScript(t *testing.T) {
 	tests := []struct {
 		name       string
 		script     string
@@ -172,16 +170,14 @@ EOF`,
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser := syntax.NewParser()
-			file, err := parser.Parse(strings.NewReader(tt.script), "")
+			v := New()
+			violations, err := v.ValidateScript(strings.NewReader(tt.script))
 			if err != nil {
-				t.Fatalf("Failed to parse script: %v\nScript:\n%s", err, tt.script)
+				t.Fatalf("ValidateScript() error = %v, want no error\nScript:\n%s", err, tt.script)
 			}
 
-			violations := checkCdCommands(file)
-
 			if len(violations) != tt.wantCount {
-				t.Errorf("checkCdCommands() got %d violations, want %d\nViolations: %v\nScript:\n%s",
+				t.Errorf("ValidateScript() got %d violations, want %d\nViolations: %v\nScript:\n%s",
 					len(violations), tt.wantCount, violations, tt.script)
 			}
 
@@ -206,55 +202,6 @@ EOF`,
 	}
 }
 
-// TestGetWordText tests the getWordText function
-func TestGetWordText(t *testing.T) {
-	tests := []struct {
-		name   string
-		script string
-		want   string
-	}{
-		{
-			name:   "simple command",
-			script: "cd",
-			want:   "cd",
-		},
-		{
-			name:   "command with argument",
-			script: "cd /tmp",
-			want:   "cd",
-		},
-		{
-			name:   "different command",
-			script: "ls",
-			want:   "ls",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			parser := syntax.NewParser()
-			file, err := parser.Parse(strings.NewReader(tt.script), "")
-			if err != nil {
-				t.Fatalf("Failed to parse script: %v", err)
-			}
-
-			var got string
-			syntax.Walk(file, func(node syntax.Node) bool {
-				if callExpr, ok := node.(*syntax.CallExpr); ok && len(callExpr.Args) > 0 {
-					got = getWordText(callExpr.Args[0])
-					return false
-				}
-				return true
-			})
-
-			if got != tt.want {
-				t.Errorf("getWordText() = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-// TestFormatViolations tests the formatViolations function
 func TestFormatViolations(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -275,73 +222,16 @@ func TestFormatViolations(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatViolations(tt.violations)
+			got := FormatViolations(tt.violations)
 			for _, substr := range tt.wantSubstr {
 				if !strings.Contains(got, substr) {
-					t.Errorf("formatViolations() missing substring %q\nGot: %s", substr, got)
+					t.Errorf("FormatViolations() missing substring %q\nGot: %s", substr, got)
 				}
 			}
 		})
 	}
 }
 
-// TestRunStop tests the complete stop command flow
-func TestRunStop(t *testing.T) {
-	tests := []struct {
-		name       string
-		script     string
-		wantExit   int
-		wantOutput []string
-	}{
-		{
-			name:       "violation",
-			script:     "cd /tmp",
-			wantExit:   2,
-			wantOutput: []string{"Found cd commands outside subshells", "Line 1"},
-		},
-		{
-			name:       "no violation",
-			script:     "(cd /tmp && ls)",
-			wantExit:   0,
-			wantOutput: []string{"No violations found"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Test directly without running the command
-			parser := syntax.NewParser()
-			file, err := parser.Parse(strings.NewReader(tt.script), "")
-			if err != nil {
-				t.Fatalf("Failed to parse script: %v", err)
-			}
-
-			violations := checkCdCommands(file)
-
-			var exitCode int
-			var message string
-			if len(violations) > 0 {
-				exitCode = 2
-				message = formatViolations(violations)
-			} else {
-				exitCode = 0
-				message = "No violations found"
-			}
-
-			if exitCode != tt.wantExit {
-				t.Errorf("Expected exit code %d, got %d", tt.wantExit, exitCode)
-			}
-
-			for _, substr := range tt.wantOutput {
-				if !strings.Contains(message, substr) {
-					t.Errorf("Output missing substring %q\nGot: %s", substr, message)
-				}
-			}
-		})
-	}
-}
-
-// TestEdgeCases tests edge cases and error handling
 func TestEdgeCases(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -377,20 +267,19 @@ func TestEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser := syntax.NewParser()
-			_, err := parser.Parse(strings.NewReader(tt.script), "")
+			v := New()
+			_, err := v.ValidateScript(strings.NewReader(tt.script))
 
 			if tt.wantError && err == nil {
-				t.Errorf("Expected parse error but got none for script: %s", tt.script)
+				t.Errorf("Expected error but got none for script: %s", tt.script)
 			}
 			if !tt.wantError && err != nil {
-				t.Errorf("Unexpected parse error: %v for script: %s", err, tt.script)
+				t.Errorf("Unexpected error: %v for script: %s", err, tt.script)
 			}
 		})
 	}
 }
 
-// TestComplexNesting tests complex nested subshell scenarios
 func TestComplexNesting(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -399,7 +288,7 @@ func TestComplexNesting(t *testing.T) {
 	}{
 		{
 			name:      "deeply nested subshells",
-			script:    "(cd /tmp && (ls && pwd))",
+			script:    "(cd /tmp && (cd /home && ls))",
 			wantCount: 0,
 		},
 		{
@@ -426,15 +315,14 @@ func TestComplexNesting(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			parser := syntax.NewParser()
-			file, err := parser.Parse(strings.NewReader(tt.script), "")
+			v := New()
+			violations, err := v.ValidateScript(strings.NewReader(tt.script))
 			if err != nil {
-				t.Fatalf("Failed to parse script: %v", err)
+				t.Fatalf("ValidateScript() error = %v", err)
 			}
 
-			violations := checkCdCommands(file)
 			if len(violations) != tt.wantCount {
-				t.Errorf("checkCdCommands() got %d violations, want %d\nViolations: %v\nScript:\n%s",
+				t.Errorf("ValidateScript() got %d violations, want %d\nViolations: %v\nScript:\n%s",
 					len(violations), tt.wantCount, violations, tt.script)
 			}
 		})

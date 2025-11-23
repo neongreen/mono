@@ -4,6 +4,24 @@
 
 `aihook` is a validator for Claude Code hooks that enforces shell scripting best practices. The primary use case is validating that `cd` commands are always executed within subshells.
 
+## Project Structure
+
+```
+aihook/
+├── main.go                      # CLI entry point (Cobra setup)
+├── pkg/
+│   └── validator/
+│       ├── validator.go         # Core validation logic
+│       └── validator_test.go    # Comprehensive unit tests
+├── README.md                    # User documentation
+└── AGENTS.md                    # This file
+```
+
+**Separation of concerns:**
+- `main.go`: Cobra CLI setup, flag handling, output formatting
+- `pkg/validator`: Pure validation logic (AST walking, cd detection)
+- Tests are in the validator package, testing the pure logic
+
 ## Development Guidelines
 
 ### Building and Testing
@@ -12,7 +30,7 @@ Always run tests and build from the repository root:
 
 ```bash
 # Run tests
-go test ./aihook -v
+go test ./aihook/...
 
 # Build
 go build ./aihook
@@ -23,8 +41,20 @@ go build ./aihook
 
 ### Code Structure
 
-- `main.go` - CLI entry point, command definitions, and core validation logic
-- `main_test.go` - Comprehensive unit tests covering all validation scenarios
+- `main.go` (86 lines) - CLI entry point with Cobra framework
+  - Command definitions and flag handling
+  - Output formatting (regular and --claude JSON)
+  - Calls into validator package for logic
+
+- `pkg/validator/validator.go` (106 lines) - Core validation logic
+  - `Validator` type with `ValidateScript()` method
+  - AST walking to detect cd commands
+  - Tracks subshell context (both `(...)` and `$(...)`)
+  - `FormatViolations()` for user-friendly error messages
+
+- `pkg/validator/validator_test.go` (330 lines) - Comprehensive tests
+  - 41 test scenarios covering all edge cases
+  - Tests the validator package directly
 
 ### Key Implementation Details
 
@@ -70,8 +100,8 @@ Example:
 When adding new hook types in the future:
 
 1. Add a new subcommand in `main.go`
-2. Implement the validation logic
-3. Add comprehensive unit tests
+2. Create a new validator in `pkg/validator` if needed
+3. Add comprehensive unit tests in the validator package
 4. Update README.md with usage examples
 5. Update this AGENTS.md with implementation notes
 
