@@ -16,57 +16,48 @@ import (
 // Returns (handled=false, nil) if the event was not handled
 func (r *Reducer) ApplyProjectEvent(e types.Event) (bool, error) {
         switch types.EventKind(e.Kind) {
-        case types.EventKindProjectCreated:
-                //lion:event.project.created section="project.created"
-                //lion:events title="Events" section="project.created"
+       case types.EventKindProjectCreated:
+               //lion:events title="Events" section="project.created"
                 // Ensures projects exist in reducer state, replacing synthetic placeholders with real
                 // metadata when the canonical creation event arrives.
                 return true, r.applyProjectCreated(e)
-        case types.EventKindProjectAliasAdd:
-                //lion:event.project.alias.add section="project.alias.add"
-                //lion:events section="project.alias.add"
+       case types.EventKindProjectAliasAdd:
+               //lion:events section="project.alias.add"
                 // Aliases are tracked in projections; reducer ignores payload beyond validation to
                 // keep replay idempotent while projections handle display IDs.
                 return true, r.applyProjectAliasAdd(e)
-        case types.EventKindProjectAliasRemove:
-                //lion:event.project.alias.remove section="project.alias.remove"
-                //lion:events section="project.alias.remove"
+       case types.EventKindProjectAliasRemove:
+               //lion:events section="project.alias.remove"
                 // Alias removals are handled in projection tables, so reducer performs a lightweight
                 // decode and otherwise no-ops for compatibility.
                 return true, r.applyProjectAliasRemove(e)
-        case types.EventKindProjectDelete:
-                //lion:event.project.delete section="project.delete"
-                //lion:events section="project.delete"
+       case types.EventKindProjectDelete:
+               //lion:events section="project.delete"
                 // Records a tombstone so later task events referencing the project create synthetic
                 // placeholders instead of reviving deleted projects.
                 return true, r.applyProjectDelete(e)
-        case types.EventKindProjectNameSet:
-                //lion:event.project.name.set section="project.name.set"
-                //lion:events section="project.name.set"
+       case types.EventKindProjectNameSet:
+               //lion:events section="project.name.set"
                 // Updates project names in reducer state; if the project does not exist yet a
                 // synthetic project is created so the rename is not lost.
                 return true, r.applyProjectNameSet(e)
-        case types.EventKindTaskCreated:
-                //lion:event.task.created section="task.created"
-                //lion:events section="task.created"
+       case types.EventKindTaskCreated:
+               //lion:events section="task.created"
                 // Creates tasks with deterministic handling for duplicate creation events and
                 // synthetic project creation when upstream data is incomplete.
                 return true, r.applyTaskCreated(e)
-        case types.EventKindTaskNumberSet:
-                //lion:event.task.number.set section="task.number.set"
-                //lion:events section="task.number.set"
+       case types.EventKindTaskNumberSet:
+               //lion:events section="task.number.set"
                 // Applies display numbers to tasks and updates alias maps so task lookups by ID stay
                 // consistent with projection tables.
                 return true, r.applyTaskNumberSet(e)
-        case types.EventKindTaskRelocate:
-                //lion:event.task.relocate section="task.relocate"
-                //lion:events section="task.relocate"
+       case types.EventKindTaskRelocate:
+               //lion:events section="task.relocate"
                 // Moves tasks between projects, ensuring synthetic projects are created when needed
                 // and relations are rebuilt using the reducer graph helpers.
                 return true, r.applyTaskRelocate(e)
-        case types.EventKindTaskTitleSet:
-                //lion:event.task.title.set section="task.title.set"
-                //lion:events section="task.title.set"
+       case types.EventKindTaskTitleSet:
+               //lion:events section="task.title.set"
                 // Updates task titles in reducer state, preserving historical metadata and avoiding
                 // extra allocations when titles repeat.
                 return true, r.applyTaskTitleSet(e)

@@ -23,6 +23,7 @@ type DocEntry struct {
 	HasSection    bool
 }
 
+//lion:implementation section="Extraction pipeline"
 // Extraction pipeline:
 //   - Walks all .go files under the directory, skipping *_test.go.
 //   - Parses with comments and pulls lion markers from package doc, func doc, type/const/var
@@ -30,8 +31,6 @@ type DocEntry struct {
 //     const/var block is used as the entity).
 //   - Supports single-line markers and block comment markers (marker at top of the doc block).
 //   - Aggregates snippets per topic across files; generator writes one file per topic.
-//
-//lion:implementation section="Extraction pipeline"
 func Extract(dir string) (map[string][]DocEntry, error) {
 	docs := make(map[string][]DocEntry)
 	fset := token.NewFileSet()
@@ -157,6 +156,7 @@ func determineEntityForComment(cg *ast.CommentGroup, file *ast.File, funcDecls [
 	return "package " + file.Name.Name
 }
 
+//lion:supported-syntax section="Supported syntax"
 // Supported syntax formats:
 //
 //  1. Single-line marker first:
@@ -174,9 +174,6 @@ func determineEntityForComment(cg *ast.CommentGroup, file *ast.File, funcDecls [
 //   - Unknown keys stop metadata parsing and are treated as content.
 //
 // All formats attach documentation to the next declaration (function, type, const, var).
-//
-//lion:supported-syntax section="Supported syntax"
-//lion:supported-syntax section="Supported syntax"
 func extractFromCommentGroup(fset *token.FileSet, cg *ast.CommentGroup, filepath, entityName string, docs map[string][]DocEntry) error {
 	topicGroups := make(map[string][]string)
 	topicOrder := []string{}
