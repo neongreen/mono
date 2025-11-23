@@ -4,11 +4,11 @@ A validator for Claude Code hooks that enforces shell scripting best practices.
 
 ## Overview
 
-`aihook` is a command-line tool designed to validate shell scripts for use in Claude Code hooks. It parses shell syntax and enforces specific rules to ensure code quality and consistency.
+`aihook` is a command-line tool designed to validate shell scripts for use in Claude Code PreToolUse hooks. It parses shell syntax and enforces specific rules to ensure code quality and consistency.
 
 ## Features
 
-- **Stop Hook**: Validates shell scripts to forbid `cd` invocations outside subshells
+- **PreToolUse Hook**: Validates Bash commands before execution to forbid `cd` invocations outside subshells
 - **Shell Parser**: Uses `mvdan.cc/sh/v3/syntax` for accurate shell script parsing
 - **Claude Code Integration**: Supports `--claude` flag for JSON output compatible with Claude Code hooks
 - **Comprehensive Validation**: Handles complex scenarios including:
@@ -86,13 +86,14 @@ All 'cd' commands must be in a subshell. Example:
 
 ## Claude Code Integration
 
-To use `aihook` as a Claude Code Stop hook, add this to your `.claude/settings.json`:
+To use `aihook` as a Claude Code PreToolUse hook that validates Bash commands, add this to your `.claude/settings.json`:
 
 ```json
 {
   "hooks": {
-    "Stop": [
+    "PreToolUse": [
       {
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
@@ -105,9 +106,14 @@ To use `aihook` as a Claude Code Stop hook, add this to your `.claude/settings.j
 }
 ```
 
-Note: Stop hooks are lifecycle hooks and don't require a `matcher` field (matcher is only for PreToolUse, PermissionRequest, and PostToolUse hooks).
+The hook will:
+- Match any Bash tool invocation (via the `"Bash"` matcher)
+- Receive the bash command script on stdin
+- Validate that all `cd` commands are in subshells
+- Return exit code 0 to allow, or exit code 2 to block with error message
+- Use `--claude` flag to output in the expected JSON format
 
-The Stop hook will read shell commands from stdin when Claude Code invokes it. If you want to validate a specific script file instead, you can use: `aihook stop --claude < /path/to/script.sh`
+For more flexible matching, you can use regex patterns like `"Bash.*cd"` to only check Bash commands containing `cd`.
 
 ## Why Forbid cd Outside Subshells?
 
