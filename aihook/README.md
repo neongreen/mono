@@ -96,7 +96,7 @@ To use `aihook` as a Claude Code Stop hook, add this to your `.claude/settings.j
         "hooks": [
           {
             "type": "command",
-            "command": "bash -c 'cat | aihook stop --claude'"
+            "command": "aihook stop --claude"
           }
         ]
       }
@@ -106,6 +106,8 @@ To use `aihook` as a Claude Code Stop hook, add this to your `.claude/settings.j
 ```
 
 Note: Stop hooks are lifecycle hooks and don't require a `matcher` field (matcher is only for PreToolUse, PermissionRequest, and PostToolUse hooks).
+
+The Stop hook will read shell commands from stdin when Claude Code invokes it. If you want to validate a specific script file instead, you can use: `aihook stop --claude < /path/to/script.sh`
 
 ## Why Forbid cd Outside Subshells?
 
