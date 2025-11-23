@@ -210,9 +210,19 @@ func (r *Reducer) applyTaskRelocate(e types.Event) error {
 		return fmt.Errorf("failed to unmarshal task.relocate payload: %w", err)
 	}
 
+	taskUID := payload.TaskUID.String()
+	toProjectUID := payload.ToProjectUID.String()
+
 	// Update the task's project mapping so project.delete can correctly
 	// remove tasks that belong to the deleted project
-	r.taskProjects[payload.TaskUID.String()] = payload.ToProjectUID.String()
+	r.taskProjects[taskUID] = toProjectUID
+
+	// Also update the task's ProjectUUID field so reducer consumers
+	// (like ls grouping and filtering) see the task under the new project
+	if task, exists := r.tasks[taskUID]; exists {
+		task.ProjectUUID = toProjectUID
+		task.UpdatedAt = e.CreatedAt
+	}
 
 	return nil
 }

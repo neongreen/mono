@@ -112,10 +112,7 @@ Examples:
 		// Handle --query flag if provided (taskset query language)
 		if queryExpr != "" {
 			// Build project UID to name map for query evaluation using reducer
-			projectUIDToName := make(map[string]string)
-			for _, project := range reducer.GetAllProjects() {
-				projectUIDToName[project.ProjectUID] = project.Name
-			}
+			projectUIDToName := reducer.GetProjectUIDToNameMap()
 
 			// Create taskset context
 			ctx := taskset.NewTaskContext(tasks, projectUIDToName)
@@ -279,11 +276,11 @@ Examples:
 		case "project", "prefix":
 			// Group tasks by project
 			getProjectKey := func(task *types.Task) string {
-				projectAlias, err := database.GetProjectAliasForTask(db, reducer, task.TaskUUID)
+				projectName, err := reducer.GetProjectNameForTask(task.TaskUUID)
 				if err != nil {
 					return task.TaskUUID
 				}
-				return projectAlias
+				return projectName
 			}
 			grouped, groupOrder := query.GroupTasks(tasks, groupBy, getProjectKey)
 
@@ -293,10 +290,7 @@ Examples:
 				blockedOnly || unblockedOnly || grepPattern != ""
 
 			if len(projectFilter) == 0 && !hasActiveFilters {
-				allProjects, err := database.GetAllProjectDisplayNames(db, reducer)
-				if err != nil {
-					return fmt.Errorf("failed to get projects: %w", err)
-				}
+				allProjects := reducer.GetProjectUIDToNameMap()
 
 				for _, displayName := range allProjects {
 					if _, exists := grouped[displayName]; !exists {

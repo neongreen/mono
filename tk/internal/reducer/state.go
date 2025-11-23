@@ -1,6 +1,8 @@
 package reducer
 
 import (
+	"fmt"
+
 	"github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -77,6 +79,33 @@ func (r *Reducer) GetAllProjects() []*types.Project {
 		projects = append(projects, project)
 	}
 	return projects
+}
+
+// GetProjectUIDToNameMap returns a map of project UIDs to their names
+func (r *Reducer) GetProjectUIDToNameMap() map[string]string {
+	result := make(map[string]string)
+	for _, project := range r.projects {
+		result[project.ProjectUID] = project.Name
+	}
+	return result
+}
+
+// GetProjectNameForTask returns the project name for a task
+func (r *Reducer) GetProjectNameForTask(taskUID string) (string, error) {
+	// Get the task from reducer
+	task, exists := r.GetTask(taskUID)
+	if !exists {
+		return "", fmt.Errorf("task %s not found", taskUID)
+	}
+
+	// Get project from reducer
+	project, exists := r.GetProject(task.ProjectUUID)
+	if !exists {
+		// Fall back to project UID if project not found
+		return task.ProjectUUID, nil
+	}
+
+	return project.Name, nil
 }
 
 // FinalizeRelations builds relations for all tasks and computes blocked status
