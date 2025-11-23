@@ -57,7 +57,7 @@ func (r *Reducer) applyProjectCreated(e types.Event) error {
 				CreatedBy:   payload.CreatedBy,
 				CreatedAt:   e.CreatedAt,
 				CreatedAtTS: e.TS,
-				IsSynthetic: false, // Will be set to true by DB projection if needed
+				IsSynthetic: false, // Real project from project.created event
 			}
 		}
 		// Otherwise, keep existing project (it has earlier Lamport TS)
@@ -73,7 +73,7 @@ func (r *Reducer) applyProjectCreated(e types.Event) error {
 		CreatedBy:   payload.CreatedBy,
 		CreatedAt:   e.CreatedAt,
 		CreatedAtTS: e.TS,
-		IsSynthetic: false, // Will be set to true by DB projection if needed
+		IsSynthetic: false, // Real project from project.created event
 	}
 
 	return nil
