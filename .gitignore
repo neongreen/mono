@@ -27,3 +27,4 @@ linters/uselesswrapper/uselesswrapper
 
 # Idk
 actionlint
+bin/

@@ -22,6 +22,7 @@ This repository contains multiple independent projects.
 | [jj-run-py](jj-run-py/) | deprecated | Old version of jj-run written in Python. |
 | [tk-vscode](tk-vscode/) | alpha | VS Code extension that lists tk tasks by running `tk ls --json`. |
 | [aihook](aihook/) | alpha | Claude Code hook validator that enforces shell scripting best practices. |
+| [lion](lion/) | alpha | Documentation extraction tool that generates markdown from special comments in Go code. |
 
 ## Libraries
 

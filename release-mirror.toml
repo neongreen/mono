@@ -78,6 +78,13 @@ homepage = "https://github.com/neongreen/mono/tree/main/aihook"
 binary = "aihook"
 test_args = ["--help"]
 
+[[mirror.projects]]
+name = "lion"
+desc = "Documentation extraction tool that generates markdown from special comments in Go code."
+homepage = "https://github.com/neongreen/mono/tree/main/lion"
+binary = "lion"
+test_args = ["--help"]
+
 # idk if this works for non-Go projects right now, see bd-341
 #
 # [[mirror.projects]]
