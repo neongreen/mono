@@ -22,7 +22,8 @@ func (r *Reducer) applyTaskMetaSet(e types.Event) error {
 	// Get or create task
 	task, ok := r.tasks[payload.TaskUUID]
 	if !ok {
-		return fmt.Errorf("task not found: %s", payload.TaskUUID)
+		// Compatibility: mimic DB projections; ignore metadata on missing task.
+		return nil
 	}
 
 	// Initialize metadata map if needed

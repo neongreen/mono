@@ -28,6 +28,7 @@ type StateComparison struct {
 type Difference struct {
 	Type        string `json:"type"` // "missing_in_db", "missing_in_reducer", "field_mismatch"
 	TaskUID     string `json:"task_uid"`
+	ProjectUID  string `json:"project_uid,omitempty"`
 	Field       string `json:"field,omitempty"`
 	ReducerVal  string `json:"reducer_value,omitempty"`
 	DatabaseVal string `json:"database_value,omitempty"`
@@ -105,8 +106,17 @@ func CompareState(db *database.DB, config *config.Config) (*StateComparison, err
 	}
 	comparison.DatabaseTaskCount = len(dbTasks)
 
+	// Compare projects
+	reducerProjects := red.GetAllProjects()
+	dbProjects, err := getProjectsFromDatabase(db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get projects from database: %w", err)
+	}
+	projectDiffs := compareProjects(reducerProjects, dbProjects)
+
 	// Compare tasks
 	comparison.Differences = compareTasks(reducerTasks, dbTasks)
+	comparison.Differences = append(comparison.Differences, projectDiffs...)
 
 	return comparison, nil
 }
@@ -142,6 +152,38 @@ func getTasksFromDatabase(db *database.DB) (map[string]*dbTask, error) {
 	return tasks, nil
 }
 
+func getProjectsFromDatabase(db *database.DB) (map[string]*dbProject, error) {
+	projects := make(map[string]*dbProject)
+
+	rows, err := db.Query(`
+		SELECT project_uid, name, description, type, created_by, created_at, COALESCE(is_synthetic, 0)
+		FROM projects
+		ORDER BY project_uid
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query projects: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var p dbProject
+		var createdAtUnix int64
+		var isSynthetic int
+		if err := rows.Scan(&p.ProjectUID, &p.Name, &p.Description, &p.Type, &p.CreatedBy, &createdAtUnix, &isSynthetic); err != nil {
+			return nil, fmt.Errorf("failed to scan project: %w", err)
+		}
+		p.CreatedAt = time.Unix(createdAtUnix, 0)
+		p.IsSynthetic = isSynthetic == 1
+		projects[p.ProjectUID] = &p
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating projects: %w", err)
+	}
+
+	return projects, nil
+}
+
 // dbTask represents a task from the database projection table
 type dbTask struct {
 	TaskUID    string
@@ -149,6 +191,16 @@ type dbTask struct {
 	Title      string
 	CreatedAt  time.Time
 	CreatedBy  string
+}
+
+type dbProject struct {
+	ProjectUID  string
+	Name        string
+	Description string
+	Type        string
+	CreatedBy   string
+	CreatedAt   time.Time
+	IsSynthetic bool
 }
 
 // compareTasks compares reducer tasks with database tasks and returns differences
@@ -209,6 +261,69 @@ func compareTasks(reducerTasks map[string]*types.Task, dbTasks map[string]*dbTas
 				Message:     fmt.Sprintf("CreatedAt mismatch for task %s", taskUID),
 			})
 		}
+	}
+
+	return diffs
+}
+
+func compareProjects(reducerProjects []*types.Project, dbProjects map[string]*dbProject) []Difference {
+	var diffs []Difference
+
+	// Check for projects in reducer but not in database
+	for _, rp := range reducerProjects {
+		if _, exists := dbProjects[rp.ProjectUID]; !exists {
+			diffs = append(diffs, Difference{
+				Type:       "project_missing_in_db",
+				ProjectUID: rp.ProjectUID,
+				Message:    fmt.Sprintf("Project %s exists in reducer but not in database", rp.ProjectUID),
+			})
+		}
+	}
+
+	// Check for projects in database but not in reducer
+	for projectUID := range dbProjects {
+		found := false
+		for _, rp := range reducerProjects {
+			if rp.ProjectUID == projectUID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diffs = append(diffs, Difference{
+				Type:       "project_missing_in_reducer",
+				ProjectUID: projectUID,
+				Message:    fmt.Sprintf("Project %s exists in database but not in reducer", projectUID),
+			})
+		}
+	}
+
+	// For projects in both, compare fields
+	for _, rp := range reducerProjects {
+		dbp, exists := dbProjects[rp.ProjectUID]
+		if !exists {
+			continue
+		}
+
+		compareField := func(field, rv, dv string) {
+			if rv != dv {
+				diffs = append(diffs, Difference{
+					Type:        "project_field_mismatch",
+					ProjectUID:  rp.ProjectUID,
+					Field:       field,
+					ReducerVal:  rv,
+					DatabaseVal: dv,
+					Message:     fmt.Sprintf("Project %s field %s mismatch", rp.ProjectUID, field),
+				})
+			}
+		}
+
+		compareField("name", rp.Name, dbp.Name)
+		compareField("description", rp.Description, dbp.Description)
+		compareField("type", rp.Type, dbp.Type)
+		compareField("created_by", rp.CreatedBy, dbp.CreatedBy)
+		compareField("created_at", rp.CreatedAt.Format(time.RFC3339), dbp.CreatedAt.Format(time.RFC3339))
+		compareField("is_synthetic", fmt.Sprintf("%t", rp.IsSynthetic), fmt.Sprintf("%t", dbp.IsSynthetic))
 	}
 
 	return diffs

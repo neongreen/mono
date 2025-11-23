@@ -53,6 +53,14 @@ Try tk directly in your browser! See [wasm-demo/](wasm-demo/) for a WebAssembly 
 - **[Relations](RELATIONS.md)** - Task relations documentation
 - **[Specifications](specs/)** - Technical specifications
 
+## Known issues and current semantics
+
+- Projects referenced by events before creation (or after deletion) are materialized as **synthetic** placeholders instead of dropping tasks; these stay visible in listings.
+- `project.delete` currently removes the project and its tasks; later events referencing that UID recreate the project as synthetic rather than restoring the deleted state.
+- Aliases exist in event logs but are ignored in the reducer path and not shown in listings.
+- Event ordering matters for project metadata: the first sighting of a project UID may create a synthetic entry; a later `project.created` replaces it, but other ordering quirks remain.
+- Subtask parent is effectively last-wins: the reducer stores only a single parent per task in `relations.subtask.parent`, so later parent updates overwrite earlier ones instead of retaining multiple parents.
+
 ## Installation
 
 tk can be installed via:

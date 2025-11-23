@@ -24,6 +24,8 @@ func (r *Reducer) ApplyProjectEvent(e types.Event) (bool, error) {
 		return true, r.applyProjectAliasRemove(e)
 	case types.EventKindProjectDelete:
 		return true, r.applyProjectDelete(e)
+	case types.EventKindProjectNameSet:
+		return true, r.applyProjectNameSet(e)
 	case types.EventKindTaskCreated:
 		return true, r.applyTaskCreated(e)
 	case types.EventKindTaskNumberSet:
@@ -46,12 +48,10 @@ func (r *Reducer) applyProjectCreated(e types.Event) error {
 
 	projectUID := string(payload.ProjectUID)
 
-	// Handle duplicate project.created events deterministically
-	// If a project with this UID already exists, keep the one with earlier Lamport timestamp
 	if existing, exists := r.projects[projectUID]; exists {
-		// Keep the project with earlier Lamport timestamp (deterministic)
-		if e.TS < existing.CreatedAtTS {
-			// This event is earlier, replace existing project
+		// Compatibility: mirror DB projections. Replace a synthetic placeholder with the real project;
+		// keep existing real projects. This preserves historical quirks and is not the long-term intent.
+		if existing.IsSynthetic {
 			r.projects[projectUID] = &types.Project{
 				ProjectUID:  projectUID,
 				Type:        string(payload.Type),
@@ -60,10 +60,9 @@ func (r *Reducer) applyProjectCreated(e types.Event) error {
 				CreatedBy:   payload.CreatedBy,
 				CreatedAt:   e.CreatedAt,
 				CreatedAtTS: e.TS,
-				IsSynthetic: false, // Real project from project.created event
+				IsSynthetic: false,
 			}
 		}
-		// Otherwise, keep existing project (it has earlier Lamport TS)
 		return nil
 	}
 
@@ -102,6 +101,26 @@ func (r *Reducer) applyProjectAliasRemove(e types.Event) error {
 	return nil
 }
 
+func (r *Reducer) applyProjectNameSet(e types.Event) error {
+	var payload types.ProjectNameSetPayload
+	if err := json.Unmarshal(e.Payload, &payload); err != nil {
+		return fmt.Errorf("failed to unmarshal project.name.set payload: %w", err)
+	}
+
+	projectUID := string(payload.ProjectUID)
+
+	project, exists := r.projects[projectUID]
+	if !exists {
+		// Create synthetic project so the name update is not lost
+		r.createSyntheticProject(projectUID, e.CreatedAt, e.TS)
+		project = r.projects[projectUID]
+	}
+
+	project.Name = payload.Name
+
+	return nil
+}
+
 // createSyntheticProject creates a synthetic project entry for historical/corrupt data
 func (r *Reducer) createSyntheticProject(projectUID string, createdAt time.Time, createdAtTS int64) {
 	r.projects[projectUID] = &types.Project{
@@ -130,10 +149,16 @@ func (r *Reducer) applyTaskCreated(e types.Event) error {
 		itemKind = "task"
 	}
 
-	// Check if project exists, create synthetic project if needed
+	// Check if project exists; if it was deleted, ignore this event to avoid resurrecting it
 	projectUID := payload.ProjectUID
+	if r.deletedProj[projectUID] {
+		return nil
+	}
+
+	// Create synthetic project if needed (mirrors DB projections)
 	if _, exists := r.projects[projectUID]; !exists {
-		// Create synthetic project (for corrupt/historical data)
+		// Compatibility: create synthetic project (for corrupt/historical data).
+		// This preserves existing behavior; long-term intent is to handle deletes differently.
 		r.createSyntheticProject(projectUID, e.CreatedAt, e.TS)
 	}
 

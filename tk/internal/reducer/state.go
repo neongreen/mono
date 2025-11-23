@@ -14,7 +14,8 @@ type Reducer struct {
 	tasks        map[string]*types.Task    // Key: task UUID
 	taskByID     map[string]string         // Key: task ID (current or alias) -> Value: task UUID
 	taskProjects map[string]string         // Key: task UUID -> Value: project UID
-	projects     map[string]*types.Project // Key: project UID
+	projects     map[string]*types.Project // Key: project UID (includes synthetic placeholders for compatibility)
+	deletedProj  map[string]bool           // Set of project UIDs that were deleted (tombstones)
 	relations    *relations.RelationsGraph // Relations graph
 }
 
@@ -25,6 +26,7 @@ func NewReducer() *Reducer {
 		taskByID:     make(map[string]string),
 		taskProjects: make(map[string]string),
 		projects:     make(map[string]*types.Project),
+		deletedProj:  make(map[string]bool),
 		relations:    relations.NewRelationsGraph(),
 	}
 }
