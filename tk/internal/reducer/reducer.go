@@ -29,8 +29,6 @@ func (r *Reducer) Apply(e types.Event) error {
 		return r.applyTaskDelete(e)
 	case "task.meta.set":
 		return r.applyTaskMetaSet(e)
-	case "project.delete":
-		return r.applyProjectDelete(e)
 	case "relation.add":
 		return r.applyRelationAdd(e)
 	case "relation.remove":

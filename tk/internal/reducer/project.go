@@ -22,6 +22,8 @@ func (r *Reducer) ApplyProjectEvent(e types.Event) (bool, error) {
 		return true, r.applyProjectAliasAdd(e)
 	case types.EventKindProjectAliasRemove:
 		return true, r.applyProjectAliasRemove(e)
+	case types.EventKindProjectDelete:
+		return true, r.applyProjectDelete(e)
 	case types.EventKindTaskCreated:
 		return true, r.applyTaskCreated(e)
 	case types.EventKindTaskNumberSet:
