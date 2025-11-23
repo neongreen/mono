@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
-	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/types"
 )
 
@@ -46,10 +45,7 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 	var groupOrder []string
 
 	// Get all projects
-	allProjects, err := database.GetAllProjectDisplayNames(db)
-	if err != nil {
-		t.Fatalf("failed to get projects: %v", err)
-	}
+	allProjects := reducer.GetProjectUIDToNameMap()
 
 	// Initialize all projects
 	for _, displayName := range allProjects {
@@ -59,11 +55,11 @@ func TestLsProjectsSortedAlphabetically(t *testing.T) {
 
 	// Add tasks to groups
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectName, err := reducer.GetProjectNameForTask(task.TaskUUID)
 		if err != nil {
 			continue
 		}
-		grouped[projectAlias]++
+		grouped[projectName]++
 	}
 
 	// Sort projects (this is what our fix does)
@@ -126,10 +122,7 @@ func TestLsWithoutProjectFilterShowsAllProjects(t *testing.T) {
 	var groupOrder []string
 
 	// Get all projects (this is what happens when no -p flag is specified)
-	allProjects, err := database.GetAllProjectDisplayNames(db)
-	if err != nil {
-		t.Fatalf("failed to get projects: %v", err)
-	}
+	allProjects := reducer.GetProjectUIDToNameMap()
 
 	for _, displayName := range allProjects {
 		grouped[displayName] = []*types.Task{}
@@ -137,14 +130,14 @@ func TestLsWithoutProjectFilterShowsAllProjects(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectName, err := reducer.GetProjectNameForTask(task.TaskUUID)
 		if err != nil {
 			continue
 		}
-		if _, exists := grouped[projectAlias]; !exists {
-			groupOrder = append(groupOrder, projectAlias)
+		if _, exists := grouped[projectName]; !exists {
+			groupOrder = append(groupOrder, projectName)
 		}
-		grouped[projectAlias] = append(grouped[projectAlias], task)
+		grouped[projectName] = append(grouped[projectName], task)
 	}
 
 	sort.Strings(groupOrder)
@@ -224,14 +217,14 @@ func TestLsWithProjectFilterShowsOnlyFilteredProject(t *testing.T) {
 	// (this is the key behavior being tested)
 
 	for _, task := range filteredTasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectName, err := reducer.GetProjectNameForTask(task.TaskUUID)
 		if err != nil {
 			continue
 		}
-		if _, exists := grouped[projectAlias]; !exists {
-			groupOrder = append(groupOrder, projectAlias)
+		if _, exists := grouped[projectName]; !exists {
+			groupOrder = append(groupOrder, projectName)
 		}
-		grouped[projectAlias] = append(grouped[projectAlias], task)
+		grouped[projectName] = append(grouped[projectName], task)
 	}
 
 	sort.Strings(groupOrder)
@@ -310,14 +303,14 @@ func TestLsWithProjectFilterDoesNotShowEmptyProjects(t *testing.T) {
 	// When project filter is specified, DON'T get all projects
 
 	for _, task := range filteredTasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectName, err := reducer.GetProjectNameForTask(task.TaskUUID)
 		if err != nil {
 			continue
 		}
-		if _, exists := grouped[projectAlias]; !exists {
-			groupOrder = append(groupOrder, projectAlias)
+		if _, exists := grouped[projectName]; !exists {
+			groupOrder = append(groupOrder, projectName)
 		}
-		grouped[projectAlias] = append(grouped[projectAlias], task)
+		grouped[projectName] = append(grouped[projectName], task)
 	}
 
 	sort.Strings(groupOrder)
@@ -377,10 +370,7 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 	grouped := make(map[string]int)
 	var groupOrder []string
 
-	allProjects, err := database.GetAllProjectDisplayNames(db)
-	if err != nil {
-		t.Fatalf("failed to get projects: %v", err)
-	}
+	allProjects := reducer.GetProjectUIDToNameMap()
 
 	for _, displayName := range allProjects {
 		grouped[displayName] = 0
@@ -388,14 +378,14 @@ func TestOutputTasksJSONSorting(t *testing.T) {
 	}
 
 	for _, task := range tasks {
-		projectAlias, err := database.GetProjectAliasForTask(db, task.TaskUUID)
+		projectName, err := reducer.GetProjectNameForTask(task.TaskUUID)
 		if err != nil {
 			continue
 		}
-		if _, exists := grouped[projectAlias]; !exists {
-			groupOrder = append(groupOrder, projectAlias)
+		if _, exists := grouped[projectName]; !exists {
+			groupOrder = append(groupOrder, projectName)
 		}
-		grouped[projectAlias]++
+		grouped[projectName]++
 	}
 
 	// Sort (this is what our fix does)

@@ -44,6 +44,10 @@ func (r *Reducer) applyProjectDelete(e types.Event) error {
 
 	projectUID := payload.ProjectUID
 
+	// Compatibility: remember tombstone to prevent resurrecting via future events.
+	// Long-term intent is a hide/soft-delete model, but we mirror current behavior.
+	r.deletedProj[projectUID.String()] = true
+
 	// Find all tasks in this project and delete them
 	tasksToDelete := make([]string, 0)
 	for taskUUID, taskProjectUID := range r.taskProjects {
@@ -56,6 +60,9 @@ func (r *Reducer) applyProjectDelete(e types.Event) error {
 	for _, taskUUID := range tasksToDelete {
 		r.removeTaskFromMaps(taskUUID)
 	}
+
+	// Remove the project itself
+	delete(r.projects, projectUID.String())
 
 	return nil
 }

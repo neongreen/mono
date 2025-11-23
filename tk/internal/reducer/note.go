@@ -21,13 +21,15 @@ func (r *Reducer) applyTaskNoteAdd(e types.Event) error {
 		var ok bool
 		taskUUID, ok = r.taskByID[payload.TaskID]
 		if !ok {
-			return fmt.Errorf("task not found: %s", payload.TaskID)
+			// Compatibility: mimic DB projections; ignore note on missing task.
+			return nil
 		}
 	}
 
 	task, ok := r.tasks[taskUUID]
 	if !ok {
-		return fmt.Errorf("task UUID not found: %s", taskUUID)
+		// Compatibility: mimic DB projections; ignore note on missing task.
+		return nil
 	}
 
 	note := types.Note{

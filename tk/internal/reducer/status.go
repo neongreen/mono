@@ -22,13 +22,15 @@ func (r *Reducer) applyTaskStatusSet(e types.Event) error {
 		var ok bool
 		taskUUID, ok = r.taskByID[payload.TaskID]
 		if !ok {
-			return fmt.Errorf("task not found: %s", payload.TaskID)
+			// Compatibility: mimic DB projections; ignore status on missing task.
+			return nil
 		}
 	}
 
 	task, ok := r.tasks[taskUUID]
 	if !ok {
-		return fmt.Errorf("task UUID not found: %s", taskUUID)
+		// Compatibility: mimic DB projections; ignore status on missing task.
+		return nil
 	}
 
 	// Get or create axis status

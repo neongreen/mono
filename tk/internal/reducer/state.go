@@ -1,6 +1,8 @@
 package reducer
 
 import (
+	"fmt"
+
 	"github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/relations"
 	"github.com/neongreen/mono/tk/internal/types"
@@ -12,6 +14,8 @@ type Reducer struct {
 	tasks        map[string]*types.Task    // Key: task UUID
 	taskByID     map[string]string         // Key: task ID (current or alias) -> Value: task UUID
 	taskProjects map[string]string         // Key: task UUID -> Value: project UID
+	projects     map[string]*types.Project // Key: project UID (includes synthetic placeholders for compatibility)
+	deletedProj  map[string]bool           // Set of project UIDs that were deleted (tombstones)
 	relations    *relations.RelationsGraph // Relations graph
 }
 
@@ -21,6 +25,8 @@ func NewReducer() *Reducer {
 		tasks:        make(map[string]*types.Task),
 		taskByID:     make(map[string]string),
 		taskProjects: make(map[string]string),
+		projects:     make(map[string]*types.Project),
+		deletedProj:  make(map[string]bool),
 		relations:    relations.NewRelationsGraph(),
 	}
 }
@@ -60,6 +66,48 @@ func (r *Reducer) GetAllTasks() []*types.Task {
 		tasks = append(tasks, task)
 	}
 	return tasks
+}
+
+// GetProject returns a project by UID
+func (r *Reducer) GetProject(projectUID string) (*types.Project, bool) {
+	project, ok := r.projects[projectUID]
+	return project, ok
+}
+
+// GetAllProjects returns all projects
+func (r *Reducer) GetAllProjects() []*types.Project {
+	projects := make([]*types.Project, 0, len(r.projects))
+	for _, project := range r.projects {
+		projects = append(projects, project)
+	}
+	return projects
+}
+
+// GetProjectUIDToNameMap returns a map of project UIDs to their names
+func (r *Reducer) GetProjectUIDToNameMap() map[string]string {
+	result := make(map[string]string)
+	for _, project := range r.projects {
+		result[project.ProjectUID] = project.Name
+	}
+	return result
+}
+
+// GetProjectNameForTask returns the project name for a task
+func (r *Reducer) GetProjectNameForTask(taskUID string) (string, error) {
+	// Get the task from reducer
+	task, exists := r.GetTask(taskUID)
+	if !exists {
+		return "", fmt.Errorf("task %s not found", taskUID)
+	}
+
+	// Get project from reducer
+	project, exists := r.GetProject(task.ProjectUUID)
+	if !exists {
+		// Fall back to project UID if project not found
+		return task.ProjectUUID, nil
+	}
+
+	return project.Name, nil
 }
 
 // FinalizeRelations builds relations for all tasks and computes blocked status

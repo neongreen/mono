@@ -35,7 +35,34 @@ func (rt *ReducerTest) Reducer() *Reducer {
 // CreateProject creates a new project and returns its UID
 func (rt *ReducerTest) CreateProject(name string) string {
 	rt.t.Helper()
-	return string(types.NewProjectUID())
+	rt.ts++
+
+	projectUID := types.NewProjectUID()
+
+	payload := types.ProjectCreatedPayload{
+		ProjectUID:  projectUID,
+		Type:        "local",
+		Name:        name,
+		Description: "",
+		CreatedBy:   "test-actor",
+	}
+	payloadJSON, _ := json.Marshal(payload)
+
+	event := types.Event{
+		ID:        rt.eventID(),
+		TS:        rt.ts,
+		CreatedAt: time.Now(),
+		Actor:     "test-actor",
+		Role:      "human",
+		Kind:      "project.created",
+		Payload:   payloadJSON,
+	}
+
+	if err := rt.reducer.Apply(event); err != nil {
+		rt.t.Fatalf("Failed to create project %s: %v", name, err)
+	}
+
+	return string(projectUID)
 }
 
 // DeleteProject deletes a project and all its tasks
@@ -351,9 +378,18 @@ func (th *TaskHandle) AssertTitle(expectedTitle string) *TaskHandle {
 func (th *TaskHandle) AssertInProject(expectedProjectUID string) *TaskHandle {
 	th.test.t.Helper()
 
+	// Check taskProjects mapping
 	actualProjectUID := th.test.reducer.taskProjects[th.UID]
 	if actualProjectUID != expectedProjectUID {
-		th.test.t.Errorf("Task %s (%q): expected project %s, got %s", th.UID, th.Title, expectedProjectUID, actualProjectUID)
+		th.test.t.Errorf("Task %s (%q): expected project %s in taskProjects, got %s", th.UID, th.Title, expectedProjectUID, actualProjectUID)
+	}
+
+	// Also check the task's ProjectUUID field (regression test for relocate bug)
+	task, exists := th.test.reducer.GetTask(th.UID)
+	if !exists {
+		th.test.t.Errorf("Task %s (%q): task not found in reducer", th.UID, th.Title)
+	} else if task.ProjectUUID != expectedProjectUID {
+		th.test.t.Errorf("Task %s (%q): expected ProjectUUID %s, got %s", th.UID, th.Title, expectedProjectUID, task.ProjectUUID)
 	}
 
 	return th

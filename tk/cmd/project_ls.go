@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
+	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/spf13/cobra"
 )
@@ -23,87 +23,41 @@ var projectLsCmd = &cobra.Command{
 		}
 		defer db.Close()
 
-		// Query projects
-		rows, err := db.Db.Query(`
-			SELECT project_uid, type, name, description, created_by, created_at, COALESCE(is_synthetic, 0)
-			FROM projects
-			ORDER BY created_at
-		`)
+		// Load config for reducer
+		config, err := config_pkg.LoadConfig()
 		if err != nil {
-			return fmt.Errorf("failed to query projects: %w", err)
+			return fmt.Errorf("failed to load config: %w", err)
 		}
-		defer rows.Close()
 
-		// Get node ID for filtering aliases
-		nodeID, err := db.GetOrCreateNodeID()
+		// Get reducer with all project state
+		reducer, err := db.GetCachedReducerWithConfig(config)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to build reducer: %w", err)
 		}
 
 		type ProjectOutput struct {
-			UID                 string   `json:"uid"`
-			Name                string   `json:"name"`
-			Type                string   `json:"type"`
-			Aliases             []string `json:"aliases"`
-			LocalPreferredAlias string   `json:"local_preferred_alias,omitempty"` // First alias for this node, used for display
-			Description         string   `json:"description"`
-			CreatedBy           string   `json:"created_by"`
-			CreatedAt           int64    `json:"created_at"`
-			IsSynthetic         bool     `json:"is_synthetic"`
+			UID         string `json:"uid"`
+			Name        string `json:"name"`
+			Type        string `json:"type"`
+			Description string `json:"description"`
+			CreatedBy   string `json:"created_by"`
+			CreatedAt   int64  `json:"created_at"`
+			IsSynthetic bool   `json:"is_synthetic"`
 		}
 
 		var projects []ProjectOutput
 
-		for rows.Next() {
-			var projectUID, typ, name, description, createdBy string
-			var createdAt int64
-			var isSynthetic int
-
-			if err := rows.Scan(&projectUID, &typ, &name, &description, &createdBy, &createdAt, &isSynthetic); err != nil {
-				return err
-			}
-
-			// Get aliases for this project
-			aliasRows, err := db.Db.Query(`
-			SELECT alias FROM project_aliases
-			WHERE project_uid = ? AND node = ?
-		`, projectUID, nodeID)
-			if err != nil {
-				return err
-			}
-
-			aliases := []string{}
-			for aliasRows.Next() {
-				var alias string
-				if err := aliasRows.Scan(&alias); err != nil {
-					aliasRows.Close()
-					return err
-				}
-				aliases = append(aliases, alias)
-			}
-			aliasRows.Close()
-
-			// Set preferred alias to first local alias (if any exist)
-			localPreferredAlias := ""
-			if len(aliases) > 0 {
-				localPreferredAlias = aliases[0]
-			}
-
+		// Get all projects from reducer
+		for _, project := range reducer.GetAllProjects() {
 			projects = append(projects, ProjectOutput{
-				UID:                 projectUID,
-				Name:                name,
-				Type:                typ,
-				Aliases:             aliases,
-				LocalPreferredAlias: localPreferredAlias,
-				Description:         description,
-				CreatedBy:           createdBy,
-				CreatedAt:           createdAt,
-				IsSynthetic:         isSynthetic == 1,
+				UID:         project.ProjectUID,
+				Name:        project.Name,
+				Type:        project.Type,
+				Description: project.Description,
+				CreatedBy:   project.CreatedBy,
+				CreatedAt:   project.CreatedAt.Unix(),
+				IsSynthetic: project.IsSynthetic,
 			})
-		}
-
-		if err := rows.Err(); err != nil {
-			return err
 		}
 
 		if jsonOutput {
@@ -115,25 +69,20 @@ var projectLsCmd = &cobra.Command{
 		} else {
 			t := table.NewWriter()
 			t.SetOutputMirror(os.Stdout)
-			t.AppendHeader(table.Row{"UID", "Name", "Type", "Aliases", "Description", "Created By"})
+			t.AppendHeader(table.Row{"UID", "Name", "Type", "Description", "Created By"})
 
 			t.SetStyle(table.StyleLight)
 			t.Style().Options.SeparateRows = true
 			t.Style().Options.DrawBorder = false
 
 			for _, project := range projects {
-				aliasStr := ""
-				if len(project.Aliases) > 0 {
-					aliasStr = strings.Join(project.Aliases, ", ")
-				}
-
 				// Add [synthetic] marker to name if it's a synthetic project
 				displayName := project.Name
 				if project.IsSynthetic {
 					displayName = project.Name + " [synthetic]"
 				}
 
-				t.AppendRow(table.Row{project.UID, displayName, project.Type, aliasStr, project.Description, project.CreatedBy})
+				t.AppendRow(table.Row{project.UID, displayName, project.Type, project.Description, project.CreatedBy})
 			}
 
 			t.Render()
