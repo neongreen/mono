@@ -105,14 +105,20 @@ conf import
 # Import specific tool only
 conf import jj
 
+# Import a single setting from a tool
+conf import claude model
+conf import jj user.name
+
 # Preview what would be imported
 conf import --dry-run
+conf import jj user.email --dry-run
 ```
 
 This is useful for:
 - Migrating existing configurations to conf management
 - Capturing manual changes made to config files
 - Setting up conf on a new machine with existing configs
+- Selectively importing individual settings without affecting others
 
 ### State Management
 

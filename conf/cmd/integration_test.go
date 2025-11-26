@@ -650,6 +650,132 @@ normal = "status"
 			}
 		}
 	})
+
+	// Test importing a single setting
+	t.Run("import single setting", func(t *testing.T) {
+		// Create a new test home for this test
+		testHome3 := t.TempDir()
+
+		// Create test jj config with multiple values
+		jjConfigDir3 := filepath.Join(testHome3, ".config", "jj")
+		if err := os.MkdirAll(jjConfigDir3, 0o755); err != nil {
+			t.Fatalf("Failed to create jj config dir: %v", err)
+		}
+
+		jjConfigMultiple := `[user]
+name = "Single Import Test"
+email = "single@example.com"
+
+[snapshot]
+max-new-file-size = 4096
+`
+		if err := os.WriteFile(filepath.Join(jjConfigDir3, "config.toml"), []byte(jjConfigMultiple), 0o644); err != nil {
+			t.Fatalf("Failed to write jj config: %v", err)
+		}
+
+		// Import only user.name
+		cmd := exec.Command(binaryPath, "import", "jj", "user.name")
+		cmd.Env = append(os.Environ(), "HOME="+testHome3)
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		if err := cmd.Run(); err != nil {
+			t.Errorf("Import single setting failed: %v", err)
+			t.Logf("stdout: %s", stdout.String())
+			t.Logf("stderr: %s", stderr.String())
+		}
+
+		output := stdout.String()
+
+		// Verify only user.name is imported
+		if !strings.Contains(output, "user.name") {
+			t.Errorf("Expected import output to show user.name, got: %s", output)
+		}
+		if !strings.Contains(output, "Single Import Test") {
+			t.Errorf("Expected import output to show the value 'Single Import Test', got: %s", output)
+		}
+		if !strings.Contains(output, "✓ Import complete") {
+			t.Errorf("Expected completion message, got: %s", output)
+		}
+
+		// Verify conf state file was created and contains only user.name
+		confStateFile := filepath.Join(testHome3, ".config", "conf", "jj.toml")
+		if _, err := os.Stat(confStateFile); os.IsNotExist(err) {
+			t.Errorf("Expected conf state file to be created at %s", confStateFile)
+		} else {
+			content, err := os.ReadFile(confStateFile)
+			if err != nil {
+				t.Errorf("Failed to read conf state file: %v", err)
+			} else {
+				contentStr := string(content)
+				// Should contain user.name but not the other values
+				if !strings.Contains(contentStr, "Single Import Test") {
+					t.Errorf("Expected conf state to contain 'Single Import Test', got: %s", contentStr)
+				}
+				// Should NOT contain user.email or snapshot settings since we only imported user.name
+				if strings.Contains(contentStr, "single@example.com") {
+					t.Errorf("Expected conf state to NOT contain 'single@example.com' (not imported), got: %s", contentStr)
+				}
+				if strings.Contains(contentStr, "4096") {
+					t.Errorf("Expected conf state to NOT contain '4096' (not imported), got: %s", contentStr)
+				}
+			}
+		}
+	})
+
+	// Test importing a single setting with dry-run
+	t.Run("import single setting dry-run", func(t *testing.T) {
+		// Create a new test home for this test
+		testHome4 := t.TempDir()
+
+		// Create test jj config
+		jjConfigDir4 := filepath.Join(testHome4, ".config", "jj")
+		if err := os.MkdirAll(jjConfigDir4, 0o755); err != nil {
+			t.Fatalf("Failed to create jj config dir: %v", err)
+		}
+
+		jjConfigSingle := `[user]
+email = "dryrun@example.com"
+`
+		if err := os.WriteFile(filepath.Join(jjConfigDir4, "config.toml"), []byte(jjConfigSingle), 0o644); err != nil {
+			t.Fatalf("Failed to write jj config: %v", err)
+		}
+
+		// Dry-run import of user.email
+		cmd := exec.Command(binaryPath, "import", "jj", "user.email", "--dry-run")
+		cmd.Env = append(os.Environ(), "HOME="+testHome4)
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		if err := cmd.Run(); err != nil {
+			t.Errorf("Import single setting dry-run failed: %v", err)
+			t.Logf("stdout: %s", stdout.String())
+			t.Logf("stderr: %s", stderr.String())
+		}
+
+		output := stdout.String()
+
+		// Verify dry-run output
+		if !strings.Contains(output, "user.email") {
+			t.Errorf("Expected dry-run output to show user.email, got: %s", output)
+		}
+		if !strings.Contains(output, "dryrun@example.com") {
+			t.Errorf("Expected dry-run output to show the value 'dryrun@example.com', got: %s", output)
+		}
+		if !strings.Contains(output, "Would import: jj.user.email = dryrun@example.com") {
+			t.Errorf("Expected dry-run message, got: %s", output)
+		}
+
+		// Verify conf state file was NOT created in dry-run mode
+		confStateFile := filepath.Join(testHome4, ".config", "conf", "jj.toml")
+		if _, err := os.Stat(confStateFile); !os.IsNotExist(err) {
+			t.Errorf("Expected conf state file to NOT be created in dry-run mode, but it exists at %s", confStateFile)
+		}
+	})
 }
 
 // TestApplyPreservesUnmanagedSettings tests that `conf apply` preserves
