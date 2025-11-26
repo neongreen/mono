@@ -95,12 +95,10 @@ func runPreventStop(cmd *cobra.Command, args []string) error {
 
 	// Run the actual hook - read input and return a response that blocks stopping
 	// The Stop hook receives input but we don't need to parse it for prevent-stop
+	// We ignore any parse errors since the goal is to prevent stopping regardless
 	var hookInput map[string]any
 	decoder := json.NewDecoder(os.Stdin)
-	if err := decoder.Decode(&hookInput); err != nil {
-		// Even if we can't parse input, still try to prevent stopping
-		_ = err
-	}
+	_ = decoder.Decode(&hookInput)
 
 	// Return a response that blocks the stop
 	response := hookPreventStop()
