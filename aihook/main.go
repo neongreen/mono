@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -57,19 +58,33 @@ func main() {
 	}
 }
 
-// getAihookPath returns the path to the aihook executable
+// getAihookPath returns the path to the aihook executable.
+// If aihook is in PATH, returns just "aihook".
+// Otherwise returns the full path and prints a warning.
 func getAihookPath() (string, error) {
-	// First try to find aihook in PATH
-	path, err := os.Executable()
-	if err == nil {
-		// Resolve symlinks to get the real path
-		resolved, err := filepath.EvalSymlinks(path)
-		if err == nil {
-			path = resolved
-		}
-		return path, nil
+	// Check if aihook is available in PATH
+	pathLookup, err := exec.LookPath("aihook")
+	if err == nil && pathLookup != "" {
+		// aihook is in PATH, use just the binary name
+		return "aihook", nil
 	}
-	return "", fmt.Errorf("could not determine aihook path: %w", err)
+
+	// aihook is not in PATH, get the full executable path
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("could not determine aihook path: %w", err)
+	}
+
+	// Resolve symlinks to get the real path
+	resolved, err := filepath.EvalSymlinks(execPath)
+	if err == nil {
+		execPath = resolved
+	}
+
+	// Print warning that aihook is not in PATH
+	fmt.Fprintf(os.Stderr, "Warning: aihook is not in PATH, using full path: %s\n", execPath)
+
+	return execPath, nil
 }
 
 func runPreventStop(cmd *cobra.Command, args []string) error {
