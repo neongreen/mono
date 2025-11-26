@@ -56,11 +56,17 @@ func InstallHook(config HookConfig) error {
 	}
 
 	// Read existing settings or create new
+	// Also preserve file mode if file exists
 	settings := make(map[string]any)
+	var fileMode os.FileMode = 0644 // Default mode for new files
 	data, err := os.ReadFile(settingsPath)
 	if err == nil {
 		if err := json.Unmarshal(data, &settings); err != nil {
 			return fmt.Errorf("failed to parse existing settings: %w", err)
+		}
+		// Get existing file mode to preserve it
+		if info, statErr := os.Stat(settingsPath); statErr == nil {
+			fileMode = info.Mode()
 		}
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("failed to read settings file: %w", err)
@@ -129,7 +135,8 @@ func InstallHook(config HookConfig) error {
 	// Add trailing newline
 	output = append(output, '\n')
 
-	if err := os.WriteFile(settingsPath, output, 0644); err != nil {
+	// Use preserved file mode (or default 0644 for new files)
+	if err := os.WriteFile(settingsPath, output, fileMode); err != nil {
 		return fmt.Errorf("failed to write settings file: %w", err)
 	}
 
