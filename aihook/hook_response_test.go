@@ -129,6 +129,44 @@ func TestHookError(t *testing.T) {
 	}
 }
 
+func TestHookPreventStop(t *testing.T) {
+	resp := hookPreventStop()
+
+	if resp.Continue {
+		t.Error("hookPreventStop() should set Continue to false")
+	}
+
+	if resp.StopReason == "" {
+		t.Error("hookPreventStop() should have a StopReason")
+	}
+
+	if resp.SystemMessage == "" {
+		t.Error("hookPreventStop() should have a SystemMessage")
+	}
+
+	// Verify JSON structure is valid
+	jsonBytes, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("Failed to marshal hookPreventStop response: %v", err)
+	}
+
+	var parsed map[string]any
+	if err := json.Unmarshal(jsonBytes, &parsed); err != nil {
+		t.Fatalf("Failed to unmarshal hookPreventStop response: %v", err)
+	}
+
+	// Verify required fields
+	if _, ok := parsed["continue"]; !ok {
+		t.Error("JSON missing 'continue' field")
+	}
+	if _, ok := parsed["stopReason"]; !ok {
+		t.Error("JSON missing 'stopReason' field")
+	}
+	if _, ok := parsed["systemMessage"]; !ok {
+		t.Error("JSON missing 'systemMessage' field")
+	}
+}
+
 func TestHookResponseJSON(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -232,10 +270,10 @@ func TestFormatOutputClaudeMode(t *testing.T) {
 
 func TestHookResponseOmitEmptyFields(t *testing.T) {
 	tests := []struct {
-		name        string
-		response    HookResponse
-		shouldOmit  []string
-		shouldHave  []string
+		name       string
+		response   HookResponse
+		shouldOmit []string
+		shouldHave []string
 	}{
 		{
 			name:       "allow without system message omits stopReason",
