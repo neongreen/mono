@@ -26,8 +26,9 @@ type DocEntry struct {
 //lion:implementation section="Extraction pipeline"
 // Extraction pipeline:
 //   - Walks all .go files under the directory, skipping *_test.go.
-//   - Parses with comments and pulls lion markers from package doc, func doc, and type/const/var
-//     doc comments (first name in a const/var block is used as the entity).
+//   - Parses with comments and pulls lion markers from package doc, func doc, type/const/var
+//     doc comments, and inline comments inside functions and other declarations (first name in a
+//     const/var block is used as the entity).
 //   - Supports single-line markers and block comment markers (marker at top of the doc block).
 //   - Aggregates snippets per topic across files; generator writes one file per topic.
 func Extract(dir string) (map[string][]DocEntry, error) {
@@ -71,34 +72,55 @@ func Extract(dir string) (map[string][]DocEntry, error) {
 }
 
 func extractFromFile(fset *token.FileSet, file *ast.File, filepath string, docs map[string][]DocEntry) error {
+	processed := make(map[*ast.CommentGroup]bool)
+
 	// Extract package-level comments
 	if file.Doc != nil {
+		processed[file.Doc] = true
 		if err := extractFromCommentGroup(fset, file.Doc, filepath, "package "+file.Name.Name, docs); err != nil {
 			return err
 		}
 	}
 
-	var parseErr error
-	ast.Inspect(file, func(n ast.Node) bool {
-		if parseErr != nil {
-			return false
-		}
-		switch decl := n.(type) {
+	var funcDecls []*ast.FuncDecl
+	var genDecls []*ast.GenDecl
+
+	// Extract doc comments from declarations and record them as processed
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
 		case *ast.FuncDecl:
-			if decl.Doc != nil {
-				parseErr = extractFromCommentGroup(fset, decl.Doc, filepath, decl.Name.Name, docs)
+			funcDecls = append(funcDecls, d)
+			if d.Doc != nil {
+				processed[d.Doc] = true
+				if err := extractFromCommentGroup(fset, d.Doc, filepath, d.Name.Name, docs); err != nil {
+					return err
+				}
 			}
 		case *ast.GenDecl:
-			if decl.Doc != nil {
-				// For type/const/var declarations
-				entityName := getEntityName(decl)
-				parseErr = extractFromCommentGroup(fset, decl.Doc, filepath, entityName, docs)
+			genDecls = append(genDecls, d)
+			if d.Doc != nil {
+				processed[d.Doc] = true
+				entityName := getEntityName(d)
+				if err := extractFromCommentGroup(fset, d.Doc, filepath, entityName, docs); err != nil {
+					return err
+				}
 			}
 		}
-		return true
-	})
+	}
 
-	return parseErr
+	// Extract inline lion comment groups that were not attached as doc comments
+	for _, cg := range file.Comments {
+		if processed[cg] {
+			continue
+		}
+
+		entityName := determineEntityForComment(cg, file, funcDecls, genDecls)
+		if err := extractFromCommentGroup(fset, cg, filepath, entityName, docs); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // getEntityName extracts the entity name from a general declaration.
@@ -116,8 +138,25 @@ func getEntityName(decl *ast.GenDecl) string {
 	return ""
 }
 
+func determineEntityForComment(cg *ast.CommentGroup, file *ast.File, funcDecls []*ast.FuncDecl, genDecls []*ast.GenDecl) string {
+	for _, fn := range funcDecls {
+		if fn.Body != nil && cg.Pos() >= fn.Body.Pos() && cg.End() <= fn.Body.End() {
+			return fn.Name.Name
+		}
+	}
+
+	for _, gd := range genDecls {
+		if cg.Pos() >= gd.Pos() && cg.End() <= gd.End() {
+			if name := getEntityName(gd); name != "" {
+				return name
+			}
+		}
+	}
+
+	return "package " + file.Name.Name
+}
+
 //lion:supported-syntax section="Supported syntax"
-//
 // Supported syntax formats:
 //
 //  1. Single-line marker first:
@@ -135,8 +174,6 @@ func getEntityName(decl *ast.GenDecl) string {
 //   - Unknown keys stop metadata parsing and are treated as content.
 //
 // All formats attach documentation to the next declaration (function, type, const, var).
-//
-//lion:supported-syntax section="Supported syntax"
 func extractFromCommentGroup(fset *token.FileSet, cg *ast.CommentGroup, filepath, entityName string, docs map[string][]DocEntry) error {
 	topicGroups := make(map[string][]string)
 	topicOrder := []string{}
@@ -290,13 +327,13 @@ func parseLionCommentLine(text string) (string, string, metaInfo, error) {
 }
 
 /*
-	lion:errors-and-validation section="Error handling"
-	Validation and error handling:
-	- Invalid or empty topics are ignored silently (no explicit validation yet).
-	- Conflicting topic/section titles within the same comment group fail extraction with file:line.
-	- Comments that do not attach to package/func/type/const/var doc groups are skipped.
-	- CLI exits non-zero only when extraction fails (parse/metadata error) or generation fails (write error).
-	- Bad markers inside otherwise valid files do not stop extraction; they are just skipped.
+lion:errors-and-validation section="Error handling"
+Validation and error handling:
+- Invalid or empty topics are ignored silently (no explicit validation yet).
+- Conflicting topic/section titles within the same comment group fail extraction with file:line.
+- Comments that do not attach to package/func/type/const/var doc groups are skipped.
+- CLI exits non-zero only when extraction fails (parse/metadata error) or generation fails (write error).
+- Bad markers inside otherwise valid files do not stop extraction; they are just skipped.
 */
 func parseLionBlockComment(text string) (string, string, metaInfo, error) {
 	// Remove "lion:" prefix

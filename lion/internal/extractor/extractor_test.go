@@ -158,6 +158,51 @@ func Function2() {}
 	}
 }
 
+func TestExtractInlineComments(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Create file with inline lion comments inside a function body
+	file := filepath.Join(tmpDir, "inline.go")
+	content := `package inline
+
+func Execute() {
+        //lion:inline-semantics section="execute"
+        //lion:inline-semantics Describes runtime behavior inside the function body.
+        helper()
+        //lion:inline-semantics Additional details that should join the same entry.
+}
+`
+
+	if err := os.WriteFile(file, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to create inline file: %v", err)
+	}
+
+	docs, err := Extract(tmpDir)
+	if err != nil {
+		t.Fatalf("Extract failed: %v", err)
+	}
+
+	entries, ok := docs["inline-semantics"]
+	if !ok {
+		t.Fatalf("expected inline-semantics topic to be extracted")
+	}
+
+	if len(entries) != 3 {
+		t.Fatalf("expected 3 entries, got %d", len(entries))
+	}
+
+	for _, entry := range entries {
+		if entry.Entity != "Execute" {
+			t.Fatalf("expected entity Execute, got %s", entry.Entity)
+		}
+	}
+
+	combined := entries[0].Content + entries[1].Content + entries[2].Content
+	if !strings.Contains(combined, "runtime behavior") || !strings.Contains(combined, "Additional details") {
+		t.Fatalf("unexpected combined content: %q", combined)
+	}
+}
+
 func TestExtractSkipsTestFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 
@@ -424,7 +469,7 @@ func TestExtractMarkerAtTopWithFollowingComments(t *testing.T) {
 
 	// Create test Go file with marker-at-top format that gathers following lines
 	testFile := filepath.Join(tmpDir, "test.go")
-content := `//lion:overview section="Overview section"
+	content := `//lion:overview section="Overview section"
 //
 // This is a multi-line comment.
 // It describes the functionality.
