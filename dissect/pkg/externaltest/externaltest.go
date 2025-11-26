@@ -76,7 +76,7 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 	// Clone the project
 	cloneStart := time.Now()
 	slog.Debug("Cloning external project", "url", config.URL, "commit", config.Commit)
-	cloneCmd := exec.Command("git", "clone", config.URL, projectDir)
+	cloneCmd := exec.Command("git", "clone", config.URL, projectDir) //nolint:gosec // G204: intentional git clone with config-provided URL
 	cloneOutput, cloneErr := cloneCmd.CombinedOutput()
 	if cloneErr != nil {
 		result.Error = fmt.Errorf("failed to clone project: %w\nOutput: %s", cloneErr, cloneOutput)
@@ -86,7 +86,7 @@ func RunExternalProjectTest(t Logger, config ProjectConfig) *TestResult {
 
 	// Checkout the specific commit
 	checkoutStart := time.Now()
-	checkoutCmd := exec.Command("git", "checkout", config.Commit)
+	checkoutCmd := exec.Command("git", "checkout", config.Commit) //nolint:gosec // G204: intentional git checkout with config-provided commit
 	checkoutCmd.Dir = projectDir
 	checkoutOutput, checkoutErr := checkoutCmd.CombinedOutput()
 	if checkoutErr != nil {

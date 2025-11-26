@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
+	"flag" //nolint:depguard // Example code - demonstrates library usage, not a production CLI
 	"fmt"
 	"log"
 	"os"

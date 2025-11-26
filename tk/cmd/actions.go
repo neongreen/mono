@@ -8,48 +8,47 @@ import (
 	"github.com/neongreen/mono/tk/internal/clock"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/pathlang_resolver"
-	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/tasks"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/neongreen/mono/tk/internal/utils"
 )
 
 // handleTaskAction handles actions on task resources
-func handleTaskAction(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, action string, args []string) error {
+func handleTaskAction(db *database.DB, node *pathlang_resolver.Node, action string, args []string) error {
 	switch action {
 	case "status":
-		return taskActionStatus(db, reducer, node, args)
+		return taskActionStatus(db, node)
 	case "note":
-		return taskActionNote(db, reducer, node, args)
+		return taskActionNote(db, node, args)
 	default:
 		return fmt.Errorf("unknown task action: %s", action)
 	}
 }
 
 // handleProjectAction handles actions on project resources
-func handleProjectAction(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, action string, args []string) error {
+func handleProjectAction(db *database.DB, node *pathlang_resolver.Node, action string) error {
 	switch action {
 	case "status", "info":
-		return projectActionStatus(db, reducer, node, args)
+		return projectActionStatus(db, node)
 	default:
 		return fmt.Errorf("unknown project action: %s", action)
 	}
 }
 
 // handleNotesAction handles actions on notes resources
-func handleNotesAction(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, action string, args []string) error {
+func handleNotesAction(db *database.DB, node *pathlang_resolver.Node, action string, args []string) error {
 	switch action {
 	case "add":
-		return notesActionAdd(db, reducer, node, args)
+		return notesActionAdd(db, node, args)
 	case "list":
-		return notesActionList(db, reducer, node, args)
+		return notesActionList(db, node)
 	default:
 		return fmt.Errorf("unknown notes action: %s", action)
 	}
 }
 
 // taskActionStatus displays the status of a task
-func taskActionStatus(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, args []string) error {
+func taskActionStatus(db *database.DB, node *pathlang_resolver.Node) error {
 	if node.Task == nil {
 		return fmt.Errorf("task data not available")
 	}
@@ -73,7 +72,7 @@ func taskActionStatus(db *database.DB, reducer *reducer.Reducer, node *pathlang_
 }
 
 // taskActionNote adds a note to a task
-func taskActionNote(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, args []string) error {
+func taskActionNote(db *database.DB, node *pathlang_resolver.Node, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("note text required")
 	}
@@ -99,7 +98,7 @@ func taskActionNote(db *database.DB, reducer *reducer.Reducer, node *pathlang_re
 }
 
 // projectActionStatus displays the status of a project
-func projectActionStatus(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, args []string) error {
+func projectActionStatus(db *database.DB, node *pathlang_resolver.Node) error {
 	// Query project info
 	var name string
 	var projType string
@@ -135,7 +134,7 @@ func projectActionStatus(db *database.DB, reducer *reducer.Reducer, node *pathla
 }
 
 // notesActionAdd adds a note to a task
-func notesActionAdd(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, args []string) error {
+func notesActionAdd(db *database.DB, node *pathlang_resolver.Node, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("note text required")
 	}
@@ -165,7 +164,7 @@ func notesActionAdd(db *database.DB, reducer *reducer.Reducer, node *pathlang_re
 }
 
 // notesActionList lists all notes for a task
-func notesActionList(db *database.DB, reducer *reducer.Reducer, node *pathlang_resolver.Node, args []string) error {
+func notesActionList(db *database.DB, node *pathlang_resolver.Node) error {
 	if node.Task == nil || len(node.Task.Notes) == 0 {
 		fmt.Println("No notes")
 		return nil

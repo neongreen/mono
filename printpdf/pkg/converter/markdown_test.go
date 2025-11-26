@@ -146,9 +146,7 @@ func TestMarkdownToHTMLBody(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := markdownToHTMLBody([]byte(tt.input))
-			if err != nil {
 				t.Fatalf("markdownToHTMLBody failed: %v", err)
-			}
 
 			resultStr := string(result)
 			for _, expected := range tt.contains {
@@ -171,9 +169,7 @@ func TestMarkdownToHTMLBodyFootnotes(t *testing.T) {
 	markdown := "Text with footnote[^1].\n\n[^1]: Footnote content."
 
 	result, err := markdownToHTMLBody([]byte(markdown))
-	if err != nil {
 		t.Fatalf("markdownToHTMLBody failed: %v", err)
-	}
 
 	resultStr := string(result)
 
@@ -500,9 +496,7 @@ func TestConvertMarkdownToHTMLFullPipeline(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := convertMarkdownToHTML([]byte(tt.markdown), tt.options)
-			if err != nil {
 				t.Fatalf("convertMarkdownToHTML failed: %v", err)
-			}
 
 			resultStr := string(result)
 			for _, expected := range tt.contains {
@@ -652,9 +646,7 @@ func TestHTMLNodeManipulation(t *testing.T) {
 func TestMarkdownToHTMLBodyEdgeCases(t *testing.T) {
 	t.Run("empty input", func(t *testing.T) {
 		result, err := markdownToHTMLBody([]byte(""))
-		if err != nil {
 			t.Fatalf("Expected no error for empty input, got: %v", err)
-		}
 		// Empty input produces empty output or just whitespace
 		_ = result
 	})
@@ -662,9 +654,7 @@ func TestMarkdownToHTMLBodyEdgeCases(t *testing.T) {
 	t.Run("raw HTML in markdown", func(t *testing.T) {
 		input := "# Title\n\n<div class=\"custom\">Raw HTML</div>"
 		result, err := markdownToHTMLBody([]byte(input))
-		if err != nil {
 			t.Fatalf("Failed to process raw HTML: %v", err)
-		}
 
 		resultStr := string(result)
 		if !strings.Contains(resultStr, "<div class=\"custom\">") {
@@ -675,9 +665,7 @@ func TestMarkdownToHTMLBodyEdgeCases(t *testing.T) {
 	t.Run("multiple footnotes", func(t *testing.T) {
 		input := "First[^1] and second[^2].\n\n[^1]: First note.\n[^2]: Second note."
 		result, err := markdownToHTMLBody([]byte(input))
-		if err != nil {
 			t.Fatalf("Failed to process multiple footnotes: %v", err)
-		}
 
 		resultStr := string(result)
 		if !strings.Contains(resultStr, "First note") || !strings.Contains(resultStr, "Second note") {
@@ -696,10 +684,7 @@ func TestWrapHTMLWithPageOptions(t *testing.T) {
 			Zoom:        100,
 		}
 
-		result, err := wrapHTMLWithPageOptions(htmlContent, options)
-		if err != nil {
-			t.Fatalf("wrapHTMLWithPageOptions failed: %v", err)
-		}
+		result := wrapHTMLWithPageOptions(htmlContent, options)
 
 		resultStr := string(result)
 		contains := []string{
@@ -736,10 +721,7 @@ func TestWrapHTMLWithPageOptions(t *testing.T) {
 			Zoom:        120,
 		}
 
-		result, err := wrapHTMLWithPageOptions(htmlContent, options)
-		if err != nil {
-			t.Fatalf("wrapHTMLWithPageOptions failed: %v", err)
-		}
+		result := wrapHTMLWithPageOptions(htmlContent, options)
 
 		resultStr := string(result)
 		contains := []string{
@@ -766,10 +748,7 @@ func TestWrapHTMLWithPageOptions(t *testing.T) {
 			Columns:     3,
 		}
 
-		result, err := wrapHTMLWithPageOptions(htmlContent, options)
-		if err != nil {
-			t.Fatalf("wrapHTMLWithPageOptions failed: %v", err)
-		}
+		result := wrapHTMLWithPageOptions(htmlContent, options)
 
 		resultStr := string(result)
 		if !strings.Contains(resultStr, "column-count: 3") {
@@ -786,10 +765,7 @@ func TestWrapHTMLWithPageOptions(t *testing.T) {
 			FirstPageGuide: "5cm",
 		}
 
-		result, err := wrapHTMLWithPageOptions(htmlContent, options)
-		if err != nil {
-			t.Fatalf("wrapHTMLWithPageOptions failed: %v", err)
-		}
+		result := wrapHTMLWithPageOptions(htmlContent, options)
 
 		resultStr := string(result)
 		contains := []string{

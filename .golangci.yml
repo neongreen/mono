@@ -35,7 +35,8 @@ linters:
       - -QF1001  # De Morgan's law - whatever
       - -ST1003  # Don't complain about naming conventions
       - -ST1005  # Error strings capitalized - low impact, not worth AI agent iterations
-      - -S1039   # Unnecessary sprintf - low impact, not worth AI agent iterations 
+      - -S1039   # Unnecessary sprintf - low impact, not worth AI agent iterations
+      - -S1021   # Merge variable declaration - often needed for recursive functions 
     govet:
       enable-all: true
       disable:

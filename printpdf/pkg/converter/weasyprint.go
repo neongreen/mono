@@ -97,10 +97,7 @@ func (w *WeasyPrintConverter) prepareInput(content []byte, contentType string, o
 		}
 	case fetcher.ContentTypeHTML:
 		ext = ".html"
-		htmlContent, err = wrapHTMLWithPageOptions(content, options)
-		if err != nil {
-			return "", false, fmt.Errorf("failed to wrap HTML with page options: %w", err)
-		}
+		htmlContent = wrapHTMLWithPageOptions(content, options)
 	default:
 		return "", false, fmt.Errorf("unsupported content type: %s", contentType)
 	}

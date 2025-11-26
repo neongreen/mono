@@ -174,7 +174,7 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 			// Format relative paths for error message
 			relSourceFile, _ := filepath.Rel(moduleRoot, sourceFile)
 			relTargetFile, _ := filepath.Rel(moduleRoot, targetFile)
-			return formatDependencyError(sourceFile, targetFile, unexportedDeps, relSourceFile, relTargetFile)
+			return formatDependencyError(unexportedDeps, relSourceFile, relTargetFile)
 		}
 
 		// Check 2: Check if OTHER files depend on unexported symbols FROM the file being moved
@@ -196,7 +196,7 @@ func MoveFileWithImportUpdates(sourceFile string, targetFile string, moduleRoot 
 			} else {
 				// Check if any unexported symbols are referenced from files NOT being moved
 				ops := []MoveOp{{From: sourceFile, To: targetFile}}
-				unexportedRefs := detectUnexportedExternalRefs(allRefs, ops, []*packages.Package{sourcePkg}, sourcePkg.PkgPath)
+				unexportedRefs := detectUnexportedExternalRefs(allRefs, ops)
 				if len(unexportedRefs) > 0 {
 					return buildUnexportedSymbolError(unexportedRefs)
 				}
@@ -580,7 +580,7 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string, goimportsPath string) e
 		}
 
 		// Get the source package
-		pkg, ok := sourcePackages[sourceDir]
+		_, ok := sourcePackages[sourceDir]
 		if !ok {
 			slog.Warn("Source package not loaded, skipping unexported symbol check", "dir", sourceDir)
 			continue
@@ -594,7 +594,7 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string, goimportsPath string) e
 		}
 
 		// Check for unexported symbols referenced from other packages
-		unexportedRefs := detectUnexportedExternalRefs(refs, ops, allPkgs, pkg.PkgPath)
+		unexportedRefs := detectUnexportedExternalRefs(refs, ops)
 		if len(unexportedRefs) > 0 {
 			return buildUnexportedSymbolError(unexportedRefs)
 		}
@@ -641,7 +641,7 @@ func MoveBatchFiles(moveOps []MoveOp, moduleRoot string, goimportsPath string) e
 		oldPath, err := commands.GetFullImportPath(op.From)
 		if err != nil {
 			// File was moved, try to get import path from moved location
-			oldPath, err = getImportPathFromMovedFile(op.From, op.To, moduleRoot)
+			oldPath, err = getImportPathFromMovedFile(op.From, moduleRoot)
 			if err != nil {
 				slog.Warn("Could not determine old import path", "from", op.From, "error", err)
 				continue
@@ -751,7 +751,7 @@ func rollbackMoves(movedFiles map[string]string) {
 }
 
 // getImportPathFromMovedFile reconstructs the old import path from a moved file
-func getImportPathFromMovedFile(oldPath, newPath, moduleRoot string) (string, error) {
+func getImportPathFromMovedFile(oldPath, moduleRoot string) (string, error) {
 	// Get relative path from module root to old location
 	relPath, err := filepath.Rel(moduleRoot, filepath.Dir(oldPath))
 	if err != nil {
@@ -913,7 +913,7 @@ type UnexportedRef struct {
 
 // detectUnexportedExternalRefs detects unexported symbols that are referenced from other packages.
 // These would cause build failures after the move.
-func detectUnexportedExternalRefs(refs []references.Reference, ops []MoveOp, allPkgs []*packages.Package, sourcePkgPath string) []UnexportedRef {
+func detectUnexportedExternalRefs(refs []references.Reference, ops []MoveOp) []UnexportedRef {
 	// Build a map of files being moved
 	movedFiles := make(map[string]bool)
 	for _, op := range ops {

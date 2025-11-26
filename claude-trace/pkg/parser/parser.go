@@ -85,7 +85,7 @@ func ParseTrace(content string) (*ParsedTrace, error) {
 	}
 
 	// For non-JSONL traces (like .log files), return simple representation
-	return parseSimpleTrace(content)
+	return parseSimpleTrace()
 }
 
 func parseJSONLTrace(content string) (*ParsedTrace, error) {

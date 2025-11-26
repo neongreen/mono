@@ -10,7 +10,6 @@ import (
 	config_pkg "github.com/neongreen/mono/tk/internal/config"
 	"github.com/neongreen/mono/tk/internal/database"
 	"github.com/neongreen/mono/tk/internal/pathlang_resolver"
-	"github.com/neongreen/mono/tk/internal/reducer"
 	"github.com/neongreen/mono/tk/internal/types"
 	"github.com/spf13/cobra"
 )
@@ -82,7 +81,7 @@ Action syntax:
 
 		// Check if this is an action invocation
 		if path.Action != "" {
-			return handleAction(cmd, path)
+			return handleAction(path)
 		}
 
 		// Open database
@@ -112,7 +111,7 @@ Action syntax:
 
 		// Special case: if path is just "/", show root
 		if len(path.Segments) == 0 {
-			return displayRoot(db, reducer)
+			return displayRoot(db)
 		}
 
 		nodes, err := pathlang.Eval(ctx, resolver, path)
@@ -126,12 +125,12 @@ Action syntax:
 		}
 
 		// Display results
-		return displayResults(db, reducer, nodes, pathStr)
+		return displayResults(db, nodes, pathStr)
 	},
 }
 
 // displayResults outputs results in appropriate format
-func displayResults(db *database.DB, reducer *reducer.Reducer, nodes []pathlang.Node, currentPath string) error {
+func displayResults(db *database.DB, nodes []pathlang.Node, currentPath string) error {
 	// Check if we're displaying JSON
 	if len(nodes) == 1 {
 		node := nodes[0].(*pathlang_resolver.Node)
@@ -150,9 +149,9 @@ func displayResults(db *database.DB, reducer *reducer.Reducer, nodes []pathlang.
 
 		switch node.Type {
 		case pathlang_resolver.NodeTypeProject:
-			displayProject(db, node, currentPath)
+			displayProject(db, node)
 		case pathlang_resolver.NodeTypeTask:
-			displayTask(db, node, currentPath)
+			displayTask(db, node)
 		case pathlang_resolver.NodeTypeTasks:
 			// This shouldn't happen as tasks is a collection
 			fmt.Println("Tasks collection")
@@ -202,7 +201,7 @@ func displayAsJSON(db *database.DB, node *pathlang_resolver.Node) error {
 	return nil
 }
 
-func displayProject(db *database.DB, node *pathlang_resolver.Node, currentPath string) {
+func displayProject(db *database.DB, node *pathlang_resolver.Node) {
 	if node.ProjectUID == "" {
 		fmt.Println("Project (no UID)")
 		return
@@ -247,7 +246,7 @@ func displayProject(db *database.DB, node *pathlang_resolver.Node, currentPath s
 	fmt.Printf("  /%s/json   - JSON representation\n", pathName)
 }
 
-func displayTask(db *database.DB, node *pathlang_resolver.Node, currentPath string) {
+func displayTask(db *database.DB, node *pathlang_resolver.Node) {
 	if node.Task == nil {
 		fmt.Println("Task (no data)")
 		return
@@ -413,7 +412,7 @@ func pluralize(count int, singular, plural string) string {
 }
 
 // displayRoot displays the root path showing all projects and available patterns
-func displayRoot(db *database.DB, reducer *reducer.Reducer) error {
+func displayRoot(db *database.DB) error {
 	fmt.Println("tk root paths:")
 	fmt.Println()
 
@@ -466,7 +465,7 @@ func displayRoot(db *database.DB, reducer *reducer.Reducer) error {
 }
 
 // handleAction processes an action invocation on a resource
-func handleAction(cmd *cobra.Command, path *pathlang.Path) error {
+func handleAction(path *pathlang.Path) error {
 	// Open database
 	db, err := database.OpenExistingDB()
 	if err != nil {
@@ -511,11 +510,11 @@ func handleAction(cmd *cobra.Command, path *pathlang.Path) error {
 	// Dispatch to appropriate action handler based on resource type
 	switch node.Type {
 	case pathlang_resolver.NodeTypeTask:
-		return handleTaskAction(db, reducer, node, path.Action, path.ActionArgs)
+		return handleTaskAction(db, node, path.Action, path.ActionArgs)
 	case pathlang_resolver.NodeTypeProject:
-		return handleProjectAction(db, reducer, node, path.Action, path.ActionArgs)
+		return handleProjectAction(db, node, path.Action)
 	case pathlang_resolver.NodeTypeNotes:
-		return handleNotesAction(db, reducer, node, path.Action, path.ActionArgs)
+		return handleNotesAction(db, node, path.Action, path.ActionArgs)
 	default:
 		return fmt.Errorf("actions not supported for resource type %s", node.Type)
 	}

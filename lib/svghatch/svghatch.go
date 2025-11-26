@@ -74,9 +74,7 @@ func (r *Replacer) Replace(input io.Reader, output io.Writer) error {
 	}
 
 	// Apply replacements
-	if err := r.applyReplacements(svg); err != nil {
-		return fmt.Errorf("failed to apply replacements: %w", err)
-	}
+	r.applyReplacements(svg)
 
 	// Write the modified SVG
 	if err := writeSVG(svg, output); err != nil {
@@ -177,20 +175,16 @@ func writeNode(node *SVGNode, encoder *xml.Encoder) error {
 }
 
 // applyReplacements walks through the SVG and applies pattern replacements
-func (r *Replacer) applyReplacements(svg *SVGNode) error {
+func (r *Replacer) applyReplacements(svg *SVGNode) {
 	// First, add pattern definitions to the SVG
-	if err := r.addPatternDefs(svg); err != nil {
-		return fmt.Errorf("failed to add pattern definitions: %w", err)
-	}
+	r.addPatternDefs(svg)
 
 	// Walk through all nodes and replace colors
 	r.replaceColorsInNode(svg)
-
-	return nil
 }
 
 // addPatternDefs adds <defs> with all pattern definitions to the SVG
-func (r *Replacer) addPatternDefs(svg *SVGNode) error {
+func (r *Replacer) addPatternDefs(svg *SVGNode) {
 	// Find or create <defs> element
 	var defs *SVGNode
 	for _, child := range svg.Children {
@@ -214,8 +208,6 @@ func (r *Replacer) addPatternDefs(svg *SVGNode) error {
 		patternNode := r.createPatternNode(i, mapping.Pattern)
 		defs.Children = append(defs.Children, patternNode)
 	}
-
-	return nil
 }
 
 // createPatternNode creates an SVG <pattern> node for the given configuration
@@ -365,7 +357,7 @@ func (r *Replacer) replaceColorsInNode(node *SVGNode) {
 	for i := range node.Attrs {
 		attr := &node.Attrs[i]
 		if attr.Name.Local == "fill" || attr.Name.Local == "style" {
-			r.replaceColorInAttr(attr, i)
+			r.replaceColorInAttr(attr)
 		}
 	}
 
@@ -376,7 +368,7 @@ func (r *Replacer) replaceColorsInNode(node *SVGNode) {
 }
 
 // replaceColorInAttr replaces a color in an attribute value with a pattern reference
-func (r *Replacer) replaceColorInAttr(attr *xml.Attr, patternIdx int) {
+func (r *Replacer) replaceColorInAttr(attr *xml.Attr) {
 	switch attr.Name.Local {
 	case "fill":
 		// Direct fill attribute

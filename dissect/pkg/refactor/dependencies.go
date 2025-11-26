@@ -191,7 +191,7 @@ func determineKind(obj any) string {
 }
 
 // formatDependencyError creates a helpful error message for unexported dependencies.
-func formatDependencyError(sourceFile, targetFile string, deps []UnexportedDependency, sourceRelPath, targetRelPath string) error {
+func formatDependencyError(deps []UnexportedDependency, sourceRelPath, targetRelPath string) error {
 	var b strings.Builder
 
 	b.WriteString("cannot move file: it references unexported symbols from source package\n\n")

@@ -360,7 +360,7 @@ func convertMarkdownToHTML(markdown []byte, options PageOptions) ([]byte, error)
 }
 
 // wrapHTMLWithPageOptions wraps raw HTML content with proper page styling and options
-func wrapHTMLWithPageOptions(htmlContent []byte, options PageOptions) ([]byte, error) {
+func wrapHTMLWithPageOptions(htmlContent []byte, options PageOptions) []byte {
 	// Calculate zoom factor for font sizes
 	zoom := options.Zoom
 	if zoom == 0 {
@@ -430,7 +430,7 @@ html {
 		result = bytes.Replace(result, []byte("</head>"), []byte(columnCSS+"\n</head>"), 1)
 	}
 
-	return result, nil
+	return result
 }
 
 func attachHTMLFootnotes(root *stdhtml.Node, footnotes map[string][]*stdhtml.Node) int {

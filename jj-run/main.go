@@ -198,7 +198,7 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	var processErr error
 
 	if jobs > 1 {
-		newChanges, allSuccessful, processErr = processChangesParallel(workspacePath, changes, command, strategy, jobs, repoDir)
+		newChanges, allSuccessful, processErr = processChangesParallel(changes, command, strategy, jobs, repoDir)
 
 		// In parallel mode, workers create changes in their own workspaces, so the base workspace
 		// is now stale. Update it before attempting to rewrite parents, otherwise jj edit/restore
@@ -289,8 +289,8 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string, repo
 		}
 
 		// Run the command in the repository
-		result, err := runShellCommand(command, repoDir)
-		printCommandResult(result, err)
+		err := runShellCommand(command, repoDir)
+		printCommandResult(err)
 
 		if err != nil {
 			allSuccessful = false
@@ -467,8 +467,8 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 		}
 
 		// Run the command
-		result, err := runShellCommand(command, workspacePath)
-		printCommandResult(result, err)
+		err := runShellCommand(command, workspacePath)
+		printCommandResult(err)
 
 		if err != nil {
 			allSuccessful = false
@@ -494,7 +494,7 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 	return newChanges, allSuccessful, nil
 }
 
-func processChangesParallel(baseWorkspace string, changes []*Change, command string, strategy ErrorStrategy, numWorkers int, repoDir string) ([]*Change, bool, error) {
+func processChangesParallel(changes []*Change, command string, strategy ErrorStrategy, numWorkers int, repoDir string) ([]*Change, bool, error) {
 	totalChanges := len(changes)
 
 	// Create channels for job distribution and result collection
@@ -553,8 +553,8 @@ func processChangesParallel(baseWorkspace string, changes []*Change, command str
 				}
 
 				// Run the command
-				cmdResult, err := runShellCommand(command, workspacePath)
-				printCommandResult(cmdResult, err)
+				err := runShellCommand(command, workspacePath)
+				printCommandResult(err)
 
 				if err != nil {
 					result.Success = false
@@ -702,7 +702,7 @@ func formatError(changeID string, err error) string {
 	return fmt.Sprintf("Error while processing change [%s]:\n%v", changeID, err)
 }
 
-func printCommandResult(result *exec.Cmd, err error) {
+func printCommandResult(err error) {
 	// For successful commands, the output is already printed by runShellCommand
 	if err != nil {
 		exitErr := &exec.ExitError{}
@@ -715,14 +715,13 @@ func printCommandResult(result *exec.Cmd, err error) {
 	fmt.Println()
 }
 
-func runShellCommand(command string, cwd string) (*exec.Cmd, error) {
+func runShellCommand(command string, cwd string) error {
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Dir = cwd
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err := cmd.Run()
-	return cmd, err
+	return cmd.Run()
 }
 
 func runJJ(args []string, cwd string) error {

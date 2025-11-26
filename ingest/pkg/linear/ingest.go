@@ -142,7 +142,7 @@ func readIssue(ctx context.Context, session ResourceSession, resource *sdkmcp.Re
 		out.ID = extractIssueID(resource.URI)
 	}
 	if out.Identifier == "" {
-		out.Identifier = stringValue(meta, "identifier", "")
+		out.Identifier = stringValue(meta, "identifier")
 	}
 	if out.Title == "" {
 		out.Title = fallbackString(resource.Title, resource.Name)
@@ -151,16 +151,16 @@ func readIssue(ctx context.Context, session ResourceSession, resource *sdkmcp.Re
 		out.Priority = intFromMeta(meta, "priority")
 	}
 	if out.Status == nil {
-		out.Status = trimStringPtr(stringPtr(stringValue(meta, "status", "")))
+		out.Status = trimStringPtr(stringPtr(stringValue(meta, "status")))
 	}
 	if out.Assignee == nil {
-		out.Assignee = trimStringPtr(stringPtr(stringValue(meta, "assignee", "")))
+		out.Assignee = trimStringPtr(stringPtr(stringValue(meta, "assignee")))
 	}
 	if out.Team == nil {
-		out.Team = trimStringPtr(stringPtr(stringValue(meta, "team", "")))
+		out.Team = trimStringPtr(stringPtr(stringValue(meta, "team")))
 	}
 	if out.URL == nil {
-		out.URL = trimStringPtr(stringPtr(stringValue(meta, "url", "")))
+		out.URL = trimStringPtr(stringPtr(stringValue(meta, "url")))
 	}
 
 	if out.ID == "" {
@@ -194,9 +194,9 @@ func fallbackString(values ...string) string {
 	return ""
 }
 
-func stringValue(meta map[string]any, key string, fallback string) string {
+func stringValue(meta map[string]any, key string) string {
 	if meta == nil {
-		return fallback
+		return ""
 	}
 	if v, ok := meta[key]; ok {
 		switch val := v.(type) {
@@ -214,7 +214,7 @@ func stringValue(meta map[string]any, key string, fallback string) string {
 			return strings.TrimSpace(fmt.Sprint(val))
 		}
 	}
-	return fallback
+	return ""
 }
 
 func intFromMeta(meta map[string]any, key string) *int {
