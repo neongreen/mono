@@ -1,22 +1,18 @@
 # aihook
 
-A validator for Claude Code hooks that enforces shell scripting best practices.
+A toolkit for Claude Code hooks including validators and behavior modifiers.
 
 ## Overview
 
-`aihook` is a command-line tool designed to validate shell scripts for use in Claude Code PreToolUse hooks. It parses shell syntax and enforces specific rules to ensure code quality and consistency.
+`aihook` is a command-line tool that provides various hooks for Claude Code. It can validate shell scripts and modify Claude's behavior (like preventing premature stopping).
 
 ## Features
 
-- **PreToolUse Hook**: Validates Bash commands before execution to forbid `cd` invocations outside subshells
+- **Shell Validation Hook**: Validates Bash commands before execution to forbid `cd` invocations outside subshells
+- **Prevent-Stop Hook**: Prevents Claude from stopping prematurely, forcing it to continue working
+- **Global Install**: Use `--install` flag to add hooks to `~/.claude/settings.json` automatically
 - **Shell Parser**: Uses `mvdan.cc/sh/v3/syntax` for accurate shell script parsing
-- **Claude Code Integration**: Supports `--claude` flag for JSON output compatible with Claude Code hooks
-- **Comprehensive Validation**: Handles complex scenarios including:
-  - Nested subshells
-  - Command substitution (`$(...)`)
-  - Conditional statements
-  - Loops and functions
-  - Here documents
+- **Claude Code Integration**: Supports JSON output compatible with Claude Code hooks
 
 ## Installation
 
@@ -29,10 +25,46 @@ go install github.com/neongreen/mono/aihook@latest
 ### Local Development
 
 ```bash
-go build ./aihook
+go build -o /tmp/aihook ./aihook
 ```
 
 ## Usage
+
+### Global --install Flag
+
+All hooks support the `--install` flag which adds the hook to your global Claude settings (`~/.claude/settings.json`) instead of running it:
+
+```bash
+# Install the prevent-stop hook
+aihook prevent-stop --install
+
+# Install the shell hook
+aihook shell --install
+
+# Install shell hook with block-on-cd behavior
+aihook shell --install --block-on-cd
+```
+
+### Prevent-Stop Hook
+
+The `prevent-stop` subcommand prevents Claude from stopping prematurely:
+
+```bash
+# Run as a hook (reads JSON input from stdin)
+echo '{}' | aihook prevent-stop
+
+# Install to global Claude settings
+aihook prevent-stop --install
+```
+
+Output when running:
+```json
+{
+  "continue": false,
+  "stopReason": "Keep working! Don't stop until the task is fully complete.",
+  "systemMessage": "You are not done yet. Continue working on the task until it is fully complete. Do not stop prematurely."
+}
+```
 
 ### Shell Hook
 
@@ -47,6 +79,9 @@ echo 'cd /tmp' | aihook shell --claude
 
 # Block execution when cd violations are found
 echo 'cd /tmp' | aihook shell --claude --block-on-cd
+
+# Install to global Claude settings
+aihook shell --install --block-on-cd
 ```
 
 ### Examples
@@ -63,6 +98,10 @@ cd /tmp && ls
 
 ### Flags
 
+Global flags:
+- `--install`: Install hook to global Claude settings (`~/.claude/settings.json`) instead of running it
+
+Shell hook flags:
 - `--claude`: Output in JSON format compatible with Claude Code hooks
 - `--block-on-cd`: When set, returns exit code 2 for violations (blocks execution). Without this flag, violations are reported but execution is not blocked (exit code 0)
 
@@ -87,14 +126,20 @@ All 'cd' commands must be in a subshell. Example:
 #### Claude Code Hook Format (`--claude`)
 ```json
 {
-  "exit_code": 2,
-  "message": "Found cd commands outside subshells:\n  Line 1: 'cd' command found outside subshell\n\nAll 'cd' commands must be in a subshell. Example:\n  # Bad:  cd /tmp && ls\n  # Good: (cd /tmp && ls)\n"
+  "continue": true,
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Found cd commands outside subshells..."
+  }
 }
 ```
 
 ## Claude Code Integration
 
-To use `aihook` as a Claude Code PreToolUse hook that validates Bash commands, add this to your `.claude/settings.json`:
+### Manual Configuration
+
+To use `aihook` as a Claude Code hook, add this to your `.claude/settings.json`:
 
 ```json
 {
@@ -109,20 +154,35 @@ To use `aihook` as a Claude Code PreToolUse hook that validates Bash commands, a
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "matcher": "stop",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "aihook prevent-stop"
+          }
+        ]
+      }
     ]
   }
 }
 ```
 
-The hook will:
-- Match any Bash tool invocation (via the `"Bash"` matcher)
-- Receive the bash command script on stdin
-- Validate that all `cd` commands are in subshells
-- With `--block-on-cd`: Return exit code 2 to block execution when violations are found
-- Without `--block-on-cd`: Report violations but allow execution (exit code 0)
-- Use `--claude` flag to output in the expected JSON format
+### Automatic Installation
 
-For more flexible matching, you can use regex patterns like `"Bash.*cd"` to only check Bash commands containing `cd`.
+Use the `--install` flag to automatically add hooks to your global Claude settings:
+
+```bash
+# Install prevent-stop hook
+aihook prevent-stop --install
+
+# Install shell hook with cd blocking
+aihook shell --install --block-on-cd
+```
+
+The hooks will be added to `~/.claude/settings.json`, creating the file if it doesn't exist.
 
 ## Why Forbid cd Outside Subshells?
 
@@ -143,13 +203,13 @@ By requiring `cd` in subshells `(cd /path && command)`, you ensure:
 ### Running Tests
 
 ```bash
-go test ./aihook -v
+go test ./aihook/... -v
 ```
 
 ### Building
 
 ```bash
-go build ./aihook
+go build -o /tmp/aihook ./aihook
 ```
 
 ## License
