@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"go/ast"
 	"go/printer"
-	"go/token"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -127,7 +126,7 @@ func runMove(cmd *cobra.Command, args []string) {
 
 	// Batch mode: multiple files with arrow syntax
 	if batchMode {
-		runBatchMove(args, goplsPath, goimportsPath)
+		runBatchMove(args, goimportsPath)
 		return
 	}
 
@@ -456,7 +455,7 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 	}
 
 	// Find the declaration in the source file
-	sourceFset, declNode, err := goutils.FindDecl(sourceFile, identifier)
+	_, declNode, err := goutils.FindDecl(sourceFile, identifier)
 	if err != nil {
 		return fmt.Errorf("error finding declaration: %w", err)
 	}
@@ -467,7 +466,7 @@ func moveIdentifier(sourceFile string, identifier string, targetFile string, mod
 	}
 
 	// For non-function declarations (types, interfaces, consts, vars), do manual extraction
-	return moveDeclarationManually(sourceFile, identifier, targetFile, sourceFset, declNode, goimportsPath)
+	return moveDeclarationManually(sourceFile, identifier, targetFile, goimportsPath)
 }
 
 // moveFunctionWithGopls moves a function using gopls's extract refactoring
@@ -564,7 +563,7 @@ func moveFunctionWithGopls(sourceFile string, identifier string, targetFile stri
 // using AST manipulation. This approach is used because gopls doesn't offer code actions for
 // these declaration types. Uses goimports for import management.
 // See DESIGN.md for detailed explanation and known limitations.
-func moveDeclarationManually(sourceFile string, identifier string, targetFile string, sourceFset *token.FileSet, declNode ast.Node, goimportsPath string) error {
+func moveDeclarationManually(sourceFile string, identifier string, targetFile string, goimportsPath string) error {
 	// Read source file with comments
 	sourceFileSet, sourceNode, err := goutils.ReadGoFile(sourceFile)
 	if err != nil {
@@ -698,7 +697,7 @@ func moveDeclarationManually(sourceFile string, identifier string, targetFile st
 }
 
 // runBatchMove handles batch mode: multiple files moved atomically with arrow syntax
-func runBatchMove(args []string, goplsPath string, goimportsPath string) {
+func runBatchMove(args []string, goimportsPath string) {
 	if len(args) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: Batch mode requires at least one move specification\n")
 		fmt.Fprintf(os.Stderr, "Usage: dissect move --batch \"source1,source2 -> target/\"\n")

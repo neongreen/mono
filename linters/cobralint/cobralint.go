@@ -152,6 +152,8 @@ func extractCommands(pass *analysis.Pass, inspect *inspector.Inspector) []Comman
 
 // extractExemption checks for a cobralint:exemptjson directive in comments above the declaration.
 // The directive format is: // cobralint:exemptjson reason: <explanation>
+//
+//nolint:unparam // pass parameter reserved for future use
 func extractExemption(pass *analysis.Pass, genDecl *ast.GenDecl) *ExemptionInfo {
 	if genDecl.Doc == nil {
 		return nil
@@ -246,6 +248,8 @@ func extractUseField(compLit *ast.CompositeLit) string {
 }
 
 // extractFlags finds all flag definitions for a given command.
+//
+//nolint:unparam // pass parameter reserved for future use
 func extractFlags(pass *analysis.Pass, inspect *inspector.Inspector, cmdName string) []FlagInfo {
 	var flags []FlagInfo
 

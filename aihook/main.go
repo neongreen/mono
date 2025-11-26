@@ -146,14 +146,15 @@ func formatOutput(response HookResponse) error {
 	// Regular output for non-Claude usage
 	if response.Continue && response.HookSpecificOutput != nil {
 		if decision, ok := response.HookSpecificOutput["permissionDecision"].(string); ok {
-			if decision == "allow" {
+			switch decision {
+			case "allow":
 				if response.SystemMessage != "" {
 					fmt.Println(response.SystemMessage)
 				} else {
 					fmt.Println("OK")
 				}
 				return nil
-			} else if decision == "deny" {
+			case "deny":
 				if reason, ok := response.HookSpecificOutput["permissionDecisionReason"].(string); ok {
 					fmt.Fprintln(os.Stderr, reason)
 					os.Exit(1)

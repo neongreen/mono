@@ -10,7 +10,7 @@ import (
 	"github.com/neongreen/mono/ingest/pkg/testutil"
 )
 
-func runCLI(t *testing.T, args ...string) (string, string) {
+func runCLI(t *testing.T, args ...string) string {
 	t.Helper()
 
 	cmd := newRootCmd()
@@ -23,7 +23,7 @@ func runCLI(t *testing.T, args ...string) (string, string) {
 		t.Fatalf("execute %v: %v\nstderr: %s", args, err, stderr.String())
 	}
 
-	return stdout.String(), stderr.String()
+	return stdout.String()
 }
 
 func runCLIExpectError(t *testing.T, args ...string) (string, string, error) {
@@ -198,7 +198,7 @@ command = "printf 'hi'"
 		t.Fatalf("write config: %v", err)
 	}
 
-	stdout, _ := runCLI(t, "config", "validate", "--config", configPath)
+	stdout := runCLI(t, "config", "validate", "--config", configPath)
 
 	if !strings.Contains(stdout, "is valid") {
 		t.Fatalf("expected success message, got %q", stdout)
@@ -254,7 +254,7 @@ repo = "mono"
 	t.Setenv("MISE_GITHUB_TOKEN", "")
 	t.Setenv("GITHUB_TOKEN", "")
 
-	stdout, _ := runCLI(t, "config", "validate", "--config", configPath)
+	stdout := runCLI(t, "config", "validate", "--config", configPath)
 
 	if !strings.Contains(stdout, "Warnings:") {
 		t.Fatalf("expected warnings section, got %q", stdout)

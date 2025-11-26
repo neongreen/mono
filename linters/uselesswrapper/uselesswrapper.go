@@ -125,6 +125,8 @@ func hasNolintComment(funcDecl *ast.FuncDecl, pass *analysis.Pass) bool {
 }
 
 // isPassthroughCall checks if a call expression passes all function parameters unchanged
+//
+//nolint:unparam // info parameter reserved for future use
 func isPassthroughCall(funcDecl *ast.FuncDecl, callExpr *ast.CallExpr, info *types.Info) bool {
 	// Get function parameters
 	if funcDecl.Type.Params == nil {

@@ -18,19 +18,19 @@ func formatMarkdown(input []byte) ( // formatMarkdown formats markdown content w
 	reader := text.NewReader(input)
 	doc := parser.Parse(reader)
 	var buf bytes.Buffer
-	err := walkAndFormat(doc, input, &buf, 0)
+	err := walkAndFormat(doc, input, &buf)
 	if err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
-func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
+func walkAndFormat(node ast.Node, source []byte, w io.Writer) error {
 	switch n := node.(type) {
 	case *ast.Document:
 		for child := n.
 			FirstChild(); child != nil; child = child.NextSibling() {
-			if err := walkAndFormat(child, source, w, depth); err != nil {
+			if err := walkAndFormat(child, source, w); err != nil {
 				return err
 			}
 		}
@@ -91,7 +91,7 @@ func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
 	case *ast.Blockquote:
 		var buf bytes.Buffer
 		for child := n.FirstChild(); child != nil; child = child.NextSibling() {
-			if err := walkAndFormat(child, source, &buf, depth); err != nil {
+			if err := walkAndFormat(child, source, &buf); err != nil {
 				return err
 			}
 		}
@@ -108,7 +108,7 @@ func walkAndFormat(node ast.Node, source []byte, w io.Writer, depth int) error {
 		return nil
 	default:
 		for child := node.FirstChild(); child != nil; child = child.NextSibling() {
-			if err := walkAndFormat(child, source, w, depth); err != nil {
+			if err := walkAndFormat(child, source, w); err != nil {
 				return err
 			}
 		}
@@ -159,7 +159,7 @@ func writeListItemContent(item *ast.ListItem, source []byte, w io.Writer) error 
 				Buffer
 
 			if err := walkAndFormat(child,
-				source, &nestedBuf, 1,
+				source, &nestedBuf,
 			); err !=
 				nil {
 				return err

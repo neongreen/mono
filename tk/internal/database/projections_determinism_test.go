@@ -154,7 +154,7 @@ func createTestEventSet() []types.Event {
 	task3UID := types.NewTaskUID()
 
 	return []types.Event{
-		createProjectEvent(1, projectUID, "test"),
+		createProjectEvent(projectUID, "test"),
 		createTaskEvent(2, task1UID, projectUID, "Task 1"),
 		setTaskNumberEvent(3, task1UID, projectUID, 1),
 		createTaskEvent(4, task2UID, projectUID, "Task 2"),
@@ -164,7 +164,7 @@ func createTestEventSet() []types.Event {
 	}
 }
 
-func createProjectEvent(ts int64, projectUID types.ProjectUID, name string) types.Event {
+func createProjectEvent(projectUID types.ProjectUID, name string) types.Event {
 	payload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        types.ProjectTypeLocal,
@@ -175,7 +175,7 @@ func createProjectEvent(ts int64, projectUID types.ProjectUID, name string) type
 	payloadJSON, _ := json.Marshal(payload)
 	return types.Event{
 		ID:        types.NewEventID().String(),
-		TS:        ts,
+		TS:        1,
 		CreatedAt: time.Now(),
 		Actor:     "test",
 		Role:      "human",
@@ -249,7 +249,7 @@ func createTaskRelocateEvent(ts int64, taskUID types.TaskUID, fromProjectUID, to
 }
 
 func createProjectInDB(t *testing.T, db *DB, projectUID types.ProjectUID, name string) {
-	event := createProjectEvent(1, projectUID, name)
+	event := createProjectEvent(projectUID, name)
 	require.NoError(t, db.InsertEvent(event))
 	require.NoError(t, db.ProjectEvent(event))
 }

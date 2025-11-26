@@ -61,7 +61,7 @@ func showToolStatus(conf *config.Config, toolName string) error {
 		return fmt.Errorf("failed to read current %s configuration: %w", toolName, err)
 	}
 
-	renderStatusTable(toolName, tool.Values, actualValues, statusShowInSync)
+	renderStatusTable(tool.Values, actualValues, statusShowInSync)
 	fmt.Println()
 
 	return nil

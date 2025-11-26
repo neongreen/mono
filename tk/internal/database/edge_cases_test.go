@@ -33,14 +33,13 @@ func TestEventProjectionIdempotency(t *testing.T) {
 		t.Fatalf("failed to run migrations: %v", err)
 	}
 
-	nodeA, err := db.GetOrCreateNodeID()
-	if err != nil {
+	if _, err := db.GetOrCreateNodeID(); err != nil {
 		t.Fatalf("failed to get node: %v", err)
 	}
 
 	// Create a project event
 	projectUID := string(types.NewProjectUID())
-	projectEvent := createProjectCreatedEvent(projectUID, "test-project", "A test", "alice", nodeA)
+	projectEvent := createProjectCreatedEvent(projectUID, "test-project", "A test", "alice")
 
 	// Insert and project once
 	if err := db.InsertEvent(projectEvent); err != nil {
@@ -99,7 +98,7 @@ func TestTaskNumberCollisionHandling(t *testing.T) {
 
 	// Create a project
 	projectUID := string(types.NewProjectUID())
-	projectEvent := createProjectCreatedEvent(projectUID, "test", "Test", "alice", nodeA)
+	projectEvent := createProjectCreatedEvent(projectUID, "test", "Test", "alice")
 	if err := db.InsertEvent(projectEvent); err != nil {
 		t.Fatalf("failed to insert project: %v", err)
 	}

@@ -23,7 +23,7 @@ func isJSONL(content string) bool {
 }
 
 // parseSimpleTrace creates a simple representation for non-JSONL traces
-func parseSimpleTrace(content string) (*ParsedTrace, error) {
+func parseSimpleTrace() (*ParsedTrace, error) {
 	return &ParsedTrace{
 		Summary: "Legacy trace format",
 		Items:   []ConversationItem{},

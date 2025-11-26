@@ -186,7 +186,7 @@ func mustJSON(t *testing.T, v any) json.RawMessage {
 
 // Helper functions for creating events without testing context
 
-func createProjectCreatedEvent(projectUID, name, description, createdBy, node string) types.Event {
+func createProjectCreatedEvent(projectUID, name, description, createdBy string) types.Event {
 	payload := types.ProjectCreatedPayload{
 		ProjectUID:  types.ProjectUID(projectUID),
 		Type:        types.ProjectTypeLocal,

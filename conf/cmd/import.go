@@ -89,7 +89,7 @@ func importTool(conf *config.Config, toolName string, dryRun bool) error {
 	fmt.Printf("  Found %d values\n", len(flatValues))
 
 	if dryRun {
-		renderImportPreview(toolName, existingFlat, flatValues)
+		renderImportPreview(existingFlat, flatValues)
 		// Compatibility concise lines
 		for path, value := range flatValues {
 			fmt.Printf("  Would import: %s.%s = %v\n", toolName, path, value)
@@ -98,7 +98,7 @@ func importTool(conf *config.Config, toolName string, dryRun bool) error {
 	}
 
 	// Import all values into conf state
-	renderImportPreview(toolName, existingFlat, flatValues)
+	renderImportPreview(existingFlat, flatValues)
 	for path, value := range flatValues {
 		fmt.Printf("  ✓ Imported %s.%s = %v\n", toolName, path, value)
 	}
@@ -148,7 +148,7 @@ func getTargetConfigValues(toolName string) (map[string]any, error) {
 }
 
 // renderImportPreview renders a table showing what would be imported vs current conf state.
-func renderImportPreview(toolName string, existingFlat map[string]any, incomingFlat map[string]any) {
+func renderImportPreview(existingFlat map[string]any, incomingFlat map[string]any) {
 	type row struct {
 		path     string
 		status   string

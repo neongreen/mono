@@ -70,7 +70,7 @@ func renderSettingsTable(settings []configschema.SettingInfo, configPath string)
 }
 
 // renderStatusTable shows drift between desired and actual state using a readable table
-func renderStatusTable(toolName string, desired map[string]any, actual map[string]any, showInSync bool) {
+func renderStatusTable(desired map[string]any, actual map[string]any, showInSync bool) {
 	desiredFlat := config.FlattenValues(desired)
 	actualFlat := config.FlattenValues(actual)
 

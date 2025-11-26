@@ -64,14 +64,14 @@ func newMachine(t *testing.T, nodeID string, startTime time.Time) *Machine {
 	return &Machine{t: t, db: db, clock: clock.NewVirtualClock(startTime), nodeID: nodeID}
 }
 
-func (m *Machine) createProject(alias, name string) types.ProjectUID {
+func (m *Machine) createProject() types.ProjectUID {
 	// Create project manually (avoid testutil to prevent import cycle)
 	projectUID := types.NewProjectUID()
 
 	payload := types.ProjectCreatedPayload{
 		ProjectUID:  projectUID,
 		Type:        types.ProjectTypeLocal,
-		Name:        name,
+		Name:        "test-project",
 		Description: "",
 		CreatedBy:   "machine-" + m.nodeID,
 	}
@@ -210,8 +210,8 @@ func TestSimulation_DifferentCreatedAt(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(50, 0))
 
 	// Both create the same project (must be in sync first)
-	projectUID := machineA.createProject("test", "test-project")
-	machineB.createProject("test", "test-project") // Same alias and name
+	projectUID := machineA.createProject()
+	machineB.createProject() // Same alias and name
 
 	// Machine A creates task at T=100 (later wall clock)
 	machineA.clock.Set(time.Unix(100, 0))
@@ -267,8 +267,8 @@ func TestSimulation_DuplicateWithTiming(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(50, 0))
 
 	// Create shared project
-	projectUID := machineA.createProject("test", "test-project")
-	machineB.createProject("test", "test-project")
+	projectUID := machineA.createProject()
+	machineB.createProject()
 
 	// Both machines create a task with THE SAME UID (duplicate!)
 	// But at different times with different titles
@@ -356,8 +356,8 @@ func TestSimulation_NetworkPartition(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(0, 0))
 
 	// Phase 1: Connected - create shared project
-	projectUID := machineA.createProject("test", "test-project")
-	machineB.createProject("test", "test-project")
+	projectUID := machineA.createProject()
+	machineB.createProject()
 	syncMachines(t, machineA, machineB)
 
 	t.Logf("Phase 1: Both machines connected, shared project created")
@@ -425,8 +425,8 @@ func TestSimulation_OutOfOrderDelivery(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(0, 0))
 
 	// Both create shared project
-	projectUID := machineA.createProject("test", "test-project")
-	machineB.createProject("test", "test-project")
+	projectUID := machineA.createProject()
+	machineB.createProject()
 
 	// Machine A creates 3 tasks with status changes in order
 	machineA.clock.Set(time.Unix(100, 0))
@@ -500,8 +500,8 @@ func TestSimulation_ConcurrentTaskCreation(t *testing.T) {
 	machineB := newMachine(t, "node-B", time.Unix(0, 0))
 
 	// Create shared project
-	projectUID := machineA.createProject("test", "test-project")
-	machineB.createProject("test", "test-project")
+	projectUID := machineA.createProject()
+	machineB.createProject()
 
 	// Both machines create a task "at the same time" (concurrent)
 	// Give them the same Lamport TS to simulate concurrent creation

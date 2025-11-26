@@ -75,7 +75,7 @@ func (m *Manager) findOrInstall(tool string, importPath string) (string, error) 
 	// Tool not found, install it
 	slog.Info("Installing tool (one-time setup)", "tool", tool)
 
-	installCmd := exec.Command("go", "install", importPath+"@latest")
+	installCmd := exec.Command("go", "install", importPath+"@latest") //nolint:gosec // G204: intentional execution of go install for tool management
 	installCmd.Dir = m.projectDir
 	installCmd.Env = append(os.Environ(), fmt.Sprintf("GOBIN=%s", gobin))
 
