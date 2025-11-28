@@ -9,6 +9,7 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/neongreen/mono/conf/pkg/config"
+	"github.com/neongreen/mono/conf/pkg/folders"
 	"github.com/neongreen/mono/lib/cli"
 	"github.com/neongreen/mono/lib/configschema"
 )
@@ -153,4 +154,60 @@ func renderStatusTable(toolName string, desired map[string]any, actual map[strin
 	if !showInSync && inSync > 0 {
 		fmt.Printf("Hidden %s in-sync values; rerun with --show-in-sync to include them.\n", cli.Successf("%d", inSync))
 	}
+}
+
+// renderFolderDriftTable renders a table of folder drift
+func renderFolderDriftTable(drifts []folders.FileDrift, showInSync bool) {
+	if len(drifts) == 0 && !showInSync {
+		return
+	}
+
+	// Sort drifts by path
+	sort.Slice(drifts, func(i, j int) bool {
+		return drifts[i].RelPath < drifts[j].RelPath
+	})
+
+	t := cli.NewTable(os.Stdout)
+	t.AppendHeader(table.Row{"File", "Status", "Details"})
+	t.SetColumnConfigs([]table.ColumnConfig{
+		{Number: 1, WidthMax: 50, WidthMaxEnforcer: text.WrapSoft},
+		{Number: 2, WidthMax: 12},
+		{Number: 3, WidthMax: 40, WidthMaxEnforcer: text.WrapSoft},
+	})
+
+	for _, drift := range drifts {
+		if drift.Status == folders.StatusInSync && !showInSync {
+			continue
+		}
+
+		var statusStr, detailsStr string
+
+		switch drift.Status {
+		case folders.StatusInSync:
+			statusStr = cli.Success("IN SYNC")
+			detailsStr = cli.Muted("Identical")
+		case folders.StatusModified:
+			statusStr = cli.Warning("MODIFIED")
+			if drift.SourceMtime > drift.ConfMtime {
+				detailsStr = cli.Warningf("Source newer")
+			} else {
+				detailsStr = cli.Warningf("Conf newer")
+			}
+		case folders.StatusAdded:
+			statusStr = cli.Warning("ADDED")
+			detailsStr = "New in source"
+		case folders.StatusDeleted:
+			statusStr = cli.Warning("DELETED")
+			detailsStr = "Removed from source"
+		}
+
+		pathStr := cli.Key(drift.RelPath)
+		if drift.IsDir {
+			pathStr = pathStr + "/"
+		}
+
+		t.AppendRow(table.Row{pathStr, statusStr, detailsStr})
+	}
+
+	t.Render()
 }

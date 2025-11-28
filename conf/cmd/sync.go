@@ -16,7 +16,7 @@ import (
 )
 
 var syncCmd = &cobra.Command{
-	Use:   "sync [tool]",
+	Use:   "sync [tool|folder]",
 	Short: "Sync configuration with iCloud Drive",
 	Long: `Merge local configuration with iCloud Drive using simple Last-Write-Wins strategy.
 
@@ -32,10 +32,15 @@ iCloud Drive location:
     - mise.toml (for mise config)
     - etc.
 
+  Tracked folders are synced as directories:
+    - my-docs/ (folder contents)
+    - scripts/ (folder contents)
+
 Examples:
-  conf sync           # Sync all tools
-  conf sync jj        # Sync only jj config
-  conf sync --dry-run # Preview what would be synced`,
+  conf sync             # Sync all tools and folders
+  conf sync jj          # Sync only jj config
+  conf sync my-docs     # Sync only my-docs folder
+  conf sync --dry-run   # Preview what would be synced`,
 	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		conf, err := config.Load()
@@ -50,21 +55,62 @@ Examples:
 			os.Exit(1)
 		}
 
-		var toolsToSync []string
 		if len(args) == 1 {
-			toolsToSync = []string{args[0]}
-		} else {
-			// Sync all tools
-			for toolName := range conf.Tools {
-				toolsToSync = append(toolsToSync, toolName)
+			// Sync specific tool or folder
+			name := args[0]
+
+			// Check if it's a tool
+			if _, exists := conf.Tools[name]; exists {
+				if err := syncTool(conf, configDir, name, dryRun); err != nil {
+					fmt.Fprintf(os.Stderr, "Error syncing tool %s: %v\n", name, err)
+					os.Exit(1)
+				}
+				if !dryRun {
+					fmt.Println("\n✓ Sync complete")
+				}
+				return
 			}
+
+			// Check if it's a folder
+			if _, exists := conf.Folders[name]; exists {
+				if err := syncFolder(conf, configDir, name, dryRun); err != nil {
+					fmt.Fprintf(os.Stderr, "Error syncing folder %s: %v\n", name, err)
+					os.Exit(1)
+				}
+				if !dryRun {
+					fmt.Println("\n✓ Sync complete")
+				}
+				return
+			}
+
+			fmt.Fprintf(os.Stderr, "Error: %s is neither a configured tool nor a tracked folder\n", name)
+			os.Exit(1)
 		}
 
+		// Sync all tools
+		var toolsToSync []string
+		for toolName := range conf.Tools {
+			toolsToSync = append(toolsToSync, toolName)
+		}
 		sort.Strings(toolsToSync)
 
 		for _, toolName := range toolsToSync {
 			if err := syncTool(conf, configDir, toolName, dryRun); err != nil {
-				fmt.Fprintf(os.Stderr, "Error syncing %s: %v\n", toolName, err)
+				fmt.Fprintf(os.Stderr, "Error syncing tool %s: %v\n", toolName, err)
+				os.Exit(1)
+			}
+		}
+
+		// Sync all folders
+		var foldersToSync []string
+		for folderName := range conf.Folders {
+			foldersToSync = append(foldersToSync, folderName)
+		}
+		sort.Strings(foldersToSync)
+
+		for _, folderName := range foldersToSync {
+			if err := syncFolder(conf, configDir, folderName, dryRun); err != nil {
+				fmt.Fprintf(os.Stderr, "Error syncing folder %s: %v\n", folderName, err)
 				os.Exit(1)
 			}
 		}
@@ -209,8 +255,6 @@ func syncTool(conf *config.Config, configDir, toolName string, dryRun bool) erro
 
 	return nil
 }
-
-// renderSyncDiff renders a simple table for one-sided sync preview (upload/download)
 func renderSyncDiff(action string, upload map[string]any, download map[string]any) {
 	var rows []struct {
 		action string

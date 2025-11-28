@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
@@ -41,7 +42,13 @@ Examples:
 			os.Exit(1)
 		}
 
-		// Case 1: Import a specific setting from a tool
+		configDir, err := config.ConfigDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: Failed to get config directory: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Case 1: Import a specific setting from a tool (2 args)
 		if len(args) == 2 {
 			toolName := args[0]
 			configPath := args[1]
@@ -55,21 +62,79 @@ Examples:
 			return
 		}
 
-		// Case 2: Import all settings from a tool or all tools
-		var toolsToImport []string
+		// Case 2: Import from a single tool/folder or all tools/folders
 		if len(args) == 1 {
-			toolsToImport = []string{args[0]}
-		} else {
-			// Import all tools
-			for toolName := range conf.Tools {
-				toolsToImport = append(toolsToImport, toolName)
-			}
-		}
-		sort.Strings(toolsToImport)
+			arg := args[0]
 
-		for _, toolName := range toolsToImport {
+			// Check if it's a folder with specific file path (e.g., "my-docs/file.txt")
+			if strings.Contains(arg, "/") {
+				parts := strings.SplitN(arg, "/", 2)
+				folderName := parts[0]
+				filePath := parts[1]
+
+				if _, exists := conf.Folders[folderName]; exists {
+					if err := importFolderFile(conf, configDir, folderName, filePath, dryRun); err != nil {
+						fmt.Fprintf(os.Stderr, "Error importing %s: %v\n", arg, err)
+						os.Exit(1)
+					}
+					if !dryRun {
+						fmt.Println("\n✓ Import complete")
+					}
+					return
+				}
+			}
+
+			// Check if it's a folder
+			if _, exists := conf.Folders[arg]; exists {
+				if err := importFolder(conf, configDir, arg, dryRun); err != nil {
+					fmt.Fprintf(os.Stderr, "Error importing folder %s: %v\n", arg, err)
+					os.Exit(1)
+				}
+				if !dryRun {
+					fmt.Println("\n✓ Import complete")
+				}
+				return
+			}
+
+			// Check if it's a tool
+			if _, exists := conf.Tools[arg]; exists {
+				if err := importTool(conf, arg, dryRun); err != nil {
+					fmt.Fprintf(os.Stderr, "Error importing %s: %v\n", arg, err)
+					os.Exit(1)
+				}
+				if !dryRun {
+					fmt.Println("\n✓ Import complete")
+				}
+				return
+			}
+
+			fmt.Fprintf(os.Stderr, "Error: %s is not a configured tool or folder\n", arg)
+			os.Exit(1)
+		}
+
+		// Case 3: Import all tools and folders
+		var toolNames []string
+		for toolName := range conf.Tools {
+			toolNames = append(toolNames, toolName)
+		}
+		sort.Strings(toolNames)
+
+		for _, toolName := range toolNames {
 			if err := importTool(conf, toolName, dryRun); err != nil {
 				fmt.Fprintf(os.Stderr, "Error importing %s: %v\n", toolName, err)
+				os.Exit(1)
+			}
+		}
+
+		var folderNames []string
+		for folderName := range conf.Folders {
+			folderNames = append(folderNames, folderName)
+		}
+		sort.Strings(folderNames)
+
+		for _, folderName := range folderNames {
+			if err := importFolder(conf, configDir, folderName, dryRun); err != nil {
+				fmt.Fprintf(os.Stderr, "Error importing folder %s: %v\n", folderName, err)
 				os.Exit(1)
 			}
 		}
