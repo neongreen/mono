@@ -40,7 +40,7 @@ func Rename(goplsPath string, filePath string, oldName string, newName string, m
 	cmd.Stdout = &combinedOutput
 	cmd.Stderr = &combinedOutput
 
-	_, err = runWithTextFileBusyRetry(cmd)
+	err = runWithTextFileBusyRetry(cmd)
 	if err != nil {
 		return fmt.Errorf("gopls rename failed: %w\nOutput: %s", err, combinedOutput.String())
 	}
@@ -119,36 +119,36 @@ func findSymbolOffset(filePath string, symbolName string) (int, error) {
 // This error can occur when a binary was just installed by "go install" and the OS hasn't
 // fully released the file handle yet. The function retries up to 3 times with exponential backoff.
 // Note: This function uses cmd.Run(), so caller should capture output via cmd.Stdout/Stderr if needed.
-func runWithTextFileBusyRetry(cmd *exec.Cmd) ([]byte, error) {
+func runWithTextFileBusyRetry(cmd *exec.Cmd) error {
 	const maxRetries = 3
 	var lastErr error
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
-		// Create a new command for each attempt since exec.Cmd can only be used once
+		// Create a new command for each retry since exec.Cmd can only be used once
 		if attempt > 0 {
+			// Wait before retrying with exponential backoff (100ms, 200ms, 400ms)
+			waitTime := time.Duration(100*(1<<(attempt-1))) * time.Millisecond
+			slog.Debug("Retrying command after text file busy error", "attempt", attempt+1, "wait", waitTime)
+			time.Sleep(waitTime)
+
 			newCmd := exec.Command(cmd.Path, cmd.Args[1:]...)
 			newCmd.Dir = cmd.Dir
 			newCmd.Env = cmd.Env
 			newCmd.Stdout = cmd.Stdout
 			newCmd.Stderr = cmd.Stderr
 			cmd = newCmd
-
-			// Wait before retrying with exponential backoff
-			waitTime := time.Duration(50*(1<<attempt)) * time.Millisecond
-			slog.Debug("Retrying command after text file busy error", "attempt", attempt+1, "wait", waitTime)
-			time.Sleep(waitTime)
 		}
 
 		lastErr = cmd.Run()
 		if lastErr == nil {
-			return nil, nil
+			return nil
 		}
 
 		// Check if this is a "text file busy" error
 		if !strings.Contains(lastErr.Error(), "text file busy") {
-			return nil, lastErr
+			return lastErr
 		}
 	}
 
-	return nil, lastErr
+	return lastErr
 }

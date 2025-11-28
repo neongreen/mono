@@ -31,7 +31,7 @@ func AddImport(goplsPath string, filePath string, importPath string, moduleRoot 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
-	if _, err := runWithTextFileBusyRetry(cmd); err != nil {
+	if err := runWithTextFileBusyRetry(cmd); err != nil {
 		return fmt.Errorf("error executing gopls: %w\n%s", err, stderr.String())
 	}
 
