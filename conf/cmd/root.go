@@ -35,7 +35,7 @@ func init() {
 	RootCmd.AddCommand(starshipCmd)
 	RootCmd.AddCommand(shimsCmd)
 	RootCmd.AddCommand(applyCmd)
-	RootCmd.AddCommand(statusCmd)
+	// statusCmd is registered in status.go init()
 	RootCmd.AddCommand(syncCmd)
 	RootCmd.AddCommand(importCmd)
 	RootCmd.AddCommand(completionCmd)

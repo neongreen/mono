@@ -13,25 +13,33 @@ import (
 type FileStatus string
 
 const (
-	StatusInSync   FileStatus = "IN_SYNC"   // File content matches
-	StatusModified FileStatus = "MODIFIED"  // File exists in both, content differs
-	StatusAdded    FileStatus = "ADDED"     // File in source, not in conf copy
-	StatusDeleted  FileStatus = "DELETED"   // File in conf copy, not in source
+	StatusInSync   FileStatus = "IN_SYNC"  // File content matches
+	StatusModified FileStatus = "MODIFIED" // File exists in both, content differs
+	StatusAdded    FileStatus = "ADDED"    // File in source, not in conf copy
+	StatusDeleted  FileStatus = "DELETED"  // File in conf copy, not in source
 )
 
 // FileDrift represents a difference between source and conf copy
 type FileDrift struct {
-	RelPath      string     // Relative path from folder root
-	Status       FileStatus
-	SourceHash   string // SHA256 hash of source file (if exists)
-	ConfHash     string // SHA256 hash of conf file (if exists)
-	SourceMtime  int64  // Modification time of source file
-	ConfMtime    int64  // Modification time of conf file
-	IsDir        bool   // Whether this is a directory
+	RelPath     string // Relative path from folder root
+	Status      FileStatus
+	SourceHash  string // SHA256 hash of source file (if exists)
+	ConfHash    string // SHA256 hash of conf file (if exists)
+	SourceMtime int64  // Modification time of source file
+	ConfMtime   int64  // Modification time of conf file
+	IsDir       bool   // Whether this is a directory
 }
 
-// DetectDrift compares source folder with conf copy and returns all differences
+// DetectDrift compares source folder with conf copy and returns all differences.
+// This is a convenience wrapper that calls DetectDriftWithExcludes with no excludes.
 func DetectDrift(sourcePath, confPath string) ([]FileDrift, error) {
+	return DetectDriftWithExcludes(sourcePath, confPath, nil)
+}
+
+// DetectDriftWithExcludes compares source folder with conf copy and returns all differences,
+// excluding files that match any of the provided patterns.
+// Patterns support shell-style wildcards (*, ?) via filepath.Match.
+func DetectDriftWithExcludes(sourcePath, confPath string, excludePatterns []string) ([]FileDrift, error) {
 	var drifts []FileDrift
 
 	// Build maps of all files in source and conf
@@ -51,6 +59,13 @@ func DetectDrift(sourcePath, confPath string) ([]FileDrift, error) {
 		if relPath == "." {
 			return nil
 		}
+		// Skip excluded files
+		if shouldExclude(relPath, info.Name(), excludePatterns) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
 		sourceFiles[relPath] = info
 		return nil
 	}); err != nil {
@@ -68,6 +83,13 @@ func DetectDrift(sourcePath, confPath string) ([]FileDrift, error) {
 		}
 		// Skip the root directory itself
 		if relPath == "." {
+			return nil
+		}
+		// Skip excluded files
+		if shouldExclude(relPath, info.Name(), excludePatterns) {
+			if info.IsDir() {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		confFiles[relPath] = info
@@ -196,5 +218,28 @@ func FormatDriftSummary(drifts []FileDrift) string {
 		parts = append(parts, fmt.Sprintf("%d deleted", count))
 	}
 
-	return fmt.Sprintf("%d files with drift (%s)", len(drifts), strings.Join(parts, ", "))
+	fileWord := "files"
+	if len(drifts) == 1 {
+		fileWord = "file"
+	}
+	return fmt.Sprintf("%d %s with drift (%s)", len(drifts), fileWord, strings.Join(parts, ", "))
+}
+
+// shouldExclude returns true if a file path matches any of the exclude patterns.
+// Patterns are matched against both the full relative path and the base filename.
+// Supports shell-style wildcards (* and ?) via filepath.Match.
+// Invalid patterns are silently ignored (treated as non-matching).
+func shouldExclude(relPath, baseName string, excludePatterns []string) bool {
+	for _, pattern := range excludePatterns {
+		// Match against base filename (e.g., "*.tmp" matches "foo.tmp")
+		// Error from filepath.Match indicates invalid pattern syntax - we skip such patterns
+		if matched, err := filepath.Match(pattern, baseName); err == nil && matched {
+			return true
+		}
+		// Match against full relative path (e.g., "subdir/*.log")
+		if matched, err := filepath.Match(pattern, relPath); err == nil && matched {
+			return true
+		}
+	}
+	return false
 }
