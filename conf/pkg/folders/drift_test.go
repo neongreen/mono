@@ -3,6 +3,7 @@ package folders
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -358,24 +359,10 @@ func TestFormatDriftSummary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := FormatDriftSummary(tt.drifts)
 			for _, substr := range tt.contains {
-				if !containsString(result, substr) {
+				if !strings.Contains(result, substr) {
 					t.Errorf("FormatDriftSummary(%v) = %q, want to contain %q", tt.drifts, result, substr)
 				}
 			}
 		})
 	}
-}
-
-func containsString(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
-		(len(s) > 0 && len(substr) > 0 && findSubstring(s, substr)))
-}
-
-func findSubstring(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }
