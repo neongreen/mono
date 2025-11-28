@@ -161,7 +161,7 @@ func applyFolder(conf *config.Config, configDir, folderName string, dryRun bool)
 
 	// Detect drift
 	confPath := config.FolderCopyPath(configDir, folderName)
-	drifts, err := folders.DetectDrift(folder.SourcePath, confPath)
+	drifts, err := folders.DetectDriftWithExcludes(folder.SourcePath, confPath, folder.Exclude)
 	if err != nil {
 		return fmt.Errorf("failed to detect drift: %w", err)
 	}

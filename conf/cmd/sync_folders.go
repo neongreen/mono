@@ -39,7 +39,7 @@ func syncFolder(conf *config.Config, configDir, folderName string, dryRun bool) 
 		}
 	} else {
 		// Detect drift between source and conf copy
-		drifts, err := folders.DetectDrift(sourcePath, confCopyPath)
+		drifts, err := folders.DetectDriftWithExcludes(sourcePath, confCopyPath, folder.Exclude)
 		if err != nil {
 			return fmt.Errorf("failed to detect drift: %w", err)
 		}
@@ -75,7 +75,8 @@ func syncFolder(conf *config.Config, configDir, folderName string, dryRun bool) 
 	}
 
 	// Detect drift between conf copy and iCloud
-	icloudDrifts, err := folders.DetectDrift(confCopyPath, icloudFolderPath)
+	// Note: We use the same exclude patterns for iCloud sync to maintain consistency
+	icloudDrifts, err := folders.DetectDriftWithExcludes(confCopyPath, icloudFolderPath, folder.Exclude)
 	if err != nil {
 		return fmt.Errorf("failed to detect iCloud drift: %w", err)
 	}

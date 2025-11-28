@@ -74,8 +74,8 @@ Examples:
 		fmt.Printf("  Name: %s\n", folderName)
 		fmt.Printf("  Copy to: %s\n", folderCopyPath)
 
-		// Copy folder to conf directory
-		if err := copyDir(expandedSource, folderCopyPath); err != nil {
+		// Copy folder to conf directory, excluding specified patterns
+		if err := copyDir(expandedSource, folderCopyPath, excludePatterns); err != nil {
 			return fmt.Errorf("failed to copy folder: %w", err)
 		}
 		fmt.Printf("  ✓ Copied folder\n")
@@ -111,8 +111,8 @@ Examples:
 	},
 }
 
-// copyDir recursively copies a directory
-func copyDir(src, dst string) error {
+// copyDir recursively copies a directory, skipping files that match exclude patterns
+func copyDir(src, dst string, excludePatterns []string) error {
 	// Get source directory info
 	srcInfo, err := os.Stat(src)
 	if err != nil {
@@ -131,12 +131,17 @@ func copyDir(src, dst string) error {
 	}
 
 	for _, entry := range entries {
+		// Check if entry should be excluded
+		if shouldExclude(entry.Name(), excludePatterns) {
+			continue
+		}
+
 		srcPath := filepath.Join(src, entry.Name())
 		dstPath := filepath.Join(dst, entry.Name())
 
 		if entry.IsDir() {
 			// Recursively copy subdirectory
-			if err := copyDir(srcPath, dstPath); err != nil {
+			if err := copyDir(srcPath, dstPath, excludePatterns); err != nil {
 				return err
 			}
 		} else {
@@ -148,6 +153,16 @@ func copyDir(src, dst string) error {
 	}
 
 	return nil
+}
+
+// shouldExclude checks if a filename matches any of the exclude patterns
+func shouldExclude(filename string, patterns []string) bool {
+	for _, pattern := range patterns {
+		if matched, _ := filepath.Match(pattern, filename); matched {
+			return true
+		}
+	}
+	return false
 }
 
 // copyFile copies a single file, preserving permissions
