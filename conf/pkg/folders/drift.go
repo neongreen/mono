@@ -218,20 +218,26 @@ func FormatDriftSummary(drifts []FileDrift) string {
 		parts = append(parts, fmt.Sprintf("%d deleted", count))
 	}
 
-	return fmt.Sprintf("%d files with drift (%s)", len(drifts), strings.Join(parts, ", "))
+	fileWord := "files"
+	if len(drifts) == 1 {
+		fileWord = "file"
+	}
+	return fmt.Sprintf("%d %s with drift (%s)", len(drifts), fileWord, strings.Join(parts, ", "))
 }
 
 // shouldExclude returns true if a file path matches any of the exclude patterns.
 // Patterns are matched against both the full relative path and the base filename.
 // Supports shell-style wildcards (* and ?) via filepath.Match.
+// Invalid patterns are silently ignored (treated as non-matching).
 func shouldExclude(relPath, baseName string, excludePatterns []string) bool {
 	for _, pattern := range excludePatterns {
 		// Match against base filename (e.g., "*.tmp" matches "foo.tmp")
-		if matched, _ := filepath.Match(pattern, baseName); matched {
+		// Error from filepath.Match indicates invalid pattern syntax - we skip such patterns
+		if matched, err := filepath.Match(pattern, baseName); err == nil && matched {
 			return true
 		}
 		// Match against full relative path (e.g., "subdir/*.log")
-		if matched, _ := filepath.Match(pattern, relPath); matched {
+		if matched, err := filepath.Match(pattern, relPath); err == nil && matched {
 			return true
 		}
 	}

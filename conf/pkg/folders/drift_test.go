@@ -332,7 +332,7 @@ func TestFormatDriftSummary(t *testing.T) {
 			drifts: []FileDrift{
 				{RelPath: "file1.txt", Status: StatusAdded},
 			},
-			contains: []string{"1 files with drift", "1 added"},
+			contains: []string{"1 file with drift", "1 added"},
 		},
 		{
 			name: "deleted files only",

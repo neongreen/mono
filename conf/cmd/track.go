@@ -155,10 +155,12 @@ func copyDir(src, dst string, excludePatterns []string) error {
 	return nil
 }
 
-// shouldExclude checks if a filename matches any of the exclude patterns
+// shouldExclude checks if a filename matches any of the exclude patterns.
+// Invalid patterns are silently ignored (treated as non-matching).
 func shouldExclude(filename string, patterns []string) bool {
 	for _, pattern := range patterns {
-		if matched, _ := filepath.Match(pattern, filename); matched {
+		// Error from filepath.Match indicates invalid pattern syntax - we skip such patterns
+		if matched, err := filepath.Match(pattern, filename); err == nil && matched {
 			return true
 		}
 	}
