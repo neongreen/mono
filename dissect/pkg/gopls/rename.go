@@ -1,7 +1,6 @@
 package gopls
 
 import (
-	"bytes"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -9,8 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
-	"strings"
-	"time"
 )
 
 // Rename renames a symbol in a Go file using gopls.
@@ -35,17 +32,12 @@ func Rename(goplsPath string, filePath string, oldName string, newName string, m
 
 	cmd := exec.Command(goplsPath, "rename", "-w", positionSpec, newName)
 	cmd.Dir = moduleRoot
-
-	var combinedOutput bytes.Buffer
-	cmd.Stdout = &combinedOutput
-	cmd.Stderr = &combinedOutput
-
-	err = runWithTextFileBusyRetry(cmd)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("gopls rename failed: %w\nOutput: %s", err, combinedOutput.String())
+		return fmt.Errorf("gopls rename failed: %w\nOutput: %s", err, string(output))
 	}
 
-	slog.Debug("Successfully renamed symbol", "old", oldName, "new", newName, "output", combinedOutput.String(), "goplsPath", goplsPath)
+	slog.Debug("Successfully renamed symbol", "old", oldName, "new", newName, "output", string(output), "goplsPath", goplsPath)
 	return nil
 }
 
@@ -113,42 +105,4 @@ func findSymbolOffset(filePath string, symbolName string) (int, error) {
 	// Convert position to byte offset
 	position := fset.Position(symbolPos)
 	return position.Offset, nil
-}
-
-// runWithTextFileBusyRetry runs a command and retries if it fails with "text file busy" error.
-// This error can occur when a binary was just installed by "go install" and the OS hasn't
-// fully released the file handle yet. The function retries up to 3 times with exponential backoff.
-// Note: This function uses cmd.Run(), so caller should capture output via cmd.Stdout/Stderr if needed.
-func runWithTextFileBusyRetry(cmd *exec.Cmd) error {
-	const maxRetries = 3
-	var lastErr error
-
-	for attempt := 0; attempt < maxRetries; attempt++ {
-		// Create a new command for each retry since exec.Cmd can only be used once
-		if attempt > 0 {
-			// Wait before retrying with exponential backoff (100ms, 200ms, 400ms)
-			waitTime := time.Duration(100*(1<<(attempt-1))) * time.Millisecond
-			slog.Debug("Retrying command after text file busy error", "attempt", attempt+1, "wait", waitTime)
-			time.Sleep(waitTime)
-
-			newCmd := exec.Command(cmd.Path, cmd.Args[1:]...)
-			newCmd.Dir = cmd.Dir
-			newCmd.Env = cmd.Env
-			newCmd.Stdout = cmd.Stdout
-			newCmd.Stderr = cmd.Stderr
-			cmd = newCmd
-		}
-
-		lastErr = cmd.Run()
-		if lastErr == nil {
-			return nil
-		}
-
-		// Check if this is a "text file busy" error
-		if !strings.Contains(lastErr.Error(), "text file busy") {
-			return lastErr
-		}
-	}
-
-	return lastErr
 }

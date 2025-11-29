@@ -55,7 +55,7 @@ func ExtractToNewFile(goplsPath string, filePath string, funcName string, module
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
-	if err := runWithTextFileBusyRetry(cmd); err != nil {
+	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("error executing gopls: %w\n%s", err, stderr.String())
 	}
 

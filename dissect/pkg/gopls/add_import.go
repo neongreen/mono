@@ -24,14 +24,14 @@ func AddImport(goplsPath string, filePath string, importPath string, moduleRoot 
 
 	// Construct the gopls command
 	cmd := exec.Command(goplsPath, "execute", "-write", "gopls.add_import", fmt.Sprintf(`{"ImportPath": "%s", "URI": "file://%s"}`, importPath, absFilePath)) //nolint:gosec // G204: intentional gopls execution with validated path
-	cmd.Dir = moduleRoot                                                                                                                                      // Execute gopls in the Go module root
+	cmd.Dir = moduleRoot // Execute gopls in the Go module root
 
 	slog.Debug("Calling gopls", "command", cmd.String(), "directory", cmd.Dir, "goplsPath", goplsPath)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
-	if err := runWithTextFileBusyRetry(cmd); err != nil {
+	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("error executing gopls: %w\n%s", err, stderr.String())
 	}
 
