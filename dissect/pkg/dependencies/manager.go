@@ -94,13 +94,57 @@ func (m *Manager) findOrInstall(tool string, importPath string) (string, error) 
 		return "", fmt.Errorf("installation of %s timed out after 2 minutes", tool)
 	}
 
-	// Verify installation
-	if _, err := os.Stat(toolPath); err != nil {
-		return "", fmt.Errorf("%s was not installed at expected path %s", tool, toolPath)
+	// Verify installation and wait for the binary to be executable.
+	// After go install completes, there can be a brief window where the file exists
+	// but is still being written (causing "text file busy" errors on execution).
+	if err := waitForExecutable(toolPath, 5*time.Second); err != nil {
+		return "", fmt.Errorf("%s installation verification failed: %w", tool, err)
 	}
 
 	slog.Info("Tool installed successfully", "tool", tool, "path", toolPath)
 	return toolPath, nil
+}
+
+// waitForExecutable waits until a binary file exists and can be opened for reading.
+// This handles the race condition where go install has written the file
+// but the OS hasn't fully released the write handle yet.
+func waitForExecutable(path string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	var lastErr error
+
+	for time.Now().Before(deadline) {
+		// Check if file exists
+		info, err := os.Stat(path)
+		if err != nil {
+			lastErr = err
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+
+		// Check if it's a regular file
+		if !info.Mode().IsRegular() {
+			lastErr = fmt.Errorf("%s is not a regular file", path)
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+
+		// Try to open the file for reading to verify it's not locked
+		f, err := os.Open(path)
+		if err != nil {
+			lastErr = err
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+		f.Close()
+
+		// File is ready
+		return nil
+	}
+
+	if lastErr != nil {
+		return fmt.Errorf("timed out waiting for %s to be ready: %w", path, lastErr)
+	}
+	return fmt.Errorf("timed out waiting for %s to be ready", path)
 }
 
 // getGOBIN returns the GOBIN directory for the project
