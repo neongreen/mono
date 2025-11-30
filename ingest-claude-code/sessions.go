@@ -107,7 +107,7 @@ func extractSession(path string, info os.FileInfo) (*Session, error) {
 				}
 				if decoded != "" {
 					segments := strings.Split(decoded, "-")
-					session.ProjectPath = strings.Join(segments, string(os.PathSeparator))
+					session.ProjectPath = filepath.Join(segments...)
 				}
 			}
 		}
