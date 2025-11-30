@@ -19,6 +19,10 @@ dir = "ingest"
 module = "ingest"
 
 [[project]]
+dir = "ingest-claude-code"
+module = "github.com/neongreen/mono/ingest-claude-code"
+
+[[project]]
 dir = "lib/cli"
 module = "github.com/neongreen/mono/lib/cli"
 

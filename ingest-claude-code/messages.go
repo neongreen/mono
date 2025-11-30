@@ -12,19 +12,19 @@ import (
 )
 
 type Message struct {
-	SessionID  string      `json:"session_id"`
-	MessageID  string      `json:"message_id"`
-	ParentID   string      `json:"parent_id,omitempty"`
-	Timestamp  string      `json:"timestamp"`
-	Type       string      `json:"type"`
-	Content    interface{} `json:"content"`
-	Model      string      `json:"model,omitempty"`
-	CWD        string      `json:"cwd,omitempty"`
-	ToolUseID  string      `json:"tool_use_id,omitempty"`
-	IsError    bool        `json:"is_error,omitempty"`
-	GitBranch  string      `json:"git_branch,omitempty"`
-	Version    string      `json:"version,omitempty"`
-	RequestID  string      `json:"request_id,omitempty"`
+	SessionID string      `json:"session_id"`
+	MessageID string      `json:"message_id"`
+	ParentID  string      `json:"parent_id,omitempty"`
+	Timestamp string      `json:"timestamp"`
+	Type      string      `json:"type"`
+	Content   interface{} `json:"content"`
+	Model     string      `json:"model,omitempty"`
+	CWD       string      `json:"cwd,omitempty"`
+	ToolUseID string      `json:"tool_use_id,omitempty"`
+	IsError   bool        `json:"is_error,omitempty"`
+	GitBranch string      `json:"git_branch,omitempty"`
+	Version   string      `json:"version,omitempty"`
+	RequestID string      `json:"request_id,omitempty"`
 }
 
 func runMessages(cmd *cobra.Command, args []string) {
@@ -82,9 +82,8 @@ func extractMessages(path string) error {
 
 	scanner := bufio.NewScanner(file)
 	// Increase buffer size for large lines (trace files can have very long lines)
-	const maxCapacity = 10 * 1024 * 1024 // 10MB
-	buf := make([]byte, maxCapacity)
-	scanner.Buffer(buf, maxCapacity)
+	buf := make([]byte, maxScannerCapacity)
+	scanner.Buffer(buf, maxScannerCapacity)
 
 	for scanner.Scan() {
 		line := scanner.Text()
