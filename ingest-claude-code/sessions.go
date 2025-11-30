@@ -92,6 +92,7 @@ func extractSession(path string, info os.FileInfo) (*Session, error) {
 
 	// Parse project path from file path
 	// e.g., ~/.claude/projects/-Users-artyom-code-neongreen-mono/...
+	// The format encodes the project path with a leading hyphen and hyphens replacing path separators
 	if strings.Contains(path, ".claude/projects/") {
 		parts := strings.Split(path, ".claude/projects/")
 		if len(parts) >= 2 {
@@ -99,17 +100,23 @@ func extractSession(path string, info os.FileInfo) (*Session, error) {
 			// Extract directory name which is the project path
 			dirName := filepath.Dir(subPath)
 			if dirName != "." {
-				// Convert back to path format
-				session.ProjectPath = strings.ReplaceAll(dirName, "-", "/")
+				// Robustly decode project path: remove leading hyphen, split on hyphens, join with slashes
+				decoded := dirName
+				if strings.HasPrefix(decoded, "-") {
+					decoded = decoded[1:]
+				}
+				if decoded != "" {
+					segments := strings.Split(decoded, "-")
+					session.ProjectPath = filepath.Join(segments...)
+				}
 			}
 		}
 	}
 
 	scanner := bufio.NewScanner(file)
 	// Increase buffer size for large lines (trace files can have very long lines)
-	const maxCapacity = 10 * 1024 * 1024 // 10MB
-	buf := make([]byte, maxCapacity)
-	scanner.Buffer(buf, maxCapacity)
+	buf := make([]byte, maxScannerCapacity)
+	scanner.Buffer(buf, maxScannerCapacity)
 
 	for scanner.Scan() {
 		line := scanner.Text()

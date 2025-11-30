@@ -262,8 +262,10 @@ Add an entry to `go-projects.toml`:
 ```toml
 [[project]]
 dir = "{project-dir}"           # e.g., "my-tool" or "lib/my-lib"
-module = "{full-module-path}"   # e.g., "github.com/neongreen/mono/my-tool"
+module = "{full-module-path}"   # REQUIRED: Always use the full module path, e.g., "github.com/neongreen/mono/my-tool"
 ```
+
+**Important:** Always use the full module path for the `module` field (e.g., `github.com/neongreen/mono/my-tool`). Some existing projects use short names (e.g., `aihook`, `conf`) for historical reasons, but new projects should always use the full path for consistency.
 
 Examples:
 - CLI Tool: `dir = "my-tool"`, `module = "github.com/neongreen/mono/my-tool"`
