@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "$0")" && pwd)"
+tool_dir="$script_dir/../ingest-claude-code"
+
+exec go run -C "$tool_dir" . "$@"
