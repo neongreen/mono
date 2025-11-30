@@ -33,9 +33,9 @@ Example debug output:
 
 **Symptoms:**
 ```
-Looking for PR #27 in neongreen/mono (project: claude-trace)
-Found release: claude-trace--pr-27.1
-Downloading binary from https://github.com/neongreen/mono/releases/download/claude-trace--pr-27.1/claude-trace-pr-27.1-linux-amd64...
+Looking for PR #27 in neongreen/mono (project: dissect)
+Found release: dissect--pr-27.1
+Downloading binary from https://github.com/neongreen/mono/releases/download/dissect--pr-27.1/dissect-pr-27.1-linux-amd64...
 Error: download failed with status 404
 ```
 
@@ -59,17 +59,17 @@ The release exists but the GitHub Actions workflow failed to build or upload the
 The asset exists but with a different name than expected.
 
 **Expected formats:**
-- `project-version-os-arch` (e.g., `claude-trace-pr-27.1-linux-amd64`)
-- `project--version-os-arch` (e.g., `claude-trace--pr-27.1-linux-amd64`)
+- `project-version-os-arch` (e.g., `dissect-pr-27.1-linux-amd64`)
+- `project--version-os-arch` (e.g., `dissect--pr-27.1-linux-amd64`)
 
 **How prrun will help:**
 When searching for assets, prrun now displays all available assets:
 ```
 Available assets (4):
-  - claude-trace-pr-27.1-linux-amd64
-  - claude-trace-pr-27.1-linux-arm64
-  - claude-trace-pr-27.1-darwin-amd64
-  - claude-trace-pr-27.1-darwin-arm64
+  - dissect-pr-27.1-linux-amd64
+  - dissect-pr-27.1-linux-arm64
+  - dissect-pr-27.1-darwin-amd64
+  - dissect-pr-27.1-darwin-arm64
 ```
 
 **Solution:**
@@ -119,11 +119,11 @@ The project directory doesn't exist or doesn't have the required files.
 ### Tag and Binary Naming
 
 **Tag format:** `project--ref.number`
-- Examples: `dissect--main.3`, `claude-trace--pr-27.1`
+- Examples: `dissect--main.3`, `printpdf--pr-27.1`
 - Uses **double dash** (`--`) between project and ref
 
 **Binary format:** `project-ref.number-os-arch`
-- Examples: `dissect-main.3-linux-amd64`, `claude-trace-pr-27.1-darwin-arm64`
+- Examples: `dissect-main.3-linux-amd64`, `printpdf-pr-27.1-darwin-arm64`
 - Uses **single dash** (`-`) throughout
 
 ### Checking Workflow Logs

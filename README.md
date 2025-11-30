@@ -15,7 +15,6 @@ This repository contains multiple independent projects.
 | [diagram-dsl](diagram-dsl/) | pre-alpha | TypeScript DSL for diagrams; layout system under active refactor. |
 | [mdbook-comments](mdbook-comments/) | alpha | mdbook preprocessor for paragraph-level commenting with Supabase backend. |
 | [want](want/) | alpha | Planning/fulfilment assistant; core design still in flux. |
-| [claude-trace](claude-trace/) | pre-alpha | TUI for reviewing Claude Code conversations; storage format being stabilized. |
 | [conf](conf/) | alpha | Smart configuration manager; command coverage incomplete. |
 | [tk](tk/) | beta | System-wide event-sourced task tracker; v0 implements basic claims and authority lattice. |
 | [jj-run](jj-run/) | alpha | Jujutsu subcommand to execute shell commands against multiple revisions. |
@@ -91,7 +90,7 @@ Go projects in this repository are automatically released:
 
 Main channel releases are considered unstable snapshots unless explicitly tagged. Stable channels are being defined (see bd-313).
 
-Homebrew formulas for the Go CLIs (`ingest`, `want`, `printpdf`, `conf`, `dissect`, `markdown-format`, `prrun`, `claude-trace`, `tk`) are published to [neongreen/homebrew-mono](https://github.com/neongreen/homebrew-mono). Tap it with `brew tap neongreen/mono` and install what you need:
+Homebrew formulas for the Go CLIs (`ingest`, `want`, `printpdf`, `conf`, `dissect`, `markdown-format`, `prrun`, `tk`) are published to [neongreen/homebrew-mono](https://github.com/neongreen/homebrew-mono). Tap it with `brew tap neongreen/mono` and install what you need:
 
 ```bash
 brew tap neongreen/mono
@@ -102,7 +101,6 @@ brew install conf
 brew install dissect
 brew install markdown-format
 brew install prrun
-brew install claude-trace
 brew install tk
 ```
 

@@ -215,7 +215,7 @@ project/
 ```
 
 **Pattern used in all projects:**
-- `tk/main.go`, `want/main.go`, `conf/main.go`, `dissect/main.go`, `ingest/main.go`, `claude-trace/main.go`, `printpdf/main.go`, `prrun/main.go`, `markdown-format/main.go`, `jj-run/main.go`
+- `tk/main.go`, `want/main.go`, `conf/main.go`, `dissect/main.go`, `ingest/main.go`, `printpdf/main.go`, `prrun/main.go`, `markdown-format/main.go`, `jj-run/main.go`
 
 **cmd/ subdirectory (optional):**
 - For projects using Cobra, the `cmd/` subdirectory may contain command implementation files (e.g., `tk/cmd/root.go`, `conf/cmd/jj.go`)
