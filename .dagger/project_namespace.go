@@ -45,11 +45,6 @@ func (p *Projects) Prrun() *PrrunProject {
 	return &PrrunProject{Dagger: p.Dagger}
 }
 
-// ClaudeTrace returns the claude-trace project
-func (p *Projects) ClaudeTrace() *ClaudeTraceProject {
-	return &ClaudeTraceProject{Dagger: p.Dagger}
-}
-
 // MarkdownFormat returns the markdown-format project
 func (p *Projects) MarkdownFormat() *MarkdownFormatProject {
 	return &MarkdownFormatProject{Dagger: p.Dagger}

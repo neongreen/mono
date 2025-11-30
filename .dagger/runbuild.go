@@ -25,7 +25,6 @@ func (m *Dagger) Build(ctx context.Context) error {
 	addBuild("build ingest", p.Ingest().Build)
 	addBuild("build printpdf", p.Printpdf().Build)
 	addBuild("build prrun", p.Prrun().Build)
-	addBuild("build claude-trace", p.ClaudeTrace().Build)
 	addBuild("build markdown-format", p.MarkdownFormat().Build)
 	addBuild("build jj-run", p.JjRun().Build)
 

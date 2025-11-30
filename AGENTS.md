@@ -313,7 +313,6 @@ All Go CLI tools in this monorepo have version subcommands:
 - dissect
 - ingest
 - printpdf
-- claude-trace
 - jj-run
 
 ------------------------------------------------------------

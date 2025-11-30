@@ -38,7 +38,7 @@ func listMonoReleases(project string) {
 	if len(projectReleases) == 0 && len(openPRs) == 0 {
 		fmt.Printf("No releases or open PRs found for %s\n", project)
 		fmt.Println("\nAvailable projects in mono:")
-		fmt.Println("  printpdf, dissect, want, prrun, markdown-format, ingest, conf, claude-trace, tk")
+		fmt.Println("  printpdf, dissect, want, prrun, markdown-format, ingest, conf, tk")
 		os.Exit(1)
 	}
 

@@ -625,36 +625,6 @@ dir = "aihook"
 run = "go test -run=^$ ./..."
 
 # ============================================================================
-# claude-trace
-# ============================================================================
-
-[tasks.claude-trace]
-description = "Build and run claude-trace"
-dir = "claude-trace"
-run = "go run ."
-
-[tasks."claude-trace:test"]
-description = "Run tests for claude-trace"
-dir = "claude-trace"
-run = "go test ./..."
-
-
-[tasks."claude-trace:build"]
-description = "Build claude-trace binary"
-dir = "claude-trace"
-run = """
-set -euo pipefail
-go build -trimpath -o {{cwd}}/_build/claude-trace .
-{{cwd}}/_build/claude-trace version
-echo "{{cwd}}/_build/claude-trace"
-"""
-
-[tasks."claude-trace:check"]
-description = "Check that Go code and tests compile and type check"
-dir = "claude-trace"
-run = "go test -run=^$ ./..."
-
-# ============================================================================
 # dissect
 # ============================================================================
 

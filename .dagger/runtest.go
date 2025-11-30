@@ -32,7 +32,6 @@ func (m *Dagger) Test(ctx context.Context,
 	addTest("test ingest", p.Ingest().Test)
 	addTest("test printpdf", p.Printpdf().Test)
 	addTest("test prrun", p.Prrun().Test)
-	addTest("test claude-trace", p.ClaudeTrace().Test)
 	addTest("test markdown-format", p.MarkdownFormat().Test)
 	addTest("test jj-run", p.JjRun().Test)
 	addTest("test lib/cli", p.LibCli().Test)
