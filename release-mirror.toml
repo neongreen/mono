@@ -51,13 +51,6 @@ binary = "prrun"
 test_args = ["--help"]
 
 [[mirror.projects]]
-name = "claude-trace"
-desc = "Terminal UI for browsing Claude Code conversation logs."
-homepage = "https://github.com/neongreen/mono/tree/main/claude-trace"
-binary = "claude-trace"
-test_args = ["--help"]
-
-[[mirror.projects]]
 name = "tk"
 desc = "System-wide event-sourced task tracker with claims-based authority."
 homepage = "https://github.com/neongreen/mono/tree/main/tk"

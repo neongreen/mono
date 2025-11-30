@@ -18,7 +18,6 @@
     "ingest/**",
     "printpdf/**",
     "prrun/**",
-    "claude-trace/**",
     "want/**",
     "markdown-format/**"
   ],

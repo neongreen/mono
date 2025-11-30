@@ -3,10 +3,6 @@ dir = "aihook"
 module = "aihook"
 
 [[project]]
-dir = "claude-trace"
-module = "claude-trace"
-
-[[project]]
 dir = "conf"
 module = "conf"
 
