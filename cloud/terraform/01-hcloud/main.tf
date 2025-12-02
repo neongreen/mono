@@ -71,6 +71,14 @@ resource "hcloud_firewall" "default" {
     port       = "10250"
     source_ips = ["0.0.0.0/0", "::/0"]
   }
+
+  # NodePort range for Kubernetes services
+  rule {
+    direction  = "in"
+    protocol   = "tcp"
+    port       = "30000-32767"
+    source_ips = ["0.0.0.0/0", "::/0"]
+  }
 }
 
 # SSH key: your public key for server access

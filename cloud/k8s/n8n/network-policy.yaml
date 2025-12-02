@@ -1,0 +1,56 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: n8n-network-policy
+  namespace: n8n
+spec:
+  # Allow n8n to connect to postgres
+  podSelector:
+    matchLabels:
+      service: n8n
+  policyTypes:
+    - Egress
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow connection to postgres
+    - to:
+        - podSelector:
+            matchLabels:
+              service: postgres-n8n
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow outbound HTTPS for workflow webhooks and API calls
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-network-policy
+  namespace: n8n
+spec:
+  # Allow postgres to receive connections only from n8n
+  podSelector:
+    matchLabels:
+      service: postgres-n8n
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              service: n8n
+      ports:
+        - protocol: TCP
+          port: 5432

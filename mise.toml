@@ -1043,6 +1043,112 @@ POD=$(mise run cloud:kubectl get pods -n dagger -l app=dagger-engine -o jsonpath
 mise run cloud:kubectl logs -n dagger "$POD" "$@"
 '''
 
+[tasks."cloud:n8n:deploy"]
+description = "Deploy n8n workflow automation platform to k3s cluster"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+# Ensure gVisor RuntimeClass exists
+mise run cloud:gvisor:deploy
+# Deploy n8n (applies all manifests in order)
+mise run cloud:kubectl apply -f k8s/n8n/namespace.yaml
+
+# Create secret from fnox-managed passwords
+fnox exec -- bash -c "cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: n8n
+  name: postgres-secret
+type: Opaque
+stringData:
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: \$N8N_POSTGRES_ADMIN_PASSWORD
+  POSTGRES_DB: n8n
+  POSTGRES_NON_ROOT_USER: n8n
+  POSTGRES_NON_ROOT_PASSWORD: \$N8N_POSTGRES_N8N_PASSWORD
+EOF
+"
+
+mise run cloud:kubectl apply -f k8s/n8n/postgres-configmap.yaml
+mise run cloud:kubectl apply -f k8s/n8n/postgres-pvc.yaml
+mise run cloud:kubectl apply -f k8s/n8n/n8n-pvc.yaml
+mise run cloud:kubectl apply -f k8s/n8n/postgres-deployment.yaml
+mise run cloud:kubectl apply -f k8s/n8n/postgres-service.yaml
+echo "Waiting for PostgreSQL to be ready..."
+mise run cloud:kubectl wait --for=condition=ready pod -l service=postgres-n8n -n n8n --timeout=120s
+mise run cloud:kubectl apply -f k8s/n8n/n8n-deployment.yaml
+mise run cloud:kubectl apply -f k8s/n8n/n8n-service.yaml
+mise run cloud:kubectl apply -f k8s/n8n/network-policy.yaml
+echo "Waiting for n8n to be ready..."
+mise run cloud:kubectl wait --for=condition=ready pod -l service=n8n -n n8n --timeout=120s
+echo ""
+echo "n8n deployed successfully!"
+echo "To access n8n, run: mise run cloud:n8n:port-forward"
+'''
+
+[tasks."cloud:n8n:status"]
+description = "Check n8n deployment status"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+echo "=== n8n Pods ==="
+mise run cloud:kubectl get pods -n n8n
+echo ""
+echo "=== n8n Services ==="
+mise run cloud:kubectl get svc -n n8n
+echo ""
+echo "=== n8n PVCs ==="
+mise run cloud:kubectl get pvc -n n8n
+'''
+
+[tasks."cloud:n8n:logs"]
+description = "Show n8n logs (use -- -f to follow)"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+POD=$(mise run cloud:kubectl get pods -n n8n -l service=n8n -o jsonpath='{.items[0].metadata.name}')
+mise run cloud:kubectl logs -n n8n "$POD" "$@"
+'''
+
+[tasks."cloud:n8n:logs:postgres"]
+description = "Show PostgreSQL logs (use -- -f to follow)"
+dir = "cloud"
+quiet = true
+run = '''
+set -euo pipefail
+POD=$(mise run cloud:kubectl get pods -n n8n -l service=postgres-n8n -o jsonpath='{.items[0].metadata.name}')
+mise run cloud:kubectl logs -n n8n "$POD" "$@"
+'''
+
+[tasks."cloud:n8n:port-forward"]
+description = "Port-forward n8n to localhost:5678"
+dir = "cloud"
+run = '''
+set -euo pipefail
+echo "Port-forwarding n8n to http://localhost:5678"
+echo "Press Ctrl+C to stop"
+mise run cloud:kubectl port-forward -n n8n svc/n8n 5678:5678
+'''
+
+[tasks."cloud:n8n:delete"]
+description = "Delete n8n deployment (WARNING: destroys data)"
+dir = "cloud"
+run = '''
+set -euo pipefail
+echo "WARNING: This will delete all n8n data!"
+read -p "Are you sure? (yes/no): " confirm
+if [ "$confirm" = "yes" ]; then
+  mise run cloud:kubectl delete namespace n8n
+  echo "n8n deleted"
+else
+  echo "Aborted"
+fi
+'''
+
 # ============================================================================
 # lion tasks
 # ============================================================================

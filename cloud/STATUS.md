@@ -31,6 +31,14 @@
    - Status: Running
    - Logs task: Fixed and working
 
+2. **n8n** (n8n namespace) - Ready to deploy
+   - Workflow automation platform
+   - n8n: Runs WITH gVisor isolation ✓
+   - PostgreSQL 16: Runs without gVisor (database performance)
+   - Storage: 10Gi (postgres), 2Gi (n8n)
+   - Access: ClusterIP + port-forward
+   - Deploy: `mise run cloud:n8n:deploy`
+
 ### Security & Isolation
 
 #### Container Isolation (gVisor)
