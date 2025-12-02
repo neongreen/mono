@@ -6,3 +6,7 @@ service = "fnox"
 SPACELIFT_API_KEY_ID= { provider = "keychain", value = "SPACELIFT_API_KEY_ID" }
 SPACELIFT_API_KEY_SECRET= { provider = "keychain", value = "SPACELIFT_API_KEY_SECRET" }
 SPACELIFT_API_KEY_ENDPOINT= { provider = "keychain", value = "SPACELIFT_API_KEY_ENDPOINT" }
+
+# n8n database passwords
+N8N_POSTGRES_ADMIN_PASSWORD= { provider = "keychain", value = "N8N_POSTGRES_ADMIN_PASSWORD" }
+N8N_POSTGRES_N8N_PASSWORD= { provider = "keychain", value = "N8N_POSTGRES_N8N_PASSWORD" }

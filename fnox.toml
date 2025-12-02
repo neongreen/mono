@@ -18,3 +18,5 @@ GITHUB_TOKEN= { description = "GitHub PAT for catalog ingestion and integrations
 BACKSTAGE_K8S_TOKEN= { description = "Backstage service account token for Kubernetes plugin", provider = "keychain", value = "BACKSTAGE_K8S_TOKEN" }
 BACKSTAGE_K8S_CA_DATA= { description = "Backstage Kubernetes cluster CA cert (PEM)", provider = "keychain", value = "BACKSTAGE_K8S_CA_DATA" }
 HCLOUD_TOKEN= { description = "Hetzner Cloud API token (read-only) for Backstage plugin integration", provider = "keychain", value = "HCLOUD_TOKEN" }
+N8N_POSTGRES_ADMIN_PASSWORD= { provider = "keychain", value = "N8N_POSTGRES_ADMIN_PASSWORD" }
+N8N_POSTGRES_N8N_PASSWORD= { provider = "keychain", value = "N8N_POSTGRES_N8N_PASSWORD" }
