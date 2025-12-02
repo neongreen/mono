@@ -53,9 +53,13 @@ spec:
                   name: postgres-secret
                   key: POSTGRES_NON_ROOT_PASSWORD
             - name: N8N_PROTOCOL
-              value: http
+              value: https
             - name: N8N_PORT
               value: "5678"
+            - name: N8N_HOST
+              value: n8n.cloud.artyom.me
+            - name: WEBHOOK_URL
+              value: https://n8n.cloud.artyom.me/
           image: n8nio/n8n:latest
           name: n8n
           ports:

@@ -7,14 +7,15 @@ n8n is a workflow automation platform deployed on the k3s cluster with PostgreSQ
 - **n8n**: Workflow automation platform (runs with gVisor isolation)
 - **PostgreSQL 16**: Database backend (runs without gVisor for performance)
 - **Storage**: Uses local-path storage class (10Gi for postgres, 2Gi for n8n)
-- **Network**: ClusterIP service (internal only by default)
+- **Network**: Exposed via Traefik Ingress with automatic TLS (Let's Encrypt)
 
 ## Security Features
 
-1. **Container Isolation**: n8n runs with gVisor runtime for sandboxed execution
+1. **Container Isolation**: n8n runs with gVisor runtime for sandboxed execution (disabled temporarily)
 2. **Network Policies**: Strict ingress/egress rules between components
 3. **Secrets**: Generated secure passwords for database access
-4. **No External Exposure**: ClusterIP service (use port-forward for access)
+4. **TLS Encryption**: Automatic HTTPS with Let's Encrypt certificates via cert-manager
+5. **Ingress**: Traefik ingress with HTTP → HTTPS redirect
 
 ## Deployment
 
@@ -67,11 +68,28 @@ mise run cloud:kubectl apply -f k8s/n8n/n8n-service.yaml
 
 # 6. Apply network policies
 mise run cloud:kubectl apply -f k8s/n8n/network-policy.yaml
+
+# 7. Deploy Ingress (requires DNS to be set up first)
+mise run cloud:kubectl apply -f k8s/n8n/n8n-ingress.yaml
 ```
 
 ## Accessing n8n
 
-Since the service is ClusterIP (internal only), use port-forward to access n8n:
+### Primary Access (HTTPS with TLS)
+
+Once DNS is configured (via Terraform in `cloud/terraform/02-digitalocean-dns`):
+
+```
+https://n8n.cloud.artyom.me
+```
+
+- Automatic HTTPS with Let's Encrypt certificate
+- HTTP automatically redirects to HTTPS
+- Webhooks configured for this domain
+
+### Alternative Access (Port Forward)
+
+For local development or before DNS is set up:
 
 ```bash
 mise run cloud:kubectl port-forward -n n8n svc/n8n 5678:5678

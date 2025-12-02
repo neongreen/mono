@@ -11,6 +11,7 @@ DATABASE_URL= { provider = "keychain", value = "DATABASE_URL" }
 GHCR_TOKEN= { description = "GitHub Container Registry PAT (write:packages)", provider = "keychain", value = "GHCR_TOKEN" }
 CERTMANAGER_EMAIL= { description = "Let’s Encrypt contact email", provider = "keychain", value = "CERTMANAGER_EMAIL" }
 DO_DNS_TOKEN= { description = "DigitalOcean API token for artyom.me DNS", provider = "keychain", value = "DO_DNS_TOKEN" }
+DIGITALOCEAN_TOKEN= { description = "DigitalOcean API token (alias for Terraform provider)", provider = "keychain", value = "DO_DNS_TOKEN" }
 GITHUB_OAUTH_CLIENT_ID= { description = "GitHub OAuth client ID for Backstage", provider = "keychain", value = "GITHUB_OAUTH_CLIENT_ID" }
 GITHUB_OAUTH_CLIENT_SECRET= { description = "GitHub OAuth client secret for Backstage", provider = "keychain", value = "GITHUB_OAUTH_CLIENT_SECRET" }
 APP_DEFAULT_AUTH_SECRET= { description = "Backstage session signing key (APP_DEFAULT_AUTH_SECRET)", provider = "keychain", value = "APP_DEFAULT_AUTH_SECRET" }
