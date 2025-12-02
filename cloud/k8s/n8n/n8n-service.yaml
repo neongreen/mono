@@ -6,14 +6,13 @@ metadata:
   name: n8n
   namespace: n8n
 spec:
-  # Changed to NodePort to work around port-forward issues
-  # Access via: http://<node-ip>:30678
-  type: NodePort
+  # ClusterIP - only accessible via Ingress (HTTPS)
+  # For local debugging, use: mise run cloud:n8n:port-forward
+  type: ClusterIP
   ports:
     - name: "5678"
       port: 5678
       targetPort: 5678
-      nodePort: 30678
       protocol: TCP
   selector:
     service: n8n

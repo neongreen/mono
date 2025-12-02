@@ -7,7 +7,7 @@ n8n is a workflow automation platform deployed on the k3s cluster with PostgreSQ
 - **n8n**: Workflow automation platform (runs with gVisor isolation)
 - **PostgreSQL 16**: Database backend (runs without gVisor for performance)
 - **Storage**: Uses local-path storage class (10Gi for postgres, 2Gi for n8n)
-- **Network**: Exposed via Traefik Ingress with automatic TLS (Let's Encrypt)
+- **Network**: ClusterIP service, exposed only via Traefik Ingress with automatic TLS (Let's Encrypt)
 
 ## Security Features
 
@@ -15,7 +15,8 @@ n8n is a workflow automation platform deployed on the k3s cluster with PostgreSQ
 2. **Network Policies**: Strict ingress/egress rules between components
 3. **Secrets**: Generated secure passwords for database access
 4. **TLS Encryption**: Automatic HTTPS with Let's Encrypt certificates via cert-manager
-5. **Ingress**: Traefik ingress with HTTP → HTTPS redirect
+5. **Ingress Only**: ClusterIP service means n8n is only accessible via HTTPS Ingress, not directly exposed
+6. **HTTP Redirect**: Traefik ingress with automatic HTTP → HTTPS redirect
 
 ## Deployment
 
