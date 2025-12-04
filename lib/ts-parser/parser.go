@@ -32,12 +32,16 @@ const (
 	TSX
 )
 
+// tsNodeSize is the size of TSNode struct in bytes.
+// TSNode consists of: context[4] (4x4=16 bytes) + id (4 bytes) + tree (4 bytes) = 24 bytes
+const tsNodeSize = 24
+
 // Parser manages the WASM runtime and compiled modules.
 type Parser struct {
-	mu       sync.Mutex
-	ctx      context.Context
-	runtime  wazero.Runtime
-	tsModule wazero.CompiledModule
+	mu        sync.Mutex
+	ctx       context.Context
+	runtime   wazero.Runtime
+	tsModule  wazero.CompiledModule
 	tsxModule wazero.CompiledModule
 }
 
@@ -193,6 +197,13 @@ func (p *Parser) parse(src []byte, lang Language) (*Tree, error) {
 	// Parse the source
 	// ts_parser_parse_string(parser, old_tree, string, length) -> tree
 	parseResult, err := parserParseString.Call(p.ctx, parserPtr, 0, srcPtr, srcSize)
+
+	// Free the source memory now that parsing is complete
+	freeFunc := module.ExportedFunction("free")
+	if freeFunc != nil {
+		freeFunc.Call(p.ctx, srcPtr)
+	}
+
 	if err != nil {
 		parserDelete.Call(p.ctx, parserPtr)
 		module.Close(p.ctx)
@@ -235,7 +246,7 @@ func (t *Tree) RootNode() (*Node, error) {
 	}
 
 	// Allocate space for TSNode (24 bytes)
-	nodeResult, err := malloc.Call(t.parser.ctx, 24)
+	nodeResult, err := malloc.Call(t.parser.ctx, tsNodeSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate node: %w", err)
 	}
@@ -352,7 +363,7 @@ func (n *Node) Child(index uint32) (*Node, error) {
 	}
 
 	// Allocate space for TSNode (24 bytes)
-	mallocResult, err := malloc.Call(n.tree.parser.ctx, 24)
+	mallocResult, err := malloc.Call(n.tree.parser.ctx, tsNodeSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate node: %w", err)
 	}
@@ -380,7 +391,7 @@ func (n *Node) NamedChild(index uint32) (*Node, error) {
 	}
 
 	// Allocate space for TSNode (24 bytes)
-	mallocResult, err := malloc.Call(n.tree.parser.ctx, 24)
+	mallocResult, err := malloc.Call(n.tree.parser.ctx, tsNodeSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate node: %w", err)
 	}
@@ -438,7 +449,7 @@ func (n *Node) Parent() (*Node, error) {
 	}
 
 	// Allocate space for TSNode (24 bytes)
-	mallocResult, err := malloc.Call(n.tree.parser.ctx, 24)
+	mallocResult, err := malloc.Call(n.tree.parser.ctx, tsNodeSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate node: %w", err)
 	}
@@ -466,7 +477,7 @@ func (n *Node) NextSibling() (*Node, error) {
 	}
 
 	// Allocate space for TSNode (24 bytes)
-	mallocResult, err := malloc.Call(n.tree.parser.ctx, 24)
+	mallocResult, err := malloc.Call(n.tree.parser.ctx, tsNodeSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate node: %w", err)
 	}
@@ -494,7 +505,7 @@ func (n *Node) PrevSibling() (*Node, error) {
 	}
 
 	// Allocate space for TSNode (24 bytes)
-	mallocResult, err := malloc.Call(n.tree.parser.ctx, 24)
+	mallocResult, err := malloc.Call(n.tree.parser.ctx, tsNodeSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate node: %w", err)
 	}
@@ -522,7 +533,7 @@ func (n *Node) NextNamedSibling() (*Node, error) {
 	}
 
 	// Allocate space for TSNode (24 bytes)
-	mallocResult, err := malloc.Call(n.tree.parser.ctx, 24)
+	mallocResult, err := malloc.Call(n.tree.parser.ctx, tsNodeSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate node: %w", err)
 	}
@@ -550,7 +561,7 @@ func (n *Node) PrevNamedSibling() (*Node, error) {
 	}
 
 	// Allocate space for TSNode (24 bytes)
-	mallocResult, err := malloc.Call(n.tree.parser.ctx, 24)
+	mallocResult, err := malloc.Call(n.tree.parser.ctx, tsNodeSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to allocate node: %w", err)
 	}

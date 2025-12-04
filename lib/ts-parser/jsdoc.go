@@ -4,6 +4,12 @@ import (
 	"strings"
 )
 
+// JSDoc comment markers
+const (
+	jsdocStart = "/**"
+	jsdocEnd   = "*/"
+)
+
 // JSDoc represents a JSDoc comment with information about what it's attached to.
 type JSDoc struct {
 	// CommentStart is the byte offset where the JSDoc comment starts.
@@ -139,7 +145,7 @@ func walkTree(node *Node, src []byte, jsdocs *[]JSDoc, containers *[]NodeRef) er
 
 // isJSDocComment returns true if the comment text is a JSDoc comment (/** ... */).
 func isJSDocComment(text string) bool {
-	return strings.HasPrefix(text, "/**") && strings.HasSuffix(text, "*/") && len(text) > 4
+	return strings.HasPrefix(text, jsdocStart) && strings.HasSuffix(text, jsdocEnd) && len(text) > len(jsdocStart)+len(jsdocEnd)-1
 }
 
 // isContainer returns true if the node type represents a container declaration.
@@ -296,7 +302,7 @@ func findAttachedDeclaration(commentNode *Node, src []byte) (NodeRef, error) {
 		}
 
 		// Track when we've passed the comment
-		if childStart == uint32(commentEnd)-uint32(len("*/")) {
+		if childStart == uint32(commentEnd)-uint32(len(jsdocEnd)) {
 			foundComment = true
 			continue
 		}
