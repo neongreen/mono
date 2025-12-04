@@ -20,7 +20,6 @@ Use //lion:topic-name comments in your Go code to mark documentation for specifi
 Run 'lion generate' to create markdown documentation files organized by topic.`,
 }
 
-//lion:how-to-run-generation section="Run generation"
 // To run generation:
 //
 // 1. Navigate to your project directory
@@ -30,6 +29,8 @@ Run 'lion generate' to create markdown documentation files organized by topic.`,
 // You can specify a different directory and output location:
 //
 //	lion generate ./myproject --output ./documentation
+//
+//lion:how-to-run-generation section="Run generation"
 var generateCmd = &cobra.Command{
 	Use:   "generate [directory]",
 	Short: "Generate markdown documentation from Go code",

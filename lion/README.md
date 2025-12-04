@@ -1,10 +1,14 @@
 # lion
 
-Documentation extraction tool for Go code that generates markdown files from special comments.
+Documentation extraction tool for Go and TypeScript code that generates markdown files from special comments.
 
 ## Overview
 
-lion scans Go source code for special `//lion:topic-name` comments and generates organized markdown documentation. This allows you to build a book-like documentation structure by adding comments throughout your codebase that contribute to different chapters/topics.
+lion scans source code for special documentation comments and generates organized markdown documentation. This allows you to build a book-like documentation structure by adding comments throughout your codebase that contribute to different chapters/topics.
+
+Supported languages:
+- **Go**: Uses `//lion:topic-name` comments
+- **TypeScript/TSX**: Uses `@lion topic-name` tags in JSDoc comments
 
 ## Installation
 
@@ -12,9 +16,17 @@ lion scans Go source code for special `//lion:topic-name` comments and generates
 go install github.com/neongreen/mono/lion@latest
 ```
 
+For TypeScript support, you also need to build the TypeScript helper:
+
+```bash
+cd lion/ts-helper
+npm install
+npm run build
+```
+
 ## Usage
 
-### Add Documentation Comments
+### Go Documentation Comments
 
 Add `//lion:topic-name` comments to your Go code:
 
@@ -30,6 +42,32 @@ func main() {
 type Config struct {
     Port int
     Debug bool
+}
+```
+
+### TypeScript Documentation Comments
+
+Add `@lion topic-name` tags in JSDoc comments to your TypeScript code:
+
+```typescript
+/**
+ * @lion api
+ * The User interface defines user data.
+ * It contains the basic user information.
+ */
+interface User {
+  name: string;
+  email: string;
+}
+
+/**
+ * @lion api title="API Reference" section="User Functions"
+ * Creates a new user with the given name.
+ * @param name - The user's name
+ * @returns A new User object
+ */
+function createUser(name: string): User {
+  return { name, email: "" };
 }
 ```
 
@@ -53,11 +91,13 @@ The tool generates:
 - An `index.md` file listing all topics
 - Each entry includes source file reference for traceability
 
-## Comment Format
+## Comment Formats
 
-lion supports three comment formats:
+### Go Comment Formats
 
-### 1. Single-line format (marker first)
+lion supports three comment formats for Go:
+
+#### 1. Single-line format (marker first)
 
 ```
 //lion:topic-name Optional content describing this code element
@@ -67,7 +107,7 @@ lion supports three comment formats:
 - **Content**: Optional markdown-formatted text
 - Multiple consecutive `//lion:topic` lines are combined into one entry
 
-### 2. Block comment format
+#### 2. Block comment format
 
 ```go
 /*lion:topic-name
@@ -83,7 +123,42 @@ This makes documentation cleaner.
 
 All formats can be attached to functions, types, constants, variables, and package declarations.
 
-## Example
+### TypeScript Comment Format
+
+TypeScript uses JSDoc-style comments with `@lion` tags:
+
+```typescript
+/**
+ * @lion topic-name
+ * Documentation content here.
+ * Multiple lines are supported.
+ */
+```
+
+Optional metadata can be added:
+
+```typescript
+/**
+ * @lion topic-name title="Custom Title" section="Section Name"
+ * Documentation content.
+ */
+```
+
+- **title**: Overrides the topic's display title in the generated markdown
+- **section**: Overrides the section heading for this entry
+
+Supported TypeScript declarations:
+- Functions (regular, async, arrow)
+- Classes (including abstract)
+- Interfaces
+- Type aliases
+- Enums
+- Variables (const, let, var)
+- Class methods and properties
+
+## Examples
+
+### Go Example
 
 Marker-first format (recommended):
 
@@ -140,6 +215,40 @@ Running `lion generate` creates:
 - `docs/getting-started.md`
 - `docs/architecture.md`
 - `docs/index.md`
+
+### TypeScript Example
+
+```typescript
+/**
+ * @lion getting-started
+ * lion is a documentation extraction tool.
+ * Add lion comments to generate markdown docs.
+ */
+
+/**
+ * @lion architecture
+ * The UserService class handles user operations.
+ * It provides methods for CRUD operations.
+ */
+class UserService {
+  /**
+   * @lion api section="Create User"
+   * Creates a new user with the given data.
+   */
+  async createUser(data: UserData): Promise<User> {
+    // ...
+  }
+}
+
+/**
+ * @lion types
+ * The User interface defines the user structure.
+ */
+interface User {
+  id: string;
+  name: string;
+}
+```
 
 ## Status
 

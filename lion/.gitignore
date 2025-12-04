@@ -1,1 +1,5 @@
 lion
+
+# TypeScript helper build artifacts
+ts-helper/node_modules/
+ts-helper/dist/
