@@ -256,16 +256,21 @@ func ExtractTypeScript(dir string) (map[string][]DocEntry, error) {
 	npmRootCmd := exec.Command("npm", "root", "-g")
 	npmRootOutput, err := npmRootCmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("failed to find global node_modules: %w", err)
+		return nil, fmt.Errorf("failed to find global node_modules (is npm installed?): %w", err)
 	}
 	globalNodeModules := strings.TrimSpace(string(npmRootOutput))
+
+	// Verify typescript is installed globally
+	tsModulePath := filepath.Join(globalNodeModules, "typescript")
+	if _, err := os.Stat(tsModulePath); err != nil {
+		return nil, fmt.Errorf("typescript module not found in global node_modules (run 'npm install -g typescript')")
+	}
 
 	// Create node_modules directory with symlink to global typescript
 	nodeModulesDir := filepath.Join(tmpDir, "node_modules")
 	if err := os.MkdirAll(nodeModulesDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create node_modules directory: %w", err)
 	}
-	tsModulePath := filepath.Join(globalNodeModules, "typescript")
 	if err := os.Symlink(tsModulePath, filepath.Join(nodeModulesDir, "typescript")); err != nil {
 		return nil, fmt.Errorf("failed to symlink typescript module: %w", err)
 	}
