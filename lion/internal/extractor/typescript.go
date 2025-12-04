@@ -51,8 +51,8 @@ func findTSHelper() (string, error) {
 		}
 	}
 
-	// Try to find using go list to get the module path
-	cmd := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", "github.com/neongreen/mono")
+	// Try to find using go list to get the current module path
+	cmd := exec.Command("go", "list", "-m", "-f", "{{.Dir}}")
 	output, err := cmd.Output()
 	if err == nil {
 		modDir := strings.TrimSpace(string(output))
@@ -70,11 +70,11 @@ func findTSHelper() (string, error) {
 func ExtractTypeScript(dir string) (map[string][]DocEntry, error) {
 	// Check if there are any TypeScript files first
 	hasTS := false
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && (strings.HasSuffix(path, ".ts") || strings.HasSuffix(path, ".tsx")) {
+		if !d.IsDir() && (strings.HasSuffix(path, ".ts") || strings.HasSuffix(path, ".tsx")) {
 			// Skip test and declaration files
 			if !strings.HasSuffix(path, ".test.ts") &&
 				!strings.HasSuffix(path, ".test.tsx") &&
