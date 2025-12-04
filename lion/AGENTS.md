@@ -15,12 +15,9 @@ go run ./lion topics
 
 # Format code
 goimports -w lion/
-
-# Build TypeScript helper (required for TypeScript support)
-cd lion/ts-helper
-npm install
-npm run build
 ```
+
+TypeScript support requires `tsc` and `node` to be available in PATH (no additional setup needed).
 
 ## Project Structure
 
@@ -30,13 +27,9 @@ lion/
 ├── internal/
 │   ├── extractor/            # AST parsing and comment extraction
 │   │   ├── extractor.go      # Go extraction using go/ast
-│   │   └── typescript.go     # TypeScript extraction via Node.js helper
+│   │   └── typescript.go     # TypeScript extraction (embedded, uses tsc at runtime)
 │   └── generator/            # Markdown file generation
 │       └── generator.go
-├── ts-helper/                 # TypeScript AST parser helper
-│   ├── src/index.ts          # TypeScript extractor using TS compiler API
-│   ├── package.json
-│   └── tsconfig.json
 ├── README.md
 ├── AGENTS.md
 └── docs/
@@ -77,7 +70,8 @@ function someFunction() {
 - Skips test files (`*_test.go`)
 
 ### TypeScript Extraction
-- Uses TypeScript compiler API via a Node.js helper script
+- Uses an embedded TypeScript extractor script compiled with `tsc` at runtime
+- Uses the TypeScript compiler API for AST parsing
 - Parses JSDoc comments for `@lion` tags
 - Skips test files (`*.test.ts`, `*.spec.ts`, `*.d.ts`)
 - Supports functions, classes, interfaces, types, enums, and variables

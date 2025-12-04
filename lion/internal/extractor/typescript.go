@@ -25,48 +25,191 @@ type tsDocEntry struct {
 	SectionTitle string `json:"sectionTitle,omitempty"`
 }
 
-// findTSHelper locates the TypeScript helper relative to the lion binary or source.
-func findTSHelper() (string, error) {
-	// First, try to find it relative to the executable
-	execPath, err := os.Executable()
-	if err == nil {
-		helperPath := filepath.Join(filepath.Dir(execPath), "ts-helper", "dist", "index.js")
-		if _, err := os.Stat(helperPath); err == nil {
-			return helperPath, nil
-		}
-	}
+// tsExtractorScript is the embedded TypeScript extractor script.
+// It uses the TypeScript compiler API to parse TypeScript files and extract @lion tags.
+const tsExtractorScript = `// @ts-nocheck
+import * as ts from "typescript";
+import * as fs from "fs";
+import * as path from "path";
 
-	// Try relative to current working directory (for development)
-	cwd, err := os.Getwd()
-	if err == nil {
-		// Try lion/ts-helper (when running from repo root)
-		helperPath := filepath.Join(cwd, "lion", "ts-helper", "dist", "index.js")
-		if _, err := os.Stat(helperPath); err == nil {
-			return helperPath, nil
-		}
-		// Try ts-helper (when running from lion directory)
-		helperPath = filepath.Join(cwd, "ts-helper", "dist", "index.js")
-		if _, err := os.Stat(helperPath); err == nil {
-			return helperPath, nil
-		}
-	}
-
-	// Try to find using go list to get the current module path
-	cmd := exec.Command("go", "list", "-m", "-f", "{{.Dir}}")
-	output, err := cmd.Output()
-	if err == nil {
-		modDir := strings.TrimSpace(string(output))
-		helperPath := filepath.Join(modDir, "lion", "ts-helper", "dist", "index.js")
-		if _, err := os.Stat(helperPath); err == nil {
-			return helperPath, nil
-		}
-	}
-
-	return "", fmt.Errorf("TypeScript helper not found. Run 'npm install && npm run build' in lion/ts-helper")
+interface DocEntry {
+  topic: string;
+  content: string;
+  file: string;
+  line: number;
+  entity: string;
+  topicTitle?: string;
+  sectionTitle?: string;
 }
 
+interface MetaInfo {
+  topicTitle?: string;
+  sectionTitle?: string;
+}
+
+function parseMetadata(text: string): { meta: MetaInfo; content: string } {
+  const meta: MetaInfo = {};
+  let rest = text.trim();
+  const keyValuePattern = /^(\w+)="([^"]*)"\s*/;
+  while (rest.length > 0) {
+    const match = rest.match(keyValuePattern);
+    if (!match) break;
+    const [fullMatch, key, value] = match;
+    if (key === "title") meta.topicTitle = value;
+    else if (key === "section") meta.sectionTitle = value;
+    else break;
+    rest = rest.slice(fullMatch.length);
+  }
+  return { meta, content: rest.trim() };
+}
+
+function parseLionTag(text: string): { topic: string; meta: MetaInfo; content: string } | null {
+  const match = text.match(/^@lion\s+(\S+)(?:\s+(.*))?$/);
+  if (!match) return null;
+  const topic = match[1];
+  const remainder = match[2] || "";
+  const { meta, content } = parseMetadata(remainder);
+  return { topic, meta, content };
+}
+
+function extractFromJSDoc(comment: string, filePath: string, line: number, entityName: string): DocEntry[] {
+  const entries: DocEntry[] = [];
+  const content = comment.replace(/^\/\*\*/, "").replace(/\*\/$/, "");
+  const lines = content.split("\n");
+  let currentTopic: string | null = null;
+  let currentMeta: MetaInfo = {};
+  let currentContent: string[] = [];
+  let topicLine = line;
+
+  for (const rawLine of lines) {
+    const cleanedLine = rawLine.replace(/^\s*\*\s?/, "");
+    const lionMatch = parseLionTag(cleanedLine);
+    if (lionMatch) {
+      if (currentTopic) {
+        entries.push({
+          topic: currentTopic, content: currentContent.join("\n").trim(),
+          file: filePath, line: topicLine, entity: entityName,
+          topicTitle: currentMeta.topicTitle, sectionTitle: currentMeta.sectionTitle,
+        });
+      }
+      currentTopic = lionMatch.topic;
+      currentMeta = lionMatch.meta;
+      currentContent = lionMatch.content ? [lionMatch.content] : [];
+      continue;
+    }
+    if (currentTopic && !cleanedLine.startsWith("@")) {
+      currentContent.push(cleanedLine);
+    }
+  }
+  if (currentTopic) {
+    entries.push({
+      topic: currentTopic, content: currentContent.join("\n").trim(),
+      file: filePath, line: topicLine, entity: entityName,
+      topicTitle: currentMeta.topicTitle, sectionTitle: currentMeta.sectionTitle,
+    });
+  }
+  return entries;
+}
+
+function getEntityName(node: ts.Node): string {
+  if (ts.isFunctionDeclaration(node) && node.name) return node.name.text;
+  if (ts.isClassDeclaration(node) && node.name) return node.name.text;
+  if (ts.isInterfaceDeclaration(node)) return node.name.text;
+  if (ts.isTypeAliasDeclaration(node)) return node.name.text;
+  if (ts.isEnumDeclaration(node)) return node.name.text;
+  if (ts.isVariableStatement(node)) {
+    const declarations = node.declarationList.declarations;
+    if (declarations.length > 0 && ts.isIdentifier(declarations[0].name)) return declarations[0].name.text;
+  }
+  if (ts.isMethodDeclaration(node) && node.name && ts.isIdentifier(node.name)) return node.name.text;
+  if (ts.isPropertyDeclaration(node) && node.name && ts.isIdentifier(node.name)) return node.name.text;
+  if (ts.isModuleDeclaration(node) && ts.isIdentifier(node.name)) return node.name.text;
+  return "";
+}
+
+function extractFromFile(sourceFile: ts.SourceFile, filePath: string): DocEntry[] {
+  const entries: DocEntry[] = [];
+  function getLeadingComments(node: ts.Node): string[] {
+    const text = sourceFile.getFullText();
+    const comments: string[] = [];
+    const ranges = ts.getLeadingCommentRanges(text, node.getFullStart());
+    if (ranges) {
+      for (const range of ranges) {
+        const comment = text.slice(range.pos, range.end);
+        if (comment.startsWith("/**")) comments.push(comment);
+      }
+    }
+    return comments;
+  }
+
+  function visit(node: ts.Node) {
+    if (ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node) || ts.isInterfaceDeclaration(node) ||
+        ts.isTypeAliasDeclaration(node) || ts.isEnumDeclaration(node) || ts.isVariableStatement(node) ||
+        ts.isModuleDeclaration(node)) {
+      const comments = getLeadingComments(node);
+      const entityName = getEntityName(node);
+      const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
+      for (const comment of comments) {
+        if (comment.includes("@lion")) {
+          entries.push(...extractFromJSDoc(comment, filePath, line + 1, entityName));
+        }
+      }
+    }
+    if (ts.isClassDeclaration(node)) {
+      for (const member of node.members) {
+        if (ts.isMethodDeclaration(member) || ts.isPropertyDeclaration(member)) {
+          const comments = getLeadingComments(member);
+          const entityName = getEntityName(member);
+          const { line } = sourceFile.getLineAndCharacterOfPosition(member.getStart());
+          for (const comment of comments) {
+            if (comment.includes("@lion")) {
+              entries.push(...extractFromJSDoc(comment, filePath, line + 1, entityName));
+            }
+          }
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(sourceFile);
+  return entries;
+}
+
+function extractFromDirectory(dir: string): { entries: DocEntry[] } {
+  const entries: DocEntry[] = [];
+  function walkDir(currentPath: string) {
+    const items = fs.readdirSync(currentPath);
+    for (const item of items) {
+      const fullPath = path.join(currentPath, item);
+      const stat = fs.statSync(fullPath);
+      if (stat.isDirectory()) {
+        if (!item.startsWith(".") && item !== "node_modules") walkDir(fullPath);
+      } else if (stat.isFile()) {
+        if ((item.endsWith(".ts") || item.endsWith(".tsx")) &&
+            !item.endsWith(".test.ts") && !item.endsWith(".test.tsx") &&
+            !item.endsWith(".spec.ts") && !item.endsWith(".spec.tsx") && !item.endsWith(".d.ts")) {
+          const content = fs.readFileSync(fullPath, "utf-8");
+          const sourceFile = ts.createSourceFile(fullPath, content, ts.ScriptTarget.Latest, true,
+            item.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+          entries.push(...extractFromFile(sourceFile, fullPath));
+        }
+      }
+    }
+  }
+  walkDir(dir);
+  return { entries };
+}
+
+const dir = process.argv[2];
+if (!dir || !fs.existsSync(dir)) {
+  console.error("Usage: extract <directory>");
+  process.exit(1);
+}
+console.log(JSON.stringify(extractFromDirectory(dir)));
+`
+
 // ExtractTypeScript extracts lion documentation from TypeScript files in a directory.
-// It uses the TypeScript compiler API via a Node.js helper script.
+// It uses the TypeScript compiler API via an embedded script that is compiled with tsc at runtime.
 func ExtractTypeScript(dir string) (map[string][]DocEntry, error) {
 	// Check if there are any TypeScript files first
 	hasTS := false
@@ -95,15 +238,56 @@ func ExtractTypeScript(dir string) (map[string][]DocEntry, error) {
 		return nil, nil
 	}
 
-	// Find the TypeScript helper
-	helperPath, err := findTSHelper()
+	// Create a temp directory for the extractor
+	tmpDir, err := os.MkdirTemp("", "lion-ts-extractor-*")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create temp directory: %w", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Write the TypeScript source file
+	tsFile := filepath.Join(tmpDir, "extractor.ts")
+	if err := os.WriteFile(tsFile, []byte(tsExtractorScript), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write extractor script: %w", err)
 	}
 
-	// Run the TypeScript extractor
-	cmd := exec.Command("node", helperPath, dir)
-	output, err := cmd.Output()
+	// Find the global node_modules directory and symlink typescript
+	// This allows tsc to find the typescript module for type checking
+	npmRootCmd := exec.Command("npm", "root", "-g")
+	npmRootOutput, err := npmRootCmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to find global node_modules: %w", err)
+	}
+	globalNodeModules := strings.TrimSpace(string(npmRootOutput))
+
+	// Create node_modules directory with symlink to global typescript
+	nodeModulesDir := filepath.Join(tmpDir, "node_modules")
+	if err := os.MkdirAll(nodeModulesDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create node_modules directory: %w", err)
+	}
+	tsModulePath := filepath.Join(globalNodeModules, "typescript")
+	if err := os.Symlink(tsModulePath, filepath.Join(nodeModulesDir, "typescript")); err != nil {
+		return nil, fmt.Errorf("failed to symlink typescript module: %w", err)
+	}
+
+	// Compile the TypeScript file using tsc directly (no tsconfig needed)
+	jsFile := filepath.Join(tmpDir, "extractor.js")
+	tscCmd := exec.Command("tsc",
+		"--target", "ES2020",
+		"--module", "CommonJS",
+		"--moduleResolution", "node",
+		"--esModuleInterop",
+		"--skipLibCheck",
+		"--outDir", tmpDir,
+		tsFile,
+	)
+	if output, err := tscCmd.CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("failed to compile TypeScript extractor: %s", string(output))
+	}
+
+	// Run the compiled JavaScript file
+	nodeCmd := exec.Command("node", jsFile, dir)
+	output, err := nodeCmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			return nil, fmt.Errorf("TypeScript extractor failed: %s", string(exitErr.Stderr))

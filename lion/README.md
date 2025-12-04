@@ -16,13 +16,7 @@ Supported languages:
 go install github.com/neongreen/mono/lion@latest
 ```
 
-For TypeScript support, you also need to build the TypeScript helper:
-
-```bash
-cd lion/ts-helper
-npm install
-npm run build
-```
+TypeScript support works automatically if `tsc` (TypeScript compiler) and `node` are available in PATH.
 
 ## Usage
 

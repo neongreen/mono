@@ -2,6 +2,7 @@ package extractor
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -9,8 +10,8 @@ import (
 
 func TestExtractTypeScript(t *testing.T) {
 	// Skip if TypeScript helper is not built
-	if _, err := findTSHelper(); err != nil {
-		t.Skip("TypeScript helper not built - run 'npm install && npm run build' in lion/ts-helper")
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
 	}
 
 	tmpDir := t.TempDir()
@@ -99,8 +100,8 @@ function helper() {}
 
 func TestExtractTypeScriptNoFiles(t *testing.T) {
 	// Skip if TypeScript helper is not built
-	if _, err := findTSHelper(); err != nil {
-		t.Skip("TypeScript helper not built - run 'npm install && npm run build' in lion/ts-helper")
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
 	}
 
 	tmpDir := t.TempDir()
@@ -126,8 +127,8 @@ func main() {}
 
 func TestExtractTypeScriptWithMetadata(t *testing.T) {
 	// Skip if TypeScript helper is not built
-	if _, err := findTSHelper(); err != nil {
-		t.Skip("TypeScript helper not built - run 'npm install && npm run build' in lion/ts-helper")
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
 	}
 
 	tmpDir := t.TempDir()
@@ -167,8 +168,8 @@ interface User {
 
 func TestExtractTypeScriptSkipsTestFiles(t *testing.T) {
 	// Skip if TypeScript helper is not built
-	if _, err := findTSHelper(); err != nil {
-		t.Skip("TypeScript helper not built - run 'npm install && npm run build' in lion/ts-helper")
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
 	}
 
 	tmpDir := t.TempDir()
@@ -211,8 +212,8 @@ function specSomething() {}
 
 func TestExtractMixedGoAndTypeScript(t *testing.T) {
 	// Skip if TypeScript helper is not built
-	if _, err := findTSHelper(); err != nil {
-		t.Skip("TypeScript helper not built - run 'npm install && npm run build' in lion/ts-helper")
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
 	}
 
 	tmpDir := t.TempDir()
@@ -294,8 +295,8 @@ interface Config {
 
 func TestExtractTypeScriptEntities(t *testing.T) {
 	// Skip if TypeScript helper is not built
-	if _, err := findTSHelper(); err != nil {
-		t.Skip("TypeScript helper not built - run 'npm install && npm run build' in lion/ts-helper")
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
 	}
 
 	tmpDir := t.TempDir()
