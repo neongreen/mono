@@ -74,11 +74,10 @@ function someFunction() {
 ### TypeScript Extraction
 - Uses an embedded TypeScript extractor script compiled with `tsc` at runtime
 - Uses the TypeScript compiler API for AST parsing
-- Parses JSDoc comments for `@lion` tags (multi-line format only)
-- Single-line JSDoc (`/** @lion topic */`) is NOT supported
+- Parses JSDoc comments for `@lion` tags (multi-line format required for declarations)
+- Supports inline single-line comments inside function bodies (`// @lion` or `//lion:`)
 - Skips test files (`*.test.ts`, `*.spec.ts`, `*.d.ts`)
 - Supports functions, classes, interfaces, types, enums, and variables
-- Does NOT support inline comments inside function bodies
 
 ### Feature Parity
 
@@ -89,8 +88,8 @@ function someFunction() {
 | Entity name extraction | ✅ | ✅ |
 | Multi-line content | ✅ | ✅ |
 | Test file skipping | ✅ | ✅ |
-| Single-line comments | ✅ | ❌ |
-| Inline function comments | ✅ | ❌ |
+| Inline function comments | ✅ | ✅ |
+| Single-line declaration comments | ✅ | ❌ (requires JSDoc) |
 | Package-level docs | ✅ | ❌ |
 
 ### Common
@@ -108,6 +107,7 @@ Tests should cover:
 - File I/O operations
 - Mixed Go and TypeScript projects
 - Feature parity between Go and TypeScript extraction
+- Inline comments inside function bodies
 
 ## Future Enhancements
 

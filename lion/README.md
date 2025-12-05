@@ -254,17 +254,32 @@ Both Go and TypeScript extraction support the same core features:
 - Entity name extraction (functions, types, classes, etc.)
 - Multi-line content
 - Test file skipping
+- Inline comments inside function bodies
 
 **Differences:**
 
 | Feature | Go | TypeScript |
 |---------|----|----|
-| Comment syntax | `//lion:topic` or `/*lion:topic */` | `@lion topic` in JSDoc (`/** ... */`) |
-| Single-line comments | ✅ Supported | ❌ Must use multi-line JSDoc |
-| Inline comments | ✅ Supported inside function bodies | ❌ Only on declarations |
+| Declaration comments | `//lion:topic` or `/*lion:topic */` | `@lion topic` in JSDoc (`/** ... */`) |
+| Inline comments | `//lion:topic` inside functions | `// @lion topic` or `//lion:topic` inside functions |
+| Single-line JSDoc | N/A | ❌ Must use multi-line JSDoc for declarations |
 | Package-level docs | ✅ `package` declaration | ❌ No equivalent |
 
-**Note:** TypeScript requires multi-line JSDoc format (`/** ... */`). Single-line JSDoc (`/** @lion topic */`) is not supported due to TypeScript compiler API limitations.
+### TypeScript Inline Comments
+
+TypeScript supports inline comments inside function bodies using single-line comment syntax:
+
+```typescript
+function processData() {
+  // @lion implementation Initialize the connection
+  connect();
+  
+  //lion:implementation Process each item
+  items.forEach(process);
+}
+```
+
+**Note:** For declaration-level documentation (functions, classes, interfaces), TypeScript requires multi-line JSDoc format (`/** ... */`).
 
 ## Status
 

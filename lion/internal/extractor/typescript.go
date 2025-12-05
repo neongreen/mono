@@ -127,19 +127,155 @@ function getEntityName(node: ts.Node): string {
   return "";
 }
 
+function extractFromSingleLineComment(comment: string, filePath: string, line: number, entityName: string): DocEntry | null {
+  // Support both //lion:topic and // @lion topic formats
+  // Remove leading // and whitespace
+  const stripped = comment.replace(/^\/\/\s*/, "");
+  
+  // Check for lion:topic format
+  if (stripped.startsWith("lion:")) {
+    const rest = stripped.slice(5); // Remove "lion:"
+    const spaceIdx = rest.indexOf(" ");
+    let topic: string;
+    let remainder: string;
+    if (spaceIdx === -1) {
+      topic = rest;
+      remainder = "";
+    } else {
+      topic = rest.slice(0, spaceIdx);
+      remainder = rest.slice(spaceIdx + 1);
+    }
+    const { meta, content } = parseMetadata(remainder);
+    return {
+      topic, content: content.trim(), file: filePath, line, entity: entityName,
+      topicTitle: meta.topicTitle, sectionTitle: meta.sectionTitle,
+    };
+  }
+  
+  // Check for @lion topic format
+  if (stripped.startsWith("@lion ")) {
+    const rest = stripped.slice(6); // Remove "@lion "
+    const spaceIdx = rest.indexOf(" ");
+    let topic: string;
+    let remainder: string;
+    if (spaceIdx === -1) {
+      topic = rest;
+      remainder = "";
+    } else {
+      topic = rest.slice(0, spaceIdx);
+      remainder = rest.slice(spaceIdx + 1);
+    }
+    const { meta, content } = parseMetadata(remainder);
+    return {
+      topic, content: content.trim(), file: filePath, line, entity: entityName,
+      topicTitle: meta.topicTitle, sectionTitle: meta.sectionTitle,
+    };
+  }
+  
+  return null;
+}
+
 function extractFromFile(sourceFile: ts.SourceFile, filePath: string): DocEntry[] {
   const entries: DocEntry[] = [];
+  const text = sourceFile.getFullText();
+  const processedRanges = new Set<string>();
+
   function getLeadingComments(node: ts.Node): string[] {
-    const text = sourceFile.getFullText();
     const comments: string[] = [];
     const ranges = ts.getLeadingCommentRanges(text, node.getFullStart());
     if (ranges) {
       for (const range of ranges) {
         const comment = text.slice(range.pos, range.end);
         if (comment.startsWith("/**")) comments.push(comment);
+        processedRanges.add(range.pos + ":" + range.end);
       }
     }
     return comments;
+  }
+
+  // Find the containing function for a given position
+  function findContainingFunction(pos: number): { name: string; node: ts.Node } | null {
+    let result: { name: string; node: ts.Node } | null = null;
+    function visit(node: ts.Node) {
+      if ((ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node) || ts.isArrowFunction(node) ||
+           ts.isFunctionExpression(node)) && node.body) {
+        const body = node.body;
+        if (pos >= body.getStart() && pos <= body.getEnd()) {
+          let name = "";
+          if (ts.isFunctionDeclaration(node) && node.name) name = node.name.text;
+          else if (ts.isMethodDeclaration(node) && ts.isIdentifier(node.name)) name = node.name.text;
+          else if (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
+            // Try to get name from parent variable declaration
+            const parent = node.parent;
+            if (ts.isVariableDeclaration(parent) && ts.isIdentifier(parent.name)) name = parent.name.text;
+          }
+          result = { name, node };
+        }
+      }
+      ts.forEachChild(node, visit);
+    }
+    visit(sourceFile);
+    return result;
+  }
+
+  // Collect all comment ranges from the AST using the TypeScript API
+  function collectAllCommentRanges(): ts.CommentRange[] {
+    const allRanges: ts.CommentRange[] = [];
+    const seenPositions = new Set<number>();
+    
+    function collectFromNode(node: ts.Node) {
+      // Get leading comments
+      const leading = ts.getLeadingCommentRanges(text, node.getFullStart());
+      if (leading) {
+        for (const range of leading) {
+          if (!seenPositions.has(range.pos)) {
+            seenPositions.add(range.pos);
+            allRanges.push(range);
+          }
+        }
+      }
+      // Get trailing comments
+      const trailing = ts.getTrailingCommentRanges(text, node.getEnd());
+      if (trailing) {
+        for (const range of trailing) {
+          if (!seenPositions.has(range.pos)) {
+            seenPositions.add(range.pos);
+            allRanges.push(range);
+          }
+        }
+      }
+      ts.forEachChild(node, collectFromNode);
+    }
+    
+    collectFromNode(sourceFile);
+    return allRanges;
+  }
+
+  // Extract inline single-line comments from the collected ranges
+  function extractInlineComments() {
+    const allRanges = collectAllCommentRanges();
+    
+    for (const range of allRanges) {
+      const rangeKey = range.pos + ":" + range.end;
+      if (processedRanges.has(rangeKey)) continue;
+      
+      // Only process single-line comments
+      if (range.kind !== ts.SyntaxKind.SingleLineCommentTrivia) continue;
+      
+      const comment = text.slice(range.pos, range.end);
+      // Check if it's a lion comment
+      const stripped = comment.replace(/^\/\/\s*/, "");
+      if (!stripped.startsWith("lion:") && !stripped.startsWith("@lion ")) continue;
+      
+      const { line } = sourceFile.getLineAndCharacterOfPosition(range.pos);
+      const containingFn = findContainingFunction(range.pos);
+      const entityName = containingFn ? containingFn.name : "";
+      const entry = extractFromSingleLineComment(comment, filePath, line + 1, entityName);
+      if (entry) {
+        entries.push(entry);
+        processedRanges.add(rangeKey);
+      }
+    }
   }
 
   function visit(node: ts.Node) {
@@ -172,6 +308,10 @@ function extractFromFile(sourceFile: ts.SourceFile, filePath: string): DocEntry[
     ts.forEachChild(node, visit);
   }
   visit(sourceFile);
+  
+  // Extract inline comments (inside function bodies)
+  extractInlineComments();
+  
   return entries;
 }
 

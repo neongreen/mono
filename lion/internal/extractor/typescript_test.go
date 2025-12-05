@@ -979,3 +979,131 @@ function second() {}
 			entries[0].Line, entries[1].Line)
 	}
 }
+
+// =============================================================================
+// INLINE COMMENT TESTS: Tests for inline comments inside function bodies
+// =============================================================================
+
+// TestTypeScriptInlineComments tests extraction of inline comments inside function bodies
+// This mirrors Go's support for inline comments
+func TestTypeScriptInlineComments(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	testFile := filepath.Join(tmpDir, "inline.ts")
+	content := `/**
+ * @lion api
+ * Main function documentation
+ */
+function main() {
+  // @lion implementation This is an inline comment using @lion syntax
+  doSomething();
+  
+  //lion:implementation Another inline using lion: syntax
+  doSomethingElse();
+}
+
+function doSomething() {}
+function doSomethingElse() {}
+`
+
+	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	docs, err := ExtractTypeScript(tmpDir)
+	if err != nil {
+		t.Fatalf("ExtractTypeScript failed: %v", err)
+	}
+
+	// Should have 2 topics: api and implementation
+	if len(docs) != 2 {
+		t.Errorf("expected 2 topics, got %d", len(docs))
+	}
+
+	// API topic should have 1 entry (the function JSDoc)
+	apiEntries := docs["api"]
+	if len(apiEntries) != 1 {
+		t.Errorf("expected 1 api entry, got %d", len(apiEntries))
+	}
+
+	// Implementation topic should have 2 entries (inline comments)
+	implEntries := docs["implementation"]
+	if len(implEntries) != 2 {
+		t.Errorf("expected 2 implementation entries, got %d", len(implEntries))
+	}
+
+	// Verify inline comment content and entity names
+	for _, entry := range implEntries {
+		// Inline comments should be associated with containing function
+		if entry.Entity != "main" {
+			t.Errorf("expected entity 'main', got %q", entry.Entity)
+		}
+	}
+
+	// Check content of inline comments
+	if len(implEntries) >= 1 {
+		if !strings.Contains(implEntries[0].Content, "inline comment") {
+			t.Errorf("first inline comment missing expected content, got: %q", implEntries[0].Content)
+		}
+	}
+	if len(implEntries) >= 2 {
+		if !strings.Contains(implEntries[1].Content, "Another inline") {
+			t.Errorf("second inline comment missing expected content, got: %q", implEntries[1].Content)
+		}
+	}
+}
+
+// TestTypeScriptInlineCommentsWithMetadata tests inline comments with title/section metadata
+func TestTypeScriptInlineCommentsWithMetadata(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	testFile := filepath.Join(tmpDir, "inline-meta.ts")
+	content := `function process() {
+  // @lion steps section="Step 1" Initialize the system
+  init();
+  
+  //lion:steps section="Step 2" Process the data
+  processData();
+}
+
+function init() {}
+function processData() {}
+`
+
+	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	docs, err := ExtractTypeScript(tmpDir)
+	if err != nil {
+		t.Fatalf("ExtractTypeScript failed: %v", err)
+	}
+
+	entries := docs["steps"]
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 steps entries, got %d", len(entries))
+	}
+
+	// Check sections are preserved
+	sections := make(map[string]bool)
+	for _, entry := range entries {
+		if entry.HasSection {
+			sections[entry.SectionTitle] = true
+		}
+	}
+
+	if !sections["Step 1"] {
+		t.Error("expected section 'Step 1' not found")
+	}
+	if !sections["Step 2"] {
+		t.Error("expected section 'Step 2' not found")
+	}
+}
