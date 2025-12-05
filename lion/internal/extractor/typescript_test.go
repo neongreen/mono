@@ -8,15 +8,21 @@ import (
 	"testing"
 )
 
+// =============================================================================
+// PARITY TESTS: These tests mirror Go extraction tests to ensure TypeScript
+// extraction has equivalent functionality.
+// =============================================================================
+
+// TestExtractTypeScript mirrors TestExtract for Go
+// Tests basic extraction of topics and entities from TypeScript files.
 func TestExtractTypeScript(t *testing.T) {
-	// Skip if TypeScript helper is not built
 	if _, err := exec.LookPath("tsc"); err != nil {
 		t.Skip("tsc not available")
 	}
 
 	tmpDir := t.TempDir()
 
-	// Create test TypeScript file
+	// Create test TypeScript file - mirrors Go test structure
 	testFile := filepath.Join(tmpDir, "test.ts")
 	content := `/**
  * @lion intro
@@ -33,7 +39,7 @@ interface Config {
 }
 
 /**
- * @lion api section="Initialize"
+ * @lion api
  * Initialize creates a new Config.
  */
 function initialize(): Config {
@@ -51,13 +57,12 @@ function helper() {}
 		t.Fatalf("failed to create test file: %v", err)
 	}
 
-	// Extract documentation
 	docs, err := ExtractTypeScript(tmpDir)
 	if err != nil {
 		t.Fatalf("ExtractTypeScript failed: %v", err)
 	}
 
-	// Verify topics
+	// Verify topics (same as Go test)
 	expectedTopics := []string{"intro", "api", "implementation"}
 	if len(docs) != len(expectedTopics) {
 		t.Errorf("expected %d topics, got %d", len(expectedTopics), len(docs))
@@ -74,8 +79,13 @@ function helper() {}
 	if len(introEntries) != 1 {
 		t.Errorf("expected 1 intro entry, got %d", len(introEntries))
 	}
+	if len(introEntries) > 0 {
+		if introEntries[0].Topic != "intro" {
+			t.Errorf("expected topic 'intro', got %q", introEntries[0].Topic)
+		}
+	}
 
-	// Verify api entries
+	// Verify api entries (2 entries like Go test)
 	apiEntries := docs["api"]
 	if len(apiEntries) != 2 {
 		t.Errorf("expected 2 api entries, got %d", len(apiEntries))
@@ -95,6 +105,102 @@ function helper() {}
 	implEntries := docs["implementation"]
 	if len(implEntries) != 1 {
 		t.Errorf("expected 1 implementation entry, got %d", len(implEntries))
+	}
+}
+
+// TestExtractTypeScriptNoComments mirrors TestExtractNoComments for Go
+func TestExtractTypeScriptNoComments(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	// Create TypeScript file without lion comments
+	testFile := filepath.Join(tmpDir, "empty.ts")
+	content := `
+function normalFunction() {}
+
+interface Empty {}
+`
+
+	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	docs, err := ExtractTypeScript(tmpDir)
+	if err != nil {
+		t.Fatalf("ExtractTypeScript failed: %v", err)
+	}
+
+	if docs != nil && len(docs) != 0 {
+		t.Errorf("expected no documentation, got %d topics", len(docs))
+	}
+}
+
+// TestExtractTypeScriptMultipleFiles mirrors TestExtractMultipleFiles for Go
+func TestExtractTypeScriptMultipleFiles(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	// Create first file
+	file1 := filepath.Join(tmpDir, "file1.ts")
+	content1 := `/**
+ * @lion overview
+ * Part one of the overview.
+ */
+
+/**
+ * @lion api
+ * Function in file1.
+ */
+function function1() {}
+`
+
+	// Create second file
+	file2 := filepath.Join(tmpDir, "file2.ts")
+	content2 := `/**
+ * @lion overview
+ * Part two of the overview.
+ */
+
+/**
+ * @lion api
+ * Function in file2.
+ */
+function function2() {}
+`
+
+	if err := os.WriteFile(file1, []byte(content1), 0644); err != nil {
+		t.Fatalf("failed to create file1: %v", err)
+	}
+	if err := os.WriteFile(file2, []byte(content2), 0644); err != nil {
+		t.Fatalf("failed to create file2: %v", err)
+	}
+
+	docs, err := ExtractTypeScript(tmpDir)
+	if err != nil {
+		t.Fatalf("ExtractTypeScript failed: %v", err)
+	}
+
+	// Should have 2 topics: overview and api
+	if len(docs) != 2 {
+		t.Errorf("expected 2 topics, got %d", len(docs))
+	}
+
+	// Overview should have 2 entries (one from each file)
+	overviewEntries := docs["overview"]
+	if len(overviewEntries) != 2 {
+		t.Errorf("expected 2 overview entries, got %d", len(overviewEntries))
+	}
+
+	// API should have 2 entries (one from each file)
+	apiEntries := docs["api"]
+	if len(apiEntries) != 2 {
+		t.Errorf("expected 2 api entries, got %d", len(apiEntries))
 	}
 }
 
@@ -385,5 +491,491 @@ enum Status {
 		if !found {
 			t.Errorf("expected entity %q was not found", entity)
 		}
+	}
+}
+
+// =============================================================================
+// JSDOC FORMAT TESTS: Tests various JSDoc comment formats
+// =============================================================================
+
+// TestTypeScriptJSDocFormats tests various JSDoc comment formats
+// Note: TypeScript only supports multi-line JSDoc comments (/** ... */), not single-line.
+// This is a documented difference from Go extraction.
+func TestTypeScriptJSDocFormats(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	// Test various JSDoc formats (all multi-line, as TypeScript requires)
+	testFile := filepath.Join(tmpDir, "jsdoc.ts")
+	content := `/**
+ * @lion format1
+ * Standard multi-line JSDoc with asterisk on each line.
+ * This is the most common format.
+ */
+function format1() {}
+
+/**
+ * @lion format2
+ * Another standard format
+ */
+function format2() {}
+
+/**
+ * @lion format3
+ * JSDoc with blank lines
+ *
+ * And continuation after blank line.
+ */
+function format3() {}
+
+/**
+ * Mixed content with other JSDoc tags
+ * @lion format4
+ * The lion tag can appear after other content.
+ * @param x - Some parameter (should be ignored in lion content)
+ * @returns Something (should be ignored in lion content)
+ */
+function format4(x: number): number { return x; }
+
+/**
+ * @lion format5 Content on same line as tag
+ * Followed by more content on subsequent lines.
+ * Multiple lines should be captured.
+ */
+function format5() {}
+`
+
+	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	docs, err := ExtractTypeScript(tmpDir)
+	if err != nil {
+		t.Fatalf("ExtractTypeScript failed: %v", err)
+	}
+
+	// Should have 5 different format topics
+	expectedFormats := []string{"format1", "format2", "format3", "format4", "format5"}
+	for _, format := range expectedFormats {
+		if _, exists := docs[format]; !exists {
+			t.Errorf("expected topic %q not found", format)
+		}
+	}
+
+	// Verify format1 content (standard multi-line)
+	if entries := docs["format1"]; len(entries) == 1 {
+		content := entries[0].Content
+		if !strings.Contains(content, "Standard multi-line") {
+			t.Errorf("format1 missing expected content, got: %q", content)
+		}
+		if !strings.Contains(content, "most common format") {
+			t.Errorf("format1 should include continuation, got: %q", content)
+		}
+	}
+
+	// Verify format2 content
+	if entries := docs["format2"]; len(entries) == 1 {
+		content := entries[0].Content
+		if !strings.Contains(content, "Another standard format") {
+			t.Errorf("format2 missing expected content, got: %q", content)
+		}
+	}
+
+	// Verify format5 content (content on tag line)
+	if entries := docs["format5"]; len(entries) == 1 {
+		content := entries[0].Content
+		if !strings.Contains(content, "Content on same line") {
+			t.Errorf("format5 missing expected content, got: %q", content)
+		}
+	}
+}
+
+// TestTypeScriptClassMembers tests extraction from class methods and properties
+func TestTypeScriptClassMembers(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	testFile := filepath.Join(tmpDir, "class.ts")
+	content := `/**
+ * @lion api
+ * The UserService class handles user operations.
+ */
+class UserService {
+  /**
+   * @lion api section="Properties"
+   * The base URL for API calls.
+   */
+  private baseUrl: string = "";
+
+  /**
+   * @lion api section="Methods"
+   * Creates a new user.
+   */
+  createUser(name: string) {
+    return { name };
+  }
+
+  /**
+   * @lion api section="Methods"
+   * Deletes a user by ID.
+   */
+  deleteUser(id: string) {}
+}
+`
+
+	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	docs, err := ExtractTypeScript(tmpDir)
+	if err != nil {
+		t.Fatalf("ExtractTypeScript failed: %v", err)
+	}
+
+	entries := docs["api"]
+	if len(entries) < 3 {
+		t.Errorf("expected at least 3 api entries (class + 2 methods), got %d", len(entries))
+	}
+
+	// Verify we have entries for class and members
+	entities := make(map[string]bool)
+	for _, entry := range entries {
+		entities[entry.Entity] = true
+	}
+
+	expectedEntities := []string{"UserService", "createUser", "deleteUser"}
+	for _, entity := range expectedEntities {
+		if !entities[entity] {
+			t.Errorf("expected entity %q not found", entity)
+		}
+	}
+}
+
+// =============================================================================
+// MIXED LANGUAGE TESTS: Tests Go and TypeScript in the same project
+// =============================================================================
+
+// TestMixedProjectUnifiedOutput tests that mixed Go/TS projects produce unified docs
+func TestMixedProjectUnifiedOutput(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	// Create subdirectories to simulate a real project structure
+	goDir := filepath.Join(tmpDir, "server")
+	tsDir := filepath.Join(tmpDir, "client")
+	os.MkdirAll(goDir, 0755)
+	os.MkdirAll(tsDir, 0755)
+
+	// Go files in server/
+	goFile := filepath.Join(goDir, "server.go")
+	goContent := `//lion:architecture section="Server"
+// The server handles HTTP requests and routing.
+package server
+
+//lion:api section="Server Config"
+// ServerConfig holds server configuration.
+type ServerConfig struct {
+	Port int
+}
+
+//lion:api section="Server Functions"
+// StartServer initializes and starts the HTTP server.
+func StartServer() {}
+`
+
+	// TypeScript files in client/
+	tsFile := filepath.Join(tsDir, "client.ts")
+	tsContent := `/**
+ * @lion architecture section="Client"
+ * The client handles UI rendering and user interactions.
+ */
+
+/**
+ * @lion api section="Client Config"
+ * ClientConfig holds client-side configuration.
+ */
+interface ClientConfig {
+  apiUrl: string;
+}
+
+/**
+ * @lion api section="Client Functions"
+ * initClient initializes the client application.
+ */
+function initClient() {}
+`
+
+	if err := os.WriteFile(goFile, []byte(goContent), 0644); err != nil {
+		t.Fatalf("failed to create Go file: %v", err)
+	}
+	if err := os.WriteFile(tsFile, []byte(tsContent), 0644); err != nil {
+		t.Fatalf("failed to create TypeScript file: %v", err)
+	}
+
+	docs, err := Extract(tmpDir)
+	if err != nil {
+		t.Fatalf("Extract failed: %v", err)
+	}
+
+	// Should have unified topics from both languages
+	if len(docs) != 2 {
+		t.Errorf("expected 2 topics (architecture, api), got %d", len(docs))
+	}
+
+	// Architecture topic should have entries from both Go and TypeScript
+	archEntries := docs["architecture"]
+	if len(archEntries) < 2 {
+		t.Errorf("expected at least 2 architecture entries, got %d", len(archEntries))
+	}
+
+	// Verify both file types are present in architecture
+	hasGo := false
+	hasTS := false
+	for _, entry := range archEntries {
+		if strings.HasSuffix(entry.File, ".go") {
+			hasGo = true
+			if !strings.Contains(entry.Content, "server handles HTTP") {
+				t.Errorf("Go architecture entry missing expected content")
+			}
+		}
+		if strings.HasSuffix(entry.File, ".ts") {
+			hasTS = true
+			if !strings.Contains(entry.Content, "client handles UI") {
+				t.Errorf("TypeScript architecture entry missing expected content")
+			}
+		}
+	}
+	if !hasGo {
+		t.Error("expected Go file in architecture topic")
+	}
+	if !hasTS {
+		t.Error("expected TypeScript file in architecture topic")
+	}
+
+	// API topic should have entries from both languages
+	apiEntries := docs["api"]
+	if len(apiEntries) < 4 {
+		t.Errorf("expected at least 4 api entries (2 Go + 2 TS), got %d", len(apiEntries))
+	}
+
+	// Check sections are preserved
+	sections := make(map[string]int)
+	for _, entry := range apiEntries {
+		if entry.HasSection {
+			sections[entry.SectionTitle]++
+		}
+	}
+
+	expectedSections := []string{"Server Config", "Server Functions", "Client Config", "Client Functions"}
+	for _, sec := range expectedSections {
+		if sections[sec] == 0 {
+			t.Errorf("expected section %q not found", sec)
+		}
+	}
+}
+
+// TestMixedProjectWithSameTopicDifferentEntities tests combining entries from different languages
+func TestMixedProjectWithSameTopicDifferentEntities(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	// Both files contribute to the same 'models' topic
+	goFile := filepath.Join(tmpDir, "models.go")
+	goContent := `//lion:models The User struct in Go
+package models
+
+//lion:models User represents a user in the system.
+type User struct {
+	ID   string
+	Name string
+}
+
+//lion:models Product represents a product.
+type Product struct {
+	ID    string
+	Price float64
+}
+`
+
+	tsFile := filepath.Join(tmpDir, "models.ts")
+	tsContent := `/**
+ * @lion models
+ * The Order interface in TypeScript
+ */
+interface Order {
+  id: string;
+  userId: string;
+  products: string[];
+}
+
+/**
+ * @lion models
+ * The Cart interface for shopping cart.
+ */
+interface Cart {
+  userId: string;
+  items: string[];
+}
+`
+
+	if err := os.WriteFile(goFile, []byte(goContent), 0644); err != nil {
+		t.Fatalf("failed to create Go file: %v", err)
+	}
+	if err := os.WriteFile(tsFile, []byte(tsContent), 0644); err != nil {
+		t.Fatalf("failed to create TypeScript file: %v", err)
+	}
+
+	docs, err := Extract(tmpDir)
+	if err != nil {
+		t.Fatalf("Extract failed: %v", err)
+	}
+
+	// Should have 1 unified 'models' topic
+	if len(docs) != 1 {
+		t.Errorf("expected 1 topic (models), got %d", len(docs))
+	}
+
+	modelEntries := docs["models"]
+	// Go: 3 entries (package doc + User + Product)
+	// TypeScript: 2 entries (Order + Cart)
+	// Total: at least 4 entries (package doc may be combined)
+	if len(modelEntries) < 4 {
+		t.Errorf("expected at least 4 model entries, got %d", len(modelEntries))
+	}
+
+	// Verify entities from both languages
+	entities := make(map[string]bool)
+	for _, entry := range modelEntries {
+		if entry.Entity != "" {
+			entities[entry.Entity] = true
+		}
+	}
+
+	// Check Go entities
+	if !entities["User"] {
+		t.Error("expected Go entity 'User' not found")
+	}
+	if !entities["Product"] {
+		t.Error("expected Go entity 'Product' not found")
+	}
+
+	// Check TypeScript entities
+	if !entities["Order"] {
+		t.Error("expected TypeScript entity 'Order' not found")
+	}
+	if !entities["Cart"] {
+		t.Error("expected TypeScript entity 'Cart' not found")
+	}
+}
+
+// =============================================================================
+// CONTENT VERIFICATION TESTS
+// =============================================================================
+
+// TestTypeScriptContentExtraction verifies content is properly extracted
+func TestTypeScriptContentExtraction(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	testFile := filepath.Join(tmpDir, "content.ts")
+	content := `/**
+ * @lion content-test
+ * This is the first line of content.
+ * This is the second line.
+ * 
+ * This is after a blank line.
+ * Final line of content.
+ */
+function testContent() {}
+`
+
+	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	docs, err := ExtractTypeScript(tmpDir)
+	if err != nil {
+		t.Fatalf("ExtractTypeScript failed: %v", err)
+	}
+
+	entries := docs["content-test"]
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+
+	content = entries[0].Content
+	if !strings.Contains(content, "first line of content") {
+		t.Errorf("missing first line, got: %q", content)
+	}
+	if !strings.Contains(content, "second line") {
+		t.Errorf("missing second line, got: %q", content)
+	}
+	if !strings.Contains(content, "Final line") {
+		t.Errorf("missing final line, got: %q", content)
+	}
+}
+
+// TestTypeScriptFileAndLineTracking verifies file paths and line numbers are tracked
+func TestTypeScriptFileAndLineTracking(t *testing.T) {
+	if _, err := exec.LookPath("tsc"); err != nil {
+		t.Skip("tsc not available")
+	}
+
+	tmpDir := t.TempDir()
+
+	testFile := filepath.Join(tmpDir, "tracking.ts")
+	content := `/**
+ * @lion tracking
+ * First function.
+ */
+function first() {}
+
+/**
+ * @lion tracking
+ * Second function.
+ */
+function second() {}
+`
+
+	if err := os.WriteFile(testFile, []byte(content), 0644); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	docs, err := ExtractTypeScript(tmpDir)
+	if err != nil {
+		t.Fatalf("ExtractTypeScript failed: %v", err)
+	}
+
+	entries := docs["tracking"]
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(entries))
+	}
+
+	// Check file paths
+	for _, entry := range entries {
+		if !strings.HasSuffix(entry.File, "tracking.ts") {
+			t.Errorf("expected file to end with 'tracking.ts', got: %q", entry.File)
+		}
+	}
+
+	// Check line numbers are different (second should be after first)
+	if entries[0].Line >= entries[1].Line {
+		t.Errorf("expected second entry to have higher line number, got: first=%d, second=%d",
+			entries[0].Line, entries[1].Line)
 	}
 }

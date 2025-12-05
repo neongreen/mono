@@ -67,19 +67,37 @@ function someFunction() {
 ### Go Extraction
 - Uses Go's `go/ast` package for parsing
 - Extracts comments attached to functions, types, constants, and variables
+- Supports inline comments inside function bodies
+- Supports single-line (`//lion:`) and block (`/*lion: */`) formats
 - Skips test files (`*_test.go`)
 
 ### TypeScript Extraction
 - Uses an embedded TypeScript extractor script compiled with `tsc` at runtime
 - Uses the TypeScript compiler API for AST parsing
-- Parses JSDoc comments for `@lion` tags
+- Parses JSDoc comments for `@lion` tags (multi-line format only)
+- Single-line JSDoc (`/** @lion topic */`) is NOT supported
 - Skips test files (`*.test.ts`, `*.spec.ts`, `*.d.ts`)
 - Supports functions, classes, interfaces, types, enums, and variables
+- Does NOT support inline comments inside function bodies
+
+### Feature Parity
+
+| Feature | Go | TypeScript |
+|---------|----|----|
+| Topic extraction | ✅ | ✅ |
+| Metadata (title, section) | ✅ | ✅ |
+| Entity name extraction | ✅ | ✅ |
+| Multi-line content | ✅ | ✅ |
+| Test file skipping | ✅ | ✅ |
+| Single-line comments | ✅ | ❌ |
+| Inline function comments | ✅ | ❌ |
+| Package-level docs | ✅ | ❌ |
 
 ### Common
 - Generates one markdown file per topic
 - Sorts entries by file and line number for consistency
 - Includes source references in generated markdown
+- Unified output for mixed Go/TypeScript projects
 
 ## Testing Approach
 
@@ -89,6 +107,7 @@ Tests should cover:
 - Markdown generation (formatting and structure)
 - File I/O operations
 - Mixed Go and TypeScript projects
+- Feature parity between Go and TypeScript extraction
 
 ## Future Enhancements
 

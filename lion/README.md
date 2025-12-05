@@ -244,6 +244,28 @@ interface User {
 }
 ```
 
+## Language Differences
+
+### Go vs TypeScript Extraction
+
+Both Go and TypeScript extraction support the same core features:
+- Topic extraction with `lion:topic` / `@lion topic` syntax
+- Metadata support (`title="..."` and `section="..."`)
+- Entity name extraction (functions, types, classes, etc.)
+- Multi-line content
+- Test file skipping
+
+**Differences:**
+
+| Feature | Go | TypeScript |
+|---------|----|----|
+| Comment syntax | `//lion:topic` or `/*lion:topic */` | `@lion topic` in JSDoc (`/** ... */`) |
+| Single-line comments | ✅ Supported | ❌ Must use multi-line JSDoc |
+| Inline comments | ✅ Supported inside function bodies | ❌ Only on declarations |
+| Package-level docs | ✅ `package` declaration | ❌ No equivalent |
+
+**Note:** TypeScript requires multi-line JSDoc format (`/** ... */`). Single-line JSDoc (`/** @lion topic */`) is not supported due to TypeScript compiler API limitations.
+
 ## Status
 
 **Alpha** - Core functionality works. Comment format and CLI may change.
