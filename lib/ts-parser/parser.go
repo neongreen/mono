@@ -1,7 +1,7 @@
 // Package tsparser provides pure-Go parsing of TypeScript and TSX source code
 // using tree-sitter grammars compiled to WebAssembly and executed via wazero.
 //
-// The library embeds pre-built WASM files and requires no CGO, external tools,
+// The library embeds a pre-built WASM file and requires no CGO, external tools,
 // or network access at runtime.
 package tsparser
 
@@ -16,11 +16,8 @@ import (
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
-//go:embed internal/wasm/typescript.wasm
-var typescriptWASM []byte
-
-//go:embed internal/wasm/tsx.wasm
-var tsxWASM []byte
+//go:embed internal/wasm/parser.wasm
+var parserWASM []byte
 
 // Language represents a parsed language type.
 type Language int
@@ -36,13 +33,12 @@ const (
 // TSNode consists of: context[4] (4x4=16 bytes) + id (4 bytes) + tree (4 bytes) = 24 bytes
 const tsNodeSize = 24
 
-// Parser manages the WASM runtime and compiled modules.
+// Parser manages the WASM runtime and compiled module.
 type Parser struct {
-	mu        sync.Mutex
-	ctx       context.Context
-	runtime   wazero.Runtime
-	tsModule  wazero.CompiledModule
-	tsxModule wazero.CompiledModule
+	mu      sync.Mutex
+	ctx     context.Context
+	runtime wazero.Runtime
+	module  wazero.CompiledModule
 }
 
 // Tree represents a parsed syntax tree.
@@ -71,25 +67,17 @@ func NewParser(ctx context.Context) (*Parser, error) {
 		return nil, fmt.Errorf("failed to instantiate WASI: %w", err)
 	}
 
-	// Compile TypeScript module
-	tsModule, err := r.CompileModule(ctx, typescriptWASM)
+	// Compile the combined parser module (contains both TypeScript and TSX grammars)
+	module, err := r.CompileModule(ctx, parserWASM)
 	if err != nil {
 		r.Close(ctx)
-		return nil, fmt.Errorf("failed to compile TypeScript WASM: %w", err)
-	}
-
-	// Compile TSX module
-	tsxModule, err := r.CompileModule(ctx, tsxWASM)
-	if err != nil {
-		r.Close(ctx)
-		return nil, fmt.Errorf("failed to compile TSX WASM: %w", err)
+		return nil, fmt.Errorf("failed to compile parser WASM: %w", err)
 	}
 
 	return &Parser{
-		ctx:       ctx,
-		runtime:   r,
-		tsModule:  tsModule,
-		tsxModule: tsxModule,
+		ctx:     ctx,
+		runtime: r,
+		module:  module,
 	}, nil
 }
 
@@ -107,15 +95,12 @@ func (p *Parser) parse(src []byte, lang Language) (*Tree, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	var compiledModule wazero.CompiledModule
 	var langFuncName string
 
 	switch lang {
 	case TypeScript:
-		compiledModule = p.tsModule
 		langFuncName = "tree_sitter_typescript"
 	case TSX:
-		compiledModule = p.tsxModule
 		langFuncName = "tree_sitter_tsx"
 	default:
 		return nil, fmt.Errorf("unknown language: %d", lang)
@@ -123,7 +108,7 @@ func (p *Parser) parse(src []byte, lang Language) (*Tree, error) {
 
 	// Instantiate the module
 	config := wazero.NewModuleConfig().WithName("")
-	module, err := p.runtime.InstantiateModule(p.ctx, compiledModule, config)
+	module, err := p.runtime.InstantiateModule(p.ctx, p.module, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate module: %w", err)
 	}

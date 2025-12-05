@@ -1,16 +1,15 @@
-# Building the Tree-Sitter WASM Modules
+# Building the Tree-Sitter WASM Module
 
-This document explains how the WASM files were produced for the ts-parser library.
+This document explains how the WASM file was produced for the ts-parser library.
 
-**Note**: This documentation is for maintainers only. End users do not need to build the WASM files - they are pre-built and embedded in the library.
+**Note**: This documentation is for maintainers only. End users do not need to build the WASM file - it is pre-built and embedded in the library.
 
 ## Overview
 
-The library requires two WASM files:
-- `internal/wasm/typescript.wasm` - Tree-sitter runtime + TypeScript grammar
-- `internal/wasm/tsx.wasm` - Tree-sitter runtime + TSX grammar
+The library uses a single WASM file:
+- `internal/wasm/parser.wasm` - Tree-sitter runtime + TypeScript + TSX grammars
 
-Each file contains both the tree-sitter parser runtime and the specific language grammar, compiled to WASI-compatible WebAssembly using Zig.
+This file contains the tree-sitter parser runtime along with both language grammars, compiled to WASI-compatible WebAssembly using Zig.
 
 ## Source Repositories and Pinned Versions
 
@@ -51,66 +50,24 @@ git clone --depth 1 --branch v0.24.7 https://github.com/tree-sitter/tree-sitter.
 git clone --depth 1 --branch v0.23.2 https://github.com/tree-sitter/tree-sitter-typescript.git ts-typescript
 ```
 
-## Build Commands
+## Build Command
 
-### Building TypeScript WASM
+Build a single WASM file containing both TypeScript and TSX grammars:
 
 ```bash
 zig cc --target=wasm32-wasi-musl -mexec-model=reactor \
     -I ts-runtime/lib/include \
     -I ts-runtime/lib/src \
     -I ts-typescript/typescript/src \
+    -I ts-typescript/tsx/src \
     -I ts-typescript/common \
     -I ts-typescript \
     ts-runtime/lib/src/lib.c \
     ts-typescript/typescript/src/parser.c \
     ts-typescript/typescript/src/scanner.c \
-    -o typescript.wasm \
-    -Oz -fPIC \
-    -Wl,--no-entry \
-    -Wl,-z -Wl,stack-size=65536 \
-    -Wl,--strip-debug \
-    -Wl,--export=malloc \
-    -Wl,--export=free \
-    -Wl,--export=strlen \
-    -Wl,--export=ts_parser_new \
-    -Wl,--export=ts_parser_parse_string \
-    -Wl,--export=ts_parser_set_language \
-    -Wl,--export=ts_parser_delete \
-    -Wl,--export=ts_language_version \
-    -Wl,--export=ts_tree_root_node \
-    -Wl,--export=ts_tree_delete \
-    -Wl,--export=ts_node_string \
-    -Wl,--export=ts_node_child_count \
-    -Wl,--export=ts_node_named_child_count \
-    -Wl,--export=ts_node_child \
-    -Wl,--export=ts_node_named_child \
-    -Wl,--export=ts_node_type \
-    -Wl,--export=ts_node_start_byte \
-    -Wl,--export=ts_node_end_byte \
-    -Wl,--export=ts_node_is_error \
-    -Wl,--export=ts_node_is_null \
-    -Wl,--export=ts_node_parent \
-    -Wl,--export=ts_node_next_sibling \
-    -Wl,--export=ts_node_prev_sibling \
-    -Wl,--export=ts_node_next_named_sibling \
-    -Wl,--export=ts_node_prev_named_sibling \
-    -Wl,--export=tree_sitter_typescript
-```
-
-### Building TSX WASM
-
-```bash
-zig cc --target=wasm32-wasi-musl -mexec-model=reactor \
-    -I ts-runtime/lib/include \
-    -I ts-runtime/lib/src \
-    -I ts-typescript/tsx/src \
-    -I ts-typescript/common \
-    -I ts-typescript \
-    ts-runtime/lib/src/lib.c \
     ts-typescript/tsx/src/parser.c \
     ts-typescript/tsx/src/scanner.c \
-    -o tsx.wasm \
+    -o parser.wasm \
     -Oz -fPIC \
     -Wl,--no-entry \
     -Wl,-z -Wl,stack-size=65536 \
@@ -140,21 +97,21 @@ zig cc --target=wasm32-wasi-musl -mexec-model=reactor \
     -Wl,--export=ts_node_prev_sibling \
     -Wl,--export=ts_node_next_named_sibling \
     -Wl,--export=ts_node_prev_named_sibling \
+    -Wl,--export=tree_sitter_typescript \
     -Wl,--export=tree_sitter_tsx
 ```
 
-## Installing WASM Files
+## Installing WASM File
 
-Copy the built files to this repository:
+Copy the built file to this repository:
 
 ```bash
-cp typescript.wasm /path/to/mono/lib/ts-parser/internal/wasm/typescript.wasm
-cp tsx.wasm /path/to/mono/lib/ts-parser/internal/wasm/tsx.wasm
+cp parser.wasm /path/to/mono/lib/ts-parser/internal/wasm/parser.wasm
 ```
 
 ## Verification
 
-After installing the WASM files, verify the library works:
+After installing the WASM file, verify the library works:
 
 ```bash
 CGO_ENABLED=0 go test ./...
@@ -164,12 +121,12 @@ All tests must pass with CGO disabled.
 
 ## Notes on the Build Process
 
-The WASM files are built using Zig's cross-compilation to WASI (WebAssembly System Interface):
+The WASM file is built using Zig's cross-compilation to WASI (WebAssembly System Interface):
 
 - **Target**: `wasm32-wasi-musl` - 32-bit WebAssembly with WASI for system calls and musl libc
 - **Execution model**: `reactor` - The module exports functions rather than having a main entry point
 - **Optimization**: `-Oz` for size optimization
 - **Stack size**: 65536 bytes (64KB)
-- **Exports**: Only the necessary tree-sitter API functions are exported
+- **Exports**: Tree-sitter API functions plus both `tree_sitter_typescript` and `tree_sitter_tsx` language functions
 
-The pre-built WASM files from tree-sitter-typescript releases are Emscripten-compiled and expect a JavaScript runtime, so they cannot be used with wazero. The Zig-compiled WASI versions work directly with wazero.
+The pre-built WASM files from tree-sitter-typescript releases are Emscripten-compiled and expect a JavaScript runtime, so they cannot be used with wazero. The Zig-compiled WASI version works directly with wazero.

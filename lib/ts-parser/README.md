@@ -232,9 +232,9 @@ type NodeRef struct {
 
 ## Building from Source
 
-The WASM files are pre-built and embedded in the library. End users don't need to build them.
+The WASM file is pre-built and embedded in the library. End users don't need to build it.
 
-For maintainers who need to rebuild the WASM files, see [WASM_BUILD.md](WASM_BUILD.md).
+For maintainers who need to rebuild the WASM file, see [WASM_BUILD.md](WASM_BUILD.md).
 
 ## Constraints
 
