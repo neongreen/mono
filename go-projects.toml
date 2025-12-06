@@ -61,3 +61,7 @@ module = "github.com/neongreen/mono/tk"
 [[project]]
 dir = "want"
 module = "github.com/neongreen/mono/want"
+
+[[project]]
+dir = "claim"
+module = "github.com/neongreen/mono/claim"
