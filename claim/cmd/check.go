@@ -18,6 +18,7 @@ var (
 	checkLensFile    string
 	checkMaxRefDepth int
 	checkDebugPrompt bool
+	checkLLM         string
 )
 
 var checkCmd = &cobra.Command{
@@ -33,6 +34,7 @@ func init() {
 	checkCmd.Flags().StringVar(&checkLensFile, "lens-file", "", "Additional lens file to load")
 	checkCmd.Flags().IntVar(&checkMaxRefDepth, "max-ref-depth", 3, "Maximum depth for referenced claims")
 	checkCmd.Flags().BoolVar(&checkDebugPrompt, "debug-prompt", false, "Print the prompt sent to Claude")
+	checkCmd.Flags().StringVar(&checkLLM, "llm", "claude", "LLM to use (claude or codex)")
 	checkCmd.Flags().String("claim", "", "Claim ID to check (required)")
 	checkCmd.MarkFlagRequired("claim")
 	RootCmd.AddCommand(checkCmd)
@@ -65,13 +67,29 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Create runner
-	r := &runner.ClaudeRunner{
-		Command: os.Getenv("CLAIM_CLAUDE_CMD"),
-		Verbose: debugFlag, // Enable streaming output in debug mode
-	}
-	if r.Command == "" {
-		r.Command = "claude"
+	// Create runner based on LLM choice
+	var r runner.Runner
+	switch checkLLM {
+	case "claude":
+		command := os.Getenv("CLAIM_CLAUDE_CMD")
+		if command == "" {
+			command = "claude"
+		}
+		r = &runner.ClaudeRunner{
+			Command: command,
+			Verbose: debugFlag,
+		}
+	case "codex":
+		command := os.Getenv("CLAIM_CODEX_CMD")
+		if command == "" {
+			command = "codex"
+		}
+		r = &runner.CodexRunner{
+			Command: command,
+			Verbose: debugFlag,
+		}
+	default:
+		return fmt.Errorf("unknown LLM: %s (must be 'claude' or 'codex')", checkLLM)
 	}
 
 	// Run check
