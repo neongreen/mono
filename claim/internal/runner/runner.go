@@ -273,5 +273,12 @@ func (r *CodexRunner) Run(ctx context.Context, prompt string) (*ClaimResult, err
 
 	logger.Debug("parsed result", "claim_id", result.ClaimID, "result", result.Result, "bullets", len(result.Bullets))
 
+	// Log bullet paths for debugging
+	bulletPaths := make([]string, len(result.Bullets))
+	for i, b := range result.Bullets {
+		bulletPaths[i] = b.Path
+	}
+	logger.Debug("bullet paths from codex", "paths", bulletPaths)
+
 	return &result, nil
 }

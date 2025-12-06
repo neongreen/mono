@@ -64,6 +64,10 @@ func Build(
 }
 `)
 	b.WriteString("```\n\n")
+	b.WriteString("IMPORTANT: The `path` field in each bullet verdict MUST be the exact bullet path from the claim below.\n")
+	b.WriteString("Bullet paths are simple strings like \"0\", \"1\", \"0.0\", \"1.2\", etc.\n")
+	b.WriteString("Do NOT add file names, line numbers, or any other prefixes to the path.\n")
+	b.WriteString("Example: If the bullet is \"- 0: text\", use path=\"0\", NOT \"file.go:0\" or \"[0]\" or anything else.\n\n")
 
 	// Rules
 	b.WriteString("# Rules\n\n")
@@ -74,6 +78,7 @@ func Build(
 	b.WriteString("5. If ANY bullet is exactly @sorry, the overall result MUST NOT be \"proven\"\n")
 	b.WriteString("6. If unsure, return \"unproven\" with either a counterexample or list of missing cases\n")
 	b.WriteString("7. Every bullet path must have exactly one verdict entry in the bullets array\n")
+	b.WriteString("8. Use the EXACT bullet path strings shown below - do not modify them\n")
 	b.WriteString("\n")
 
 	// Target claim

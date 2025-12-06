@@ -92,8 +92,27 @@ func enforcePostRules(claim parse.Claim, result *runner.ClaimResult) error {
 
 	// Check that every bullet has a verdict
 	verdictPaths := make(map[string]bool)
-	for _, v := range result.Bullets {
-		verdictPaths[v.Path] = true
+	for i := range result.Bullets {
+		v := &result.Bullets[i]
+		// Normalize path - strip common LLM hallucination patterns
+		// Examples: "file.go:0" -> "0", "[0]" -> "0", "path 0" -> "0"
+		path := v.Path
+
+		// Strip file prefix (e.g., "file.go:0" -> "0")
+		if idx := strings.LastIndex(path, ":"); idx >= 0 {
+			path = path[idx+1:]
+		}
+
+		// Strip square brackets (e.g., "[0]" -> "0")
+		path = strings.Trim(path, "[]")
+
+		// Strip "path" prefix (e.g., "path 0" -> "0")
+		path = strings.TrimPrefix(path, "path ")
+		path = strings.TrimSpace(path)
+
+		// Update the verdict path to normalized form
+		v.Path = path
+		verdictPaths[path] = true
 	}
 
 	for path := range bulletPaths {
