@@ -1,0 +1,64 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-interpreter
+  namespace: onyx
+  labels:
+    app: code-interpreter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: code-interpreter
+  template:
+    metadata:
+      labels:
+        app: code-interpreter
+    spec:
+      nodeSelector:
+        workload: onyx
+      # Note: code-interpreter needs Docker socket access, so we can't use gVisor
+      # It runs in privileged mode for docker-in-docker or needs docker socket mount
+      containers:
+        - name: code-interpreter
+          image: onyxdotapp/code-interpreter:latest
+          command: ["/bin/bash", "-c"]
+          args:
+            - "bash ./entrypoint.sh code-interpreter-api"
+          envFrom:
+            - configMapRef:
+                name: onyx-config
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          # Docker-out-of-docker mode: mount host's docker socket
+          volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+          securityContext:
+            runAsUser: 0  # Run as root to access docker socket
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-interpreter-service
+  namespace: onyx
+spec:
+  selector:
+    app: code-interpreter
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

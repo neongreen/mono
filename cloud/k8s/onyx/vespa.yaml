@@ -1,0 +1,67 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vespa
+  namespace: onyx
+  labels:
+    app: vespa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vespa
+  strategy:
+    type: Recreate  # PVC can only be mounted by one pod at a time
+  template:
+    metadata:
+      labels:
+        app: vespa
+    spec:
+      nodeSelector:
+        workload: onyx
+      containers:
+        - name: vespa
+          image: vespaengine/vespa:8.609.39
+          env:
+            - name: VESPA_SKIP_UPGRADE_CHECK
+              value: "true"
+          ports:
+            - containerPort: 19071
+              name: config
+            - containerPort: 8081
+              name: query
+          resources:
+            requests:
+              cpu: "4"
+              memory: "8Gi"
+            limits:
+              cpu: "8"
+              memory: "16Gi"
+          volumeMounts:
+            - name: vespa-data
+              mountPath: /opt/vespa/var
+      volumes:
+        - name: vespa-data
+          persistentVolumeClaim:
+            claimName: vespa-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vespa-service
+  namespace: onyx
+spec:
+  selector:
+    app: vespa
+  ports:
+    - name: config
+      protocol: TCP
+      port: 19071
+      targetPort: 19071
+    - name: query
+      protocol: TCP
+      port: 8081
+      targetPort: 8081
+  type: ClusterIP

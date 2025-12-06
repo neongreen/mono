@@ -26,4 +26,12 @@ output "server_ipv4" {
   value = hcloud_server.vm1.ipv4_address
 }
 
+output "vm2_server_id" {
+  value = hcloud_server.vm2.id
+}
+
+output "vm2_server_ipv4" {
+  value = hcloud_server.vm2.ipv4_address
+}
+
 

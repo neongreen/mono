@@ -39,6 +39,17 @@
    - Access: ClusterIP + port-forward
    - Deploy: `mise run cloud:n8n:deploy`
 
+3. **Onyx** (onyx namespace) - Ready to deploy
+   - Self-hosted AI platform for work
+   - VM: Dedicated vm2-onyx (cpx51: 16 vCPU, 32GB RAM)
+   - Services: api-server, background, web-server, mcp-server, code-interpreter, redis, vespa, minio
+   - Runs WITH gVisor isolation ✓ (except code-interpreter)
+   - Storage: 50Gi (vespa), 50Gi (minio), 10Gi (model-cache)
+   - Database: Shared postgres from n8n namespace
+   - Access: https://onyx.cloud.artyom.me (public ingress)
+   - Features: Basic auth, MCP server, code interpreter, NO local AI models
+   - Deploy: See `cloud/k8s/onyx/README.md`
+
 ### Security & Isolation
 
 #### Container Isolation (gVisor)
@@ -59,6 +70,14 @@
 - ✅ cloud-5: Set up network isolation with NetworkPolicies
 - ✅ cloud-8: Experiment: Deploy a test app with gVisor
 - ✅ cloud-10: Fix gVisor installation in terraform cloud-init
+- ✅ cloud-126: Analyze Onyx docker-compose configuration
+- ✅ cloud-127: Design k8s architecture for Onyx
+- ✅ cloud-128: Add vm2-onyx (cpx51) to Terraform
+- ✅ cloud-129: Configure DNS for onyx.cloud.artyom.me
+- ✅ cloud-130: Create k8s manifests for all Onyx services
+- ✅ cloud-131: Configure fnox secrets for Onyx
+- ✅ cloud-132: Create postgres setup script
+- ✅ cloud-133: Configure Ingress for public access
 
 ## 🚀 How to Deploy New Services
 

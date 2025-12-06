@@ -1,0 +1,66 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+  namespace: onyx
+  labels:
+    app: mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+    spec:
+      nodeSelector:
+        workload: onyx
+      runtimeClassName: gvisor  # Run with container isolation
+      containers:
+        - name: mcp-server
+          image: onyxdotapp/onyx-backend:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - "python -m onyx.mcp_server_main"
+          envFrom:
+            - configMapRef:
+                name: onyx-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: onyx-secrets
+                  key: POSTGRES_PASSWORD
+            - name: SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: onyx-secrets
+                  key: SECRET
+          ports:
+            - containerPort: 8090
+              name: http
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server-service
+  namespace: onyx
+spec:
+  selector:
+    app: mcp-server
+  ports:
+    - protocol: TCP
+      port: 8090
+      targetPort: 8090
+  type: ClusterIP

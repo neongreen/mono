@@ -1,0 +1,60 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: background
+  namespace: onyx
+  labels:
+    app: background
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: background
+  template:
+    metadata:
+      labels:
+        app: background
+    spec:
+      nodeSelector:
+        workload: onyx
+      runtimeClassName: gvisor  # Run with container isolation
+      containers:
+        - name: background
+          image: onyxdotapp/onyx-backend:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - "/app/scripts/supervisord_entrypoint.sh"
+          envFrom:
+            - configMapRef:
+                name: onyx-config
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: onyx-secrets
+                  key: POSTGRES_PASSWORD
+            - name: SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: onyx-secrets
+                  key: SECRET
+            - name: S3_AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: onyx-secrets
+                  key: S3_AWS_SECRET_ACCESS_KEY
+          resources:
+            requests:
+              cpu: "2"
+              memory: "8Gi"
+            limits:
+              cpu: "4"
+              memory: "12Gi"
+          volumeMounts:
+            - name: model-cache
+              mountPath: /app/.cache/huggingface
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: model-cache-huggingface

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: onyx-config
+  namespace: onyx
+data:
+  # Authentication
+  AUTH_TYPE: "basic"
+  WEB_DOMAIN: "https://onyx.cloud.artyom.me"
+
+  # Feature flags
+  DISABLE_MODEL_SERVER: "true"  # No local AI models
+  MCP_SERVER_ENABLED: "true"    # Enable MCP server
+  CODE_INTERPRETER_BETA_ENABLED: "true"  # Enable code interpreter
+
+  # Database (reusing n8n's postgres)
+  POSTGRES_HOST: "postgres-service.n8n.svc.cluster.local"
+  POSTGRES_DB: "onyx"
+  POSTGRES_USER: "postgres"
+
+  # Internal service hostnames
+  REDIS_HOST: "redis-service.onyx.svc.cluster.local"
+  VESPA_HOST: "vespa-service.onyx.svc.cluster.local"
+  MODEL_SERVER_HOST: "inference-model-server"  # Disabled, but kept for compatibility
+  INDEXING_MODEL_SERVER_HOST: "indexing-model-server"  # Disabled, but kept for compatibility
+
+  # S3/MinIO
+  S3_ENDPOINT_URL: "http://minio-service.onyx.svc.cluster.local:9000"
+  S3_AWS_ACCESS_KEY_ID: "minioadmin"
+  S3_FILE_STORE_BUCKET_NAME: "onyx-file-store-bucket"
+
+  # Session
+  SESSION_EXPIRE_TIME_SECONDS: "604800"  # 7 days
+
+  # MCP Server
+  MCP_SERVER_PORT: "8090"
+  API_SERVER_PROTOCOL: "http"
+  API_SERVER_HOST: "api-server-service.onyx.svc.cluster.local"
+  API_SERVER_PORT: "8080"
+
+  # Nginx
+  NGINX_PROXY_CONNECT_TIMEOUT: "300"
+  NGINX_PROXY_SEND_TIMEOUT: "300"
+  NGINX_PROXY_READ_TIMEOUT: "300"
+
+  # Background worker
+  USE_LIGHTWEIGHT_BACKGROUND_WORKER: "true"
