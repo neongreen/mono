@@ -15,10 +15,10 @@ import (
 
 // ClaimResult is the result of checking a claim
 type ClaimResult struct {
-	ClaimID        string           `json:"claim_id"`
-	Result         string           `json:"result"` // "proven", "unproven", "sorry"
-	Bullets        []BulletVerdict  `json:"bullets"`
-	Counterexample string           `json:"counterexample"`
+	ClaimID        string          `json:"claim_id"`
+	Result         string          `json:"result"` // "proven", "unproven", "sorry"
+	Bullets        []BulletVerdict `json:"bullets"`
+	Counterexample string          `json:"counterexample"`
 }
 
 // BulletVerdict is Claude's verdict on a single bullet
@@ -52,83 +52,62 @@ func (r *ClaudeRunner) Run(ctx context.Context, prompt string) (*ClaimResult, er
 		return nil, fmt.Errorf("failed to marshal schema: %w", err)
 	}
 
-	// In verbose mode, stream output directly; otherwise use --print for quiet operation
-	var output []byte
+	// Always use stream-json for identical Claude behavior
+	// Only difference: verbose mode shows output to user, quiet mode hides it
+	cmd := exec.CommandContext(ctx, r.Command,
+		"--print",
+		"--output-format", "stream-json",
+		"--json-schema", string(schemaJSON),
+		"--tools", "", // Disable all tools
+		"--setting-sources", "project", // Skip user settings (only load project settings)
+		"--settings", `{"disableAllHooks": true}`, // Disable all hooks
+	)
 
-	if r.Verbose {
-		// Verbose mode: use stream-json for real-time streaming
-		cmd := exec.CommandContext(ctx, r.Command,
-			"--verbose",
-			"--output-format", "stream-json",
-			"--json-schema", string(schemaJSON),
-			"--tools", "", // Disable tools
-		)
-
-		if r.Model != "" {
-			cmd.Args = append(cmd.Args, "--model", r.Model)
-		}
-
-		cmd.Stdin = strings.NewReader(prompt)
-
-		// Stream to stdout/stderr AND capture for parsing
-		var stdout, stderr bytes.Buffer
-		cmd.Stdout = io.MultiWriter(os.Stdout, &stdout)
-		cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
-
-		if err := cmd.Run(); err != nil {
-			return nil, fmt.Errorf("claude command failed: %w\nStderr: %s", err, stderr.String())
-		}
-
-		output = stdout.Bytes()
-	} else{
-		// Normal mode: quiet operation with --print and --output-format json
-		cmd := exec.CommandContext(ctx, r.Command,
-			"--print",
-			"--output-format", "json",
-			"--json-schema", string(schemaJSON),
-			"--tools", "", // Disable tools
-		)
-
-		if r.Model != "" {
-			cmd.Args = append(cmd.Args, "--model", r.Model)
-		}
-
-		cmd.Stdin = strings.NewReader(prompt)
-
-		var err error
-		output, err = cmd.CombinedOutput()
-		if err != nil {
-			return nil, fmt.Errorf("claude command failed: %w\nOutput: %s", err, output)
-		}
+	if r.Model != "" {
+		cmd.Args = append(cmd.Args, "--model", r.Model)
 	}
 
-	logger.Debug("claude responded", "output_length", len(output))
+	// Preserve API key in environment
+	cmd.Env = append(os.Environ(),
+		"ANTHROPIC_API_KEY="+os.Getenv("ANTHROPIC_API_KEY"),
+	)
 
-	// Parse response
+	cmd.Stdin = strings.NewReader(prompt)
+
+	// Always capture output; in verbose mode also stream to stdout/stderr
+	var stdout, stderr bytes.Buffer
+	if r.Verbose {
+		cmd.Stdout = io.MultiWriter(os.Stdout, &stdout)
+		cmd.Stderr = io.MultiWriter(os.Stderr, &stderr)
+	} else {
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+	}
+
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("claude command failed: %w\nStderr: %s", err, stderr.String())
+	}
+
+	logger.Debug("claude responded", "output_length", len(stdout.Bytes()))
+
+	// Parse stream-json format: newline-delimited JSON
+	// Find the last line with structured_output
 	var response struct {
 		StructuredOutput json.RawMessage `json:"structured_output"`
 	}
 
-	if r.Verbose {
-		// stream-json format: newline-delimited JSON, find the last line with structured_output
-		lines := bytes.Split(output, []byte("\n"))
-		for i := len(lines) - 1; i >= 0; i-- {
-			if len(lines[i]) == 0 {
-				continue
-			}
-			var event map[string]json.RawMessage
-			if err := json.Unmarshal(lines[i], &event); err != nil {
-				continue
-			}
-			if structOut, ok := event["structured_output"]; ok {
-				response.StructuredOutput = structOut
-				break
-			}
+	lines := bytes.Split(stdout.Bytes(), []byte("\n"))
+	for i := len(lines) - 1; i >= 0; i-- {
+		if len(lines[i]) == 0 {
+			continue
 		}
-	} else {
-		// Normal JSON format
-		if err := json.Unmarshal(output, &response); err != nil {
-			return nil, fmt.Errorf("invalid JSON from claude: %w", err)
+		var event map[string]json.RawMessage
+		if err := json.Unmarshal(lines[i], &event); err != nil {
+			continue
+		}
+		if structOut, ok := event["structured_output"]; ok {
+			response.StructuredOutput = structOut
+			break
 		}
 	}
 

@@ -141,8 +141,8 @@ func formatBullets(b *strings.Builder, bullets []parse.Bullet, indent int) {
 			b.WriteString("  ")
 		}
 
-		// Bullet with path
-		fmt.Fprintf(b, "- [%s] %s\n", bullet.Path, bullet.Text)
+		// Bullet with path (use format "path: text" not "[path] text" to avoid confusion)
+		fmt.Fprintf(b, "- %s: %s\n", bullet.Path, bullet.Text)
 
 		// Recursively format children
 		if len(bullet.Children) > 0 {

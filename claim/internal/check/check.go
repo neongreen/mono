@@ -6,14 +6,13 @@ import (
 	"io"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/neongreen/mono/claim/internal/index"
 	"github.com/neongreen/mono/claim/internal/logger"
 	"github.com/neongreen/mono/claim/internal/parse"
 	"github.com/neongreen/mono/claim/internal/prompt"
 	"github.com/neongreen/mono/claim/internal/runner"
 )
-
-// TODO: Add lipgloss for colorful output
 
 // Check runs the claim checker for a specific claim ID
 func Check(
@@ -154,20 +153,29 @@ func enforcePostRules(claim parse.Claim, result *runner.ClaimResult) error {
 
 // PrintReport prints a human-readable report of the check result
 func PrintReport(w io.Writer, result *runner.ClaimResult) {
-	fmt.Fprintf(w, "Claim: %s\n", result.ClaimID)
-	fmt.Fprintf(w, "Result: %s\n\n", result.Result)
+	// Define styles
+	claimIDStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("14")) // Cyan
+	resultStyle := getResultStyle(result.Result)
+	pathStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("8")) // Gray
+	statusStyle := func(status string) lipgloss.Style { return getStatusStyle(status) }
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))                  // Muted
+	suggestionStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11")).Italic(true) // Yellow
+
+	// Print claim and result
+	fmt.Fprintf(w, "%s %s\n", labelStyle.Render("Claim:"), claimIDStyle.Render(result.ClaimID))
+	fmt.Fprintf(w, "%s %s\n\n", labelStyle.Render("Result:"), resultStyle.Render(result.Result))
 
 	if len(result.Bullets) > 0 {
-		fmt.Fprintf(w, "Bullet Verdicts:\n")
+		fmt.Fprintf(w, "%s\n", labelStyle.Render("Bullet Verdicts:"))
 		for _, v := range result.Bullets {
-			fmt.Fprintf(w, "  [%s] status=%s", v.Path, v.Status)
+			fmt.Fprintf(w, "  %s %s", pathStyle.Render("["+v.Path+"]"), statusStyle(v.Status).Render(v.Status))
 			if len(v.RequiredClaims) > 0 {
-				fmt.Fprintf(w, " requires=%s", strings.Join(v.RequiredClaims, ","))
+				fmt.Fprintf(w, " %s", labelStyle.Render("requires="+strings.Join(v.RequiredClaims, ",")))
 			}
 			fmt.Fprintf(w, "\n")
 			if len(v.SuggestedRewrite) > 0 {
 				for _, suggestion := range v.SuggestedRewrite {
-					fmt.Fprintf(w, "    suggestion: %s\n", suggestion)
+					fmt.Fprintf(w, "    %s %s\n", suggestionStyle.Render("→"), suggestion)
 				}
 			}
 		}
@@ -175,6 +183,39 @@ func PrintReport(w io.Writer, result *runner.ClaimResult) {
 	}
 
 	if result.Counterexample != "" {
-		fmt.Fprintf(w, "Counterexample:\n%s\n", result.Counterexample)
+		counterStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9")) // Red
+		fmt.Fprintf(w, "%s\n%s\n", labelStyle.Render("Counterexample:"), counterStyle.Render(result.Counterexample))
+	}
+}
+
+// getResultStyle returns the appropriate style for a result
+func getResultStyle(result string) lipgloss.Style {
+	switch result {
+	case "proven":
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("10")) // Green
+	case "unproven":
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("11")) // Yellow
+	case "sorry":
+		return lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("9")) // Red
+	default:
+		return lipgloss.NewStyle().Bold(true)
+	}
+}
+
+// getStatusStyle returns the appropriate style for a bullet status
+func getStatusStyle(status string) lipgloss.Style {
+	switch status {
+	case "ok":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("10")) // Green
+	case "trivial":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("12")) // Blue
+	case "needs_split", "needs_claim":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("11")) // Yellow
+	case "contradicts":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("9")) // Red
+	case "sorry":
+		return lipgloss.NewStyle().Foreground(lipgloss.Color("13")) // Magenta
+	default:
+		return lipgloss.NewStyle()
 	}
 }

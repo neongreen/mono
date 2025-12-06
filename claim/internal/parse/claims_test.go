@@ -6,9 +6,9 @@ import (
 
 func TestParseClaims(t *testing.T) {
 	tests := []struct {
-		name     string
-		content  string
-		wantLen  int
+		name       string
+		content    string
+		wantLen    int
 		checkClaim func(*testing.T, Claim)
 	}{
 		{
@@ -137,13 +137,13 @@ func TestStripCommentLeader(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"// @claim[id]: test", " @claim[id]: test"},      // Space after // preserved
-		{"  // @claim[id]: test", " @claim[id]: test"},    // Leading spaces removed, space after // preserved
-		{"# @claim[id]: test", " @claim[id]: test"},       // Space after # preserved
-		{"/* @claim[id]: test", " @claim[id]: test"},      // Space after /* preserved
-		{"//   - bullet", "   - bullet"},                  // Spaces after // preserved (for indentation)
-		{"//     - nested", "     - nested"},              // Spaces after // preserved (for indentation)
-		{"code @claim[id]", "code @claim[id]"},            // No comment prefix, return as-is
+		{"// @claim[id]: test", " @claim[id]: test"},   // Space after // preserved
+		{"  // @claim[id]: test", " @claim[id]: test"}, // Leading spaces removed, space after // preserved
+		{"# @claim[id]: test", " @claim[id]: test"},    // Space after # preserved
+		{"/* @claim[id]: test", " @claim[id]: test"},   // Space after /* preserved
+		{"//   - bullet", "   - bullet"},               // Spaces after // preserved (for indentation)
+		{"//     - nested", "     - nested"},           // Spaces after // preserved (for indentation)
+		{"code @claim[id]", "code @claim[id]"},         // No comment prefix, return as-is
 	}
 
 	for _, tt := range tests {

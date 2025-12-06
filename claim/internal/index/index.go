@@ -9,9 +9,9 @@ import (
 
 // Index contains all claims and lenses found in the scanned files
 type Index struct {
-	Claims  map[string]parse.Claim  // Claim ID -> Claim
-	Lenses  map[string]string       // Lens name -> Lens content
-	Locations map[string][]Location // For tracking duplicates
+	Claims    map[string]parse.Claim // Claim ID -> Claim
+	Lenses    map[string]string      // Lens name -> Lens content
+	Locations map[string][]Location  // For tracking duplicates
 }
 
 // Location represents where a claim was found

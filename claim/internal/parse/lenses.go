@@ -46,4 +46,3 @@ func ParseLenses(content, filename string) (map[string]string, error) {
 
 	return lenses, nil
 }
-

@@ -152,7 +152,11 @@ func parseBullets(lines []string, startLine int, filename string) ([]Bullet, int
 }
 
 // buildBulletTree converts flat list with indentation into nested structure
-func buildBulletTree(raw []struct{ text string; indent int; line int }) []Bullet {
+func buildBulletTree(raw []struct {
+	text   string
+	indent int
+	line   int
+}) []Bullet {
 	if len(raw) == 0 {
 		return nil
 	}
