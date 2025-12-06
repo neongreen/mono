@@ -52,20 +52,24 @@ func (r *ClaudeRunner) Run(ctx context.Context, prompt string) (*ClaimResult, er
 		return nil, fmt.Errorf("failed to marshal schema: %w", err)
 	}
 
-	// Always use stream-json for identical Claude behavior
-	// Only difference: verbose mode shows output to user, quiet mode hides it
-	cmd := exec.CommandContext(ctx, r.Command,
+	// Always use stream-json to get structured output
+	// We need --verbose --print to get output with stream-json format
+	// In verbose mode, we also show it to the user via MultiWriter
+	args := []string{
+		"--verbose",
 		"--print",
 		"--output-format", "stream-json",
 		"--json-schema", string(schemaJSON),
-		"--tools", "", // Disable all tools
-		"--setting-sources", "project", // Skip user settings (only load project settings)
+		"--tools", "",                             // Disable all tools
+		"--setting-sources", "project",            // Skip user settings (only load project settings)
 		"--settings", `{"disableAllHooks": true}`, // Disable all hooks
-	)
+	}
 
 	if r.Model != "" {
-		cmd.Args = append(cmd.Args, "--model", r.Model)
+		args = append(args, "--model", r.Model)
 	}
+
+	cmd := exec.CommandContext(ctx, r.Command, args...)
 
 	// Preserve API key in environment
 	cmd.Env = append(os.Environ(),
