@@ -7,163 +7,133 @@ import (
 	"github.com/neongreen/mono/claim/internal/parse"
 )
 
-// Build constructs the prompt for Claude to check a claim
-func Build(
-	claim parse.Claim,
-	referencedClaims map[string]parse.Claim,
-	lenses map[string]string,
-	allClaimIDs []string,
-	anonymizeFiles bool,
-) string {
+// BuildProofPrompt constructs a prompt for the @proof syntax
+// This evaluates a whole proof at once
+// resolvedContext is the content fetched for the @context block (empty if no context)
+func BuildProofPrompt(claim parse.Claim, axioms map[string]string, lenses map[string]string, resolvedContext string) string {
 	var b strings.Builder
 
-	// List of available claim IDs (so Claude doesn't invent IDs)
-	b.WriteString("# Available Claim IDs\n\n")
-	b.WriteString("These are all the claim IDs in the codebase. Do not reference any IDs not in this list:\n\n")
-	for _, id := range allClaimIDs {
-		fmt.Fprintf(&b, "- %s\n", id)
-	}
-	b.WriteString("\n")
+	// Role and verification approach
+	b.WriteString("# Incremental Proof Verification\n\n")
+	b.WriteString("We are doing **bottom-up proof verification**. Complex proofs are broken into lemmas, and each lemma is verified separately before being used.\n\n")
+	b.WriteString("You are checking ONE STEP in this process. The lemmas listed below have ALREADY BEEN VERIFIED in previous passes. Your job is to check whether the current proof correctly uses these verified lemmas to establish its claim.\n\n")
+	b.WriteString("This is like mathematical proof: once a theorem is proven, you cite it without re-proving it. Re-checking already-verified lemmas would be redundant and wasteful.\n\n")
 
-	// Include selected lenses
-	b.WriteString("# Lens Instructions\n\n")
-	b.WriteString("Apply these lenses when checking the claim:\n\n")
+	b.WriteString("# Your Task\n\n")
+	b.WriteString("Check if the proof's conclusion follows from:\n")
+	b.WriteString("1. The verified lemmas (listed below as \"Proven Lemmas\")\n")
+	b.WriteString("2. The verified context (grep results, code snippets)\n")
+	b.WriteString("3. The reasoning in the proof\n\n")
+	b.WriteString("If the logic is valid and the proof correctly applies the lemmas, return 'proven'.\n")
+	b.WriteString("If there are gaps in reasoning or incorrect use of lemmas, return 'unproven' with specific issues.\n\n")
 
-	// Always include default lens if it exists
-	if defaultLens, ok := lenses["default"]; ok {
-		b.WriteString("## Default Lens\n\n")
-		b.WriteString(defaultLens)
-		b.WriteString("\n\n")
-	}
+	b.WriteString("# Common Mistakes\n\n")
+	b.WriteString("- **Don't re-verify lemmas**: They're already proven. Just check if they're used correctly.\n")
+	b.WriteString("- **Don't count grep matches in comments**: Focus on code, not claim/proof text.\n")
+	b.WriteString("- **Don't invent hypothetical gaps**: Only flag specific issues you can identify.\n")
+	b.WriteString("- **Grep is exhaustive**: When context provides grep results, those ARE all the matches. Grep is a complete text search - if a pattern isn't in the results, it doesn't exist in the searched scope.\n\n")
 
-	// Include lenses matching claim tags
+	b.WriteString("# Undefined Terms\n\n")
+	b.WriteString("**CRITICAL**: If the CLAIM or PROOF references entities that are NOT defined in the verified context or proven lemmas, you MUST reject as UNPROVEN.\n\n")
+	b.WriteString("This applies to ALL undefined terms, including:\n")
+	b.WriteString("- Domain concepts in the claim itself (e.g., \"viewers\", \"workspace\", \"widgets\")\n")
+	b.WriteString("- Code entities (functions, variables, files, permissions)\n")
+	b.WriteString("- Any noun that refers to something in a codebase\n\n")
+	b.WriteString("Example: A claim \"Viewers cannot invite anyone to the workspace\" is UNVERIFIABLE if:\n")
+	b.WriteString("- No context defines what a \"viewer\" is\n")
+	b.WriteString("- No context defines what a \"workspace\" is\n")
+	b.WriteString("- No context defines what \"invite\" means in this system\n\n")
+	b.WriteString("You cannot verify claims about concepts you have no information about. A proof cannot define terms that the claim uses - the definitions must come from verified context.\n\n")
+	b.WriteString("Do NOT accept a proof's claims about code structure, permission mappings, function behavior, etc. unless that information is provided in the verified context. A proof cannot be its own evidence.\n\n")
+
+	// Include additional lenses matching claim tags (pedantic, local, etc.)
 	for _, tag := range claim.Tags {
 		if tagLens, ok := lenses[tag]; ok {
-			fmt.Fprintf(&b, "## %s Lens\n\n", tag)
+			fmt.Fprintf(&b, "## %s Mode\n\n", tag)
 			b.WriteString(tagLens)
 			b.WriteString("\n\n")
 		}
 	}
 
-	// Output contract
-	b.WriteString("# Output Contract\n\n")
-	b.WriteString("You must respond with a JSON object matching this exact structure:\n\n")
+	// Output format
+	b.WriteString("# Output Format\n\n")
+	b.WriteString("Respond with a JSON object:\n\n")
 	b.WriteString("```json\n")
 	b.WriteString(`{
-  "claim_id": "string",
-  "result": "proven|unproven|sorry",
-  "bullets": [
+  "result": "proven|unproven",
+  "issues": [
     {
-      "path": "string",
-      "status": "ok|trivial|needs_split|needs_claim|contradicts|sorry",
-      "required_claims": ["string"],
-      "suggested_rewrite": ["string"]
+      "title": "Short issue title",
+      "description": "Explanation of the problem"
     }
   ],
-  "counterexample": "string"
+  "interpretation_narrowed": true|false
 }
 `)
 	b.WriteString("```\n\n")
-	b.WriteString("IMPORTANT: The `path` field in each bullet verdict MUST be the exact bullet path from the claim below.\n")
-	b.WriteString("Bullet paths are simple strings like \"0\", \"1\", \"0.0\", \"1.2\", etc.\n")
-	b.WriteString("Do NOT add file names, line numbers, or any other prefixes to the path.\n")
-	b.WriteString("Example: If the bullet is \"- 0: text\", use path=\"0\", NOT \"file.go:0\" or \"[0]\" or anything else.\n\n")
 
-	// Rules
-	//
-	// @claim[prompt-enforces-all-rules]: The prompt explicitly states all validation rules to the LLM
-	// - Rule 1: Don't say "proven" unless every bullet is acceptable (line 74)
-	// - Rule 2: Define what makes a bullet acceptable (line 75)
-	//   - Trivial, supported by nested bullets, depends on other claims, or is @sorry
-	// - Rule 3: Bullets with @claim[id] must list that ID in required_claims (line 76)
-	// - Rule 4: Bullets with @claim[id] cannot be marked as trivial (line 77)
-	// - Rule 5: Any @sorry bullet prevents "proven" result (line 78)
-	// - Rule 6: Default to "unproven" when uncertain (line 79)
-	// - Rule 7: Every bullet must get exactly one verdict (line 80)
-	// - Rule 8: Use exact bullet paths without modification (line 81)
-	// - All these rules are also enforced programmatically in enforcePostRules
-	b.WriteString("# Rules\n\n")
-	b.WriteString("1. Do NOT say \"proven\" unless every bullet is acceptable\n")
-	b.WriteString("2. A bullet is acceptable if it is trivial, supported by nested bullets, depends on other claims, or is @sorry\n")
-	b.WriteString("3. If a bullet contains @claim[id], you MUST list that ID in required_claims for that bullet\n")
-	b.WriteString("4. If a bullet contains @claim[id], do NOT mark it as trivial - it depends on another claim\n")
-	b.WriteString("5. If ANY bullet is exactly @sorry, the overall result MUST NOT be \"proven\"\n")
-	b.WriteString("6. If unsure, return \"unproven\" with either a counterexample or list of missing cases\n")
-	b.WriteString("7. Every bullet path must have exactly one verdict entry in the bullets array\n")
-	b.WriteString("8. Use the EXACT bullet path strings shown below - do not modify them\n")
-	b.WriteString("\n")
+	b.WriteString("## Result Values\n\n")
+	b.WriteString("- **proven**: The proof justifies the claim. The reasoning is sound.\n")
+	b.WriteString("- **unproven**: The proof has gaps, errors, or doesn't establish the claim.\n\n")
 
-	// Target claim
-	b.WriteString("# Target Claim to Check\n\n")
-	b.WriteString(formatClaim(claim, anonymizeFiles))
-	b.WriteString("\n")
+	b.WriteString("## Issues Format\n\n")
+	b.WriteString("When result is 'unproven', provide a list of issues:\n")
+	b.WriteString("- **title**: Short phrase (3-6 words) identifying the problem\n")
+	b.WriteString("- **description**: One sentence explaining the issue\n\n")
+	b.WriteString("When result is 'proven', provide an empty issues array.\n\n")
 
-	// Referenced claims
-	if len(referencedClaims) > 0 {
-		b.WriteString("# Referenced Claims\n\n")
-		b.WriteString("These claims are referenced by the target claim:\n\n")
-		for _, refClaim := range referencedClaims {
-			b.WriteString(formatClaim(refClaim, anonymizeFiles))
-			b.WriteString("\n")
-		}
+	b.WriteString("## Interpretation Narrowed\n\n")
+	b.WriteString("Set `interpretation_narrowed` to **true** if the provided context changes or narrows\n")
+	b.WriteString("how the claim should be interpreted (e.g., an ambiguous 'the function' becomes specific).\n")
+	b.WriteString("Set to **false** if the claim is unambiguous on its own and context only provides evidence.\n\n")
+
+	// Verification guidance
+	b.WriteString("# Verification\n\n")
+	b.WriteString("When a proof claims something was verified by a search (grep, find, etc.):\n")
+	b.WriteString("1. If the Verified Context section contains the search results, **use those results directly**\n")
+	b.WriteString("2. If no context is provided for that search, run it yourself to verify\n")
+	b.WriteString("3. If you find different results than claimed, mark as unproven and explain\n")
+	b.WriteString("4. If the search methodology is unclear and no context provided, mark as unproven\n\n")
+
+	// The claim
+	b.WriteString("# Claim to Verify\n\n")
+	fmt.Fprintf(&b, "@claim[%s]: %s\n\n", claim.ID, claim.Statement)
+
+	// Context (if provided via @context block)
+	if resolvedContext != "" {
+		b.WriteString("# Verified Context (treat as ground truth)\n\n")
+		b.WriteString("The following was gathered by a trusted verification process immediately before this check.\n")
+		b.WriteString("**Treat these results as factual evidence. Do NOT re-run these searches or verifications.**\n")
+		b.WriteString("Just as you assume axioms are true, assume this context is accurate and fresh.\n\n")
+		b.WriteString("Use this context ONLY for evidence verification, NOT to narrow the claim's interpretation.\n")
+		b.WriteString("If the claim is ambiguous without this context, mark as unproven with an 'Ambiguous claim' issue.\n\n")
+		b.WriteString(resolvedContext)
+		b.WriteString("\n\n")
 	}
+
+	// Proven lemmas (referenced claims)
+	if len(axioms) > 0 {
+		b.WriteString("# Proven Lemmas (verified in previous passes)\n\n")
+		b.WriteString("These lemmas have already been verified. Use them as established facts:\n\n")
+		for id, statement := range axioms {
+			fmt.Fprintf(&b, "- **%s**: %s\n", id, statement)
+		}
+		b.WriteString("\n")
+	}
+
+	// The proof
+	b.WriteString("# Proof\n\n")
+	b.WriteString(claim.Proof)
+	b.WriteString("\n\n")
+
+	// Task
+	b.WriteString("# Task\n\n")
+	b.WriteString("Does this proof justify the claim?\n\n")
+	b.WriteString("Consider:\n")
+	b.WriteString("1. Does the proof use the axioms correctly?\n")
+	b.WriteString("2. Are all logical steps valid?\n")
+	b.WriteString("3. Are there gaps in the reasoning?\n")
+	b.WriteString("4. Does the conclusion follow from the premises?\n")
 
 	return b.String()
-}
-
-// formatClaim renders a claim with its bullets and paths
-func formatClaim(claim parse.Claim, anonymizeFiles bool) string {
-	var b strings.Builder
-
-	fmt.Fprintf(&b, "@claim[%s]", claim.ID)
-	if len(claim.Tags) > 0 {
-		for _, tag := range claim.Tags {
-			fmt.Fprintf(&b, " @%s", tag)
-		}
-	}
-	fmt.Fprintf(&b, ": %s\n", claim.Statement)
-
-	// Optionally anonymize filename to prevent Claude from cheating
-	if anonymizeFiles {
-		fmt.Fprintf(&b, "Location: <source>:%d\n\n", claim.Line)
-	} else {
-		fmt.Fprintf(&b, "Location: %s:%d\n\n", claim.File, claim.Line)
-	}
-
-	// Include source code context
-	if claim.SourceBefore != "" || claim.SourceAfter != "" {
-		b.WriteString("Source context:\n```\n")
-		if claim.SourceBefore != "" {
-			b.WriteString(claim.SourceBefore)
-			b.WriteString("\n")
-		}
-		b.WriteString("// ... @claim header and bullets here ...\n")
-		if claim.SourceAfter != "" {
-			b.WriteString(claim.SourceAfter)
-			b.WriteString("\n")
-		}
-		b.WriteString("```\n\n")
-	}
-
-	formatBullets(&b, claim.Bullets, 0)
-
-	return b.String()
-}
-
-// formatBullets recursively formats bullets with their paths
-func formatBullets(b *strings.Builder, bullets []parse.Bullet, indent int) {
-	for _, bullet := range bullets {
-		// Indentation
-		for i := 0; i < indent; i++ {
-			b.WriteString("  ")
-		}
-
-		// Bullet with path (use format "path: text" not "[path] text" to avoid confusion)
-		fmt.Fprintf(b, "- %s: %s\n", bullet.Path, bullet.Text)
-
-		// Recursively format children
-		if len(bullet.Children) > 0 {
-			formatBullets(b, bullet.Children, indent+1)
-		}
-	}
 }

@@ -57,13 +57,13 @@ This is an explicit authorization to spend up to $100 per session on Claude API 
 
 **Post-rule enforcement**: Code validates Claude's output, doesn't blindly trust it
 - Every bullet must have a verdict
-- Bullets with `@claim[ref]` must list ref in `required_claims`
-- Any `@sorry` bullet prevents "proven" result
+ - Bullets with `@claim[ref]` must list ref in `required_claims`
+ - Any `@later` bullet causes exit code 2 (proven but has deferred work)
 
 ## Testing Strategy
 
 ### Unit Tests
-- Parser tests verify claim/lens extraction, nesting, @sorry detection
+- Parser tests verify claim/lens extraction, nesting, @later detection
 - Run with: `go test ./...`
 
 ### Integration Tests
@@ -85,7 +85,7 @@ This is an explicit authorization to spend up to $100 per session on Claude API 
 
 ### Golden Suite
 - 9 deliberately flawed fixtures in `fixtures/`
-- All should return "unproven" or "sorry", never "proven"
+- All should return "unproven", never "proven"
 - Run with: `claim golden --root fixtures`
 - **Will make 9 Claude API calls** - this is expected
 

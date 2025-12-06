@@ -3,8 +3,9 @@ package t4
 import "errors"
 
 // @claim[t4]: abc can't panic due to send-on-closed-channel
-// - on error we stop all senders before closing
-// - close happens only after senders exit
+// @proof[t4]:
+// On error we stop all senders before closing.
+// Close happens only after senders exit.
 
 func abc(fail bool) error {
 	ch := make(chan int)

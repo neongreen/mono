@@ -4,55 +4,67 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/neongreen/mono/claim/internal/check"
+	claimcontext "github.com/neongreen/mono/claim/internal/context"
 	"github.com/neongreen/mono/claim/internal/index"
 	"github.com/neongreen/mono/claim/internal/runner"
 	"github.com/neongreen/mono/claim/internal/scan"
 )
 
 var (
-	checkRoot        string
-	checkLensFile    string
-	checkMaxRefDepth int
-	checkDebugPrompt bool
-	checkLLM         string
-	checkAll         bool
+	checkRoot         string
+	checkLensFile     string
+	checkDebugPrompt  bool
+	checkLLM          string
+	checkAll          bool
+	checkContextModel string
 )
 
 var checkCmd = &cobra.Command{
-	Use:   "check --claim <id> OR check --all",
+	Use:   "check <claim-id> OR check --all",
 	Short: "Check a specific claim or all claims using Claude",
-	Long: `Checks whether a claim is properly proven by its bullets.
+	Long: `Checks whether a claim is properly proven by its @proof block.
 Uses Claude with structured output to verify the claim.
 
-Use --claim to check a single claim, or --all to check all claims in the directory.`,
-	RunE: runCheck,
+Examples:
+  claim check my-claim-id    # Check a specific claim
+  claim check --all          # Check all claims`,
+	Args:         cobra.MaximumNArgs(1),
+	RunE:         runCheck,
+	SilenceUsage: true,
 }
 
 func init() {
 	checkCmd.Flags().StringVar(&checkRoot, "root", ".", "Root directory to scan")
 	checkCmd.Flags().StringVar(&checkLensFile, "lens-file", "", "Additional lens file to load")
-	checkCmd.Flags().IntVar(&checkMaxRefDepth, "max-ref-depth", 3, "Maximum depth for referenced claims")
 	checkCmd.Flags().BoolVar(&checkDebugPrompt, "debug-prompt", false, "Print the prompt sent to Claude")
 	checkCmd.Flags().StringVar(&checkLLM, "llm", "claude", "LLM to use (claude or codex)")
-	checkCmd.Flags().String("claim", "", "Claim ID to check")
 	checkCmd.Flags().BoolVar(&checkAll, "all", false, "Check all claims")
+	checkCmd.Flags().StringVar(&checkContextModel, "context-model", "haiku", "Model for @context resolution (default: haiku)")
 	RootCmd.AddCommand(checkCmd)
 }
 
 func runCheck(cmd *cobra.Command, args []string) error {
-	claimID, _ := cmd.Flags().GetString("claim")
+	var claimID string
+
+	// Handle positional argument
+	if len(args) > 0 {
+		claimID = args[0]
+	}
 
 	// Validate flags
 	if !checkAll && claimID == "" {
-		return fmt.Errorf("either --claim or --all must be specified")
+		return fmt.Errorf("specify a claim ID or use --all")
 	}
 	if checkAll && claimID != "" {
-		return fmt.Errorf("cannot specify both --claim and --all")
+		return fmt.Errorf("cannot specify both a claim ID and --all")
 	}
 
 	// Scan files
@@ -90,6 +102,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		r = &runner.ClaudeRunner{
 			Command: command,
 			Verbose: debugFlag,
+			WorkDir: checkRoot,
 		}
 	case "codex":
 		command := os.Getenv("CLAIM_CODEX_CMD")
@@ -99,10 +112,13 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		r = &runner.CodexRunner{
 			Command: command,
 			Verbose: debugFlag,
+			WorkDir: checkRoot,
 		}
 	default:
 		return fmt.Errorf("unknown LLM: %s (must be 'claude' or 'codex')", checkLLM)
 	}
+
+	ctx := context.Background()
 
 	// Get list of claims to check
 	var claimIDs []string
@@ -115,9 +131,18 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		claimIDs = []string{claimID}
 	}
 
-	ctx := context.Background()
 	hasFailures := false
-	var lastResult *runner.ClaimResult
+	var lastResult string
+
+	// Create artifacts directory
+	timestamp := time.Now().Format("20060102-150405")
+	artifactsDir := filepath.Join("/tmp", "claim-artifacts", timestamp)
+	if err := os.MkdirAll(artifactsDir, 0755); err != nil {
+		return fmt.Errorf("failed to create artifacts dir: %w", err)
+	}
+
+	labelStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+	fmt.Printf("%s %s\n\n", labelStyle.Render("Artifacts:"), artifactsDir)
 
 	// Check each claim
 	for i, id := range claimIDs {
@@ -125,54 +150,49 @@ func runCheck(cmd *cobra.Command, args []string) error {
 			fmt.Println("\n" + strings.Repeat("=", 80) + "\n")
 		}
 
-		// Run check
-		result, err := check.Check(ctx, idx, lenses, id, checkMaxRefDepth, checkDebugPrompt, false, r)
+		// Create context resolver
+		contextResolver := &claimcontext.Resolver{
+			Command: "claude",
+			Model:   checkContextModel,
+			WorkDir: checkRoot,
+		}
+
+		opts := check.CheckProofOptions{
+			DebugPrompt:     checkDebugPrompt,
+			ProgressWriter:  os.Stdout,
+			ContextResolver: contextResolver,
+			ArtifactsDir:    artifactsDir,
+		}
+
+		result, err := check.CheckProof(ctx, idx, lenses, id, r, opts)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error checking claim %s: %v\n", id, err)
+			fmt.Fprintf(os.Stderr, "\n%s %s\n",
+				lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render("Error:"),
+				err.Error())
+			if !checkAll {
+				os.Exit(1)
+			}
 			hasFailures = true
 			continue
 		}
 
-		// Get the claim for display
-		claim, _ := idx.GetClaim(id)
-
-		// Print report
-		check.PrintReport(os.Stdout, claim, result)
-
-		// Track failures for --all
 		if result.Result != "proven" {
 			hasFailures = true
 		}
-		
-		// Remember last result for single-claim mode
-		lastResult = result
+		lastResult = result.Result
 	}
 
 	// Exit based on results
 	if checkAll {
 		if hasFailures {
-			return fmt.Errorf("some claims need improvement")
+			return fmt.Errorf("some claims failed verification")
 		}
 		return nil
 	}
 
-	// Single claim exit logic
-	//
-	// @claim[exit-codes-match-semantics]: Exit codes reflect whether the claim is proven or not
-	// - Exit code 0 means success: the claim was proven
-	// - Exit code 1 means failure: the claim is unproven or sorry
-	//   - Unproven means the bullets don't prove the claim
-	//   - Sorry means the claim contains @sorry bullets (accepted without proof)
-	// - Exit code 1 also covers tool errors like unexpected result values
-	// - This matches standard Unix convention: 0 = success, non-zero = failure
-	switch lastResult.Result {
-	case "proven":
-		// Exit 0 for proven (success)
-		return nil
-	case "unproven", "sorry":
-		// Exit 1 for unproven/sorry (needs work)
-		return fmt.Errorf("claim %s is %s - needs improvement", claimID, lastResult.Result)
-	default:
-		return fmt.Errorf("unexpected result: %s", lastResult.Result)
+	// Single claim exit
+	if lastResult == "unproven" {
+		os.Exit(1)
 	}
+	return nil
 }

@@ -1,6 +1,7 @@
 // @claim[t7]: parseConfig can't throw
-// - errors are returned as Result
-// - unreachable branches are not taken
+// @proof[t7]:
+// Errors are returned as Result.
+// Unreachable branches are not taken.
 
 type Result<T> = { ok: true; value: T } | { ok: false; err: string }
 
