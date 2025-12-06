@@ -152,6 +152,22 @@ func parseBullets(lines []string, startLine int, filename string) ([]Bullet, int
 }
 
 // buildBulletTree converts flat list with indentation into nested structure
+//
+// @claim[nested-bullets-reflect-indentation]: Bullets are nested exactly according to indentation levels
+// - buildBulletTree processes bullets sequentially, never reordering (loop at line 167)
+// - For each bullet at position i, children are all subsequent bullets with greater indent (lines 178-182)
+//   - childEnd loop advances while raw[childEnd].indent > current.indent
+//   - This captures exactly the bullets more indented than current
+// - Bullets with equal indent to current become siblings (line 190: i = childEnd jumps to next sibling)
+//   - When raw[childEnd].indent <= current.indent, the loop exits
+//   - Next iteration of outer loop processes this equal-indent bullet
+// - Bullets with lesser indent terminate the current nesting level (line 180 condition fails, recursion returns)
+//   - When recursing with raw[childStart:childEnd], we only pass children
+//   - Return to parent level happens implicitly via slice boundary
+// - Indentation is measured in parseBullets before buildBulletTree is called (lines 127-133 in parseBullets)
+//   - stripped = stripCommentLeader(line) removes comment prefix
+//   - trimmed = strings.TrimLeft(stripped, " \t") removes leading whitespace
+//   - indent = len(stripped) - len(trimmed) gives exact space count
 func buildBulletTree(raw []struct {
 	text   string
 	indent int

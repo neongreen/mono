@@ -70,6 +70,18 @@ func Build(
 	b.WriteString("Example: If the bullet is \"- 0: text\", use path=\"0\", NOT \"file.go:0\" or \"[0]\" or anything else.\n\n")
 
 	// Rules
+	//
+	// @claim[prompt-enforces-all-rules]: The prompt explicitly states all validation rules to the LLM
+	// - Rule 1: Don't say "proven" unless every bullet is acceptable (line 74)
+	// - Rule 2: Define what makes a bullet acceptable (line 75)
+	//   - Trivial, supported by nested bullets, depends on other claims, or is @sorry
+	// - Rule 3: Bullets with @claim[id] must list that ID in required_claims (line 76)
+	// - Rule 4: Bullets with @claim[id] cannot be marked as trivial (line 77)
+	// - Rule 5: Any @sorry bullet prevents "proven" result (line 78)
+	// - Rule 6: Default to "unproven" when uncertain (line 79)
+	// - Rule 7: Every bullet must get exactly one verdict (line 80)
+	// - Rule 8: Use exact bullet paths without modification (line 81)
+	// - All these rules are also enforced programmatically in enforcePostRules
 	b.WriteString("# Rules\n\n")
 	b.WriteString("1. Do NOT say \"proven\" unless every bullet is acceptable\n")
 	b.WriteString("2. A bullet is acceptable if it is trivial, supported by nested bullets, depends on other claims, or is @sorry\n")
