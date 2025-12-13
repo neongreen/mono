@@ -1,0 +1,9 @@
+version: "1"
+
+before_init:
+  - |
+    mkdir -p /mnt/workspace/.kube
+    echo "$SPACELIFT_SSH_KEY" > /tmp/ssh_key
+    chmod 600 /tmp/ssh_key
+    ssh -o StrictHostKeyChecking=no -i /tmp/ssh_key emily@$MONO_SERVER_IP 'sudo cat /etc/rancher/k3s/k3s.yaml' | sed "s/127.0.0.1/$MONO_SERVER_IP/" > /mnt/workspace/.kube/config
+    rm /tmp/ssh_key

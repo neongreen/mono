@@ -84,6 +84,11 @@ resource "hcloud_ssh_key" "laptop" {
   public_key = file("${path.module}/ssh_key_laptop.pub")
 }
 
+resource "hcloud_ssh_key" "spacelift" {
+  name       = "spacelift"
+  public_key = file("${path.module}/ssh_key_spacelift.pub")
+}
+
 # Remove old VMs from state without destroying
 removed {
   from = hcloud_server.vm1
@@ -133,7 +138,7 @@ resource "hcloud_server" "mono" {
   image       = data.hcloud_image.ubuntu_2404.name
   server_type = data.hcloud_server_type.cx53.name
   location    = data.hcloud_location.hel1.name
-  ssh_keys    = [hcloud_ssh_key.workstation.id, hcloud_ssh_key.laptop.id]
+  ssh_keys    = [hcloud_ssh_key.workstation.id, hcloud_ssh_key.laptop.id, hcloud_ssh_key.spacelift.id]
 
   user_data = <<-CLOUDCFG
   #cloud-config

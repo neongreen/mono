@@ -1,0 +1,34 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.12.0/deploy/static/provider/baremetal/deploy.yaml
+
+patches:
+  # Use hostNetwork so ingress binds to node's 80/443 directly
+  # This avoids needing NodePort or LoadBalancer
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/hostNetwork
+        value: true
+      - op: add
+        path: /spec/template/spec/dnsPolicy
+        value: ClusterFirstWithHostNet
+    target:
+      kind: Deployment
+      name: ingress-nginx-controller
+      namespace: ingress-nginx
+
+  # Change service to ClusterIP since we use hostNetwork
+  - patch: |-
+      - op: replace
+        path: /spec/type
+        value: ClusterIP
+      - op: remove
+        path: /spec/ports/0/nodePort
+      - op: remove
+        path: /spec/ports/1/nodePort
+    target:
+      kind: Service
+      name: ingress-nginx-controller
+      namespace: ingress-nginx

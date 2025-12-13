@@ -1007,7 +1007,7 @@ dir = "cloud"
 quiet = true
 run = '''
 set -euo pipefail
-mise run cloud:kubectl apply -f k8s/gvisor/runtimeclass.yaml
+mise run cloud:kubectl apply -f k8s/system/gvisor/runtimeclass.yaml
 '''
 
 [tasks."cloud:dagger:deploy"]
@@ -1019,7 +1019,7 @@ set -euo pipefail
 # Ensure gVisor RuntimeClass exists
 mise run cloud:gvisor:deploy
 # Deploy Dagger Engine
-mise run cloud:kubectl apply -f k8s/dagger/deployment.yaml
+mise run cloud:kubectl apply -f k8s/apps/dagger/deployment.yaml
 mise run cloud:kubectl wait --for=condition=available --timeout=300s deployment/dagger-engine -n dagger
 '''
 
@@ -1052,7 +1052,7 @@ set -euo pipefail
 # Ensure gVisor RuntimeClass exists
 mise run cloud:gvisor:deploy
 # Deploy n8n (applies all manifests in order)
-mise run cloud:kubectl apply -f k8s/n8n/namespace.yaml
+mise run cloud:kubectl apply -f k8s/apps/n8n/namespace.yaml
 
 # Create secret from fnox-managed passwords
 fnox exec -- bash -c "cat <<EOF | kubectl apply -f -
@@ -1071,16 +1071,16 @@ stringData:
 EOF
 "
 
-mise run cloud:kubectl apply -f k8s/n8n/postgres-configmap.yaml
-mise run cloud:kubectl apply -f k8s/n8n/postgres-pvc.yaml
-mise run cloud:kubectl apply -f k8s/n8n/n8n-pvc.yaml
-mise run cloud:kubectl apply -f k8s/n8n/postgres-deployment.yaml
-mise run cloud:kubectl apply -f k8s/n8n/postgres-service.yaml
+mise run cloud:kubectl apply -f k8s/apps/n8n/postgres-configmap.yaml
+mise run cloud:kubectl apply -f k8s/apps/n8n/postgres-pvc.yaml
+mise run cloud:kubectl apply -f k8s/apps/n8n/n8n-pvc.yaml
+mise run cloud:kubectl apply -f k8s/apps/n8n/postgres-deployment.yaml
+mise run cloud:kubectl apply -f k8s/apps/n8n/postgres-service.yaml
 echo "Waiting for PostgreSQL to be ready..."
 mise run cloud:kubectl wait --for=condition=ready pod -l service=postgres-n8n -n n8n --timeout=120s
-mise run cloud:kubectl apply -f k8s/n8n/n8n-deployment.yaml
-mise run cloud:kubectl apply -f k8s/n8n/n8n-service.yaml
-mise run cloud:kubectl apply -f k8s/n8n/network-policy.yaml
+mise run cloud:kubectl apply -f k8s/apps/n8n/n8n-deployment.yaml
+mise run cloud:kubectl apply -f k8s/apps/n8n/n8n-service.yaml
+mise run cloud:kubectl apply -f k8s/apps/n8n/network-policy.yaml
 echo "Waiting for n8n to be ready..."
 mise run cloud:kubectl wait --for=condition=ready pod -l service=n8n -n n8n --timeout=120s
 echo ""

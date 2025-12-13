@@ -1,85 +1,67 @@
 # Kubernetes Manifests
 
-This directory contains Kubernetes manifests for deploying applications to the k3s cluster.
-
-## Deployment Philosophy
-
-**Infrastructure vs Applications:**
-- **Infrastructure** (VMs, networks, k3s): Managed by OpenTofu/Spacelift, auto-deploys on git push
-- **Applications** (Kubernetes resources): Manual deployment via `kubectl apply`
-
-This separation keeps infrastructure automated while giving explicit control over application deployments.
+This directory contains Kubernetes manifests for deploying to the k3s cluster.
 
 ## Structure
 
-- `gvisor/` - gVisor runtime configuration
-  - `runtimeclass.yaml` - RuntimeClass for gVisor-isolated pods
-- `dagger/` - Dagger Engine deployment
-  - `deployment.yaml` - Kubernetes manifests (Deployment, Service, PVC, Namespace)
-
-## Security: gVisor Runtime
-
-The cluster is configured with gVisor for enhanced container isolation:
-- Syscalls intercepted in userspace (not passed to kernel)
-- Suitable for running untrusted workloads
-- ~10-20% performance overhead vs regular containers
-- Deploy RuntimeClass: `mise run cloud:gvisor:deploy`
-
-Pods using gVisor set `runtimeClassName: gvisor` in their spec.
+```
+k8s/
+├── system/              # Cluster infrastructure (deployed first)
+│   ├── gvisor/          # RuntimeClass for container isolation
+│   ├── network-policies/ # Default-deny policies
+│   ├── ingress-nginx/   # Ingress controller
+│   └── cert-manager/    # TLS certificate automation
+│
+└── apps/                # User applications
+    ├── dagger/          # CI/CD engine
+    ├── n8n/             # Workflow automation
+    ├── onyx/            # AI platform
+    ├── coder/           # Remote dev environments
+    └── sample-apps/     # Test apps
+```
 
 ## Deployment
 
-### Dagger Engine
+**Kubernetes manifests auto-deploy via Spacelift** when you push to main.
 
-Deploy Dagger Engine (with gVisor):
+Spacelift has two stacks:
+1. `mono/cloud` - Terraform (VMs, networks, DNS)
+2. `mono/k8s` - Kubernetes manifests (this directory)
+
+The k8s stack depends on the cloud stack, so infrastructure is always ready before apps deploy.
+
+### Deployment Order
+
+Spacelift applies manifests in this order:
+1. `system/` - Cluster essentials (gvisor, ingress, cert-manager)
+2. `apps/` - Applications
+
+### Manual Deployment (if needed)
+
 ```bash
-mise run cloud:dagger:deploy
+# Deploy everything
+mise run cloud:k8s:deploy
+
+# Deploy specific app
+mise run cloud:kubectl apply -f k8s/apps/dagger/
 ```
 
-Check status:
-```bash
-mise run cloud:dagger:status
-```
+## Security
 
-View logs:
-```bash
-mise run cloud:dagger:logs
-```
+### gVisor Runtime
 
-Delete deployment:
-```bash
-mise run cloud:kubectl delete -f k8s/dagger/deployment.yaml
-```
+Container isolation via gVisor:
+- Syscalls intercepted in userspace
+- Use `runtimeClassName: gvisor` in pod specs
+- ~10-20% performance overhead
 
-## Workflow
+### Network Policies
 
-1. **Modify manifests** in `cloud/k8s/`
-2. **Commit and push** to git
-3. **Wait for Spacelift** to apply infrastructure changes (if any)
-4. **Manually deploy** Kubernetes resources:
-   ```bash
-   mise run cloud:dagger:deploy
-   # or
-   mise run cloud:kubectl apply -f k8s/dagger/deployment.yaml
-   ```
-
-## Why Manual Deployment?
-
-Kubernetes resources are deployed manually (not via Spacelift) because:
-- **Explicit control**: You decide when applications are deployed
-- **Simpler setup**: No need for GitOps tools (ArgoCD/Flux) or Terraform Kubernetes provider
-- **Clear separation**: Infrastructure changes (VM recreation) are separate from app deployments
-
-To make deployments automatic, you would need:
-- **Option A**: Terraform Kubernetes provider in Spacelift (couples infrastructure and apps)
-- **Option B**: GitOps (ArgoCD/Flux) - watches git, auto-applies manifests
-- **Current**: Manual via `mise run cloud:kubectl` tasks (simple, explicit)
+Default-deny policies in `system/network-policies/`. Each app namespace should have explicit allow rules.
 
 ## Notes
 
-- All deployments use the kubeconfig from `cloud/kubeconfig` (automatically set via `cloud:kubectl` task)
-- Manifests are version-controlled and declarative
-- Namespaces are created automatically via manifests
-- Storage uses `local-path` storage class (comes with k3s)
-- gVisor runtime is installed via cloud-init and configured in containerd
-
+- Kubeconfig: `cloud/kubeconfig` (fetched via `mise run cloud:kubeconfig`)
+- Storage: `local-path` storage class (k3s default)
+- TLS: cert-manager with Let's Encrypt
+- Ingress: nginx-ingress-controller
