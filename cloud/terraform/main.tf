@@ -163,118 +163,6 @@ resource "hcloud_firewall_attachment" "vm1" {
   server_ids  = [hcloud_server.vm1.id]
 }
 
-# Server: VM2 for Onyx workloads (k3s agent node)
-resource "hcloud_server" "vm2" {
-  name        = "vm2-onyx"
-  image       = data.hcloud_image.ubuntu_2404.name
-  server_type = data.hcloud_server_type.cpx51.name
-  location    = data.hcloud_location.nbg1.name
-  ssh_keys    = [hcloud_ssh_key.workstation.id]
-
-  # Depends on vm1 being created first
-  depends_on = [hcloud_server.vm1]
-
-  # Cloud-init: joins the k3s cluster as an agent node
-  user_data = <<-CLOUDCFG
-  #cloud-config
-  hostname: vm2-onyx
-  package_update: true
-  package_upgrade: true
-
-  users:
-    - name: emily
-      groups: sudo
-      shell: /bin/bash
-      sudo: ['ALL=(ALL) NOPASSWD:ALL']
-      ssh_authorized_keys:
-        - ${file("${path.module}/ssh_key.pub")}
-
-  ssh_pwauth: false
-
-  runcmd:
-    # Install gVisor (runsc runtime for enhanced container isolation)
-    - |
-      set -e
-      apt-get update
-      apt-get install -y apt-transport-https ca-certificates curl gnupg
-      curl -fsSL https://gvisor.dev/archive.key | gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
-      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" > /etc/apt/sources.list.d/gvisor.list
-      apt-get update
-      apt-get install -y runsc
-
-    # Wait for vm1 to be ready and get k3s token
-    - |
-      set -e
-      echo "Waiting for vm1 k3s server to be ready..."
-
-      # Wait for vm1 to be accessible and k3s to be running
-      VM1_IP="${hcloud_server.vm1.ipv4_address}"
-      for i in {1..60}; do
-        if timeout 5 bash -c "echo > /dev/tcp/$VM1_IP/6443" 2>/dev/null; then
-          echo "vm1 k3s server is ready"
-          break
-        fi
-        echo "Waiting for vm1... ($i/60)"
-        sleep 10
-      done
-
-      # Get k3s token from vm1 via SSH
-      echo "Fetching k3s token from vm1..."
-      K3S_TOKEN=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-        emily@$VM1_IP \
-        'sudo cat /var/lib/rancher/k3s/server/node-token' 2>/dev/null || echo "")
-
-      if [ -z "$K3S_TOKEN" ]; then
-        echo "ERROR: Failed to get k3s token from vm1"
-        exit 1
-      fi
-
-      # Join k3s cluster as an agent
-      echo "Joining k3s cluster..."
-      curl -sfL https://get.k3s.io | K3S_URL=https://$VM1_IP:6443 K3S_TOKEN=$K3S_TOKEN sh -s -
-
-      # Configure containerd for gVisor
-      mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
-
-      # Create config for containerd 1.7
-      cat > /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl << 'EOF'
-      {{ template "base" . }}
-
-      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
-        runtime_type = "io.containerd.runsc.v1"
-      EOF
-
-      # Create config for containerd 2.0
-      cat > /var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.tmpl << 'EOF'
-      {{ template "base" . }}
-
-      [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]
-        runtime_type = "io.containerd.runsc.v1"
-      EOF
-
-      systemctl restart k3s-agent
-
-      # Label this node for Onyx workloads
-      # Note: This runs on vm1 since kubectl is there
-      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-        emily@$VM1_IP \
-        "sudo kubectl label node vm2-onyx workload=onyx --overwrite" || echo "Failed to label node, will retry manually"
-
-      echo "vm2-onyx successfully joined k3s cluster"
-  CLOUDCFG
-}
-
-# Network attachment: connect vm2 to private network
-resource "hcloud_server_network" "vm2" {
-  server_id  = hcloud_server.vm2.id
-  network_id = hcloud_network.main.id
-}
-
-# Firewall attachment: apply firewall rules to vm2
-resource "hcloud_firewall_attachment" "vm2" {
-  firewall_id = hcloud_firewall.default.id
-  server_ids  = [hcloud_server.vm2.id]
-}
 
 # Server: VM3 for Coder workspaces (k3s agent node)
 resource "hcloud_server" "vm3" {
@@ -360,10 +248,10 @@ resource "hcloud_server" "vm3" {
 
       systemctl restart k3s-agent
 
-      # Label node for Coder workloads
+      # Label node for workloads (onyx uses workload=onyx selector)
       ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
         emily@$VM1_IP \
-        "sudo kubectl label node vm3-coder workload=coder --overwrite" || echo "Failed to label node, will retry manually"
+        "sudo kubectl label node vm3-coder workload=onyx --overwrite" || echo "Failed to label node, will retry manually"
 
       echo "vm3-coder successfully joined k3s cluster"
   CLOUDCFG
