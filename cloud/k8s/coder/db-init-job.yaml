@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: coder-db-init
+  namespace: coder
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata:
+      labels:
+        app: coder
+    spec:
+      restartPolicy: OnFailure
+      nodeSelector:
+        kubernetes.io/hostname: vm1
+      containers:
+        - name: init-db
+          image: postgres:16
+          env:
+            - name: PGHOST
+              value: "postgres-service.n8n.svc.cluster.local"
+            - name: PGPORT
+              value: "5432"
+            - name: PGUSER
+              value: "postgres"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: coder-secrets
+                  key: POSTGRES_ADMIN_PASSWORD
+            - name: CODER_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: coder-secrets
+                  key: POSTGRES_PASSWORD
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Creating coder database and user..."
+
+              # Create database if it doesn't exist
+              psql -tc "SELECT 1 FROM pg_database WHERE datname = 'coder'" | grep -q 1 || \
+                psql -c "CREATE DATABASE coder;"
+
+              # Create user if it doesn't exist
+              psql -tc "SELECT 1 FROM pg_roles WHERE rolname = 'coder'" | grep -q 1 || \
+                psql -c "CREATE USER coder WITH PASSWORD '${CODER_PG_PASSWORD}';"
+
+              # Update password in case it changed
+              psql -c "ALTER USER coder WITH PASSWORD '${CODER_PG_PASSWORD}';"
+
+              # Grant privileges
+              psql -c "GRANT ALL PRIVILEGES ON DATABASE coder TO coder;"
+              psql -d coder -c "GRANT ALL ON SCHEMA public TO coder;"
+
+              echo "Database setup complete!"

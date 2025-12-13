@@ -40,17 +40,34 @@ metadata:
   name: postgres-network-policy
   namespace: n8n
 spec:
-  # Allow postgres to receive connections only from n8n
+  # Allow postgres to receive connections from n8n, onyx, and coder namespaces
   podSelector:
     matchLabels:
       service: postgres-n8n
   policyTypes:
     - Ingress
   ingress:
+    # From n8n in same namespace
     - from:
         - podSelector:
             matchLabels:
               service: n8n
+      ports:
+        - protocol: TCP
+          port: 5432
+    # From onyx namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: onyx
+      ports:
+        - protocol: TCP
+          port: 5432
+    # From coder namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: coder
       ports:
         - protocol: TCP
           port: 5432

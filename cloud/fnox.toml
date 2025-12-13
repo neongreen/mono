@@ -1,17 +1,11 @@
-[providers.keychain]
-type = "keychain"
-service = "fnox"
+[providers.age]
+type = "age"
+recipients = [
+  "age1q8f03l7hmyrk3wazqddc40ucc7rtvugl527pp9lxahvl8rar5p2q2plg56", # macbook-pro
+]
 
 [secrets]
-SPACELIFT_API_KEY_ID= { provider = "keychain", value = "SPACELIFT_API_KEY_ID" }
-SPACELIFT_API_KEY_SECRET= { provider = "keychain", value = "SPACELIFT_API_KEY_SECRET" }
-SPACELIFT_API_KEY_ENDPOINT= { provider = "keychain", value = "SPACELIFT_API_KEY_ENDPOINT" }
-
-# n8n database passwords
-N8N_POSTGRES_ADMIN_PASSWORD= { provider = "keychain", value = "N8N_POSTGRES_ADMIN_PASSWORD" }
-N8N_POSTGRES_N8N_PASSWORD= { provider = "keychain", value = "N8N_POSTGRES_N8N_PASSWORD" }
-
-# Onyx secrets
-ONYX_POSTGRES_PASSWORD= { provider = "keychain", value = "ONYX_POSTGRES_PASSWORD" }
-ONYX_SECRET= { provider = "keychain", value = "ONYX_SECRET" }
-ONYX_MINIO_ROOT_PASSWORD= { provider = "keychain", value = "ONYX_MINIO_ROOT_PASSWORD" }
+# Cloud secrets (age-encrypted, safe to commit)
+N8N_POSTGRES_ADMIN_PASSWORD = { provider = "age", value = "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBNMjJSMkhFMzlsV2FQak9QZ3JVTDl4ei8xQlRvTUxkVjdzbHU0cU9RaUdnCnlnSkllRU56ZFRhRy9qa2JYdlo1Qm9mbXNmeW1LQkdtdG1ld2dheXNvZ00KLS0tIDJjSXBEemFMaktVWS9yQ3B5K2ZrVzVPS01RTUZ3S201WXhUU1JqRS9VQ0kKv8toDZcgaTuLGu6hP1KE3Hd/1GR2aSh9jTZWofAhCwGTMUuYeXTk/3C474Xccsgiapr2LKSOROFGIGYXc2b7NxBJHWMMwKQYNtBTvQ==" }
+N8N_POSTGRES_N8N_PASSWORD = { provider = "age", value = "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBHU05rRUt5RXVaQklzNG9WZmVzc21tK1pZYXVTNUtOUmJTK1ZKVXB1S0gwClU0MUJwNUg0Mk5oTkZkZGpBMlVKcjQ0RVBDVytsM2t5TVFuK1pmK2lyVncKLS0tIGZ5VjNZZ3RQaU9WSUwvL01NM05yYjhpK1NEVFUvK1V2UHM1a3REWktGM2MKCiwUnup3NKSsZPymK8HsHU2+pxc0rVkFASYk+bssYAQ3jKeyXN4iE4+44E9y0a7OOsmAEHssWLmdU5j52k2Rq39Dw7E+cgZsw4g5rA==" }
+CODER_POSTGRES_PASSWORD = { provider = "age", value = "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBZYURiL3FKQUtkM2Vab3hKeUdRdnU4WkNGelo0dUxNY0s3d25kM0RUK3hnCklOVjR3MFYwMEtDbjZ3Qmk1bGZIZktTanRjemp5eTloWDFKVVVLekNuVzgKLS0tIFp6ZjJJaUN5REcrMjBSbE80b0ZKcUZpRUtSQjdHcWRQVndDTTVFU2NmVTQKrPvXd5IfLmTA6Pbi2QoZXBsILCpd886HuKDBrnLX8DJB8+m4cl7TSa9mZdGoyJoR5oDFhGY3f0o=" }

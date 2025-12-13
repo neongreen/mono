@@ -7,6 +7,10 @@ data "hcloud_server_type" "cpx51" {
   name = "cpx51"
 }
 
+data "hcloud_server_type" "cx53" {
+  name = "cx53"
+}
+
 data "hcloud_image" "ubuntu_2404" {
   name = "ubuntu-24.04"
 }
@@ -272,4 +276,107 @@ resource "hcloud_firewall_attachment" "vm2" {
   server_ids  = [hcloud_server.vm2.id]
 }
 
+# Server: VM3 for Coder workspaces (k3s agent node)
+resource "hcloud_server" "vm3" {
+  name        = "vm3-coder"
+  image       = data.hcloud_image.ubuntu_2404.name
+  server_type = data.hcloud_server_type.cx53.name
+  location    = data.hcloud_location.nbg1.name
+  ssh_keys    = [hcloud_ssh_key.workstation.id]
 
+  depends_on = [hcloud_server.vm1]
+
+  user_data = <<-CLOUDCFG
+  #cloud-config
+  hostname: vm3-coder
+  package_update: true
+  package_upgrade: true
+
+  users:
+    - name: emily
+      groups: sudo
+      shell: /bin/bash
+      sudo: ['ALL=(ALL) NOPASSWD:ALL']
+      ssh_authorized_keys:
+        - ${file("${path.module}/ssh_key.pub")}
+
+  ssh_pwauth: false
+
+  runcmd:
+    # Install gVisor
+    - |
+      set -e
+      apt-get update
+      apt-get install -y apt-transport-https ca-certificates curl gnupg
+      curl -fsSL https://gvisor.dev/archive.key | gpg --dearmor -o /usr/share/keyrings/gvisor-archive-keyring.gpg
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/gvisor-archive-keyring.gpg] https://storage.googleapis.com/gvisor/releases release main" > /etc/apt/sources.list.d/gvisor.list
+      apt-get update
+      apt-get install -y runsc
+
+    # Join k3s cluster
+    - |
+      set -e
+      echo "Waiting for vm1 k3s server to be ready..."
+
+      VM1_IP="${hcloud_server.vm1.ipv4_address}"
+      for i in {1..60}; do
+        if timeout 5 bash -c "echo > /dev/tcp/$VM1_IP/6443" 2>/dev/null; then
+          echo "vm1 k3s server is ready"
+          break
+        fi
+        echo "Waiting for vm1... ($i/60)"
+        sleep 10
+      done
+
+      echo "Fetching k3s token from vm1..."
+      K3S_TOKEN=$(ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        emily@$VM1_IP \
+        'sudo cat /var/lib/rancher/k3s/server/node-token' 2>/dev/null || echo "")
+
+      if [ -z "$K3S_TOKEN" ]; then
+        echo "ERROR: Failed to get k3s token from vm1"
+        exit 1
+      fi
+
+      echo "Joining k3s cluster..."
+      curl -sfL https://get.k3s.io | K3S_URL=https://$VM1_IP:6443 K3S_TOKEN=$K3S_TOKEN sh -s -
+
+      # Configure containerd for gVisor
+      mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
+
+      cat > /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl << 'EOF'
+      {{ template "base" . }}
+
+      [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runsc]
+        runtime_type = "io.containerd.runsc.v1"
+      EOF
+
+      cat > /var/lib/rancher/k3s/agent/etc/containerd/config-v3.toml.tmpl << 'EOF'
+      {{ template "base" . }}
+
+      [plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]
+        runtime_type = "io.containerd.runsc.v1"
+      EOF
+
+      systemctl restart k3s-agent
+
+      # Label node for Coder workloads
+      ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        emily@$VM1_IP \
+        "sudo kubectl label node vm3-coder workload=coder --overwrite" || echo "Failed to label node, will retry manually"
+
+      echo "vm3-coder successfully joined k3s cluster"
+  CLOUDCFG
+}
+
+# Network attachment: connect vm3 to private network
+resource "hcloud_server_network" "vm3" {
+  server_id  = hcloud_server.vm3.id
+  network_id = hcloud_network.main.id
+}
+
+# Firewall attachment: apply firewall rules to vm3
+resource "hcloud_firewall_attachment" "vm3" {
+  firewall_id = hcloud_firewall.default.id
+  server_ids  = [hcloud_server.vm3.id]
+}

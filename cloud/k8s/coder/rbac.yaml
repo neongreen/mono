@@ -1,0 +1,53 @@
+---
+# Service account for Coder to provision workspaces in the cluster
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: coder
+  namespace: coder
+
+---
+# ClusterRole for Coder to manage workspaces (pods, services, etc.)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: coder-workspace-provisioner
+rules:
+  # Core resources for workspace pods
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/exec"]
+    verbs: ["create", "delete", "get", "list", "watch", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["create", "delete", "get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["create", "delete", "get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["create", "delete", "get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  # Deployments for workspace management
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["create", "delete", "get", "list", "watch", "update", "patch"]
+
+---
+# Bind the ClusterRole to Coder's service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: coder-workspace-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: coder
+    namespace: coder
+roleRef:
+  kind: ClusterRole
+  name: coder-workspace-provisioner
+  apiGroup: rbac.authorization.k8s.io

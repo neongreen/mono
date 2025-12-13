@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coder-config
+  namespace: coder
+data:
+  # Access URL
+  CODER_ACCESS_URL: "https://coder.cloud.artyom.me"
+  CODER_WILDCARD_ACCESS_URL: "*.coder.cloud.artyom.me"
+
+  # Database (reusing n8n's postgres)
+  CODER_PG_CONNECTION_URL: "postgres://coder:$(CODER_PG_PASSWORD)@postgres-service.n8n.svc.cluster.local:5432/coder?sslmode=disable"
+
+  # Telemetry
+  CODER_TELEMETRY_ENABLE: "false"
+
+  # HTTP settings
+  CODER_HTTP_ADDRESS: "0.0.0.0:7080"

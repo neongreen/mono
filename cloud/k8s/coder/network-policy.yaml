@@ -1,0 +1,82 @@
+---
+# Allow ingress from traefik ingress controller (for coder and cert-manager solver)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: coder
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+
+---
+# Allow access to n8n's postgres from coder namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-postgres
+  namespace: coder
+spec:
+  podSelector:
+    matchLabels:
+      app: coder
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: n8n
+        - podSelector:
+            matchLabels:
+              service: postgres-n8n
+      ports:
+        - protocol: TCP
+          port: 5432
+
+---
+# Allow external internet access (for downloading workspace images, OIDC, etc.)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-external
+  namespace: coder
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+
+---
+# Allow Coder to communicate with Kubernetes API (for provisioning workspaces)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-k8s-api
+  namespace: coder
+spec:
+  podSelector:
+    matchLabels:
+      app: coder
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 6443
