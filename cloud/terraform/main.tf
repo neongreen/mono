@@ -168,6 +168,28 @@ resource "hcloud_firewall_attachment" "vm1" {
 }
 
 
+# Remove stale vm2 resources from state without destroying (already deleted manually)
+removed {
+  from = hcloud_firewall_attachment.vm2
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = hcloud_server_network.vm2
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = hcloud_server.vm2
+  lifecycle {
+    destroy = false
+  }
+}
+
 # Server: VM3 for Coder workspaces (k3s agent node)
 resource "hcloud_server" "vm3" {
   name        = "vm3-coder"
