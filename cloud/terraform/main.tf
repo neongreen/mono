@@ -19,6 +19,10 @@ data "hcloud_location" "nbg1" {
   name = "nbg1"
 }
 
+data "hcloud_location" "hel1" {
+  name = "hel1"
+}
+
 # Network: private network for VMs
 resource "hcloud_network" "main" {
   name     = "mono-net"
@@ -169,7 +173,7 @@ resource "hcloud_server" "vm3" {
   name        = "vm3-coder"
   image       = data.hcloud_image.ubuntu_2404.name
   server_type = data.hcloud_server_type.cx53.name
-  location    = data.hcloud_location.nbg1.name
+  location    = data.hcloud_location.hel1.name
   ssh_keys    = [hcloud_ssh_key.workstation.id]
 
   depends_on = [hcloud_server.vm1]
