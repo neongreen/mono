@@ -1,5 +1,5 @@
 output "server_type" {
-  value = data.hcloud_server_type.cpx22.id
+  value = data.hcloud_server_type.cx53.id
 }
 
 output "image" {
@@ -7,7 +7,7 @@ output "image" {
 }
 
 output "location" {
-  value = data.hcloud_location.nbg1.id  # German data center
+  value = data.hcloud_location.hel1.id
 }
 
 output "network_id" {
@@ -18,18 +18,10 @@ output "firewall_id" {
   value = hcloud_firewall.default.id
 }
 
-output "server_id" {
-  value = hcloud_server.vm1.id
+output "mono_server_id" {
+  value = hcloud_server.mono.id
 }
 
-output "server_ipv4" {
-  value = hcloud_server.vm1.ipv4_address
-}
-
-output "vm3_server_id" {
-  value = hcloud_server.vm3.id
-}
-
-output "vm3_server_ipv4" {
-  value = hcloud_server.vm3.ipv4_address
+output "mono_server_ipv4" {
+  value = hcloud_server.mono.ipv4_address
 }
