@@ -85,10 +85,15 @@ resource "hcloud_firewall" "default" {
   }
 }
 
-# SSH key: your public key for server access
+# SSH keys for server access
 resource "hcloud_ssh_key" "workstation" {
   name       = "workstation"
   public_key = file("${path.module}/ssh_key.pub")
+}
+
+resource "hcloud_ssh_key" "laptop" {
+  name       = "laptop"
+  public_key = file("${path.module}/ssh_key_laptop.pub")
 }
 
 # Server: VM running Ubuntu with k3s installed
@@ -97,7 +102,7 @@ resource "hcloud_server" "vm1" {
   image       = data.hcloud_image.ubuntu_2404.name
   server_type = data.hcloud_server_type.cpx22.name
   location    = data.hcloud_location.nbg1.name
-  ssh_keys    = [hcloud_ssh_key.workstation.id]
+  ssh_keys    = [hcloud_ssh_key.workstation.id, hcloud_ssh_key.laptop.id]
 
   # Cloud-init: runs on first boot to configure the server
   user_data = <<-CLOUDCFG
@@ -113,6 +118,7 @@ resource "hcloud_server" "vm1" {
       sudo: ['ALL=(ALL) NOPASSWD:ALL']
       ssh_authorized_keys:
         - ${file("${path.module}/ssh_key.pub")}
+        - ${file("${path.module}/ssh_key_laptop.pub")}
 
   ssh_pwauth: false
 
@@ -196,7 +202,7 @@ resource "hcloud_server" "vm3" {
   image       = data.hcloud_image.ubuntu_2404.name
   server_type = data.hcloud_server_type.cx53.name
   location    = data.hcloud_location.hel1.name
-  ssh_keys    = [hcloud_ssh_key.workstation.id]
+  ssh_keys    = [hcloud_ssh_key.workstation.id, hcloud_ssh_key.laptop.id]
 
   depends_on = [hcloud_server.vm1]
 
@@ -213,6 +219,7 @@ resource "hcloud_server" "vm3" {
       sudo: ['ALL=(ALL) NOPASSWD:ALL']
       ssh_authorized_keys:
         - ${file("${path.module}/ssh_key.pub")}
+        - ${file("${path.module}/ssh_key_laptop.pub")}
 
   ssh_pwauth: false
 
