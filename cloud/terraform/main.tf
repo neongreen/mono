@@ -83,33 +83,10 @@ locals {
   ]
 }
 
-# Bootstrap SSH key for Hetzner (used only at server creation)
-# This should be a key that's always available for initial provisioning
-resource "hcloud_ssh_key" "bootstrap" {
-  name       = "bootstrap"
-  public_key = file("${path.module}/ssh_key.pub")
-}
-
-# Remove old SSH key resources from state (keys still exist in Hetzner, just not managed)
-removed {
-  from = hcloud_ssh_key.workstation
-  lifecycle {
-    destroy = false
-  }
-}
-
-removed {
-  from = hcloud_ssh_key.laptop
-  lifecycle {
-    destroy = false
-  }
-}
-
-removed {
-  from = hcloud_ssh_key.spacelift
-  lifecycle {
-    destroy = false
-  }
+# Bootstrap SSH key - look up existing key by name instead of creating
+# Keys are created manually or via initial bootstrap, managed via authorized_keys after
+data "hcloud_ssh_key" "bootstrap" {
+  name = "workstation"
 }
 
 # Remove old VMs from state without destroying
@@ -161,7 +138,7 @@ resource "hcloud_server" "mono" {
   image       = data.hcloud_image.ubuntu_2404.name
   server_type = data.hcloud_server_type.cx53.name
   location    = data.hcloud_location.hel1.name
-  ssh_keys    = [hcloud_ssh_key.bootstrap.id]
+  ssh_keys    = [data.hcloud_ssh_key.bootstrap.id]
 
   lifecycle {
     ignore_changes = [ssh_keys, user_data]
