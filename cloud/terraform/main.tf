@@ -84,9 +84,19 @@ resource "hcloud_firewall" "default" {
 #
 # The keys below are ONLY used for initial server creation.
 # =============================================================================
+import {
+  to = hcloud_ssh_key.workstation
+  id = "workstation"
+}
+
 resource "hcloud_ssh_key" "workstation" {
   name       = "workstation"
   public_key = file("${path.module}/ssh_key.pub")
+}
+
+import {
+  to = hcloud_ssh_key.laptop
+  id = "laptop"
 }
 
 resource "hcloud_ssh_key" "laptop" {
