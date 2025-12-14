@@ -1,11 +1,12 @@
 ---
+# Ingress for web-server (default route)
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: onyx-ingress
+  name: onyx-web
   namespace: onyx
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Assuming cert-manager is set up
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
@@ -20,23 +21,6 @@ spec:
     - host: onyx.cloud.artyom.me
       http:
         paths:
-          # API endpoints go to api-server
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: api-server-service
-                port:
-                  number: 8080
-          # MCP server endpoints
-          - path: /mcp
-            pathType: Prefix
-            backend:
-              service:
-                name: mcp-server-service
-                port:
-                  number: 8090
-          # Everything else goes to web-server (Next.js frontend)
           - path: /
             pathType: Prefix
             backend:
@@ -44,3 +28,61 @@ spec:
                 name: web-server-service
                 port:
                   number: 3000
+---
+# Ingress for api-server with rewrite (strips /api prefix)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: onyx-api
+  namespace: onyx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - onyx.cloud.artyom.me
+      secretName: onyx-tls
+  rules:
+    - host: onyx.cloud.artyom.me
+      http:
+        paths:
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api-server-service
+                port:
+                  number: 8080
+---
+# Ingress for mcp-server with rewrite (strips /mcp prefix)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: onyx-mcp
+  namespace: onyx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - onyx.cloud.artyom.me
+      secretName: onyx-tls
+  rules:
+    - host: onyx.cloud.artyom.me
+      http:
+        paths:
+          - path: /mcp(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: mcp-server-service
+                port:
+                  number: 8090

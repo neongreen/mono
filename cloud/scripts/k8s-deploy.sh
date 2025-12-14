@@ -207,6 +207,7 @@ health_check() {
         "https://n8n.cloud.artyom.me|n8n|200"
         "https://coder.cloud.artyom.me|coder|200"
         "https://onyx.cloud.artyom.me|onyx|200,307"
+        "https://onyx.cloud.artyom.me/api/health|onyx-api|200"
     )
 
     for endpoint in "${endpoints[@]}"; do
