@@ -68,6 +68,20 @@ spec:
             limits:
               cpu: "1"
               memory: "500Mi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5678
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
           volumeMounts:
             - mountPath: /home/node/.n8n
               name: n8n-claim0

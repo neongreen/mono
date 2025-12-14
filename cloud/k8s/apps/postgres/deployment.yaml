@@ -46,6 +46,18 @@ spec:
             limits:
               cpu: "2"
               memory: 2Gi
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
       volumes:
         - name: data
           persistentVolumeClaim:

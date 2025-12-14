@@ -7,6 +7,7 @@
 #   ./cloud/scripts/k8s-deploy.sh apps         # Deploy only apps (with secrets)
 #   ./cloud/scripts/k8s-deploy.sh apps/dagger  # Deploy specific app
 #   ./cloud/scripts/k8s-deploy.sh secrets      # Create/update secrets only
+#   ./cloud/scripts/k8s-deploy.sh check        # Run health checks on endpoints
 #
 # This script:
 # 1. Fetches kubeconfig from the mono server via SSH
@@ -172,9 +173,13 @@ main() {
         apps/*)
             deploy_apps "${target#apps/}"
             ;;
+        check)
+            health_check
+            exit $?
+            ;;
         *)
             error "Unknown target: $target"
-            echo "Usage: $0 [all|system|secrets|apps|apps/<name>]"
+            echo "Usage: $0 [all|system|secrets|apps|apps/<name>|check]"
             exit 1
             ;;
     esac
@@ -187,6 +192,53 @@ main() {
     kubectl get nodes
     echo ""
     kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded 2>/dev/null || true
+}
+
+# Health check endpoints
+health_check() {
+    log "Running health checks..."
+    local failed=0
+
+    # Wait for pods to stabilize
+    sleep 5
+
+    # Check each service endpoint
+    local endpoints=(
+        "https://n8n.cloud.artyom.me|n8n|200"
+        "https://coder.cloud.artyom.me|coder|200"
+        "https://onyx.cloud.artyom.me|onyx|200,307"
+    )
+
+    for endpoint in "${endpoints[@]}"; do
+        IFS='|' read -r url name expected_codes <<< "$endpoint"
+        local code
+        code=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 10 "$url" 2>/dev/null || echo "000")
+
+        # Check if code matches any expected code (comma-separated)
+        local matched=false
+        IFS=',' read -ra codes <<< "$expected_codes"
+        for expected in "${codes[@]}"; do
+            if [[ "$code" == "$expected" ]]; then
+                matched=true
+                break
+            fi
+        done
+
+        if $matched; then
+            log "  ✓ $name: $code"
+        else
+            warn "  ✗ $name: got $code, expected $expected_codes"
+            ((failed++))
+        fi
+    done
+
+    if [[ $failed -gt 0 ]]; then
+        warn "Health checks: $failed failed"
+        return 1
+    else
+        log "Health checks: all passed"
+        return 0
+    fi
 }
 
 main "$@"
