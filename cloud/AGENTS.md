@@ -213,6 +213,14 @@ mise x -- fnox exec -- tofu validate
 
 ## DANGER ZONES
 
+### Server user_data
+
+**⚠️ DO NOT MODIFY `user_data` on `hcloud_server.mono` ⚠️**
+
+ANY change to `user_data` - including comments, whitespace, or formatting - changes the hash and **DESTROYS AND RECREATES THE ENTIRE SERVER**. The server has `prevent_destroy = true` as a safety, but don't rely on it.
+
+To modify server configuration after creation, SSH in and make changes manually.
+
 ### SSH Keys in Terraform
 
 **⚠️ DO NOT MODIFY `ssh_keys` on `hcloud_server` ⚠️**

@@ -93,7 +93,19 @@ data "hcloud_ssh_key" "laptop" {
   name = "laptop"
 }
 
-# Single server: CX53 in Helsinki with k3s
+# =============================================================================
+# MONO SERVER - DO NOT MODIFY user_data
+# =============================================================================
+# WARNING: ANY change to user_data (including comments, whitespace, or formatting)
+# will DESTROY AND RECREATE the server, losing all data and k3s cluster state.
+#
+# The user_data block below installs:
+# - gVisor (container isolation runtime)
+# - k3s (lightweight Kubernetes, traefik disabled - we use nginx-ingress instead)
+# - containerd configuration for gVisor RuntimeClass
+#
+# To modify server configuration after creation, SSH in and make changes manually.
+# =============================================================================
 resource "hcloud_server" "mono" {
   name        = "mono"
   image       = data.hcloud_image.ubuntu_2404.name
@@ -102,6 +114,12 @@ resource "hcloud_server" "mono" {
   # DO NOT MODIFY ssh_keys - see warning at top of file
   ssh_keys = [data.hcloud_ssh_key.workstation.id, data.hcloud_ssh_key.laptop.id]
 
+  # Prevent accidental destruction - must be explicitly removed to destroy
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  # DO NOT MODIFY - any change forces server replacement (see warning above)
   user_data = <<-CLOUDCFG
   #cloud-config
   hostname: mono
@@ -120,7 +138,6 @@ resource "hcloud_server" "mono" {
   ssh_pwauth: false
 
   runcmd:
-    # Install gVisor
     - |
       set -e
       apt-get update
@@ -130,10 +147,8 @@ resource "hcloud_server" "mono" {
       apt-get update
       apt-get install -y runsc
 
-    # Install k3s server (traefik disabled in favor of nginx-ingress deployed separately)
     - curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 0644 --disable traefik" sh -s -
 
-    # Configure containerd for gVisor
     - |
       set -e
       mkdir -p /var/lib/rancher/k3s/agent/etc/containerd
