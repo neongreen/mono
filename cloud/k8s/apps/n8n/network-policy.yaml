@@ -1,10 +1,29 @@
+---
+# Allow ingress from nginx ingress controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-controller
+  namespace: n8n
+spec:
+  podSelector:
+    matchLabels:
+      service: n8n
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ingress-nginx
+
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: n8n-network-policy
   namespace: n8n
 spec:
-  # Allow n8n to connect to postgres
   podSelector:
     matchLabels:
       service: n8n
@@ -17,11 +36,11 @@ spec:
       ports:
         - protocol: UDP
           port: 53
-    # Allow connection to postgres
+    # Allow connection to shared postgres
     - to:
-        - podSelector:
+        - namespaceSelector:
             matchLabels:
-              service: postgres-n8n
+              name: postgres
       ports:
         - protocol: TCP
           port: 5432
@@ -33,41 +52,3 @@ spec:
           port: 443
         - protocol: TCP
           port: 80
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: postgres-network-policy
-  namespace: n8n
-spec:
-  # Allow postgres to receive connections from n8n, onyx, and coder namespaces
-  podSelector:
-    matchLabels:
-      service: postgres-n8n
-  policyTypes:
-    - Ingress
-  ingress:
-    # From n8n in same namespace
-    - from:
-        - podSelector:
-            matchLabels:
-              service: n8n
-      ports:
-        - protocol: TCP
-          port: 5432
-    # From onyx namespace
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              name: onyx
-      ports:
-        - protocol: TCP
-          port: 5432
-    # From coder namespace
-    - from:
-        - namespaceSelector:
-            matchLabels:
-              name: coder
-      ports:
-        - protocol: TCP
-          port: 5432

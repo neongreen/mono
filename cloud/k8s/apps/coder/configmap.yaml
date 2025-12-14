@@ -8,8 +8,8 @@ data:
   CODER_ACCESS_URL: "https://coder.cloud.artyom.me"
   CODER_WILDCARD_ACCESS_URL: "*.coder.cloud.artyom.me"
 
-  # Database (reusing n8n's postgres)
-  CODER_PG_CONNECTION_URL: "postgres://coder:$(CODER_PG_PASSWORD)@postgres-service.n8n.svc.cluster.local:5432/coder?sslmode=disable"
+  # Database (shared postgres)
+  CODER_PG_CONNECTION_URL: "postgres://postgres:$(CODER_PG_PASSWORD)@postgres.postgres.svc.cluster.local:5432/coder?sslmode=disable"
 
   # Telemetry
   CODER_TELEMETRY_ENABLE: "false"

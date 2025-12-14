@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-allow-apps
+  namespace: postgres
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: n8n
+        - namespaceSelector:
+            matchLabels:
+              name: coder
+        - namespaceSelector:
+            matchLabels:
+              name: onyx
+      ports:
+        - protocol: TCP
+          port: 5432

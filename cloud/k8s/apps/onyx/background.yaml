@@ -46,11 +46,11 @@ spec:
                   key: S3_AWS_SECRET_ACCESS_KEY
           resources:
             requests:
-              cpu: "2"
-              memory: "8Gi"
+              cpu: "250m"
+              memory: "512Mi"
             limits:
-              cpu: "4"
-              memory: "12Gi"
+              cpu: "1"
+              memory: "2Gi"
           volumeMounts:
             - name: model-cache
               mountPath: /app/.cache/huggingface

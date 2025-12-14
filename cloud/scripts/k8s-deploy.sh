@@ -114,11 +114,28 @@ deploy_apps() {
             exit 1
         fi
     else
-        # Deploy all apps
+        # Deploy all apps in order (postgres first, then others)
         log "Deploying all apps..."
+
+        # Postgres must be first - other apps depend on it
+        local postgres_dir="$K8S_DIR/apps/postgres"
+        if [[ -d "$postgres_dir" ]]; then
+            log "  Applying postgres (shared database)..."
+            kubectl apply -f "$postgres_dir" || {
+                warn "  Failed to apply postgres"
+            }
+            log "  Waiting for postgres to be ready..."
+            kubectl wait --for=condition=ready pod -l app=postgres -n postgres --timeout=120s || {
+                warn "  Postgres not ready yet, continuing..."
+            }
+        fi
+
+        # Then deploy other apps
         for app_dir in "$K8S_DIR/apps"/*/; do
             if [[ -d "$app_dir" ]]; then
                 local app_name=$(basename "$app_dir")
+                # Skip postgres, already deployed
+                [[ "$app_name" == "postgres" ]] && continue
                 log "  Applying $app_name..."
                 kubectl apply -k "$app_dir" 2>/dev/null || kubectl apply -f "$app_dir" || {
                     warn "  Failed to apply $app_name"

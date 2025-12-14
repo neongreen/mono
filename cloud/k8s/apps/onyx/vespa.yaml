@@ -33,11 +33,11 @@ spec:
               name: query
           resources:
             requests:
-              cpu: "4"
-              memory: "8Gi"
+              cpu: "500m"
+              memory: "2Gi"
             limits:
-              cpu: "8"
-              memory: "16Gi"
+              cpu: "2"
+              memory: "4Gi"
           volumeMounts:
             - name: vespa-data
               mountPath: /opt/vespa/var

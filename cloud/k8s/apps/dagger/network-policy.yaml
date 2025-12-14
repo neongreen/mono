@@ -1,0 +1,43 @@
+# Network policy for Dagger engine
+# Dagger needs external access to pull images and connect to APIs
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dagger-engine
+  namespace: dagger
+spec:
+  podSelector:
+    matchLabels:
+      app: dagger-engine
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow connections from within cluster (other pods using dagger)
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # External internet (container registries, APIs)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80

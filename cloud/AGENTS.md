@@ -26,21 +26,23 @@ cloud/
 ├── k8s/                 # Kubernetes (manual deploy)
 │   ├── system/          # Cluster essentials (deployed first)
 │   │   ├── gvisor/      # Container isolation runtime
-│   │   ├── network-policies/  # Default-deny policies
 │   │   ├── ingress-nginx/     # Ingress controller
 │   │   └── cert-manager/      # TLS certificates
 │   │
 │   └── apps/            # User applications
+│       ├── postgres/    # Shared PostgreSQL database
 │       ├── dagger/      # CI/CD engine
 │       ├── n8n/         # Workflow automation
-│       └── ...
+│       ├── onyx/        # AI platform
+│       └── coder/       # Remote dev environments
 │
 ├── scripts/             # Deployment scripts
 │   ├── k8s-deploy.sh    # Main deploy script
+│   ├── k8s-secrets.sh   # Create k8s secrets from fnox
 │   ├── k8s-kubeconfig.sh # Fetch kubeconfig
 │   └── k8s-kubectl.sh   # Kubectl wrapper
 │
-└── fnox.toml            # Secrets config
+└── fnox.toml            # Secrets config (age-encrypted)
 ```
 
 ## Deployment Scripts
@@ -48,17 +50,27 @@ cloud/
 ### Deploy Kubernetes Manifests
 
 ```bash
-# Deploy everything (system + apps)
+# Deploy everything (system + secrets + apps)
 ./cloud/scripts/k8s-deploy.sh
 
 # Deploy only system components
 ./cloud/scripts/k8s-deploy.sh system
+
+# Deploy only secrets
+./cloud/scripts/k8s-deploy.sh secrets
 
 # Deploy only apps
 ./cloud/scripts/k8s-deploy.sh apps
 
 # Deploy specific app
 ./cloud/scripts/k8s-deploy.sh apps/dagger
+```
+
+### Node Labeling
+
+The mono node must have the `workload=onyx` label for pods to schedule:
+```bash
+kubectl label node mono workload=onyx
 ```
 
 ### Fetch Kubeconfig
@@ -140,7 +152,41 @@ spec:
                   number: 8080
 ```
 
-## Secrets & Execution (fnox)
+## Secrets Management
+
+Secrets are age-encrypted in `cloud/fnox.toml` and created in k8s via script:
+
+```bash
+# Deploy secrets to cluster
+./cloud/scripts/k8s-secrets.sh
+```
+
+The script creates secrets in each namespace:
+- `postgres/postgres-secret` - Shared postgres password
+- `n8n/postgres-secret` - Copy for n8n access
+- `coder/coder-secrets` - Postgres password
+- `onyx/onyx-secrets` - Postgres password, session secret, minio password
+
+### Adding New Secrets
+
+1. Generate a random password:
+   ```bash
+   openssl rand -base64 32
+   ```
+
+2. Encrypt with age and add to `cloud/fnox.toml`:
+   ```bash
+   echo "your-secret" | age -r age1q8f03l7hmyrk3wazqddc40ucc7rtvugl527pp9lxahvl8rar5p2q2plg56 | base64
+   ```
+
+3. Add to fnox.toml:
+   ```toml
+   MY_SECRET = { provider = "age", value = "YWdlLWVu..." }
+   ```
+
+4. Update `k8s-secrets.sh` to create the k8s secret
+
+## Tools & Execution (fnox)
 
 All tools run via mise, secrets via fnox:
 ```bash

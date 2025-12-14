@@ -10,21 +10,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLOUD_DIR="$(dirname "$SCRIPT_DIR")"
 
 log() { echo "[secrets] $*"; }
 error() { echo "[secrets] ERROR: $*" >&2; }
 
-# Create secret if it doesn't exist, or update if --force
+# Create or update a secret
 create_secret() {
     local namespace="$1"
     local name="$2"
     shift 2
     local args=("$@")
 
-    # Ensure namespace exists
     kubectl create namespace "$namespace" 2>/dev/null || true
 
-    # Check if secret exists
     if kubectl get secret "$name" -n "$namespace" &>/dev/null; then
         log "Secret $namespace/$name already exists, updating..."
         kubectl delete secret "$name" -n "$namespace"
@@ -34,46 +33,38 @@ create_secret() {
     kubectl create secret generic "$name" -n "$namespace" "${args[@]}"
 }
 
-create_n8n_secrets() {
-    log "Creating n8n secrets..."
+# Shared postgres secret - used by all apps
+create_postgres_secrets() {
+    log "Creating shared postgres secrets..."
 
-    mise x -- fnox exec -- bash -c '
+    mise x -- fnox -c "$CLOUD_DIR/fnox.toml" exec -- bash -c '
+        # Create secret in postgres namespace (for the postgres deployment itself)
+        kubectl create namespace postgres 2>/dev/null || true
+        kubectl delete secret postgres-secret -n postgres 2>/dev/null || true
+        kubectl create secret generic postgres-secret -n postgres \
+            --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD"
+
+        # Create secret in n8n namespace (for n8n to connect)
         kubectl create namespace n8n 2>/dev/null || true
         kubectl delete secret postgres-secret -n n8n 2>/dev/null || true
         kubectl create secret generic postgres-secret -n n8n \
-            --from-literal=POSTGRES_USER=postgres \
-            --from-literal=POSTGRES_PASSWORD="$N8N_POSTGRES_ADMIN_PASSWORD" \
-            --from-literal=POSTGRES_NON_ROOT_USER=n8n \
-            --from-literal=POSTGRES_NON_ROOT_PASSWORD="$N8N_POSTGRES_N8N_PASSWORD"
-    '
-    log "n8n secrets created."
-}
+            --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD"
 
-create_onyx_secrets() {
-    log "Creating onyx secrets..."
-
-    mise x -- fnox exec -- bash -c '
-        kubectl create namespace onyx 2>/dev/null || true
-        kubectl delete secret onyx-secrets -n onyx 2>/dev/null || true
-        kubectl create secret generic onyx-secrets -n onyx \
-            --from-literal=POSTGRES_PASSWORD="$ONYX_POSTGRES_PASSWORD" \
-            --from-literal=SECRET="$ONYX_SECRET" \
-            --from-literal=S3_AWS_SECRET_ACCESS_KEY="$ONYX_MINIO_ROOT_PASSWORD"
-    '
-    log "onyx secrets created."
-}
-
-create_coder_secrets() {
-    log "Creating coder secrets..."
-
-    mise x -- fnox exec -- bash -c '
+        # Create secret in coder namespace
         kubectl create namespace coder 2>/dev/null || true
         kubectl delete secret coder-secrets -n coder 2>/dev/null || true
         kubectl create secret generic coder-secrets -n coder \
-            --from-literal=POSTGRES_PASSWORD="$CODER_POSTGRES_PASSWORD" \
-            --from-literal=POSTGRES_ADMIN_PASSWORD="$N8N_POSTGRES_ADMIN_PASSWORD"
+            --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD"
+
+        # Create secret in onyx namespace
+        kubectl create namespace onyx 2>/dev/null || true
+        kubectl delete secret onyx-secrets -n onyx 2>/dev/null || true
+        kubectl create secret generic onyx-secrets -n onyx \
+            --from-literal=POSTGRES_PASSWORD="$POSTGRES_PASSWORD" \
+            --from-literal=SECRET="$ONYX_SECRET" \
+            --from-literal=S3_AWS_SECRET_ACCESS_KEY="$ONYX_MINIO_ROOT_PASSWORD"
     '
-    log "coder secrets created."
+    log "All postgres secrets created."
 }
 
 main() {
@@ -85,23 +76,12 @@ main() {
     fi
 
     case "$target" in
-        all)
-            create_n8n_secrets
-            create_onyx_secrets
-            create_coder_secrets
-            ;;
-        n8n)
-            create_n8n_secrets
-            ;;
-        onyx)
-            create_onyx_secrets
-            ;;
-        coder)
-            create_coder_secrets
+        all|postgres)
+            create_postgres_secrets
             ;;
         *)
             error "Unknown target: $target"
-            echo "Usage: $0 [all|n8n|onyx|coder]"
+            echo "Usage: $0 [all|postgres]"
             exit 1
             ;;
     esac

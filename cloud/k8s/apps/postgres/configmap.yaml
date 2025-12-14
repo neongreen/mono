@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: postgres
+data:
+  init-databases.sh: |
+    #!/bin/bash
+    set -e
+
+    # Create databases for all apps
+    for db in n8n coder onyx; do
+      echo "Creating database: $db"
+      psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" <<-EOSQL
+        SELECT 'CREATE DATABASE $db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '$db')\gexec
+        GRANT ALL PRIVILEGES ON DATABASE $db TO $POSTGRES_USER;
+      EOSQL
+    done
+
+    echo "All databases created successfully"

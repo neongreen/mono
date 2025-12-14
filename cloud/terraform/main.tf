@@ -93,49 +93,6 @@ data "hcloud_ssh_key" "laptop" {
   name = "laptop"
 }
 
-# Remove old VMs from state without destroying
-removed {
-  from = hcloud_server.vm1
-  lifecycle {
-    destroy = false
-  }
-}
-
-removed {
-  from = hcloud_server_network.vm1
-  lifecycle {
-    destroy = false
-  }
-}
-
-removed {
-  from = hcloud_firewall_attachment.vm1
-  lifecycle {
-    destroy = false
-  }
-}
-
-removed {
-  from = hcloud_firewall_attachment.vm2
-  lifecycle {
-    destroy = false
-  }
-}
-
-removed {
-  from = hcloud_server_network.vm2
-  lifecycle {
-    destroy = false
-  }
-}
-
-removed {
-  from = hcloud_server.vm2
-  lifecycle {
-    destroy = false
-  }
-}
-
 # Single server: CX53 in Helsinki with k3s
 resource "hcloud_server" "mono" {
   name        = "mono"
@@ -173,7 +130,7 @@ resource "hcloud_server" "mono" {
       apt-get update
       apt-get install -y runsc
 
-    # Install k3s server
+    # Install k3s server (traefik disabled in favor of nginx-ingress deployed separately)
     - curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 0644 --disable traefik" sh -s -
 
     # Configure containerd for gVisor

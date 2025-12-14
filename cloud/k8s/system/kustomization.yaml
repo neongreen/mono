@@ -4,6 +4,5 @@ kind: Kustomization
 resources:
   # Order matters: gvisor first, then ingress, then cert-manager
   - gvisor/runtimeclass.yaml
-  - network-policies/default-deny.yaml
   - ingress-nginx
   - cert-manager
