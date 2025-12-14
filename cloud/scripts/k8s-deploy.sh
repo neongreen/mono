@@ -2,15 +2,17 @@
 # k8s-deploy.sh - Deploy Kubernetes manifests to the mono cluster
 #
 # Usage:
-#   ./cloud/scripts/k8s-deploy.sh              # Deploy everything (system + apps)
+#   ./cloud/scripts/k8s-deploy.sh              # Deploy everything (system + apps + secrets)
 #   ./cloud/scripts/k8s-deploy.sh system       # Deploy only system components
-#   ./cloud/scripts/k8s-deploy.sh apps         # Deploy only apps
+#   ./cloud/scripts/k8s-deploy.sh apps         # Deploy only apps (with secrets)
 #   ./cloud/scripts/k8s-deploy.sh apps/dagger  # Deploy specific app
+#   ./cloud/scripts/k8s-deploy.sh secrets      # Create/update secrets only
 #
 # This script:
 # 1. Fetches kubeconfig from the mono server via SSH
-# 2. Applies kustomize manifests in the correct order
-# 3. Reports deployment status
+# 2. Creates k8s secrets from fnox (age-encrypted values)
+# 3. Applies kustomize manifests in the correct order
+# 4. Reports deployment status
 
 set -euo pipefail
 
@@ -91,6 +93,12 @@ deploy_system() {
     log "System components deployed."
 }
 
+# Create secrets from fnox
+deploy_secrets() {
+    log "Creating secrets from fnox..."
+    "$SCRIPT_DIR/k8s-secrets.sh" all
+}
+
 # Deploy all apps or a specific one
 deploy_apps() {
     local target="${1:-}"
@@ -131,12 +139,17 @@ main() {
     case "$target" in
         all)
             deploy_system
+            deploy_secrets
             deploy_apps
             ;;
         system)
             deploy_system
             ;;
+        secrets)
+            deploy_secrets
+            ;;
         apps)
+            deploy_secrets
             deploy_apps
             ;;
         apps/*)
@@ -144,7 +157,7 @@ main() {
             ;;
         *)
             error "Unknown target: $target"
-            echo "Usage: $0 [all|system|apps|apps/<name>]"
+            echo "Usage: $0 [all|system|secrets|apps|apps/<name>]"
             exit 1
             ;;
     esac
