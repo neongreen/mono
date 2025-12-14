@@ -1,23 +1,18 @@
 # AGENTS.md — cloud
 
-Guidelines for agents working in `cloud/` (OpenTofu + Spacelift) with `fnox`.
+Guidelines for agents working in `cloud/` (OpenTofu + Kubernetes).
 
 ## Architecture Overview
 
-Two Spacelift stacks, both auto-deploy on git push:
+**Infrastructure** (Spacelift `mono/cloud`):
+- VMs, networks, firewalls, DNS
+- Location: `cloud/terraform/`
+- Auto-deploys on push to main via Spacelift
 
-**Stack 1: `mono/cloud` (Infrastructure)**
-- What: VMs, networks, firewalls, DNS
-- Where: `cloud/terraform/`
-- How: OpenTofu via Spacelift
-
-**Stack 2: `mono/k8s` (Kubernetes)**
-- What: Cluster system components and applications
-- Where: `cloud/k8s/`
-- How: `kubectl apply` via Spacelift
-- Depends on: `mono/cloud` (waits for infrastructure)
-
-Both stacks trigger on push to main. The k8s stack waits for the cloud stack to complete.
+**Kubernetes** (Manual Deploy):
+- Cluster system components and applications
+- Location: `cloud/k8s/`
+- Deploy via `./cloud/scripts/k8s-deploy.sh`
 
 ## Directory Structure
 
@@ -28,44 +23,84 @@ cloud/
 │   ├── digitalocean-dns.tf  # DNS records
 │   └── ...
 │
-└── k8s/                 # Kubernetes (Spacelift: mono/k8s)
-    ├── system/          # Cluster essentials (deployed first)
-    │   ├── gvisor/      # Container isolation runtime
-    │   ├── network-policies/  # Default-deny policies
-    │   ├── ingress-nginx/     # Ingress controller
-    │   └── cert-manager/      # TLS certificates
-    │
-    └── apps/            # User applications
-        ├── dagger/      # CI/CD engine
-        ├── n8n/         # Workflow automation
-        ├── onyx/        # AI platform
-        ├── coder/       # Remote dev environments
-        └── sample-apps/ # Test apps
+├── k8s/                 # Kubernetes (manual deploy)
+│   ├── system/          # Cluster essentials (deployed first)
+│   │   ├── gvisor/      # Container isolation runtime
+│   │   ├── network-policies/  # Default-deny policies
+│   │   ├── ingress-nginx/     # Ingress controller
+│   │   └── cert-manager/      # TLS certificates
+│   │
+│   └── apps/            # User applications
+│       ├── dagger/      # CI/CD engine
+│       ├── n8n/         # Workflow automation
+│       └── ...
+│
+├── scripts/             # Deployment scripts
+│   ├── k8s-deploy.sh    # Main deploy script
+│   ├── k8s-kubeconfig.sh # Fetch kubeconfig
+│   └── k8s-kubectl.sh   # Kubectl wrapper
+│
+└── fnox.toml            # Secrets config
+```
+
+## Deployment Scripts
+
+### Deploy Kubernetes Manifests
+
+```bash
+# Deploy everything (system + apps)
+./cloud/scripts/k8s-deploy.sh
+
+# Deploy only system components
+./cloud/scripts/k8s-deploy.sh system
+
+# Deploy only apps
+./cloud/scripts/k8s-deploy.sh apps
+
+# Deploy specific app
+./cloud/scripts/k8s-deploy.sh apps/dagger
+```
+
+### Fetch Kubeconfig
+
+```bash
+# Fetch and export kubeconfig
+eval $(./cloud/scripts/k8s-kubeconfig.sh)
+```
+
+### Run Kubectl Commands
+
+```bash
+# Kubectl wrapper (auto-fetches kubeconfig)
+./cloud/scripts/k8s-kubectl.sh get pods -A
+./cloud/scripts/k8s-kubectl.sh get nodes
 ```
 
 ## Deployment Workflow
 
-**Everything auto-deploys on push:**
+### Infrastructure Changes
 
-1. Edit files in `cloud/terraform/` or `cloud/k8s/`
+1. Edit files in `cloud/terraform/`
 2. Commit and push:
    ```bash
-   mise x -- jj commit -m "Add new service"
+   mise x -- jj commit -m "Description of change"
+   mise x -- jj bookmark set main -r @-
    mise x -- jj git push
    ```
-3. Spacelift auto-deploys:
-   - First: `mono/cloud` (if terraform changed)
-   - Then: `mono/k8s` (if k8s manifests changed)
-4. Watch progress: `mise run cloud:watch`
+3. Spacelift auto-deploys `mono/cloud` stack
+4. Monitor: `mise x -- fnox exec -- spacectl stack run list --id mono-cloud-01`
 
-**Manual deployment (if needed):**
-```bash
-# System components
-mise run cloud:kubectl apply -k k8s/system/
+### Kubernetes Changes
 
-# Specific app
-mise run cloud:kubectl apply -f k8s/apps/dagger/
-```
+1. Edit manifests in `cloud/k8s/`
+2. Deploy:
+   ```bash
+   ./cloud/scripts/k8s-deploy.sh
+   ```
+3. Verify:
+   ```bash
+   ./cloud/scripts/k8s-kubectl.sh get pods -A
+   ```
 
 ## Adding a New Service
 
@@ -76,8 +111,7 @@ mise run cloud:kubectl apply -f k8s/apps/dagger/
    - `service.yaml`
    - `ingress.yaml` (if externally accessible)
    - `network-policy.yaml` (allow rules)
-3. Push to git
-4. Spacelift deploys automatically
+3. Deploy: `./cloud/scripts/k8s-deploy.sh apps/my-service`
 
 Example ingress for `my-service.cloud.artyom.me`:
 ```yaml
@@ -106,48 +140,6 @@ spec:
                   number: 8080
 ```
 
-## Adding a New VM (Worker Node)
-
-Edit `cloud/terraform/main.tf`:
-
-```hcl
-# Add new server resource
-resource "hcloud_server" "worker1" {
-  name        = "worker1"
-  image       = data.hcloud_image.ubuntu_2404.name
-  server_type = "cx42"  # or whatever size
-  location    = data.hcloud_location.hel1.name
-  ssh_keys    = [hcloud_ssh_key.workstation.id, hcloud_ssh_key.laptop.id]
-
-  user_data = <<-CLOUDCFG
-  #cloud-config
-  hostname: worker1
-  # ... (copy cloud-init from mono, change K3S_URL for agent mode)
-  runcmd:
-    - curl -sfL https://get.k3s.io | K3S_URL=https://${hcloud_server.mono.ipv4_address}:6443 K3S_TOKEN=<token> sh -
-  CLOUDCFG
-}
-```
-
-Push to git, Spacelift creates the VM, it auto-joins the k3s cluster.
-
-## Moving Workloads Between Nodes
-
-Use node selectors in deployments:
-
-```yaml
-spec:
-  template:
-    spec:
-      nodeSelector:
-        kubernetes.io/hostname: worker1  # or use labels
-```
-
-To move a workload:
-1. Change the nodeSelector in the manifest
-2. Push to git
-3. Pods reschedule to the new node
-
 ## Secrets & Execution (fnox)
 
 All tools run via mise, secrets via fnox:
@@ -173,19 +165,40 @@ mise x -- fnox exec -- tofu validate
   - SSH: `hcloud_ssh_key`
   - Compute: `hcloud_server`, `hcloud_server_network`
 
-## Setting Up the Spacelift k8s Stack
+## DANGER ZONES
 
-The `mono/k8s` stack needs to be created in the Spacelift UI:
+### SSH Keys in Terraform
 
-1. Create stack at https://neongreen.app.spacelift.io
-2. Settings:
-   - Name: `mono/k8s`
-   - Repository: `neongreen/mono`
-   - Project root: `cloud/k8s`
-   - Runner image: one with kubectl installed
-   - Before init: fetch kubeconfig from mono server
-   - Commands: `kubectl apply -k system/ && kubectl apply -f apps/`
-3. Add dependency on `mono/cloud` stack
-4. Attach context with `KUBECONFIG` or SSH access to fetch it
+**⚠️ DO NOT MODIFY `ssh_keys` on `hcloud_server` ⚠️**
 
-Alternative: The stack can run `kubectl` by SSHing to the mono server where kubeconfig is already present.
+Changing the `ssh_keys` attribute on a Hetzner server **DESTROYS AND RECREATES THE ENTIRE SERVER**. This will:
+- Delete all data on the server
+- Destroy the k3s cluster
+- Require full re-provisioning
+
+To add SSH keys to an existing server:
+1. SSH into the server: `ssh emily@mono.cloud.artyom.me`
+2. Edit `~/.ssh/authorized_keys`
+3. Add the new public key
+
+The `ssh_keys` in terraform are ONLY used for initial server provisioning.
+
+### Manual Terraform
+
+**Never run `tofu apply` locally** - always let Spacelift handle it. Local applies can cause state drift and conflicts.
+
+## Spacelift Operations
+
+```bash
+# List stacks
+mise x -- fnox exec -- spacectl stack list
+
+# List runs
+mise x -- fnox exec -- spacectl stack run list --id mono-cloud-01
+
+# View logs
+mise x -- fnox exec -- spacectl stack logs --id mono-cloud-01 --run <run-id>
+
+# Check environment variables
+mise x -- fnox exec -- spacectl stack environment list --id mono-cloud-01
+```

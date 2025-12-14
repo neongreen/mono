@@ -1,9 +1,0 @@
-version: "2"
-
-stacks:
-  mono-k8s:
-    before_init:
-      - |
-        mkdir -p /mnt/workspace/.kube
-        chmod 600 /mnt/workspace/.ssh/spacelift_key
-        ssh -o StrictHostKeyChecking=no -i /mnt/workspace/.ssh/spacelift_key emily@$MONO_SERVER_IP 'sudo cat /etc/rancher/k3s/k3s.yaml' | sed "s/127.0.0.1/$MONO_SERVER_IP/" > /mnt/workspace/.kube/config
