@@ -73,20 +73,43 @@ resource "hcloud_firewall" "default" {
   }
 }
 
-# SSH keys for server access
-resource "hcloud_ssh_key" "workstation" {
-  name       = "workstation"
+# SSH keys: list of all public keys that should have access
+# Add/remove keys here - they'll be synced to the server's authorized_keys
+locals {
+  ssh_public_keys = [
+    file("${path.module}/ssh_key.pub"),           # workstation
+    file("${path.module}/ssh_key_laptop.pub"),    # laptop
+    file("${path.module}/ssh_key_spacelift.pub"), # spacelift
+  ]
+}
+
+# Bootstrap SSH key for Hetzner (used only at server creation)
+# This should be a key that's always available for initial provisioning
+resource "hcloud_ssh_key" "bootstrap" {
+  name       = "bootstrap"
   public_key = file("${path.module}/ssh_key.pub")
 }
 
-resource "hcloud_ssh_key" "laptop" {
-  name       = "laptop"
-  public_key = file("${path.module}/ssh_key_laptop.pub")
+# Remove old SSH key resources from state (keys still exist in Hetzner, just not managed)
+removed {
+  from = hcloud_ssh_key.workstation
+  lifecycle {
+    destroy = false
+  }
 }
 
-resource "hcloud_ssh_key" "spacelift" {
-  name       = "spacelift"
-  public_key = file("${path.module}/ssh_key_spacelift.pub")
+removed {
+  from = hcloud_ssh_key.laptop
+  lifecycle {
+    destroy = false
+  }
+}
+
+removed {
+  from = hcloud_ssh_key.spacelift
+  lifecycle {
+    destroy = false
+  }
 }
 
 # Remove old VMs from state without destroying
@@ -138,7 +161,11 @@ resource "hcloud_server" "mono" {
   image       = data.hcloud_image.ubuntu_2404.name
   server_type = data.hcloud_server_type.cx53.name
   location    = data.hcloud_location.hel1.name
-  ssh_keys    = [hcloud_ssh_key.workstation.id, hcloud_ssh_key.laptop.id, hcloud_ssh_key.spacelift.id]
+  ssh_keys    = [hcloud_ssh_key.bootstrap.id]
+
+  lifecycle {
+    ignore_changes = [ssh_keys, user_data]
+  }
 
   user_data = <<-CLOUDCFG
   #cloud-config
@@ -204,4 +231,31 @@ resource "hcloud_server_network" "mono" {
 resource "hcloud_firewall_attachment" "mono" {
   firewall_id = hcloud_firewall.default.id
   server_ids  = [hcloud_server.mono.id]
+}
+
+# Sync SSH keys to server's authorized_keys (declarative key management)
+# When local.ssh_public_keys changes, this re-runs and updates the server
+resource "null_resource" "ssh_keys_sync" {
+  triggers = {
+    keys_hash = sha256(join("\n", local.ssh_public_keys))
+    server_id = hcloud_server.mono.id
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "emily"
+    host        = hcloud_server.mono.ipv4_address
+    # Use mounted key in Spacelift, SSH agent locally
+    private_key = fileexists("/mnt/workspace/.ssh/spacelift_key") ? file("/mnt/workspace/.ssh/spacelift_key") : null
+    agent       = !fileexists("/mnt/workspace/.ssh/spacelift_key")
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir -p ~/.ssh && chmod 700 ~/.ssh",
+      "cat > ~/.ssh/authorized_keys << 'EOFKEYS'\n${join("\n", local.ssh_public_keys)}\nEOFKEYS",
+      "chmod 600 ~/.ssh/authorized_keys",
+      "echo 'SSH keys synced: ${length(local.ssh_public_keys)} keys'"
+    ]
+  }
 }
