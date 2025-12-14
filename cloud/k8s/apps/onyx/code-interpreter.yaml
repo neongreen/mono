@@ -7,7 +7,8 @@ metadata:
   labels:
     app: code-interpreter
 spec:
-  replicas: 1
+  # Disabled: requires docker socket which isn't available on k3s/containerd
+  replicas: 0
   selector:
     matchLabels:
       app: code-interpreter
