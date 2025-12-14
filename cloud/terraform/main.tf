@@ -82,26 +82,15 @@ resource "hcloud_firewall" "default" {
 # To add new SSH keys to an existing server, SSH in and edit ~/.ssh/authorized_keys
 # manually. Do NOT add keys here.
 #
-# The keys below are ONLY used for initial server creation.
+# SSH keys are managed outside terraform (created manually in Hetzner console).
+# We only look them up here for use in server creation.
 # =============================================================================
-import {
-  to = hcloud_ssh_key.workstation
-  id = "workstation"
+data "hcloud_ssh_key" "workstation" {
+  name = "workstation"
 }
 
-resource "hcloud_ssh_key" "workstation" {
-  name       = "workstation"
-  public_key = file("${path.module}/ssh_key.pub")
-}
-
-import {
-  to = hcloud_ssh_key.laptop
-  id = "laptop"
-}
-
-resource "hcloud_ssh_key" "laptop" {
-  name       = "laptop"
-  public_key = file("${path.module}/ssh_key_laptop.pub")
+data "hcloud_ssh_key" "laptop" {
+  name = "laptop"
 }
 
 # Remove old VMs from state without destroying
@@ -154,7 +143,7 @@ resource "hcloud_server" "mono" {
   server_type = data.hcloud_server_type.cx53.name
   location    = data.hcloud_location.hel1.name
   # DO NOT MODIFY ssh_keys - see warning at top of file
-  ssh_keys = [hcloud_ssh_key.workstation.id, hcloud_ssh_key.laptop.id]
+  ssh_keys = [data.hcloud_ssh_key.workstation.id, data.hcloud_ssh_key.laptop.id]
 
   user_data = <<-CLOUDCFG
   #cloud-config
