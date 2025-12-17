@@ -21,36 +21,8 @@ const (
 	totalLetters  = 108
 )
 
-// Common English words - prioritize these heavily
-var commonWords = map[string]int{
-	// Single letters
-	"i": 200, "a": 200,
-	// Very common 2-letter words
-	"am": 180, "an": 180, "as": 180, "at": 180, "be": 180, "by": 180, "do": 180, "go": 180,
-	"he": 180, "if": 180, "in": 180, "is": 180, "it": 180, "me": 180, "my": 180, "no": 180, "of": 180, "on": 180,
-	"or": 180, "so": 180, "to": 180, "up": 180, "us": 180, "we": 180,
-	// Common 3-letter words
-	"all": 160, "and": 160, "any": 160, "are": 160, "but": 160, "can": 160, "did": 160, "for": 160, "get": 160, "got": 160,
-	"had": 160, "has": 160, "her": 160, "him": 160, "his": 160, "its": 160, "let": 160, "may": 160, "not": 160, "now": 160,
-	"one": 160, "our": 160, "out": 160, "say": 160, "she": 160, "the": 160, "too": 160, "two": 160, "was": 160, "who": 160, "you": 160,
-	// Common 4-letter words
-	"your": 150, "they": 150, "this": 150, "that": 150, "with": 150, "have": 150, "will": 150, "from": 150,
-	"been": 150, "just": 150, "only": 150, "over": 150, "such": 150, "take": 150, "into": 150, "than": 150,
-	"them": 150, "then": 150, "some": 150, "what": 150, "when": 150, "make": 150, "like": 150, "time": 150,
-	"very": 150, "know": 150, "want": 150, "give": 150, "most": 150, "also": 150, "back": 150, "come": 150,
-	"tell": 150, "guys": 150, "must": 150,
-	// Common 5-letter words
-	"about": 140, "after": 140, "first": 140, "think": 140, "could": 140, "would": 140, "there": 140, "their": 140,
-	"which": 140, "these": 140, "other": 140, "being": 140, "those": 140, "still": 140, "while": 140, "where": 140,
-	"since": 140, "under": 140, "right": 140, "never": 140, "every": 140, "going": 140, "might": 140,
-	"trust": 140, "truly": 140, "story": 140, "spill": 140,
-	// Common 6-letter words
-	"should": 130, "people": 130, "before": 130, "really": 130, "always": 130, "things": 130, "little": 130,
-	"mixing": 130, "secret": 130, "stupid": 130,
-	// Longer common words - likely candidates
-	"tonight": 150, "promise": 140, "something": 130, "anything": 130, "everything": 130, "nothing": 130,
-	"important": 120, "absolutely": 110, "humiliating": 200, "publicly": 150,
-}
+// wordFrequency stores frequency data loaded from external source
+var wordFrequency = make(map[string]int)
 
 // SortedDict maps sorted letter signatures to original words
 type SortedDict struct {
@@ -94,20 +66,49 @@ func editDistance(s1, s2 string) int {
 	return prev[len(s2)]
 }
 
+func loadWordFrequencies() {
+	fmt.Println("Loading word frequencies...")
+	resp, err := http.Get("https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/en/en_50k.txt")
+	if err != nil {
+		fmt.Println("Warning: could not load word frequencies:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	scanner := bufio.NewScanner(resp.Body)
+	rank := 0
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		parts := strings.Fields(line)
+		if len(parts) >= 1 {
+			word := strings.ToLower(parts[0])
+			if isAlpha(word) {
+				// Score based on rank: top words get highest scores
+				// Use inverse rank scaled to give meaningful bonuses
+				// Top 100 words: 500-400, Top 1000: 400-300, Top 10000: 300-100, rest: 100-0
+				var score int
+				if rank < 100 {
+					score = 500 - rank
+				} else if rank < 1000 {
+					score = 400 - (rank-100)/10
+				} else if rank < 10000 {
+					score = 300 - (rank-1000)/100
+				} else {
+					score = max(0, 100-(rank-10000)/500)
+				}
+				wordFrequency[word] = score
+				rank++
+			}
+		}
+	}
+	fmt.Printf("Loaded %d word frequencies\n", len(wordFrequency))
+}
+
 func loadDictionary() *SortedDict {
 	dict := &SortedDict{
 		signatures: make(map[string][]string),
 		byLength:   make(map[int][]string),
 		commonSigs: make(map[string]int),
-	}
-
-	// First, add all common words
-	for word, score := range commonWords {
-		sig := sortString(word)
-		dict.signatures[sig] = append(dict.signatures[sig], word)
-		if score > dict.commonSigs[sig] {
-			dict.commonSigs[sig] = score
-		}
 	}
 
 	// Try to load from web
@@ -125,6 +126,10 @@ func loadDictionary() *SortedDict {
 			if len(word) >= 1 && len(word) <= 20 && isAlpha(word) {
 				sig := sortString(word)
 				dict.signatures[sig] = append(dict.signatures[sig], word)
+				// Update commonSigs with frequency score
+				if freq := wordFrequency[word]; freq > dict.commonSigs[sig] {
+					dict.commonSigs[sig] = freq
+				}
 			}
 		}
 	} else {
@@ -135,6 +140,10 @@ func loadDictionary() *SortedDict {
 			if len(word) >= 1 && len(word) <= 20 && isAlpha(word) {
 				sig := sortString(word)
 				dict.signatures[sig] = append(dict.signatures[sig], word)
+				// Update commonSigs with frequency score
+				if freq := wordFrequency[word]; freq > dict.commonSigs[sig] {
+					dict.commonSigs[sig] = freq
+				}
 			}
 		}
 	}
@@ -148,11 +157,11 @@ func loadDictionary() *SortedDict {
 		}
 	}
 
-	// Sort words in each signature group by commonality
+	// Sort words in each signature group by frequency (highest first)
 	for sig, words := range dict.signatures {
 		sort.Slice(words, func(i, j int) bool {
-			scoreI := commonWords[words[i]]
-			scoreJ := commonWords[words[j]]
+			scoreI := wordFrequency[words[i]]
+			scoreJ := wordFrequency[words[j]]
 			if scoreI != scoreJ {
 				return scoreI > scoreJ
 			}
@@ -267,6 +276,7 @@ func scoreSolution(dict *SortedDict, letters string, splits []int) (int, []WordM
 
 	// Score = sum of edit distances (lower is better)
 	// Subtract commonality bonus to prefer common words
+	// Add penalty for obscure/unknown words
 	score := 0
 	matches := make([]WordMatch, len(sigs))
 
@@ -279,6 +289,22 @@ func scoreSolution(dict *SortedDict, letters string, splits []int) (int, []WordM
 
 		// Subtract bonus for common words (prefer common words at same distance)
 		score -= bonus
+
+		// PENALTY: Words not in frequency list (outside top 50k) are suspicious
+		// Penalize more for longer words (long obscure words are unlikely in real messages)
+		if bonus == 0 && len(sig) > 2 {
+			// For words not in frequency list, add a penalty based on length
+			// Short words (3-4 chars) might be abbreviations: small penalty
+			// Medium words (5-8 chars): moderate penalty
+			// Long words (9+ chars): heavy penalty - probably not real message words
+			if len(sig) <= 4 {
+				score += 50
+			} else if len(sig) <= 8 {
+				score += 100
+			} else {
+				score += 200 + (len(sig)-8)*50 // Heavy penalty for long obscure words
+			}
+		}
 	}
 
 	return score, matches
@@ -455,6 +481,9 @@ func printSolution(sol Solution) {
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+
+	// Load word frequencies first (used for scoring)
+	loadWordFrequencies()
 
 	fmt.Println("Loading dictionary...")
 	dict := loadDictionary()
