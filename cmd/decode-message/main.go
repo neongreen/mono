@@ -23,24 +23,33 @@ const (
 
 // Common English words - prioritize these heavily
 var commonWords = map[string]int{
-	"i": 100, "a": 100, "am": 90, "an": 90, "as": 90, "at": 90, "be": 90, "by": 90, "do": 90, "go": 90,
-	"he": 90, "if": 90, "in": 90, "is": 90, "it": 90, "me": 90, "my": 90, "no": 90, "of": 90, "on": 90,
-	"or": 90, "so": 90, "to": 90, "up": 90, "us": 90, "we": 90, "all": 80, "and": 80, "any": 80, "are": 80,
-	"but": 80, "can": 80, "did": 80, "for": 80, "get": 80, "got": 80, "had": 80, "has": 80, "her": 80,
-	"him": 80, "his": 80, "its": 80, "let": 80, "may": 80, "not": 80, "now": 80, "one": 80, "our": 80,
-	"out": 80, "say": 80, "she": 80, "the": 80, "too": 80, "two": 80, "was": 80, "who": 80, "you": 80,
-	"your": 75, "they": 75, "this": 75, "that": 75, "with": 75, "have": 75, "will": 75, "from": 75,
-	"been": 75, "just": 75, "only": 75, "over": 75, "such": 75, "take": 75, "into": 75, "than": 75,
-	"them": 75, "then": 75, "some": 75, "what": 75, "when": 75, "make": 75, "like": 75, "time": 75,
-	"very": 75, "know": 75, "want": 75, "give": 75, "most": 75, "also": 75, "back": 75, "come": 75,
-	"about": 70, "after": 70, "first": 70, "think": 70, "could": 70, "would": 70, "there": 70, "their": 70,
-	"which": 70, "these": 70, "other": 70, "being": 70, "those": 70, "still": 70, "while": 70, "where": 70,
-	"since": 70, "under": 70, "right": 70, "never": 70, "every": 70, "going": 70, "might": 70,
-	"should": 65, "people": 65, "before": 65, "really": 65, "always": 65, "things": 65, "little": 65,
-	"something": 60, "anything": 60, "everything": 60, "nothing": 60, "tonight": 60, "promise": 60,
-	"important": 55, "absolutely": 50, "humiliating": 45,
-	"tell": 70, "guys": 65, "spill": 60, "mixing": 55, "publicly": 50, "story": 65, "secret": 60,
-	"must": 75, "trust": 60, "truly": 55, "stupid": 55, "mix": 60,
+	// Single letters
+	"i": 200, "a": 200,
+	// Very common 2-letter words
+	"am": 180, "an": 180, "as": 180, "at": 180, "be": 180, "by": 180, "do": 180, "go": 180,
+	"he": 180, "if": 180, "in": 180, "is": 180, "it": 180, "me": 180, "my": 180, "no": 180, "of": 180, "on": 180,
+	"or": 180, "so": 180, "to": 180, "up": 180, "us": 180, "we": 180,
+	// Common 3-letter words
+	"all": 160, "and": 160, "any": 160, "are": 160, "but": 160, "can": 160, "did": 160, "for": 160, "get": 160, "got": 160,
+	"had": 160, "has": 160, "her": 160, "him": 160, "his": 160, "its": 160, "let": 160, "may": 160, "not": 160, "now": 160,
+	"one": 160, "our": 160, "out": 160, "say": 160, "she": 160, "the": 160, "too": 160, "two": 160, "was": 160, "who": 160, "you": 160,
+	// Common 4-letter words
+	"your": 150, "they": 150, "this": 150, "that": 150, "with": 150, "have": 150, "will": 150, "from": 150,
+	"been": 150, "just": 150, "only": 150, "over": 150, "such": 150, "take": 150, "into": 150, "than": 150,
+	"them": 150, "then": 150, "some": 150, "what": 150, "when": 150, "make": 150, "like": 150, "time": 150,
+	"very": 150, "know": 150, "want": 150, "give": 150, "most": 150, "also": 150, "back": 150, "come": 150,
+	"tell": 150, "guys": 150, "must": 150,
+	// Common 5-letter words
+	"about": 140, "after": 140, "first": 140, "think": 140, "could": 140, "would": 140, "there": 140, "their": 140,
+	"which": 140, "these": 140, "other": 140, "being": 140, "those": 140, "still": 140, "while": 140, "where": 140,
+	"since": 140, "under": 140, "right": 140, "never": 140, "every": 140, "going": 140, "might": 140,
+	"trust": 140, "truly": 140, "story": 140, "spill": 140,
+	// Common 6-letter words
+	"should": 130, "people": 130, "before": 130, "really": 130, "always": 130, "things": 130, "little": 130,
+	"mixing": 130, "secret": 130, "stupid": 130,
+	// Longer common words - likely candidates
+	"tonight": 150, "promise": 140, "something": 130, "anything": 130, "everything": 130, "nothing": 130,
+	"important": 120, "absolutely": 110, "humiliating": 200, "publicly": 150,
 }
 
 // SortedDict maps sorted letter signatures to original words
@@ -166,24 +175,22 @@ func isAlpha(s string) bool {
 
 func (d *SortedDict) findNearest(sortedSig string) (int, []string, int) {
 	// Returns: (edit_distance, words, commonality_bonus)
+	// Find the dictionary word whose sorted signature is closest to this partition
+
 	// Exact match?
 	if words, ok := d.signatures[sortedSig]; ok {
 		bonus := d.commonSigs[sortedSig]
 		return 0, words, bonus
 	}
 
-	// If the signature is too long, cap the penalty
-	if len(sortedSig) > 20 {
-		return len(sortedSig), nil, 0
-	}
-
-	bestDist := len(sortedSig) + 5 // Default penalty
+	// Search for closest match
+	bestDist := len(sortedSig) + 10 // Default: very bad
 	var bestWords []string
 	bestBonus := 0
 	targetLen := len(sortedSig)
 
-	// Search nearby lengths first
-	for offset := 0; offset <= min(targetLen, 10); offset++ {
+	// Search signatures of similar length
+	for offset := 0; offset <= min(targetLen+5, 15); offset++ {
 		for _, length := range []int{targetLen - offset, targetLen + offset} {
 			if length < 1 || length > 20 {
 				continue
@@ -197,22 +204,20 @@ func (d *SortedDict) findNearest(sortedSig string) (int, []string, int) {
 				dist := editDistance(sortedSig, sig)
 				bonus := d.commonSigs[sig]
 
-				// Prefer common words even if slightly worse distance
-				effectiveScore := dist*10 - bonus
-
-				bestEffective := bestDist*10 - bestBonus
-				if effectiveScore < bestEffective || (effectiveScore == bestEffective && dist < bestDist) {
+				// Prefer lower edit distance, break ties with commonality
+				if dist < bestDist || (dist == bestDist && bonus > bestBonus) {
 					bestDist = dist
 					bestWords = d.signatures[sig]
 					bestBonus = bonus
 				}
 
-				if bestDist == 0 && bestBonus >= 50 {
+				if bestDist == 0 {
 					return bestDist, bestWords, bestBonus
 				}
 			}
 		}
-		if bestDist <= 1 && bestBonus >= 50 {
+		// Early exit if we found a good match
+		if bestDist <= 2 {
 			break
 		}
 	}
@@ -222,9 +227,9 @@ func (d *SortedDict) findNearest(sortedSig string) (int, []string, int) {
 
 type WordMatch struct {
 	Signature string
-	Distance  int
-	Words     []string
-	Bonus     int
+	Distance  int      // edit distance to nearest dictionary word (0 = exact match)
+	Words     []string // matching or nearest dictionary words
+	Bonus     int      // commonality bonus
 }
 
 type Solution struct {
@@ -250,18 +255,33 @@ func partitionToSigs(letters string, splits []int) []string {
 
 func scoreSolution(dict *SortedDict, letters string, splits []int) (int, []WordMatch) {
 	sigs := partitionToSigs(letters, splits)
-	totalError := 0
+
+	// Verify all letters are used
+	totalLettersUsed := 0
+	for _, sig := range sigs {
+		totalLettersUsed += len(sig)
+	}
+	if totalLettersUsed != len(letters) {
+		return 1000000, nil // Invalid partition
+	}
+
+	// Score = sum of edit distances (lower is better)
+	// Subtract commonality bonus to prefer common words
+	score := 0
 	matches := make([]WordMatch, len(sigs))
 
 	for i, sig := range sigs {
 		dist, words, bonus := dict.findNearest(sig)
-		// Score: edit distance penalty minus commonality bonus
-		score := dist*10 - bonus
-		totalError += score
 		matches[i] = WordMatch{Signature: sig, Distance: dist, Words: words, Bonus: bonus}
+
+		// Add edit distance (weighted heavily)
+		score += dist * 100
+
+		// Subtract bonus for common words (prefer common words at same distance)
+		score -= bonus
 	}
 
-	return totalError, matches
+	return score, matches
 }
 
 func randomSplits(length, numSplits int) []int {
@@ -400,21 +420,36 @@ func runWorker(dict *SortedDict, letters string, resultChan chan<- Solution, sto
 func printSolution(sol Solution) {
 	fmt.Printf("\n=== Solution (score=%d) ===\n", sol.Error)
 	words := make([]string, len(sol.Matches))
+	exactMatches := 0
 	totalDist := 0
 	for i, m := range sol.Matches {
-		word := "???"
-		if len(m.Words) > 0 {
-			word = m.Words[0]
-		}
-		words[i] = word
 		totalDist += m.Distance
-		commonMark := ""
-		if m.Bonus > 0 {
-			commonMark = fmt.Sprintf(" [common:%d]", m.Bonus)
+		if len(m.Words) > 0 {
+			words[i] = m.Words[0]
+		} else {
+			words[i] = "???"
 		}
-		fmt.Printf("  '%s' -> '%s' (dist=%d%s)\n", m.Signature, word, m.Distance, commonMark)
+
+		if m.Distance == 0 {
+			exactMatches++
+			commonMark := ""
+			if m.Bonus > 0 {
+				commonMark = fmt.Sprintf(" [common:%d]", m.Bonus)
+			}
+			fmt.Printf("  '%s' -> '%s' (EXACT%s)\n", m.Signature, words[i], commonMark)
+		} else {
+			commonMark := ""
+			if m.Bonus > 0 {
+				commonMark = fmt.Sprintf(" [common:%d]", m.Bonus)
+			}
+			fmt.Printf("  '%s' -> '%s' (dist=%d%s)\n", m.Signature, words[i], m.Distance, commonMark)
+		}
 	}
-	fmt.Printf("\nTotal edit distance: %d\n", totalDist)
+	fmt.Printf("\nExact matches: %d/%d\n", exactMatches, len(sol.Matches))
+	fmt.Printf("Total edit distance: %d\n", totalDist)
+	if exactMatches == len(sol.Matches) {
+		fmt.Printf("*** PERFECT SOLUTION - ALL PARTITIONS ARE EXACT MATCHES! ***\n")
+	}
 	fmt.Printf("Words: %s\n", strings.Join(words, " "))
 }
 
