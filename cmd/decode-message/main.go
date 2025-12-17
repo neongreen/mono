@@ -199,6 +199,7 @@ func (d *SortedDict) findNearest(sortedSig string) (int, []string, int) {
 	targetLen := len(sortedSig)
 
 	// Search signatures of similar length
+	// Don't exit early - keep searching for better common word matches
 	for offset := 0; offset <= min(targetLen+5, 15); offset++ {
 		for _, length := range []int{targetLen - offset, targetLen + offset} {
 			if length < 1 || length > 20 {
@@ -213,21 +214,14 @@ func (d *SortedDict) findNearest(sortedSig string) (int, []string, int) {
 				dist := editDistance(sortedSig, sig)
 				bonus := d.commonSigs[sig]
 
-				// Prefer lower edit distance, break ties with commonality
+				// Prefer lower edit distance, then higher commonality bonus
+				// A common word with same distance is better than obscure word
 				if dist < bestDist || (dist == bestDist && bonus > bestBonus) {
 					bestDist = dist
 					bestWords = d.signatures[sig]
 					bestBonus = bonus
 				}
-
-				if bestDist == 0 {
-					return bestDist, bestWords, bestBonus
-				}
 			}
-		}
-		// Early exit if we found a good match
-		if bestDist <= 2 {
-			break
 		}
 	}
 
@@ -277,8 +271,16 @@ func scoreSolution(dict *SortedDict, letters string, splits []int) (int, []WordM
 	// Score = sum of edit distances (lower is better)
 	// Subtract commonality bonus to prefer common words
 	// Add penalty for obscure/unknown words
+	// Add penalty for wrong number of words
 	score := 0
 	matches := make([]WordMatch, len(sigs))
+
+	// Penalty for wrong word count (target is 16 words = numWords)
+	wordCountDiff := len(sigs) - numWords
+	if wordCountDiff < 0 {
+		wordCountDiff = -wordCountDiff
+	}
+	score += wordCountDiff * 500 // Heavy penalty for wrong word count
 
 	for i, sig := range sigs {
 		dist, words, bonus := dict.findNearest(sig)
@@ -332,12 +334,8 @@ func mutateSplits(splits []int, length int, temperature float64) []int {
 	nMutations := max(1, int(temperature*5))
 
 	for i := 0; i < nMutations; i++ {
-		if len(newSplits) == 0 {
-			break
-		}
-
 		r := rand.Float64()
-		if r < 0.6 {
+		if r < 0.5 && len(newSplits) > 0 {
 			// Move a split point
 			idx := rand.Intn(len(newSplits))
 			delta := rand.Intn(11) - 5
@@ -354,11 +352,28 @@ func mutateSplits(splits []int, length int, temperature float64) []int {
 					newSplits[idx] = newPos
 				}
 			}
-		} else if r < 0.8 && len(newSplits) >= 2 {
+		} else if r < 0.7 && len(newSplits) >= 2 {
 			// Swap two splits
 			i := rand.Intn(len(newSplits))
 			j := rand.Intn(len(newSplits))
 			newSplits[i], newSplits[j] = newSplits[j], newSplits[i]
+		} else if r < 0.85 && len(newSplits) < length-1 {
+			// Add a new split (explore more words)
+			p := rand.Intn(length-1) + 1
+			found := false
+			for _, s := range newSplits {
+				if s == p {
+					found = true
+					break
+				}
+			}
+			if !found {
+				newSplits = append(newSplits, p)
+			}
+		} else if len(newSplits) > 1 {
+			// Remove a split (explore fewer words)
+			idx := rand.Intn(len(newSplits))
+			newSplits = append(newSplits[:idx], newSplits[idx+1:]...)
 		}
 	}
 
@@ -375,16 +390,20 @@ func mutateSplits(splits []int, length int, temperature float64) []int {
 	}
 	newSplits = unique
 
-	// Adjust count
-	for len(newSplits) < numWords-1 {
+	// Soft constraint: allow deviation from numWords but will be penalized in scoring
+	// Only enforce hard bounds to keep search reasonable
+	minSplits := 10  // at least 11 words
+	maxSplits := 25  // at most 26 words
+	for len(newSplits) < minSplits {
 		p := rand.Intn(length-1) + 1
 		if !seen[p] {
 			newSplits = append(newSplits, p)
 			seen[p] = true
 		}
 	}
-	for len(newSplits) > numWords-1 {
+	for len(newSplits) > maxSplits {
 		idx := rand.Intn(len(newSplits))
+		delete(seen, newSplits[idx])
 		newSplits = append(newSplits[:idx], newSplits[idx+1:]...)
 	}
 
@@ -444,7 +463,7 @@ func runWorker(dict *SortedDict, letters string, resultChan chan<- Solution, sto
 }
 
 func printSolution(sol Solution) {
-	fmt.Printf("\n=== Solution (score=%d) ===\n", sol.Error)
+	fmt.Printf("\n=== Solution (score=%d, %d words) ===\n", sol.Error, len(sol.Matches))
 	words := make([]string, len(sol.Matches))
 	exactMatches := 0
 	totalDist := 0
@@ -471,11 +490,9 @@ func printSolution(sol Solution) {
 			fmt.Printf("  '%s' -> '%s' (dist=%d%s)\n", m.Signature, words[i], m.Distance, commonMark)
 		}
 	}
-	fmt.Printf("\nExact matches: %d/%d\n", exactMatches, len(sol.Matches))
+	fmt.Printf("\nWord count: %d (target: %d)\n", len(sol.Matches), numWords)
+	fmt.Printf("Exact matches: %d/%d\n", exactMatches, len(sol.Matches))
 	fmt.Printf("Total edit distance: %d\n", totalDist)
-	if exactMatches == len(sol.Matches) {
-		fmt.Printf("*** PERFECT SOLUTION - ALL PARTITIONS ARE EXACT MATCHES! ***\n")
-	}
 	fmt.Printf("Words: %s\n", strings.Join(words, " "))
 }
 
