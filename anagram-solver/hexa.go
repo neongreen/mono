@@ -28,21 +28,23 @@ counts    map[rune]int
 }
 
 type Solution struct {
-words    []int
-score    float64
-letters  string
-mismatch int
+	words       []int
+	score       float64
+	letters     string
+	mismatch    int
+	bigramScore float64
 }
 
 func (s *Solution) clone() *Solution {
-newWords := make([]int, len(s.words))
-copy(newWords, s.words)
-return &Solution{
-words:    newWords,
-score:    s.score,
-letters:  s.letters,
-mismatch: s.mismatch,
-}
+	newWords := make([]int, len(s.words))
+	copy(newWords, s.words)
+	return &Solution{
+		words:       newWords,
+		score:       s.score,
+		letters:     s.letters,
+		mismatch:    s.mismatch,
+		bigramScore: s.bigramScore,
+	}
 }
 
 var wordList []Word
@@ -227,7 +229,37 @@ sb.WriteRune(r)
 return sb.String()
 }
 
-func scoreSolution(indices []int, counts map[rune]int) (float64, int, string) {
+// Calculate bigram score based on word frequency and natural flow
+// Lower score is better (more natural word pairs)
+func calculateBigramScore(indices []int) float64 {
+if len(indices) < 2 {
+return 0.0
+}
+
+score := 0.0
+for i := 0; i < len(indices)-1; i++ {
+w1Freq := wordList[indices[i]].frequency
+w2Freq := wordList[indices[i+1]].frequency
+
+// Prefer common words next to each other
+// Penalize pairs where both words are rare
+avgFreq := float64(w1Freq+w2Freq) / 2.0
+
+// Additional penalty for very rare word pairs
+if w1Freq > 5000 && w2Freq > 5000 {
+score += 100.0
+} else if w1Freq > 3000 && w2Freq > 3000 {
+score += 50.0
+}
+
+// Base score: prefer lower frequency (more common) words
+score += avgFreq / 100.0
+}
+
+return score / float64(len(indices)-1) // Average bigram score
+}
+
+func scoreSolution(indices []int, counts map[rune]int) (float64, int, string, float64) {
 mismatch := letterMismatch(counts)
 letters := combinedLetters(counts)
 
@@ -264,9 +296,13 @@ if avgWordLen < 5 {
 shortWordPenalty = (5 - avgWordLen) * 30
 }
 
-score := float64(mismatch)*1000 + float64(wordCountDiff)*100 + freqScore*2 + shortWordPenalty
+// Bigram score - encourages natural word sequences
+bigramScore := calculateBigramScore(indices)
 
-return score, mismatch, letters
+// Combined score with bigram weight
+score := float64(mismatch)*1000 + float64(wordCountDiff)*100 + freqScore*2 + shortWordPenalty + bigramScore*20
+
+return score, mismatch, letters, bigramScore
 }
 
 func createInitialSolution(r *rand.Rand) *Solution {
@@ -310,12 +346,13 @@ totalLen += len(wordList[idx].text)
 }
 
 counts := combinedCounts(indices)
-score, mismatch, letters := scoreSolution(indices, counts)
+score, mismatch, letters, bigramScore := scoreSolution(indices, counts)
 return &Solution{
-words:    indices,
-score:    score,
-mismatch: mismatch,
-letters:  letters,
+words:       indices,
+score:       score,
+mismatch:    mismatch,
+letters:     letters,
+bigramScore: bigramScore,
 }
 }
 
@@ -368,12 +405,13 @@ newIndices[idx1], newIndices[idx2] = newIndices[idx2], newIndices[idx1]
 }
 
 counts := combinedCounts(newIndices)
-score, mismatch, letters := scoreSolution(newIndices, counts)
+score, mismatch, letters, bigramScore := scoreSolution(newIndices, counts)
 return &Solution{
-words:    newIndices,
-score:    score,
-mismatch: mismatch,
-letters:  letters,
+words:       newIndices,
+score:       score,
+mismatch:    mismatch,
+letters:     letters,
+bigramScore: bigramScore,
 }
 }
 
@@ -491,8 +529,8 @@ case sol := <-bestChan:
 if globalBest == nil || sol.score < globalBest.score {
 globalBest = sol
 solutionCount++
-fmt.Printf("\n[%.1fs] NEW BEST #%d: score=%.2f, mismatch=%d, words=%d\n",
-time.Since(startTime).Seconds(), solutionCount, sol.score, sol.mismatch, len(sol.words))
+fmt.Printf("\n[%.1fs] NEW BEST #%d: score=%.2f, mismatch=%d, words=%d, bigram=%.2f\n",
+time.Since(startTime).Seconds(), solutionCount, sol.score, sol.mismatch, len(sol.words), sol.bigramScore)
 fmt.Printf("  %s\n", solutionText(sol))
 }
 case <-ticker.C:
@@ -515,6 +553,7 @@ if globalBest != nil {
 fmt.Println("\n=== BEST SOLUTION ===")
 fmt.Printf("Score: %.2f\n", globalBest.score)
 fmt.Printf("Letter mismatch: %d\n", globalBest.mismatch)
+fmt.Printf("Bigram score: %.2f (lower is better)\n", globalBest.bigramScore)
 fmt.Printf("Words: %d (target: %d)\n", len(globalBest.words), targetSpaces+1)
 fmt.Printf("Solution: %s\n", solutionText(globalBest))
 fmt.Printf("Letters: %s\n", globalBest.letters)
