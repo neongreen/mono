@@ -28,22 +28,22 @@ counts    map[rune]int
 }
 
 type Solution struct {
-	words       []int
-	score       float64
-	letters     string
-	mismatch    int
-	bigramScore float64
+	words        []int
+	score        float64
+	letters      string
+	mismatch     int
+	trigramScore float64
 }
 
 func (s *Solution) clone() *Solution {
 	newWords := make([]int, len(s.words))
 	copy(newWords, s.words)
 	return &Solution{
-		words:       newWords,
-		score:       s.score,
-		letters:     s.letters,
-		mismatch:    s.mismatch,
-		bigramScore: s.bigramScore,
+		words:        newWords,
+		score:        s.score,
+		letters:      s.letters,
+		mismatch:     s.mismatch,
+		trigramScore: s.trigramScore,
 	}
 }
 
@@ -229,34 +229,34 @@ sb.WriteRune(r)
 return sb.String()
 }
 
-// Calculate bigram score based on word frequency and natural flow
-// Lower score is better (more natural word pairs)
-func calculateBigramScore(indices []int) float64 {
-if len(indices) < 2 {
+// Calculate trigram score based on word frequency and natural flow
+// Lower score is better (more natural 3-word sequences)
+func calculateTrigramScore(indices []int) float64 {
+if len(indices) < 3 {
 return 0.0
 }
 
 score := 0.0
-for i := 0; i < len(indices)-1; i++ {
+for i := 0; i < len(indices)-2; i++ {
 w1Freq := wordList[indices[i]].frequency
 w2Freq := wordList[indices[i+1]].frequency
+w3Freq := wordList[indices[i+2]].frequency
 
-// Prefer common words next to each other
-// Penalize pairs where both words are rare
-avgFreq := float64(w1Freq+w2Freq) / 2.0
+// Prefer common words in sequence
+avgFreq := float64(w1Freq+w2Freq+w3Freq) / 3.0
 
-// Additional penalty for very rare word pairs
-if w1Freq > 5000 && w2Freq > 5000 {
-score += 100.0
-} else if w1Freq > 3000 && w2Freq > 3000 {
-score += 50.0
+// Additional penalty for very rare word triplets
+if w1Freq > 5000 && w2Freq > 5000 && w3Freq > 5000 {
+score += 150.0
+} else if w1Freq > 3000 && w2Freq > 3000 && w3Freq > 3000 {
+score += 75.0
 }
 
 // Base score: prefer lower frequency (more common) words
 score += avgFreq / 100.0
 }
 
-return score / float64(len(indices)-1) // Average bigram score
+return score / float64(len(indices)-2) // Average trigram score
 }
 
 func scoreSolution(indices []int, counts map[rune]int) (float64, int, string, float64) {
@@ -296,13 +296,13 @@ if avgWordLen < 5 {
 shortWordPenalty = (5 - avgWordLen) * 30
 }
 
-// Bigram score - encourages natural word sequences
-bigramScore := calculateBigramScore(indices)
+// Trigram score - encourages natural 3-word sequences
+trigramScore := calculateTrigramScore(indices)
 
-// Combined score with bigram weight
-score := float64(mismatch)*1000 + float64(wordCountDiff)*100 + freqScore*2 + shortWordPenalty + bigramScore*20
+// Combined score with trigram weight
+score := float64(mismatch)*1000 + float64(wordCountDiff)*100 + freqScore*2 + shortWordPenalty + trigramScore*30
 
-return score, mismatch, letters, bigramScore
+return score, mismatch, letters, trigramScore
 }
 
 func createInitialSolution(r *rand.Rand) *Solution {
@@ -346,13 +346,13 @@ totalLen += len(wordList[idx].text)
 }
 
 counts := combinedCounts(indices)
-score, mismatch, letters, bigramScore := scoreSolution(indices, counts)
+score, mismatch, letters, trigramScore := scoreSolution(indices, counts)
 return &Solution{
-words:       indices,
-score:       score,
-mismatch:    mismatch,
-letters:     letters,
-bigramScore: bigramScore,
+words:        indices,
+score:        score,
+mismatch:     mismatch,
+letters:      letters,
+trigramScore: trigramScore,
 }
 }
 
@@ -405,13 +405,13 @@ newIndices[idx1], newIndices[idx2] = newIndices[idx2], newIndices[idx1]
 }
 
 counts := combinedCounts(newIndices)
-score, mismatch, letters, bigramScore := scoreSolution(newIndices, counts)
+score, mismatch, letters, trigramScore := scoreSolution(newIndices, counts)
 return &Solution{
-words:       newIndices,
-score:       score,
-mismatch:    mismatch,
-letters:     letters,
-bigramScore: bigramScore,
+words:        newIndices,
+score:        score,
+mismatch:     mismatch,
+letters:      letters,
+trigramScore: trigramScore,
 }
 }
 
@@ -515,7 +515,7 @@ go runAnnealing(i, &wg, bestChan, done)
 
 var globalBest *Solution
 startTime := time.Now()
-timeout := 90 * time.Second
+timeout := 5 * time.Minute
 solutionCount := 0
 
 ticker := time.NewTicker(5 * time.Second)
@@ -529,8 +529,8 @@ case sol := <-bestChan:
 if globalBest == nil || sol.score < globalBest.score {
 globalBest = sol
 solutionCount++
-fmt.Printf("\n[%.1fs] NEW BEST #%d: score=%.2f, mismatch=%d, words=%d, bigram=%.2f\n",
-time.Since(startTime).Seconds(), solutionCount, sol.score, sol.mismatch, len(sol.words), sol.bigramScore)
+fmt.Printf("\n[%.1fs] NEW BEST #%d: score=%.2f, mismatch=%d, words=%d, trigram=%.2f\n",
+time.Since(startTime).Seconds(), solutionCount, sol.score, sol.mismatch, len(sol.words), sol.trigramScore)
 fmt.Printf("  %s\n", solutionText(sol))
 }
 case <-ticker.C:
@@ -553,7 +553,7 @@ if globalBest != nil {
 fmt.Println("\n=== BEST SOLUTION ===")
 fmt.Printf("Score: %.2f\n", globalBest.score)
 fmt.Printf("Letter mismatch: %d\n", globalBest.mismatch)
-fmt.Printf("Bigram score: %.2f (lower is better)\n", globalBest.bigramScore)
+fmt.Printf("Trigram score: %.2f (lower is better)\n", globalBest.trigramScore)
 fmt.Printf("Words: %d (target: %d)\n", len(globalBest.words), targetSpaces+1)
 fmt.Printf("Solution: %s\n", solutionText(globalBest))
 fmt.Printf("Letters: %s\n", globalBest.letters)
