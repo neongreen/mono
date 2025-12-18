@@ -140,6 +140,19 @@ func inferPOSTag(word string) string {
 }
 
 func loadWords(freqFile string) error {
+	// First, manually add "hexa" since it's a name and not in the word list
+	hexaCounts := letterCounts(firstWord)
+	if canFit(hexaCounts) {
+		wordList = append(wordList, Word{
+			text:      firstWord,
+			letters:   sortLetters(firstWord),
+			frequency: 0, // Give it highest priority
+			counts:    hexaCounts,
+			posTag:    "NOUN", // It's a name
+		})
+		firstWordIndex = 0
+	}
+	
 	file, err := os.Open(freqFile)
 	if err != nil {
 		return err
@@ -147,8 +160,9 @@ func loadWords(freqFile string) error {
 	defer file.Close()
 
 	seen := make(map[string]bool)
+	seen[firstWord] = true // Don't add hexa again
 	scanner := bufio.NewScanner(file)
-	rank := 0
+	rank := 1 // Start from 1 since hexa is 0
 	
 	for scanner.Scan() {
 		text := strings.TrimSpace(strings.ToLower(scanner.Text()))
