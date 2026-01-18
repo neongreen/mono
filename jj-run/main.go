@@ -7,14 +7,20 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/neongreen/mono/lib/cli"
 	"github.com/neongreen/mono/lib/version"
 	"github.com/spf13/cobra"
 )
+
+// activeCmd holds the currently running shell command so we can kill its process group on signal
+var activeCmd *exec.Cmd
+var activeCmdMu sync.Mutex
 
 // Signature represents author/committer information
 type Signature struct {
@@ -106,9 +112,40 @@ func init() {
 }
 
 func main() {
+	// Set up signal handling to kill child process groups on interrupt
+	setupSignalHandler()
+
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+// setupSignalHandler sets up a signal handler to kill child process groups
+// when jj-run receives SIGINT or SIGTERM.
+func setupSignalHandler() {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		// Kill the active command's process group if one exists
+		killActiveCommand()
+		os.Exit(1)
+	}()
+}
+
+// killActiveCommand kills the currently running shell command's process group.
+func killActiveCommand() {
+	activeCmdMu.Lock()
+	defer activeCmdMu.Unlock()
+
+	if activeCmd != nil && activeCmd.Process != nil {
+		// Kill the entire process group (negative PID)
+		pgid, err := syscall.Getpgid(activeCmd.Process.Pid)
+		if err == nil {
+			syscall.Kill(-pgid, syscall.SIGKILL)
+		}
 	}
 }
 
@@ -868,11 +905,15 @@ func printCommandResult(err error) {
 
 // runShellCommand runs a shell command in the given directory.
 // If change is provided, it sets JJ_CHANGE_ID, JJ_COMMIT_ID, and JJ_COMMIT_TIMESTAMP env vars.
+// The command is run in its own process group so it can be killed cleanly on interrupt.
 func runShellCommand(command string, cwd string, change *Change) error {
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Dir = cwd
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	// Create a new process group for this command so we can kill all children on interrupt
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	// Set environment variables if change metadata is provided
 	if change != nil {
@@ -883,7 +924,19 @@ func runShellCommand(command string, cwd string, change *Change) error {
 		)
 	}
 
-	return cmd.Run()
+	// Track this command so signal handler can kill it
+	activeCmdMu.Lock()
+	activeCmd = cmd
+	activeCmdMu.Unlock()
+
+	err := cmd.Run()
+
+	// Clear the active command
+	activeCmdMu.Lock()
+	activeCmd = nil
+	activeCmdMu.Unlock()
+
+	return err
 }
 
 func runJJ(args []string, cwd string) error {
