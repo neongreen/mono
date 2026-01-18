@@ -29,11 +29,15 @@ func TestHTMLFootnoteRendering(t *testing.T) {
 	if !strings.Contains(result, "data-footnote-id=\"fn:1\"") {
 		t.Fatalf("expected data-footnote-id on superscript, got: %s", result)
 	}
-	if !strings.Contains(result, ">1</sup>") {
-		t.Fatalf("expected numeric marker inside superscript, got: %s", result)
+	// The superscript should be empty - Prince generates the number via ::footnote-call
+	if !strings.Contains(result, "></sup>") {
+		t.Fatalf("expected empty superscript (Prince generates number), got: %s", result)
 	}
 	if strings.Contains(result, "class=\"footnote-ref\"") {
 		t.Fatalf("unexpected footnote anchor found in output: %s", result)
+	}
+	if !strings.Contains(result, "::footnote-call") {
+		t.Fatalf("expected ::footnote-call CSS rule for Prince, got: %s", result)
 	}
 	if !strings.Contains(result, "span.printpdf-footnote::footnote-marker") {
 		t.Fatalf("expected inline footnote marker override in CSS, got: %s", result)
