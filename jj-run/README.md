@@ -89,6 +89,34 @@ jj x --direct -r 'mutable()' 'jj describe -m "$(jj log -r @ --no-graph -T descri
 jj x --direct -r '::@' 'jj describe -m "$(jj log -r @ --no-graph -T description)\n\nCo-authored-by: Name <email>"'
 ```
 
+## Readonly Mode
+
+Readonly mode (`--readonly`) runs commands in isolated workspaces without modifying any commits:
+
+- For each change in the revset, a temporary workspace is created
+- `jj edit` is used to check out the revision (not `jj new`)
+- The command is executed in the workspace
+- After execution, the workspace is dropped using `--ignore-working-copy` to prevent snapshotting
+- No changes are squashed back to the original commits
+
+**Use cases for readonly mode:**
+- Running tests across multiple commits
+- Analyzing code at different points in history
+- Generating reports or metrics for each commit
+- Any read-only operation that shouldn't modify the repository
+
+**Example:**
+```sh
+# Run tests on all mutable commits
+jj x --readonly -r 'mutable()' 'cargo test'
+
+# Check which commits compile successfully
+jj x --readonly -r '::@' 'cargo build'
+
+# Generate coverage reports for recent changes
+jj x --readonly -r 'recent(5)' 'cargo llvm-cov --html'
+```
+
 ## Working with Remote Repositories
 
 **⚠️ EXPERIMENTAL: This feature is AI-written and untested. Use at your own risk.**

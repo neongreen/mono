@@ -52,6 +52,7 @@ var (
 	revset          string
 	errStrategy     string
 	directMode      bool
+	readonlyMode    bool
 	showVersion     bool
 	ignoreImmutable bool
 	jobs            int
@@ -69,6 +70,10 @@ Uses a temporary workspace for each run, so your main repo doesn't change while 
 Direct mode (--direct): Instead of using temporary workspaces, directly edits each revision in place.
 Useful for metadata changes (e.g., changing commit descriptions, authors) that don't require file isolation.
 
+Readonly mode (--readonly): Run commands in isolated workspaces without modifying any commits.
+Uses jj edit to check out each revision, runs the command, then drops the workspace.
+No changes are squashed back - useful for running tests, analysis, or other read-only operations.
+
 Parallel processing (-j/--jobs): Process changes concurrently using multiple workers (only available in workspace mode).
 Set to 1 (default) for sequential processing, or higher numbers for parallel execution.`,
 	Args: func(cmd *cobra.Command, args []string) error {
@@ -85,6 +90,7 @@ func init() {
 	rootCmd.Flags().StringVarP(&revset, "revset", "r", "reachable(@, mutable())", "Revset to process")
 	rootCmd.Flags().StringVarP(&errStrategy, "err-strategy", "e", "continue", "Error handling strategy (continue|stop|fatal)")
 	rootCmd.Flags().BoolVarP(&directMode, "direct", "d", false, "Direct mode: edit each revision in place without worktrees")
+	rootCmd.Flags().BoolVar(&readonlyMode, "readonly", false, "Readonly mode: run commands in isolated workspaces without modifying commits")
 	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "Show version information")
 	rootCmd.Flags().BoolVar(&ignoreImmutable, "ignore-immutable", false, "Allow rewriting immutable commits")
 	rootCmd.Flags().IntVarP(&jobs, "jobs", "j", 1, "Number of parallel workers (only for workspace mode, not direct mode)")
@@ -125,6 +131,9 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	if directMode && jobs > 1 {
 		return fmt.Errorf("parallel processing is not supported in direct mode")
 	}
+	if directMode && readonlyMode {
+		return fmt.Errorf("--direct and --readonly cannot be used together")
+	}
 
 	// Handle --repo flag: clone repository to temp directory
 	var repoDir string
@@ -160,6 +169,11 @@ func runCommand(cmd *cobra.Command, args []string) error {
 			return promptPush(repoDir)
 		}
 		return nil
+	}
+
+	// Use readonly mode if requested
+	if readonlyMode {
+		return runReadonlyMode(command, strategy, repoDir)
 	}
 
 	// Create and manage workspace
@@ -325,6 +339,132 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string, repo
 	}
 
 	return nil
+}
+
+func runReadonlyMode(command string, strategy ErrorStrategy, repoDir string) error {
+	// Get changes to process (exclude root)
+	changes, err := getChangeList(fmt.Sprintf("(%s) ~ root()", revset), repoDir)
+	if err != nil {
+		return fmt.Errorf("failed to get change list: %w", err)
+	}
+
+	totalChanges := len(changes)
+	if totalChanges == 0 {
+		fmt.Fprintf(os.Stderr, "No changes found to process.\n")
+		return nil
+	}
+
+	fmt.Fprintf(os.Stderr, "Processing %s in readonly mode...\n", cli.Header(fmt.Sprintf("%d changes", totalChanges)))
+
+	allSuccessful := true
+	processedCount := 0
+
+	for idx, change := range changes {
+		message := strings.TrimSpace(change.Description)
+		if message == "" {
+			message = "(no description set)"
+		}
+
+		changeID := change.ChangeID
+		fmt.Fprintf(os.Stderr, "Processing change %d/%d %s: %s\n", idx+1, totalChanges, cli.Key(changeID[:12]), message)
+
+		// Create a workspace for this change
+		workspacePath, workspaceName, err := createWorkspace(repoDir)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s %v\n", cli.Error("Error creating workspace:"), err)
+			allSuccessful = false
+			exitEarly, handlerErr := handleError(strategy, changeID[:12], err)
+			if exitEarly {
+				return handlerErr
+			}
+			continue
+		}
+
+		// Edit this change (check out the revision)
+		if _, err := runJJOutput([]string{"edit", changeID}, workspacePath); err != nil {
+			fmt.Fprintf(os.Stderr, "%s %v\n", cli.Error("Error editing change:"), err)
+			// Use --ignore-working-copy for cleanup since we don't want to snapshot anything
+			forgetWorkspaceIgnoreWC(workspaceName, repoDir)
+			allSuccessful = false
+			exitEarly, handlerErr := handleError(strategy, changeID[:12], err)
+			if exitEarly {
+				return handlerErr
+			}
+			continue
+		}
+
+		// Run the command in the workspace
+		err = runShellCommand(command, workspacePath)
+		printCommandResult(err)
+
+		// After command execution, use --ignore-working-copy for all jj commands
+		// to avoid snapshotting any changes the command may have made
+		forgetWorkspaceIgnoreWC(workspaceName, repoDir)
+
+		if err != nil {
+			allSuccessful = false
+			exitEarly, handlerErr := handleError(strategy, changeID[:12], err)
+			if exitEarly {
+				return handlerErr
+			}
+		} else {
+			processedCount++
+		}
+	}
+
+	fmt.Fprintf(os.Stderr, "%s %d/%d changes.\n", cli.Success("Processed"), processedCount, totalChanges)
+	if !allSuccessful {
+		fmt.Fprintf(os.Stderr, "%s\n", cli.Warning("Not all changes were processed successfully."))
+	}
+
+	if !allSuccessful {
+		return fmt.Errorf("some changes failed to process")
+	}
+
+	return nil
+}
+
+// forgetWorkspaceIgnoreWC forgets a workspace using --ignore-working-copy
+// to avoid snapshotting any changes that may have been made in the workspace.
+// This is used in readonly mode to ensure no modifications are persisted.
+func forgetWorkspaceIgnoreWC(workspaceName string, repoDir string) {
+	runJJIgnoreWC([]string{"workspace", "forget", workspaceName}, repoDir)
+}
+
+// runJJIgnoreWC runs a jj command with --ignore-working-copy flag.
+// This prevents jj from snapshotting the working copy before running the command.
+func runJJIgnoreWC(args []string, cwd string) error {
+	_, err := runJJOutputIgnoreWC(args, cwd)
+	return err
+}
+
+// runJJOutputIgnoreWC runs a jj command with --ignore-working-copy flag and returns output.
+func runJJOutputIgnoreWC(args []string, cwd string) (string, error) {
+	// Add --ignore-working-copy flag
+	args = append([]string{"--ignore-working-copy"}, args...)
+
+	// Add --ignore-immutable flag if requested
+	if ignoreImmutable {
+		args = append([]string{"--ignore-immutable"}, args...)
+	}
+
+	cmd := exec.Command("jj", args...)
+	cmd.Dir = cwd
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			exitErr.Stderr = stderr.Bytes()
+		}
+		return "", err
+	}
+
+	return stdout.String(), nil
 }
 
 func cloneRepository(url string) (string, func(), error) {
