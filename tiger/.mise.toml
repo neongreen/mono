@@ -1,0 +1,10 @@
+[tasks.build]
+description = "Build the Tiger app"
+run = "uv run build_app.py"
+
+[tasks.dev]
+description = "Build and start the Tiger app"
+run = [
+    "uv run build_app.py",
+    "open Tiger.app"
+]
