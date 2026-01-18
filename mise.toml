@@ -681,6 +681,8 @@ run = "go test -v ./..."
 [tasks."jj-run:build"]
 description = "Build jj-run binary"
 dir = "jj-run"
+# Only use Go for this task - avoids installing gopls which requires Go 1.25+
+tools = { go = "1.24.7" }
 run = """
 set -euo pipefail
 go build -trimpath -o {{cwd}}/_build/jj-run .
