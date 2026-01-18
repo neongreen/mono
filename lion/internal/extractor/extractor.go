@@ -23,18 +23,22 @@ type DocEntry struct {
 	HasSection    bool
 }
 
-//lion:implementation section="Extraction pipeline"
 // Extraction pipeline:
 //   - Walks all .go files under the directory, skipping *_test.go.
+//   - For TypeScript files (.ts, .tsx), uses the TypeScript compiler API via a Node.js helper.
 //   - Parses with comments and pulls lion markers from package doc, func doc, type/const/var
 //     doc comments, and inline comments inside functions and other declarations (first name in a
 //     const/var block is used as the entity).
 //   - Supports single-line markers and block comment markers (marker at top of the doc block).
+//   - For TypeScript, uses TSDoc-style @lion tags in JSDoc comments.
 //   - Aggregates snippets per topic across files; generator writes one file per topic.
+//
+//lion:implementation section="Extraction pipeline"
 func Extract(dir string) (map[string][]DocEntry, error) {
 	docs := make(map[string][]DocEntry)
 	fset := token.NewFileSet()
 
+	// Extract from Go files
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -66,6 +70,17 @@ func Extract(dir string) (map[string][]DocEntry, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Extract from TypeScript files
+	tsDocs, err := ExtractTypeScript(dir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract TypeScript documentation: %w", err)
+	}
+
+	// Merge TypeScript docs into the main docs map
+	for topic, entries := range tsDocs {
+		docs[topic] = append(docs[topic], entries...)
 	}
 
 	return docs, nil
@@ -156,7 +171,6 @@ func determineEntityForComment(cg *ast.CommentGroup, file *ast.File, funcDecls [
 	return "package " + file.Name.Name
 }
 
-//lion:supported-syntax section="Supported syntax"
 // Supported syntax formats:
 //
 //  1. Single-line marker first:
@@ -174,6 +188,8 @@ func determineEntityForComment(cg *ast.CommentGroup, file *ast.File, funcDecls [
 //   - Unknown keys stop metadata parsing and are treated as content.
 //
 // All formats attach documentation to the next declaration (function, type, const, var).
+//
+//lion:supported-syntax section="Supported syntax"
 func extractFromCommentGroup(fset *token.FileSet, cg *ast.CommentGroup, filepath, entityName string, docs map[string][]DocEntry) error {
 	topicGroups := make(map[string][]string)
 	topicOrder := []string{}
