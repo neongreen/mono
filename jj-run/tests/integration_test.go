@@ -780,3 +780,343 @@ func TestParallelModeParentRewriting(t *testing.T) {
 
 	t.Logf("Test passed: parallel mode parent rewriting works correctly")
 }
+
+// TestReadonlyModeBasic tests basic readonly mode functionality
+func TestReadonlyModeBasic(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create several commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
+
+	twoFile := filepath.Join(repoDir, "two.txt")
+	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write two.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "second commit", "two.txt")
+
+	// Use readonly mode to run a command that would normally modify files
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--readonly", "-r", "::", "echo 'modified' > modified.txt")
+
+	if exitCode != 0 {
+		t.Logf("jj-run stderr: %s", stderr)
+		t.Fatalf("jj-run failed with exit code %d", exitCode)
+	}
+
+	// Check that readonly mode message appears
+	if !strings.Contains(stderr, "readonly mode") {
+		t.Errorf("Expected 'readonly mode' message in stderr, got: %s", stderr)
+	}
+
+	// Check that the command reported processing
+	if !strings.Contains(stderr, "Processed") {
+		t.Errorf("Expected 'Processed' message in stderr, got: %s", stderr)
+	}
+
+	t.Logf("Test passed: readonly mode basic functionality works")
+}
+
+// TestReadonlyModeNoModifications tests that readonly mode doesn't modify commits
+func TestReadonlyModeNoModifications(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create a commit with specific content
+	file1 := filepath.Join(repoDir, "file1.txt")
+	if err := os.WriteFile(file1, []byte("original content\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write file1.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "file1.txt")
+
+	// Get the commit ID before running readonly mode (this won't change with timestamps)
+	commitIDBefore, _, _ := runCommand(t, repoDir, "jj", "log", "-r", "::", "-T", "commit_id", "--no-graph")
+
+	// Run readonly mode with a command that modifies files
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--readonly", "-r", "::", "echo 'MODIFIED' > file1.txt && echo 'NEW FILE' > new.txt")
+
+	if exitCode != 0 {
+		t.Logf("jj-run stderr: %s", stderr)
+		t.Fatalf("jj-run failed with exit code %d", exitCode)
+	}
+
+	// Get the commit ID after running readonly mode
+	commitIDAfter, _, _ := runCommand(t, repoDir, "jj", "log", "-r", "::", "-T", "commit_id", "--no-graph")
+
+	// The commit IDs should be identical - no modifications should have been made
+	if commitIDBefore != commitIDAfter {
+		t.Errorf("Readonly mode modified commits!\nCommit IDs before: %s\nCommit IDs after: %s", commitIDBefore, commitIDAfter)
+	}
+
+	// Get the log to verify content
+	logAfter, _, _ := runCommand(t, repoDir, "jj", "log", "-p", "-r", "::")
+
+	// Verify original content is still there
+	if !strings.Contains(logAfter, "original content") {
+		t.Errorf("Original content should still be present in commits")
+	}
+
+	// Verify no new files were added to commits
+	if strings.Contains(logAfter, "new.txt") {
+		t.Errorf("New files should not appear in commits in readonly mode")
+	}
+
+	// Verify no modifications were made
+	if strings.Contains(logAfter, "MODIFIED") {
+		t.Errorf("Modifications should not appear in commits in readonly mode")
+	}
+
+	t.Logf("Test passed: readonly mode doesn't modify commits")
+}
+
+// TestReadonlyModeWorkspaceCleanup tests that workspaces are cleaned up in readonly mode
+func TestReadonlyModeWorkspaceCleanup(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
+
+	twoFile := filepath.Join(repoDir, "two.txt")
+	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write two.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "second commit", "two.txt")
+
+	// Get initial workspace list
+	workspacesBefore, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces before: %s", workspacesBefore)
+
+	// Run readonly mode
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--readonly", "-r", "::", "echo 'test'")
+
+	if exitCode != 0 {
+		t.Logf("jj-run stderr: %s", stderr)
+		t.Fatalf("jj-run failed with exit code %d", exitCode)
+	}
+
+	// Get workspace list after readonly mode
+	workspacesAfter, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces after: %s", workspacesAfter)
+
+	// Verify that temporary workspaces were cleaned up
+	workspaceLinesBefore := strings.Split(strings.TrimSpace(workspacesBefore), "\n")
+	workspaceLinesAfter := strings.Split(strings.TrimSpace(workspacesAfter), "\n")
+
+	if len(workspaceLinesAfter) != len(workspaceLinesBefore) {
+		t.Errorf("Expected same number of workspaces after cleanup. Before: %d, After: %d",
+			len(workspaceLinesBefore), len(workspaceLinesAfter))
+		t.Logf("Before: %s", workspacesBefore)
+		t.Logf("After: %s", workspacesAfter)
+	}
+
+	// Check that no jj-run temporary workspaces remain
+	if strings.Contains(workspacesAfter, "jj-run-") {
+		t.Errorf("Found temporary jj-run workspace in workspace list after readonly mode: %s", workspacesAfter)
+	}
+
+	t.Logf("Test passed: readonly mode workspace cleanup works")
+}
+
+// TestReadonlyModeErrorHandling tests error handling in readonly mode
+func TestReadonlyModeErrorHandling(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
+
+	failmeFile := filepath.Join(repoDir, "failme.txt")
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write failme.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
+
+	twoFile := filepath.Join(repoDir, "two.txt")
+	if err := os.WriteFile(twoFile, []byte("Second commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write two.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "second commit", "two.txt")
+
+	// Run readonly mode with a command that fails if failme.txt exists (continue strategy)
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--readonly", "-r", "::", "-e", "continue", "test -f failme.txt && exit 1")
+
+	// Should report error but continue
+	if exitCode == 0 {
+		t.Errorf("Expected nonzero exit code due to failed command")
+	}
+
+	if !strings.Contains(stderr, "Command failed with return code 1") {
+		t.Errorf("Expected 'Command failed with return code 1' in stderr, got: %s", stderr)
+	}
+
+	// Should process all changes despite the error
+	if !strings.Contains(stderr, "Processed") {
+		t.Errorf("Expected 'Processed' message in stderr, got: %s", stderr)
+	}
+
+	t.Logf("Test passed: readonly mode error handling works")
+}
+
+// TestReadonlyModeStop tests stop error strategy in readonly mode
+func TestReadonlyModeStop(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
+
+	failmeFile := filepath.Join(repoDir, "failme.txt")
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write failme.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
+
+	// Run readonly mode with stop strategy
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--readonly", "-r", "::", "-e", "stop", "test -f failme.txt && exit 1")
+
+	// Should exit nonzero with -e stop
+	if exitCode == 0 {
+		t.Errorf("Expected nonzero exit code with -e stop on failure")
+	}
+
+	if !strings.Contains(stderr, "Stopped on change") {
+		t.Errorf("Expected 'Stopped on change' in stderr, got: %s", stderr)
+	}
+
+	t.Logf("Test passed: readonly mode stop strategy works")
+}
+
+// TestReadonlyModeWorkspaceCleanupOnError tests that workspaces are cleaned up on error in readonly mode
+func TestReadonlyModeWorkspaceCleanupOnError(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Create commits
+	oneFile := filepath.Join(repoDir, "one.txt")
+	if err := os.WriteFile(oneFile, []byte("First commit\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write one.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "first commit", "one.txt")
+
+	failmeFile := filepath.Join(repoDir, "failme.txt")
+	if err := os.WriteFile(failmeFile, []byte("This will fail\n"), 0o644); err != nil {
+		t.Fatalf("Failed to write failme.txt: %v", err)
+	}
+	runCommand(t, repoDir, "jj", "commit", "-m", "failme", "failme.txt")
+
+	// Get initial workspace list
+	workspacesBefore, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces before: %s", workspacesBefore)
+
+	// Run readonly mode with a command that fails (stop strategy)
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--readonly", "-r", "::", "-e", "stop", "test -f failme.txt && exit 1")
+
+	// Should exit nonzero with -e stop
+	if exitCode == 0 {
+		t.Errorf("Expected nonzero exit code with -e stop on failure")
+	}
+
+	if !strings.Contains(stderr, "Stopped on change") {
+		t.Errorf("Expected 'Stopped on change' in stderr, got: %s", stderr)
+	}
+
+	// Get workspace list after error
+	workspacesAfter, _, _ := runCommand(t, repoDir, "jj", "workspace", "list")
+	t.Logf("Workspaces after: %s", workspacesAfter)
+
+	// Verify that temporary workspaces were cleaned up
+	workspaceLinesBefore := strings.Split(strings.TrimSpace(workspacesBefore), "\n")
+	workspaceLinesAfter := strings.Split(strings.TrimSpace(workspacesAfter), "\n")
+
+	if len(workspaceLinesAfter) != len(workspaceLinesBefore) {
+		t.Errorf("Expected same number of workspaces after cleanup. Before: %d, After: %d",
+			len(workspaceLinesBefore), len(workspaceLinesAfter))
+		t.Logf("Before: %s", workspacesBefore)
+		t.Logf("After: %s", workspacesAfter)
+	}
+
+	// Check that no jj-run temporary workspaces remain
+	if strings.Contains(workspacesAfter, "jj-run-") {
+		t.Errorf("Found temporary jj-run workspace in workspace list after readonly mode error: %s", workspacesAfter)
+	}
+
+	t.Logf("Test passed: readonly mode workspace cleanup on error works")
+}
+
+// TestReadonlyModeDirectConflict tests that --readonly and --direct cannot be used together
+func TestReadonlyModeDirectConflict(t *testing.T) {
+	if _, err := exec.LookPath("jj"); err != nil {
+		t.Skip("jj not found, skipping test")
+	}
+
+	repoDir := setupRepo(t)
+	defer os.RemoveAll(repoDir)
+
+	os.Setenv("PAGER", "cat")
+
+	// Try to use both --readonly and --direct
+	_, stderr, exitCode := runCommand(t, repoDir, jjRunBinary, "--readonly", "--direct", "-r", "@", "echo 'test'")
+
+	// Should fail with an error
+	if exitCode == 0 {
+		t.Errorf("Expected nonzero exit code when using --readonly and --direct together")
+	}
+
+	if !strings.Contains(stderr, "--direct and --readonly cannot be used together") {
+		t.Errorf("Expected error message about conflicting flags, got: %s", stderr)
+	}
+
+	t.Logf("Test passed: readonly and direct mode conflict detection works")
+}
