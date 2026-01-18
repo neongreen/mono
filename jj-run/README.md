@@ -117,6 +117,30 @@ jj x --readonly -r '::@' 'cargo build'
 jj x --readonly -r 'recent(5)' 'cargo llvm-cov --html'
 ```
 
+## Environment Variables
+
+When running commands, jj-run sets the following environment variables with metadata about the current change being processed:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `JJ_CHANGE_ID` | The change ID (jj's unique identifier) | `plupmpozpuunnxwmxvsussklkvqlsmul` |
+| `JJ_COMMIT_ID` | The full commit hash | `162b3b24f7088209c33630ec56deefebc70c2128` |
+| `JJ_COMMIT_TIMESTAMP` | ISO 8601 timestamp of the commit | `2026-01-18T02:55:02+01:00` |
+
+These variables are available in all modes (workspace, direct, and readonly).
+
+**Example usage:**
+```sh
+# Print change info for each commit
+jj x --readonly -r 'mutable()' 'echo "$JJ_COMMIT_TIMESTAMP $JJ_CHANGE_ID"'
+
+# Run tests and log results with timestamps (useful when results arrive out of order)
+jj x --readonly -j4 -r 'ancestors(@, 20)' '
+  echo "=== $JJ_COMMIT_TIMESTAMP $JJ_CHANGE_ID ==="
+  cargo test 2>&1 | grep -E "(Passed|Failed|Total)"
+'
+```
+
 ## Working with Remote Repositories
 
 **⚠️ EXPERIMENTAL: This feature is AI-written and untested. Use at your own risk.**

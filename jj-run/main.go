@@ -16,12 +16,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Signature represents author/committer information
+type Signature struct {
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	Timestamp string `json:"timestamp"`
+}
+
 // Change represents a jj change with its metadata
 type Change struct {
-	CommitID    string   `json:"commit_id"`
-	ChangeID    string   `json:"change_id"`
-	Description string   `json:"description"`
-	Parents     []string `json:"parents"`
+	CommitID    string    `json:"commit_id"`
+	ChangeID    string    `json:"change_id"`
+	Description string    `json:"description"`
+	Parents     []string  `json:"parents"`
+	Committer   Signature `json:"committer"`
 }
 
 // Job represents a change processing job
@@ -303,7 +311,7 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string, repo
 		}
 
 		// Run the command in the repository
-		err := runShellCommand(command, repoDir)
+		err := runShellCommand(command, repoDir, change)
 		printCommandResult(err)
 
 		if err != nil {
@@ -394,7 +402,7 @@ func runReadonlyMode(command string, strategy ErrorStrategy, repoDir string) err
 		}
 
 		// Run the command in the workspace
-		err = runShellCommand(command, workspacePath)
+		err = runShellCommand(command, workspacePath, change)
 		printCommandResult(err)
 
 		// After command execution, use --ignore-working-copy for all jj commands
@@ -607,7 +615,7 @@ func processChanges(workspacePath string, changes []*Change, command string, str
 		}
 
 		// Run the command
-		err := runShellCommand(command, workspacePath)
+		err := runShellCommand(command, workspacePath, change)
 		printCommandResult(err)
 
 		if err != nil {
@@ -693,7 +701,7 @@ func processChangesParallel(changes []*Change, command string, strategy ErrorStr
 				}
 
 				// Run the command
-				err := runShellCommand(command, workspacePath)
+				err := runShellCommand(command, workspacePath, change)
 				printCommandResult(err)
 
 				if err != nil {
@@ -855,11 +863,22 @@ func printCommandResult(err error) {
 	fmt.Println()
 }
 
-func runShellCommand(command string, cwd string) error {
+// runShellCommand runs a shell command in the given directory.
+// If change is provided, it sets JJ_CHANGE_ID, JJ_COMMIT_ID, and JJ_COMMIT_TIMESTAMP env vars.
+func runShellCommand(command string, cwd string, change *Change) error {
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Dir = cwd
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
+	// Set environment variables if change metadata is provided
+	if change != nil {
+		cmd.Env = append(os.Environ(),
+			"JJ_CHANGE_ID="+change.ChangeID,
+			"JJ_COMMIT_ID="+change.CommitID,
+			"JJ_COMMIT_TIMESTAMP="+change.Committer.Timestamp,
+		)
+	}
 
 	return cmd.Run()
 }
