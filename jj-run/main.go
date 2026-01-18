@@ -350,6 +350,9 @@ func runDirectMode(command string, strategy ErrorStrategy, beforeOp string, repo
 }
 
 func runReadonlyMode(command string, strategy ErrorStrategy, repoDir string) error {
+	// In readonly mode, always allow processing immutable commits since we're not modifying anything
+	ignoreImmutable = true
+
 	// Get changes to process (exclude root)
 	changes, err := getChangeList(fmt.Sprintf("(%s) ~ root()", revset), repoDir)
 	if err != nil {
