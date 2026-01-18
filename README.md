@@ -32,6 +32,7 @@ This repository contains multiple independent projects.
 | [ghrelease](lib/ghrelease/) | beta | Helper for fetching GitHub release assets; API may change without notice. |
 | [svghatch](lib/svghatch/) | alpha | Replaces solid colors in SVG files with line patterns for black and white printing. |
 | [toml](lib/toml/) | beta | Surgical TOML editor with comment preservation; used by conf. |
+| [ts-parser](lib/ts-parser/) | alpha | Pure-Go TypeScript/TSX parser using tree-sitter WASM and wazero; includes JSDoc extraction. |
 | [version](lib/version/) | stable | Shared version command implementation for CLI tools. |
 | [cli](lib/cli/) | stable | Unified CLI color/styling utilities for all tools. |
 | [linters/uselesswrapper](linters/uselesswrapper/) | alpha | Static analysis tool that detects useless function wrappers; integrated via Dagger and mise. |
